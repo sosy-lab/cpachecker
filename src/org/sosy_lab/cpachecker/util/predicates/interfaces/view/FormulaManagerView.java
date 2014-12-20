@@ -71,6 +71,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -834,79 +836,26 @@ public class FormulaManagerView {
     return name + INDEX_SEPARATOR + idx;
   }
 
-  private <T extends Formula> T myInstantiate(SSAMap ssa, T f) {
-    Deque<Formula> toProcess = new ArrayDeque<>();
-    Map<Formula, Formula> cache = new HashMap<>();
+  private <T extends Formula> T myInstantiate(final SSAMap pSsa, T pF) {
 
-    toProcess.push(f);
-    while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.peek();
-      if (cache.containsKey(tt)) {
-        toProcess.pop();
-        continue;
-      }
+    return myFreeVariableNodeTransformer(
+        pF,
+        new HashMap<Formula, Formula>(),
+        new Function<Formula, Formula>() {
 
-      if (unsafeManager.isVariable(tt)) {
-        toProcess.pop();
-        String name = unsafeManager.getName(tt);
-        int idx = ssa.getIndex(name);
+      @Override
+      public Formula apply(Formula pArg0) {
+        String name = unsafeManager.getName(pArg0);
+        int idx = pSsa.getIndex(name);
         if (idx > 0) {
-          // ok, the variable has an instance in the SSA, replace it
-          Formula newt = unsafeManager.replaceName(tt, makeName(name, idx));
-          cache.put(tt, newt);
+          // OK, the variable has an instance in the SSA, replace it
+          return unsafeManager.replaceName(pArg0, makeName(name, idx));
         } else {
           // the variable is not used in the SSA, keep it as is
-          cache.put(tt, tt);
-        }
-
-      } else {
-        boolean childrenDone = true;
-        int arity = unsafeManager.getArity(tt);
-        List<Formula> newargs = Lists.newArrayListWithExpectedSize(arity);
-        for (int i = 0; i < arity; ++i) {
-          Formula c = unsafeManager.getArg(tt, i);
-          Formula newC = cache.get(c);
-          if (newC != null) {
-            newargs.add(newC);
-          } else {
-            toProcess.push(c);
-            childrenDone = false;
-          }
-        }
-
-        if (childrenDone) {
-          toProcess.pop();
-          Formula newt;
-
-          if (unsafeManager.isUF(tt)) {
-            String name = unsafeManager.getName(tt);
-            assert name != null;
-
-            if (ufCanBeLvalue(name)) {
-              final int idx = ssa.getIndex(name);
-              if (idx > 0) {
-                // ok, the variable has an instance in the SSA, replace it
-                newt = unsafeManager.replaceArgsAndName(tt, makeName(name, idx), newargs);
-              } else {
-                newt = unsafeManager.replaceArgs(tt, newargs);
-              }
-            } else {
-              newt = unsafeManager.replaceArgs(tt, newargs);
-            }
-          } else {
-            newt = unsafeManager.replaceArgs(tt, newargs);
-          }
-
-          cache.put(tt, newt);
+          return pArg0;
         }
       }
-    }
-
-    @SuppressWarnings("unchecked")
-    T result = (T)cache.get(f);
-    assert result != null;
-    assert getRawFormulaType(f).equals(getRawFormulaType(result));
-    return result;
+    });
   }
 
   private boolean ufCanBeLvalue(String name) {
@@ -942,34 +891,47 @@ public class FormulaManagerView {
   }
 
   private <T extends Formula> T myUninstantiate(T f) {
-    Map<Formula, Formula> cache = uninstantiateCache;
+    return myFreeVariableNodeTransformer(f, uninstantiateCache, new Function<Formula, Formula>() {
+      @Override
+      public Formula apply(Formula pArg0) {
+        // Un-instantiated the variable (by renaming it)
+        String name = parseName(unsafeManager.getName(pArg0)).getFirst();
+        return unsafeManager.replaceName(pArg0, name);
+      }
+    });
+  }
+
+  private <T extends Formula> T myFreeVariableNodeTransformer(
+      final T pFormula,
+      final Map<Formula, Formula> pCache,
+      final Function<Formula, Formula> pRenameFunction) {
+
+    Preconditions.checkNotNull(pCache);
+    Preconditions.checkNotNull(pFormula);
+    Preconditions.checkNotNull(pRenameFunction);
+
     Deque<Formula> toProcess = new ArrayDeque<>();
 
     // Add the formula to the work queue
-    toProcess.push(f);
+    toProcess.push(pFormula);
 
     // Process the work queue
     while (!toProcess.isEmpty()) {
       final Formula tt = toProcess.peek();
-      if (cache.containsKey(tt)) {
+      if (pCache.containsKey(tt)) {
         toProcess.pop();
         continue;
       }
 
       if (unsafeManager.isFreeVariable(tt)) {
-        String name = parseName(unsafeManager.getName(tt)).getFirst();
 
-        // Un-instantiated the variable (by renaming it)
-        Formula newt = unsafeManager.replaceName(tt, name);
-
-        // Put the mapping between the instantiated formula (variable)
-        // and its un-instantiated version into the cache
-        cache.put(tt, newt);
+        Formula renamed = pRenameFunction.apply(tt);
+        pCache.put(tt, renamed);
 
       } else if (unsafeManager.isBoundVariable(tt)) {
 
         // There is no need for un-instantiating bound variables.
-        cache.put(tt, tt);
+        pCache.put(tt, tt);
 
       } else if (unsafeManager.isQuantification(tt)) {
 
@@ -978,7 +940,7 @@ public class FormulaManagerView {
 
         BooleanFormula q = (BooleanFormula) tt;
         BooleanFormula ttBody = unsafeManager.getQuantifiedBody(tt);
-        BooleanFormula uninstatiatedBody = (BooleanFormula) cache.get(ttBody);
+        BooleanFormula uninstatiatedBody = (BooleanFormula) pCache.get(ttBody);
 
         if (uninstatiatedBody != null) {
           // make a new quantified formula
@@ -986,7 +948,7 @@ public class FormulaManagerView {
               Lists.newArrayList(ttBody),
               Lists.newArrayList(uninstatiatedBody));
 
-          cache.put(tt, newTt);
+          pCache.put(tt, newTt);
         } else {
           toProcess.push(ttBody);
         }
@@ -1003,7 +965,7 @@ public class FormulaManagerView {
 
         for (int i = 0; i < arity; ++i) {
           Formula c = unsafeManager.getArg(tt, i);
-          Formula newC = cache.get(c);
+          Formula newC = pCache.get(c);
           if (newC != null) {
             newargs.add(newC);
           } else {
@@ -1037,15 +999,15 @@ public class FormulaManagerView {
             newt = unsafeManager.replaceArgs(tt, newargs);
           }
 
-          cache.put(tt, newt);
+          pCache.put(tt, newt);
         }
       }
     }
 
     @SuppressWarnings("unchecked")
-    T result = (T)cache.get(f);
+    T result = (T)pCache.get(pFormula);
     assert result != null;
-    assert getRawFormulaType(f).equals(getRawFormulaType(result));
+    assert getRawFormulaType(pFormula).equals(getRawFormulaType(result));
     return result;
   }
 

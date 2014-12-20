@@ -26,17 +26,21 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
@@ -71,6 +75,7 @@ public class FormulaManagerViewTest0 extends SolverBasedTest0 {
   private IntegerFormula _j1;
   private IntegerFormula _x;
   private IntegerFormula _x1;
+  private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
   @Before
   public void setUp() throws Exception {
@@ -89,48 +94,49 @@ public class FormulaManagerViewTest0 extends SolverBasedTest0 {
     _j1 = imv.makeVariable("j@1");
     _x = imv.makeVariable("x");
     _x1 = imv.makeVariable("x@1");
+    _b = amv.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
   }
 
-  @Test
+  @Test @Ignore
   public void testExtractAtomsArrays() {
     requireArrays();
   }
 
-  @Test
+  @Test @Ignore
   public void testExtractAtomsQuantifiers() {
     requireQuantifiers();
   }
 
-  @Test
+  @Test @Ignore
   public void testExtractAtomsQuantifiersAndArrays() {
     requireQuantifiers();
     requireArrays();
   }
 
-  @Test
+  @Test @Ignore
   public void testExtractLiteralsArrays() {
     requireArrays();
   }
 
-  @Test
+  @Test @Ignore
   public void testExtractLiteralsQuantifiers() {
     requireQuantifiers();
   }
 
-  @Test
+  @Test @Ignore
   public void testExtractLiteralsQuantifiersAndArrays() {
     requireQuantifiers();
     requireArrays();
   }
 
   @Test
-  public void testUninstanciateQuantifiersAndArrays() {
+  public void testUnInstanciateQuantifiersAndArrays() {
     requireQuantifiers();
     requireArrays();
 
-    ArrayFormula<IntegerFormula, IntegerFormula> _b = amv.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     BooleanFormula _b_at_x_NOTEQ_0 = bmv.not(imv.equal(amv.select(_b, _x), _0));
-    BooleanFormula _FORALL_x = qmgr.forall(
+
+    BooleanFormula instantiated = qmv.forall(
         Lists.newArrayList(_x),
         bmv.and(
             Lists.newArrayList(
@@ -139,8 +145,59 @@ public class FormulaManagerViewTest0 extends SolverBasedTest0 {
               imv.lessOrEquals(_x, _i1)
             )));
 
-    BooleanFormula result = mv.uninstantiate(_FORALL_x);
-    assertThat(result.toString()).isEqualTo("");
+    BooleanFormula uninstantiated = qmv.forall(
+        Lists.newArrayList(_x),
+        bmv.and(
+            Lists.newArrayList(
+              _b_at_x_NOTEQ_0,
+              imv.greaterOrEquals(_x, _j),
+              imv.lessOrEquals(_x, _i)
+            )));
+
+    SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
+    ssaBuilder.setIndex("i", CNumericTypes.INT, 1);
+    ssaBuilder.setIndex("j", CNumericTypes.INT, 1);
+
+    testUnInstanciate(instantiated, uninstantiated, ssaBuilder);
+  }
+
+  @Test
+  public void testUnInstanciate1() {
+    requireQuantifiers();
+    requireArrays();
+
+    BooleanFormula _inst1 = imv.equal(
+        imv.add(_1, _j1),
+        imv.add(_0, _i1));
+    BooleanFormula _inst2 = imv.equal(
+        imv.add(_1, imv.subtract(_0, _i1)),
+        imv.add(imv.add(_0, _x1), _i1));
+    BooleanFormula _inst3 = bmv.and(
+        Lists.newArrayList(_inst1, _inst2, bmv.not(_inst1)));
+
+    BooleanFormula _uinst1 = imv.equal(
+        imv.add(_1, _j),
+        imv.add(_0, _i));
+    BooleanFormula _uinst2 = imv.equal(
+        imv.add(_1, imv.subtract(_0, _i)),
+        imv.add(imv.add(_0, _x), _i));
+    BooleanFormula _uinst3 = bmv.and(
+        Lists.newArrayList(_uinst1, _uinst2, bmv.not(_uinst1)));
+
+    SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
+    ssaBuilder.setIndex("i", CNumericTypes.INT, 1);
+    ssaBuilder.setIndex("j", CNumericTypes.INT, 1);
+    ssaBuilder.setIndex("x", CNumericTypes.INT, 1);
+
+    testUnInstanciate(_inst3, _uinst3, ssaBuilder);
+  }
+
+  private void testUnInstanciate(BooleanFormula pInstantiated, BooleanFormula pUninstantiated, SSAMapBuilder pSsaBuilder) {
+    BooleanFormula r1 = mv.instantiate(pUninstantiated, pSsaBuilder.build());
+    assertThat(r1.toString()).isEqualTo(pInstantiated.toString());
+
+    BooleanFormula r2 = mv.uninstantiate(pInstantiated);
+    assertThat(r2.toString()).isEqualTo(pUninstantiated.toString());
   }
 
 }
