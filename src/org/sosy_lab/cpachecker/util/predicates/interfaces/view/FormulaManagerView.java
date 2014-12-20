@@ -1178,7 +1178,7 @@ public class FormulaManagerView {
     return myExtractFreeVariables(unwrap(f));
   }
 
-  private Set<Formula> myExtractFreeVariables(Formula f) {
+  private Set<Formula> myExtractFreeVariables(Formula pExtractFrom) {
     // TODO The FormulaType of returned formulas may not be correct,
     // because we cannot determine if for example a Rational formula
     // is really rational, or should be wrapped as a Bitvector formula
@@ -1186,13 +1186,16 @@ public class FormulaManagerView {
     Set<Formula> varFormulas = new HashSet<>();
 
     Deque<Formula> toProcess = new ArrayDeque<>();
-    toProcess.push(f);
+    toProcess.push(pExtractFrom);
 
     while (!toProcess.isEmpty()) {
       Formula t = toProcess.pop();
 
       if (unsafeManager.isFreeVariable(t)) {
         varFormulas.add(t);
+
+      } else if (unsafeManager.isBoundVariable(t)) {
+        // Do nothing for variables that are bound by a quantifier!
 
       } else if (unsafeManager.isQuantification(t)) {
         Formula body = unsafeManager.getQuantifiedBody(t);
