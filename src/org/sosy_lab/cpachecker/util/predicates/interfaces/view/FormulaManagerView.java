@@ -1191,15 +1191,17 @@ public class FormulaManagerView {
     while (!toProcess.isEmpty()) {
       Formula t = toProcess.pop();
 
-//      if ( msat_term_is_true(msatEnv, t) || msat_term_is_false(msatEnv, t)) {
-//        continue;
-//      }
-
       if (unsafeManager.isFreeVariable(t)) {
         varFormulas.add(t);
 
+      } else if (unsafeManager.isQuantification(t)) {
+        Formula body = unsafeManager.getQuantifiedBody(t);
+        if (seen.add(body)) {
+          toProcess.push(body);
+        }
+
       } else {
-        // ok, go into this formula
+        // Go into this formula.
         for (int i = 0; i < unsafeManager.getArity(t); ++i) {
           Formula c = unsafeManager.getArg(t, i);
 
