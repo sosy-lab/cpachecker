@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +36,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
@@ -218,7 +221,38 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
 
   @Override
   protected Long replaceQuantifiedBody(Long pF, Long pBody) {
-    throw new UnsupportedOperationException();
+    boolean isForall = is_quantifier_forall(z3context, pF);
+    int boundCount = get_quantifier_num_bound(z3context, pF);
+    ArrayList<Long> boundVars = Lists.newArrayList();
+
+    for (int b=0; b<boundCount; b++) {
+      long varName = get_quantifier_bound_name(z3context, pF, b);
+      long varSort = get_quantifier_bound_sort(z3context, pF, b);
+      long var = mk_const(z3context, varName, varSort);
+      boundVars.add(var);
+      inc_ref(z3context, var);
+    }
+
+    if (isForall) {
+      return Z3NativeApi.mk_forall_const(
+          z3context,
+          0,
+          boundVars.size(),
+          Longs.toArray(boundVars),
+          0,
+          Longs.toArray(Collections.<Long>emptyList()),
+          pBody);
+    } else {
+      return Z3NativeApi.mk_exists_const(
+          z3context,
+          0,
+          boundVars.size(),
+          Longs.toArray(boundVars),
+          0,
+          Longs.toArray(Collections.<Long>emptyList()),
+          pBody);
+
+    }
   }
 
 }

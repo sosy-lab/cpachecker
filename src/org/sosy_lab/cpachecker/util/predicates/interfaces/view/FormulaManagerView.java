@@ -941,13 +941,12 @@ public class FormulaManagerView {
 
         BooleanFormula q = (BooleanFormula) tt;
         BooleanFormula ttBody = unsafeManager.getQuantifiedBody(tt);
-        BooleanFormula uninstatiatedBody = (BooleanFormula) pCache.get(ttBody);
+        BooleanFormula transformedBody = (BooleanFormula) pCache.get(ttBody);
 
-        if (uninstatiatedBody != null) {
+        if (transformedBody != null) {
           // make a new quantified formula
-          BooleanFormula newTt = unsafeManager.substitute(q,
-              Lists.newArrayList(ttBody),
-              Lists.newArrayList(uninstatiatedBody));
+          BooleanFormula newTt = unsafeManager.replaceQuantifiedBody(
+              (BooleanFormula) tt, transformedBody);
           pCache.put(tt, newTt);
 
         } else {
@@ -956,7 +955,7 @@ public class FormulaManagerView {
 
       } else {
 
-        boolean allArgumentsUninstanciated = true;
+        boolean allArgumentsTransformed = true;
 
         // Construct a new argument list for the function application.
         // ATTENTION: also boolean operators, like AND, OR, ...
@@ -973,7 +972,7 @@ public class FormulaManagerView {
 
           } else {
             toProcess.push(c);
-            allArgumentsUninstanciated = false;
+            allArgumentsTransformed = false;
           }
         }
 
@@ -981,7 +980,7 @@ public class FormulaManagerView {
         // of the function were already un-instantiated, i.e., the
         // un-instantiated formula of all arguments is in the cache.
 
-        if (allArgumentsUninstanciated) {
+        if (allArgumentsTransformed) {
           // Create an un-instantiated version of the
           // function application.
 
