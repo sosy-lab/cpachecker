@@ -42,7 +42,7 @@ public class PredicateVariableElimination {
   // TODO: We might want to move this code to the class FormulaManagerView
 
   public static List<Formula> getDeadVariables(FormulaManagerView pFmv, BooleanFormula pFormula, SSAMap pSsa) {
-    Set<Triple<Formula, String, Integer>> formulaVariables = pFmv.extractVariables(pFormula);
+    Set<Triple<Formula, String, Integer>> formulaVariables = pFmv.extractFreeVariables(pFormula);
     List<Formula> result = Lists.newArrayList();
 
     for (Triple<Formula, String, Integer> var: formulaVariables) {

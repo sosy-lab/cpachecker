@@ -189,7 +189,7 @@ public class ValueDeterminationFormulaManager {
     List<Formula> fromVars = new ArrayList<>();
     List<Formula> toVars = new ArrayList<>();
 
-    Set<Triple<Formula, String, Integer>> allVars = fmgr.extractVariables(edgeFormula);
+    Set<Triple<Formula, String, Integer>> allVars = fmgr.extractFreeVariables(edgeFormula);
     for (Triple<Formula, String, Integer> e : allVars) {
 
       Formula formula = e.getFirst();

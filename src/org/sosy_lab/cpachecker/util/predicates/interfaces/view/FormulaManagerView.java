@@ -1152,17 +1152,17 @@ public class FormulaManagerView {
   public Set<String> extractVariableNames(Formula f) {
     Set<String> result = Sets.newHashSet();
 
-    for (Formula v: myExtractVariables(unwrap(f))) {
+    for (Formula v: myExtractFreeVariables(unwrap(f))) {
       result.add(unsafeManager.getName(v));
     }
 
     return result;
   }
 
-  public Set<Triple<Formula, String, Integer>> extractVariables(Formula f) {
+  public Set<Triple<Formula, String, Integer>> extractFreeVariables(Formula f) {
     Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
 
-    for (Formula varFormula: myExtractVariables(unwrap(f))) {
+    for (Formula varFormula: myExtractFreeVariables(unwrap(f))) {
       Pair<String, Integer> var = parseName(unsafeManager.getName(varFormula));
       result.add(Triple.of(varFormula, var.getFirst(), var.getSecond()));
     }
@@ -1170,11 +1170,11 @@ public class FormulaManagerView {
     return result;
   }
 
-  public Set<Formula> extractVariableFormulas(Formula f) {
-    return myExtractVariables(unwrap(f));
+  public Set<Formula> extractFreeVariableFormulas(Formula f) {
+    return myExtractFreeVariables(unwrap(f));
   }
 
-  private Set<Formula> myExtractVariables(Formula f) {
+  private Set<Formula> myExtractFreeVariables(Formula f) {
     // TODO The FormulaType of returned formulas may not be correct,
     // because we cannot determine if for example a Rational formula
     // is really rational, or should be wrapped as a Bitvector formula
@@ -1191,7 +1191,7 @@ public class FormulaManagerView {
 //        continue;
 //      }
 
-      if (unsafeManager.isVariable(t)) {
+      if (unsafeManager.isFreeVariable(t)) {
         varFormulas.add(t);
 
       } else {
@@ -1345,7 +1345,7 @@ public class FormulaManagerView {
   public Formula addPrefixToAllVariables(Formula input, String prefix) {
     Formula formula = unwrap(input);
     Set<Triple<Formula, String, Integer>> allVars =
-        extractVariables(formula);
+        extractFreeVariables(formula);
     FormulaType<Formula> t = getFormulaType(formula);
 
     List<Formula> from = new ArrayList<>(allVars.size());
