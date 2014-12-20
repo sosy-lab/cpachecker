@@ -162,7 +162,7 @@ public class RefineTest0 extends SolverBasedTest0 {
     _stmt_al_assign_0 = makeAssignment(_al, _0).getFirst();
   }
 
-  @Test(timeout=5000)
+  @Test
   public void testRefineCase1() throws CPATransferException, SolverException, InterruptedException {
 
     ARGPath traceError = mock(ARGPath.class);

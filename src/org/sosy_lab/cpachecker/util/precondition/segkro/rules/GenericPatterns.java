@@ -37,6 +37,7 @@ final class GenericPatterns {
               matchAnyWithAnyArgs(),
               matchInSubtree(
                   matchAnyWithAnyArgsBind(pBindArgTo))),
+
           matchAny(
               matchAny(
                   matchInSubtree(
@@ -45,46 +46,52 @@ final class GenericPatterns {
   }
 
   public static SmtAstPatternSelection f_of_x_variable (final String pBindFunctionTo, final String pBindArgTo) {
-    return f_of_x_matcher(pBindFunctionTo, matchVariableBind(pBindArgTo));
+    return f_of_x_matcher(pBindFunctionTo, and(matchNumeralVariableBind(pBindArgTo)));
+  }
+
+  public static SmtAstPatternSelection f_of_x_variable_subtree (final String pBindFunctionTo, final String pBindArgTo) {
+    return f_of_x_matcher(pBindFunctionTo, matchInSubtreeBoundedDepth(10, matchNumeralVariableBind(pBindArgTo)));
   }
 
   public static SmtAstPatternSelection f_of_x_expression (final String pBindFunctionTo, final String pBindArgTo) {
-    return f_of_x_matcher(pBindFunctionTo, matchAnyWithAnyArgsBind(pBindArgTo));
+    return f_of_x_matcher(pBindFunctionTo, and(matchAnyWithAnyArgsBind(pBindArgTo)));
   }
 
-  public static SmtAstPatternSelection f_of_x_matcher (final String pBindFunctionTo, final SmtAstPattern pLeaveMatcher) {
+  public static SmtAstPatternSelection f_of_x_matcher (final String pBindFunctionTo, final SmtAstPatternSelection pLeaveMatcher) {
     return or(
         matchBind("not", pBindFunctionTo,
             match("not",
               matchAny(
                   match("select",
-                      matchAnyWithAnyArgs(),
-                      matchInSubtree(
+                      and(
+                          matchAnyWithAnyArgs(),
                           pLeaveMatcher)),
                   matchAnyWithAnyArgs()))),
+
         matchBind("not", pBindFunctionTo,
             matchAny(
                 match("select",
-                    matchAnyWithAnyArgs(),
-                    matchInSubtree(
+                    and(
+                        matchAnyWithAnyArgs(),
                         pLeaveMatcher)),
                 matchAnyWithAnyArgs())),
+
         matchAnyBind(pBindFunctionTo,
             match("select",
-                matchAnyWithAnyArgs(),
-                matchInSubtree(
+                and(
+                    matchAnyWithAnyArgs(),
                     pLeaveMatcher)),
             matchAnyWithAnyArgs()),
+
         matchBind("not", pBindFunctionTo,
             matchAny(
-                matchAny(
-                    matchInSubtree(
-                        pLeaveMatcher)),
+                matchAnyWithArgs(
+                    pLeaveMatcher),
                 matchAnyWithAnyArgs())),
+
         matchAnyBind(pBindFunctionTo,
-            matchAny(
-                matchInSubtree(
-                    pLeaveMatcher)))
+            matchAnyWithArgs(
+                pLeaveMatcher))
         );
   }
 

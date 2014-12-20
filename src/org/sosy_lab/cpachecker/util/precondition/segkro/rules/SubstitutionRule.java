@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -65,10 +66,10 @@ public class SubstitutionRule extends PatternBasedRule {
         ));
 
     premises.add(new PatternBasedPremise(or(
-        match("=",
+        matchBind("=", "g",
             matchAnyWithAnyArgsBind("x"),
             matchAnyWithAnyArgsBind("e")),
-        match("=",
+        matchBind("=", "g",
             matchAnyWithAnyArgsBind("e"),
             matchAnyWithAnyArgsBind("x"))
     )));
@@ -77,14 +78,19 @@ public class SubstitutionRule extends PatternBasedRule {
   @Override
   protected boolean satisfiesConstraints(Map<String, Formula> pAssignment)
       throws SolverException, InterruptedException {
-    return true;
+
+    final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("f"));
+    final BooleanFormula g = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("g"));
+
+    return !f.equals(g);
   }
 
   @Override
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
-    final BooleanFormula f = (BooleanFormula) pAssignment.get("f");
-    final Formula x = pAssignment.get("x");
-    final Formula e = pAssignment.get("e");
+
+    final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("f"));
+    final Formula x = Preconditions.checkNotNull(pAssignment.get("x"));
+    final Formula e = Preconditions.checkNotNull(pAssignment.get("e"));
 
     Map<Formula, Formula> transformation = Maps.newHashMap();
     transformation.put(x, e);

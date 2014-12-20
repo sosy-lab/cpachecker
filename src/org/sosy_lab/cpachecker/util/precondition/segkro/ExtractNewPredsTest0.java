@@ -178,7 +178,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test(timeout=2000)
+  @Test
   public void testOnSafeWp3() throws SolverException, InterruptedException {
     BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
         bfm.not(ifm.equal(afm.select(_b, _i), _0)),     // b[i] != 0
@@ -191,7 +191,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   }
 
 
-  @Test(timeout=2000)
+  @Test(timeout=500)
   public void testOnErrorTrace() throws SolverException, InterruptedException {
     //   (and (= i2 0)
     //        (not (= (select b0 i2) 0))
@@ -221,7 +221,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test(timeout=2000)
+  @Test
   public void testOnErrorWp2() throws SolverException, InterruptedException {
     BooleanFormula wpError = bfm.and(Lists.newArrayList(
         ifm.greaterOrEquals(_1, _al),               // 1 >= al

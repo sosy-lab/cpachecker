@@ -33,6 +33,7 @@ import junit.framework.AssertionFailedError;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern.SmtAstMatchFlag;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
@@ -89,6 +90,14 @@ public class SmtAstPatternBuilder {
         and(argumentMatchers));
   }
 
+  public static SmtAstPattern match(Comparable<?> pFunction, SmtAstPatternSelection pArgumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>of(pFunction),
+        Optional.<SmtFormulaMatcher>absent(),
+        Optional.<String>absent(),
+        pArgumentMatchers);
+  }
+
   public static SmtAstPattern matchBind(String pBindMatchTo, SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
@@ -136,6 +145,14 @@ public class SmtAstPatternBuilder {
         Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         and(argumentMatchers));
+  }
+
+  public static SmtAstPattern matchAnyWithArgs(SmtAstPatternSelection argumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
+        Optional.<String>absent(),
+        argumentMatchers);
   }
 
   /**
@@ -199,13 +216,15 @@ public class SmtAstPatternBuilder {
         and());
   }
 
-  public static SmtAstPattern matchVariableBind(String pBindMatchTo) {
+  public static SmtAstPattern matchNumeralVariableBind(String pBindMatchTo) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
           @Override
           public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
-            return pMgr.getUnsafeFormulaManager().isVariable(pF);
+            // TODO: Switch from FormulaManager to FormulaManagerView
+            return pMgr.getUnsafeFormulaManager().isVariable(pF)
+                && pMgr.getFormulaType(pF) instanceof NumeralType;
           }
         }),
         Optional.<String>of(pBindMatchTo),
@@ -227,6 +246,21 @@ public class SmtAstPatternBuilder {
         Optional.<String>absent(),
         and());
   }
+
+  public static SmtAstPattern matchNotLiteral() {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
+          @Override
+          public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
+            // TODO: Switch from FormulaManager to FormulaManagerView
+            return !pMgr.getUnsafeFormulaManager().isLiteral(pF);
+          }
+        }),
+        Optional.<String>absent(),
+        and());
+  }
+
 
   public static SmtAstPatternSelection or(SmtAstPatternSelectionElement... pDisjuncts) {
     return new SmtAstPatternSelectionImpl(
@@ -313,15 +347,30 @@ public class SmtAstPatternBuilder {
       Set<SmtAstMatchFlag> newFlags = Sets.newHashSet(ap.flags);
       newFlags.add(SmtAstMatchFlag.IN_SUBTREE_RECURSIVE);
 
-      return new SmtFunctionApplicationPattern(
+      final SmtFunctionApplicationPattern patternWithRecursionFlag = new SmtFunctionApplicationPattern(
           ap.function,
           ap.customFormulaMatcher,
           ap.bindMatchTo,
           ap.argumentPatterns,
           newFlags.toArray(new SmtAstMatchFlag[newFlags.size()]));
+
+      return patternWithRecursionFlag;
     }
 
     throw new UnsupportedOperationException("Subtree matching not (yet) available for the requested pattern class!");
+  }
+
+  public static SmtAstPatternSelection matchInSubtreeBoundedDepth(int pMaxDepth, SmtAstPattern pPattern) {
+    if (pMaxDepth <= 0) {
+      return and();
+    }
+
+    return or(
+        pPattern,
+        matchAnyWithArgs(
+            matchInSubtreeBoundedDepth(pMaxDepth-1, pPattern)
+            )
+        );
   }
 
   public static String quantified(String pVariableName) {

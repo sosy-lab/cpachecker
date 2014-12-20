@@ -185,4 +185,14 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
     assertThat(result).isEmpty();
   }
 
+  @Test
+  public void testConclusion9() throws SolverException, InterruptedException {
+    //  (not (= (select b 0) 0))
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+        Lists.newArrayList(bfm.not(_b_at_0_EQ_0)));
+
+    assertThat(result).isEmpty();
+  }
+
 }

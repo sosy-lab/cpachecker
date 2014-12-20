@@ -53,7 +53,7 @@ public class EquivalenceRule extends PatternBasedRule {
         or(
           match("<",
               matchAnyWithAnyArgsBind("i"),
-              matchVariableBind("x")
+              matchNumeralVariableBind("x")
               ),
           match(">=",
               match("-",
@@ -68,7 +68,7 @@ public class EquivalenceRule extends PatternBasedRule {
               matchBind("+", "e",
                   matchAnyWithAnyArgsBind("i"),
                   matchNullary("1")),
-              matchVariableBind("x")
+              matchNumeralVariableBind("x")
               ),
           match(">=",
               match("+",
