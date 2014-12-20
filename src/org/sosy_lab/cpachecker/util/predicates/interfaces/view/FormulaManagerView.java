@@ -836,103 +836,27 @@ public class FormulaManagerView {
     return name + INDEX_SEPARATOR + idx;
   }
 
-//  private <T extends Formula> T myInstantiate(final SSAMap pSsa, T pF) {
-//
-//    return myFreeVariableNodeTransformer(
-//        pF,
-//        new HashMap<Formula, Formula>(),
-//        new Function<Formula, Formula>() {
-//
-//      @Override
-//      public Formula apply(Formula pArg0) {
-//        String name = unsafeManager.getName(pArg0);
-//        int idx = pSsa.getIndex(name);
-//        if (idx > 0) {
-//          // OK, the variable has an instance in the SSA, replace it
-//          return unsafeManager.replaceName(pArg0, makeName(name, idx));
-//        } else {
-//          // the variable is not used in the SSA, keep it as is
-//          return pArg0;
-//        }
-//      }
-//    });
-//  }
+  private <T extends Formula> T myInstantiate(final SSAMap pSsa, T pF) {
 
-  private <T extends Formula> T myInstantiate(SSAMap ssa, T f) {
-    Deque<Formula> toProcess = new ArrayDeque<>();
-    Map<Formula, Formula> cache = new HashMap<>();
+    return myFreeVariableNodeTransformer(
+        pF,
+        new HashMap<Formula, Formula>(),
+        new Function<Formula, Formula>() {
 
-    toProcess.push(f);
-    while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.peek();
-      if (cache.containsKey(tt)) {
-        toProcess.pop();
-        continue;
-      }
-
-      if (unsafeManager.isVariable(tt)) {
-        toProcess.pop();
-        String name = unsafeManager.getName(tt);
-        int idx = ssa.getIndex(name);
+      @Override
+      public Formula apply(Formula pArg0) {
+        String name = unsafeManager.getName(pArg0);
+        int idx = pSsa.getIndex(name);
         if (idx > 0) {
-          // ok, the variable has an instance in the SSA, replace it
-          Formula newt = unsafeManager.replaceName(tt, makeName(name, idx));
-          cache.put(tt, newt);
+          // OK, the variable has an instance in the SSA, replace it
+          return unsafeManager.replaceName(pArg0, makeName(name, idx));
         } else {
           // the variable is not used in the SSA, keep it as is
-          cache.put(tt, tt);
-        }
-
-      } else {
-        boolean childrenDone = true;
-        int arity = unsafeManager.getArity(tt);
-        List<Formula> newargs = Lists.newArrayListWithExpectedSize(arity);
-        for (int i = 0; i < arity; ++i) {
-          Formula c = unsafeManager.getArg(tt, i);
-          Formula newC = cache.get(c);
-          if (newC != null) {
-            newargs.add(newC);
-          } else {
-            toProcess.push(c);
-            childrenDone = false;
-          }
-        }
-
-        if (childrenDone) {
-          toProcess.pop();
-          Formula newt;
-
-          if (unsafeManager.isUF(tt)) {
-            String name = unsafeManager.getName(tt);
-            assert name != null;
-
-            if (ufCanBeLvalue(name)) {
-              final int idx = ssa.getIndex(name);
-              if (idx > 0) {
-                // ok, the variable has an instance in the SSA, replace it
-                newt = unsafeManager.replaceArgsAndName(tt, makeName(name, idx), newargs);
-              } else {
-                newt = unsafeManager.replaceArgs(tt, newargs);
-              }
-            } else {
-              newt = unsafeManager.replaceArgs(tt, newargs);
-            }
-          } else {
-            newt = unsafeManager.replaceArgs(tt, newargs);
-          }
-
-          cache.put(tt, newt);
+          return pArg0;
         }
       }
-    }
-
-    @SuppressWarnings("unchecked")
-    T result = (T)cache.get(f);
-    assert result != null;
-    assert getRawFormulaType(f).equals(getRawFormulaType(result));
-    return result;
+    });
   }
-
 
   private boolean ufCanBeLvalue(String name) {
     return name.startsWith("*");
