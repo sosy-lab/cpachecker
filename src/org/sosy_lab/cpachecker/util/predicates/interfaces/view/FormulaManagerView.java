@@ -841,15 +841,14 @@ public class FormulaManagerView {
     return myFreeVariableNodeTransformer(
         pF,
         new HashMap<Formula, Formula>(),
-        new Function<Formula, Formula>() {
+        new Function<String, String>() {
 
       @Override
-      public Formula apply(Formula pArg0) {
-        String name = unsafeManager.getName(pArg0);
-        int idx = pSsa.getIndex(name);
+      public String apply(String pArg0) {
+        int idx = pSsa.getIndex(pArg0);
         if (idx > 0) {
           // OK, the variable has an instance in the SSA, replace it
-          return unsafeManager.replaceName(pArg0, makeName(name, idx));
+          return makeName(pArg0, idx);
         } else {
           // the variable is not used in the SSA, keep it as is
           return pArg0;
@@ -891,12 +890,11 @@ public class FormulaManagerView {
   }
 
   private <T extends Formula> T myUninstantiate(T f) {
-    return myFreeVariableNodeTransformer(f, uninstantiateCache, new Function<Formula, Formula>() {
+    return myFreeVariableNodeTransformer(f, uninstantiateCache, new Function<String, String>() {
       @Override
-      public Formula apply(Formula pArg0) {
-        // Un-instantiated the variable (by renaming it)
-        String name = parseName(unsafeManager.getName(pArg0)).getFirst();
-        return unsafeManager.replaceName(pArg0, name);
+      public String apply(String pArg0) {
+        // Un-instantiated variable name
+        return parseName(pArg0).getFirst();
       }
     });
   }
@@ -904,7 +902,7 @@ public class FormulaManagerView {
   private <T extends Formula> T myFreeVariableNodeTransformer(
       final T pFormula,
       final Map<Formula, Formula> pCache,
-      final Function<Formula, Formula> pRenameFunction) {
+      final Function<String, String> pRenameFunction) {
 
     Preconditions.checkNotNull(pCache);
     Preconditions.checkNotNull(pFormula);
@@ -925,8 +923,9 @@ public class FormulaManagerView {
       }
 
       if (unsafeManager.isFreeVariable(tt)) {
-
-        Formula renamed = pRenameFunction.apply(tt);
+        String oldName = unsafeManager.getName(tt);
+        String newName = pRenameFunction.apply(oldName);
+        Formula renamed = unsafeManager.replaceName(tt, newName);
         pCache.put(tt, renamed);
 
       } else if (unsafeManager.isBoundVariable(tt)) {
@@ -939,7 +938,6 @@ public class FormulaManagerView {
         // Quantifications are no function applications,
         //  i.e., they do not have an arity!
 
-        BooleanFormula q = (BooleanFormula) tt;
         BooleanFormula ttBody = unsafeManager.getQuantifiedBody(tt);
         BooleanFormula transformedBody = (BooleanFormula) pCache.get(ttBody);
 
@@ -988,16 +986,17 @@ public class FormulaManagerView {
           Formula newt;
 
           if (unsafeManager.isUF(tt)) {
-            String name = unsafeManager.getName(tt);
-            assert name != null;
+            String oldName = unsafeManager.getName(tt);
+            assert oldName != null;
 
-            if (ufCanBeLvalue(name)) {
-              name = parseName(name).getFirst();
-              newt = unsafeManager.replaceArgsAndName(tt, name, newargs);
+            if (ufCanBeLvalue(oldName)) {
+              String newName = pRenameFunction.apply(oldName);
+              newt = unsafeManager.replaceArgsAndName(tt, newName, newargs);
 
             } else {
               newt = unsafeManager.replaceArgs(tt, newargs);
             }
+
           } else {
             newt = unsafeManager.replaceArgs(tt, newargs);
           }
