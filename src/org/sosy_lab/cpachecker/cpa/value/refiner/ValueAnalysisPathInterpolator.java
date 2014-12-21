@@ -340,7 +340,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
   @Override
   public String getName() {
-    return "ValueAnalysisInterpolationBasedRefiner";
+    return getClass().getSimpleName();
   }
 
   @Override
