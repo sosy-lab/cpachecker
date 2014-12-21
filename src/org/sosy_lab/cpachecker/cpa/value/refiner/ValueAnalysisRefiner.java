@@ -530,9 +530,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
       out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
       out.println("Time for completing refinement:       " + totalTime);
-      out.println("Times refinement root relocated:  " + String.format(Locale.US, "%9d", timesRootRelocated));
-
       pathInterpolator.printStatistics(out, pResult, pReached);
+      out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));
     }
   }
 
