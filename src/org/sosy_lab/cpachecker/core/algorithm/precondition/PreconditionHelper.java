@@ -161,6 +161,14 @@ public final class PreconditionHelper {
   public BooleanFormula getPreconditionOfPath(
       final ARGPath pPathToEntryLocation,
       final Optional<? extends CFANode> pStopAtNode)
+    throws CPATransferException, SolverException, InterruptedException {
+
+    return getPreconditionOfPath(pPathToEntryLocation, pStopAtNode, true);
+  }
+
+  public PathFormula computePathformula(
+      final ARGPath pPathToEntryLocation,
+      final Optional<? extends CFANode> pStopAtNode)
     throws CPATransferException, InterruptedException, SolverException {
 
     Preconditions.checkNotNull(pPathToEntryLocation);
@@ -181,7 +189,23 @@ public final class PreconditionHelper {
       }
     }
 
-    return uninstanciatePathFormula(pf);
+    return pf;
+  }
+
+  public BooleanFormula getPreconditionOfPath(
+      final ARGPath pPathToEntryLocation,
+      final Optional<? extends CFANode> pStopAtNode,
+      final boolean uninstanciate)
+    throws CPATransferException, InterruptedException, SolverException {
+
+    Preconditions.checkNotNull(pPathToEntryLocation);
+    Preconditions.checkNotNull(pStopAtNode);
+
+    PathFormula pf = computePathformula(pPathToEntryLocation, pStopAtNode);
+
+    return uninstanciate
+        ? uninstanciatePathFormula(pf)
+        : pf.getFormula();
   }
 
   public BooleanFormula getPreconditionFromReached(

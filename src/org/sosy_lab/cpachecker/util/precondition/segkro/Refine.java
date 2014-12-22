@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -89,7 +88,7 @@ public class Refine implements PreconditionRefiner {
   }
 
   private Collection<BooleanFormula> literals(BooleanFormula pF) {
-    return mgrv.extractLiterals(pF, false, false);
+    return mgrv.extractLiterals(pF, false, false, false);
   }
 
   @VisibleForTesting
@@ -99,16 +98,15 @@ public class Refine implements PreconditionRefiner {
     return ipc.getInterpolant(f, pPreconditionB, p);
   }
 
-  private BooleanFormula subst(BooleanFormula pF) {
-    return pF;
-  }
+  private BooleanFormula pre(
+      final ARGPath pPathToEntryLocation,
+      final Optional<? extends CFANode> pStopAtNode)
+          throws CPATransferException, SolverException, InterruptedException {
 
-  private List<BooleanFormula> subst(List<BooleanFormula> pFormulas) {
-    ArrayList<BooleanFormula> result = Lists.newArrayList();
-    for (BooleanFormula f: pFormulas) {
-      result.add(subst(f));
-    }
-    return result;
+    return helper.getPreconditionOfPath (
+        pPathToEntryLocation,
+        pStopAtNode,
+        false);
   }
 
 
@@ -135,52 +133,49 @@ public class Refine implements PreconditionRefiner {
 
     List<CFAEdge> edgesStartingAtEntry = Lists.reverse(pTraceToEntryLocation.asEdgesList());
 
-    for (CFAEdge transition: edgesStartingAtEntry) {
+    for (CFAEdge t: edgesStartingAtEntry) {
+
       if (!skippedUntilEntryWpLocation) {
-        if (transition.getPredecessor().equals(pEntryWpLocation.get())) {
+        if (t.getPredecessor().equals(pEntryWpLocation.get())) {
           skippedUntilEntryWpLocation = true;
         } else {
           continue;
         }
       }
 
-      if (transition.getEdgeType() != CFAEdgeType.BlankEdge) {
-        beforeTransCond = interpolateX(pTraceToEntryLocation, transition, beforeTransCond);
+      if (t.getEdgeType() != CFAEdgeType.BlankEdge) {
+        //
+        //           X                         X'
+        //        varphi_k                 varphi_k+1
+        //    ...--->o------------------------->o---...
+        //         psi_E         t_k
+        //
+
+        // 1. Compute the two formulas (A/B) that are needed to compute a Craig interpolant
+        //      afterTransCond === varphi_{k+1}
+
+        // Formula A
+        BooleanFormula precondOneAfterTrans = pre(
+            pTraceToEntryLocation,
+            Optional.of(t.getSuccessor()));
+
+        List<BooleanFormula> p = enp.extractNewPreds(precondOneAfterTrans);
+        precondOneAfterTrans = bmgr.and(precondOneAfterTrans, bmgr.and(p));
+
+        // Formula B
+        BooleanFormula precondTwoAfterTrans = computeCounterCondition(t, bmgr.not(beforeTransCond));
+
+        // Compute an interpolant; use a set of candidate predicates.
+        //    The candidates for the interpolant are taken from Formula A (since that formula should get over-approximated)
+        beforeTransCond = ipc.getInterpolant(precondOneAfterTrans, precondTwoAfterTrans, p);
+        // TODO: Substitution X/X` and back
+
         result.addAll(literals(beforeTransCond));
       }
     }
 
 
     return result.build();
-  }
-
-  private BooleanFormula interpolateX(
-      final ARGPath pTraceToEntryLocation,
-      final CFAEdge pTransition,
-      final BooleanFormula pBeforeTransCond)
-          throws CPATransferException, SolverException, InterruptedException {
-
-    Preconditions.checkNotNull(pTraceToEntryLocation);
-    Preconditions.checkNotNull(pTransition);
-    Preconditions.checkNotNull(pBeforeTransCond);
-
-    // 1. Compute the two formulas (A/B) that are needed to compute a Craig interpolant
-    //      afterTransCond === varphi_{k+1}
-    // Formula A
-    BooleanFormula precondOneAfterTrans = helper.getPreconditionOfPath(
-        pTraceToEntryLocation,
-        Optional.of(pTransition.getSuccessor()));
-
-    List<BooleanFormula> p = enp.extractNewPreds(precondOneAfterTrans);
-    precondOneAfterTrans = bmgr.and(precondOneAfterTrans, bmgr.and(p));
-
-    // Formula B
-    BooleanFormula precondTwoAfterTrans = computeCounterCondition(pTransition, bmgr.not(pBeforeTransCond));
-
-    // Compute an interpolant; use a set of candidate predicates.
-    //    The candidates for the interpolant are taken from Formula A (since that formula should get over-approximated)
-    return ipc.getInterpolant(precondOneAfterTrans, precondTwoAfterTrans, p);
-    // TODO: Substitution X/X` and back
   }
 
   /**
@@ -210,11 +205,11 @@ public class Refine implements PreconditionRefiner {
       final Optional<CFANode> pWpLocation)
     throws SolverException, InterruptedException, CPATransferException {
 
-    // Compute the WP for both traces
-    BooleanFormula pcViolation = helper.getPreconditionOfPath(pTraceFromViolation, pWpLocation);
-    BooleanFormula pcValid = helper.getPreconditionOfPath(pTraceFromValidTermination, pWpLocation);
+    // Compute the precondition for both traces
+    BooleanFormula pcViolation = pre(pTraceFromViolation, pWpLocation);
+    BooleanFormula pcValid = pre(pTraceFromValidTermination, pWpLocation);
 
-    // "Enrich" the WPs with more general predicates
+    // "Enrich" the preconditions with more general predicates
     pcViolation = interpolate(pcViolation, pcValid);
     pcValid = interpolate(pcValid, pcViolation);
 

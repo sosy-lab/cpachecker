@@ -63,6 +63,9 @@ public class MinCorePrio implements InterpolationWithCandidates {
    * so that it is still inconsistent with pPhiPlus.
    *    (Craig interpolant property)
    *
+   *  The list pItpCandidatePredicates is sorted in ascending order according
+   *    the priority of its elements; predicates with lower priority are in front.
+   *
    * @param pPhiMinus
    * @param pPhiPlus
    * @param pItpCandidatePredicates
@@ -85,7 +88,7 @@ public class MinCorePrio implements InterpolationWithCandidates {
     }
 
     // ATTENTION: the following line might be different from the paper! Literals vs. atoms!
-    Collection<BooleanFormula> resultPredicates = mgrv.extractLiterals(pPhiMinus, false, false);
+    Collection<BooleanFormula> resultPredicates = mgrv.extractLiterals(pPhiMinus, false, false, false);
     List<BooleanFormula> candidatesPrime = Lists.newLinkedList();
 
     candidatesPrime.addAll(resultPredicates);
