@@ -1015,12 +1015,17 @@ public class FormulaManagerView {
 
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
     return unwrapFormulasOfList(
-        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM));
+        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, false));
   }
 
-  public Collection<BooleanFormula> extractLiterals(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
+  public Collection<BooleanFormula> extractLiterals(
+      BooleanFormula f,
+      boolean splitArithEqualities,
+      boolean conjunctionsOnly,
+      boolean uninstanciate) {
+
     return unwrapFormulasOfList(
-        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.LITERAL));
+        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.LITERAL, uninstanciate));
   }
 
   private List<BooleanFormula> unwrapFormulasOfList(Collection<BooleanFormula> unwrapped) {
@@ -1042,7 +1047,7 @@ public class FormulaManagerView {
   }
 
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula f, boolean splitArithEqualities,
-      boolean conjunctionsOnly, FormulaStructure breakdownTo) {
+      boolean conjunctionsOnly, FormulaStructure breakdownTo, boolean uninstanciate) {
     Set<BooleanFormula> handled = new HashSet<>();
     List<BooleanFormula> atoms = new ArrayList<>();
 
@@ -1069,7 +1074,9 @@ public class FormulaManagerView {
               && (ttStructure == FormulaStructure.ATOM));
 
       if (isSmallesConsidered) {
-        tt = myUninstantiate(tt);
+        if (uninstanciate) {
+          tt = myUninstantiate(tt);
+        }
 
         if (splitArithEqualities
             && myIsPurelyArithmetic(tt)) {
@@ -1108,7 +1115,10 @@ public class FormulaManagerView {
           && !(booleanFormulaManager.isNot(tt) || booleanFormulaManager.isAnd(tt))) {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
-        atoms.add(myUninstantiate(tt));
+        if (uninstanciate) {
+          tt = myUninstantiate(tt);
+        }
+        atoms.add(tt);
 
       } else {
         // ok, go into this formula
