@@ -142,6 +142,10 @@ analysis.reachedSet = PARTITIONED
 # disjoint.
 analysis.refinePreconditions = false
 
+# Do not report 'False' result, return UNKNOWN instead.  Useful for
+# incomplete analysis with no counterexample checking.
+analysis.reportFalseAsUnknown = false
+
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
@@ -1025,6 +1029,9 @@ cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
+
+# Handle arrays using the theory of arrays.
+cpa.predicate.handleArrays = false
 
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false

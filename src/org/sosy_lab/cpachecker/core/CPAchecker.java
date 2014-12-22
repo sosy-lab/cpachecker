@@ -169,6 +169,10 @@ public class CPAchecker {
   @Option(secure=true, description="Do not report unknown if analysis terminated, report true (UNSOUND!).")
   private boolean unknownAsTrue = false;
 
+  @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "
+      + " Useful for incomplete analysis with no counterexample checking.")
+  private boolean reportFalseAsUnknown = false;
+
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
@@ -283,7 +287,11 @@ public class CPAchecker {
 
       violatedPropertyDescription = findViolatedProperties(reached);
       if (violatedPropertyDescription != null) {
-        result = Result.FALSE;
+        if (reportFalseAsUnknown) {
+          result = Result.UNKNOWN;
+        } else {
+          result = Result.FALSE;
+        }
       } else {
         violatedPropertyDescription = "";
         result = analyzeResult(reached, isComplete);
