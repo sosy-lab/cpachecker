@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -66,7 +67,7 @@ public class ExtractNewPreds {
   }
 
   private Collection<BooleanFormula> extractLiterals(BooleanFormula pInputFormula) {
-    return mgrv.extractLiterals(pInputFormula, false, false); // TODO: check the argument 'conjunctionsOnly'
+    return mgrv.extractLiterals(pInputFormula, false, false, false); // TODO: check the argument 'conjunctionsOnly'
   }
 
   private List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
@@ -101,9 +102,12 @@ public class ExtractNewPreds {
           final boolean tupleContainsOnlyBasePredicates = !containsFormulasNotFrom(tuple, pBasePredicates);
 
           // The rules ELIM and EQ are only applied to the base predicates!!
-          final boolean isElimOrEq = rule instanceof EliminationRule || rule instanceof EquivalenceRule;
+          final boolean isBasicPredicatesOnlyRule = false
+              || rule instanceof EliminationRule
+              || rule instanceof EquivalenceRule
+              || rule instanceof LinCombineRule;
 
-          if ((!isElimOrEq) || tupleContainsOnlyBasePredicates) {
+          if ((!isBasicPredicatesOnlyRule) || tupleContainsOnlyBasePredicates) {
             // Conclude new, general, predicates.
             Collection<BooleanFormula> concluded = rule.applyWithInputRelatingPremises(tuple);
 

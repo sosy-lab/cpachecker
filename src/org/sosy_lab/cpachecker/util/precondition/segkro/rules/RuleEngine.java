@@ -42,7 +42,9 @@ public class RuleEngine implements Concluding {
   public RuleEngine(LogManager pLogger, Solver pSolver) {
     final SmtAstMatcher matcher = pSolver.getSmtAstMatcher();
 
+    // ATTENTION: The ordering of the rules is important!!!!!!
     rules = Lists.newArrayList();
+    rules.add(new LinCombineRule(pSolver, matcher));
     rules.add(new EliminationRule(pSolver, matcher));
     rules.add(new EquivalenceRule(pSolver, matcher));
     rules.add(new UniversalizeRule(pSolver, matcher));
@@ -51,6 +53,7 @@ public class RuleEngine implements Concluding {
     rules.add(new ExistentialRule(pSolver, matcher));
     rules.add(new ExtendLeftRule(pSolver, matcher));
     rules.add(new ExtendRightRule(pSolver, matcher));
+    // ATTENTION: The ordering of the rules is important!!!!!!
   }
 
   public ImmutableList<Rule> getRules() {

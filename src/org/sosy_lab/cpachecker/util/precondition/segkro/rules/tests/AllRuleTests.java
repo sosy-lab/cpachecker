@@ -30,6 +30,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
+  LinCombineRuleTest0.class,
   EliminationRuleTest0.class,
   EquivalenceRuleTest0.class,
   ExistentialRuleTest0.class,
