@@ -255,19 +255,19 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       // Get arbitrary traces...(without disjunctions)
       // ... one to the location that violates the specification
       // ... and one to the location that represents the exit location
-      final ARGPath traceViolation;
-      final ARGPath traceValid;
+      final ARGPath traceFromViolation;
+      final ARGPath traceFromValid;
       try {
-        traceViolation = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
-        traceValid = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
+        traceFromViolation = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
+        traceFromValid = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
       } catch (NoTraceFoundException e) {
         logger.log(Level.WARNING, e.getMessage());
         return false;
       }
 
       // Check the disjointness of the WP for the two traces...
-      final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceViolation, Optional.of(wpLoc));
-      final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceValid, Optional.of(wpLoc));
+      final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceFromViolation, Optional.of(wpLoc));
+      final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceFromValid, Optional.of(wpLoc));
 
       if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
         logger.log(Level.WARNING, "non-determinism in program."); // This warning is taken 1:1 from the Seghir/Kroening paper
@@ -276,7 +276,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
       // Refine the precision so that the
       // abstraction on the two traces is disjoint
-      PredicatePrecision newPrecision = refiner.refine(traceViolation, traceValid, Optional.of(wpLoc));
+      PredicatePrecision newPrecision = refiner.refine(traceFromViolation, traceFromValid, Optional.of(wpLoc));
 
       // Add the predicates to the precision
       // TODO: Location-specific?

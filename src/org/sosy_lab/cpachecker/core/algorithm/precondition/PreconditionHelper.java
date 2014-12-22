@@ -29,13 +29,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -66,7 +65,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 public final class PreconditionHelper {
@@ -146,14 +144,6 @@ public final class PreconditionHelper {
         PredicateVariableElimination.eliminateDeadVariables(mgrv, pPf.getFormula(), pPf.getSsa()));
   }
 
-  public List<BooleanFormula> getPrecondsAlongPath(ARGPath pPath) {
-    ImmutableList<PathFormula> r = from(pPath.asStatesList())
-        .transform(toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toList();
-    return null;
-  }
-
   /**
    * Compute the precondition for a given path.
    *
@@ -162,36 +152,42 @@ public final class PreconditionHelper {
    *
    * This code can later also be used to compute postconditions.
    *
-   * @param pPath
+   * @param pPathToEntryLocation
    * @return
    * @throws InterruptedException
    * @throws CPATransferException
    * @throws SolverException
    */
-  public BooleanFormula getPreconditionOfPath(@Nonnull ARGPath pPath, Optional<? extends CFANode> pStopAtNode)
-      throws CPATransferException, InterruptedException, SolverException {
+  public BooleanFormula getPreconditionOfPath(
+      final ARGPath pPathToEntryLocation,
+      final Optional<? extends CFANode> pStopAtNode)
+    throws CPATransferException, InterruptedException, SolverException {
+
+    Preconditions.checkNotNull(pPathToEntryLocation);
+    Preconditions.checkNotNull(pStopAtNode);
 
     PathFormula pf = pfmBwd.makeEmptyPathFormula();
 
-    for (CFAEdge edge : pPath.asEdgesList()) {
-     pf = pfmBwd.makeAnd(pf, edge);
+    for (CFAEdge edge : pPathToEntryLocation.asEdgesList()) {
 
-     if (pStopAtNode.isPresent()) {
-       if (pStopAtNode.get().equals(edge.getSuccessor())) {
-         break;
-       }
-     }
+      if (pStopAtNode.isPresent()) {
+        if (pStopAtNode.get().equals(edge.getSuccessor())) {
+          break;
+        }
+      }
+
+      if (edge.getEdgeType() != CFAEdgeType.BlankEdge) {
+        pf = pfmBwd.makeAnd(pf, edge); // BACKWARDS!!!!
+      }
     }
 
     return uninstanciatePathFormula(pf);
   }
 
-  public BooleanFormula getPathStatePrecondition(ARGPath pPath, ARGState pStateInPath) {
-    return null;
-  }
-
-  public BooleanFormula getPreconditionFromReached(ReachedSet pReached,
-      PreconditionPartition pPartition, CFANode pSpecificTargetLocation) {
+  public BooleanFormula getPreconditionFromReached(
+      final ReachedSet pReached,
+      final PreconditionPartition pPartition,
+      final CFANode pSpecificTargetLocation) {
 
     Preconditions.checkNotNull(pReached);
     Preconditions.checkNotNull(pPartition);
@@ -202,13 +198,14 @@ public final class PreconditionHelper {
     return mgrv.simplify(bmgr.or(abstractions));
   }
 
-  private PredicateAbstractState getTargetAbstractionState(ARGPath pPathToTarget,
-      CFANode pTargetLocation) {
+  private PredicateAbstractState getTargetAbstractionState(
+      final ARGPath pPathToEntryLocation,
+      final CFANode pTargetLocation) {
 
     Preconditions.checkNotNull(pTargetLocation);
-    Preconditions.checkNotNull(pPathToTarget);
+    Preconditions.checkNotNull(pPathToEntryLocation);
 
-    final List<ARGState> relevantStates = from(pPathToTarget.asStatesList())
+    final List<ARGState> relevantStates = from(pPathToEntryLocation.asStatesList())
         .skip(1)
         .filter(Predicates.compose(
             PredicateAbstractState.FILTER_ABSTRACTION_STATES,
@@ -223,8 +220,10 @@ public final class PreconditionHelper {
     return AbstractStates.extractStateByType(relevantStates.get(0), PredicateAbstractState.class);
   }
 
-  private List<BooleanFormula> getTargetStateAbstractionsFromReached(ReachedSet pReached,
-      PreconditionPartition pPartition, CFANode pTargetLocation) {
+  private List<BooleanFormula> getTargetStateAbstractionsFromReached(
+      final ReachedSet pReached,
+      final PreconditionPartition pPartition,
+      final CFANode pTargetLocation) {
 
     Preconditions.checkNotNull(pTargetLocation);
     Preconditions.checkNotNull(pPartition);
@@ -237,11 +236,11 @@ public final class PreconditionHelper {
 
     for (AbstractState s: targetStates) {
       final ARGState target = (ARGState) s;
-      final ARGPath pathToTarget = ARGUtils.getOnePathTo(target);
+      final ARGPath pathToEntryLocation = ARGUtils.getOnePathTo(target); // BACKWARDS analysis: target = entry location
 
-      Verify.verify(pathToTarget != null, "The abstract target-state must be on an abstract path!");
+      Verify.verify(pathToEntryLocation != null, "The abstract target-state must be on an abstract path!");
 
-      final PredicateAbstractState state = getTargetAbstractionState(pathToTarget, pTargetLocation);
+      final PredicateAbstractState state = getTargetAbstractionState(pathToEntryLocation, pTargetLocation);
 
       // The last abstraction state before the target location contains the negation of the WP
       result.add(mgrv.uninstantiate(state.getAbstractionFormula().asFormula()));

@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -55,7 +56,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -108,8 +112,17 @@ public class Refine implements PreconditionRefiner {
   }
 
 
-  private List<BooleanFormula> predsFromTrace(ARGPath pPath, BooleanFormula pPrecond, Optional<CFANode> pEntryWpLocation) throws SolverException, InterruptedException, CPATransferException {
-    List<BooleanFormula> result = Lists.newArrayList();
+  private ImmutableList<BooleanFormula> predsFromTrace(
+      final ARGPath pTraceToEntryLocation,
+      final BooleanFormula pPrecond,
+      final Optional<CFANode> pEntryWpLocation)
+          throws SolverException, InterruptedException, CPATransferException {
+
+    Preconditions.checkNotNull(pPrecond);
+    Preconditions.checkNotNull(pEntryWpLocation);
+    Preconditions.checkNotNull(pTraceToEntryLocation);
+
+    Builder<BooleanFormula> result = ImmutableList.<BooleanFormula>builder();
 
     // TODO: It might be possible to use this code to also derive the predicate for the first sate.
 
@@ -120,7 +133,9 @@ public class Refine implements PreconditionRefiner {
 
     boolean skippedUntilEntryWpLocation = !pEntryWpLocation.isPresent();
 
-    for (CFAEdge transition: pPath.asEdgesList()) {
+    List<CFAEdge> edgesStartingAtEntry = Lists.reverse(pTraceToEntryLocation.asEdgesList());
+
+    for (CFAEdge transition: edgesStartingAtEntry) {
       if (!skippedUntilEntryWpLocation) {
         if (transition.getPredecessor().equals(pEntryWpLocation.get())) {
           skippedUntilEntryWpLocation = true;
@@ -129,24 +144,38 @@ public class Refine implements PreconditionRefiner {
         }
       }
 
-      beforeTransCond = interpolateX(pPath, transition, beforeTransCond);
-
-      result.addAll(literals(beforeTransCond));
+      if (transition.getEdgeType() != CFAEdgeType.BlankEdge) {
+        beforeTransCond = interpolateX(pTraceToEntryLocation, transition, beforeTransCond);
+        result.addAll(literals(beforeTransCond));
+      }
     }
 
-    return result;
+
+    return result.build();
   }
 
-  private BooleanFormula interpolateX(final ARGPath pPath, final CFAEdge transition, final BooleanFormula beforeTransCond) throws CPATransferException, SolverException, InterruptedException {
+  private BooleanFormula interpolateX(
+      final ARGPath pTraceToEntryLocation,
+      final CFAEdge pTransition,
+      final BooleanFormula pBeforeTransCond)
+          throws CPATransferException, SolverException, InterruptedException {
+
+    Preconditions.checkNotNull(pTraceToEntryLocation);
+    Preconditions.checkNotNull(pTransition);
+    Preconditions.checkNotNull(pBeforeTransCond);
+
     // 1. Compute the two formulas (A/B) that are needed to compute a Craig interpolant
     //      afterTransCond === varphi_{k+1}
     // Formula A
-    BooleanFormula precondOneAfterTrans = helper.getPreconditionOfPath(pPath, Optional.of(transition.getSuccessor()));
+    BooleanFormula precondOneAfterTrans = helper.getPreconditionOfPath(
+        pTraceToEntryLocation,
+        Optional.of(pTransition.getSuccessor()));
+
     List<BooleanFormula> p = enp.extractNewPreds(precondOneAfterTrans);
     precondOneAfterTrans = bmgr.and(precondOneAfterTrans, bmgr.and(p));
 
     // Formula B
-    BooleanFormula precondTwoAfterTrans = computeCounterCondition(transition, bmgr.not(beforeTransCond));
+    BooleanFormula precondTwoAfterTrans = computeCounterCondition(pTransition, bmgr.not(pBeforeTransCond));
 
     // Compute an interpolant; use a set of candidate predicates.
     //    The candidates for the interpolant are taken from Formula A (since that formula should get over-approximated)
@@ -175,12 +204,15 @@ public class Refine implements PreconditionRefiner {
   }
 
   @Override
-  public PredicatePrecision refine(ARGPath pTraceToViolation, ARGPath pTraceToValidTermination, Optional<CFANode> pWpLocation)
-      throws SolverException, InterruptedException, CPATransferException {
+  public PredicatePrecision refine(
+      final ARGPath pTraceFromViolation,
+      final ARGPath pTraceFromValidTermination,
+      final Optional<CFANode> pWpLocation)
+    throws SolverException, InterruptedException, CPATransferException {
 
     // Compute the WP for both traces
-    BooleanFormula pcViolation = helper.getPreconditionOfPath(pTraceToViolation, pWpLocation);
-    BooleanFormula pcValid = helper.getPreconditionOfPath(pTraceToValidTermination, pWpLocation);
+    BooleanFormula pcViolation = helper.getPreconditionOfPath(pTraceFromViolation, pWpLocation);
+    BooleanFormula pcValid = helper.getPreconditionOfPath(pTraceFromValidTermination, pWpLocation);
 
     // "Enrich" the WPs with more general predicates
     pcViolation = interpolate(pcViolation, pcValid);
@@ -195,9 +227,11 @@ public class Refine implements PreconditionRefiner {
     //    (or the WPs along the trace)...
     //
     // -- along the trace to the violating state...
-    preds.addAll(predsFromTrace(pTraceToViolation, pcViolation, pWpLocation));
+    ImmutableList<BooleanFormula> predsViolation = predsFromTrace(pTraceFromViolation, pcViolation, pWpLocation);
+    preds.addAll(predsViolation);
     // -- along the trace to the termination state...
-    preds.addAll(predsFromTrace(pTraceToValidTermination, pcValid, pWpLocation));
+    ImmutableList<BooleanFormula> predsFromValid = predsFromTrace(pTraceFromValidTermination, pcValid, pWpLocation);
+    preds.addAll(predsFromValid);
 
     return predicatesAsGlobalPrecision(preds);
   }
