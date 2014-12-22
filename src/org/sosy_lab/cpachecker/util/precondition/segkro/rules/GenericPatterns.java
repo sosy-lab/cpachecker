@@ -81,17 +81,17 @@ final class GenericPatterns {
                 and(
                     matchAnyWithAnyArgs(),
                     pLeaveMatcher)),
-            matchAnyWithAnyArgs()),
-
-        matchBind("not", pBindFunctionTo,
-            matchAny(
-                matchAnyWithArgs(
-                    pLeaveMatcher),
-                matchAnyWithAnyArgs())),
-
-        matchAnyBind(pBindFunctionTo,
-            matchAnyWithArgs(
-                pLeaveMatcher))
+            matchAnyWithAnyArgs())
+//
+//        matchBind("not", pBindFunctionTo,
+//            matchAny(
+//                matchAnyWithArgs(
+//                    pLeaveMatcher),
+//                matchAnyWithAnyArgs())),
+//
+//        matchAnyBind(pBindFunctionTo,
+//            matchAnyWithArgs(
+//                pLeaveMatcher))
         );
   }
 
