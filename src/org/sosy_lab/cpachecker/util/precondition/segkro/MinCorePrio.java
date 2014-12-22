@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 /**
@@ -58,31 +59,38 @@ public class MinCorePrio implements InterpolationWithCandidates {
   }
 
   /**
-   * Computes a minimal set of predicates that describes pConjunction
-   * so that it is still inconsistent with pArbitraryFormula.
+   * Computes a minimal set of predicates that describes pPhiMinus
+   * so that it is still inconsistent with pPhiPlus.
    *    (Craig interpolant property)
    *
-   * @param pConjunction
-   * @param pArbitraryFormula
-   * @param pCandidates
+   * @param pPhiMinus
+   * @param pPhiPlus
+   * @param pItpCandidatePredicates
+   *
    * @throws InterruptedException
    * @throws SolverException
    */
   @Override
-  public BooleanFormula getInterpolant(BooleanFormula pConjunction, BooleanFormula pArbitraryFormula, List<BooleanFormula> pCandidates)
-      throws SolverException, InterruptedException {
+  public BooleanFormula getInterpolant(
+      final BooleanFormula pPhiMinus,
+      final BooleanFormula pPhiPlus,
+      final List<BooleanFormula> pItpCandidatePredicates)
+    throws SolverException, InterruptedException {
 
-    if (!isInconsistent(pConjunction, pArbitraryFormula)) {
+    Preconditions.checkNotNull(pPhiMinus);
+    Preconditions.checkNotNull(pPhiPlus);
+
+    if (!isInconsistent(pPhiMinus, pPhiPlus)) {
       throw new AssertionError("MinCorePrio: Formulas not inconsistent!");
     }
 
     // ATTENTION: the following line might be different from the paper! Literals vs. atoms!
-    Collection<BooleanFormula> resultPredicates = mgrv.extractLiterals(pConjunction, false, false);
+    Collection<BooleanFormula> resultPredicates = mgrv.extractLiterals(pPhiMinus, false, false);
     List<BooleanFormula> candidatesPrime = Lists.newLinkedList();
 
     candidatesPrime.addAll(resultPredicates);
-    candidatesPrime.addAll(pCandidates);
-    resultPredicates.addAll(pCandidates);
+    candidatesPrime.addAll(pItpCandidatePredicates);
+    resultPredicates.addAll(pItpCandidatePredicates);
 
     for (BooleanFormula f: candidatesPrime) {
       // ...
@@ -100,7 +108,7 @@ public class MinCorePrio implements InterpolationWithCandidates {
       //    maintains the inconsistency with pArbitraryFormula
       boolean stillInconsistent = isInconsistent(
           bmgr.and(resultPredicatesMinusF),
-          pArbitraryFormula);
+          pPhiPlus);
 
       if (stillInconsistent) {
         // Remove the predicate if it does not contribute to the inconsistency
