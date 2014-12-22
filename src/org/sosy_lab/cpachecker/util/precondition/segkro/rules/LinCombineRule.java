@@ -141,7 +141,7 @@ public class LinCombineRule extends PatternBasedRule {
         }
         final IntegerFormula o = (IntegerFormula) f;
 
-        if (solver.isUnsat(ifm.equal(o, ifm.makeNumber(0)))) {
+        if (solver.isUnsat(ifm.equal(o, ifm.makeNumber(1)))) {
           return false;
         }
       }
