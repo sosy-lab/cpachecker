@@ -1297,6 +1297,9 @@ cpa.predicate.solver.z3.objectivePrioritizationMode = "box"
 cpa.predicate.solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
 
+# Require proofs from SMT solver
+cpa.predicate.solver.z3.requireProofs = true
+
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
 
