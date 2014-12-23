@@ -246,7 +246,7 @@ public class FormulaManagerView {
     }
   }
 
-  Formula unwrap(Formula f) {
+  <T extends Formula> Formula unwrap(T f) {
     if (f instanceof WrappingFormula<?, ?>) {
       return ((WrappingFormula<?, ?>)f).getWrapped();
     } else {
@@ -367,7 +367,7 @@ public class FormulaManagerView {
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(T formula, Rational value) {
     Formula t;
-    FormulaType<T> formulaType = getFormulaType(formula);
+    FormulaType<?> formulaType = getFormulaType(unwrap(formula));
     if (formulaType.isIntegerType() && value.isIntegral()) {
       t = integerFormulaManager.makeNumber(value.toString());
     } else if (formulaType.isRationalType()) {
@@ -680,7 +680,10 @@ public class FormulaManagerView {
     return t;
   }
 
-  public  <T extends Formula> BooleanFormula makeLessOrEqual(T pLhs, T pRhs, boolean signed) {
+  public  <T extends Formula> BooleanFormula makeLessOrEqual(T pWLhs, T pWRhs, boolean signed) {
+    Formula pLhs, pRhs;
+    pLhs = unwrap(pWLhs);
+    pRhs = unwrap(pWRhs);
     BooleanFormula t;
     if (pLhs instanceof IntegerFormula && pRhs instanceof IntegerFormula) {
       t = integerFormulaManager.lessOrEquals((IntegerFormula)pLhs, (IntegerFormula)pRhs);
