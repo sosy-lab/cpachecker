@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -67,6 +68,7 @@ import com.google.common.collect.Multimap;
 public class Refine implements PreconditionRefiner {
 
   private static enum FormulaMode { INSTANTIATED, UNINSTANTIATED }
+  private static enum PreMode { ELIMINATE_DEAD, SSA_PATH }
 
   private final ExtractNewPreds enp;
   private final InterpolationWithCandidates ipc;
@@ -105,11 +107,17 @@ public class Refine implements PreconditionRefiner {
   private PathFormula pre(
       final ARGPath pPathToEntryLocation,
       final Optional<? extends CFANode> pStopAtNode,
+      final PreMode pPre,
       final FormulaMode pMode)
           throws CPATransferException, SolverException, InterruptedException {
 
-    PathFormula pf = helper.computePathformula(pPathToEntryLocation, pStopAtNode);
-    BooleanFormula f = PredicateVariableElimination.eliminateDeadVariables(mgrv, pf.getFormula(), pf.getSsa());
+    final PathFormula pf = helper.computePathformula(pPathToEntryLocation, pStopAtNode);
+    final BooleanFormula f;
+    if (pPre == PreMode.ELIMINATE_DEAD) {
+      f = PredicateVariableElimination.eliminateDeadVariables(mgrv, pf.getFormula(), pf.getSsa());
+    } else {
+      f = pf.getFormula();
+    }
 
     if (pMode == FormulaMode.UNINSTANTIATED) {
       return alterPf(pmgrFwd.makeEmptyPathFormula(), mgrv.uninstantiate(f));
@@ -138,7 +146,6 @@ public class Refine implements PreconditionRefiner {
     PathFormula preAtK = pInstanciatedTracePrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
 
     boolean skippedUntilEntryWpLocation = !pEntryWpLocation.isPresent();
-
     List<CFAEdge> edgesStartingAtEntry = Lists.reverse(pTraceToEntryLocation.asEdgesList());
 
     for (CFAEdge t: edgesStartingAtEntry) {
@@ -165,27 +172,30 @@ public class Refine implements PreconditionRefiner {
         // Formula A
         PathFormula preAtKp1 = pre(
             pTraceToEntryLocation, Optional.of(t.getSuccessor()),
-            FormulaMode.UNINSTANTIATED);
+            PreMode.ELIMINATE_DEAD,
+            FormulaMode.INSTANTIATED);
 
         if (bmgr.isTrue(preAtKp1.getFormula())) {
           break;
         }
 
-        List<BooleanFormula> predsNew = enp.extractNewPreds(preAtKp1.getFormula());
+        final List<BooleanFormula> predsNew = enp.extractNewPreds(preAtKp1.getFormula());
         preAtKp1 = alterPf(preAtKp1, bmgr.and(preAtKp1.getFormula(), bmgr.and(predsNew)));
 
         // Formula B
-        PathFormula transFromPreAtK = computeCounterCondition(t,
+        final PathFormula transFromPreAtK = computeCounterCondition(t,
             alterPf(preAtK, bmgr.not(preAtK.getFormula())));
 
         // Compute an interpolant; use a set of candidate predicates.
         //    The candidates for the interpolant are taken from Formula A (since that formula should get over-approximated)
+
+        final SSAMap instantiateWith = transFromPreAtK.getSsa();
         preAtK = alterPf(
             transFromPreAtK,
             ipc.getInterpolant(
-                mgrv.instantiate(preAtKp1.getFormula(), transFromPreAtK.getSsa()),
+                mgrv.instantiate(preAtKp1.getFormula(), instantiateWith),
                 transFromPreAtK.getFormula(),
-                predsNew)); // TODO: Instantiate predsNew
+                mgrv.instantiate(predsNew, instantiateWith)));
 
         result.addAll(literals(preAtK.getFormula(), FormulaMode.UNINSTANTIATED));
       }
@@ -226,8 +236,8 @@ public class Refine implements PreconditionRefiner {
     throws SolverException, InterruptedException, CPATransferException {
 
     // Compute the precondition for both traces
-    PathFormula pcViolation = pre(pTraceFromViolation, pWpLocation, FormulaMode.INSTANTIATED);
-    PathFormula pcValid = pre(pTraceFromValidTermination, pWpLocation, FormulaMode.INSTANTIATED);
+    PathFormula pcViolation = pre(pTraceFromViolation, pWpLocation, PreMode.ELIMINATE_DEAD, FormulaMode.INSTANTIATED);
+    PathFormula pcValid = pre(pTraceFromValidTermination, pWpLocation, PreMode.ELIMINATE_DEAD, FormulaMode.INSTANTIATED);
 
     // "Enrich" the preconditions with more general predicates
     pcViolation = alterPf(pcViolation,

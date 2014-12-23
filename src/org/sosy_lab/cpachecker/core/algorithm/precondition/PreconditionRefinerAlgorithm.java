@@ -75,10 +75,13 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
@@ -173,7 +176,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VALID, pWpLoc);
   }
 
-  private ARGPath getTrace(ReachedSet pReachedSet, Predicate<AbstractState> pPartitionFilterPredicate)
+  private Collection<ARGPath> getTraces(ReachedSet pReachedSet, Predicate<AbstractState> pPartitionFilterPredicate)
       throws NoTraceFoundException {
 
     ImmutableSet<AbstractState> targetStates = from(pReachedSet)
@@ -185,8 +188,14 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       throw new NoTraceFoundException("No trace to the target location found!");
     }
 
-    ARGState arbitraryTargetState = AbstractStates.extractStateByType(targetStates.iterator().next(), ARGState.class);
-    return ARGUtils.getOnePathTo(arbitraryTargetState);
+    return Collections2.transform(targetStates, new Function<AbstractState, ARGPath>() {
+      @Override
+      public ARGPath apply(AbstractState pState) {
+        // Return a path to the state!
+        ARGState arbitraryTargetState = AbstractStates.extractStateByType(pState, ARGState.class);
+        return ARGUtils.getOnePathTo(arbitraryTargetState);
+      }
+    });
   }
 
   private boolean isDisjoint(BooleanFormula pP1, BooleanFormula pP2) throws SolverException, InterruptedException {
@@ -247,6 +256,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       } else {
         if (lastIterationPcViolation.equals(pcViolation)
             && lastIterationPcValid.equals(pcValid)) {
+          logger.log(Level.WARNING, "Terminated because of a fixpoint in the set of predicates!");
           return false;
         }
         lastIterationPcViolation = pcViolation;
@@ -254,6 +264,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       }
 
       if (isDisjoint(pcViolation, pcValid)) {
+        logger.log(Level.INFO, "Necessary and sufficient precondition found!");
+
         // We have found a valid, weakest, precondition
         // -- > write the precondition.
         if (writer.isPresent()) {
@@ -267,38 +279,49 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
         return true && result;
       }
 
-      // Get arbitrary traces...(without disjunctions)
-      // ... one to the location that violates the specification
-      // ... and one to the location that represents the exit location
-      final ARGPath traceFromViolation;
-      final ARGPath traceFromValid;
       try {
-        traceFromViolation = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
-        traceFromValid = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
+        // Get arbitrary traces...(without disjunctions)
+        // ... to the location that violates the specification
+        // ... to the location that represents the exit location
+        Collection<ARGPath> tracesFromViolation = getTraces(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
+        Collection<ARGPath> tracesFromValid = getTraces(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
+
+        PredicatePrecision newPrecision = null;
+
+        for (ARGPath traceVio : tracesFromViolation) {
+          for (ARGPath traceVal : tracesFromValid) {
+
+            // Check the disjointness of the WP for the two traces...
+            final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceVio, Optional.of(wpLoc));
+            final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceVal, Optional.of(wpLoc));
+
+            if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
+              logger.log(Level.WARNING, "non-determinism in program."); // This warning is taken 1:1 from the Seghir/Kroening paper
+              return false;
+            }
+
+            // Refine the precision so that the
+            // abstraction on the two traces is disjoint
+            PredicatePrecision newPrecFromTracePair = refiner.refine(traceVio, traceVal, Optional.of(wpLoc));
+            if (newPrecision == null) {
+              newPrecision = newPrecFromTracePair;
+            } else {
+              newPrecision = newPrecision.mergeWith(newPrecFromTracePair);
+            }
+
+            // TODO: Location-specific precision?
+          }
+        }
+
+        // Restart with the initial set of reached states
+        // with the new precision!
+        Verify.verify(newPrecision != null);
+        refinePrecisionForNextIteration(initialReachedSet, pReachedSet, newPrecision);
+
       } catch (NoTraceFoundException e) {
         logger.log(Level.WARNING, e.getMessage());
         return false;
       }
-
-      // Check the disjointness of the WP for the two traces...
-      final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceFromViolation, Optional.of(wpLoc));
-      final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceFromValid, Optional.of(wpLoc));
-
-      if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
-        logger.log(Level.WARNING, "non-determinism in program."); // This warning is taken 1:1 from the Seghir/Kroening paper
-        return false;
-      }
-
-      // Refine the precision so that the
-      // abstraction on the two traces is disjoint
-      PredicatePrecision newPrecision = refiner.refine(traceFromViolation, traceFromValid, Optional.of(wpLoc));
-
-      // Add the predicates to the precision
-      // TODO: Location-specific?
-
-      // Restart with the initial set of reached states
-      // with the new precision!
-      refinePrecisionForNextIteration(initialReachedSet, pReachedSet, newPrecision);
 
     } while (true);
   }

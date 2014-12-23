@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -133,6 +134,12 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     postTimer.start();
     try {
+
+      if (edge.getPredecessor() instanceof CLabelNode
+          && ((CLabelNode) edge.getPredecessor()).getLabel().equalsIgnoreCase("ERROR")) {
+        return Collections.emptySet();
+      }
+
 
       PredicateAbstractState element = (PredicateAbstractState) pElement;
       CFANode loc = getAnalysisSuccesor(edge);
