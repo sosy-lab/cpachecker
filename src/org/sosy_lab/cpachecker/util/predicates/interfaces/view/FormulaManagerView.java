@@ -865,14 +865,17 @@ public class FormulaManagerView {
         new Function<String, String>() {
 
       @Override
-      public String apply(String pArg0) {
-        int idx = pSsa.getIndex(pArg0);
-        if (idx > 0) {
-          // OK, the variable has an instance in the SSA, replace it
-          return makeName(pArg0, idx);
+      public String apply(String pFullSymbolName) {
+
+        final Pair<String, Integer> indexedSymbol = parseName(pFullSymbolName);
+        final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
+
+        if (reInstantiateWithIndex > 0) {
+          // OK, the variable has ALREADY an instance in the SSA, REPLACE it
+          return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
         } else {
           // the variable is not used in the SSA, keep it as is
-          return pArg0;
+          return pFullSymbolName;
         }
       }
     });
