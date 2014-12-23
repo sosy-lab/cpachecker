@@ -1034,9 +1034,13 @@ public class FormulaManagerView {
     return result;
   }
 
+  /**
+   * Extract all atoms of a given boolean formula.
+   * All atoms get un-instantiated!!
+   */
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
     return unwrapFormulasOfList(
-        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, false));
+        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, true));
   }
 
   public Collection<BooleanFormula> extractLiterals(
