@@ -36,6 +36,7 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment.OptStatus;
@@ -53,6 +54,7 @@ public class Z3MaximizationTest {
 
   private Z3FormulaManager mgr;
   private Z3RationalFormulaManager rfmgr;
+  private Z3IntegerFormulaManager ifmgr;
   private Z3BooleanFormulaManager bfmgr;
 
   @Before
@@ -62,6 +64,7 @@ public class Z3MaximizationTest {
     LogManager logger = TestLogManager.getInstance();
     mgr = Z3FormulaManager.create(logger, config, null);
     rfmgr = (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
+    ifmgr = (Z3IntegerFormulaManager) mgr.getIntegerFormulaManager();
     bfmgr = (Z3BooleanFormulaManager) mgr.getBooleanFormulaManager();
   }
 
@@ -138,6 +141,22 @@ public class Z3MaximizationTest {
 
       // Check the value.
       Assert.assertEquals(Rational.ofString("19"), prover.upper(handle, 0).get());
+    }
+  }
+
+  @Test public void testNonlinearity() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+      NumeralFormula.IntegerFormula x, y, z, one;
+      x = ifmgr.makeVariable("x");
+      y = ifmgr.makeVariable("y");
+      one = ifmgr.makeNumber(2);
+      prover.addConstraint(ifmgr.lessOrEquals(x, ifmgr.makeNumber(10)));
+      prover.addConstraint(ifmgr.lessOrEquals(y, ifmgr.makeNumber(10)));
+
+      z = ifmgr.divide(x, one);
+
+      int handle = prover.maximize(z);
+      OptEnvironment.OptStatus response = prover.check();
     }
   }
 
