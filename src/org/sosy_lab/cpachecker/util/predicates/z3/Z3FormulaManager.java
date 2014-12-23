@@ -68,6 +68,12 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
 
+  @Options(prefix="cpa.predicate.solver.z3")
+  public static class ExtraOptions {
+    @Option(secure=true, description="Require proofs from SMT solver")
+    boolean requireProofs = true;
+  }
+
   private Z3FormulaManager(
       Z3FormulaCreator pFormulaCreator,
       Z3UnsafeFormulaManager pUnsafeManager,
@@ -91,12 +97,17 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   public static synchronized Z3FormulaManager create(LogManager logger,
       Configuration config, @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
+    ExtraOptions extraOptions = new ExtraOptions();
+    config.inject(extraOptions);
 
     NativeLibraries.loadLibrary("z3j");
 
     long cfg = mk_config();
     set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
-    set_param_value(cfg, "PROOF", "true");
+
+    if (extraOptions.requireProofs) {
+      set_param_value(cfg, "PROOF", "true");
+    }
 
     // TODO add some other params, memory-limit?
     final long context = mk_context_rc(cfg);
@@ -120,7 +131,9 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     // this options should match the option set above!
     smtLogger.logOption("model", "true");
-    smtLogger.logOption("proof", "true");
+    if (extraOptions.requireProofs) {
+      smtLogger.logOption("proof", "true");
+    }
 
     Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, integerSort, realSort, smtLogger);
 
