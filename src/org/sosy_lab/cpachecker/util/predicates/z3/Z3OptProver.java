@@ -125,6 +125,11 @@ class Z3OptProver implements OptEnvironment {
   }
 
   @Override
+  public String toString() {
+    return optimize_to_string(z3context, z3optContext);
+  }
+
+  @Override
   public void close() {
     optimize_dec_ref(z3context, z3optContext);
     z3context = 0;
