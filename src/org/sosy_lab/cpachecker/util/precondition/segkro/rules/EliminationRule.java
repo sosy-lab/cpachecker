@@ -95,7 +95,7 @@ public class EliminationRule extends PatternBasedRule {
 
     return Lists.newArrayList(
         ifm.greaterOrEquals(
-            ifm.subtract(
+            ifm.add(
                 ifm.multiply(c2, e1),
                 ifm.multiply(c1, e2)),
             zero));
