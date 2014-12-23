@@ -229,6 +229,9 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
     final CFANode wpLoc = getFirstNodeInEntryFunctionBody();
 
+    BooleanFormula lastIterationPcViolation = null;
+    BooleanFormula lastIterationPcValid = null;
+
     do {
       // Run the CPA algorithm
       final boolean result = wrappedAlgorithm.run(pReachedSet);
@@ -237,6 +240,18 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       //    ... and separate the state space using an automaton!
       final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet, wpLoc);
       final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet, wpLoc);
+
+      if (lastIterationPcViolation == null) {
+        lastIterationPcViolation = pcViolation;
+        lastIterationPcValid = pcValid;
+      } else {
+        if (lastIterationPcViolation.equals(pcViolation)
+            && lastIterationPcValid.equals(pcValid)) {
+          return false;
+        }
+        lastIterationPcViolation = pcViolation;
+        lastIterationPcValid = pcValid;
+      }
 
       if (isDisjoint(pcViolation, pcValid)) {
         // We have found a valid, weakest, precondition

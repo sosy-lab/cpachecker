@@ -31,6 +31,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 public interface InterpolationWithCandidates {
 
-  public BooleanFormula getInterpolant(BooleanFormula pFormula1, BooleanFormula pFormula2, List<BooleanFormula> pCandidates) throws SolverException, InterruptedException;
+  public static class InterpolationProblemInvalid extends Exception {
+    private static final long serialVersionUID = -9129126384486445002L;
+    public InterpolationProblemInvalid(String pMessage) {
+      super(pMessage);
+    }
+  }
+
+  public BooleanFormula getInterpolant(BooleanFormula pFormula1, BooleanFormula pFormula2, List<BooleanFormula> pCandidates)
+      throws SolverException, InterruptedException;
 
 }

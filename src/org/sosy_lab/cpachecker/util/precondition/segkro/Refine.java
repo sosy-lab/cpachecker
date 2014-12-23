@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionHelper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateVariableElimination;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -63,6 +65,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 public class Refine implements PreconditionRefiner {
+
+  private static enum FormulaMode { INSTANTIATED, UNINSTANTIATED }
 
   private final ExtractNewPreds enp;
   private final InterpolationWithCandidates ipc;
@@ -87,8 +91,8 @@ public class Refine implements PreconditionRefiner {
     helper = new PreconditionHelper(mgrv, pConfig, pLogger, pShutdownNotifier, pCfa);
   }
 
-  private Collection<BooleanFormula> literals(BooleanFormula pF) {
-    return mgrv.extractLiterals(pF, false, false, false);
+  private Collection<BooleanFormula> literals(BooleanFormula pF, FormulaMode pMode) {
+    return mgrv.extractLiterals(pF, false, false, pMode == FormulaMode.UNINSTANTIATED);
   }
 
   @VisibleForTesting
@@ -98,25 +102,29 @@ public class Refine implements PreconditionRefiner {
     return ipc.getInterpolant(f, pPreconditionB, p);
   }
 
-  private BooleanFormula pre(
+  private PathFormula pre(
       final ARGPath pPathToEntryLocation,
-      final Optional<? extends CFANode> pStopAtNode)
+      final Optional<? extends CFANode> pStopAtNode,
+      final FormulaMode pMode)
           throws CPATransferException, SolverException, InterruptedException {
 
-    return helper.getPreconditionOfPath (
-        pPathToEntryLocation,
-        pStopAtNode,
-        false);
-  }
+    PathFormula pf = helper.computePathformula(pPathToEntryLocation, pStopAtNode);
+    BooleanFormula f = PredicateVariableElimination.eliminateDeadVariables(mgrv, pf.getFormula(), pf.getSsa());
 
+    if (pMode == FormulaMode.UNINSTANTIATED) {
+      return alterPf(pmgrFwd.makeEmptyPathFormula(), mgrv.uninstantiate(f));
+    } else {
+      return alterPf(pf, f);
+    }
+  }
 
   private ImmutableList<BooleanFormula> predsFromTrace(
       final ARGPath pTraceToEntryLocation,
-      final BooleanFormula pPrecond,
+      final PathFormula pInstanciatedTracePrecond,
       final Optional<CFANode> pEntryWpLocation)
           throws SolverException, InterruptedException, CPATransferException {
 
-    Preconditions.checkNotNull(pPrecond);
+    Preconditions.checkNotNull(pInstanciatedTracePrecond);
     Preconditions.checkNotNull(pEntryWpLocation);
     Preconditions.checkNotNull(pTraceToEntryLocation);
 
@@ -127,7 +135,7 @@ public class Refine implements PreconditionRefiner {
     // Get additional predicates from the states along the trace
     //    (or the WPs along the trace)...
 
-    BooleanFormula beforeTransCond = pPrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
+    PathFormula preAtK = pInstanciatedTracePrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
 
     boolean skippedUntilEntryWpLocation = !pEntryWpLocation.isPresent();
 
@@ -155,22 +163,31 @@ public class Refine implements PreconditionRefiner {
         //      afterTransCond === varphi_{k+1}
 
         // Formula A
-        BooleanFormula precondOneAfterTrans = pre(
-            pTraceToEntryLocation,
-            Optional.of(t.getSuccessor()));
+        PathFormula preAtKp1 = pre(
+            pTraceToEntryLocation, Optional.of(t.getSuccessor()),
+            FormulaMode.UNINSTANTIATED);
 
-        List<BooleanFormula> p = enp.extractNewPreds(precondOneAfterTrans);
-        precondOneAfterTrans = bmgr.and(precondOneAfterTrans, bmgr.and(p));
+        if (bmgr.isTrue(preAtKp1.getFormula())) {
+          break;
+        }
+
+        List<BooleanFormula> predsNew = enp.extractNewPreds(preAtKp1.getFormula());
+        preAtKp1 = alterPf(preAtKp1, bmgr.and(preAtKp1.getFormula(), bmgr.and(predsNew)));
 
         // Formula B
-        BooleanFormula precondTwoAfterTrans = computeCounterCondition(t, bmgr.not(beforeTransCond));
+        PathFormula transFromPreAtK = computeCounterCondition(t,
+            alterPf(preAtK, bmgr.not(preAtK.getFormula())));
 
         // Compute an interpolant; use a set of candidate predicates.
         //    The candidates for the interpolant are taken from Formula A (since that formula should get over-approximated)
-        beforeTransCond = ipc.getInterpolant(precondOneAfterTrans, precondTwoAfterTrans, p);
-        // TODO: Substitution X/X` and back
+        preAtK = alterPf(
+            transFromPreAtK,
+            ipc.getInterpolant(
+                mgrv.instantiate(preAtKp1.getFormula(), transFromPreAtK.getSsa()),
+                transFromPreAtK.getFormula(),
+                predsNew)); // TODO: Instantiate predsNew
 
-        result.addAll(literals(beforeTransCond));
+        result.addAll(literals(preAtK.getFormula(), FormulaMode.UNINSTANTIATED));
       }
     }
 
@@ -185,17 +202,20 @@ public class Refine implements PreconditionRefiner {
    * @return
    * @throws SolverException
    */
-  @VisibleForTesting
-  private BooleanFormula computeCounterCondition(CFAEdge pTransition, BooleanFormula pCounterStatePrecond)
+  private PathFormula computeCounterCondition(
+      final CFAEdge pTransition,
+      final PathFormula pCounterStatePrecond)
       throws CPATransferException, InterruptedException, SolverException {
 
-    final PathFormula pf = pmgrFwd.makeAnd(
-        pmgrFwd.makeEmptyPathFormula(),
-        pCounterStatePrecond);
+    return pmgrFwd.makeAnd(pCounterStatePrecond, pTransition);
+  }
 
-    final PathFormula transferPf = pmgrFwd.makeAnd(pf, pTransition);
-
-    return helper.uninstanciatePathFormula(transferPf);
+  private PathFormula alterPf(PathFormula pPf, BooleanFormula pF) {
+    return new PathFormula(
+        pF,
+        pPf.getSsa(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        1);
   }
 
   @Override
@@ -206,17 +226,19 @@ public class Refine implements PreconditionRefiner {
     throws SolverException, InterruptedException, CPATransferException {
 
     // Compute the precondition for both traces
-    BooleanFormula pcViolation = pre(pTraceFromViolation, pWpLocation);
-    BooleanFormula pcValid = pre(pTraceFromValidTermination, pWpLocation);
+    PathFormula pcViolation = pre(pTraceFromViolation, pWpLocation, FormulaMode.INSTANTIATED);
+    PathFormula pcValid = pre(pTraceFromValidTermination, pWpLocation, FormulaMode.INSTANTIATED);
 
     // "Enrich" the preconditions with more general predicates
-    pcViolation = interpolate(pcViolation, pcValid);
-    pcValid = interpolate(pcValid, pcViolation);
+    pcViolation = alterPf(pcViolation,
+        interpolate(pcViolation.getFormula(), pcValid.getFormula()));
+    pcValid = alterPf(pcValid,
+        interpolate(pcValid.getFormula(), pcViolation.getFormula()));
 
     // Now we have an initial set of useful predicates; add them to the corresponding list.
     List<BooleanFormula> preds = Lists.newArrayList();
-    preds.addAll(literals(pcViolation));
-    preds.addAll(literals(pcValid));
+    preds.addAll(literals(pcViolation.getFormula(), FormulaMode.UNINSTANTIATED));
+    preds.addAll(literals(pcValid.getFormula(), FormulaMode.UNINSTANTIATED));
 
     // Get additional predicates from the states along the trace
     //    (or the WPs along the trace)...

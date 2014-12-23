@@ -88,7 +88,10 @@ public class MinCorePrio implements InterpolationWithCandidates {
     }
 
     // ATTENTION: the following line might be different from the paper! Literals vs. atoms!
-    Collection<BooleanFormula> resultPredicates = mgrv.extractLiterals(pPhiMinus, false, false, false);
+    Collection<BooleanFormula> resultPredicates = Lists.reverse( // TODO: WE CANNOT DEPEND ON THE ORDERING.....
+        Lists.newArrayList(
+            mgrv.extractLiterals(pPhiMinus, false, false, false)));
+
     List<BooleanFormula> candidatesPrime = Lists.newLinkedList();
 
     candidatesPrime.addAll(resultPredicates);

@@ -259,15 +259,18 @@ public final class PreconditionHelper {
     FluentIterable<AbstractState> targetStates = from(pReached).filter(AbstractStates.IS_TARGET_STATE);
 
     for (AbstractState s: targetStates) {
-      final ARGState target = (ARGState) s;
-      final ARGPath pathToEntryLocation = ARGUtils.getOnePathTo(target); // BACKWARDS analysis: target = entry location
+      if (isStateFromPartition(s, pPartition)) {
 
-      Verify.verify(pathToEntryLocation != null, "The abstract target-state must be on an abstract path!");
+        final ARGState target = (ARGState) s;
+        final ARGPath pathToEntryLocation = ARGUtils.getOnePathTo(target); // BACKWARDS analysis: target = entry location
 
-      final PredicateAbstractState state = getTargetAbstractionState(pathToEntryLocation, pTargetLocation);
+        Verify.verify(pathToEntryLocation != null, "The abstract target-state must be on an abstract path!");
 
-      // The last abstraction state before the target location contains the negation of the WP
-      result.add(mgrv.uninstantiate(state.getAbstractionFormula().asFormula()));
+        final PredicateAbstractState state = getTargetAbstractionState(pathToEntryLocation, pTargetLocation);
+
+        // The last abstraction state before the target location contains the negation of the WP
+        result.add(mgrv.uninstantiate(state.getAbstractionFormula().asFormula()));
+      }
     }
 
     return result;
