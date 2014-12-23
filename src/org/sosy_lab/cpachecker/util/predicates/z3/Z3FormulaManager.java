@@ -65,7 +65,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   private final Z3SmtLogger z3smtLogger;
   private Z3AstMatcher z3astMatcher;
 
-  private static final String OPT_ENGINE_CONFIG_KEY = "engine";
+  private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
 
   private Z3FormulaManager(

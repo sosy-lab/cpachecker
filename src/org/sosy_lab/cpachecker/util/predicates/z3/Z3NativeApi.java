@@ -686,8 +686,19 @@ public final class Z3NativeApi {
 
     // MISC
     public static native void get_version(PointerToInt major, PointerToInt minor, PointerToInt build, PointerToInt revision);
-    public static native void enable_trace(String context);
-    public static native void disable_trace(String context);
+
+
+   /**
+    * Enable tracing messages tagged as {@code tag}.
+    *
+    * NOTE: Works only if Z3 is compiled in DEBUG mode. No-op otherwise.
+    */
+    public static native void enable_trace(String tag);
+
+   /**
+    * Disable tracing messages tagged as {@code tag}.
+    */
+    public static native void disable_trace(String tag);
     public static native void reset_memory();
 
 
@@ -868,19 +879,150 @@ public final class Z3NativeApi {
   public static native int stats_get_uint_value(long context, long stats, int i);
   public static native double stats_get_double_value(long context, long stats, int i);
 
-  // INTERPOLATION
-  public static native long mk_interpolation_context(long config);
-  private static native int interpolate(long context, int num, long[] cnsts, int[] parents, long options, long[] interps, PointerToLong model, PointerToLong labels, int incremental, int num_theory, long[] theory);
-  private static native int interpolateSeq(long context, int num, long[] cnsts, long[] interps, PointerToLong model, PointerToLong labels, int incremental, int num_theory, long[] theory);
+  // That's the only function used.
+  private static native int interpolateSeq(
+      long context,
+      int num,
+      long[] cnsts,
+      long[] interps,
+      PointerToLong model,
+      PointerToLong labels,
+      int incremental,
+      int num_theory,
+      long[] theory);
 
   public static native String interpolation_profile(long context);
-
-  public static int interpolate(long context, long[] cnsts, int[] parents, long options, long[] interps, PointerToLong model, PointerToLong labels, int incremental, long[] theory) {
-    return interpolate(context, cnsts.length, cnsts, parents, options, interps, model, labels, incremental, theory.length, theory);
-  }
 
   public static int interpolateSeq(long context, long[] cnsts, long[] interps, PointerToLong model, PointerToLong labels, int incremental, long[] theory) {
     return interpolateSeq(context, cnsts.length, cnsts, interps, model, labels, incremental, theory.length, theory);
   }
 
+
+  /**
+   * Interpolation API
+   */
+
+  /**
+   * Create an AST node marking a formula position for interpolation.
+   * The node {@code a} must have Boolean sort.
+   * @param c Z3_context
+   * @param a Z3_ast
+   * @return Z3_ast
+   */
+  public static native long mk_interpolant(long c, long a);
+
+  /**
+   * This function generates a Z3 context suitable for generation of
+   * interpolants. Formulas can be generated as abstract syntax trees in
+   * this context using the Z3 C API.
+   *
+   * Interpolants are also generated as AST's in this context.
+   *
+   * If cfg is non-null, it will be used as the base configuration
+   * for the Z3 context. This makes it possible to set Z3 options
+   * to be used during interpolation. This feature should be used
+   * with some caution however, as it may be that certain Z3 options
+   * are incompatible with interpolation.
+   *
+   * @param cfg Z3_config
+   * @return Z3_context
+   */
+  public static native long mk_interpolation_context(long cfg);
+
+  /** Compute an interpolant from a refutation. This takes a proof of
+   * "false" from a set of formulas C, and an interpolation
+   * pattern. The pattern {@code pat} is a formula combining the formulas in C
+   * using logical conjunction and the "interp" operator (see
+   * {@link #mk_interpolant}. This interp operator is logically the identity
+   * operator. It marks the sub-formulas of the pattern for which interpolants should
+   * be computed. The interpolant is a map sigma from marked subformulas to
+   * formulas, such that, for each marked subformula phi of pat (where phi sigma
+   * is phi with sigma(psi) substituted for each subformula psi of phi such that
+   * psi in dom(sigma)):
+   *
+   * 1) phi sigma implies sigma(phi), and
+   *
+   * 2) sigma(phi) is in the common uninterpreted vocabulary between
+   * the formulas of C occurring in phi and those not occurring in
+   * phi
+   *
+   * and moreover pat sigma implies false. In the simplest case
+   * an interpolant for the pattern "(and (interp A) B)" maps A
+   * to an interpolant for A /\ B.
+   *
+   * The return value is a vector of formulas representing sigma. The
+   * vector contains sigma(phi) for each marked subformula of pat, in
+   * pre-order traversal. This means that subformulas of phi occur before phi
+   * in the vector. Also, subformulas that occur multiply in pat will
+   * occur multiply in the result vector.
+   *
+   * In particular, calling this function on a pattern of the
+   * form (interp ... (interp (and (interp A_1) A_2)) ... A_N) will
+   * result in a sequence interpolant for A_1, A_2,... A_N.
+   *
+   * Neglecting interp markers, the pattern must be a conjunction of
+   * formulas in C, the set of premises of the proof. Otherwise an
+   * error is flagged.
+   *
+   * Any premises of the proof not present in the pattern are
+   * treated as "background theory". Predicate and function symbols
+   * occurring in the background theory are treated as interpreted and
+   * thus always allowed in the interpolant.
+   *
+   * Interpolant may not necessarily be computable from all
+   * proofs. To be sure an interpolant can be computed, the proof
+   * must be generated by an SMT solver for which interpolation is
+   * supported, and the premises must be expressed using only
+   * theories and operators for which interpolation is supported.
+   *
+   * Currently, the only SMT solver that is supported is the legacy
+   * SMT solver. Such a solver is available as the default solver in
+   * #Z3_context objects produced by {@link #mk_interpolation_context}.
+   * Currently, the theories supported are equality with
+   * uninterpreted functions, linear integer arithmetic, and the
+   * theory of arrays (in SMT-LIB terms, this is AUFLIA).
+   * Quantifiers are allowed. Use of any other operators (including
+   * "labels") may result in failure to compute an interpolant from a
+   * proof.
+   *
+   * @param c Z3_context logical context.
+   * @param pf Z3_ast a refutation from premises (assertions) C
+   * @param pat Z3_ast an interpolation pattern over C
+   * @param p Z3_params parameters
+   * @return Z3_ast_vector
+   */
+
+  public static native long get_interpolant(long c, long pf, long pat, long p);
+
+  /** Compute an interpolant for an unsatisfiable conjunction of formulas.
+   *
+   * This takes as an argument an interpolation pattern as in
+   * {@link #get_interpolant}. This is a conjunction, some subformulas of
+   * which are marked with the "interp" operator (see {@link #mk_interpolant}).
+   *
+   * The conjunction is first checked for unsatisfiability. The result
+   * of this check is returned in the out parameter "status". If the result
+   * is unsat, an interpolant is computed from the refutation as in #Z3_get_interpolant
+   * and returned as a vector of formulas. Otherwise the return value is
+   * an empty formula.
+   *
+   * See {@link #get_interpolant} for a discussion of supported theories.
+   *
+   * The advantage of this function over {@link #get_interpolant} is that
+   * it is not necessary to create a suitable SMT solver and generate
+   * a proof. The disadvantage is that it is not possible to use the
+   * solver incrementally.
+   *
+   * @param c Z3_context logical context.
+   * @param pat Z3_ast an interpolation pattern
+   * @param p Z3_params parameters for solver creation
+   * @param model returns model if satisfiable
+   *
+   * @return status of SAT check
+   **/
+  public static native int compute_interpolantFixed(long c,
+      long pat,
+      long p,
+      PointerToLong interp,
+      PointerToLong model);
 }
