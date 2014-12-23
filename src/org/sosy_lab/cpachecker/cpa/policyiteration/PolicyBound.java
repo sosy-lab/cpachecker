@@ -27,10 +27,10 @@ public class PolicyBound {
     // paths with disjunctions.
     StringBuilder b = new StringBuilder();
     for (CFAEdge e : trace) {
-      b
-          .append(e.getPredecessor().toString())
-          .append(",")
-          .append(e.getSuccessor().toString());
+      if (b.length() == 0) {
+        b.append(e.getPredecessor().toString());
+      }
+      b.append(",").append(e.getSuccessor().toString());
 
     }
     return b.toString();

@@ -478,6 +478,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // At least one of updated values comes from inside the loop.
     LoopStructure.Loop l = loopStructure.get(node);
+    if (l == null) {
+      // NOTE: sometimes there is no loop-structure when there's
+      // one self-edge.
+      return true;
+    }
     for (PolicyBound bound : updated.values()) {
       CFAEdge edge = bound.trace;
       assert edge.getSuccessor() == node;
