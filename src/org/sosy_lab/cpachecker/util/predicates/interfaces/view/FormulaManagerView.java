@@ -822,8 +822,29 @@ public class FormulaManagerView {
     return manager.parse(pS);
   }
 
-  public BooleanFormula instantiate(BooleanFormula f, SSAMap ssa) {
-    return myInstantiate(ssa, f);
+  /**
+   * (Re-)instantiate the variables in pF with the SSA indices in pSsa.
+   *
+   * Existing instantiations are REPLACED by the
+   * indices that are provided in the SSA map!
+   */
+  public BooleanFormula instantiate(BooleanFormula pF, SSAMap pSsa) {
+    return myInstantiate(pSsa, pF);
+  }
+
+  /**
+   * Instantiate a list (!! guarantees to keep the ordering) of formulas.
+   *  @see {@link #instantiate(BooleanFormula, SSAMap)}
+   */
+  public List<BooleanFormula> instantiate(List<BooleanFormula> pFormulas, final SSAMap pSsa) {
+    return Lists.transform(pFormulas,
+       new Function<BooleanFormula, BooleanFormula>() {
+         @Override
+         public BooleanFormula apply(BooleanFormula pF) {
+           // Apply 'instantiate'!
+           return instantiate(pF, pSsa);
+         }
+       });
   }
 
   // the character for separating name and index of a value
