@@ -665,7 +665,9 @@ public class FormulaManagerView {
     return (T) t;
   }
 
-  public  <T extends Formula> BooleanFormula makeEqual(T pLhs, T pRhs) {
+  public  <T extends Formula> BooleanFormula makeEqual(T pWLhs, T pWRhs) {
+    Formula pLhs = unwrap(pWLhs);
+    Formula pRhs = unwrap(pWRhs);
     BooleanFormula t;
     if (pLhs instanceof BooleanFormula && pRhs instanceof BooleanFormula) {
       t = booleanFormulaManager.equivalence((BooleanFormula)pLhs, (BooleanFormula)pRhs);
