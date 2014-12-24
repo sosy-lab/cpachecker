@@ -24,12 +24,9 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-
-import com.google.common.collect.Lists;
 
 
 public class FormulaUtils {
@@ -60,26 +57,6 @@ public class FormulaUtils {
       }
     }
     return false;
-  }
-
-  @Deprecated
-  public static List<BooleanFormula> substractEqualFromulasFrom(Collection<BooleanFormula> pSubstractFrom, Collection<BooleanFormula> pSubstract) {
-    // TODO: This might not be the optimal solution!
-
-    List<BooleanFormula> result = Lists.newLinkedList(pSubstractFrom);
-    Iterator<BooleanFormula> it = result.iterator();
-
-    while (it.hasNext()) {
-      BooleanFormula element = it.next();
-      for (BooleanFormula s: pSubstract) {
-        if (equalFormula(s, element)) {
-          it.remove();
-          break;
-        }
-      }
-    }
-
-    return result;
   }
 
 }

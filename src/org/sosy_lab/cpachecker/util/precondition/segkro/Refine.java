@@ -111,7 +111,7 @@ public class Refine implements PreconditionRefiner {
       final FormulaMode pMode)
           throws CPATransferException, SolverException, InterruptedException {
 
-    final PathFormula pf = helper.computePathformula(pPathToEntryLocation, pStopAtNode);
+    final PathFormula pf = helper.computePathformulaForArbitraryTrace(pPathToEntryLocation, pStopAtNode);
     final BooleanFormula f;
     if (pPre == PreMode.ELIMINATE_DEAD) {
       f = PredicateVariableElimination.eliminateDeadVariables(mgrv, pf.getFormula(), pf.getSsa());

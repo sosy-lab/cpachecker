@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import static org.sosy_lab.cpachecker.util.precondition.segkro.FormulaUtils.substractEqualFromulasFrom;
-
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -87,8 +83,10 @@ public class MinCorePrio implements InterpolationWithCandidates {
       throw new AssertionError("MinCorePrio: Formulas not inconsistent!");
     }
 
+    boolean removalPerformedBefore = false;
+
     // ATTENTION: the following line might be different from the paper! Literals vs. atoms!
-    Collection<BooleanFormula> resultPredicates = Lists.reverse( // TODO: WE CANNOT DEPEND ON THE ORDERING.....
+    List<BooleanFormula> resultPredicates = Lists.reverse( // TODO: WE CANNOT DEPEND ON THE ORDERING.....
         Lists.newArrayList(
             mgrv.extractLiterals(pPhiMinus, false, false, false)));
 
@@ -103,9 +101,9 @@ public class MinCorePrio implements InterpolationWithCandidates {
       // TODO: It might be sufficient to substract based of the identity
 
       // At least one predicate must remain as result
-      List<BooleanFormula> resultPredicatesMinusF = substractEqualFromulasFrom(
-          resultPredicates,
-          Collections.<BooleanFormula>singleton(f));
+      // CHANGED COMPARED TO MinCorePrio in to original paper!!!!! List instead of Set!!
+      List<BooleanFormula> resultPredicatesMinusF = Lists.newLinkedList(resultPredicates);
+      resultPredicatesMinusF.remove(f);
       if (resultPredicatesMinusF.isEmpty()) {
         return f;
       }
@@ -119,6 +117,13 @@ public class MinCorePrio implements InterpolationWithCandidates {
       if (stillInconsistent) {
         // Remove the predicate if it does not contribute to the inconsistency
         resultPredicates.remove(f);
+
+        // CHANGED COMPARED TO MinCorePrio
+        if (removalPerformedBefore) {
+          break; // DO NOT REMOVE GENERAL PREDICATES!
+        }
+
+        removalPerformedBefore = true;
       }
     }
 

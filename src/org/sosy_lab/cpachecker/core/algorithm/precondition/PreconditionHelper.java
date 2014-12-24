@@ -166,17 +166,17 @@ public final class PreconditionHelper {
     return getPreconditionOfPath(pPathToEntryLocation, pStopAtNode, true);
   }
 
-  public PathFormula computePathformula(
-      final ARGPath pPathToEntryLocation,
+  public PathFormula computePathformulaForArbitraryTrace(
+      final ARGPath pAbstractPathToEntryLocation,
       final Optional<? extends CFANode> pStopAtNode)
     throws CPATransferException, InterruptedException, SolverException {
 
-    Preconditions.checkNotNull(pPathToEntryLocation);
+    Preconditions.checkNotNull(pAbstractPathToEntryLocation);
     Preconditions.checkNotNull(pStopAtNode);
 
     PathFormula pf = pfmBwd.makeEmptyPathFormula();
 
-    for (CFAEdge edge : pPathToEntryLocation.asEdgesList()) {
+    for (CFAEdge edge : pAbstractPathToEntryLocation.asEdgesList()) {
 
       if (pStopAtNode.isPresent()) {
         if (pStopAtNode.get().equals(edge.getSuccessor())) {
@@ -193,15 +193,15 @@ public final class PreconditionHelper {
   }
 
   public BooleanFormula getPreconditionOfPath(
-      final ARGPath pPathToEntryLocation,
+      final ARGPath pAbstractPathToEntryLocation,
       final Optional<? extends CFANode> pStopAtNode,
       final boolean uninstanciate)
     throws CPATransferException, InterruptedException, SolverException {
 
-    Preconditions.checkNotNull(pPathToEntryLocation);
+    Preconditions.checkNotNull(pAbstractPathToEntryLocation);
     Preconditions.checkNotNull(pStopAtNode);
 
-    PathFormula pf = computePathformula(pPathToEntryLocation, pStopAtNode);
+    PathFormula pf = computePathformulaForArbitraryTrace(pAbstractPathToEntryLocation, pStopAtNode);
 
     return uninstanciate
         ? uninstanciatePathFormula(pf)

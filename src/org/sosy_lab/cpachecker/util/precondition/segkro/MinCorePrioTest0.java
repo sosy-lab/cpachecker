@@ -62,6 +62,7 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
   private IntegerFormula _1;
   private IntegerFormula _i;
   private IntegerFormula _al;
+  private IntegerFormula _bl;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
   @Override
@@ -72,7 +73,7 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
   @Before
   public void setUp() throws Exception {
     mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
-    Solver solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
+    solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
 
     afm = mgrv.getArrayFormulaManager();
     bfm = mgrv.getBooleanFormulaManager();
@@ -86,6 +87,7 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
     _1 = ifm.makeNumber(1);
     _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
     _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
+    _bl = mgrv.makeVariable(NumeralType.IntegerType, "bl");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
   }
 
@@ -135,6 +137,36 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
     BooleanFormula interpolant = mcp.getInterpolant(wpSafe, wpUnsafe, interpolantCandidates);
 
     assertThat(solver.isUnsat(bfm.and(interpolant, wpSafe))).isTrue();
+  }
+
+  @Test
+  public void testLinCombinRemoval() throws SolverException, InterruptedException {
+    BooleanFormula linCombi = ifm.lessThan(_al, _bl);
+
+    List<BooleanFormula> candidates = Lists.newArrayList(
+        bfm.not(ifm.lessOrEquals(_bl, _0)),
+        ifm.greaterOrEquals(_0, _al),
+        linCombi
+        );
+
+    BooleanFormula phiMinus = bfm.and(Lists.newArrayList(
+        ifm.greaterOrEquals(_0, _al),
+        bfm.not(ifm.lessOrEquals(_bl, _0)),
+        bfm.not(ifm.lessOrEquals(_bl, _0)),
+        ifm.greaterOrEquals(_0, _al),
+        ifm.lessThan(_al, _bl)
+        ));
+
+    BooleanFormula phiPlus = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.greaterOrEquals(_0, _al)),
+        bfm.not(ifm.lessOrEquals(_bl, _0))
+        ));
+
+    BooleanFormula resultingInterpolant = mcp.getInterpolant(phiMinus, phiPlus, candidates);
+    BooleanFormula betterInterpolant = bfm.and(linCombi, ifm.greaterOrEquals(_0, _al));
+
+    assertThat(solver.isUnsat(bfm.and(resultingInterpolant, phiPlus))).isTrue();
+    assertThat(solver.isUnsat(bfm.and(betterInterpolant, phiPlus))).isTrue();
   }
 
 }
