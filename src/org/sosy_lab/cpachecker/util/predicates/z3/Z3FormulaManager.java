@@ -72,6 +72,10 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   public static class ExtraOptions {
     @Option(secure=true, description="Require proofs from SMT solver")
     boolean requireProofs = true;
+
+    @Option(secure=true, description="Activate replayable logging in Z3."
+        + " The log can be given as an input to the solver and replayed.")
+    boolean activateZ3Logging = false;
   }
 
   private Z3FormulaManager(
@@ -101,6 +105,10 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     config.inject(extraOptions);
 
     NativeLibraries.loadLibrary("z3j");
+
+    if (extraOptions.activateZ3Logging) {
+      open_log("output/z3.log");
+    }
 
     long cfg = mk_config();
     set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
