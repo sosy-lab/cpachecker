@@ -1284,6 +1284,10 @@ cpa.predicate.solver.smtinterpol.furtherOptions = []
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
 
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+cpa.predicate.solver.z3.activateZ3Logging = false
+
 # Export solver queries in Smtlib2 format, there are small differences for
 # different solvers, choose target-solver.
 cpa.predicate.solver.z3.logger.target = Z3
