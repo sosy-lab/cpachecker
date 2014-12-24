@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 
@@ -46,10 +47,8 @@ public class EliminationRule extends PatternBasedRule {
 
   @Override
   protected void setupPatterns() {
-    final IntegerFormula zero = fmv.getIntegerFormulaManager().makeNumber(0);
-
+    IntegerFormula zero = fmv.getIntegerFormulaManager().makeNumber(0);
     premises.add(new PatternBasedPremise(
-        withDefaultBinding("c1",  zero,
           or(
               match(">=",
                   match("+",
@@ -57,13 +56,10 @@ public class EliminationRule extends PatternBasedRule {
                           matchNullaryBind("c1"),
                           matchAnyWithAnyArgsBind("eX")),
                       matchAnyWithAnyArgsBind("e1")),
-                  matchNullary("0")),
-              match(">=",
-                  matchAnyWithAnyArgsBind("e1"),
-                  matchNullary("0"))))));
+                  matchNullary("0"))
+                )));
 
     premises.add(new PatternBasedPremise(
-        withDefaultBinding("c2",  zero,
           or(
               match(">=",
                   match("+",
@@ -73,25 +69,32 @@ public class EliminationRule extends PatternBasedRule {
                               matchNullaryBind("c2")),
                           matchAnyWithAnyArgsBind("eX")),
                       matchAnyWithAnyArgsBind("e2")),
-                  matchNullary("0")),
-              match(">=",
-                  matchAnyWithAnyArgsBind("e2"),
-                  matchNullary("0"))))));
+                  matchNullary("0"))
+              )));
   }
 
   @Override
   protected boolean satisfiesConstraints(Map<String, Formula> pAssignment)
       throws SolverException, InterruptedException {
-    return true;
+
+    final IntegerFormula zero = fmv.getIntegerFormulaManager().makeNumber(0);
+    final IntegerFormula c1 = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("c1"));
+    final IntegerFormula c2 = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("c2"));
+
+    return !solver.isUnsat(
+        bfm.and(
+            ifm.greaterThan(c1, zero),
+            ifm.greaterThan(c2, zero)));
   }
 
   @Override
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
+
     final IntegerFormula zero = fmv.getIntegerFormulaManager().makeNumber(0);
-    final IntegerFormula c1 = (IntegerFormula) pAssignment.get("c1");
-    final IntegerFormula c2 = (IntegerFormula) pAssignment.get("c2");
-    final IntegerFormula e1 = (IntegerFormula) pAssignment.get("e1");
-    final IntegerFormula e2 = (IntegerFormula) pAssignment.get("e2");
+    final IntegerFormula c1 = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("c1"));
+    final IntegerFormula c2 = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("c2"));
+    final IntegerFormula e1 = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("e1"));
+    final IntegerFormula e2 = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("e2"));
 
     return Lists.newArrayList(
         ifm.greaterOrEquals(
