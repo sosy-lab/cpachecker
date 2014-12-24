@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.precondition;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.logging.Level;
@@ -44,12 +45,15 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces.PreconditionWriter;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -74,6 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -86,7 +91,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 @Options(prefix="precondition")
-public class PreconditionRefinerAlgorithm implements Algorithm {
+public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class NoTraceFoundException extends Exception {
     private static final long serialVersionUID = 1L;
@@ -94,6 +99,21 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       super(pMessage);
     }
   }
+
+  private static class PreconditionRefinerStatistics extends AbstractStatistics {
+    public int refinements = 0;
+    public int tracesToExit = 0;
+    public int tracesToError = 0;
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      put(pOut, "Number of precondition refinements", refinements);
+      put(pOut, "Analyzed traces to the ERROR location", tracesToError);
+      put(pOut, "Analyzed traces to the EXIT location", tracesToExit);
+    }
+  }
+
+  PreconditionRefinerStatistics stats = new PreconditionRefinerStatistics();
 
   public static enum PreconditionExportType { NONE, SMTLIB }
   @Option(secure=true,
@@ -270,7 +290,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
         // -- > write the precondition.
         if (writer.isPresent()) {
           try {
-            writer.get().writePrecondition(exportPreciditionsTo, pcValid);
+            final BooleanFormula weakestPrecondition = mgrv.getBooleanFormulaManager().not(pcViolation);
+            writer.get().writePrecondition(exportPreciditionsTo, weakestPrecondition);
           } catch (IOException e) {
             logger.log(Level.WARNING, "Writing the precondition failed!", e);
           }
@@ -285,6 +306,9 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
         // ... to the location that represents the exit location
         Collection<ARGPath> tracesFromViolation = getTraces(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
         Collection<ARGPath> tracesFromValid = getTraces(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
+
+        stats.tracesToError += tracesFromViolation.size();
+        stats.tracesToExit += tracesFromValid.size();
 
         PredicatePrecision newPrecision = null;
 
@@ -318,6 +342,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
         Verify.verify(newPrecision != null);
         refinePrecisionForNextIteration(initialReachedSet, pReachedSet, newPrecision);
 
+        stats.refinements++;
+
       } catch (NoTraceFoundException e) {
         logger.log(Level.WARNING, e.getMessage());
         return false;
@@ -346,6 +372,15 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     }
 
     // pTo.updatePrecisionGlobally(pPredPrecision, Predicates.instanceOf(PredicatePrecision.class));
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (wrappedAlgorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) wrappedAlgorithm).collectStatistics(pStatsCollection);
+    }
+
+    pStatsCollection.add(stats);
   }
 
 }
