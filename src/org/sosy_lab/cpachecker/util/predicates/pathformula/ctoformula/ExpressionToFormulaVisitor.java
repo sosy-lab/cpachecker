@@ -333,8 +333,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     // If the types are equal, the cast returns the Formula unchanged.
     final Formula castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
 
-    assert returnFormulaType.equals(mgr.getFormulaType(castedResult))
-         : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
     return castedResult;
   }
 

@@ -420,12 +420,14 @@ public class FormulaManagerView {
   }
 
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makePlus(T pF1, T pF2) {
+  public  <T extends Formula> T makePlus(T pWF1, T pWF2) {
+    Formula pF1 = unwrap(pWF1);
+    Formula pF2 = unwrap(pWF2);
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.add((IntegerFormula)pF1, (IntegerFormula)pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = getRationalFormulaManager().add((NumeralFormula)pF1, (NumeralFormula)pF2);
+      t = rationalFormulaManager.add((NumeralFormula)pF1, (NumeralFormula)pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
@@ -455,7 +457,9 @@ public class FormulaManagerView {
     return (T) t;
   }
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makeMultiply(T pF1, T pF2) {
+  public  <T extends Formula> T makeMultiply(T pWF1, T pWF2) {
+    Formula pF1 = unwrap(pWF1);
+    Formula pF2 = unwrap(pWF2);
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.multiply((IntegerFormula) pF1, (IntegerFormula) pF2);
@@ -716,7 +720,9 @@ public class FormulaManagerView {
     return t;
   }
 
-  public  <T extends Formula> BooleanFormula makeGreaterThan(T pLhs, T pRhs, boolean signed) {
+  public  <T extends Formula> BooleanFormula makeGreaterThan(T pWLhs, T pWRhs, boolean signed) {
+    Formula pLhs = unwrap(pWLhs);
+    Formula pRhs = unwrap(pWRhs);
     BooleanFormula t;
     if (pLhs instanceof IntegerFormula && pRhs instanceof IntegerFormula) {
       t = integerFormulaManager.greaterThan((IntegerFormula) pLhs, (IntegerFormula) pRhs);
@@ -733,8 +739,10 @@ public class FormulaManagerView {
     return t;
   }
 
-  public <T extends Formula> BooleanFormula makeGreaterOrEqual(T pLhs, T pRhs, boolean signed) {
+  public <T extends Formula> BooleanFormula makeGreaterOrEqual(T pWLhs, T pWRhs, boolean signed) {
     BooleanFormula t;
+    Formula pLhs = unwrap(pWLhs);
+    Formula pRhs = unwrap(pWRhs);
     if (pLhs instanceof IntegerFormula && pRhs instanceof IntegerFormula) {
       t = integerFormulaManager.greaterOrEquals((IntegerFormula) pLhs, (IntegerFormula) pRhs);
     } else if (pLhs instanceof NumeralFormula && pRhs instanceof NumeralFormula) {
@@ -807,9 +815,11 @@ public class FormulaManagerView {
   }
 
 
-  public <T extends Formula> BooleanFormula assignment(T left, T right) {
-    FormulaType<T> lformulaType = this.getFormulaType(left);
-    FormulaType<T> rformulaType = this.getFormulaType(right);
+  public <T extends Formula> BooleanFormula assignment(T leftW, T rightW) {
+    Formula left = unwrap(leftW);
+    Formula right = unwrap(rightW);
+    FormulaType<?> lformulaType = getFormulaType(left);
+    FormulaType<?> rformulaType = getFormulaType(right);
     if (!lformulaType.equals(rformulaType)) {
       throw new IllegalArgumentException("Can't assign different types! (" + lformulaType + " and " + rformulaType + ")");
     }
