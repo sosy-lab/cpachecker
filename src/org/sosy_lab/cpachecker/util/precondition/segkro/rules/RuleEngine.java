@@ -53,10 +53,10 @@ public class RuleEngine implements Concluding, StatisticsProvider {
         if (r instanceof PatternBasedRule) {
           PatternBasedRule pr = (PatternBasedRule) r;
           put(pOut, 1, "Rule", pr.getRuleName());
-          put(pOut, 2, pr.conclusionTimer.getTitle(), pr.conclusionTimer.toString());
-          put(pOut, 2, pr.constraintCheckTimer.getTitle(), pr.constraintCheckTimer.toString());
-          put(pOut, 2, pr.matchingTimer.getTitle(), pr.matchingTimer.toString());
           put(pOut, 2, pr.overallTimer.getTitle(), pr.overallTimer.toString());
+          put(pOut, 3, pr.conclusionTimer.getTitle(), pr.conclusionTimer.toString());
+          put(pOut, 3, pr.constraintCheckTimer.getTitle(), pr.constraintCheckTimer.toString());
+          put(pOut, 3, pr.matchingTimer.getTitle(), pr.matchingTimer.toString());
         }
       }
     }
