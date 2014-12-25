@@ -47,10 +47,9 @@ public class EliminationRule extends PatternBasedRule {
 
   @Override
   protected void setupPatterns() {
-    IntegerFormula zero = fmv.getIntegerFormulaManager().makeNumber(0);
     premises.add(new PatternBasedPremise(
           or(
-              match(">=",
+              match(">=", // c1*e + e1 >= 0
                   match("+",
                       match("*",
                           matchNullaryBind("c1"),
@@ -61,7 +60,15 @@ public class EliminationRule extends PatternBasedRule {
 
     premises.add(new PatternBasedPremise(
           or(
-              match(">=",
+              match(">=", // -c2*e + e2 >= 0
+                  and (
+                    GenericPatterns.substraction(
+                        matchAnyWithAnyArgsBind("e2"),
+                        match("*",
+                            matchNullaryBind("c2"),
+                            matchAnyWithAnyArgsBind("eX"))),
+                    matchNullary("0"))),
+              match(">=", // -c2*e + e2 >= 0
                   match("+",
                       match("*",
                           match("-",

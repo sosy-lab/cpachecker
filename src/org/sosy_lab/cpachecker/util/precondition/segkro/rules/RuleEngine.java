@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Concluding;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -35,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public class RuleEngine implements Concluding {
+public class RuleEngine implements Concluding, StatisticsProvider {
 
   private final List<Rule> rules;
 
@@ -73,6 +76,11 @@ public class RuleEngine implements Concluding {
    */
   public List<BooleanFormula> concludeWithSingleRule(List<BooleanFormula> pAtomPredicates, Rule pRule) {
     return null;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+
   }
 
 }

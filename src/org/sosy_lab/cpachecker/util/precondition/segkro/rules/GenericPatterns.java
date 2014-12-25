@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuil
 
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelectionElement;
 
 final class GenericPatterns {
 
@@ -43,6 +44,40 @@ final class GenericPatterns {
                   matchInSubtree(
                       matchAnyWithAnyArgsBind(pBindArgTo))))
             ));
+  }
+
+  public static SmtAstPatternSelection substraction(
+      final SmtAstPatternSelectionElement pOp1Matcher,
+      final SmtAstPatternSelectionElement pOp2Matcher) {
+
+    return
+        or (
+            match("-",
+                and(
+                    pOp1Matcher,
+                    pOp2Matcher)),
+            match("+",
+                and (
+                    pOp1Matcher,
+                    match("-",
+                        and(pOp2Matcher)))),
+            match("+",
+                and (
+                    pOp1Matcher,
+                    match("-",
+                        and(
+                            matchNullary("0"),
+                            pOp2Matcher))))
+          );
+  }
+
+  public static SmtAstPatternSelection substraction(
+      final String pBindSubstrOp1Var,
+      final String pBindSubstrOp2Var) {
+
+    return substraction(
+        matchAnyWithAnyArgsBind(pBindSubstrOp1Var),
+        matchAnyWithAnyArgsBind(pBindSubstrOp1Var));
   }
 
   public static SmtAstPatternSelection f_of_x_variable (final String pBindFunctionTo, final String pBindArgTo) {

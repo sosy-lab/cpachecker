@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 
@@ -46,105 +47,108 @@ public class LinCombineRule extends PatternBasedRule {
 
   @Override
   protected void setupPatterns() {
+    // b > e
+    //     e >= a
+    // ------------>
+    //     b > a
+
+    // b - e > 0
+    //     e - a >= 0
+    // ------------>
+    //     b > a
+
     premises.add(new PatternBasedPremise(
         or (
-          match("not",
+          match("not", // not (e < a)
             match("<",
-                matchAnyWithAnyArgsBind("zero1"),
+                matchAnyWithAnyArgsBind("e"),
                 matchAnyWithAnyArgsBind("a"))),
-          match(">=",
-              matchAnyWithAnyArgsBind("zero1"),
+          match(">=", // e >= a
+              matchAnyWithAnyArgsBind("e"),
               matchAnyWithAnyArgsBind("a")),
-          match("not",
+          match("not", // not (e - a) < 0)
               match("<",
-                  match("-",
-                      matchAnyWithAnyArgsBind("zero1"),
-                      matchAnyWithAnyArgsBind("a")),
-                  matchAnyWithAnyArgsBind("zero2"))),
-          match(">=",
-              match("-",
-                  matchAnyWithAnyArgsBind("zero1"),
-                  matchAnyWithAnyArgsBind("a")),
-              matchAnyWithAnyArgsBind("zero2"))
+                  and(
+                      GenericPatterns.substraction("e", "a"),
+                      matchAnyWithAnyArgsBind("zero")))),
+          match(">=", // e - a >= 0
+              and(
+                  GenericPatterns.substraction("e", "a"),
+                  matchAnyWithAnyArgsBind("zero")))
           )));
 
     premises.add(new PatternBasedPremise(
         or (
-          match(">",
+          match(">", // b > e
               matchAnyWithAnyArgsBind("b"),
-              matchAnyWithAnyArgsBind("zero1")),
-          match("not",
+              matchAnyWithAnyArgsBind("e")),
+          match("not", // b <= e
               match("<=",
                   matchAnyWithAnyArgsBind("b"),
-                  matchAnyWithAnyArgsBind("zero1"))),
-          match("<",
-              match("-",
-                  matchAnyWithAnyArgsBind("zero1"),
-                  matchAnyWithAnyArgsBind("b")),
-              matchAnyWithAnyArgsBind("zero2")),
-          match("not",
-              match(">=",
-                  match("-",
-                      matchAnyWithAnyArgsBind("zero1"),
-                      matchAnyWithAnyArgsBind("b")),
-                  matchAnyWithAnyArgsBind("zero2"))),
-          match(">=",
-              match("-",
-                  matchAnyWithAnyArgsBind("b"),
-                  matchAnyWithAnyArgsBind("one")),
-              matchAnyWithAnyArgsBind("zero2")),
-          match("not",
-              match("<",
-                  match("-",
-                      matchAnyWithAnyArgsBind("b"),
-                      matchAnyWithAnyArgsBind("one")),
-                  matchAnyWithAnyArgsBind("zero2")))
+                  matchAnyWithAnyArgsBind("e"))),
+          match(">", // b - e > 0
+              and(
+                  GenericPatterns.substraction("b", "e"),
+                  matchAnyWithAnyArgsBind("zero"))),
+          match("not", // not (b - e <= 0)
+              match("<=",
+                  and (
+                      GenericPatterns.substraction("b", "e"),
+                      matchAnyWithAnyArgsBind("zero")))),
+          match(">=", // b >= e - 1
+              matchAnyWithAnyArgsBind("b"),
+              matchAnyWithAnyArgsBind("eMinusOne")),
+          match(">=", // not (b < e - 1)
+              matchAnyWithAnyArgsBind("b"),
+              matchAnyWithAnyArgsBind("eMinusOne"))
           )));
+  }
+
+  protected boolean checkIfAvailable(Map<String, Formula> pAssignment,
+      String pVar, IntegerFormula pIsEqualTo)
+          throws SolverException, InterruptedException {
+
+    final Formula f = pAssignment.get(pVar);
+    if (f == null) {
+      return true;
+    }
+
+    if (!(f instanceof IntegerFormula)) {
+      return false;
+    }
+
+    final IntegerFormula z = (IntegerFormula) f;
+
+    return !solver.isUnsat(ifm.equal(z, pIsEqualTo));
   }
 
   @Override
   protected boolean satisfiesConstraints(Map<String, Formula> pAssignment)
       throws SolverException, InterruptedException {
 
-    final Formula a = pAssignment.get("a");
-    final Formula b = pAssignment.get("b");
+    final Formula a = Preconditions.checkNotNull(pAssignment.get("a"));
+    final Formula b = Preconditions.checkNotNull(pAssignment.get("b"));
+
+    if (!(pAssignment.get("e") instanceof IntegerFormula)) {
+      return false;
+    }
+
+    final IntegerFormula e = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("e"));
 
     if (a.equals(b)) {
       return false;
     }
 
-    final String[] zeroEq = {"zero1", "zero2"};
-
-    for (String zId: zeroEq) {
-      final Formula f = pAssignment.get(zId);
-
-      if (f != null) {
-        if (!(f instanceof IntegerFormula)) {
-          return false;
-        }
-        final IntegerFormula z = (IntegerFormula) f;
-
-        if (solver.isUnsat(ifm.equal(z, ifm.makeNumber(0)))) {
-          return false;
-        }
-      }
+    if (!checkIfAvailable(pAssignment, "zero", ifm.makeNumber(0))) {
+      return false;
     }
 
-    final String[] oneEq = {"one"};
+    if (!checkIfAvailable(pAssignment, "one", ifm.makeNumber(1))) {
+      return false;
+    }
 
-    for (String oId: oneEq) {
-      final Formula f = pAssignment.get(oId);
-
-      if (f != null) {
-        if (!(f instanceof IntegerFormula)) {
-          return false;
-        }
-        final IntegerFormula o = (IntegerFormula) f;
-
-        if (solver.isUnsat(ifm.equal(o, ifm.makeNumber(1)))) {
-          return false;
-        }
-      }
+    if (!checkIfAvailable(pAssignment, "eMinusOne", ifm.subtract(e, ifm.makeNumber(1)))) {
+      return false;
     }
 
     return true;

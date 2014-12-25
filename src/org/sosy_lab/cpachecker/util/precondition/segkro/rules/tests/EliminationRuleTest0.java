@@ -77,7 +77,7 @@ public class EliminationRuleTest0 extends AbstractRuleTest0 {
     // The formula that is expected as conclusion
     BooleanFormula expectedConclusion
       = imgr.greaterOrEquals(
-          imgr.subtract(
+          imgr.add(
               imgr.multiply(_c2, _e1),
               imgr.multiply(_c1, _e2)),
           _0);
