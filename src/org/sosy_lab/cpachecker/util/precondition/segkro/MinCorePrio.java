@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
@@ -33,7 +35,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * Goal: Avoid irrelevant predicates.
@@ -50,7 +54,9 @@ public class MinCorePrio implements InterpolationWithCandidates {
     bmgr = mgrv.getBooleanFormulaManager();
   }
 
-  private boolean isInconsistent(BooleanFormula pF1, BooleanFormula pF2) throws SolverException, InterruptedException {
+  private boolean isInconsistent(BooleanFormula pF1, BooleanFormula pF2)
+      throws SolverException, InterruptedException {
+
     return solver.isUnsat(bmgr.and(pF1, pF2));
   }
 
@@ -76,6 +82,25 @@ public class MinCorePrio implements InterpolationWithCandidates {
       final List<BooleanFormula> pItpCandidatePredicates)
     throws SolverException, InterruptedException {
 
+    Collection<BooleanFormula> resultPredicates = getInterpolantAsPredicateCollection(
+        pPhiMinus, pPhiPlus, pItpCandidatePredicates);
+
+    // The result is the conjunction of the predicates
+    BooleanFormula result = bmgr.makeBoolean(true);
+    for (BooleanFormula p: resultPredicates) {
+      result = bmgr.and(result, p);
+    }
+
+    return result;
+  }
+
+  @Override
+  public Collection<BooleanFormula> getInterpolantAsPredicateCollection(
+      final BooleanFormula pPhiMinus,
+      final BooleanFormula pPhiPlus,
+      final List<BooleanFormula> pItpCandidatePredicates)
+    throws SolverException, InterruptedException {
+
     Preconditions.checkNotNull(pPhiMinus);
     Preconditions.checkNotNull(pPhiPlus);
 
@@ -83,17 +108,15 @@ public class MinCorePrio implements InterpolationWithCandidates {
       throw new AssertionError("MinCorePrio: Formulas not inconsistent!");
     }
 
-    boolean removalPerformedBefore = false;
-
     // ATTENTION: the following line might be different from the paper! Literals vs. atoms!
-    List<BooleanFormula> resultPredicates = Lists.reverse( // TODO: WE CANNOT DEPEND ON THE ORDERING.....
-        Lists.newArrayList(
-            mgrv.extractLiterals(pPhiMinus, false, false, false)));
+    Set<BooleanFormula> resultPredicates = Sets.newHashSet(
+        mgrv.extractLiterals(pPhiMinus, false, false, false));
 
-    List<BooleanFormula> candidatesPrime = Lists.newLinkedList();
+    ImmutableList<BooleanFormula> candidatesPrime = ImmutableList.<BooleanFormula>builder()
+      .addAll(resultPredicates) // "elements of S to L' in the front"
+      .addAll(pItpCandidatePredicates) // "L' = L"
+      .build();
 
-    candidatesPrime.addAll(resultPredicates);
-    candidatesPrime.addAll(pItpCandidatePredicates);
     resultPredicates.addAll(pItpCandidatePredicates);
 
     for (BooleanFormula f: candidatesPrime) {
@@ -102,36 +125,25 @@ public class MinCorePrio implements InterpolationWithCandidates {
 
       // At least one predicate must remain as result
       // CHANGED COMPARED TO MinCorePrio in to original paper!!!!! List instead of Set!!
-      List<BooleanFormula> resultPredicatesMinusF = Lists.newLinkedList(resultPredicates);
+      Set<BooleanFormula> resultPredicatesMinusF = Sets.newHashSet(resultPredicates);
       resultPredicatesMinusF.remove(f);
       if (resultPredicatesMinusF.isEmpty()) {
-        return f;
+        return resultPredicates;
       }
 
       // Check if removing the predicate from the set 'resultpredicates'
       //    maintains the inconsistency with pArbitraryFormula
       boolean stillInconsistent = isInconsistent(
-          bmgr.and(resultPredicatesMinusF),
+          bmgr.and(Lists.newArrayList(resultPredicatesMinusF)),
           pPhiPlus);
 
       if (stillInconsistent) {
         // Remove the predicate if it does not contribute to the inconsistency
         resultPredicates.remove(f);
-
-        // CHANGED COMPARED TO MinCorePrio
-        if (removalPerformedBefore) {
-          break; // DO NOT REMOVE GENERAL PREDICATES!
-        }
-
-        removalPerformedBefore = true;
       }
     }
 
-    // The result is the conjunction of the remaining predicates
-    BooleanFormula result = bmgr.makeBoolean(true);
-    for (BooleanFormula p: resultPredicates) {
-      result = bmgr.and(result, p);
-    }
-    return result;
+    // The result is the conjunction/collection of the remaining predicates
+    return resultPredicates;
   }
 }
