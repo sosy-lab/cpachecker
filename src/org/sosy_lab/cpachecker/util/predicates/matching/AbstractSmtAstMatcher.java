@@ -59,6 +59,8 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     defineOperatorImplications("<=", Sets.newHashSet("=", "<"));
 
     defineCommutative("=");
+    defineCommutative("+");
+    defineCommutative("*");
     defineCommutative("and"); // used in the arguments of a quantified predicate
 
     defineFunctionAliases("*", Sets.newHashSet("Integer__*_", "Real__*_"));
