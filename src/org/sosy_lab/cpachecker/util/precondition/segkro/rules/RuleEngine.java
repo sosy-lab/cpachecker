@@ -23,17 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Concluding;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -41,6 +45,23 @@ import com.google.common.collect.Lists;
 public class RuleEngine implements Concluding, StatisticsProvider {
 
   private final List<Rule> rules;
+
+  private class RuleEngineStatistics extends AbstractStatistics {
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      for (Rule r: rules) {
+        if (r instanceof PatternBasedRule) {
+          PatternBasedRule pr = (PatternBasedRule) r;
+          put(pOut, 1, "Rule", pr.getRuleName());
+          put(pOut, 2, pr.conclusionTimer.getTitle(), pr.conclusionTimer.toString());
+          put(pOut, 2, pr.constraintCheckTimer.getTitle(), pr.constraintCheckTimer.toString());
+          put(pOut, 2, pr.matchingTimer.getTitle(), pr.matchingTimer.toString());
+          put(pOut, 2, pr.overallTimer.getTitle(), pr.overallTimer.toString());
+        }
+      }
+    }
+  }
+  private RuleEngineStatistics stats = new RuleEngineStatistics();
 
   public RuleEngine(LogManager pLogger, Solver pSolver) {
     final SmtAstMatcher matcher = pSolver.getSmtAstMatcher();
@@ -80,7 +101,7 @@ public class RuleEngine implements Concluding, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-
+    pStatsCollection.add(stats);
   }
 
 }

@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -62,6 +64,11 @@ public abstract class PatternBasedRule extends AbstractRule {
   protected final ArrayFormulaManagerView afm;
   protected final BooleanFormulaManagerView bfm;
   protected final FormulaManagerView fmv;
+
+  final StatTimer constraintCheckTimer = new StatTimer(StatKind.SUM, "Constraint checking");
+  final StatTimer conclusionTimer = new StatTimer(StatKind.SUM, "Concluding");
+  final StatTimer matchingTimer = new StatTimer(StatKind.SUM, "Matching");
+  final StatTimer overallTimer = new StatTimer(StatKind.SUM, "Overall");
 
   public PatternBasedRule(Solver pSolver, SmtAstMatcher pMatcher) {
     super(pSolver, pMatcher);
@@ -92,14 +99,7 @@ public abstract class PatternBasedRule extends AbstractRule {
 
   @Override
   public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates) {
-    // Check premises
-    for (Premise p: getPremises()) {
-      assert p instanceof PatternBasedPremise;
-      PatternBasedPremise pp = (PatternBasedPremise) p;
-
-      // matcher.perform(pp.getPatternSelection(), pF)
-    }
-    return null;
+    throw new UnsupportedOperationException("Implement me");
   }
 
   private Collection<Map<String, Formula>> getAllAssignments(Multimap<String, Formula> pFromBindings) {
@@ -125,49 +125,64 @@ public abstract class PatternBasedRule extends AbstractRule {
 
   @Override
   public Set<BooleanFormula> applyWithInputRelatingPremises(List<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException {
-    Preconditions.checkArgument(pConjunctiveInputPredicates.size() == getPremises().size());
 
-    final Set<BooleanFormula> result = Sets.newHashSet();
+    overallTimer.start();
+    try {
 
-    // Check premises -------------------
-    boolean allPremisesMatch = true;
-    Multimap<String, Formula> matchingBindings = HashMultimap.create();
-    Iterator<BooleanFormula> it = pConjunctiveInputPredicates.iterator();
+      Preconditions.checkArgument(pConjunctiveInputPredicates.size() == getPremises().size());
 
-    for (Premise p: getPremises()) {
-      assert p instanceof PatternBasedPremise;
-      final PatternBasedPremise pp = (PatternBasedPremise) p;
-      final BooleanFormula predicate = it.next();
+      final Set<BooleanFormula> result = Sets.newHashSet();
 
-      final SmtAstMatchResult matchingResult = matcher.perform(
-          pp.getPatternSelection(),
-          predicate,
-          Optional.of(matchingBindings));
+      // Check premises -------------------
+      boolean allPremisesMatch = true;
+      Multimap<String, Formula> matchingBindings = HashMultimap.create();
+      Iterator<BooleanFormula> it = pConjunctiveInputPredicates.iterator();
 
-      if (!matchingResult.matches()) {
-        allPremisesMatch = false;
-        break;
+      for (Premise p: getPremises()) {
+        assert p instanceof PatternBasedPremise;
+        final PatternBasedPremise pp = (PatternBasedPremise) p;
+        final BooleanFormula predicate = it.next();
+
+        matchingTimer.start();
+        final SmtAstMatchResult matchingResult = matcher.perform(
+            pp.getPatternSelection(),
+            predicate,
+            Optional.of(matchingBindings));
+        matchingTimer.stop();
+
+        if (!matchingResult.matches()) {
+          allPremisesMatch = false;
+          break;
+        }
+
+        matchingResult.appendBindingsTo(matchingBindings);
       }
 
-      matchingResult.appendBindingsTo(matchingBindings);
-    }
-
-    // Derive conclusion ------------------
-    if (!allPremisesMatch) {
-      return Collections.emptySet();
-    }
-
-    for (Map<String, Formula> tuple: getAllAssignments(matchingBindings)) {
-      // Check whether the tuple satisfies the constraints...
-      if (!satisfiesConstraints(tuple)) {
-        continue;
+      // Derive conclusion ------------------
+      if (!allPremisesMatch) {
+        return Collections.emptySet();
       }
 
-      // Now we can instantiate the conclusion...
-      result.addAll(deriveConclusion(tuple));
-    }
+      for (Map<String, Formula> tuple: getAllAssignments(matchingBindings)) {
+        // Check whether the tuple satisfies the constraints...
+        constraintCheckTimer.start();
+        final boolean constraintsSatisfied = satisfiesConstraints(tuple);
+        constraintCheckTimer.stop();
+        if (!constraintsSatisfied) {
+          continue;
+        }
 
-    return result;
+        // Now we can instantiate the conclusion...
+        conclusionTimer.start();
+        result.addAll(deriveConclusion(tuple));
+        conclusionTimer.stop();
+      }
+
+      return result;
+
+    } finally {
+      overallTimer.stop();
+    }
   }
 
 }

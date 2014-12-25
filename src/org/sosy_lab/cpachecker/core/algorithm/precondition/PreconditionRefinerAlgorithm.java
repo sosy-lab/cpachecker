@@ -376,6 +376,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+
+    ruleEngine.collectStatistics(pStatsCollection);
     if (wrappedAlgorithm instanceof StatisticsProvider) {
       ((StatisticsProvider) wrappedAlgorithm).collectStatistics(pStatsCollection);
     }
