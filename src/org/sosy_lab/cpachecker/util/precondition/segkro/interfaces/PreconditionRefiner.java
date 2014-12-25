@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
-import com.google.common.base.Optional;
-
 
 public interface PreconditionRefiner {
 
@@ -55,7 +53,7 @@ public interface PreconditionRefiner {
   public abstract PredicatePrecision refine(
       final ARGPath pTraceToViolation,
       final ARGPath pTraceToValidTermination,
-      final Optional<CFANode> pWpLocation)
+      final CFANode pWpLocation)
     throws SolverException, InterruptedException, CPATransferException;
 
 }

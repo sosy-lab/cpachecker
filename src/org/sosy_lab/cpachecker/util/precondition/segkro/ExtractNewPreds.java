@@ -70,7 +70,7 @@ public class ExtractNewPreds {
     return mgrv.extractLiterals(pInputFormula, false, false, false); // TODO: check the argument 'conjunctionsOnly'
   }
 
-  private List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
+  public List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
     final List<BooleanFormula> resultPredicates = Lists.newArrayList();
     final LinkedList<BooleanFormula> resultPredicatesPrime = Lists.newLinkedList();
 
@@ -142,7 +142,7 @@ public class ExtractNewPreds {
       // Fix-point iteration: Until now new predicates are produced.
     } while(!resultPredicates.equals(resultPredicatesPrime)); // TODO: Does this compare what was intended?
 
-    // Store new predicates according to their priority
+    // Store new predicates (instantiated!!) according to their priority;
     return resultPredicates;
   }
 

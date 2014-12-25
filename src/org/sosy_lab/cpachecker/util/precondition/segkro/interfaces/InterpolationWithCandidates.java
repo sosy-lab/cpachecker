@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 import java.util.Collection;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
@@ -39,10 +40,17 @@ public interface InterpolationWithCandidates {
     }
   }
 
-  public BooleanFormula getInterpolant(BooleanFormula pFormula1, BooleanFormula pFormula2, List<BooleanFormula> pCandidates)
+  public BooleanFormula getInterpolant(
+      final BooleanFormula pFormula1,
+      final BooleanFormula pFormula2,
+      final List<BooleanFormula> pCandidates,
+      final CFANode pItpLocation)
       throws SolverException, InterruptedException;
 
-  public Collection<BooleanFormula> getInterpolantAsPredicateCollection(BooleanFormula pPhiMinus, BooleanFormula pPhiPlus,
-      List<BooleanFormula> pItpCandidatePredicates) throws SolverException, InterruptedException;
+  public Collection<BooleanFormula> getInterpolantAsPredicateCollection(
+      final BooleanFormula pPhiMinus,
+      final BooleanFormula pPhiPlus,
+      final List<BooleanFormula> pItpCandidatePredicates,
+      final CFANode pItpLocation) throws SolverException, InterruptedException;
 
 }

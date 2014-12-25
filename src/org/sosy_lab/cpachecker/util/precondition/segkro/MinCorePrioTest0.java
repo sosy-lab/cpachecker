@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
@@ -80,7 +83,7 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
     ifm = mgrv.getIntegerFormulaManager();
 
     RuleEngine rulesEngine = new RuleEngine(logger, solver);
-    mcp = new MinCorePrio(solver);
+    mcp = new MinCorePrio(Mockito.mock(CFA.class), solver);
     enp = new ExtractNewPreds(solver, rulesEngine);
 
     _0 = ifm.makeNumber(0);
@@ -110,7 +113,7 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
 
     List<BooleanFormula> interpolantCandidates = enp.extractNewPreds(wpUnsafe); // TODO: Construct static formulas instead.
 
-    BooleanFormula interpolant = mcp.getInterpolant(wpSafe, wpUnsafe, interpolantCandidates);
+    BooleanFormula interpolant = mcp.getInterpolant(wpSafe, wpUnsafe, interpolantCandidates, null);
 
     assertThat(solver.isUnsat(bfm.and(interpolant, wpSafe))).isTrue();
   }
@@ -134,7 +137,7 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
 
     List<BooleanFormula> interpolantCandidates = enp.extractNewPreds(wpUnsafe); // TODO: Construct static formulas instead.
 
-    BooleanFormula interpolant = mcp.getInterpolant(wpSafe, wpUnsafe, interpolantCandidates);
+    BooleanFormula interpolant = mcp.getInterpolant(wpSafe, wpUnsafe, interpolantCandidates, null);
 
     assertThat(solver.isUnsat(bfm.and(interpolant, wpSafe))).isTrue();
   }
@@ -162,11 +165,15 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
         bfm.not(ifm.lessOrEquals(_bl, _0))
         ));
 
-    BooleanFormula resultingInterpolant = mcp.getInterpolant(phiMinus, phiPlus, candidates);
+    Collection<BooleanFormula> resultingInterpolantPreds = mcp.getInterpolantAsPredicateCollection(phiMinus, phiPlus, candidates, null);
+    BooleanFormula resultingInterpolant = bfm.and(Lists.newArrayList(resultingInterpolantPreds));
+
     BooleanFormula betterInterpolant = bfm.and(linCombi, ifm.greaterOrEquals(_0, _al));
 
     assertThat(solver.isUnsat(bfm.and(resultingInterpolant, phiPlus))).isTrue();
     assertThat(solver.isUnsat(bfm.and(betterInterpolant, phiPlus))).isTrue();
+    assertThat(solver.isUnsat(bfm.and(linCombi, phiPlus))).isTrue();
+    assertThat(resultingInterpolantPreds).contains(linCombi);
   }
 
 }

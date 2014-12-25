@@ -185,7 +185,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
         pConfig, logger, pShutdown, cfa,
         solver, amgr,
         new ExtractNewPreds(solver, ruleEngine),
-        new MinCorePrio(solver));
+        new MinCorePrio(cfa, solver));
   }
 
   private BooleanFormula getPreconditionForViolation(ReachedSet pReachedSet, CFANode pWpLoc) {
@@ -326,7 +326,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
             // Refine the precision so that the
             // abstraction on the two traces is disjoint
-            PredicatePrecision newPrecFromTracePair = refiner.refine(traceVio, traceVal, Optional.of(wpLoc));
+            PredicatePrecision newPrecFromTracePair = refiner.refine(traceVio, traceVal, wpLoc);
             if (newPrecision == null) {
               newPrecision = newPrecFromTracePair;
             } else {

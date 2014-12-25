@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -119,7 +119,7 @@ public class RefineTest0 extends SolverBasedTest0 {
 
     RuleEngine ruleEngine = new RuleEngine(logger, solver);
     ExtractNewPreds enp = new ExtractNewPreds(solver, ruleEngine);
-    InterpolationWithCandidates ipc = new MinCorePrio(solver);
+    InterpolationWithCandidates ipc = new MinCorePrio(Mockito.mock(CFA.class), solver);
     RegionManager regionManager = new BDDManagerFactory(config, logger).createRegionManager();
     AbstractionManager amgr = new AbstractionManager(regionManager, mgrv, config, logger);
     refine = new Refine(config, logger, ShutdownNotifier.create(), cfa, solver, amgr, enp, ipc);
@@ -182,7 +182,7 @@ public class RefineTest0 extends SolverBasedTest0 {
         _stmt_declare_i
         ));
 
-    PredicatePrecision result = refine.refine(traceError, traceSafe, Optional.<CFANode>absent());
+    PredicatePrecision result = refine.refine(traceError, traceSafe, TestDataTools.DUMMY_CFA_NODE);
 
     assertThat(result).isNotNull();
     assertThat(result.getGlobalPredicates()).isNotEmpty();
@@ -204,7 +204,7 @@ public class RefineTest0 extends SolverBasedTest0 {
         imgr.greaterOrEquals(imgr.makeNumber(0), imgr.makeVariable("al")),
         bmgr.not(imgr.equal(amgr.select(_b, imgr.makeNumber(0)), imgr.makeNumber(0)))));
 
-    BooleanFormula result = refine.interpolate(preconditionA, pPreconditionB);
+    BooleanFormula result = refine.interpolate(preconditionA, pPreconditionB, TestDataTools.DUMMY_CFA_NODE);
 
     assertThat(result.toString()).isEqualTo("");
   }

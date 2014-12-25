@@ -27,6 +27,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -35,6 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -44,11 +47,18 @@ import com.google.common.collect.Sets;
  */
 public class MinCorePrio implements InterpolationWithCandidates {
 
-  private final FormulaManagerView mgrv;
+  private final CFA cfa;
   private final Solver solver;
+  private final FormulaManagerView mgrv;
   private final BooleanFormulaManagerView bmgr;
 
-  public MinCorePrio(Solver pSolver) {
+
+  public MinCorePrio(CFA pCfa, Solver pSolver) {
+
+    Preconditions.checkNotNull(pSolver);
+    Preconditions.checkNotNull(pCfa);
+
+    cfa = pCfa;
     solver = pSolver;
     mgrv = pSolver.getFormulaManager();
     bmgr = mgrv.getBooleanFormulaManager();
@@ -79,11 +89,12 @@ public class MinCorePrio implements InterpolationWithCandidates {
   public BooleanFormula getInterpolant(
       final BooleanFormula pPhiMinus,
       final BooleanFormula pPhiPlus,
-      final List<BooleanFormula> pItpCandidatePredicates)
+      final List<BooleanFormula> pItpCandidatePredicates,
+      final CFANode pItpLocation)
     throws SolverException, InterruptedException {
 
     Collection<BooleanFormula> resultPredicates = getInterpolantAsPredicateCollection(
-        pPhiMinus, pPhiPlus, pItpCandidatePredicates);
+        pPhiMinus, pPhiPlus, pItpCandidatePredicates, pItpLocation);
 
     // The result is the conjunction of the predicates
     BooleanFormula result = bmgr.makeBoolean(true);
@@ -94,11 +105,29 @@ public class MinCorePrio implements InterpolationWithCandidates {
     return result;
   }
 
+  protected Set<BooleanFormula> predicatesOnlyOnLiveVariables(
+      final Set<BooleanFormula> pFrom, final CFANode pLocation) {
+
+    return Sets.filter(pFrom, new Predicate<BooleanFormula>() {
+      @Override
+      public boolean apply(BooleanFormula pArg0) {
+        Set<String> predOnVars = mgrv.extractVariableNames(pArg0);
+        for (String instantiatedVarName: predOnVars) {
+          final String varName = FormulaManagerView.parseName(instantiatedVarName).getFirst();
+          if (!cfa.getLiveVariables().get().isVariableLive(varName, pLocation)) {
+            return false;
+          }
+        }
+        return true;
+      }});
+  }
+
   @Override
   public Collection<BooleanFormula> getInterpolantAsPredicateCollection(
       final BooleanFormula pPhiMinus,
       final BooleanFormula pPhiPlus,
-      final List<BooleanFormula> pItpCandidatePredicates)
+      final List<BooleanFormula> pItpCandidatePredicates,
+      final CFANode pItpLocation)
     throws SolverException, InterruptedException {
 
     Preconditions.checkNotNull(pPhiMinus);
@@ -110,8 +139,9 @@ public class MinCorePrio implements InterpolationWithCandidates {
 
     Set<BooleanFormula> resultPredicates = Sets.newHashSet(
         mgrv.extractLiterals(pPhiMinus, false, false, false));
+    // resultPredicates = predicatesOnlyOnLiveVariables(resultPredicates, pItpLocation);
 
-    ImmutableList<BooleanFormula> candidatesPrime = ImmutableList.<BooleanFormula>builder()
+    ImmutableList<BooleanFormula> candidatesPrime = ImmutableList.<BooleanFormula>builder() // L'
       .addAll(resultPredicates) // "elements of S to L' in the front"
       .addAll(pItpCandidatePredicates) // "L' = L"
       .build();

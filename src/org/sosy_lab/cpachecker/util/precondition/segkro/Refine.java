@@ -62,24 +62,26 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 public class Refine implements PreconditionRefiner {
 
   private static enum FormulaMode { INSTANTIATED, UNINSTANTIATED }
-  private static enum PreMode { ELIMINATE_DEAD, SSA_PATH }
+  private static enum PreMode { ELIMINATE_DEAD }
 
-  private final ExtractNewPreds enp;
   private final InterpolationWithCandidates ipc;
-  private final FormulaManagerView mgrv;
   private final BooleanFormulaManagerView bmgr;
   private final PathFormulaManager pmgrFwd;
   private final PreconditionHelper helper;
+  private final FormulaManagerView mgrv;
   private final AbstractionManager amgr;
+  private final ExtractNewPreds enp;
 
-  public Refine(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Solver pSolver, AbstractionManager pAmgr, ExtractNewPreds pExtractNewPreds, InterpolationWithCandidates pMinCorePrio)
+  public Refine(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      CFA pCfa, Solver pSolver, AbstractionManager pAmgr, ExtractNewPreds pExtractNewPreds,
+      InterpolationWithCandidates pMinCorePrio)
           throws InvalidConfigurationException {
 
     amgr = pAmgr;
@@ -98,26 +100,25 @@ public class Refine implements PreconditionRefiner {
   }
 
   @VisibleForTesting
-  BooleanFormula interpolate(BooleanFormula pPreconditionA, BooleanFormula pPreconditionB) throws SolverException, InterruptedException {
+  BooleanFormula interpolate(
+      final BooleanFormula pPreconditionA,
+      final BooleanFormula pPreconditionB,
+      final CFANode pItpLocation)
+          throws SolverException, InterruptedException {
+
     List<BooleanFormula> p = enp.extractNewPreds(pPreconditionA);
     BooleanFormula f = bmgr.and(pPreconditionA, bmgr.and(p));
-    return ipc.getInterpolant(f, pPreconditionB, p);
+    return ipc.getInterpolant(f, pPreconditionB, p, pItpLocation);
   }
 
   private PathFormula pre(
       final ARGPath pPathToEntryLocation,
-      final Optional<? extends CFANode> pStopAtNode,
-      final PreMode pPre,
+      final CFANode pStopAtNode,
       final FormulaMode pMode)
           throws CPATransferException, SolverException, InterruptedException {
 
-    final PathFormula pf = helper.computePathformulaForArbitraryTrace(pPathToEntryLocation, pStopAtNode);
-    final BooleanFormula f;
-    if (pPre == PreMode.ELIMINATE_DEAD) {
-      f = PredicateVariableElimination.eliminateDeadVariables(mgrv, pf.getFormula(), pf.getSsa());
-    } else {
-      f = pf.getFormula();
-    }
+    final PathFormula pf = helper.computePathformulaForArbitraryTrace(pPathToEntryLocation, Optional.of(pStopAtNode));
+    final BooleanFormula f = PredicateVariableElimination.eliminateDeadVariables(mgrv, pf.getFormula(), pf.getSsa());
 
     if (pMode == FormulaMode.UNINSTANTIATED) {
       return alterPf(pmgrFwd.makeEmptyPathFormula(), mgrv.uninstantiate(f));
@@ -126,17 +127,17 @@ public class Refine implements PreconditionRefiner {
     }
   }
 
-  private ImmutableList<BooleanFormula> predsFromTrace(
+  private Multimap<CFANode, BooleanFormula> predsFromTrace(
       final ARGPath pTraceToEntryLocation,
       final PathFormula pInstanciatedTracePrecond,
-      final Optional<CFANode> pEntryWpLocation)
+      final CFANode pEntryWpLocation)
           throws SolverException, InterruptedException, CPATransferException {
 
     Preconditions.checkNotNull(pInstanciatedTracePrecond);
     Preconditions.checkNotNull(pEntryWpLocation);
     Preconditions.checkNotNull(pTraceToEntryLocation);
 
-    Builder<BooleanFormula> result = ImmutableList.<BooleanFormula>builder();
+    ImmutableMultimap.Builder<CFANode, BooleanFormula> result = ImmutableMultimap.builder();
 
     // TODO: It might be possible to use this code to also derive the predicate for the first sate.
 
@@ -145,13 +146,13 @@ public class Refine implements PreconditionRefiner {
 
     PathFormula preAtK = pInstanciatedTracePrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
 
-    boolean skippedUntilEntryWpLocation = !pEntryWpLocation.isPresent();
+    boolean skippedUntilEntryWpLocation = false;
     List<CFAEdge> edgesStartingAtEntry = Lists.reverse(pTraceToEntryLocation.asEdgesList());
 
     for (CFAEdge t: edgesStartingAtEntry) {
 
       if (!skippedUntilEntryWpLocation) {
-        if (t.getPredecessor().equals(pEntryWpLocation.get())) {
+        if (t.getPredecessor().equals(pEntryWpLocation)) {
           skippedUntilEntryWpLocation = true;
         } else {
           continue;
@@ -171,8 +172,7 @@ public class Refine implements PreconditionRefiner {
 
         // Formula A
         PathFormula preAtKp1 = pre(
-            pTraceToEntryLocation, Optional.of(t.getSuccessor()),
-            PreMode.ELIMINATE_DEAD,
+            pTraceToEntryLocation, t.getSuccessor(),
             FormulaMode.INSTANTIATED);
 
         if (bmgr.isTrue(preAtKp1.getFormula())) {
@@ -195,9 +195,10 @@ public class Refine implements PreconditionRefiner {
             ipc.getInterpolant(
                 mgrv.instantiate(preAtKp1.getFormula(), instantiateWith),
                 transFromPreAtK.getFormula(),
-                mgrv.instantiate(predsNew, instantiateWith)));
+                mgrv.instantiate(predsNew, instantiateWith),
+                t.getSuccessor()));
 
-        result.addAll(literals(preAtK.getFormula(), FormulaMode.UNINSTANTIATED));
+        result.putAll(t.getSuccessor(), literals(preAtK.getFormula(), FormulaMode.UNINSTANTIATED));
       }
     }
 
@@ -232,44 +233,55 @@ public class Refine implements PreconditionRefiner {
   public PredicatePrecision refine(
       final ARGPath pTraceFromViolation,
       final ARGPath pTraceFromValidTermination,
-      final Optional<CFANode> pWpLocation)
+      final CFANode pWpLocation)
     throws SolverException, InterruptedException, CPATransferException {
 
     // Compute the precondition for both traces
-    PathFormula pcViolation = pre(pTraceFromViolation, pWpLocation, PreMode.ELIMINATE_DEAD, FormulaMode.INSTANTIATED);
-    PathFormula pcValid = pre(pTraceFromValidTermination, pWpLocation, PreMode.ELIMINATE_DEAD, FormulaMode.INSTANTIATED);
+    PathFormula pcViolation = pre(pTraceFromViolation, pWpLocation, FormulaMode.INSTANTIATED);
+    PathFormula pcValid = pre(pTraceFromValidTermination, pWpLocation, FormulaMode.INSTANTIATED);
 
     // "Enrich" the preconditions with more general predicates
     pcViolation = alterPf(pcViolation,
-        interpolate(pcViolation.getFormula(), pcValid.getFormula()));
+        interpolate(pcViolation.getFormula(), pcValid.getFormula(), pWpLocation));
     pcValid = alterPf(pcValid,
-        interpolate(pcValid.getFormula(), pcViolation.getFormula()));
+        interpolate(pcValid.getFormula(), pcViolation.getFormula(), pWpLocation));
 
     // Now we have an initial set of useful predicates; add them to the corresponding list.
-    List<BooleanFormula> preds = Lists.newArrayList();
-    preds.addAll(literals(pcViolation.getFormula(), FormulaMode.UNINSTANTIATED));
-    preds.addAll(literals(pcValid.getFormula(), FormulaMode.UNINSTANTIATED));
+    Builder<BooleanFormula> globalPreds = ImmutableList.builder();
+    ImmutableMultimap.Builder<CFANode, BooleanFormula> localPreds = ImmutableMultimap.builder();
+
+    globalPreds.addAll(literals(pcViolation.getFormula(), FormulaMode.UNINSTANTIATED));
+    globalPreds.addAll(literals(pcValid.getFormula(), FormulaMode.UNINSTANTIATED));
 
     // Get additional predicates from the states along the trace
     //    (or the WPs along the trace)...
     //
     // -- along the trace to the violating state...
-    ImmutableList<BooleanFormula> predsViolation = predsFromTrace(pTraceFromViolation, pcViolation, pWpLocation);
-    preds.addAll(predsViolation);
+    Multimap<CFANode, BooleanFormula> predsViolation = predsFromTrace(pTraceFromViolation, pcViolation, pWpLocation);
+    localPreds.putAll(predsViolation);
     // -- along the trace to the termination state...
-    ImmutableList<BooleanFormula> predsFromValid = predsFromTrace(pTraceFromValidTermination, pcValid, pWpLocation);
-    preds.addAll(predsFromValid);
+    Multimap<CFANode, BooleanFormula> predsFromValid = predsFromTrace(pTraceFromValidTermination, pcValid, pWpLocation);
+    localPreds.putAll(predsFromValid);
 
-    return predicatesAsGlobalPrecision(preds);
+    return predicatesAsGlobalPrecision(globalPreds.build(), localPreds.build());
   }
 
-  private PredicatePrecision predicatesAsGlobalPrecision(Collection<BooleanFormula> pPreds) {
+  private PredicatePrecision predicatesAsGlobalPrecision(
+      final ImmutableList<BooleanFormula> pGlobalPreds,
+      final ImmutableMultimap<CFANode, BooleanFormula> pLocalPreds) {
+
     Multimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates = HashMultimap.create();
     Multimap<CFANode, AbstractionPredicate> localPredicates = HashMultimap.create();
     Multimap<String, AbstractionPredicate> functionPredicates = HashMultimap.create();
     Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
 
-    for (BooleanFormula f: pPreds) {
+    // TODO: Make the local predicates really local!!
+    for (BooleanFormula f: pLocalPreds.values()) {
+      AbstractionPredicate ap = amgr.makePredicate(f);
+      globalPredicates.add(ap);
+    }
+
+    for (BooleanFormula f: pGlobalPreds) {
       AbstractionPredicate ap = amgr.makePredicate(f);
       globalPredicates.add(ap);
     }
