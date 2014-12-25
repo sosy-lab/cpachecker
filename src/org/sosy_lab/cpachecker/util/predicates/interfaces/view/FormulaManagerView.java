@@ -849,6 +849,21 @@ public class FormulaManagerView {
        });
   }
 
+  /**
+   * Uninstantiate a list (!! guarantees to keep the ordering) of formulas.
+   *  @see {@link #instantiate(BooleanFormula, SSAMap)}
+   */
+  public List<BooleanFormula> uninstantiate(List<BooleanFormula> pFormulas) {
+    return Lists.transform(pFormulas,
+       new Function<BooleanFormula, BooleanFormula>() {
+         @Override
+         public BooleanFormula apply(BooleanFormula pF) {
+           // Apply 'uninstantiate'!
+           return uninstantiate(pF);
+         }
+       });
+  }
+
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
 
