@@ -21,6 +21,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
@@ -678,7 +679,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * state associated with <code>node</code>.
    */
   private boolean shouldPerformAbstraction(CFANode node) {
-    return !pathFocusing || node.isLoopStart();
+    if (!pathFocusing) {
+      return true;
+    }
+    if (node.isLoopStart()) {
+      return true;
+    }
+    if (node instanceof FunctionEntryNode) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -718,17 +728,23 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       it.remove();
       visited.add(node);
 
-      PolicyAbstractedState state;
+      PolicyState state;
       if (node == focusedNode) {
         state = newState;
 
       } else {
-        state = (PolicyAbstractedState)abstractStates.get(node);
+        // TODO: sometimes the state below is not abstract.
+        // TODO: that hints at some broader problem.
+        state = abstractStates.get(node);
       }
 
-      out.put(node, state);
+      if (!state.isAbstract()) {
+        logger.log(Level.FINE, "Fail =(");
 
-      for (Entry<Template, PolicyBound> entry : state) {
+      }
+      out.put(node, (PolicyAbstractedState)state);
+
+      for (Entry<Template, PolicyBound> entry : state.asAbstracted()) {
         Template template = entry.getKey();
         PolicyBound bound = entry.getValue();
 
