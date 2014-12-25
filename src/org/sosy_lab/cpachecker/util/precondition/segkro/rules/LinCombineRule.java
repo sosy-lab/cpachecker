@@ -41,8 +41,15 @@ import com.google.common.collect.Lists;
 
 public class LinCombineRule extends PatternBasedRule {
 
+  private final IntegerFormula zero;
+  private final IntegerFormula one;
+
+
   public LinCombineRule(Solver pSolver, SmtAstMatcher pMatcher) {
     super(pSolver, pMatcher);
+
+    zero = ifm.makeNumber(0);
+    one = ifm.makeNumber(1);
   }
 
   @Override
@@ -139,15 +146,15 @@ public class LinCombineRule extends PatternBasedRule {
       return false;
     }
 
-    if (!checkIfAvailable(pAssignment, "zero", ifm.makeNumber(0))) {
+    if (!checkIfAvailable(pAssignment, "zero", zero)) {
       return false;
     }
 
-    if (!checkIfAvailable(pAssignment, "one", ifm.makeNumber(1))) {
+    if (!checkIfAvailable(pAssignment, "one", one)) {
       return false;
     }
 
-    if (!checkIfAvailable(pAssignment, "eMinusOne", ifm.subtract(e, ifm.makeNumber(1)))) {
+    if (!checkIfAvailable(pAssignment, "eMinusOne", ifm.subtract(e, zero))) {
       return false;
     }
 
