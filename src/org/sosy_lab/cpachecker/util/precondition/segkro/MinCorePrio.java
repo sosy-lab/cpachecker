@@ -108,7 +108,6 @@ public class MinCorePrio implements InterpolationWithCandidates {
       throw new AssertionError("MinCorePrio: Formulas not inconsistent!");
     }
 
-    // ATTENTION: the following line might be different from the paper! Literals vs. atoms!
     Set<BooleanFormula> resultPredicates = Sets.newHashSet(
         mgrv.extractLiterals(pPhiMinus, false, false, false));
 
@@ -120,11 +119,8 @@ public class MinCorePrio implements InterpolationWithCandidates {
     resultPredicates.addAll(pItpCandidatePredicates);
 
     for (BooleanFormula f: candidatesPrime) {
-      // ...
-      // TODO: It might be sufficient to substract based of the identity
 
       // At least one predicate must remain as result
-      // CHANGED COMPARED TO MinCorePrio in to original paper!!!!! List instead of Set!!
       Set<BooleanFormula> resultPredicatesMinusF = Sets.newHashSet(resultPredicates);
       resultPredicatesMinusF.remove(f);
       if (resultPredicatesMinusF.isEmpty()) {
