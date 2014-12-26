@@ -134,13 +134,14 @@ public class ExpressionToFormulaVisitor {
     final ValueAnalysisState state = valueState.get();
     final MemoryLocation memLoc = getMemoryLocation(pIastIdExpression.getDeclaration());
 
-    final Value idValue = state.getValueFor(memLoc);
+    if (state.contains(memLoc)) {
+      final Value idValue = state.getValueFor(memLoc);
 
-    if (idValue == null) {
+      return InvariantsFormulaManager.INSTANCE.asConstant(idValue);
+
+    } else {
       return null;
     }
-
-    return InvariantsFormulaManager.INSTANCE.asConstant(idValue);
   }
 
   private MemoryLocation getMemoryLocation(ASimpleDeclaration pDeclaration) {
