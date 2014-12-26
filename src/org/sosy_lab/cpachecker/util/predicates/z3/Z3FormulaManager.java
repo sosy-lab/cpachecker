@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
+import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -103,6 +104,19 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       throws InvalidConfigurationException {
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
+
+    if (NativeLibraries.OS.guessOperatingSystem() == OS.WINDOWS) {
+      // Handling of depended libraries on Windows...
+      final String libPath = NativeLibraries.getNativeLibraryPath().getAbsolutePath();
+      System.setProperty("java.library.path", libPath);
+
+      // The Z3-jni bindings for Windows are compiled with Cygwin at the moment.
+      //  cygwin1.dll has to be loaded before we can load z3j.dll
+      NativeLibraries.loadLibrary("cygwin1");
+
+      // Z3 itself
+      NativeLibraries.loadLibrary("libz3");
+    }
 
     NativeLibraries.loadLibrary("z3j");
 
