@@ -29,6 +29,12 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -42,13 +48,20 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
    */
   private Set<Constraint> constraints;
 
+  private Solver solver;
+  private FormulaCreator<? extends Formula> formulaCreator;
+  private FormulaManagerView formulaManager;
+
   /**
    * Creates a new <code>ConstraintsState</code> object with the given constraints.
    *
    * @param pConstraints the constraints to use for the newly created <code>ConstraintsState</code> object
    */
-  public ConstraintsState(Set<Constraint> pConstraints) {
-    constraints = new HashSet<>(pConstraints);
+  protected ConstraintsState(ConstraintsState pState) {
+    constraints = new HashSet<>(pState.constraints);
+    solver = pState.solver;
+    formulaCreator = pState.formulaCreator;
+    formulaManager = pState.formulaManager;
   }
 
   /**
@@ -64,8 +77,8 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
    * @param pState the state to copy
    * @return a new copy of the given <code>ConstraintsState</code> object
    */
-  public static ConstraintsState copyOf(ConstraintsState pState) {
-    return new ConstraintsState(new HashSet<>(pState.constraints));
+  public ConstraintsState copyOf() {
+    return new ConstraintsState(this);
   }
 
   /**
@@ -79,6 +92,9 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
     return ImmutableSet.copyOf(constraints);
   }
 
+  protected FormulaCreator<? extends Formula> getFormulaCreator() {
+    return formulaCreator;
+  }
 
   @Override
   public ConstraintsState join(ConstraintsState other) throws CPAException {
@@ -104,6 +120,46 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
    */
   public void addConstraint(Constraint pConstraint) {
     constraints.add(pConstraint);
+  }
+
+  public boolean isInitialized() {
+    return solver != null;
+  }
+
+  public void initialize(Solver pSolver, FormulaManagerView pFormulaManager) {
+    solver = pSolver;
+    formulaManager = pFormulaManager;
+    formulaCreator = new IntegerFormulaCreator(pFormulaManager);
+  }
+
+  public boolean isUnsat() throws SolverException, InterruptedException {
+    return solver.isUnsat(getFullFormula());
+  }
+
+  private BooleanFormula getFullFormula() {
+      final Set<Constraint> constraints = getConstraints();
+      Formula completeFormula = null;
+      Formula currFormula;
+
+      for (Constraint currConstraint : constraints) {
+
+        currFormula = currConstraint.accept(formulaCreator);
+
+        if (completeFormula == null) {
+          completeFormula = currFormula;
+
+        } else {
+          completeFormula = formulaManager.makeAnd(completeFormula, currFormula);
+        }
+      }
+
+      if (completeFormula == null) {
+        final BooleanFormulaManager manager = formulaManager.getBooleanFormulaManager();
+
+        completeFormula = manager.makeBoolean(true);
+      }
+
+      return (BooleanFormula) completeFormula;
   }
 
   @Override

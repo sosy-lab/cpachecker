@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,11 +61,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
@@ -87,26 +82,19 @@ public class ConstraintsTransferRelation
   private Solver solver;
   private FormulaManagerView formulaManager;
 
-  private final BooleanFormula trueFormula;
-
   public ConstraintsTransferRelation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
     logger = pLogger;
 
     initializeSolver(pLogger, pConfig, pShutdownNotifier);
-
-    trueFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
   }
 
   private void initializeSolver(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    final FormulaManagerFactory factory = new FormulaManagerFactory(pConfig, pLogger, pShutdownNotifier);
-
-    formulaManager = new FormulaManagerView(factory, pConfig, pLogger);
-
-    solver = new Solver(formulaManager, factory, pConfig, pLogger);
+    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    formulaManager = solver.getFormulaManager();
   }
 
   @Override
@@ -162,7 +150,11 @@ public class ConstraintsTransferRelation
   private ConstraintsState getNewState(ConstraintsState pOldState, AExpression pExpression, ConstraintFactory pFactory,
       boolean pTruthAssumption, FileLocation pFileLocation) throws SolverException, InterruptedException {
 
-    ConstraintsState newState = ConstraintsState.copyOf(pOldState);
+    ConstraintsState newState = pOldState.copyOf();
+
+    if (!newState.isInitialized()) {
+      newState.initialize(solver, formulaManager);
+    }
 
     try {
       Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
@@ -176,7 +168,7 @@ public class ConstraintsTransferRelation
         assert !newConstraint.isPresent();
       }
 
-      if (newConstraint.isPresent() && !isAlwaysTrue(newConstraint.get())) {
+      if (newConstraint.isPresent()) {
         newState.addConstraint(newConstraint.get());
       }
 
@@ -184,54 +176,12 @@ public class ConstraintsTransferRelation
       logger.logUserException(Level.WARNING, e, pFileLocation.toString());
     }
 
-    if (!isSolvable(newState)) {
+    if (newState.isUnsat()) {
       return null;
 
     } else {
       return newState;
     }
-  }
-
-  private boolean isAlwaysTrue(Constraint pConstraint) throws SolverException, InterruptedException {
-    final ConstraintVisitor<Formula> formulaCreator = new IntegerFormulaCreator(formulaManager);
-
-    // each constraint has to be a boolean formula, so we can cast without problems
-    BooleanFormula formula = (BooleanFormula) pConstraint.accept(formulaCreator);
-
-    return solver.implies(trueFormula, formula);
-  }
-
-  private boolean isSolvable(ConstraintsState pState) throws SolverException, InterruptedException {
-    BooleanFormula constraintConjunction = getConjunction(pState);
-
-    return !solver.isUnsat(constraintConjunction);
-  }
-
-  private BooleanFormula getConjunction(ConstraintsState pState) {
-    final Set<Constraint> constraints = pState.getConstraints();
-    final ConstraintVisitor<Formula> formulaCreator = new IntegerFormulaCreator(formulaManager);
-    Formula completeFormula = null;
-    Formula currFormula;
-
-    for (Constraint currConstraint : constraints) {
-
-      currFormula = currConstraint.accept(formulaCreator);
-
-      if (completeFormula == null) {
-        completeFormula = currFormula;
-
-      } else {
-        completeFormula = formulaManager.makeAnd(completeFormula, currFormula);
-      }
-    }
-
-    if (completeFormula == null) {
-      final BooleanFormulaManager manager = formulaManager.getBooleanFormulaManager();
-
-      completeFormula = manager.makeBoolean(true);
-    }
-
-    return (BooleanFormula) completeFormula;
   }
 
   private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
