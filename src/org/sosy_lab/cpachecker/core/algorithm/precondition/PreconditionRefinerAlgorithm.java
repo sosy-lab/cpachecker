@@ -185,7 +185,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
         pConfig, logger, pShutdown, cfa,
         solver, amgr,
         new ExtractNewPreds(solver, ruleEngine),
-        new MinCorePrio(cfa, solver));
+        new MinCorePrio(logger, cfa, solver));
   }
 
   private BooleanFormula getPreconditionForViolation(ReachedSet pReachedSet, CFANode pWpLoc) {

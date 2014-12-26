@@ -93,6 +93,7 @@ public class RefineTest0 extends SolverBasedTest0 {
   private CFAEdge _function_declaration;
   private CFAEdge _stmt_al_assign_0;
   private CAssumeEdge _assume_not_b_at_i_neq_0;
+  private CDeclarationEdge _stmt_declare_al;
 
   @Override
   protected Solvers solverToUse() {
@@ -119,7 +120,7 @@ public class RefineTest0 extends SolverBasedTest0 {
 
     RuleEngine ruleEngine = new RuleEngine(logger, solver);
     ExtractNewPreds enp = new ExtractNewPreds(solver, ruleEngine);
-    InterpolationWithCandidates ipc = new MinCorePrio(Mockito.mock(CFA.class), solver);
+    InterpolationWithCandidates ipc = new MinCorePrio(logger, Mockito.mock(CFA.class), solver);
     RegionManager regionManager = new BDDManagerFactory(config, logger).createRegionManager();
     AbstractionManager amgr = new AbstractionManager(regionManager, mgrv, config, logger);
     refine = new Refine(config, logger, ShutdownNotifier.create(), cfa, solver, amgr, enp, ipc);
@@ -129,7 +130,7 @@ public class RefineTest0 extends SolverBasedTest0 {
     CArrayType unlimitedIntArrayType = new CArrayType(false, false, CNumericTypes.INT, null);
 
     Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _i_decl = makeDeclaration("i", CNumericTypes.INT, null);
-    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _al_decl = makeDeclaration("al", CNumericTypes.INT, null);
+    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _al_decl = makeDeclaration("al", CNumericTypes.INT, INT_ZERO_INITIALIZER);
     Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _a = makeDeclaration("a", unlimitedIntArrayType, null);
     Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _b = makeDeclaration("b", unlimitedIntArrayType, null);
     Triple<CDeclarationEdge, CFunctionDeclaration, CFunctionType> _funct_decl = makeFunctionDeclaration("copy", CVoidType.VOID,
@@ -157,6 +158,7 @@ public class RefineTest0 extends SolverBasedTest0 {
     _while = TestDataTools.makeBlankEdge("while");
     _stmt_i_assign_0 = makeAssignment(_i, _0).getFirst();
     _stmt_declare_i = _i_decl.getFirst();
+    _stmt_declare_al = _al_decl.getFirst();
     _dummy = makeBlankEdge("dummy");
     _function_declaration= _funct_decl.getFirst();
     _stmt_al_assign_0 = makeAssignment(_al, _0).getFirst();
@@ -168,25 +170,28 @@ public class RefineTest0 extends SolverBasedTest0 {
     ARGPath traceError = mock(ARGPath.class);
     when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
         _label_error,
-          _assume_i_geq_al,
+        _assume_i_geq_al,
         _assume_b_at_i_neq_0,
         _while,
         _stmt_i_assign_0,
-        _stmt_declare_i
+        _stmt_declare_i,
+        _stmt_declare_al
         ));
 
     ARGPath traceSafe = mock(ARGPath.class);
     when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
         _assume_not_b_at_i_neq_0,
         _stmt_i_assign_0,
-        _stmt_declare_i
+        _stmt_declare_i,
+        _stmt_declare_al
         ));
 
-    PredicatePrecision result = refine.refine(traceError, traceSafe, TestDataTools.DUMMY_CFA_NODE);
+    PredicatePrecision result = refine.refine(traceError, traceSafe, _stmt_declare_i.getPredecessor());
 
     assertThat(result).isNotNull();
     assertThat(result.getGlobalPredicates()).isNotEmpty();
   }
+
 
   @Test
   public void testInterpolateCase1() throws SolverException, InterruptedException {

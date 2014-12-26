@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.util.precondition.segkro;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -49,17 +51,16 @@ public class MinCorePrio implements InterpolationWithCandidates {
 
   private final CFA cfa;
   private final Solver solver;
+  private final LogManager logger;
   private final FormulaManagerView mgrv;
   private final BooleanFormulaManagerView bmgr;
 
+  public MinCorePrio(LogManager pLogger, CFA pCfa, Solver pSolver) {
 
-  public MinCorePrio(CFA pCfa, Solver pSolver) {
+    solver = Preconditions.checkNotNull(pSolver);
+    logger = Preconditions.checkNotNull(pLogger);
+    cfa = Preconditions.checkNotNull(pCfa);
 
-    Preconditions.checkNotNull(pSolver);
-    Preconditions.checkNotNull(pCfa);
-
-    cfa = pCfa;
-    solver = pSolver;
     mgrv = pSolver.getFormulaManager();
     bmgr = mgrv.getBooleanFormulaManager();
   }
@@ -133,13 +134,15 @@ public class MinCorePrio implements InterpolationWithCandidates {
     Preconditions.checkNotNull(pPhiMinus);
     Preconditions.checkNotNull(pPhiPlus);
 
-    if (!isInconsistent(pPhiMinus, pPhiPlus)) {
-      throw new AssertionError("MinCorePrio: Formulas not inconsistent!");
-    }
-
     Set<BooleanFormula> resultPredicates = Sets.newHashSet(
         mgrv.extractLiterals(pPhiMinus, false, false, false));
-    // resultPredicates = predicatesOnlyOnLiveVariables(resultPredicates, pItpLocation);
+
+    if (!isInconsistent(pPhiMinus, pPhiPlus)) {
+      logger.log(Level.WARNING, "MinCorePrio: Formulas not inconsistent! The over-approximation of the system might be insufficient!");
+      return resultPredicates;
+      // TODO: Debug why this can be the cause. Current status: A previous interpolation process might have removed predicates that were important for the disjointness
+      // throw new AssertionError("MinCorePrio: Formulas not inconsistent!");
+    }
 
     ImmutableList<BooleanFormula> candidatesPrime = ImmutableList.<BooleanFormula>builder() // L'
       .addAll(resultPredicates) // "elements of S to L' in the front"

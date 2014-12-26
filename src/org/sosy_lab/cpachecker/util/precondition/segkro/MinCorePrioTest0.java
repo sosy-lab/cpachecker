@@ -83,7 +83,7 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
     ifm = mgrv.getIntegerFormulaManager();
 
     RuleEngine rulesEngine = new RuleEngine(logger, solver);
-    mcp = new MinCorePrio(Mockito.mock(CFA.class), solver);
+    mcp = new MinCorePrio(logger, Mockito.mock(CFA.class), solver);
     enp = new ExtractNewPreds(solver, rulesEngine);
 
     _0 = ifm.makeNumber(0);

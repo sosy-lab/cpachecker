@@ -160,6 +160,7 @@ public class Refine implements PreconditionRefiner {
       }
 
       if (t.getEdgeType() != CFAEdgeType.BlankEdge) {
+
         //
         //           X                         X'
         //        varphi_k                 varphi_k+1
