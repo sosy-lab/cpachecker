@@ -110,10 +110,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       final String libPath = NativeLibraries.getNativeLibraryPath().getAbsolutePath();
       System.setProperty("java.library.path", libPath);
 
-      // The Z3-jni bindings for Windows are compiled with Cygwin at the moment.
-      //  cygwin1.dll has to be loaded before we can load z3j.dll
-      NativeLibraries.loadLibrary("cygwin1");
-
       // Z3 itself
       NativeLibraries.loadLibrary("libz3");
     }
