@@ -21,18 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
-
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 
 /**
- * Visitor for {@link SymbolicValue}s.
- *
- * @param T return type of visit methods
+ * This package includes the {@link ConstraintExpression} interface and all its implementing classes that can be used
+ * to describe constraint operands.
  */
-public interface SymbolicValueVisitor<T> {
-
-  T visit(SymbolicIdentifier pValue);
-
-  T visit(SymbolicExpression pValue);
-}
+package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;

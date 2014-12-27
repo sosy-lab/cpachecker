@@ -21,18 +21,35 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Visitor for {@link SymbolicValue}s.
- *
- * @param T return type of visit methods
+ * Created by leostrakosch on 27.12.14.
  */
-public interface SymbolicValueVisitor<T> {
+public class ConstantConstraintExpression implements ConstraintExpression {
 
-  T visit(SymbolicIdentifier pValue);
+  private final Value value;
+  private final Type type;
 
-  T visit(SymbolicExpression pValue);
+  public ConstantConstraintExpression(Value pValue, Type pType) {
+    value = pValue;
+    type = pType;
+  }
+
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
+  public Value getValue() {
+    return value;
+  }
+
+  @Override
+  public Type getType() {
+    return type;
+  }
 }

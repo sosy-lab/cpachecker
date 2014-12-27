@@ -21,18 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * Visitor for {@link SymbolicValue}s.
+ * {@link BinaryConstraintExpression} representing the 'shift right' operation.
  *
- * @param T return type of visit methods
+ * <p>There is no differentiation between signed and unsigned shifts.</p>
  */
-public interface SymbolicValueVisitor<T> {
+public class ShiftRightExpression extends BinaryConstraintExpression {
 
-  T visit(SymbolicIdentifier pValue);
+  protected ShiftRightExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
+    super(pOperand1, pOperand2, pType);
+  }
 
-  T visit(SymbolicExpression pValue);
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
 }

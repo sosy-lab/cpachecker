@@ -21,18 +21,31 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * Visitor for {@link SymbolicValue}s.
- *
- * @param T return type of visit methods
+ * Represents a unary {@link ConstraintExpression}. Represents all <code>ConstraintExpression</code>s that consist of
+ * only one operand.
  */
-public interface SymbolicValueVisitor<T> {
+public abstract class UnaryConstraintExpression implements ConstraintExpression {
 
-  T visit(SymbolicIdentifier pValue);
+  private final ConstraintExpression operand;
+  private final Type type;
 
-  T visit(SymbolicExpression pValue);
+  public UnaryConstraintExpression(ConstraintExpression pOperand, Type pType) {
+    operand = pOperand;
+    type = pType;
+
+  }
+
+  @Override
+  public Type getType() {
+    return type;
+  }
+
+  public ConstraintExpression getOperand() {
+    return operand;
+  }
 }

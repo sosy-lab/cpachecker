@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
 
 /**
  * Operand for a {@link org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint}.
@@ -34,14 +35,14 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  */
 public class ConstraintOperand {
 
-  final private InvariantsFormula<Value> formula;
+  final private ConstraintExpression expression;
 
-  protected ConstraintOperand(InvariantsFormula<Value> pFormula) {
-    formula = pFormula;
+  protected ConstraintOperand(ConstraintExpression pExpression) {
+    expression = checkNotNull(pExpression);
   }
 
-  public InvariantsFormula<Value> getFormula() {
-    return formula;
+  public ConstraintExpression getExpression() {
+    return expression;
   }
 
   public <T> T accept(ConstraintVisitor<T> pVisitor) {
@@ -59,16 +60,17 @@ public class ConstraintOperand {
 
     ConstraintOperand that = (ConstraintOperand) o;
 
-    return formula.equals(that.formula);
+    return expression.equals(that.expression);
   }
 
   @Override
   public int hashCode() {
-    return formula.hashCode();
+    return expression.hashCode();
   }
 
   @Override
   public String toString() {
-    return formula.toString();
+    return expression.toString();
   }
+
 }

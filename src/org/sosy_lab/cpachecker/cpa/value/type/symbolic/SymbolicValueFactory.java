@@ -32,16 +32,15 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Optional;
 
 /**
- * Factory for creating {@link SymbolicValue} objects containing different symbolic formulas
+ * Factory for creating {@link SymbolicValue} objects containing different symbolic expressions
  * or identifiers.
  */
 @Options(prefix = "cpa.value")
@@ -58,7 +57,7 @@ public class SymbolicValueFactory {
 
   private final Map<AAstNode, Integer> valuesPerNodeMap = new HashMap<>();
 
-  private final InvariantsFormulaManager factory = InvariantsFormulaManager.INSTANCE;
+  private final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
 
   private SymbolicValueFactory() {
     // do nothing special
@@ -74,50 +73,55 @@ public class SymbolicValueFactory {
   }
 
   public SymbolicValue createAddition(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator additionCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator additionCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.add(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+
+        return factory.add(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, additionCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, additionCreator);
   }
 
   private SymbolicValue createFormula(
-      Value pLeftOperand, Value pRightOperand, AAstNode pLocation, BinaryFormulaCreator pCreator)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation, BinaryExpressionCreator pCreator)
       throws SymbolicBoundReachedException {
 
     checkSymbolic(pLeftOperand, pRightOperand);
 
     checkInBound(pLocation);
 
-    final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
-    final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
+    final ConstraintExpression leftFormulaOperand = getConstantExpression(pLeftOperand, pLeftType);
+    final ConstraintExpression rightFormulaOperand = getConstantExpression(pRightOperand, pRightType);
 
-    final InvariantsFormula<Value> formula = pCreator.createValue(leftFormulaOperand, rightFormulaOperand);
+    final ConstraintExpression formula = pCreator.createValue(leftFormulaOperand, rightFormulaOperand, pExpressionType);
     increaseSymbolicAmount(pLocation);
 
-    return new SymbolicFormula(formula);
+    return new SymbolicExpression(formula);
   }
 
-  private SymbolicValue createFormula(Value pOperand, AAstNode pLocation, UnaryFormulaCreator pCreator)
+  private SymbolicValue createFormula(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation,
+      UnaryExpressionCreator pCreator)
       throws SymbolicBoundReachedException {
 
     checkSymbolic(pOperand);
 
     checkInBound(pLocation);
 
-    final InvariantsFormula<Value> formulaOperand = getFormulaOperand(pOperand);
+    final ConstraintExpression formulaOperand = getConstantExpression(pOperand, pOperandType);
 
-    final InvariantsFormula<Value> formula = pCreator.createValue(formulaOperand);
+    final ConstraintExpression formula = pCreator.createValue(formulaOperand, pExpressionType);
     increaseSymbolicAmount(pLocation);
 
-    return new SymbolicFormula(formula);
+    return new SymbolicExpression(formula);
   }
 
   private void checkInBound(AAstNode pLocation) throws SymbolicBoundReachedException {
@@ -129,11 +133,11 @@ public class SymbolicValueFactory {
     }
   }
 
-  private InvariantsFormula<Value> getFormulaOperand(Value pValue) {
-    if (pValue instanceof SymbolicFormula) {
-      return ((SymbolicFormula) pValue).getFormula();
+  private ConstraintExpression getConstantExpression(Value pValue, Type pType) {
+    if (pValue instanceof SymbolicExpression) {
+      return ((SymbolicExpression) pValue).getExpression();
     } else {
-      return getConstant(pValue);
+      return getConstant(pValue, pType);
     }
   }
 
@@ -151,275 +155,330 @@ public class SymbolicValueFactory {
   }
 
   public SymbolicValue createSubtraction(
-      Value pLeftValue, Type pLeftType, Value pRightValue, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator subtractionCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator subtractionCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        final InvariantsFormula<Value> minusOperand = getNegativeOperand();
-        final InvariantsFormula<Value> rightOperandNegation = factory.multiply(pOperand2, minusOperand);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
 
-        return factory.add(pOperand1, rightOperandNegation);
+        return factory.minus(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftValue, pRightValue, pLocation, subtractionCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        subtractionCreator);
   }
 
-  private InvariantsFormula<Value> getNegativeOperand() {
-    return getFormulaOperand(new NumericValue(-1));
-  }
+  public SymbolicValue createMultiplication(
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
+      throws SymbolicBoundReachedException {
 
-  public SymbolicValue createMultiplication(Value pLeftOperand, Type pLeftType, Value pRightOperand,
-      Type pRightType, AAstNode pLocation) throws SymbolicBoundReachedException {
-
-    BinaryFormulaCreator multiplicationCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator multiplicationCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.multiply(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.multiply(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, multiplicationCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        multiplicationCreator);
   }
 
-  public SymbolicValue createDivision(Value pLeftOperand, Type pLeftType, Value pRightOperand,
-      Type pRightType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  public SymbolicValue createDivision(
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
+      throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator divisionCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator divisionCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.divide(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.divide(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, divisionCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        divisionCreator);
   }
 
-  public SymbolicValue createModulo(Value pLeftOperand, Type pLeftType, Value pRightOperand,
-      Type pRightType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  public SymbolicValue createModulo(
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, final Type pExpressionType,
+      AAstNode pLocation)
+      throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator moduloCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator moduloCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.modulo(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.modulo(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, moduloCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, moduloCreator);
   }
 
-  public SymbolicValue createShiftLeft(Value pLeftOperand, Type pLeftType, Value pRightOperand,
-      Type pRightType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  public SymbolicValue createShiftLeft(
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
+      throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator shiftCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator shiftCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.shiftLeft(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.shiftLeft(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, shiftCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, shiftCreator);
   }
 
-  public SymbolicValue createShiftRight(Value pLeftOperand, Type pLeftType, Value pRightOperand,
-      Type pRightType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  public SymbolicValue createShiftRight(
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
+      throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator shiftCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator shiftCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.shiftRight(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.shiftRight(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, shiftCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, shiftCreator);
   }
 
-  public SymbolicValue createBinaryOr(Value pLeftOperand, Type pLeftType, Value pRightOperand,
-      Type pRightType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  public SymbolicValue createBinaryOr(
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
+      throws SymbolicBoundReachedException {
     checkSymbolic(pLeftOperand, pRightOperand);
 
-    BinaryFormulaCreator orCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator orCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.binaryOr(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.binaryOr(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, orCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, orCreator);
   }
 
-  public SymbolicValue createBinaryAnd(Value pLeftOperand, Type pLeftType, Value pRightOperand,
-      Type pRightType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  public SymbolicValue createBinaryAnd(
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
+      throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator andCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator andCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.binaryAnd(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.binaryAnd(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, andCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, andCreator);
   }
 
   public SymbolicValue createBinaryXor(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator xorCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator xorCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.binaryXor(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.binaryXor(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, xorCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, xorCreator);
   }
 
-  public SymbolicValue createBinaryNot(Value pOperand, Type pOperandType, AAstNode pLocation)
+  public SymbolicValue createBinaryNot(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    UnaryFormulaCreator notCreator = new UnaryFormulaCreator() {
+    UnaryExpressionCreator notCreator = new UnaryExpressionCreator() {
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand) {
-        return factory.binaryNot(pOperand);
+      public ConstraintExpression createValue(ConstraintExpression pOperand, Type pType) {
+        return factory.binaryNot(pOperand, pType);
       }
     };
 
-    return createFormula(pOperand, pLocation, notCreator);
+    return createFormula(pOperand, pOperandType, pExpressionType, pLocation, notCreator);
   }
 
   public SymbolicValue createEquals(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator equalsCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator equalsCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.equal(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.equal(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, equalsCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, equalsCreator);
+  }
+
+  public SymbolicValue createNotEquals(
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
+      throws SymbolicBoundReachedException {
+
+    BinaryExpressionCreator notEqualsCreator = new BinaryExpressionCreator() {
+
+      @Override
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.notEqual(pOperand1, pOperand2, pType);
+      }
+    };
+
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        notEqualsCreator);
   }
 
   public SymbolicValue createGreaterThan(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator greaterCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator greaterCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.greaterThan(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.greaterThan(pOperand2, pOperand1, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, greaterCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, greaterCreator);
   }
 
   public SymbolicValue createGreaterThanOrEqual(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator greaterEqualCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator greaterEqualCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.greaterThanOrEqual(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.greaterThanOrEqual(pOperand2, pOperand1, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, greaterEqualCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        greaterEqualCreator);
   }
 
   public SymbolicValue createLessThan(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator lessCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator lessCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.lessThan(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.lessThan(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, lessCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, lessCreator);
   }
 
   public SymbolicValue createLessThanOrEqual(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator lessEqualCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator lessEqualCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.lessThanOrEqual(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.lessThanOrEqual(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, lessEqualCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, lessEqualCreator);
   }
 
   public SymbolicValue createConditionalAnd(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator andCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator andCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.logicalAnd(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.logicalAnd(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, andCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, andCreator);
   }
 
   public SymbolicValue createConditionalOr(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, AAstNode pLocation)
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    BinaryFormulaCreator orCreator = new BinaryFormulaCreator() {
+    BinaryExpressionCreator orCreator = new BinaryExpressionCreator() {
 
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2) {
-        return factory.logicalOr(pOperand1, pOperand2);
+      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+          Type pType) {
+        return factory.logicalOr(pOperand1, pOperand2, pType);
       }
     };
 
-    return createFormula(pLeftOperand, pRightOperand, pLocation, orCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, orCreator);
   }
 
-  public SymbolicValue createLogicalNot(Value pOperand, Type pOperandType, AAstNode pLocation)
+  public SymbolicValue createLogicalNot(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    UnaryFormulaCreator notCreator = new UnaryFormulaCreator() {
+    UnaryExpressionCreator notCreator = new UnaryExpressionCreator() {
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand) {
-        return factory.logicalNot(pOperand);
+      public ConstraintExpression createValue(ConstraintExpression pOperand, Type pType) {
+        return factory.logicalNot(pOperand, pType);
       }
     };
 
-    return createFormula(pOperand, pLocation, notCreator);
+    return createFormula(pOperand, pOperandType, pExpressionType, pLocation, notCreator);
   }
 
-  private InvariantsFormula<Value> getConstant(Value pValue) {
+  private ConstraintExpression getConstant(Value pValue, Type pType) {
     checkNotNull(pValue);
-    return InvariantsFormulaManager.INSTANCE.asConstant(pValue);
+    return ConstraintExpressionFactory.getInstance().asConstant(pValue, pType);
   }
 
   private void checkSymbolic(Value pVal1, Value pVal2) {
@@ -431,25 +490,24 @@ public class SymbolicValueFactory {
     assert pVal instanceof SymbolicValue : NO_SYMBOLIC_VALUE_ERROR;
   }
 
-  public Value createNegation(Value pOperand, Type pExpressionType, AAstNode pLocation)
+  public Value createNegation(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
-    UnaryFormulaCreator xorCreator = new UnaryFormulaCreator() {
+    UnaryExpressionCreator xorCreator = new UnaryExpressionCreator() {
       @Override
-      public InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand) {
-        return factory.multiply(getNegativeOperand(), pOperand);
+      public ConstraintExpression createValue(ConstraintExpression pOperand, Type pType) {
+        return factory.negate(pOperand, pType);
       }
     };
 
-    return createFormula(pOperand, pLocation, xorCreator);
+    return createFormula(pOperand, pOperandType, pExpressionType, pLocation, xorCreator);
   }
 
-  private static interface BinaryFormulaCreator {
-
-    InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand1, InvariantsFormula<Value> pOperand2);
+  private static interface BinaryExpressionCreator {
+    ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType);
   }
 
-  private static interface UnaryFormulaCreator {
-    InvariantsFormula<Value> createValue(InvariantsFormula<Value> pOperand);
+  private static interface UnaryExpressionCreator {
+    ConstraintExpression createValue(ConstraintExpression pOperand, Type pType);
   }
 }

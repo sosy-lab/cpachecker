@@ -21,19 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints;
+package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionVisitor;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-
 
 /**
- * Class for creating {@link Formula}s out of {@link Constraint}s
- *
- * @param T concrete {@link Formula} type the implementation creates
+ * An expression used to describe one side of a {@link Constraint}.
  */
-public interface FormulaCreator<T extends Formula> extends ConstraintVisitor<T>, SymbolicValueVisitor<T>,
-    ConstraintExpressionVisitor<T> {
+public interface ConstraintExpression {
+
+  /**
+   * Accepts the given {@link ConstraintExpressionVisitor}.
+   *
+   * @param pVisitor the visitor to accept
+   * @param <VisitorReturnT> the return type of the visitor's specific <code>visit</code> method
+   * @return the value returned by the visitor's <code>visit</code> method
+   */
+  <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor);
+
+  /**
+   * Returns the expression type of this <code>ConstraintExpression</code>.
+   *
+   * @return the expression type of this <code>ConstraintExpression</code>
+   */
+  Type getType();
 }

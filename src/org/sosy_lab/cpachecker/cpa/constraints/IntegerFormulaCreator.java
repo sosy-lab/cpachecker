@@ -31,30 +31,29 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.EqualConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessOrEqualConstraint;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Add;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryAnd;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryNot;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryOr;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryXor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Divide;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Exclusion;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LessThan;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Modulo;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Multiply;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ShiftLeft;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ShiftRight;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.AdditionExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryAndExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryOrExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstantConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.DivisionExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalAndExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalNotExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalOrExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ModuloExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ShiftLeftExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicFormula;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -83,43 +82,43 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
 
   @Override
-  public IntegerFormula visit(Add<Value> pAdd) {
-    final IntegerFormula op1 = (IntegerFormula) pAdd.getSummand1().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pAdd.getSummand2().accept(this);
+  public IntegerFormula visit(AdditionExpression pAdd) {
+    final IntegerFormula op1 = (IntegerFormula) pAdd.getOperand1().accept(this);
+    final IntegerFormula op2 = (IntegerFormula) pAdd.getOperand2().accept(this);
 
     return numeralFormulaManager.add(op1, op2);
   }
 
   @Override
-  public IntegerFormula visit(BinaryAnd<Value> pAnd) {
+  public IntegerFormula visit(BinaryAndExpression pAnd) {
     return handleUnsupportedFormula(pAnd);
   }
 
-  private IntegerFormula handleUnsupportedFormula(InvariantsFormula<Value> pFormula) {
+  private IntegerFormula handleUnsupportedFormula(ConstraintExpression pFormula) {
     return formulaManager.makeVariable(FormulaType.IntegerType, getVariableNameByFormula(pFormula));
   }
 
-  private String getVariableNameByFormula(InvariantsFormula<Value> pFormula) {
+  private String getVariableNameByFormula(ConstraintExpression pFormula) {
     return pFormula.toString();
   }
 
   @Override
-  public IntegerFormula visit(BinaryNot<Value> pNot) {
+  public IntegerFormula visit(BinaryNotExpression pNot) {
     return handleUnsupportedFormula(pNot);
   }
 
   @Override
-  public IntegerFormula visit(BinaryOr<Value> pOr) {
+  public IntegerFormula visit(BinaryOrExpression pOr) {
     return handleUnsupportedFormula(pOr);
   }
 
   @Override
-  public IntegerFormula visit(BinaryXor<Value> pXor) {
+  public IntegerFormula visit(BinaryXorExpression pXor) {
     return handleUnsupportedFormula(pXor);
   }
 
   @Override
-  public Formula visit(Constant<Value> pConstant) {
+  public Formula visit(ConstantConstraintExpression pConstant) {
     Value value = pConstant.getValue();
 
     if (value.isNumericValue()) {
@@ -134,7 +133,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
       }
 
     } else if (value instanceof BooleanValue) {
-      return formulaManager.getBooleanFormulaManager().makeBoolean(((BooleanValue) value).isTrue());
+      return booleanFormulaManager.makeBoolean(((BooleanValue)value).isTrue());
 
     } else if (value instanceof SymbolicValue) {
       return ((SymbolicValue) value).accept(this);
@@ -149,8 +148,8 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public Formula visit(SymbolicFormula pValue) {
-    return pValue.getFormula().accept(this);
+  public Formula visit(SymbolicExpression pValue) {
+    return pValue.getExpression().accept(this);
   }
 
   private FormulaType<?> getFormulaType(Type pType) {
@@ -178,15 +177,15 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public IntegerFormula visit(Divide<Value> pDivide) {
-    final IntegerFormula op1 = (IntegerFormula) pDivide.getNumerator().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pDivide.getDenominator().accept(this);
+  public IntegerFormula visit(DivisionExpression pDivide) {
+    final IntegerFormula op1 = (IntegerFormula) pDivide.getOperand1().accept(this);
+    final IntegerFormula op2 = (IntegerFormula) pDivide.getOperand2().accept(this);
 
     return numeralFormulaManager.divide(op1, op2);
   }
 
   @Override
-  public BooleanFormula visit(Equal<Value> pEqual) {
+  public BooleanFormula visit(EqualsExpression pEqual) {
     final IntegerFormula op1 = (IntegerFormula) pEqual.getOperand1().accept(this);
     final IntegerFormula op2 = (IntegerFormula) pEqual.getOperand2().accept(this);
 
@@ -194,7 +193,12 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BooleanFormula visit(LessThan<Value> pLessThan) {
+  public Formula visit(LogicalOrExpression pExpression) {
+    return handleUnsupportedFormula(pExpression);
+  }
+
+  @Override
+  public BooleanFormula visit(LessThanExpression pLessThan) {
     final IntegerFormula op1 = (IntegerFormula) pLessThan.getOperand1().accept(this);
     final IntegerFormula op2 = (IntegerFormula) pLessThan.getOperand2().accept(this);
 
@@ -202,7 +206,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BooleanFormula visit(LogicalAnd<Value> pAnd) {
+  public BooleanFormula visit(LogicalAndExpression pAnd) {
     final BooleanFormula op1 = (BooleanFormula) pAnd.getOperand1().accept(this);
     final BooleanFormula op2 = (BooleanFormula) pAnd.getOperand2().accept(this);
 
@@ -210,51 +214,44 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public IntegerFormula visit(Exclusion<Value> pExclusion) {
-    throw new AssertionError("Unhandled formula type 'Exclusion' for object " + pExclusion);
+  public BooleanFormula visit(LogicalNotExpression pNot) {
+    final BooleanFormula op = (BooleanFormula) pNot.getOperand().accept(this);
+
+    return booleanFormulaManager.not(op);
   }
 
   @Override
-  public BooleanFormula visit(LogicalNot<Value> pNot) {
-    final BooleanFormula op = (BooleanFormula) pNot.getNegated().accept(this);
+  public Formula visit(LessThanOrEqualExpression pExpression) {
+    final Formula op1 = pExpression.getOperand1().accept(this);
+    final Formula op2 = pExpression.getOperand2().accept(this);
 
-    return formulaManager.getBooleanFormulaManager().not(op);
+    return formulaManager.makeLessOrEqual(op1, op2, SIGNED);
   }
 
   @Override
-  public IntegerFormula visit(Modulo<Value> pModulo) {
-    final IntegerFormula op1 = (IntegerFormula) pModulo.getNumerator().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pModulo.getDenominator().accept(this);
+  public IntegerFormula visit(ModuloExpression pModulo) {
+    final IntegerFormula op1 = (IntegerFormula) pModulo.getOperand1().accept(this);
+    final IntegerFormula op2 = (IntegerFormula) pModulo.getOperand2().accept(this);
 
     return numeralFormulaManager.modulo(op1, op2);
   }
 
   @Override
-  public IntegerFormula visit(Multiply<Value> pMultiply) {
-    final IntegerFormula op1 = (IntegerFormula) pMultiply.getFactor1().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pMultiply.getFactor2().accept(this);
+  public IntegerFormula visit(MultiplicationExpression pMultiply) {
+    final IntegerFormula op1 = (IntegerFormula) pMultiply.getOperand1().accept(this);
+    final IntegerFormula op2 = (IntegerFormula) pMultiply.getOperand2().accept(this);
 
     return numeralFormulaManager.multiply(op1, op2);
   }
 
   @Override
-  public IntegerFormula visit(ShiftLeft<Value> pShiftLeft) {
+  public IntegerFormula visit(ShiftLeftExpression pShiftLeft) {
     return handleUnsupportedFormula(pShiftLeft);
   }
 
   @Override
-  public IntegerFormula visit(ShiftRight<Value> pShiftRight) {
+  public IntegerFormula visit(ShiftRightExpression pShiftRight) {
     return handleUnsupportedFormula(pShiftRight);
-  }
-
-  @Override
-  public BooleanFormula visit(Union<Value> pUnion) {
-    throw new AssertionError("Unhandled formula type 'Union' for object " + pUnion);
-  }
-
-  @Override
-  public Formula visit(Variable<Value> pVariable) {
-    return numeralFormulaManager.makeVariable(pVariable.getName());
   }
 
   @Override
@@ -349,11 +346,11 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(ConstraintOperand pConstraintOperand) {
-    return pConstraintOperand.getFormula().accept(this);
+    return pConstraintOperand.getExpression().accept(this);
   }
 
   /**
-   * Creates a new formula based on two given formulas.
+   * Creates a new formula based on two given expressions.
    *
    * The created formula depends on the implementation.
    * This interface is used for creating anonymous classes that are given to {@link #transformConstraint}.

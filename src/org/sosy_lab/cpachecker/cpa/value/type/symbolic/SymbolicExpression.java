@@ -24,13 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Description of a variable's symbolic value in form of a formula. This is needed for more
+ * Description of a variable's symbolic value in form of a expression. This is needed for more
  * complex cases with non-deterministic variable values.
  *
  * <p>Example:
@@ -46,16 +45,16 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  * </pre>
  * </p>
  */
-public class SymbolicFormula implements SymbolicValue {
+public class SymbolicExpression implements SymbolicValue {
 
-  private InvariantsFormula<Value> formula;
+  private ConstraintExpression expression;
 
-  protected SymbolicFormula(InvariantsFormula<Value> pFormula) {
-    formula = pFormula;
+  protected SymbolicExpression(ConstraintExpression pExpression) {
+    expression = pExpression;
   }
 
-  public InvariantsFormula<Value> getFormula() {
-    return formula;
+  public ConstraintExpression getExpression() {
+    return expression;
   }
 
   public <T> T accept(SymbolicValueVisitor<T> pVisitor) {
@@ -64,17 +63,17 @@ public class SymbolicFormula implements SymbolicValue {
 
   @Override
   public int hashCode() {
-    return formula != null ? formula.hashCode() : 0;
+    return expression != null ? expression.hashCode() : 0;
   }
 
   @Override
   public boolean equals(Object other) {
-    return other instanceof SymbolicFormula && ((SymbolicFormula) other).formula.equals(formula);
+    return other instanceof SymbolicExpression && ((SymbolicExpression) other).expression.equals(expression);
   }
 
   @Override
   public String toString() {
-    return "SymbolicFormula [" + formula.toString() + "]";
+    return "SymbolicFormula [" + expression.toString() + "]";
   }
 
   @Override

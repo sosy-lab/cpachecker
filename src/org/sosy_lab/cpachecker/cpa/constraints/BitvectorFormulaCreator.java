@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -33,29 +34,28 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.EqualConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessOrEqualConstraint;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Add;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryAnd;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryNot;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryOr;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryXor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Divide;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Exclusion;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LessThan;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Modulo;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Multiply;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ShiftLeft;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ShiftRight;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.AdditionExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryAndExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryOrExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstantConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.DivisionExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalAndExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalNotExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalOrExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ModuloExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ShiftLeftExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicFormula;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -74,23 +74,26 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   private final FormulaManagerView formulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
+  
+  private final MachineModel machineModel;
 
-  public BitvectorFormulaCreator(FormulaManagerView pFormulaManager) {
+  public BitvectorFormulaCreator(FormulaManagerView pFormulaManager, MachineModel pMachineModel) {
     formulaManager = pFormulaManager;
     bitvectorFormulaManager = formulaManager.getBitvectorFormulaManager();
+    machineModel = pMachineModel;
   }
 
 
   @Override
-  public BitvectorFormula visit(Add<Value> pAdd) {
-    final BitvectorFormula op1 = (BitvectorFormula) pAdd.getSummand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pAdd.getSummand2().accept(this);
+  public BitvectorFormula visit(AdditionExpression pAdd) {
+    final BitvectorFormula op1 = (BitvectorFormula) pAdd.getOperand1().accept(this);
+    final BitvectorFormula op2 = (BitvectorFormula) pAdd.getOperand2().accept(this);
 
     return bitvectorFormulaManager.add(op1, op2);
   }
 
   @Override
-  public BitvectorFormula visit(BinaryAnd<Value> pAnd) {
+  public BitvectorFormula visit(BinaryAndExpression pAnd) {
     final BitvectorFormula op1 = (BitvectorFormula) pAnd.getOperand1().accept(this);
     final BitvectorFormula op2 = (BitvectorFormula) pAnd.getOperand2().accept(this);
 
@@ -98,14 +101,14 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BitvectorFormula visit(BinaryNot<Value> pNot) {
-    final BitvectorFormula op = (BitvectorFormula) pNot.getFlipped().accept(this);
+  public BitvectorFormula visit(BinaryNotExpression pNot) {
+    final BitvectorFormula op = (BitvectorFormula) pNot.getOperand().accept(this);
 
     return bitvectorFormulaManager.not(op);
   }
 
   @Override
-  public BitvectorFormula visit(BinaryOr<Value> pOr) {
+  public BitvectorFormula visit(BinaryOrExpression pOr) {
     final BitvectorFormula op1 = (BitvectorFormula) pOr.getOperand1().accept(this);
     final BitvectorFormula op2 = (BitvectorFormula) pOr.getOperand2().accept(this);
 
@@ -113,7 +116,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BitvectorFormula visit(BinaryXor<Value> pXor) {
+  public BitvectorFormula visit(BinaryXorExpression pXor) {
     final BitvectorFormula op1 = (BitvectorFormula) pXor.getOperand1().accept(this);
     final BitvectorFormula op2 = (BitvectorFormula) pXor.getOperand2().accept(this);
 
@@ -121,7 +124,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public Formula visit(Constant<Value> pConstant) {
+  public Formula visit(ConstantConstraintExpression pConstant) {
     Value constantValue = pConstant.getValue();
 
     if (constantValue.isNumericValue()) {
@@ -145,8 +148,8 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public Formula visit(SymbolicFormula pValue) {
-    return pValue.getFormula().accept(this);
+  public Formula visit(SymbolicExpression pValue) {
+    return pValue.getExpression().accept(this);
   }
 
   private FormulaType<?> getFormulaType(Type pType) {
@@ -186,15 +189,15 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BitvectorFormula visit(Divide<Value> pDivide) {
-    final BitvectorFormula op1 = (BitvectorFormula) pDivide.getNumerator().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pDivide.getDenominator().accept(this);
+  public BitvectorFormula visit(DivisionExpression pDivide) {
+    final BitvectorFormula op1 = (BitvectorFormula) pDivide.getOperand1().accept(this);
+    final BitvectorFormula op2 = (BitvectorFormula) pDivide.getOperand2().accept(this);
 
     return bitvectorFormulaManager.divide(op1, op2, SIGNED);
   }
 
   @Override
-  public BooleanFormula visit(Equal<Value> pEqual) {
+  public BooleanFormula visit(EqualsExpression pEqual) {
     final BitvectorFormula op1 = (BitvectorFormula) pEqual.getOperand1().accept(this);
     final BitvectorFormula op2 = (BitvectorFormula) pEqual.getOperand2().accept(this);
 
@@ -202,7 +205,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BooleanFormula visit(LessThan<Value> pLessThan) {
+  public BooleanFormula visit(LessThanExpression pLessThan) {
     final BitvectorFormula op1 = (BitvectorFormula) pLessThan.getOperand1().accept(this);
     final BitvectorFormula op2 = (BitvectorFormula) pLessThan.getOperand2().accept(this);
 
@@ -210,7 +213,15 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BooleanFormula visit(LogicalAnd<Value> pAnd) {
+  public Formula visit(LogicalOrExpression pExpression) {
+    final BitvectorFormula op1 = (BitvectorFormula) pExpression.getOperand1().accept(this);
+    final BitvectorFormula op2 = (BitvectorFormula) pExpression.getOperand2().accept(this);
+
+    return bitvectorFormulaManager.or(op1, op2);
+  }
+
+  @Override
+  public BooleanFormula visit(LogicalAndExpression pAnd) {
     final BitvectorFormula op1 = (BitvectorFormula) pAnd.getOperand1().accept(this);
     final BitvectorFormula op2 = (BitvectorFormula) pAnd.getOperand2().accept(this);
 
@@ -218,57 +229,50 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BitvectorFormula visit(Exclusion<Value> pExclusion) {
-    throw new AssertionError("Unhandled formula type 'Exclusion' for object " + pExclusion);
-  }
-
-  @Override
-  public BooleanFormula visit(LogicalNot<Value> pNot) {
-    final BooleanFormula op = (BooleanFormula) pNot.getNegated().accept(this);
+  public BooleanFormula visit(LogicalNotExpression pNot) {
+    final BooleanFormula op = (BooleanFormula) pNot.getOperand().accept(this);
 
     return formulaManager.getBooleanFormulaManager().not(op);
   }
 
   @Override
-  public BitvectorFormula visit(Modulo<Value> pModulo) {
-    final BitvectorFormula op1 = (BitvectorFormula) pModulo.getNumerator().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pModulo.getDenominator().accept(this);
+  public Formula visit(LessThanOrEqualExpression pExpression) {
+    final Formula op1 = pExpression.getOperand1().accept(this);
+    final Formula op2 = pExpression.getOperand2().accept(this);
+
+    return formulaManager.makeLessOrEqual(op1, op2, SIGNED);
+  }
+
+  @Override
+  public BitvectorFormula visit(ModuloExpression pModulo) {
+    final BitvectorFormula op1 = (BitvectorFormula) pModulo.getOperand1().accept(this);
+    final BitvectorFormula op2 = (BitvectorFormula) pModulo.getOperand2().accept(this);
 
     return bitvectorFormulaManager.modulo(op1, op2, SIGNED);
   }
 
   @Override
-  public BitvectorFormula visit(Multiply<Value> pMultiply) {
-    final BitvectorFormula op1 = (BitvectorFormula) pMultiply.getFactor1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pMultiply.getFactor2().accept(this);
+  public BitvectorFormula visit(MultiplicationExpression pMultiply) {
+    final BitvectorFormula op1 = (BitvectorFormula) pMultiply.getOperand1().accept(this);
+    final BitvectorFormula op2 = (BitvectorFormula) pMultiply.getOperand2().accept(this);
 
     return bitvectorFormulaManager.multiply(op1, op2);
   }
 
   @Override
-  public BitvectorFormula visit(ShiftLeft<Value> pShiftLeft) {
-    final BitvectorFormula op1 = (BitvectorFormula) pShiftLeft.getShifted().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pShiftLeft.getShiftDistance().accept(this);
+  public BitvectorFormula visit(ShiftLeftExpression pShiftLeft) {
+    final BitvectorFormula op1 = (BitvectorFormula) pShiftLeft.getOperand1().accept(this);
+    final BitvectorFormula op2 = (BitvectorFormula) pShiftLeft.getOperand2().accept(this);
 
     return bitvectorFormulaManager.shiftLeft(op1, op2);
   }
 
   @Override
-  public BitvectorFormula visit(ShiftRight<Value> pShiftRight) {
-    final BitvectorFormula op1 = (BitvectorFormula) pShiftRight.getShifted().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pShiftRight.getShiftDistance().accept(this);
+  public BitvectorFormula visit(ShiftRightExpression pShiftRight) {
+    final BitvectorFormula op1 = (BitvectorFormula) pShiftRight.getOperand1().accept(this);
+    final BitvectorFormula op2 = (BitvectorFormula) pShiftRight.getOperand2().accept(this);
 
     return bitvectorFormulaManager.shiftRight(op1, op2, SIGNED);
-  }
-
-  @Override
-  public BooleanFormula visit(Union<Value> pUnion) {
-    throw new AssertionError("Unhandled formula type 'Union' for object " + pUnion);
-  }
-
-  @Override
-  public Formula visit(Variable<Value> pVariable) {
-    return bitvectorFormulaManager.makeVariable(BITVECTOR_TYPE_DEFAULT, pVariable.getName());
   }
 
   @Override
@@ -342,11 +346,11 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(ConstraintOperand pConstraintOperand) {
-    return pConstraintOperand.getFormula().accept(this);
+    return pConstraintOperand.getExpression().accept(this);
   }
 
   /**
-   * Creates a new formula based on two given formulas.
+   * Creates a new formula based on two given expressions.
    *
    * The created formula depends on the implementation.
    * This interface is used for creating anonymous classes that are given to {@link #transformConstraint}.

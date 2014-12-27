@@ -45,8 +45,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
@@ -59,102 +60,104 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>Always use {@link #transform} to create correct representations. Otherwise, correctness can't be assured.</p>
  */
-public class JExpressionToFormulaVisitor extends ExpressionToFormulaVisitor
-    implements JRightHandSideVisitor<InvariantsFormula<Value>, UnrecognizedCodeException> {
+public class JExpressionTransformer extends ExpressionTransformer
+    implements JRightHandSideVisitor<ConstraintExpression, UnrecognizedCodeException> {
 
-  public JExpressionToFormulaVisitor(String pFunctionName) {
+  public JExpressionTransformer(String pFunctionName) {
     super(pFunctionName);
   }
 
-  public JExpressionToFormulaVisitor(String pFunctionName, ValueAnalysisState pValueState) {
+  public JExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
     super(pFunctionName, pValueState);
   }
 
-  public InvariantsFormula<Value> transform(JExpression pExpression) throws UnrecognizedCodeException {
+  public ConstraintExpression transform(JExpression pExpression) throws UnrecognizedCodeException {
     return pExpression.accept(this);
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JBinaryExpression paBinaryExpression) throws UnrecognizedCodeException {
-    InvariantsFormula<Value> leftOperand = paBinaryExpression.getOperand1().accept(this);
-    InvariantsFormula<Value> rightOperand = paBinaryExpression.getOperand2().accept(this);
+  public ConstraintExpression visit(JBinaryExpression paBinaryExpression) throws UnrecognizedCodeException {
+    ConstraintExpression operand1Expression = paBinaryExpression.getOperand1().accept(this);
+    ConstraintExpression operand2Expression = paBinaryExpression.getOperand2().accept(this);
     final JBinaryExpression.BinaryOperator operator = paBinaryExpression.getOperator();
-    final InvariantsFormulaManager factory = InvariantsFormulaManager.INSTANCE;
+    final Type expressionType = paBinaryExpression.getExpressionType();
 
-    if (leftOperand == null) {
-      return rightOperand;
-    } else if (rightOperand == null) {
-      return leftOperand;
+    final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
+
+    if (operand1Expression == null) {
+      return operand2Expression;
+    } else if (operand2Expression == null) {
+      return operand1Expression;
     }
 
     switch (operator) {
-      case MINUS:
-        rightOperand = negate(rightOperand);
-        // $FALL-THROUGH$
       case PLUS:
-        return factory.add(leftOperand, rightOperand);
+        return factory.add(operand1Expression, operand2Expression, expressionType);
+      case MINUS:
+        return factory.minus(operand1Expression, operand2Expression, expressionType);
       case MULTIPLY:
-        return factory.multiply(leftOperand, rightOperand);
+        return factory.multiply(operand1Expression, operand2Expression, expressionType);
       case DIVIDE:
-        return factory.divide(leftOperand, rightOperand);
+        return factory.divide(operand1Expression, operand2Expression, expressionType);
       case MODULO:
-        return factory.modulo(leftOperand, rightOperand);
+        return factory.modulo(operand1Expression, operand2Expression, expressionType);
       case SHIFT_LEFT:
-        return factory.shiftLeft(leftOperand, rightOperand);
+        return factory.shiftLeft(operand1Expression, operand2Expression, expressionType);
       case SHIFT_RIGHT_SIGNED:
-        return factory.shiftRight(leftOperand, rightOperand);
+        return factory.shiftRight(operand1Expression, operand2Expression, expressionType);
       case SHIFT_RIGHT_UNSIGNED:
         throw new AssertionError("Shift right unsigned not implemented"); // TODO implement
       case BINARY_AND:
-        return factory.binaryAnd(leftOperand, rightOperand);
+        return factory.binaryAnd(operand1Expression, operand2Expression, expressionType);
       case BINARY_OR:
-        return factory.binaryOr(leftOperand, rightOperand);
+        return factory.binaryOr(operand1Expression, operand2Expression, expressionType);
       case BINARY_XOR:
-        return factory.binaryXor(leftOperand, rightOperand);
+        return factory.binaryXor(operand1Expression, operand2Expression, expressionType);
       case EQUALS:
-        return factory.equal(leftOperand, rightOperand);
+        return factory.equal(operand1Expression, operand2Expression, expressionType);
       case NOT_EQUALS:
-        return factory.logicalNot(factory.equal(leftOperand, rightOperand));
+        return factory.notEqual(operand1Expression, operand2Expression, expressionType);
       case LESS_THAN:
-        return factory.lessThan(leftOperand, rightOperand);
+        return factory.lessThan(operand1Expression, operand2Expression, expressionType);
       case LESS_EQUAL:
-        return factory.lessThanOrEqual(leftOperand, rightOperand);
+        return factory.lessThanOrEqual(operand1Expression, operand2Expression, expressionType);
       case GREATER_THAN:
-        return factory.greaterThan(leftOperand, rightOperand);
+        return factory.greaterThan(operand1Expression, operand2Expression, expressionType);
       case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(leftOperand, rightOperand);
+        return factory.greaterThanOrEqual(operand1Expression, operand2Expression, expressionType);
       case LOGICAL_AND:
       case CONDITIONAL_AND:
-        return factory.logicalAnd(leftOperand, rightOperand);
+        return factory.logicalAnd(operand1Expression, operand2Expression, expressionType);
       case LOGICAL_OR:
       case CONDITIONAL_OR:
-        return factory.logicalOr(leftOperand, rightOperand);
+        return factory.logicalOr(operand1Expression, operand2Expression, expressionType);
       case LOGICAL_XOR:
-        return factory.binaryXor(leftOperand, rightOperand);
+        return factory.binaryXor(operand1Expression, operand2Expression, expressionType);
       default:
         throw new AssertionError("Unhandled operator " + operator);
     }
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JUnaryExpression pAUnaryExpression) throws UnrecognizedCodeException {
-    InvariantsFormula<Value> operand = pAUnaryExpression.getOperand().accept(this);
+  public ConstraintExpression visit(JUnaryExpression pAUnaryExpression) throws UnrecognizedCodeException {
+    ConstraintExpression operand = pAUnaryExpression.getOperand().accept(this);
 
     if (operand == null) {
       return null;
     } else {
-      final InvariantsFormulaManager factory = InvariantsFormulaManager.INSTANCE;
+      final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
       final JUnaryExpression.UnaryOperator operator = pAUnaryExpression.getOperator();
+      final Type expressionType = pAUnaryExpression.getExpressionType();
 
       switch (operator) {
         case PLUS:
           return operand;
         case MINUS:
-          return negate(operand);
+          return factory.negate(operand, expressionType);
         case NOT:
-          return factory.logicalNot(operand);
+          return factory.logicalNot(operand, expressionType);
         case COMPLEMENT:
-          return factory.binaryNot(operand);
+          return factory.binaryNot(operand, expressionType);
         default:
           throw new AssertionError("Unhandled operation " + operator);
       }
@@ -162,29 +165,30 @@ public class JExpressionToFormulaVisitor extends ExpressionToFormulaVisitor
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JCharLiteralExpression paCharLiteralExpression)
+  public ConstraintExpression visit(JCharLiteralExpression paCharLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(paCharLiteralExpression);
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JStringLiteralExpression paStringLiteralExpression)
+  public ConstraintExpression visit(JStringLiteralExpression paStringLiteralExpression)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
+  public ConstraintExpression visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(pJIntegerLiteralExpression);
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
+  public ConstraintExpression visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
       throws UnrecognizedCodeException {
     final boolean value = pJBooleanLiteralExpression.getValue();
+    final Type booleanType = pJBooleanLiteralExpression.getExpressionType();
 
-    return InvariantsFormulaManager.INSTANCE.asConstant(createBooleanValue(value));
+    return ConstraintExpressionFactory.getInstance().asConstant(createBooleanValue(value), booleanType);
   }
 
   private Value createBooleanValue(boolean pValue) {
@@ -192,15 +196,18 @@ public class JExpressionToFormulaVisitor extends ExpressionToFormulaVisitor
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JFloatLiteralExpression pJFloatLiteralExpression)
+  public ConstraintExpression visit(JFloatLiteralExpression pJFloatLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(pJFloatLiteralExpression);
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JNullLiteralExpression pJNullLiteralExpression)
+  public ConstraintExpression visit(JNullLiteralExpression pJNullLiteralExpression)
       throws UnrecognizedCodeException {
-    return InvariantsFormulaManager.INSTANCE.asConstant(getNullValue());
+
+    final Type nullType = pJNullLiteralExpression.getExpressionType();
+
+    return ConstraintExpressionFactory.getInstance().asConstant(getNullValue(), nullType);
   }
 
   private Value getNullValue() {
@@ -208,11 +215,11 @@ public class JExpressionToFormulaVisitor extends ExpressionToFormulaVisitor
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JEnumConstantExpression pJEnumConstantExpression)
+  public ConstraintExpression visit(JEnumConstantExpression pJEnumConstantExpression)
       throws UnrecognizedCodeException {
     String enumConstant = pJEnumConstantExpression.getConstantName();
     Type enumType = pJEnumConstantExpression.getExpressionType();
-    return InvariantsFormulaManager.INSTANCE.asConstant(createEnumValue(enumType, enumConstant));
+    return ConstraintExpressionFactory.getInstance().asConstant(createEnumValue(enumType, enumConstant), enumType);
   }
 
   private Value createEnumValue(Type pType, String pConstant) {
@@ -220,56 +227,56 @@ public class JExpressionToFormulaVisitor extends ExpressionToFormulaVisitor
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JIdExpression pJIdExpression) throws UnrecognizedCodeException {
+  public ConstraintExpression visit(JIdExpression pJIdExpression) throws UnrecognizedCodeException {
     return super.visit(pJIdExpression);
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JMethodInvocationExpression pAFunctionCallExpression)
+  public ConstraintExpression visit(JMethodInvocationExpression pAFunctionCallExpression)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JClassInstanceCreation pJClassInstanceCreation)
+  public ConstraintExpression visit(JClassInstanceCreation pJClassInstanceCreation)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JArrayCreationExpression pJBooleanLiteralExpression)
+  public ConstraintExpression visit(JArrayCreationExpression pJBooleanLiteralExpression)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCodeException {
+  public ConstraintExpression visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCodeException {
+  public ConstraintExpression visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType)
+  public ConstraintExpression visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JCastExpression pJCastExpression) throws UnrecognizedCodeException {
+  public ConstraintExpression visit(JCastExpression pJCastExpression) throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JThisExpression pThisExpression) throws UnrecognizedCodeException {
+  public ConstraintExpression visit(JThisExpression pThisExpression) throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public InvariantsFormula<Value> visit(JArraySubscriptExpression pAArraySubscriptExpression)
+  public ConstraintExpression visit(JArraySubscriptExpression pAArraySubscriptExpression)
       throws UnrecognizedCodeException {
     return null;
   }

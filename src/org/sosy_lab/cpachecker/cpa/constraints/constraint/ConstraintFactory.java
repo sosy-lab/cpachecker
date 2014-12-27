@@ -28,9 +28,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
@@ -151,10 +150,6 @@ public class ConstraintFactory {
     leftOperand = createOperand(pLeftExpression);
     rightOperand = createOperand(pRightExpression);
 
-    if (leftOperand == null || rightOperand == null) {
-      return null;
-    }
-
     switch (pOperator) {
       case NOT_EQUALS:
         isPositive = !isPositive;
@@ -187,7 +182,7 @@ public class ConstraintFactory {
   }
 
   private ConstraintOperand createOperand(AExpression pExpression) throws UnrecognizedCodeException {
-    InvariantsFormula<Value> operandFormula;
+    ConstraintExpression operandFormula;
 
     if (pExpression instanceof CExpression) {
       operandFormula = transformExpression((CExpression) pExpression);
@@ -198,9 +193,9 @@ public class ConstraintFactory {
     return operandFormula == null ? null : new ConstraintOperand(operandFormula);
   }
 
-  private InvariantsFormula<Value> transformExpression(CExpression pExpression) throws UnrecognizedCodeException {
-    CExpressionToFormulaVisitor formulaTransformer = getCTransformer();
-    InvariantsFormula<Value> expressionFormula = formulaTransformer.transform(pExpression);
+  private ConstraintExpression transformExpression(CExpression pExpression) throws UnrecognizedCodeException {
+    CExpressionTransformer formulaTransformer = getCTransformer();
+    ConstraintExpression expressionFormula = formulaTransformer.transform(pExpression);
 
     if (expressionFormula == null && formulaTransformer.hasMissingInformation()) {
       missingInformation = true;
@@ -209,17 +204,17 @@ public class ConstraintFactory {
     return expressionFormula;
   }
 
-  private CExpressionToFormulaVisitor getCTransformer() {
+  private CExpressionTransformer getCTransformer() {
     if (valueState.isPresent()) {
-      return new CExpressionToFormulaVisitor(functionName, valueState.get());
+      return new CExpressionTransformer(functionName, valueState.get());
     } else {
-      return new CExpressionToFormulaVisitor(functionName);
+      return new CExpressionTransformer(functionName);
     }
   }
 
-  private InvariantsFormula<Value> transformExpression(JExpression pExpression) throws UnrecognizedCodeException {
-    JExpressionToFormulaVisitor formulaTransformer = getJavaTransformer();
-    InvariantsFormula<Value> expressionFormula = formulaTransformer.transform(pExpression);
+  private ConstraintExpression transformExpression(JExpression pExpression) throws UnrecognizedCodeException {
+    JExpressionTransformer formulaTransformer = getJavaTransformer();
+    ConstraintExpression expressionFormula = formulaTransformer.transform(pExpression);
 
     if (expressionFormula == null && formulaTransformer.hasMissingInformation()) {
       missingInformation = true;
@@ -229,11 +224,11 @@ public class ConstraintFactory {
   }
 
 
-  private JExpressionToFormulaVisitor getJavaTransformer() {
+  private JExpressionTransformer getJavaTransformer() {
     if (valueState.isPresent()) {
-      return new JExpressionToFormulaVisitor(functionName, valueState.get());
+      return new JExpressionTransformer(functionName, valueState.get());
     } else {
-      return new JExpressionToFormulaVisitor(functionName);
+      return new JExpressionTransformer(functionName);
     }
   }
 }

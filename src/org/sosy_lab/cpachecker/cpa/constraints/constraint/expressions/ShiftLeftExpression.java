@@ -21,18 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * Visitor for {@link SymbolicValue}s.
- *
- * @param T return type of visit methods
+ * {@link BinaryConstraintExpression} representing the 'shift left' operation.
  */
-public interface SymbolicValueVisitor<T> {
+public class ShiftLeftExpression extends BinaryConstraintExpression {
 
-  T visit(SymbolicIdentifier pValue);
+  protected ShiftLeftExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
+    super(pOperand1, pOperand2, pType);
+  }
 
-  T visit(SymbolicExpression pValue);
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
 }

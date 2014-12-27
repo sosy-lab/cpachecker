@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -34,8 +32,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -45,25 +44,25 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import com.google.common.base.Optional;
 
 /**
- * Class for transforming expressions to formulas.
+ * Class for transforming {@link AExpression}s to {@link ConstraintExpression}s.
  *
- * <p>For each transformation, a new object has to be created. Otherwise, the resulting formulas might not reflect the
+ * <p>For each transformation, a new object has to be created. Otherwise, the resulting expressions might not reflect the
  * programs possible concrete states.</p>
  *
  */
-public class ExpressionToFormulaVisitor {
+public class ExpressionTransformer {
 
   private final String functionName;
 
   private boolean missingInformation = false;
   private Optional<ValueAnalysisState> valueState;
 
-  public ExpressionToFormulaVisitor(String pFunctionName) {
+  public ExpressionTransformer(String pFunctionName) {
     functionName = pFunctionName;
     valueState = Optional.absent();
   }
 
-  public ExpressionToFormulaVisitor(String pFunctionName, ValueAnalysisState pValueState) {
+  public ExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
     this(pFunctionName);
     valueState = Optional.of(pValueState);
   }
@@ -90,17 +89,6 @@ public class ExpressionToFormulaVisitor {
     return identifierAliasses.get(memLoc);
   }*/
 
-  protected InvariantsFormula<Value> negate(InvariantsFormula<Value> pFormula) {
-    checkNotNull(pFormula);
-    final InvariantsFormulaManager factory = InvariantsFormulaManager.INSTANCE;
-
-    return factory.multiply(getMinusOne(), pFormula);
-  }
-
-  private InvariantsFormula<Value> getMinusOne() {
-    return InvariantsFormulaManager.INSTANCE.asConstant(createNumericValue(-1L));
-  }
-
   protected Value createNumericValue(long pValue) {
     return new NumericValue(pValue);
   }
@@ -125,7 +113,7 @@ public class ExpressionToFormulaVisitor {
     return missingInformation;
   }
 
-  public InvariantsFormula<Value> visit(AIdExpression pIastIdExpression) throws UnrecognizedCodeException {
+  public ConstraintExpression visit(AIdExpression pIastIdExpression) throws UnrecognizedCodeException {
     if (!valueState.isPresent()) {
       missingInformation = true;
       return null;
@@ -134,10 +122,12 @@ public class ExpressionToFormulaVisitor {
     final ValueAnalysisState state = valueState.get();
     final MemoryLocation memLoc = getMemoryLocation(pIastIdExpression.getDeclaration());
 
+    final Type idType = pIastIdExpression.getExpressionType();
+
     if (state.contains(memLoc)) {
       final Value idValue = state.getValueFor(memLoc);
 
-      return InvariantsFormulaManager.INSTANCE.asConstant(idValue);
+      return ConstraintExpressionFactory.getInstance().asConstant(idValue, idType);
 
     } else {
       return null;
@@ -153,25 +143,28 @@ public class ExpressionToFormulaVisitor {
     }
   }
 
-  public InvariantsFormula<Value> visit(AIntegerLiteralExpression pIastIntegerLiteralExpression)
+  public ConstraintExpression visit(AIntegerLiteralExpression pIastIntegerLiteralExpression)
       throws UnrecognizedCodeException {
-    BigInteger value = pIastIntegerLiteralExpression.getValue();
+    final BigInteger value = pIastIntegerLiteralExpression.getValue();
+    final Type intType = pIastIntegerLiteralExpression.getExpressionType();
 
-    return InvariantsFormulaManager.INSTANCE.asConstant(createNumericValue(value));
+    return ConstraintExpressionFactory.getInstance().asConstant(createNumericValue(value), intType);
   }
 
-  public InvariantsFormula<Value> visit(ACharLiteralExpression pIastCharLiteralExpression)
+  public ConstraintExpression visit(ACharLiteralExpression pIastCharLiteralExpression)
       throws UnrecognizedCodeException {
-    long castValue = (long) pIastCharLiteralExpression.getCharacter();
+    final long castValue = (long) pIastCharLiteralExpression.getCharacter();
+    final Type charType = pIastCharLiteralExpression.getExpressionType();
 
-    return InvariantsFormulaManager.INSTANCE.asConstant(createNumericValue(castValue));
+    return ConstraintExpressionFactory.getInstance().asConstant(createNumericValue(castValue), charType);
   }
 
-  public InvariantsFormula<Value> visit(AFloatLiteralExpression pIastFloatLiteralExpression)
+  public ConstraintExpression visit(AFloatLiteralExpression pIastFloatLiteralExpression)
       throws UnrecognizedCodeException {
-    BigDecimal value = pIastFloatLiteralExpression.getValue();
+    final BigDecimal value = pIastFloatLiteralExpression.getValue();
+    final Type floatType = pIastFloatLiteralExpression.getExpressionType();
 
-    return InvariantsFormulaManager.INSTANCE.asConstant(createNumericValue(value));
+    return ConstraintExpressionFactory.getInstance().asConstant(createNumericValue(value), floatType);
   }
 
 }
