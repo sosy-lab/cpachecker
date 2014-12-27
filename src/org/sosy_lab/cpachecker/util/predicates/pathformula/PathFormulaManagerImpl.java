@@ -44,6 +44,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -67,6 +69,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaTypeHandlerWithArrays;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
@@ -96,6 +100,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
+
+  @Option(secure=true, description = "Handle arrays using the theory of arrays.")
+  private boolean handleArrays = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -156,7 +163,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     direction = pDirection;
 
-    if (handlePointerAliasing) {
+    if (handleArrays) {
+      final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
+      typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel, pFmgr);
+      converter = createCtoFormulaConverterWithArrays(options, pMachineModel, pVariableClassification, typeHandler);
+      ptsManager = null;
+
+      logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+
+    } else if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
       typeHandler = aliasingTypeHandler;
@@ -173,6 +188,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
+  }
+
+  private CtoFormulaConverter createCtoFormulaConverterWithArrays(FormulaEncodingOptions pOptions,
+      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
+      CtoFormulaTypeHandler pTypeHandler) {
+
+    return new CToFormulaConverterWithArrays(pOptions, fmgr, pMachineModel, pVariableClassification,
+        logger, shutdownNotifier, pTypeHandler, direction);
   }
 
   private CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions,
@@ -627,6 +650,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     return preds;
+  }
+
+  @Override
+  public Formula expressionToFormula(PathFormula pFormula,
+      CIdExpression expr,
+      CFAEdge edge) throws UnrecognizedCCodeException {
+    return converter.buildTermFromPathFormula(pFormula, expr, edge);
   }
 
 }

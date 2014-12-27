@@ -34,8 +34,6 @@ import subprocess
 import time
 
 from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
-import cloudRunexecutor as CloudRunExecutor
-from . import filewriter as filewriter
 from . import util as Util
 
 
@@ -54,7 +52,6 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
-        filewriter.writeFile(cloudInput, cloudInputFile)
         outputHandler.allCreatedFiles.append(cloudInputFile)
 
         # install cloud and dependencies

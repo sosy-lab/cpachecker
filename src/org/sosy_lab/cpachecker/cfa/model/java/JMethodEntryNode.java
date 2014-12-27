@@ -39,11 +39,11 @@ public class JMethodEntryNode extends FunctionEntryNode {
   public JMethodEntryNode(final FileLocation pFileLocation,
       final JMethodDeclaration pMethodDefinition,
       final FunctionExitNode pExitNode,
-      final List<String> pParameterNames) {
+      final List<String> pParameterNames,
+      final Optional<? extends JVariableDeclaration> pReturnVariable) {
 
     super(pFileLocation, pMethodDefinition.getName(), pExitNode, pMethodDefinition,
-        // TODO we need the correct declaration of the return variable here
-        pParameterNames, Optional.<JVariableDeclaration>absent());
+        pParameterNames, pReturnVariable);
   }
 
   @Override

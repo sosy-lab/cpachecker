@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantP
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurrenceComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 /**
@@ -72,16 +73,17 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
     config.inject(this, BAMPredicateCPA.class);
 
+    FormulaManagerView fmgr = getSolver().getFormulaManager();
     RelevantPredicatesComputer relevantPredicatesComputer;
     if (auxiliaryPredicateComputer) {
-      relevantPredicatesComputer = new AuxiliaryComputer(getFormulaManager());
+      relevantPredicatesComputer = new AuxiliaryComputer(fmgr);
     } else {
-      relevantPredicatesComputer = new RefineableOccurrenceComputer(getFormulaManager());
+      relevantPredicatesComputer = new RefineableOccurrenceComputer(fmgr);
     }
     relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
     this.relevantPredicatesComputer = relevantPredicatesComputer;
 
-    reducer = new BAMPredicateReducer(getFormulaManager().getBooleanFormulaManager(), this, relevantPredicatesComputer);
+    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this, relevantPredicatesComputer);
     blk = pBlk;
     stats = new BAMPredicateCPAStatistics(reducer);
   }

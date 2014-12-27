@@ -28,7 +28,6 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -46,7 +45,7 @@ public class JBooleanLiteralExpression extends ALiteralExpression implements JLi
   final Boolean value;
 
   public JBooleanLiteralExpression(FileLocation pFileLocation,  boolean pValue) {
-    super(pFileLocation, new JSimpleType(JBasicType.BOOLEAN));
+    super(pFileLocation, JSimpleType.getBoolean());
     value = pValue;
   }
 

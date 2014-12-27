@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="15000" cpuCores="2">
+  <option name="-heap">13000M</option>
   <option name="-noout"/>
   <option name="-disable-java-assertions"/>
-  <option name="-heap">13000M</option>
 
-  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <sourcefiles name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
@@ -15,7 +15,11 @@
   </sourcefiles>
   <sourcefiles name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <option name="-64"/>
+  </sourcefiles>
+  <sourcefiles name="ECA">
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
   </sourcefiles>
   <sourcefiles name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
@@ -26,11 +30,6 @@
   <sourcefiles name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
   </sourcefiles>
-  <!--
-  <sourcefiles name="Recursive">
-    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
-  </sourcefiles>
-  -->
   <sourcefiles name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   </sourcefiles>

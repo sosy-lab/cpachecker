@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -63,6 +64,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
+
+  public static enum SpecAutomatonCompositionType { NONE, TARGET_SPEC, BACKWARD_TO_ENTRY_SPEC }
 
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
@@ -118,6 +121,10 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
+
+  @Option(secure=true, name="refinePreconditions",
+      description = "Refine the preconditions until the set of unsafe and safe states are disjoint.")
+  private boolean usePreconditionRefinementAlgorithm = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -201,6 +208,10 @@ public class CoreComponentsFactory {
       if (useResultCheckAlgorithm) {
         algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
       }
+
+      if (usePreconditionRefinementAlgorithm) {
+        algorithm = new PreconditionRefinerAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
+      }
     }
 
     if (stats != null && algorithm instanceof StatisticsProvider) {
@@ -227,7 +238,7 @@ public class CoreComponentsFactory {
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa,
       @Nullable final MainCPAStatistics stats,
-      boolean composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
+      SpecAutomatonCompositionType composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     if (stats != null) {
       stats.cpaCreationTime.start();
@@ -236,12 +247,18 @@ public class CoreComponentsFactory {
 
       if (useRestartingAlgorithm) {
         // hard-coded dummy CPA
-        return LocationCPA.factory().set(cfa, CFA.class).createInstance();
+        return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
       }
 
-      ConfigurableProgramAnalysis cpa
-        = composeWithSpecificationCPAs
-          ? cpaFactory.buildCPAs(cfa) : cpaFactory.buildCPAs(cfa, null);
+      final ConfigurableProgramAnalysis cpa;
+      switch (composeWithSpecificationCPAs) {
+      case TARGET_SPEC:
+        cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa); break;
+      case BACKWARD_TO_ENTRY_SPEC:
+        cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa); break;
+      default:
+        cpa = cpaFactory.buildCPAs(cfa, null);
+      }
 
       if (stats != null && cpa instanceof StatisticsProvider) {
         ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -33,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
@@ -45,8 +48,8 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
 
   private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
-  public PostDominatorCPA(CFA pCfa) {
-    this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPABackwards(pCfa));
+  public PostDominatorCPA(CFA pCfa, Configuration config) throws InvalidConfigurationException {
+    this.parametricDominatorCPA = new org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA(new LocationCPABackwards(pCfa, config));
   }
 
   @Override
@@ -75,12 +78,12 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    return this.parametricDominatorCPA.getInitialState(node);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return this.parametricDominatorCPA.getInitialState(pNode, pPartition);
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
-    return this.parametricDominatorCPA.getInitialPrecision(pNode);
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+    return this.parametricDominatorCPA.getInitialPrecision(pNode, pPartition);
   }
 }

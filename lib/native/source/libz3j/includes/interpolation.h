@@ -1,28 +1,24 @@
-DEFINE_FUNC(J_lbool, interpolateSeq) WITH_9_ARGS(J_context, int, J_ast_array, J_ast_array, J_model_pointer, J_literals_pointer, int, int, J_ast_array)
-CONTEXT_ARG(1)
-INT_ARG(2)
-AST_ARRAY_ARG(3)
+/**
+ * Temporary workaround to deal with the bug in python scripts for the bindings
+ * generation:
+ * they return a pointer-to-pointer instead of returning the pointer.
+ * (E.g. in the binding generating code the write would go as (note the absence of the dereference operator compared to the version below):
+ *      { jclass cls = (*jenv)->GetObjectClass(jenv, arg5); jfieldID fid = (*jenv)->GetFieldID(jenv, cls, "value", "J"); (*jenv)->SetLongField(jenv, arg5, fid, (jlong)z3_arg5); }
+ *
+ *
+ */
+__attribute__((visibility("default"))) jJ_lbool Java_org_sosy_1lab_cpachecker_util_predicates_z3_Z3NativeApi_compute_1interpolantFixed (JNIEnv *jenv, jclass jcls, jJ_context arg1, jJ_ast arg2, jJ_params arg3, jJ_ast_vector_pointer arg4, jJ_model_pointer arg5) {
+Z3_context z3_arg1 = (void *)((size_t)arg1);
+Z3_ast z3_arg2 = (void *)((size_t)arg2);
+Z3_params z3_arg3 = (void *)((size_t)arg3);
+Z3_ast_vector s_arg4; Z3_ast_vector * z3_arg4 = &s_arg4;
+Z3_model s_arg5; Z3_model * z3_arg5 = &s_arg5;
+Z3_lbool retval = Z3_compute_interpolant(z3_arg1, z3_arg2, z3_arg3, z3_arg4, z3_arg5);
+{ jclass cls = (*jenv)->GetObjectClass(jenv, arg5); jfieldID fid = (*jenv)->GetFieldID(jenv, cls, "value", "J"); (*jenv)->SetLongField(jenv, arg5, fid, (jlong)*z3_arg5); }
 
-AST_OUT_ARRAY_ARG(4)
-MODEL_POINTER_ARG(5)
-LITERALS_POINTER_ARG(6)
-INT_ARG(7)
-INT_ARG(8)
-AST_ARRAY_ARG(9)
+{ jclass cls = (*jenv)->GetObjectClass(jenv, arg4); jfieldID fid = (*jenv)->GetFieldID(jenv, cls, "value", "J"); (*jenv)->SetLongField(jenv, arg4, fid, (jlong)*z3_arg4); }
 
-Z3_lbool retval = Z3_interpolate(z3_arg1, z3_arg2, z3_arg3, NULL, NULL, z3_arg4, z3_arg5, z3_arg6, z3_arg7, z3_arg8, z3_arg9);
-
-CLEAN_AST_ARRAY_ARG(9)
-CLEAN_INT_ARG(8)
-CLEAN_INT_ARG(7)
-SET_LITERALS_POINTER_ARG(6)
-CLEAN_LITERALS_POINTER_ARG(6)
-SET_MODEL_POINTER_ARG(5)
-CLEAN_MODEL_POINTER_ARG(5)
-SET_AST_OUT_ARRAY_ARG(4)
-CLEAN_AST_OUT_ARRAY_ARG(4)
-
-CLEAN_AST_ARRAY_ARG(3)
-CLEAN_INT_ARG(2)
-CLEAN_CONTEXT_ARG(1)
-LBOOL_RETURN
+out3:
+out2:
+out1:
+return (jint)retval; };

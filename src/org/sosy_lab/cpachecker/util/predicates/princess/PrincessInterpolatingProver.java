@@ -44,13 +44,13 @@ import ap.parser.IFormula;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public class PrincessInterpolatingProver extends PrincessAbstractProver implements InterpolatingProverEnvironment<Integer> {
+class PrincessInterpolatingProver extends PrincessAbstractProver implements InterpolatingProverEnvironment<Integer> {
 
   private final List<Integer> assertedFormulas = new ArrayList<>(); // Collection of termNames
   private final Map<Integer, IFormula> annotatedTerms = new HashMap<>(); // Collection of termNames
   private static final UniqueIdGenerator counter = new UniqueIdGenerator(); // for different indices
 
-  public PrincessInterpolatingProver(PrincessFormulaManager pMgr) {
+  PrincessInterpolatingProver(PrincessFormulaManager pMgr) {
     super(pMgr, true);
   }
 

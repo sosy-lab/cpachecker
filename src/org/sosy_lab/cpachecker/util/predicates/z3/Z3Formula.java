@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
@@ -37,6 +39,9 @@ abstract class Z3Formula implements Formula {
   Z3Formula(long z3context, long z3expr) {
     this.z3expr = z3expr;
     this.z3context = z3context;
+
+    // TODO: find a way to decrease the references automatically.
+    // Why finalizers are bad again?
     Z3NativeApi.inc_ref(z3context, z3expr);
   }
 
@@ -58,9 +63,25 @@ abstract class Z3Formula implements Formula {
     return Z3NativeApi.get_ast_hash(z3context, z3expr);
   }
 
-  public long getExpr() {
+  public Long getFormulaInfo() {
     return z3expr;
   }
+}
+
+class Z3ArrayFormula<TI extends Formula, TE extends Formula> extends Z3Formula
+implements ArrayFormula<TI, TE> {
+
+  private final FormulaType<TI> indexType;
+  private final FormulaType<TE> elementType;
+
+  public Z3ArrayFormula(long pZ3context, long pZ3expr, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    super(pZ3context, pZ3expr);
+    indexType = pIndexType;
+    elementType = pElementType;
+  }
+
+  public FormulaType<TI> getIndexType() { return indexType; }
+  public FormulaType<TE> getElementType() { return elementType; }
 }
 
 class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {

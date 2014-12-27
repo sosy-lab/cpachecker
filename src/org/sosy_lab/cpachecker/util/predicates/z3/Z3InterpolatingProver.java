@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
-public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
+class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
 
   private final Z3FormulaManager mgr;
   private long z3context;
@@ -49,7 +48,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   private int level = 0;
   private List<Long> assertedFormulas = new LinkedList<>();
 
-  public Z3InterpolatingProver(Z3FormulaManager mgr) {
+  Z3InterpolatingProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
     this.z3context = mgr.getEnvironment();
     this.z3solver = mk_solver(z3context);
@@ -116,84 +115,79 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     assert formulasOfB.size() != 0;
     long[] groupA = Longs.toArray(formulasOfA);
     long[] groupB = Longs.toArray(formulasOfB);
-    long fA = mk_and(z3context, groupA);
+    long fA = mk_interpolant(z3context, mk_and(z3context, groupA));
     inc_ref(z3context, fA);
     long fB = mk_and(z3context, groupB);
     inc_ref(z3context, fB);
 
-    // 2 groups -> 1 interpolant
-    long[] itps = new long[1];
-    itps[0] = 1; // initialize with value != 0
-
-    PointerToLong labels = new PointerToLong();
     PointerToLong model = new PointerToLong();
+    PointerToLong interpolant = new PointerToLong();
 
-    // next lines are not needed due to a direct implementation in the C-code.
-    //    long options = mk_params(z3context);
-    //    inc_ref(z3context, options);
-    //    int[] parents = new int[0]; // this line is not working
-    long[] theory = new long[0]; // do we need a theory?
+    long conjunction = mk_and(z3context, fA, fB);
+    inc_ref(z3context, conjunction);
 
-    long[] interpolationFormulas = new long[] { fA, fB };
-
-    smtLogger.logInterpolation(formulasOfA, formulasOfB, fA, fB);
-
-    // get interpolant of groups
-    int isSat = interpolateSeq(
-        z3context, interpolationFormulas, itps, model, labels, 0, theory);
-
-    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
-    BooleanFormula f = mgr.encapsulateBooleanFormula(itps[0]);
-
-    // cleanup
+    int isSat = compute_interpolantFixed(
+        z3context,
+        conjunction,
+        0,
+        interpolant,
+        model
+    );
+    assert isSat == Z3_LBOOL.Z3_L_FALSE.status : isSat;
     dec_ref(z3context, fA);
     dec_ref(z3context, fB);
+    dec_ref(z3context, conjunction);
 
-    return f;
+    return mgr.encapsulateBooleanFormula(ast_vector_get(
+        z3context, interpolant.value, 0
+    ));
   }
 
   @Override
   public List<BooleanFormula> getSeqInterpolants(List<Set<Long>> partitionedFormulas) {
+    // TODO: port to new API
+    throw new UnsupportedOperationException(
+        "SeqInterpolants currently not supported, use #getInterpolant instead.");
 
-    final long[] interpolationFormulas = new long[partitionedFormulas.size()];
-
-    for (int i = 0; i < interpolationFormulas.length; i++) {
-      long partition = mk_and(z3context, Longs.toArray(partitionedFormulas.get(i)));
-      inc_ref(z3context, partition);
-      interpolationFormulas[i] = partition;
-    }
-
-    // n groups -> n-1 interpolants
-    final long[] itps = new long[interpolationFormulas.length - 1];
-    Arrays.fill(itps, 1); // initialize with value != 0
-
-    PointerToLong labels = new PointerToLong();
-    PointerToLong model = new PointerToLong();
-
-    // next lines are not needed due to a direct implementation in the C-code.
-    //    long options = mk_params(z3context);
-    //    inc_ref(z3context, options);
-    //    int[] parents = new int[0]; // this line is not working
-    long[] theory = new long[0]; // do we need a theory?
-
-    smtLogger.logSeqInterpolation(interpolationFormulas);
-
-    // get interpolant of groups
-    int isSat = interpolateSeq(z3context, interpolationFormulas, itps, model, labels, 0, theory);
-
-    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
-
-    final List<BooleanFormula> result = new ArrayList<>();
-    for (long itp : itps) {
-      result.add(mgr.encapsulateBooleanFormula(itp));
-    }
-
-    // cleanup
-    for (long partition : interpolationFormulas) {
-      dec_ref(z3context, partition);
-    }
-
-    return result;
+//    final long[] interpolationFormulas = new long[partitionedFormulas.size()];
+//
+//    for (int i = 0; i < interpolationFormulas.length; i++) {
+//      long partition = mk_and(z3context, Longs.toArray(partitionedFormulas.get(i)));
+//      inc_ref(z3context, partition);
+//      interpolationFormulas[i] = partition;
+//    }
+//
+//    // n groups -> n-1 interpolants
+//    final long[] itps = new long[interpolationFormulas.length - 1];
+//    Arrays.fill(itps, 1); // initialize with value != 0
+//
+//    PointerToLong labels = new PointerToLong();
+//    PointerToLong model = new PointerToLong();
+//
+//    // next lines are not needed due to a direct implementation in the C-code.
+//    //    long options = mk_params(z3context);
+//    //    inc_ref(z3context, options);
+//    //    int[] parents = new int[0]; // this line is not working
+//    long[] theory = new long[0]; // do we need a theory?
+//
+//    smtLogger.logSeqInterpolation(interpolationFormulas);
+//
+//    // get interpolant of groups
+//    int isSat = interpolateSeq(z3context, interpolationFormulas, itps, model, labels, 0, theory);
+//
+//    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
+//
+//    final List<BooleanFormula> result = new ArrayList<>();
+//    for (long itp : itps) {
+//      result.add(mgr.encapsulateBooleanFormula(itp));
+//    }
+//
+//    // cleanup
+//    for (long partition : interpolationFormulas) {
+//      dec_ref(z3context, partition);
+//    }
+//
+//    return result;
   }
 
   @Override

@@ -321,7 +321,7 @@ public abstract class AbstractExpressionValueVisitor
     // because Java only has SIGNED_LONGLONG
     CSimpleType st = getArithmeticType(calculationType);
     if (st != null) {
-      if (machineModel.getSizeof(st) * machineModel.getSizeofCharInBits() >= SIZE_OF_JAVA_LONG
+      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG
           && st.isUnsigned()) {
         switch (op) {
         case DIVIDE:
@@ -833,7 +833,7 @@ public abstract class AbstractExpressionValueVisitor
         SymbolicValue equalsFormula =
             factory.createEquals(pLeftValue, pLeftType, pRightValue, pRightType);
 
-        return factory.createLogicalNot(equalsFormula, new JSimpleType(JBasicType.BOOLEAN));
+        return factory.createLogicalNot(equalsFormula, JSimpleType.getBoolean());
       case LESS_THAN:
         return factory.createLessThan(pLeftValue, pLeftType, pRightValue, pRightType);
       case LESS_EQUAL:
@@ -1460,9 +1460,7 @@ public abstract class AbstractExpressionValueVisitor
 
       case INT:
       case CHAR: {
-        final int bitPerByte = machineModel.getSizeofCharInBits();
-        final int numBytes = machineModel.getSizeof(st);
-        final int size = bitPerByte * numBytes;
+        final int size = machineModel.getSizeofInBits(st);
         final long longValue = numericValue.longValue();
         final boolean targetIsSigned = machineModel.isSigned(st);
 

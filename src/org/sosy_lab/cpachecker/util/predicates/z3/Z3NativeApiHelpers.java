@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
@@ -100,6 +101,18 @@ public class Z3NativeApiHelpers {
       overallResult = tacticResult;
     }
     return overallResult;
+  }
+
+  public static String getDeclarationSymbolText(long pContext, long pDeclaration) {
+    long symbol = get_decl_name(pContext, pDeclaration);
+    switch (get_symbol_kind(pContext, symbol)) {
+    case Z3_INT_SYMBOL:
+      return Integer.toString(get_symbol_int(pContext, symbol));
+    case Z3_STRING_SYMBOL:
+      return get_symbol_string(pContext, symbol);
+    default:
+      throw new UnsupportedOperationException("getDeclarationSymbolText: Kind of symbol not yet supported! Implement it!");
+    }
   }
 
 }

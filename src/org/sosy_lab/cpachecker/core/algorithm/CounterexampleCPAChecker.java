@@ -37,16 +37,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -84,7 +85,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @Option(secure=true, name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path configFile = Paths.get("config/explicitAnalysis-no-cbmc.properties");
+  private Path configFile = Paths.get("config/valueAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
@@ -110,25 +111,29 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   }
 
 
+  @SuppressWarnings("null")
   @Override
   public boolean checkCounterexample(ARGState pRootState,
       ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
+
+    Path automatonFile = null;
 
     try {
       if (specFile != null) {
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates, specFile);
       }
 
-      // This temp file will be automatically deleted when the try block terminates.
-      try (DeleteOnCloseFile automatonFile = Files.createTempFile("counterexample-automaton", ".txt")) {
-
-        return checkCounterexample(pRootState, pErrorState, pErrorPathStates,
-            automatonFile.toPath());
+      automatonFile = Paths.createTempPath("counterexample-automaton", ".txt");
+      try {
+        return checkCounterexample(pRootState, pErrorState, pErrorPathStates, automatonFile);
+      } finally {
+        automatonFile.delete();
       }
 
     } catch (IOException e) {
-      throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed("Could not write path automaton to file " +
+          automatonFile == null ? "" : automatonFile.toAbsolutePath() + " " + e.getMessage(), e);
     }
   }
 
@@ -161,10 +166,12 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownNotifier).start();
 
       CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, lLogger, lShutdownNotifier);
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, true);
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
-      lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));
+      lReached.add(
+          lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
+          lCpas.getInitialPrecision(entryNode, StateSpacePartition.getDefaultPartition()));
 
       lAlgorithm.run(lReached);
 

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -100,8 +101,8 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     ReachedSet newReached = reachedSetFactory.create();
     AbstractState initialState = getModel().getGlobalReached().getFirstState();
     CFANode initialLoc = AbstractStates.extractLocation(initialState);
-    initialState = currentCPA.getInitialState(initialLoc);
-    newReached.add(initialState, currentCPA.getInitialPrecision(initialLoc));
+    initialState = currentCPA.getInitialState(initialLoc, StateSpacePartition.getDefaultPartition());
+    newReached.add(initialState, currentCPA.getInitialPrecision(initialLoc, StateSpacePartition.getDefaultPartition()));
     getModel().setLocalReached(newReached);
 //    for (Pair<AbstractState, Precision> wrongState : wrongStates) {
 //      ReachedSetUtils.addToReachedOnly(getLocalReached(), wrongState.getFirst(), wrongState.getSecond());
@@ -144,7 +145,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       CPABuilder localBuilder =
           new CPABuilder(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier), reachedSetFactory);
 
-      currentCPA = localBuilder.buildCPAs(cfa);
+      currentCPA = localBuilder.buildCPAWithSpecAutomatas(cfa);
 
       if (getModel().getAlgorithm() instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(currentCPA, logger, lConfig, shutdownNotifier);

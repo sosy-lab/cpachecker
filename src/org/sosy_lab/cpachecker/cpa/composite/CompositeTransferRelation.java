@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.util.ArrayList;
@@ -33,7 +34,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -45,12 +51,20 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransfer
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-public class CompositeTransferRelation implements TransferRelation {
+@Options(prefix="cpa.composite")
+public final class CompositeTransferRelation implements TransferRelation {
+
+  @Option(secure=true,
+      description="Split MultiEdges and pass each inner edge to the component CPAs"
+          + " to allow strengthen calls after each single edge."
+          + " Does not work with backwards analysis!")
+  private boolean splitMultiEdges = false;
 
   private final ImmutableList<TransferRelation> transferRelations;
   private final int size;
@@ -58,7 +72,9 @@ public class CompositeTransferRelation implements TransferRelation {
   private int predicatesIndex = -1;
   private final boolean isErrorStateDetectableInStrengthening;
 
-  public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations, boolean pErrorDetctableInStrengthen) {
+  public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations,
+      boolean pErrorDetctableInStrengthen, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     this.transferRelations = transferRelations;
     size = transferRelations.size();
 
@@ -111,7 +127,40 @@ public class CompositeTransferRelation implements TransferRelation {
     return results;
   }
 
+
   private void getAbstractSuccessorForEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
+      Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
+
+    if (splitMultiEdges && cfaEdge instanceof MultiEdge) {
+      // We want to resolve MultiEdges here such that for every edge along
+      // the MultiEdge there is a separate call to TransferRelation.getAbstractSuccessorsForEdge
+      // and especially to TransferRelation.strengthen.
+      // As there can be multiple successors at each step,
+      // we keep a list of "frontier states", handle one edge for each of them,
+      // and use the successors of all these states as the new frontier.
+      Collection<CompositeState> currentStates = new ArrayList<>(1);
+      currentStates.add(compositeState);
+
+      for (CFAEdge simpleEdge : ((MultiEdge)cfaEdge).getEdges()) {
+        Collection<CompositeState> successorStates = new ArrayList<>(currentStates.size());
+
+        for (CompositeState currentState : currentStates) {
+          getAbstractSuccessorForSimpleEdge(currentState, compositePrecision, simpleEdge, successorStates);
+        }
+
+        assert !from(successorStates).anyMatch(AbstractStates.IS_TARGET_STATE);
+        // make successor states the new to-be-handled states for the next edge
+        currentStates = Collections.unmodifiableCollection(successorStates);
+      }
+
+      compositeSuccessors.addAll(currentStates);
+
+    } else {
+      getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);
+    }
+  }
+
+  private void getAbstractSuccessorForSimpleEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
       Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 

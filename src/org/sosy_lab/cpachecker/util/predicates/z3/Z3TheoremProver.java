@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
 
-public class Z3TheoremProver implements ProverEnvironment {
+class Z3TheoremProver implements ProverEnvironment {
 
   private final Z3FormulaManager mgr;
   private long z3context;
@@ -60,7 +60,7 @@ public class Z3TheoremProver implements ProverEnvironment {
 
   private final Map<String, BooleanFormula> storedConstraints;
 
-  public Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
+  Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
     mgr = pMgr;
     z3context = mgr.getEnvironment();
     z3solver = mk_solver(z3context);
@@ -74,7 +74,7 @@ public class Z3TheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public void push(BooleanFormula f) {
+  public Void push(BooleanFormula f) {
     track_no++;
     level++;
 
@@ -94,7 +94,7 @@ public class Z3TheoremProver implements ProverEnvironment {
           (Z3BooleanFormula) mgr.getBooleanFormulaManager().makeVariable(
               varName);
 
-      solver_assert_and_track(z3context, z3solver, e, t.getExpr());
+      solver_assert_and_track(z3context, z3solver, e, t.getFormulaInfo());
       storedConstraints.put(varName, f);
     } else {
       solver_assert(z3context, z3solver, e);
@@ -102,6 +102,7 @@ public class Z3TheoremProver implements ProverEnvironment {
 
     smtLogger.logPush(1);
     smtLogger.logAssert(e);
+    return null;
   }
 
   @Override

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -35,26 +36,23 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Verify;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
-import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class SmtInterpolModel {
 
-  private static TermType toSmtInterpolType(Sort sort) {
-
-    switch (sort.getName()) {
-      case "Bool":
-        return TermType.Boolean;
-      case "Int":
-        return TermType.Integer;
-      case "Real":
-        return TermType.Real;
-      default:
-        throw new IllegalArgumentException("Given sort cannot be converted to a TermType: " + sort);
+  private static TermType getType(Term t) {
+    if (SmtInterpolUtil.isBoolean(t)) {
+      return TermType.Boolean;
+    } else if (SmtInterpolUtil.hasIntegerType(t)) {
+      return TermType.Integer;
+    } else if (SmtInterpolUtil.hasRationalType(t)) {
+      return TermType.Real;
     }
+
+    throw new IllegalArgumentException("Given sort cannot be converted to a TermType: " + t.getSort());
   }
 
   private static AssignableTerm toVariable(Term t) {
@@ -64,7 +62,7 @@ class SmtInterpolModel {
 
     ApplicationTerm appTerm = (ApplicationTerm)t;
     String lName = appTerm.getFunction().getName();
-    TermType lType = toSmtInterpolType(appTerm.getSort());
+    TermType lType = getType(appTerm);
 
     Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
     if (lSplitName.getSecond() != null) {
@@ -75,121 +73,72 @@ class SmtInterpolModel {
   }
 
 
-  private static Function toFunction(Term t) {
+  private static Function toFunction(Term t, de.uni_freiburg.informatik.ultimate.logic.Model values) {
     if (SmtInterpolUtil.isVariable(t)) {
       throw new IllegalArgumentException("Given term is no function! (" + t.toString() + ")");
     }
 
     ApplicationTerm appTerm = (ApplicationTerm)t;
     String lName = appTerm.getFunction().getName();
-    TermType lType = toSmtInterpolType(appTerm.getSort());
+    TermType lType = getType(appTerm);
 
     int lArity = SmtInterpolUtil.getArity(appTerm);
 
-    // TODO we assume only constants (reals) as parameters for now
     Object[] lArguments = new Object[lArity];
 
     for (int lArgumentIndex = 0; lArgumentIndex < lArity; lArgumentIndex++) {
       Term lArgument = SmtInterpolUtil.getArg(appTerm, lArgumentIndex);
-
-      String lTermRepresentation = lArgument.toString();
-
-      Object lValue;
-
-      try {
-        lValue = Double.valueOf(lTermRepresentation);
-      }
-      catch (NumberFormatException e) {
-        // TODO this part is copied from mathsat, can we use it for smtInterpol, too?
-        // lets try special case for mathsat
-        String[] lNumbers = lTermRepresentation.split("/");
-
-        if (lNumbers.length != 2) {
-          throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
-        }
-
-        double lNumerator = Double.valueOf(lNumbers[0]);
-        double lDenominator = Double.valueOf(lNumbers[1]);
-
-        lValue = lNumerator/lDenominator;
-      }
-      lArguments[lArgumentIndex] = lValue;
+      lArgument = values.evaluate(lArgument);
+      lArguments[lArgumentIndex] = getValue(lArgument);
     }
 
     return new Function(lName, lType, lArguments);
   }
 
 
-  private static AssignableTerm toAssignable(Term t) {
+  private static AssignableTerm toAssignable(Term t, de.uni_freiburg.informatik.ultimate.logic.Model values) {
 
     assert t instanceof ApplicationTerm : "This is no ApplicationTerm: " + t.toString();
 
     if (SmtInterpolUtil.isVariable(t)) {
       return toVariable(t);
     } else {
-      return toFunction(t);
+      return toFunction(t, values);
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> terms) {
-    // model can only return values for keys, not for terms
-    Term[] keys = SmtInterpolUtil.getVars(terms);
-
-    ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
-
-    try {
-      assert env.checkSat() : "model is only available for SAT environments";
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+  private static Object getValue(Term value) {
+    if (SmtInterpolUtil.isTrue(value)) {
+      return true;
+    } else if (SmtInterpolUtil.isFalse(value)) {
+      return false;
+    } else if (SmtInterpolUtil.isNumber(value)) {
+      return SmtInterpolUtil.toNumber(value);
     }
-    Map<Term, Term> val = env.getValue(keys);
 
-    for (Term lKeyTerm : keys) {
-      Term lValueTerm = val.get(lKeyTerm);
+    throw new IllegalArgumentException("SmtInterpol model term with expected value " + value);
+  }
 
-      AssignableTerm lAssignable = toAssignable(lKeyTerm);
+  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> assertedFormulas) {
+    de.uni_freiburg.informatik.ultimate.logic.Model values = env.getModel();
 
-      // TODO maybe we have to convert to SMTLIB format and
-      // then read in values in a controlled way, e.g., size of bitvector
-      // TODO we are assuming numbers as values
-      if (!(SmtInterpolUtil.isNumber(lValueTerm)
-            || SmtInterpolUtil.isBoolean(lValueTerm))) {
-        // TODO is there a bug in SmtInterpol??
-        // with new version from 2012.04.09 there can be ApplicationTerms in the model
-        // we put the Term into the model
-        model.put(lAssignable, SmtInterpolUnsafeFormulaManager.dequote(lValueTerm.toStringDirect()));
-      } else {
+    Map<AssignableTerm, Object> model = new LinkedHashMap<>();
+    for (Term lKeyTerm : SmtInterpolUtil.getVarsAndUIFs(assertedFormulas)) {
+      Term lValueTerm = values.evaluate(lKeyTerm);
 
-      String lTermRepresentation = lValueTerm.toString();
+      AssignableTerm lAssignable = toAssignable(lKeyTerm, values);
+      Object lValue = getValue(lValueTerm);
 
-      Object lValue;
-
-      switch (lAssignable.getType()) {
-      case Boolean:
-        lValue = Boolean.valueOf(lTermRepresentation);
-        break;
-
-      case Real:
-        lValue = SmtInterpolUtil.toNumber(lValueTerm);
-        break;
-
-      case Integer:
-        lValue = SmtInterpolUtil.toNumber(lValueTerm);
-        break;
-
-//      case Bitvector:
-//        lValue = fmgr.interpreteBitvector(lValueTerm);
-//        break;
-
-      default:
-        throw new IllegalArgumentException("SmtInterpol term with unhandled type " + lAssignable.getType());
-      }
-
+      // Duplicate entries may occur if "uf(a)" and "uf(b)" occur in the formulas
+      // and "a" and "b" have the same value, because "a" and "b" will both be resolved,
+      // leading to two entries for "uf(1)" (if value is 1).
+      Object existingValue = model.get(lAssignable);
+      Verify.verify(existingValue == null || lValue.equals(existingValue),
+          "Duplicate values for model entry %s: %s and %s", lAssignable, existingValue, lValue
+          );
       model.put(lAssignable, lValue);
     }
-    }
 
-    return new Model(model.build());
+    return new Model(model);
   }
-
 }

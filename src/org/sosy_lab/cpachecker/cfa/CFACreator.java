@@ -50,9 +50,9 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.LiveVariables.LiveVariablesBuilder;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
@@ -214,6 +214,10 @@ public class CFACreator {
               + " is read later on.")
   private boolean findLiveVariables = false;
 
+  @Option(secure=true, name="cfa.classifyNodes",
+      description="This option enables the computation of a classification of CFA nodes.")
+private boolean classifyNodes = false;
+
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
 
@@ -262,9 +266,9 @@ public class CFACreator {
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
 
-  public CFACreator(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier)
-          throws InvalidConfigurationException {
+  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
     config.inject(this);
 
     this.config = config;
@@ -381,15 +385,6 @@ public class CFACreator {
       Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
       cfa.setLoopStructure(loopStructure);
 
-      // get live-variables information, first and second part, the last
-      // part is added after the creation of the variable classification
-      LiveVariablesBuilder liveVariablesBuilder = new LiveVariablesBuilder();
-      if (findLiveVariables) {
-        liveVariablesBuilder.addLiveVariablesFromCFA(cfa, logger, shutdownNotifier);
-        liveVariablesBuilder.addLiveVariablesFromGlobalScope(c.getGlobalDeclarations());
-      }
-
-
       // FOURTH, insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -440,12 +435,13 @@ public class CFACreator {
         varClassification = Optional.<VariableClassification>absent();
       }
 
-      //third (last) part of live variables if the variable classification is
-      // present we store this information in the builder and create the live
-      // variables  object
-      if (findLiveVariables && varClassification.isPresent()) {
-        liveVariablesBuilder.addLiveVariablesByVariableClassification(varClassification.get());
-        cfa.setLiveVariables(liveVariablesBuilder.build());
+      // create the live variables if the variable classification is present
+      if (findLiveVariables &&
+          (varClassification.isPresent() || cfa.getLanguage() != Language.C)) {
+        cfa.setLiveVariables(LiveVariables.create(varClassification,
+                                                  c.getGlobalDeclarations(),
+                                                  cfa, logger, shutdownNotifier,
+                                                  config));
       }
 
       stats.processingTime.stop();

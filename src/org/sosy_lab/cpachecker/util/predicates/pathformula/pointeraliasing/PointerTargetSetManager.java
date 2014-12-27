@@ -151,12 +151,6 @@ public class PointerTargetSetManager {
     final BooleanFormula basesMergeFormula;
     if (pts1.lastBase == null && pts2.lastBase == null ||
         pts1.lastBase != null && (pts2.lastBase == null || pts1.lastBase.equals(pts2.lastBase))) {
-      // The next check doesn't really hold anymore due to possible base unions, but these cases are suspicious
-      assert pts1.lastBase == null ||
-             pts2.lastBase == null ||
-             isFakeBaseType(pts1.bases.get(pts1.lastBase)) ||
-             isFakeBaseType(pts2.bases.get(pts2.lastBase)) ||
-             pts1.bases.get(pts1.lastBase).equals(pts2.bases.get(pts2.lastBase));
       lastBase = pts1.lastBase;
       basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
       // Nothing to do, as there were no divergence with regard to base allocations

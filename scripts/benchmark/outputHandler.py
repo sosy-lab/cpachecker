@@ -109,6 +109,10 @@ class OutputHandler:
 
 
     def storeSystemInfo(self, opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname):
+        for systemInfo in self.XMLHeader.findall("systeminfo"):
+                    if systemInfo.attrib["hostname"] == hostname:
+                        return
+
         osElem = ET.Element("os", {"name":opSystem})
         cpuElem = ET.Element("cpu", {"model":cpuModel, "cores":numberOfCores, "frequency":maxFrequency})
         ramElem = ET.Element("ram", {"size":memory})
@@ -116,7 +120,10 @@ class OutputHandler:
         systemInfo.append(osElem)
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
+            
         self.XMLHeader.append(systemInfo)
+        if self.runSet and self.runSet.xml:
+            self.runSet.xml.append(systemInfo)
 
 
     def setError(self, msg):
@@ -412,7 +419,7 @@ class OutputHandler:
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
                 blockFileName = self.getFileName(runSet.name, block.name + ".xml")
-                filewriter.writeFile(
+                Util.writeFile(
                     Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)),
                     blockFileName
                 )

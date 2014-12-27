@@ -27,17 +27,22 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   private final Z3SmtLogger smtLogger;
+
+  private final Table<Long, Long, Long> allocatedArraySorts = HashBasedTable.create();
 
   Z3FormulaCreator(
       long pEnv,
@@ -69,32 +74,58 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
-    if (pFormula instanceof BitvectorFormula) {
+    if (pFormula instanceof ArrayFormula<?,?>
+    || pFormula instanceof BitvectorFormula) {
       long term = extractInfo(pFormula);
-      long z3context = getEnv();
-      long sort = get_sort(z3context, term);
-      Preconditions.checkArgument(get_sort_kind(z3context, sort) == Z3_BV_SORT);
-      return (FormulaType<T>) FormulaType.getBitvectorTypeWithSize(
-          get_bv_sort_size(z3context, sort));
+      return (FormulaType<T>) getFormulaType(term);
     }
+
     return super.getFormulaType(pFormula);
   }
 
-  @Override
-  public FormulaType<?> getFormulaType(Long pFormula) {
+  public FormulaType<?> getFormulaTypeFromSort(Long pSort) {
     long z3context = getEnv();
-    long sort = get_sort(z3context, pFormula);
-    long sortKind = get_sort_kind(z3context, sort);
+    long sortKind = get_sort_kind(z3context, pSort);
     if (sortKind == Z3_BOOL_SORT) {
       return FormulaType.BooleanType;
     } else if (sortKind == Z3_INT_SORT) {
       return FormulaType.IntegerType;
+    } else if (sortKind == Z3_ARRAY_SORT) {
+      long domainSort = get_array_sort_domain(z3context, pSort);
+      long rangeSort = get_array_sort_range(z3context, pSort);
+      return FormulaType.getArrayType(
+          getFormulaTypeFromSort(domainSort),
+          getFormulaTypeFromSort(rangeSort));
     } else if (sortKind == Z3_REAL_SORT) {
       return FormulaType.RationalType;
     } else if (sortKind == Z3_BV_SORT) {
-      return FormulaType.getBitvectorTypeWithSize(get_bv_sort_size(z3context, sort));
+      return FormulaType.getBitvectorTypeWithSize(get_bv_sort_size(z3context, pSort));
     }
     throw new IllegalArgumentException("Unknown formula type");
+  }
+
+  @Override
+  public FormulaType<?> getFormulaType(Long pFormula) {
+    long sort = get_sort(getEnv(), pFormula);
+    return getFormulaTypeFromSort(sort);
+  }
+
+  @Override
+  protected <TD extends Formula, TR extends Formula>
+  FormulaType<TR> getArrayFormulaElementType(ArrayFormula<TD, TR> pArray) {
+    return ((Z3ArrayFormula<TD,TR>) pArray).getElementType();
+  }
+
+  @Override
+  protected <TD extends Formula, TR extends Formula>
+  FormulaType<TD> getArrayFormulaIndexType(ArrayFormula<TD, TR> pArray) {
+    return ((Z3ArrayFormula<TD,TR>) pArray).getIndexType();
+  }
+
+  @Override
+  protected <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR> encapsulateArray(Long pTerm,
+      FormulaType<TD> pIndexType, FormulaType<TR> pElementType) {
+    return new Z3ArrayFormula<>(getEnv(), pTerm, pIndexType, pElementType);
   }
 
   @SuppressWarnings("unchecked")
@@ -108,7 +139,15 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
       return (T)new Z3RationalFormula(getEnv(), pTerm);
     } else if (pType.isBitvectorType()) {
       return (T)new Z3BitvectorFormula(getEnv(), pTerm);
+    } else if (pType.isArrayType()) {
+      ArrayFormulaType<?, ?> arrFt = (ArrayFormulaType<?, ?>) pType;
+      return (T) new Z3ArrayFormula<>(
+          getEnv(),
+          pTerm,
+          arrFt.getIndexType(),
+          arrFt.getElementType());
     }
+
     throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in Z3");
   }
 
@@ -120,6 +159,17 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
   @Override
   public BitvectorFormula encapsulateBitvector(Long pTerm) {
     return new Z3BitvectorFormula(getEnv(), pTerm);
+  }
+
+  @Override
+  public Long getArrayType(Long pIndexType, Long pElementType) {
+    Long allocatedArraySort = allocatedArraySorts.get(pIndexType, pElementType);
+    if (allocatedArraySort == null) {
+      allocatedArraySort = Z3NativeApi.mk_array_sort(getEnv(), pIndexType, pElementType);
+      Z3NativeApi.inc_ref(getEnv(), allocatedArraySort);
+      allocatedArraySorts.put(pIndexType, pElementType, allocatedArraySort);
+    }
+    return allocatedArraySort;
   }
 
   @Override

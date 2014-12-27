@@ -4,7 +4,7 @@
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-  <option name="-explicitAnalysis"/>
+  <option name="-valueAnalysis"/>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 

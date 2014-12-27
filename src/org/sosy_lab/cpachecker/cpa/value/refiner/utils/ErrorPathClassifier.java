@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 
@@ -157,9 +159,9 @@ public class ErrorPathClassifier {
     loopStructure   = pLoopStructure;
   }
 
-  public MutableARGPath obtainPrefix(ErrorPathPrefixPreference preference,
-      MutableARGPath errorPath,
-      List<MutableARGPath> pPrefixes) {
+  public ARGPath obtainPrefix(ErrorPathPrefixPreference preference,
+      ARGPath errorPath,
+      List<ARGPath> pPrefixes) {
 
     switch (preference) {
     case SHORTEST:
@@ -193,15 +195,15 @@ public class ErrorPathClassifier {
     }
   }
 
-  private MutableARGPath obtainShortestPrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+  private ARGPath obtainShortestPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
     return buildPath(0, pPrefixes, originalErrorPath);
   }
 
-  private MutableARGPath obtainLongestPrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+  private ARGPath obtainLongestPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
     return buildPath(pPrefixes.size() - 1, pPrefixes, originalErrorPath);
   }
 
-  private MutableARGPath obtainDomainTypeHeuristicBasedPrefix(List<MutableARGPath> pPrefixes, ErrorPathPrefixPreference preference, MutableARGPath originalErrorPath) {
+  private ARGPath obtainDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference, ARGPath originalErrorPath) {
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
@@ -210,10 +212,10 @@ public class ErrorPathClassifier {
     Long bestScore                  = null;
     int bestIndex                   = 0;
 
-    for (MutableARGPath currentPrefix : pPrefixes) {
-      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+    for (ARGPath currentPrefix : pPrefixes) {
+      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
 
-      currentErrorPath.addAll(currentPrefix);
+      currentErrorPath.addAll(pathToList(currentPrefix));
 
       Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
@@ -228,7 +230,7 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes, originalErrorPath);
   }
 
-  private MutableARGPath obtainRefinementRootHeuristicBasedPrefix(List<MutableARGPath> pPrefixes, ErrorPathPrefixPreference preference, MutableARGPath originalErrorPath) {
+  private ARGPath obtainRefinementRootHeuristicBasedPrefix(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference, ARGPath originalErrorPath) {
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
@@ -237,10 +239,10 @@ public class ErrorPathClassifier {
     Long bestScore                  = null;
     int bestIndex                   = 0;
 
-    for (MutableARGPath currentPrefix : pPrefixes) {
-      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+    for (ARGPath currentPrefix : pPrefixes) {
+      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
 
-      currentErrorPath.addAll(currentPrefix);
+      currentErrorPath.addAll(pathToList(currentPrefix));
 
       // gets the score for the prefix of how "local" it is
       AssumptionUseDefinitionCollector collector = new InitialAssumptionUseDefinitionCollector();
@@ -257,25 +259,25 @@ public class ErrorPathClassifier {
   }
 
   // not really a sensible heuristic at all, just here for comparison reasons
-  private MutableARGPath obtainRandomPrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+  private ARGPath obtainRandomPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
     return buildPath(new Random().nextInt(pPrefixes.size()), pPrefixes, originalErrorPath);
   }
 
   // not really a sensible heuristic at all, just here for comparison reasons
-  private MutableARGPath obtainMedianPrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+  private ARGPath obtainMedianPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
     return buildPath(pPrefixes.size() / 2, pPrefixes, originalErrorPath);
   }
 
   // not really a sensible heuristic at all, just here for comparison reasons
-  private MutableARGPath obtainMiddlePrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+  private ARGPath obtainMiddlePrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
     int totalLength = 0;
-    for (MutableARGPath p : pPrefixes) {
+    for (ARGPath p : pPrefixes) {
       totalLength += p.size();
     }
 
     int length = 0;
     int index = 0;
-    for (MutableARGPath p : pPrefixes) {
+    for (ARGPath p : pPrefixes) {
       length += p.size();
       if (length > totalLength / 2) {
         break;
@@ -323,10 +325,10 @@ public class ErrorPathClassifier {
    * @param originalErrorPath the original error path
    * @return a new path with the last assumption leading to a contradiction
    */
-  private MutableARGPath buildPath(final int bestIndex, final List<MutableARGPath> pPrefixes, final MutableARGPath originalErrorPath) {
+  private ARGPath buildPath(final int bestIndex, final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
     MutableARGPath errorPath = new MutableARGPath();
     for (int j = 0; j <= bestIndex; j++) {
-      errorPath.addAll(pPrefixes.get(j));
+      errorPath.addAll(pathToList(pPrefixes.get(j)));
 
       if (j != bestIndex) {
         replaceAssumeEdgeWithBlankEdge(errorPath);
@@ -335,9 +337,9 @@ public class ErrorPathClassifier {
 
     // append the feasible suffix; nevertheless, replace assume edges, because they
     // might contradict in other domains, e.g. for octagons, or predicate analysis
-    for(Pair<ARGState, CFAEdge> element : skip(originalErrorPath, errorPath.size())) {
+    for(Pair<ARGState, CFAEdge> element : skip(pathToList(originalErrorPath), errorPath.size())) {
       if(element.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge
-          && element != originalErrorPath.getLast()) {
+          && element.getFirst() != originalErrorPath.getLastState()) {
         errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
             FileLocation.DUMMY,
             element.getSecond().getPredecessor(),
@@ -350,7 +352,11 @@ public class ErrorPathClassifier {
       }
     }
 
-    return errorPath;
+    return errorPath.immutableCopy();
+  }
+
+  public static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
+    return Pair.zipList(path.asStatesList(), path.asEdgesList());
   }
 
   /**
@@ -372,13 +378,13 @@ public class ErrorPathClassifier {
         PREFIX_REPLACEMENT)));
   }
 
-  private MutableARGPath concatPrefixes(List<MutableARGPath> pPrefixes) {
+  private ARGPath concatPrefixes(List<ARGPath> pPrefixes) {
     MutableARGPath errorPath = new MutableARGPath();
-    for (MutableARGPath currentPrefix : pPrefixes) {
-      errorPath.addAll(currentPrefix);
+    for (ARGPath currentPrefix : pPrefixes) {
+      errorPath.addAll(pathToList(currentPrefix));
     }
 
-    return errorPath;
+    return errorPath.immutableCopy();
   }
 
   /**

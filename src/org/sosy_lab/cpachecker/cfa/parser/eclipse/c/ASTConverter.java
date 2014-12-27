@@ -304,7 +304,7 @@ class ASTConverter {
    * returns a tmp-variable, that has the value of x before the operation.
    *
    * @param exp the "x" of x=x+1
-   * @param loc location of the expression
+   * @param fileLoc location of the expression
    * @param type result-typeof the operation
    * @param op binary operator, should be PLUS or MINUS */
   private CIdExpression addSideAssignmentsForUnaryExpressions(
@@ -1013,26 +1013,36 @@ class ASTConverter {
           ((CPointerType)functionNameType).getType(), functionName);
     }
 
+    final FileLocation loc = getLocation(e);
     CType returnType = typeConverter.convert(e.getExpressionType());
     if (containsProblemType(returnType)) {
       // workaround for Eclipse CDT problems
       if (declaration != null) {
         returnType = declaration.getType().getReturnType();
-        logger.log(Level.FINE, "Replacing return type", returnType, "of function call", e.getRawSignature(),
-            "in line", e.getFileLocation().getStartingLineNumber(),
+        logger.log(Level.FINE, loc + ":",
+            "Replacing return type", returnType, "of function call", e.getRawSignature(),
             "with", returnType);
       } else {
         final CType functionType = functionName.getExpressionType().getCanonicalType();
         if (functionType instanceof CFunctionType) {
           returnType = ((CFunctionType) functionType).getReturnType();
-          logger.log(Level.FINE, "Replacing return type", returnType, "of function call", e.getRawSignature(),
-              "in line", e.getFileLocation().getStartingLineNumber(),
+          logger.log(Level.FINE, loc + ":",
+              "Replacing return type", returnType, "of function call", e.getRawSignature(),
               "with", returnType);
         }
       }
     }
 
-    return new CFunctionCallExpression(getLocation(e), returnType, functionName, params, declaration);
+    if (declaration == null && functionName instanceof CIdExpression
+        && returnType instanceof CVoidType) {
+      // Undeclared functions are a problem for analysis that need precise types.
+      // We can at least set the return type to "int" as the standard says.
+      logger.log(Level.FINE, loc + ":",
+          "Setting return type of of undeclared function", functionName, "to int.");
+      returnType = CNumericTypes.INT;
+    }
+
+    return new CFunctionCallExpression(loc, returnType, functionName, params, declaration);
   }
 
   private boolean areCompatibleTypes(CType a, CType b) {

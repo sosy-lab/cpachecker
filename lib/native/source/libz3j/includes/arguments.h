@@ -14,10 +14,6 @@
 
 
 #define STRUCT_ARG(z3type, num) \
-  if (arg##num == 0) { \
-    throwException(jenv, "java/lang/IllegalArgumentException", "Null passed to Z3"); \
-    goto out##num; \
-  } \
   z3type z3_arg##num = (void *)((size_t)arg##num);
 
 
@@ -54,10 +50,6 @@
     size_t i; \
     for (i = 0; i < sz; ++i) { \
       z3_arg##num[i] = (void *)((size_t)tmp[i]); \
-      if (z3_arg##num[i] == NULL) { \
-        throwException(jenv, "java/lang/IllegalArgumentException", "Null passed to Z3"); \
-        goto out##num##b; \
-      } \
     } \
     (*jenv)->ReleaseLongArrayElements(jenv, arg##num, tmp, 0); \
   }

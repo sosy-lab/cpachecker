@@ -35,9 +35,10 @@ public interface ArrayFormulaManager {
    *
    * @param pArray    The array from which to read
    * @param pIndex    The position from which to read
-   * @return          A formula that represents the "read"
+   * @return          A formula that represents the result of the "read"
    */
-  public BooleanFormula select (Formula pArray, Formula pIndex);
+  public <TI extends Formula, TE extends Formula> TE
+    select (ArrayFormula<TI, TE> pArray, Formula pIndex);
 
   /**
    * Store a value into a cell of the specified array.
@@ -47,7 +48,30 @@ public interface ArrayFormulaManager {
    * @param pValue    The value that should be written
    * @return          A formula that represents the "write"
    */
-  public BooleanFormula store (Formula pArray, Formula pIndex, Formula pValue);
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE>
+    store (ArrayFormula<TI, TE> pArray, Formula pIndex, Formula pValue);
+
+  /**
+   * Declare a new array.
+   *
+   * @param pName         The name of the array variable
+   * @param pIndexType    The type of the array index
+   * @param pElementType  The type of the array elements
+   * @return              Formula that represents the array
+   */
+  public <TI extends Formula, TE extends Formula,
+    FTI extends FormulaType<TI>, FTE extends FormulaType<TE>>
+    ArrayFormula<TI, TE> makeArray(String pName, FTI pIndexType, FTE pElementType);
+
+  /**
+   * Make a {@link BooleanFormula} that represents the equality of
+   * two {@link ArrayFormula}.
+   */
+  public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(
+      ArrayFormula<TI, TE> pArray1, ArrayFormula<TI, TE> pArray2);
+
+  public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray);
+  public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray);
 
 }
 

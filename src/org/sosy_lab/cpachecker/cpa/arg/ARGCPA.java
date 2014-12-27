@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -220,9 +221,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
-    return new ARGState(getWrappedCpa().getInitialState(pNode), null);
+    return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 
   protected LogManager getLogger() {

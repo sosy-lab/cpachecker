@@ -1,8 +1,52 @@
-Changes since CPAchecker 1.3.4
-------------------------------
+Changes from CPAchecker 1.3.4 to CPAchecker 1.4
+-----------------------------------------------
+* Sliced Interpolation for Value Analysis
+  The refinement for value analysis now uses an improved interpolation procedure
+  that allows to choose better interpolants
+  and thus increases the performance of the analysis.
+
+* Continuously-Refined Invariants for k-Induction
+  The k-induction-based analysis can now be supplied
+  with a sequence of increasingly precise invariants throughout the analysis,
+  leading to a more efficient and effective combination
+  of k-induction and invariant generation.
+
+* Counterexample Checks
+  CPAchecker provides the ability to double-check a counterexample
+  found by one analysis with a different analysis,
+  in order to decrease the number of false alarms with only little overhead.
+  The second analysis can usually be more precise,
+  because it is only used for loop-free paths of the original program.
+  This is now enabled by default for the predicate analysis
+  (the counterexample check is done by the value analysis)
+  and the value analysis (the counterexample check is done by
+  a bitprecise configuration of the predicate analysis).
+  This combines the respective advantages of both analyses.
+
+* Floating-Point Arithmetic with Predicate Analysis
+  The predicate analysis has got support for precise modeling
+  of floating-point arithmetic (in config -predicateAnalyis-bitprecise),
+  thanks to the addition of support for this in the SMT solver MathSAT5.
+
+* The default configuration of the predicate analysis is now more precise:
+  it uses integers to approximate int variables instead of rationals.
+  Overflows and bit operators like shifts are still not handled,
+  the (slower) configuration -predicateAnalysis-bitprecise
+  can be used for this.
+
+* The default SMT solver is now SMTInterpol,
+  which is written in Java and available on all platforms.
+  MathSAT5 continues to be used for configurations
+  that SMTInterpol does not support.
+
 * The SMT solver Princess (http://www.philipp.ruemmer.org/princess.shtml)
   has been integrated into CPAchecker's predicate analysis
   and can be selected with cpa.predicate.solver=princess
+
+* The configuration files for value analysis have been renamed.
+  Instead of -explicitAnalysis or similar,
+  you now need to use -valueAnalysis.
+
 
 Changes from CPAchecker 1.2 to CPAchecker 1.3.4
 -----------------------------------------------

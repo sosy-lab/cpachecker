@@ -27,7 +27,6 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -45,7 +44,7 @@ public class JRunTimeTypeEqualsType extends AbstractExpression implements JExpre
 
   public JRunTimeTypeEqualsType(FileLocation pFileLocation,
       JRunTimeTypeExpression pRunTimeTypeExpression, JClassOrInterfaceType pTypeDef) {
-    super(pFileLocation, new JSimpleType(JBasicType.BOOLEAN));
+    super(pFileLocation, JSimpleType.getBoolean());
 
     runTimeTypeExpression = pRunTimeTypeExpression;
     typeDef = pTypeDef;

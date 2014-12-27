@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithCo
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -145,7 +146,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined, runtimeCheck);
 
     try {
@@ -154,19 +155,21 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
       logger.log(Level.SEVERE, exc.getMessage());
     }
 
-    CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
-    try {
-      initState.addStackFrame(functionNode.getFunctionDefinition());
-      initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch (SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
+    if (pNode instanceof CFunctionEntryNode) {
+      CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
+      try {
+        initState.addStackFrame(functionNode.getFunctionDefinition());
+        initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
+      } catch (SMGInconsistentException exc) {
+        logger.log(Level.SEVERE, exc.getMessage());
+      }
     }
 
     return initState;
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 

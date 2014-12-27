@@ -19,4 +19,17 @@
         <!-- Handled by Eclipse. -->
         <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
     </Match>
+
+    <Match><And>
+        <!-- Allow null checks for configuration-option fields,
+             they might get set to null reflectively.
+             Better match would be "annotated with @FileOption(FileOption.Type.OUTPUT_FILE)",
+             but FindBugs does not support this. -->
+        <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>
+        <Or>
+          <Field type="org.sosy_lab.common.io.Path"/>
+          <Field type="org.sosy_lab.common.io.PathTemplate"/>
+          <Field type="org.sosy_lab.common.io.PathCounterTemplate"/>
+        </Or>
+    </And></Match>
 </FindBugsFilter>

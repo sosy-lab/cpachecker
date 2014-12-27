@@ -29,6 +29,8 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Represents a type of a formula.
  * @param <T> the static type of the FormulaType.
@@ -36,6 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 public abstract class FormulaType<T extends Formula> {
 
   private FormulaType() {}
+
+  public boolean isArrayType() {
+    return false;
+  }
 
   public boolean isBitvectorType() {
     return false;
@@ -171,6 +177,69 @@ public abstract class FormulaType<T extends Formula> {
     return DOUBLE_PRECISION_FP_TYPE;
   }
 
+  public static final class ArrayFormulaType<TI extends Formula, TE extends Formula>
+  extends FormulaType<ArrayFormula<TI,TE>> {
+
+    private final FormulaType<TE> elementType;
+    private final FormulaType<TI> indexType;
+
+    public ArrayFormulaType(FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+      this.indexType = Preconditions.checkNotNull(pIndexType);
+      this.elementType = Preconditions.checkNotNull(pElementType);
+    }
+
+    public FormulaType<? extends Formula> getElementType() {
+      return elementType;
+    }
+
+    public FormulaType<? extends Formula> getIndexType() {
+      return indexType;
+    }
+
+    @Override
+    public boolean isArrayType() {
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "Array";
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + elementType.hashCode();
+      result = prime * result + indexType.hashCode();
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+
+      if (!(obj instanceof ArrayFormulaType)) {
+        return false;
+      }
+
+      ArrayFormulaType<?, ?> other = (ArrayFormulaType<?, ?>) obj;
+
+      if (!elementType.equals(other.elementType)) {
+        return false;
+      }
+
+      if (!indexType.equals(other.indexType)) {
+        return false;
+      }
+
+      return true;
+    }
+
+  }
+
   public static final class FloatingPointType extends FormulaType<FloatingPointFormula> {
 
     private final int exponentSize;
@@ -217,4 +286,10 @@ public abstract class FormulaType<T extends Formula> {
       return "FloatingPoint<exp=" + exponentSize + ",mant=" + mantissaSize + ">";
     }
   }
+
+  public static <TD extends Formula, TR extends Formula> ArrayFormulaType<TD, TR>
+  getArrayType(FormulaType<TD> pDomainSort, FormulaType<TR> pRangeSort) {
+    return new ArrayFormulaType<>(pDomainSort, pRangeSort);
+  }
+
 }

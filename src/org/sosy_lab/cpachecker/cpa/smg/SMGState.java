@@ -190,6 +190,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     case INVALID_WRITE:
       pInvalidWrite = true;
       break;
+    case INVALID_HEAP:
+      break;
+    default:
+      throw new AssertionError();
     }
 
     invalidFree = pInvalidFree;

@@ -97,18 +97,6 @@ public class ExpressionValueVisitorTest {
         new ValueAnalysisState(), "dummy_function", machineModel, logger, symbolicValues);
   }
 
-  @Test
-  public void checkCasts() throws Exception {
-    checkSimpleCasts();
-    checkCastsDirect();
-    if (machineModel == MachineModel.LINUX32) {
-      checkCasts32();
-    }
-    if (machineModel == MachineModel.LINUX64) {
-      checkCasts64();
-    }
-  }
-
   /**
    * this test checks the casts of CHAR, SHORT_INT and (normal) INT,
    * it does not use LONG_INT or LONG_LONG_INT

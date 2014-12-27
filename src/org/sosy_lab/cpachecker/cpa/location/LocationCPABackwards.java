@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -37,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
@@ -49,8 +52,8 @@ public class LocationCPABackwards implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
-  public LocationCPABackwards(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa, LocationStateType.BACKWARD);
+  public LocationCPABackwards(CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
+    stateFactory = new LocationStateFactory(pCfa, LocationStateType.BACKWARD, pConfig);
     transferRelation = new LocationTransferRelationBackwards(stateFactory);
   }
 
@@ -84,12 +87,12 @@ public class LocationCPABackwards implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    return stateFactory.getState(node);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return stateFactory.getState(pNode);
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 }

@@ -143,6 +143,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 
 class ASTConverter {
@@ -300,19 +301,8 @@ class ASTConverter {
     return forInitDeclarations.size();
   }
 
-  // Returns a fully qualified name for the given variable using the current scope information
   private String getQualifiedName(String var) {
-
-    /* Old way of creating qualified names - this includes the class name twice.
-     * But ValueAnalysisState.MemoryLocation uses names equal to the uncommented code below.
-     * As long as no need for the upper format exists, the lower one should be used to prevent
-     * the need of workarounds.
-     */
-    // return scope.getCurrentClassType().getName()
-    //    + "_" + scope.getCurrentMethodName()
-    //    + "::" + var;
-
-    return scope.getCurrentMethodName() + "::" + var;
+    return scope.createQualifiedName(var);
   }
 
   private JType convert(ITypeBinding pTypeBinding) {
@@ -1064,7 +1054,7 @@ class ASTConverter {
     return null;
   }
 
-  private JAstNode convert(InstanceofExpression e) {
+  private JExpression convert(InstanceofExpression e) {
 
     FileLocation fileloc = getFileLocation(e);
     JExpression leftOperand = convertExpressionWithoutSideEffects(e.getLeftOperand());
@@ -1073,69 +1063,85 @@ class ASTConverter {
     assert type instanceof JClassOrInterfaceType : "There are other types for this expression?";
 
     JIdExpression referenceVariable = (JIdExpression) leftOperand;
-    JRunTimeTypeEqualsType firstCond = null;
+    JType instanceOfType = convert(e.resolveTypeBinding());
 
-    List<JClassType> subClassTypes = getSubClassTypes((JClassOrInterfaceType) type);
-    if (type instanceof JInterfaceType) {
-      if (subClassTypes.isEmpty()) {
-        return new JBooleanLiteralExpression(fileloc, false);
-      }
+    assert instanceOfType instanceof JSimpleType
+        && ((JSimpleType) instanceOfType).getType() == JBasicType.BOOLEAN
+        : "InstanceofExpression is not always of type boolean!";
 
-    } else if (type instanceof JClassType) {
-      firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
-          (JClassOrInterfaceType) type);
-
-    } else {
-      // Through assertions above, instanceCompatible has to be a sub type of JClassOrInterfaceType
-      // already. So the only case this error is thrown is if a new sub type of JClassOrInterfaceType
-      // would be implemented.
-      throw new AssertionError("The right hand side of an instanceof expression has to be a class" +
-          " or interface type");
-    }
-
-    return createInstanceofExpression(referenceVariable, subClassTypes,
-        convert(e.resolveTypeBinding()), fileloc, firstCond);
+    return createInstanceOfExpression(referenceVariable, (JClassOrInterfaceType) type, fileloc);
   }
 
-  private List<JClassType> getSubClassTypes(JClassOrInterfaceType pType) {
+  /**
+   * Creates an <code>instanceof</code> expression from the given parameters.
+   *
+   * <p>This creates an expression representing a statement of the following format:<br />
+   * <code>pLeftOperand instanceof pClassOrInterfaceType</code>.</p>
+   *
+   * @param pLeftOperand the left operand of the <code>instanceof</code> statement
+   * @param pClassOrInterfaceType the right operand of the <code>instanceof</code> statement. this
+   *    has to be a specific class or interface. The resulting expression will be evaluated to
+   *    <code>true</code> if the the left operand's type is equal to this type or a subtype of this
+   *    type
+   * @param pLocation the file location of the expression
+   *
+   * @return a {@link JExpression} representing an <code>instanceof</code> expression with the given
+   *    parameters
+   */
+  private JExpression createInstanceOfExpression(JIdExpression pLeftOperand,
+      JClassOrInterfaceType pClassOrInterfaceType, FileLocation pLocation) {
+
+    List<JClassType> allPossibleClasses = getSubClasses(pClassOrInterfaceType);
+
+    if (pClassOrInterfaceType instanceof JInterfaceType) {
+      // if the given interface has no implementing classes there's no way the expression will be
+      // true
+      if (allPossibleClasses.isEmpty()) {
+        return new JBooleanLiteralExpression(pLocation, false);
+      }
+    }
+
+    return createInstanceOfDisjunction(pLeftOperand, allPossibleClasses,
+        JSimpleType.getBoolean(), pLocation);
+  }
+
+  /**
+   * Returns all sub classes/implementing classes of the given class or interface.
+   * This includes the given type itself, if it is a {@link JClassType}.
+   *
+   * @param pType the class or interface type to get all subclasses of
+   * @return all sub classes/implementing classes of the given class or interface.
+   */
+  private List<JClassType> getSubClasses(JClassOrInterfaceType pType) {
     Set<JClassType> subClassTypeSet;
 
-    assert pType instanceof JInterfaceType || pType instanceof JClassType;
+    assert pType instanceof JInterfaceType || pType instanceof JClassType
+        : "Unhandled type " + pType;
+
     if (pType instanceof JInterfaceType) {
       subClassTypeSet = ((JInterfaceType) pType).getAllKnownImplementingClassesOfInterface();
+
     } else {
-      subClassTypeSet = ((JClassType) pType).getAllSubTypesOfClass();
+      JClassType classType = (JClassType) pType;
+
+      subClassTypeSet = classType.getAllSubTypesOfClass();
+      subClassTypeSet.add(classType);
     }
 
-    return transformSetToList(subClassTypeSet);
+    return Lists.newArrayList(subClassTypeSet);
   }
 
-  private JExpression createInstanceofExpression(JIdExpression pLeftOperand,
-      List<JClassType> pClassTypes,
+  private JExpression createInstanceOfDisjunction(JIdExpression pLeftOperand,
+      List<JClassType> pConcreteClassTypes,
       JType pExpressionType,
       FileLocation pLocation) {
 
-    final JRunTimeTypeEqualsType firstCond = convertClassRunTimeCompileTimeAccord(pLocation,
-        pLeftOperand, pClassTypes.remove(FIRST));
-
-    return createInstanceofExpression(pLeftOperand, pClassTypes, pExpressionType,
-        pLocation, firstCond);
-  }
-
-  private JExpression createInstanceofExpression(JIdExpression pLeftOperand,
-      List<JClassType> pClassTypes,
-      JType pExpressionType,
-      FileLocation pLocation,
-      @Nullable JRunTimeTypeEqualsType pFirstCondition) {
-
-    if (pFirstCondition == null) {
-      return createInstanceofExpression(pLeftOperand, pClassTypes, pExpressionType, pLocation);
-    }
+    JExpression currentCondition = convertClassRunTimeCompileTimeAccord(pLocation,
+        pLeftOperand, pConcreteClassTypes.remove(FIRST));
 
     JRunTimeTypeEqualsType newCondition;
-    JExpression currentCondition = pFirstCondition;
 
-    for (JClassType currentSubType : pClassTypes) {
+    for (JClassType currentSubType : pConcreteClassTypes) {
       newCondition = convertClassRunTimeCompileTimeAccord(pLocation, pLeftOperand, currentSubType);
       currentCondition =
           new JBinaryExpression(pLocation, pExpressionType, currentCondition, newCondition,
@@ -1145,25 +1151,12 @@ class ASTConverter {
     return currentCondition;
   }
 
-  private List<JClassType> transformSetToList(Set<JClassType> pSubClassTypeSet) {
-    List<JClassType> result = new ArrayList<>(pSubClassTypeSet.size());
-
-    for (JClassType types : pSubClassTypeSet) {
-      result.add(types);
-    }
-
-    return result;
-  }
-
   private JRunTimeTypeEqualsType convertClassRunTimeCompileTimeAccord(
-      FileLocation pFileloc, JIdExpression pDeclaration,
-      JClassOrInterfaceType classType) {
+      FileLocation pFileloc, JIdExpression pDeclaration, JClassOrInterfaceType pClassType) {
 
-    JRunTimeTypeExpression runTimeTyp =
-        new JVariableRunTimeType(pFileloc, pDeclaration);
+    JRunTimeTypeExpression runTimeTyp = new JVariableRunTimeType(pFileloc, pDeclaration);
 
-    return new JRunTimeTypeEqualsType(pFileloc,
-        runTimeTyp, classType);
+    return new JRunTimeTypeEqualsType(pFileloc, runTimeTyp, pClassType);
   }
 
 
@@ -1463,7 +1456,7 @@ class ASTConverter {
     String name = newFunctionEntryNode.getFunctionName();
 
     JIdExpression methodName =
-        new JIdExpression(oldMethodCall.getFileLocation(), new JSimpleType(JBasicType.UNSPECIFIED), name, declaration);
+        new JIdExpression(oldMethodCall.getFileLocation(), JSimpleType.getUnspecified(), name, declaration);
 
     if (oldMethodCall instanceof JReferencedMethodInvocationExpression) {
       return new JReferencedMethodInvocationExpression(oldMethodCall.getFileLocation(),
@@ -2145,7 +2138,7 @@ class ASTConverter {
 
     FileLocation fileloc = enhancedForLoopIterator.getFileLocation();
 
-    JType type = new JSimpleType(JBasicType.BOOLEAN);
+    JType type = JSimpleType.getBoolean();
 
     JExpression name = new JIdExpression(fileloc, type, "hasNext", null);
 

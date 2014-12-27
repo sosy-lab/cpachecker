@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 public class CtoFormulaTypeHandler {
 
-  private final MachineModel machineModel;
+  protected final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
 
   private final BaseSizeofVisitor sizeofVisitor;
@@ -96,7 +96,7 @@ public class CtoFormulaTypeHandler {
     return result;
   }
 
-  private FormulaType<?> getFormulaTypeFromCType0(CType type) {
+  protected FormulaType<?> getFormulaTypeFromCType0(CType type) {
     if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType)type;
       switch (simpleType.getType()) {

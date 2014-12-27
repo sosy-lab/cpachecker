@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 
@@ -42,7 +43,7 @@ public class PredicateVariableElimination {
   // TODO: We might want to move this code to the class FormulaManagerView
 
   public static List<Formula> getDeadVariables(FormulaManagerView pFmv, BooleanFormula pFormula, SSAMap pSsa) {
-    Set<Triple<Formula, String, Integer>> formulaVariables = pFmv.extractVariables(pFormula);
+    Set<Triple<Formula, String, Integer>> formulaVariables = pFmv.extractFreeVariables(pFormula);
     List<Formula> result = Lists.newArrayList();
 
     for (Triple<Formula, String, Integer> var: formulaVariables) {
@@ -67,12 +68,19 @@ public class PredicateVariableElimination {
     return result;
   }
 
-  public static BooleanFormula eliminateDeadVariables(FormulaManagerView pFmv, BooleanFormula pF, SSAMap pSsa)
-      throws SolverException, InterruptedException {
+  public static BooleanFormula eliminateDeadVariables(
+      final FormulaManagerView pFmv,
+      final BooleanFormula pF,
+      final SSAMap pSsa)
+    throws SolverException, InterruptedException {
 
-    BooleanFormula eliminationResult = pFmv.simplify(pF); // TODO: Benchmark the effect!
+    Preconditions.checkNotNull(pFmv);
+    Preconditions.checkNotNull(pF);
+    Preconditions.checkNotNull(pSsa);
 
-    List<Formula> irrelevantVariables = getDeadVariables(pFmv, eliminationResult, pSsa);
+    List<Formula> irrelevantVariables = getDeadVariables(pFmv, pF, pSsa);
+
+    BooleanFormula eliminationResult = pF;
 
     if (!irrelevantVariables.isEmpty()) {
       QuantifiedFormulaManagerView qfmgr = pFmv.getQuantifiedFormulaManager();
@@ -80,6 +88,7 @@ public class PredicateVariableElimination {
       eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
     }
 
+    eliminationResult = pFmv.simplify(eliminationResult); // TODO: Benchmark the effect!
     return eliminationResult;
   }
 

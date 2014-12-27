@@ -43,7 +43,7 @@ public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
-      UnmodifiableReachedSet pStates) throws CPAException {
+      UnmodifiableReachedSet pStates, AbstractState fullState) throws CPAException {
 
     Action action = prec(pState, pPrecision);
 

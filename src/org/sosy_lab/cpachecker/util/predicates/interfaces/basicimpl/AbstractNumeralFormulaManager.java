@@ -30,9 +30,9 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -61,15 +61,15 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   private static final String UF_DIVIDE_NAME = "_/_";
   private static final String UF_MODULO_NAME = "_%_";
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
+  private final AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager;
 
-  private final FunctionFormulaType<ResultFormulaType> multUfDecl;
-  private final FunctionFormulaType<ResultFormulaType> divUfDecl;
-  private final FunctionFormulaType<ResultFormulaType> modUfDecl;
+  private final UninterpretedFunctionDeclaration<ResultFormulaType> multUfDecl;
+  private final UninterpretedFunctionDeclaration<ResultFormulaType> divUfDecl;
+  private final UninterpretedFunctionDeclaration<ResultFormulaType> modUfDecl;
 
   protected AbstractNumeralFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
-      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> pFunctionManager) {
+      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> pFunctionManager) {
     super(pCreator);
     functionManager = pFunctionManager;
 
@@ -79,7 +79,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     modUfDecl = functionManager.declareUninterpretedFunction(resultType + "_" + UF_MODULO_NAME, resultType, resultType, resultType);
   }
 
-  private TFormulaInfo makeUf(FunctionFormulaType<?> decl, TFormulaInfo t1, TFormulaInfo t2) {
+  private TFormulaInfo makeUf(UninterpretedFunctionDeclaration<?> decl, TFormulaInfo t1, TFormulaInfo t2) {
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 

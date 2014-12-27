@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -245,10 +246,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     if (predCpa == null) {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
     }
-    fmgr = predCpa.getFormulaManager();
+    solver = predCpa.getSolver();
+    fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    solver = predCpa.getSolver();
     shutdownNotifier = pShutdownNotifier;
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
     machineModel = predCpa.getMachineModel();
@@ -1251,9 +1252,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
       if (havocLoopTerminationConditionVariablesOnly) {
         CFANode mainEntryNode = cfa.getMainFunction();
-        Precision precision = cpa.getInitialPrecision(mainEntryNode);
+        Precision precision = cpa.getInitialPrecision(mainEntryNode, StateSpacePartition.getDefaultPartition());
         precision = excludeEdges(precision, CFAUtils.leavingEdges(loopHead));
-        pReachedSet.add(cpa.getInitialState(mainEntryNode), precision);
+        pReachedSet.add(cpa.getInitialState(mainEntryNode, StateSpacePartition.getDefaultPartition()), precision);
         algorithm.run(pReachedSet);
         Collection<AbstractState> loopHeadStates = new ArrayList<>();
         Iterables.addAll(loopHeadStates, filterLocation(pReachedSet, loopHead));
@@ -1273,16 +1274,16 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             }
           }
 
-          AbstractState newLoopHeadState = cpa.getInitialState(loopHead);
+          AbstractState newLoopHeadState = cpa.getInitialState(loopHead, StateSpacePartition.getDefaultPartition());
 
           PredicateAbstractState newPAS = extractStateByType(newLoopHeadState, PredicateAbstractState.class);
           newPAS.setPathFormula(pmgr.makeNewPathFormula(pathFormula, ssaMapBuilder.build()));
 
-          pReachedSet.add(newLoopHeadState, cpa.getInitialPrecision(loopHead));
+          pReachedSet.add(newLoopHeadState, cpa.getInitialPrecision(loopHead, StateSpacePartition.getDefaultPartition()));
         }
       } else {
-        Precision precision = cpa.getInitialPrecision(loopHead);
-        pReachedSet.add(cpa.getInitialState(loopHead), precision);
+        Precision precision = cpa.getInitialPrecision(loopHead, StateSpacePartition.getDefaultPartition());
+        pReachedSet.add(cpa.getInitialState(loopHead, StateSpacePartition.getDefaultPartition()), precision);
       }
     }
 
@@ -1393,8 +1394,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     if (pReachedSet.isEmpty()) {
       pInitializer.initialize(pReachedSet);
       pReachedSet.add(
-          cpa.getInitialState(initialLocation),
-          cpa.getInitialPrecision(initialLocation));
+          cpa.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition()),
+          cpa.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition()));
     }
   }
 

@@ -34,102 +34,80 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
-public class Z3OptProver implements OptEnvironment {
+class Z3OptProver implements OptEnvironment {
 
   private final Z3FormulaManager mgr;
   private static final String Z3_INFINITY_REPRESENTATION = "oo";
   private long z3context;
   private long z3optContext;
 
-  private Optional<Integer> objectiveHandle;
-  private Optional<Boolean> isMaximization;
-
-  public Z3OptProver(Z3FormulaManager mgr) {
+  Z3OptProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
     z3context = mgr.getEnvironment();
     z3optContext = mk_optimize(z3context);
     optimize_inc_ref(z3context, z3optContext);
-
-    objectiveHandle = Optional.absent();
-    isMaximization = Optional.absent();
   }
 
   @Override
   public void addConstraint(BooleanFormula constraint) {
     Z3BooleanFormula z3Constraint = (Z3BooleanFormula) constraint;
-    optimize_assert(z3context, z3optContext, z3Constraint.getExpr());
+    optimize_assert(z3context, z3optContext, z3Constraint.getFormulaInfo());
   }
 
   @Override
-  public void maximize(Formula objective) {
-    Preconditions.checkState(!objectiveHandle.isPresent());
+  public int maximize(Formula objective) {
+    Z3Formula z3Objective = (Z3Formula)objective;
+    return optimize_maximize(
+        z3context, z3optContext, z3Objective.getFormulaInfo());
+  }
+
+  @Override
+  public int minimize(Formula objective) {
     Z3Formula z3Objective = (Z3Formula) objective;
-    int handle = optimize_maximize(
-        z3context, z3optContext, z3Objective.getExpr());
-    objectiveHandle = Optional.of(handle);
-    isMaximization = Optional.of(true);
+    return optimize_minimize(
+        z3context, z3optContext, z3Objective.getFormulaInfo());
   }
 
   @Override
-  public void minimize(Formula objective) {
-    Preconditions.checkState(!objectiveHandle.isPresent());
-    Z3Formula z3Objective = (Z3Formula) objective;
-    int handle = optimize_minimize(
-        z3context, z3optContext, z3Objective.getExpr());
-    objectiveHandle = Optional.of(handle);
-    isMaximization = Optional.of(false);
-  }
-
-  @Override
-  public OptStatus check()
-      throws InterruptedException, SolverException {
-
-    Preconditions.checkState(objectiveHandle.isPresent());
-
+  public OptStatus check() throws InterruptedException, SolverException {
     int status = optimize_check(z3context, z3optContext);
     if (status == Z3_LBOOL.Z3_L_FALSE.status) {
       return OptStatus.UNSAT;
     } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
       return OptStatus.UNDEF;
     } else {
-
-      long out = optimize_get_upper(z3context, z3optContext,
-          objectiveHandle.get());
-      String outS = ast_to_string(z3context, out);
-
-      // We use contains because we'll get negative infinity for minimization.
-      if (outS.contains(Z3_INFINITY_REPRESENTATION)) {
-        return OptStatus.UNBOUNDED;
-      }
       return OptStatus.OPT;
     }
   }
 
   @Override
-  public Rational upper() {
-    Preconditions.checkState(objectiveHandle.isPresent());
-    int idx = objectiveHandle.get();
-    return rationalFromZ3AST(
-        optimize_get_upper(z3context, z3optContext, idx));
+  public void push() {
+    optimize_push(z3context, z3optContext);
   }
 
   @Override
-  public Rational lower() {
-    Preconditions.checkState(objectiveHandle.isPresent());
-    int idx = objectiveHandle.get();
-    return rationalFromZ3AST(
-        optimize_get_lower(z3context, z3optContext, idx));
+  public void pop() {
+    optimize_pop(z3context, z3optContext);
   }
 
   @Override
-  public Rational value() {
-    Preconditions.checkState(isMaximization.isPresent());
-    if(isMaximization.get()) {
-      return upper();
+  public Optional<Rational> upper(int handle, int epsilon) {
+    long ast = optimize_get_upper(z3context, z3optContext, handle);
+    if (isInfinity(ast)) {
+      return Optional.absent();
     }
-    return lower();
+    return Optional.of(rationalFromZ3AST(replaceEpsilon(ast, epsilon)));
+  }
+
+  @Override
+  public Optional<Rational> lower(int handle, int epsilon) {
+    long ast = optimize_get_lower(z3context, z3optContext, handle);
+    if (isInfinity(ast)) {
+      return Optional.absent();
+    }
+    return Optional.of(rationalFromZ3AST(replaceEpsilon(ast, epsilon)));
   }
 
   @Override
@@ -138,11 +116,47 @@ public class Z3OptProver implements OptEnvironment {
     return Z3Model.parseZ3Model(mgr, z3context, z3model);
   }
 
+  void setParam(String key, String value) {
+    long keySymbol = mk_string_symbol(z3context, key);
+    long valueSymbol = mk_string_symbol(z3context, value);
+    long params = mk_params(z3context);
+    params_set_symbol(z3context, params, keySymbol, valueSymbol);
+    optimize_set_params(z3context, z3optContext, params);
+  }
+
+  @Override
+  public String toString() {
+    return optimize_to_string(z3context, z3optContext);
+  }
+
   @Override
   public void close() {
     optimize_dec_ref(z3context, z3optContext);
     z3context = 0;
     z3optContext = 0;
+  }
+
+  private boolean isInfinity(long ast) {
+    return ast_to_string(z3context, ast).contains(Z3_INFINITY_REPRESENTATION);
+  }
+
+  /**
+   * Replace the epsilon in the returned formula with a numeric value.
+   */
+  private long replaceEpsilon(long ast, int newValue) {
+    Z3Formula z = new Z3RationalFormula(z3context, ast);
+
+    Z3Formula epsFormula =
+        (Z3Formula)mgr.getIntegerFormulaManager().makeVariable("epsilon");
+
+    Z3Formula out = mgr.getUnsafeFormulaManager().substitute(
+        z,
+        ImmutableList.of(epsFormula),
+        ImmutableList.of(
+            (Z3Formula)mgr.getIntegerFormulaManager().makeNumber(newValue))
+    );
+    return simplify(z3context, out.getFormulaInfo());
+
   }
 
   private Rational rationalFromZ3AST(long ast) {

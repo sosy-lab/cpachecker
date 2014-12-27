@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractArrayFormulaManager;
 
 class Mathsat5ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long> {
@@ -46,4 +48,16 @@ class Mathsat5ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long
   protected Long store(Long pArray, Long pIndex, Long pValue) {
     return msat_make_array_write(mathsatEnv, pArray, pIndex, pValue);
   }
+
+  @Override
+  protected <TI extends Formula, TE extends Formula> Long internalMakeArray(String pName, FormulaType<TI> pIndexType,
+      FormulaType<TE> pElementType) {
+    throw new UnsupportedOperationException("Please implement me!");
+  }
+
+  @Override
+  protected Long equivalence(Long pArray1, Long pArray2) {
+    throw new UnsupportedOperationException("Please implement me!");
+  }
+
 }

@@ -428,7 +428,7 @@ public class AutomatonGraphmlParser {
           }
         } else {
           if (considerNegativeSemanticsAttribute) {
-            Optional<Boolean> matchPositiveCase = Optional.absent();
+            final Optional<Boolean> matchPositiveCase;
             switch (docDat.getDataValueWithDefault(stateTransitionEdge, KeyDef.TOKENSNEGATED, "").toLowerCase()) {
               case "true":
                 matchPositiveCase = Optional.of(false);
@@ -436,6 +436,8 @@ public class AutomatonGraphmlParser {
               case "false":
                 matchPositiveCase = Optional.of(true);
                 break;
+              default:
+                matchPositiveCase = Optional.absent();
             }
             conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchAssumeCase(matchPositiveCase));
           }

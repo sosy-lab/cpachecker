@@ -55,7 +55,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision oldPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof MonitorState);
     MonitorState element = (MonitorState)pElement;
@@ -72,7 +72,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     AbstractState oldElement = element.getWrappedState();
 
     totalTimeOfPrecAdj.start();
-    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements, fullState);
     totalTimeOfPrecAdj.stop();
     long totalTimeOfExecution = totalTimeOfPrecAdj.getLengthOfLastInterval().asMillis();
     // add total execution time to the total time of the previous element
