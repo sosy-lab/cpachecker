@@ -40,6 +40,6 @@ public class BinaryXorExpression extends BinaryConstraintExpression {
 
   @Override
   public String toString() {
-    return getOperand1() + " ^ " + getOperand2();
+    return "(" + getOperand1() + " ^ " + getOperand2() + ")";
   }
 }
