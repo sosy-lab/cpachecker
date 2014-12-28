@@ -87,10 +87,11 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, additionCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        additionCreator);
   }
 
-  private SymbolicValue createFormula(
+  private SymbolicValue createExpression(
       Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
       AAstNode pLocation, BinaryExpressionCreator pCreator)
       throws SymbolicBoundReachedException {
@@ -108,7 +109,7 @@ public class SymbolicValueFactory {
     return new SymbolicExpression(exp);
   }
 
-  private SymbolicValue createFormula(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation,
+  private SymbolicValue createExpression(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation,
       UnaryExpressionCreator pCreator)
       throws SymbolicBoundReachedException {
 
@@ -169,7 +170,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
         subtractionCreator);
   }
 
@@ -187,7 +188,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
         multiplicationCreator);
   }
 
@@ -205,7 +206,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
         divisionCreator);
   }
 
@@ -223,7 +224,8 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, moduloCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        moduloCreator);
   }
 
   public SymbolicValue createShiftLeft(
@@ -240,7 +242,8 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, shiftCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        shiftCreator);
   }
 
   public SymbolicValue createShiftRight(
@@ -257,7 +260,8 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, shiftCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        shiftCreator);
   }
 
   public SymbolicValue createBinaryOr(
@@ -275,7 +279,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, orCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, orCreator);
   }
 
   public SymbolicValue createBinaryAnd(
@@ -292,7 +296,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, andCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, andCreator);
   }
 
   public SymbolicValue createBinaryXor(
@@ -309,7 +313,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, xorCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, xorCreator);
   }
 
   public SymbolicValue createBinaryNot(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation)
@@ -322,7 +326,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pOperand, pOperandType, pExpressionType, pLocation, notCreator);
+    return createExpression(pOperand, pOperandType, pExpressionType, pLocation, notCreator);
   }
 
   public SymbolicValue createEquals(
@@ -339,7 +343,8 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, equalsCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        equalsCreator);
   }
 
   public SymbolicValue createNotEquals(
@@ -356,7 +361,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
         notEqualsCreator);
   }
 
@@ -374,7 +379,8 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, greaterCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        greaterCreator);
   }
 
   public SymbolicValue createGreaterThanOrEqual(
@@ -391,7 +397,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
         greaterEqualCreator);
   }
 
@@ -409,7 +415,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, lessCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, lessCreator);
   }
 
   public SymbolicValue createLessThanOrEqual(
@@ -426,7 +432,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
         lessEqualCreator);
   }
 
@@ -444,7 +450,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, andCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, andCreator);
   }
 
   public SymbolicValue createConditionalOr(
@@ -461,7 +467,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, orCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, orCreator);
   }
 
   public SymbolicValue createLogicalNot(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation)
@@ -474,7 +480,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pOperand, pOperandType, pExpressionType, pLocation, notCreator);
+    return createExpression(pOperand, pOperandType, pExpressionType, pLocation, notCreator);
   }
 
   private ConstraintExpression getConstant(Value pValue, Type pType) {
@@ -501,7 +507,7 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pOperand, pOperandType, pExpressionType, pLocation, xorCreator);
+    return createExpression(pOperand, pOperandType, pExpressionType, pLocation, xorCreator);
   }
 
   private static interface BinaryExpressionCreator {

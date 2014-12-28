@@ -282,7 +282,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * Join a symbolic formula with something else using a binary expression.
+   * Join a symbolic expression with something else using a binary expression.
    *
    * e.g. joining `a` and `5` with `+` will produce `a + 5`
    *
@@ -302,11 +302,11 @@ public abstract class AbstractExpressionValueVisitor
     final CType rightOperandType = pExpression.getOperand2().getExpressionType();
     final CType expressionType = pExpression.getExpressionType();
 
-    return createSymbolicFormula(pLValue, leftOperandType, pRValue, rightOperandType, operator, expressionType,
+    return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator, expressionType,
         pLocation);
   }
 
-  private static SymbolicValue createSymbolicFormula(Value pLeftValue, CType pLeftType, Value pRightValue,
+  private static SymbolicValue createSymbolicExpression(Value pLeftValue, CType pLeftType, Value pRightValue,
       CType pRightType, CBinaryExpression.BinaryOperator pOperator, CType pExpressionType, AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -725,7 +725,7 @@ public abstract class AbstractExpressionValueVisitor
         final CType expressionType = unaryExpression.getExpressionType();
         final CType operandType = unaryOperand.getExpressionType();
 
-        return createSymbolicFormula(value, operandType, unaryOperator, expressionType, unaryExpression);
+        return createSymbolicExpression(value, operandType, unaryOperator, expressionType, unaryExpression);
 
       } else if (!value.isNumericValue()) {
         logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
@@ -748,7 +748,7 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private Value createSymbolicFormula(Value pValue, CType pOperandType, UnaryOperator pUnaryOperator,
+  private Value createSymbolicExpression(Value pValue, CType pOperandType, UnaryOperator pUnaryOperator,
       CType pExpressionType, AAstNode pLocation) throws SymbolicBoundReachedException {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
@@ -1244,7 +1244,7 @@ public abstract class AbstractExpressionValueVisitor
         final JType expressionType = unaryExpression.getExpressionType();
         final JType operandType = unaryOperand.getExpressionType();
 
-        return createSymbolicFormula(valueObject, operandType, unaryOperator, expressionType, unaryExpression);
+        return createSymbolicExpression(valueObject, operandType, unaryOperator, expressionType, unaryExpression);
 
       } else {
         logger.logf(Level.FINE, errorMsg);
@@ -1256,7 +1256,7 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private Value createSymbolicFormula(Value pValue, JType pOperandType,
+  private Value createSymbolicExpression(Value pValue, JType pOperandType,
       JUnaryExpression.UnaryOperator pUnaryOperator, JType pExpressionType, AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
