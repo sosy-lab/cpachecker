@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicExpression;
 
 /**
  * Factory for creating {@link ConstraintExpression}s
@@ -45,7 +46,12 @@ public class ConstraintExpressionFactory {
   }
 
   public ConstraintExpression asConstant(Value pValue, Type pType) {
-    return new ConstantConstraintExpression(pValue, pType);
+    if (pValue instanceof SymbolicExpression) {
+      return ((SymbolicExpression) pValue).getExpression();
+
+    } else {
+      return new ConstantConstraintExpression(pValue, pType);
+    }
   }
 
   public ConstraintExpression multiply(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
