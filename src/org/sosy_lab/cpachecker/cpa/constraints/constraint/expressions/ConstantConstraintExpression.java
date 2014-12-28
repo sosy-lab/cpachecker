@@ -27,13 +27,19 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Created by leostrakosch on 27.12.14.
+ * {@link ConstraintExpression} that represents a single constant value of a specific type.
  */
 public class ConstantConstraintExpression implements ConstraintExpression {
 
   private final Value value;
   private final Type type;
 
+  /**
+   * Create a new <code>ConstantConstraintExpression</code> object with the given value and type.
+   *
+   * @param pValue the value of the new object
+   * @param pType the type of the value of the new object
+   */
   public ConstantConstraintExpression(Value pValue, Type pType) {
     value = pValue;
     type = pType;

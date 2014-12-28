@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 
 /**
- * Description of a variable's symbolic value in form of a expression. This is needed for more
+ * Description of a variable's symbolic value in form of an expression. This is needed for more
  * complex cases with non-deterministic variable values.
  *
  * <p>Example:
@@ -49,6 +49,12 @@ public class SymbolicExpression implements SymbolicValue {
 
   private ConstraintExpression expression;
 
+  /**
+   * Create a new <code>SymbolicExpression</code> instance with the given expression.
+   * The given expression is not cloned, but directly used.
+   *
+   * @param pExpression the expression describing the new <code>SymbolicExpression</code> instance
+   */
   protected SymbolicExpression(ConstraintExpression pExpression) {
     expression = pExpression;
   }
