@@ -52,4 +52,9 @@ public class ConstantConstraintExpression implements ConstraintExpression {
   public Type getType() {
     return type;
   }
+
+  @Override
+  public String toString() {
+    return "ConstraintExpression[" + value.toString() + "]";
+  }
 }

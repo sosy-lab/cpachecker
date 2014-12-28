@@ -40,4 +40,9 @@ public class ShiftRightExpression extends BinaryConstraintExpression {
   public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
+
+  @Override
+  public String toString() {
+    return getOperand1() + " >> " + getOperand2();
+  }
 }

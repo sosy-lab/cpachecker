@@ -38,4 +38,9 @@ public class LogicalNotExpression extends UnaryConstraintExpression {
   public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
+
+  @Override
+  public String toString() {
+    return "!" + getOperand();
+  }
 }
