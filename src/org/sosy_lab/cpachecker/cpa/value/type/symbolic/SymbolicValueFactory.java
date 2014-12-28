@@ -49,7 +49,7 @@ public class SymbolicValueFactory {
   private static final SymbolicValueFactory INSTANCE = new SymbolicValueFactory();
 
   private static final String NO_SYMBOLIC_VALUE_ERROR =
-      "Don't create a symbolic formula if you can just compute the expression's value!";
+      "Don't create a symbolic expression if you can just compute the expression's value!";
 
   @Option(name = "maxSymbolicValues",
       description = "The maximum amount of symbolic values to create per ast node.")
@@ -95,17 +95,17 @@ public class SymbolicValueFactory {
       AAstNode pLocation, BinaryExpressionCreator pCreator)
       throws SymbolicBoundReachedException {
 
-    checkSymbolic(pLeftOperand, pRightOperand);
+    checkEitherSymbolic(pLeftOperand, pRightOperand);
 
     checkInBound(pLocation);
 
-    final ConstraintExpression leftFormulaOperand = getConstantExpression(pLeftOperand, pLeftType);
-    final ConstraintExpression rightFormulaOperand = getConstantExpression(pRightOperand, pRightType);
+    final ConstraintExpression leftExpOperand = getConstantExpression(pLeftOperand, pLeftType);
+    final ConstraintExpression rightExpOperand = getConstantExpression(pRightOperand, pRightType);
 
-    final ConstraintExpression formula = pCreator.createValue(leftFormulaOperand, rightFormulaOperand, pExpressionType);
+    final ConstraintExpression exp = pCreator.createValue(leftExpOperand, rightExpOperand, pExpressionType);
     increaseSymbolicAmount(pLocation);
 
-    return new SymbolicExpression(formula);
+    return new SymbolicExpression(exp);
   }
 
   private SymbolicValue createFormula(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation,
@@ -116,12 +116,12 @@ public class SymbolicValueFactory {
 
     checkInBound(pLocation);
 
-    final ConstraintExpression formulaOperand = getConstantExpression(pOperand, pOperandType);
+    final ConstraintExpression expOperand = getConstantExpression(pOperand, pOperandType);
 
-    final ConstraintExpression formula = pCreator.createValue(formulaOperand, pExpressionType);
+    final ConstraintExpression exp = pCreator.createValue(expOperand, pExpressionType);
     increaseSymbolicAmount(pLocation);
 
-    return new SymbolicExpression(formula);
+    return new SymbolicExpression(exp);
   }
 
   private void checkInBound(AAstNode pLocation) throws SymbolicBoundReachedException {
@@ -264,7 +264,7 @@ public class SymbolicValueFactory {
       Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
-    checkSymbolic(pLeftOperand, pRightOperand);
+    checkEitherSymbolic(pLeftOperand, pRightOperand);
 
     BinaryExpressionCreator orCreator = new BinaryExpressionCreator() {
 
@@ -426,7 +426,8 @@ public class SymbolicValueFactory {
       }
     };
 
-    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, lessEqualCreator);
+    return createFormula(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+        lessEqualCreator);
   }
 
   public SymbolicValue createConditionalAnd(
@@ -481,7 +482,7 @@ public class SymbolicValueFactory {
     return ConstraintExpressionFactory.getInstance().asConstant(pValue, pType);
   }
 
-  private void checkSymbolic(Value pVal1, Value pVal2) {
+  private void checkEitherSymbolic(Value pVal1, Value pVal2) {
     assert pVal1 instanceof SymbolicValue || pVal2 instanceof SymbolicValue
         : NO_SYMBOLIC_VALUE_ERROR;
   }

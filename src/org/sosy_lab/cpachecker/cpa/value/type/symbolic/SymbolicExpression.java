@@ -79,7 +79,7 @@ public class SymbolicExpression implements SymbolicValue {
 
   @Override
   public String toString() {
-    return "SymbolicFormula [" + expression.toString() + "]";
+    return "SymbolicExpression [" + expression.toString() + "]";
   }
 
   @Override
