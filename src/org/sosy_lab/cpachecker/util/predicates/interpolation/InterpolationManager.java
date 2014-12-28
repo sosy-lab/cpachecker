@@ -161,7 +161,7 @@ public final class InterpolationManager {
           "\n- CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
           "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme." +
           "\n- NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
-          "\n- NESTED_TREE: same as NESTED, but the algorithm is different." +
+          "\n- NESTED_TREE: similar to NESTED, but the algorithm is taken from 'Tree Interpolation in Vampire'." +
           "\n- TREE: use the tree-interpolation-feature of a solver to get interpolants")
   private InterpolationStrategy strategy = InterpolationStrategy.CPACHECKER_SEQ;
   private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, NESTED, TREE, NESTED_TREE};
@@ -418,9 +418,9 @@ public final class InterpolationManager {
     while (true) {
       boolean consistent = true;
       // 1. assert all the needed constraints
-      for (int i = 0; i < needed.length; ++i) {
-        if (!bfmgr.isTrue(needed[i])) {
-          thmProver.push(needed[i]);
+      for (BooleanFormula aNeeded : needed) {
+        if (!bfmgr.isTrue(aNeeded)) {
+          thmProver.push(aNeeded);
           ++toPop;
         }
       }
@@ -543,7 +543,7 @@ public final class InterpolationManager {
 
     ImmutableList<Triple<BooleanFormula, AbstractState, Integer>> result = orderedFormulas.build();
     assert traceFormulas.size() == result.size();
-    assert ImmutableMultiset.copyOf(from(result).transform(Triple.getProjectionToFirst()))
+    assert ImmutableMultiset.copyOf(from(result).transform(Triple.<BooleanFormula>getProjectionToFirst()))
             .equals(ImmutableMultiset.copyOf(traceFormulas))
             : "Ordered list does not contain the same formulas with the same count";
     return result;
@@ -553,7 +553,6 @@ public final class InterpolationManager {
    * Get the interpolants from the solver after the formulas have been proved
    * to be unsatisfiable.
    *
-   * @param pItpProver The solver.
    * @param itpGroupsIds The references to the interpolation groups, sorting depends on the solver-stack.
    * @param orderedFormulas list of formulas with their (nullable) successor-state and the index in the "correct" order.
    * @return A list of all the interpolants.
@@ -1055,7 +1054,7 @@ public final class InterpolationManager {
     return itp;
   }
 
-  private <T> void verifyInterpolants(final List<BooleanFormula> interpolants,
+  private void verifyInterpolants(final List<BooleanFormula> interpolants,
       final List<BooleanFormula> formulas) throws SolverException, InterruptedException {
     interpolantVerificationTimer.start();
     try {
