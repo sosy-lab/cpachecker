@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
@@ -70,7 +68,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   private static final boolean SIGNED = true;
-  private static final FormulaType<BitvectorFormula> BITVECTOR_TYPE_DEFAULT = FormulaType.getBitvectorTypeWithSize(64);
+
+  /**
+   * Default bitvector size to use (in byte).
+   */
+  private static final int DEFAULT_BITVECTOR_SIZE = 4;
 
   private final FormulaManagerView formulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
@@ -128,7 +130,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     Value constantValue = pConstant.getValue();
 
     if (constantValue.isNumericValue()) {
-      return bitvectorFormulaManager.makeBitvector(BITVECTOR_TYPE_DEFAULT,
+      return bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>) getFormulaType(pConstant.getType()),
           ((NumericValue) constantValue).longValue());
 
     } else if (constantValue instanceof BooleanValue) {
@@ -154,35 +156,42 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   private FormulaType<?> getFormulaType(Type pType) {
     if (pType instanceof JSimpleType) {
+      int sizeInByte;
+
       switch (((JSimpleType) pType).getType()) {
         case BOOLEAN:
           return FormulaType.BooleanType;
         case BYTE:
+          sizeInByte = 1;
+          break;
         case CHAR:
+          sizeInByte = 2;
+          break;
         case SHORT:
+          sizeInByte = 2;
+          break;
+        case FLOAT:
         case INT:
+          sizeInByte = 4;
+          break;
+        case DOUBLE:
         case LONG:
-        case FLOAT:
-        case DOUBLE:
+          sizeInByte = 8;
+          break;
         case UNSPECIFIED:
-          return BITVECTOR_TYPE_DEFAULT;
+          sizeInByte = DEFAULT_BITVECTOR_SIZE;
+          break;
         default:
           throw new AssertionError("Unhandled type " + pType);
       }
-    } else if (pType instanceof CSimpleType) {
-      switch (((CSimpleType) pType).getType()) {
-        case BOOL:
-        case CHAR:
-        case INT:
-        case UNSPECIFIED:
-        case FLOAT:
-        case DOUBLE:
-          return BITVECTOR_TYPE_DEFAULT;
-        default:
-          throw new AssertionError("Unhandled type " + pType);
-      }
-    } else if (pType instanceof CNumericTypes || pType instanceof CPointerType) {
-      return BITVECTOR_TYPE_DEFAULT;
+
+      int sizeInBit = sizeInByte * machineModel.getSizeofCharInBits();
+      return FormulaType.getBitvectorTypeWithSize(sizeInBit);
+
+    } else if (pType instanceof CType) {
+      int sizeInBit = machineModel.getSizeof((CType) pType) * machineModel.getSizeofCharInBits();
+
+      return FormulaType.getBitvectorTypeWithSize(sizeInBit);
     } else {
       throw new AssertionError("Unhandled type " + pType);
     }

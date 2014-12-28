@@ -63,8 +63,8 @@ public class StackUsingConstraintsState extends ConstraintsState {
   }
 
   @Override
-  public void initialize(Solver pSolver, FormulaManagerView pFormulaManager) {
-    super.initialize(pSolver, pFormulaManager);
+  public void initialize(Solver pSolver, FormulaManagerView pFormulaManager, FormulaCreator<?> pFormulaCreator) {
+    super.initialize(pSolver, pFormulaManager, pFormulaCreator);
     proverEnvironment = pSolver.newProverEnvironment();
   }
 

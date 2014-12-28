@@ -126,10 +126,10 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
     return solver != null;
   }
 
-  public void initialize(Solver pSolver, FormulaManagerView pFormulaManager) {
+  public void initialize(Solver pSolver, FormulaManagerView pFormulaManager, FormulaCreator<?> pFormulaCreator) {
     solver = pSolver;
     formulaManager = pFormulaManager;
-    formulaCreator = new IntegerFormulaCreator(pFormulaManager);
+    formulaCreator = pFormulaCreator;
   }
 
   public boolean isUnsat() throws SolverException, InterruptedException {

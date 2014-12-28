@@ -30,6 +30,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -62,6 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
@@ -73,20 +76,34 @@ import com.google.common.base.Optional;
 public class ConstraintsTransferRelation
     extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
 
+  /**
+   * Enum for possible types of number handling in formulas for SAT checks.
+   */
+  public static enum FormulaNumberHandlingType {
+    INTEGER, BITVECTOR
+  }
+
+  @Option(secure=true, description="")
+  private FormulaNumberHandlingType formulaNumberHandling = FormulaNumberHandlingType.INTEGER;
+
+
   private final LogManager logger;
 
   private boolean missingInformation = false;
   private AExpression missingInformationExpression = null;
   private boolean missingInformationTruth;
 
+  private MachineModel machineModel;
+
   private Solver solver;
   private FormulaManagerView formulaManager;
 
-  public ConstraintsTransferRelation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
+  public ConstraintsTransferRelation(MachineModel pMachineModel, LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    pConfig.inject(this);
 
     logger = pLogger;
-
+    machineModel = pMachineModel;
     initializeSolver(pLogger, pConfig, pShutdownNotifier);
   }
 
@@ -153,7 +170,7 @@ public class ConstraintsTransferRelation
     ConstraintsState newState = pOldState.copyOf();
 
     if (!newState.isInitialized()) {
-      newState.initialize(solver, formulaManager);
+      newState.initialize(solver, formulaManager, getFormulaCreator());
     }
 
     try {
@@ -181,6 +198,17 @@ public class ConstraintsTransferRelation
 
     } else {
       return newState;
+    }
+  }
+
+  private FormulaCreator<? extends Formula> getFormulaCreator() {
+    switch (formulaNumberHandling) {
+      case INTEGER:
+        return new IntegerFormulaCreator(formulaManager);
+      case BITVECTOR:
+        return new BitvectorFormulaCreator(formulaManager, machineModel);
+      default:
+        throw new AssertionError("Unhandled handling type " + formulaNumberHandling);
     }
   }
 
