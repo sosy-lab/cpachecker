@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
@@ -52,5 +54,24 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
 
   public ConstraintExpression getOperand2() {
     return operand2;
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj == null || getClass() != pObj.getClass()) {
+      return false;
+    }
+
+    BinaryConstraintExpression that = (BinaryConstraintExpression) pObj;
+
+    return operand1.equals(that.operand1) && operand2.equals(that.operand2) && type.equals(that.type);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getClass(), operand1, operand2, type);
   }
 }

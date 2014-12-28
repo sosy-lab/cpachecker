@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
@@ -47,5 +49,24 @@ public abstract class UnaryConstraintExpression implements ConstraintExpression 
 
   public ConstraintExpression getOperand() {
     return operand;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    UnaryConstraintExpression that = (UnaryConstraintExpression)o;
+
+    return operand.equals(that.operand) && type.equals(that.type);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getClass(), operand, type);
   }
 }
