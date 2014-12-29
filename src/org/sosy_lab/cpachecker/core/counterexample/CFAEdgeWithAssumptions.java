@@ -50,8 +50,9 @@ public class CFAEdgeWithAssumptions {
    * @param pExpStmt The concrete assumptions represented as expression statements
    * @param pComment Further comments that should be given to the user about this part of the path but can't be represented as assumption.
    */
-  public CFAEdgeWithAssumptions(CFAEdge pEdge, List<AExpressionStatement> pExpStmt, @Nullable String pComment) {
+  public CFAEdgeWithAssumptions(CFAEdge pEdge, List<AExpressionStatement> pExpStmt, String pComment) {
     assert pExpStmt != null;
+    assert pComment != null;
     edge = pEdge;
     expressionStmts = pExpStmt;
     comment = pComment;
@@ -93,11 +94,10 @@ public class CFAEdgeWithAssumptions {
    *
    * @return C Code that represents the concrete assumptions of this edge.
    */
-  @Nullable
   public String getAsCode() {
 
     if (expressionStmts.size() == 0) {
-      return null;
+      return "";
     }
 
     StringBuilder result = new StringBuilder();
@@ -106,7 +106,7 @@ public class CFAEdgeWithAssumptions {
       if (expressionStmt instanceof CExpressionStatement) {
         result.append(((CExpressionStatement) expressionStmt).accept(CStatementToOriginalCodeVisitor.INSTANCE));
       } else {
-        return null;
+        return "";
       }
     }
 
@@ -120,11 +120,10 @@ public class CFAEdgeWithAssumptions {
    * @param numberOfTabsPerLine the number of tabs per line.
    * @return pretty-printed code
    */
-  @Nullable
   public String prettyPrintCode(int numberOfTabsPerLine) {
 
     if (expressionStmts.size() == 0) {
-      return null;
+      return "";
     }
 
     StringBuilder result = new StringBuilder();
@@ -137,7 +136,7 @@ public class CFAEdgeWithAssumptions {
         result.append(expStmt.toASTString());
         result.append(System.lineSeparator());
       } else {
-        return null;
+        return "";
       }
     }
 
@@ -154,18 +153,7 @@ public class CFAEdgeWithAssumptions {
   public String prettyPrint() {
     String expStmt = this.prettyPrintCode(0);
     String comment = this.getComment();
-
-    String result = "";
-
-    if (expStmt != null) {
-      result = expStmt;
-    }
-
-    if (comment != null) {
-      result = result + comment;
-    }
-
-    return result;
+    return expStmt + comment;
   }
 
   /**

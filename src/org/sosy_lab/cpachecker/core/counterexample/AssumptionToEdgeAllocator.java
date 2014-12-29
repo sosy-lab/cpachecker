@@ -167,7 +167,7 @@ public class AssumptionToEdgeAllocator {
       return handleReturnStatementComment((AReturnStatementEdge) cfaEdge);
     }
 
-    return null;
+    return "";
   }
 
   private String handleReturnStatementComment(AReturnStatementEdge pCfaEdge) {
@@ -177,7 +177,7 @@ public class AssumptionToEdgeAllocator {
 
       if (returnExp instanceof CLiteralExpression) {
         /*boring expression*/
-        return null;
+        return "";
       }
 
       String functionname = pCfaEdge.getPredecessor().getFunctionName();
@@ -187,13 +187,13 @@ public class AssumptionToEdgeAllocator {
       Number value = v.evaluateNumericalValue(returnExp);
 
       if (value == null) {
-        return null;
+        return "";
       }
 
       return returnExp.toASTString() + " = " + value.toString();
     }
 
-    return null;
+    return "";
   }
 
   private String handleDclComment(ADeclarationEdge pCfaEdge) {
@@ -202,7 +202,7 @@ public class AssumptionToEdgeAllocator {
       return addressOfDcl((CSimpleDeclaration) pCfaEdge.getDeclaration(), pCfaEdge);
     }
 
-    return null;
+    return "";
   }
 
   private String addressOfDcl(CSimpleDeclaration dcl, CFAEdge edge) {
@@ -214,7 +214,7 @@ public class AssumptionToEdgeAllocator {
     Address address = v.getAddress(dcl);
 
     if (address == null) {
-      return null;
+      return "";
     }
 
     return "&" + dcl.getName()
@@ -244,7 +244,7 @@ public class AssumptionToEdgeAllocator {
       return handleAssume((CAssumeEdge)pCfaEdge);
     }
 
-    return null;
+    return "";
   }
 
   private String handleAssume(CAssumeEdge pCfaEdge) {
@@ -264,25 +264,25 @@ public class AssumptionToEdgeAllocator {
 
       String result2 = handleAssumeOp(op2, functionName);
 
-      if (result1 != null && result2 != null) {
+      if (!result1.isEmpty() && !result2.isEmpty()) {
         return result1 + System.lineSeparator() + result2;
-      } else if (result1 != null) {
+      } else if (!result1.isEmpty()) {
         return result1;
-      } else if (result2 != null) {
+      } else if (!result2.isEmpty()) {
         return result2;
       }
 
-      return null;
+      return "";
     }
 
-    return null;
+    return "";
   }
 
   private String handleAssumeOp(CExpression op, String functionName) {
 
     if (op instanceof CLiteralExpression) {
       /*boring expression*/
-      return null;
+      return "";
     }
 
     if (op instanceof CLeftHandSide) {
@@ -290,7 +290,7 @@ public class AssumptionToEdgeAllocator {
       List<AExpressionStatement> assignments = handleAssignment((CLeftHandSide) op);
 
       if (assignments.size() == 0) {
-        return null;
+        return "";
       } else {
 
         List<String> result = new ArrayList<>(assignments.size());
@@ -308,7 +308,7 @@ public class AssumptionToEdgeAllocator {
       if (value != null) {
         return op.toASTString() + " == " + value.toString();
       } else {
-        return null;
+        return "";
       }
     }
   }

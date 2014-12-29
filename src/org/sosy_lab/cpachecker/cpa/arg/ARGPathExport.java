@@ -422,7 +422,7 @@ public class ARGPathExport {
               }
             }
             String code = cfaEdgeWithAssignments.getAsCode();
-            if (code != null) {
+            if (!code.isEmpty()) {
               desc.put(KeyDef.ASSUMPTION, code);
             }
           }

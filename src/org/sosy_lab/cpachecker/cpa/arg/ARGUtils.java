@@ -554,7 +554,7 @@ public class ARGUtils {
 
       if (it.hasNext()) {
         String code = edge.getAsCode();
-        String assumption = code == null ? "" : "ASSUME {" + code + "}";
+        String assumption = code.isEmpty() ? "" : "ASSUME {" + code + "}";
         sb.append(assumption + "GOTO STATE" + ++stateCounter);
       } else {
         sb.append("GOTO EndLoop");
@@ -802,7 +802,7 @@ public class ARGUtils {
     if (cfaEdgeWithAssignments != null) {
       String code = cfaEdgeWithAssignments.getAsCode();
 
-      if (code != null) {
+      if (!code.isEmpty()) {
         sb.append("ASSUME {" + code + "} ");
       }
     }

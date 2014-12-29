@@ -325,13 +325,13 @@ public class CEXExporter {
         out.append(System.lineSeparator());
 
         String cCode = edgeWithAssignments.prettyPrintCode(1);
-        if (cCode != null) {
+        if (!cCode.isEmpty()) {
           out.append(cCode);
         }
 
         String comment = edgeWithAssignments.getComment();
 
-        if (comment != null) {
+        if (!comment.isEmpty()) {
           out.append('\t');
           out.append(comment);
           out.append(System.lineSeparator());

@@ -114,7 +114,7 @@ public final class CFAMultiEdgeWithAssumptions extends CFAEdgeWithAssumptions im
 
     /*Comments only make sense in the exact location of an path*/
     return new CFAMultiEdgeWithAssumptions(pEdge,
-        ImmutableList.copyOf(assignments.values()), pEdges, null);
+        ImmutableList.copyOf(assignments.values()), pEdges, "");
   }
 
   private static boolean isDistinct(ABinaryExpression pBinExp) {
