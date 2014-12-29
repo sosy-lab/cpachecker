@@ -164,7 +164,7 @@ public class AssumptionToEdgeAllocatorTest {
   }
 
   private Address makeSymbolicAddress(int pValue) {
-    return Address.valueOf(Integer.valueOf(pValue).toString());
+    return Address.valueOf(Integer.toString(pValue));
   }
 
   private LeftHandSide makeVariable(String pName, String pFunction) {
