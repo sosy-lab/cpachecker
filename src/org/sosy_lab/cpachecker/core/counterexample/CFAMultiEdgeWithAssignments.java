@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +56,28 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
 
   public List<CFAEdgeWithAssignments> getEdgesWithAssignment() {
     return edgesWithAssignment;
+  }
+
+  @Override
+  public CFAEdgeWithAssignments mergeEdge(CFAEdgeWithAssignments pEdge) {
+
+    if (!(pEdge instanceof CFAMultiEdgeWithAssignments)) {
+      return this;
+    }
+
+    CFAMultiEdgeWithAssignments other = (CFAMultiEdgeWithAssignments) pEdge;
+
+    assert pEdge.getCFAEdge().equals(getCFAEdge());
+    assert other.edgesWithAssignment.size() == this.edgesWithAssignment.size();
+
+    List<CFAEdgeWithAssignments> result = new ArrayList<>();
+    Iterator<CFAEdgeWithAssignments> otherIt = other.iterator();
+
+    for (CFAEdgeWithAssignments thisEdge : edgesWithAssignment) {
+      result.add(thisEdge.mergeEdge(otherIt.next()));
+    }
+
+    return valueOf((MultiEdge) pEdge.getCFAEdge(), result);
   }
 
   public static final CFAMultiEdgeWithAssignments valueOf(MultiEdge pEdge, List<CFAEdgeWithAssignments> pEdges) {
