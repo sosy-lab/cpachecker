@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import junit.framework.AssertionFailedError;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
@@ -39,6 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.L
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Verify;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -312,9 +311,7 @@ public class SmtAstPatternBuilder {
         logicRelation = sel.getRelationship();
       }
 
-      if (logicRelation != sel.getRelationship()) {
-        throw new AssertionFailedError("Logic relations do not match!");
-      }
+      Verify.verify(logicRelation == sel.getRelationship(), "Logic relations must match!");
 
       patterns.addAll(sel.getPatterns());
       defaultBindings.putAll(sel.getDefaultBindings());
