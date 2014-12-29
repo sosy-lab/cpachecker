@@ -81,18 +81,22 @@ final class GenericPatterns {
   }
 
   public static SmtAstPatternSelection f_of_x_variable (final String pBindFunctionTo, final String pBindArgTo) {
-    return f_of_x_matcher(pBindFunctionTo, and(matchNumeralVariableBind(pBindArgTo)));
+    return f_of_x_matcher(pBindFunctionTo, and(matchNumeralVariableBind(pBindArgTo)), matchAnyWithAnyArgs());
   }
 
   public static SmtAstPatternSelection f_of_x_variable_subtree (final String pBindFunctionTo, final String pBindArgTo) {
-    return f_of_x_matcher(pBindFunctionTo, matchInSubtreeBoundedDepth(10, matchNumeralVariableBind(pBindArgTo)));
+    return f_of_x_matcher(pBindFunctionTo, matchInSubtreeBoundedDepth(10, matchNumeralVariableBind(pBindArgTo)), matchAnyWithAnyArgs());
   }
 
   public static SmtAstPatternSelection f_of_x_expression (final String pBindFunctionTo, final String pBindArgTo) {
-    return f_of_x_matcher(pBindFunctionTo, and(matchAnyWithAnyArgsBind(pBindArgTo)));
+    return f_of_x_matcher(pBindFunctionTo, and(matchAnyWithAnyArgsBind(pBindArgTo)), matchAnyWithAnyArgs());
   }
 
-  public static SmtAstPatternSelection f_of_x_matcher (final String pBindFunctionTo, final SmtAstPatternSelection pLeaveMatcher) {
+  public static SmtAstPatternSelection array_at_index_subtree_matcher (final String pBindFunctionTo, final String pBindArgTo) {
+    return array_at_index_matcher(pBindFunctionTo, matchInSubtreeBoundedDepth(10, matchNumeralVariableBind(pBindArgTo)));
+  }
+
+  public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final SmtAstPatternSelection pLeaveMatcher) {
     return or(
         matchBind("not", pBindFunctionTo,
             match("not",
@@ -117,16 +121,52 @@ final class GenericPatterns {
                     matchAnyWithAnyArgs(),
                     pLeaveMatcher)),
             matchAnyWithAnyArgs())
-//
-//        matchBind("not", pBindFunctionTo,
-//            matchAny(
-//                matchAnyWithArgs(
-//                    pLeaveMatcher),
-//                matchAnyWithAnyArgs())),
-//
-//        matchAnyBind(pBindFunctionTo,
-//            matchAnyWithArgs(
-//                pLeaveMatcher))
+        );
+  }
+
+  public static SmtAstPatternSelection f_of_x_matcher (
+      final String pBindFunctionTo,
+      final SmtAstPatternSelection pFirstOpLeaveMatcher,
+      final SmtAstPatternSelectionElement pSecondOpLeaveMatcher) {
+
+    return or(
+        matchBind("not", pBindFunctionTo,
+            match("not",
+                matchAnyWithArgs(
+                  and(
+                      match("select",
+                          and(
+                              matchAnyWithAnyArgs(),
+                              pFirstOpLeaveMatcher)),
+                        pSecondOpLeaveMatcher)))),
+
+        matchBind("not", pBindFunctionTo,
+            matchAnyWithArgs(
+              and(
+                  match("select",
+                      and(
+                          matchAnyWithAnyArgs(),
+                          pFirstOpLeaveMatcher)),
+                  pSecondOpLeaveMatcher))),
+
+        matchAnyBind(pBindFunctionTo,
+            and(
+                match("select",
+                    and(
+                        matchAnyWithAnyArgs(),
+                        pFirstOpLeaveMatcher)),
+                pSecondOpLeaveMatcher)),
+
+        matchBind("not", pBindFunctionTo,
+            matchAnyWithArgs(
+                and(
+                    pFirstOpLeaveMatcher,
+                    pSecondOpLeaveMatcher))),
+
+        matchAnyBind(pBindFunctionTo,
+            and(
+                pFirstOpLeaveMatcher,
+                pSecondOpLeaveMatcher))
         );
   }
 

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -93,13 +95,32 @@ public abstract class PatternBasedRule extends AbstractRule {
   }
 
   @Override
-  public Set<BooleanFormula> apply(BooleanFormula pInput) {
+  public Set<BooleanFormula> apply(BooleanFormula pInput) throws SolverException, InterruptedException {
     return apply(fmv.extractAtoms(pInput, false, false));
   }
 
   @Override
-  public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates) {
-    throw new UnsupportedOperationException("Implement me");
+  public Set<BooleanFormula> apply(
+      final Collection<BooleanFormula> pConjunctiveInputPredicates,
+      final Multimap<String, Formula> pMatchingBindings)
+          throws SolverException, InterruptedException {
+
+    HashSet<BooleanFormula> result = Sets.newHashSet();
+
+    final int premiseCount = getPremises().size();
+    Verify.verify(premiseCount != 0);
+
+    final List<Collection<BooleanFormula>> dimensions = new ArrayList<>(premiseCount);
+    for (int i=0; i<premiseCount; i++) {
+      dimensions.add(pConjunctiveInputPredicates);
+    }
+
+    for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
+      final Set<BooleanFormula> inferred = applyWithInputRelatingPremises(tuple, pMatchingBindings);
+      result.addAll(inferred);
+    }
+
+    return result;
   }
 
   private Collection<Map<String, Formula>> getAllAssignments(Multimap<String, Formula> pFromBindings) {
@@ -124,7 +145,16 @@ public abstract class PatternBasedRule extends AbstractRule {
   }
 
   @Override
-  public Set<BooleanFormula> applyWithInputRelatingPremises(List<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException {
+  public Set<BooleanFormula> applyWithInputRelatingPremises(List<BooleanFormula> pConjunctiveInputPredicates)
+      throws SolverException, InterruptedException {
+
+    return applyWithInputRelatingPremises(pConjunctiveInputPredicates, HashMultimap.<String, Formula>create());
+  }
+
+  public Set<BooleanFormula> applyWithInputRelatingPremises(
+      final Collection<BooleanFormula> pConjunctiveInputPredicates,
+      final Multimap<String, Formula> pMatchingBindings)
+          throws SolverException, InterruptedException {
 
     overallTimer.start();
     try {
@@ -135,7 +165,7 @@ public abstract class PatternBasedRule extends AbstractRule {
 
       // Check premises -------------------
       boolean allPremisesMatch = true;
-      Multimap<String, Formula> matchingBindings = HashMultimap.create();
+      final Multimap<String, Formula> matchingBindings = HashMultimap.create(pMatchingBindings);
       Iterator<BooleanFormula> it = pConjunctiveInputPredicates.iterator();
 
       for (Premise p: getPremises()) {

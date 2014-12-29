@@ -56,7 +56,7 @@ public class UniversalizeRule extends PatternBasedRule {
     // TODO: Handling of deeper nestings (implementation of matchInSubtree)
 
     premises.add(new PatternBasedPremise(
-        GenericPatterns.f_of_x_variable_subtree("f", "i")
+        GenericPatterns.array_at_index_subtree_matcher("a", "i")
           ));
   }
 
@@ -67,7 +67,7 @@ public class UniversalizeRule extends PatternBasedRule {
 
   @Override
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
-    final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("f"));
+    final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("a"));
     final IntegerFormula i = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("i"));
 
     assert f != null;

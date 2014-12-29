@@ -29,8 +29,10 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 
 public interface Rule {
 
@@ -60,4 +62,7 @@ public interface Rule {
   public Set<BooleanFormula> applyWithInputRelatingPremises(List<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException;
 
   public ImmutableList<Premise> getPremises();
+
+  public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates,
+      Multimap<String, Formula> pMatchingBindings) throws SolverException, InterruptedException;
 }

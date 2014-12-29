@@ -55,12 +55,12 @@ public abstract class AbstractRule implements Rule {
   }
 
   @Override
-  public Set<BooleanFormula> apply(BooleanFormula pInput) {
+  public Set<BooleanFormula> apply(BooleanFormula pInput) throws SolverException, InterruptedException {
     throw new UnsupportedOperationException("Implement me in the child class if needed!");
   }
 
   @Override
-  public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates) {
+  public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException {
     throw new UnsupportedOperationException("Implement me in the child class if needed!");
   }
 
