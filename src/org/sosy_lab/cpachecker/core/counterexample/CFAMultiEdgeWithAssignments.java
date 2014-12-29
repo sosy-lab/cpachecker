@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -83,17 +84,26 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
   public static final CFAMultiEdgeWithAssignments valueOf(MultiEdge pEdge, List<CFAEdgeWithAssignments> pEdges) {
     // In MultiEdges, it is possible to write the same variable multiple times.
     // This would produce illegal assumptions,
-    // thus we filter out assignments with equal left-hand side.
+    // thus we filter out assignments which write to the same Address.
     LinkedHashMap<ALeftHandSide, AAssignment> assignments = new LinkedHashMap<>();
 
     for (CFAEdgeWithAssignments edge : pEdges) {
       for (AAssignment assignment : edge.getAssignments()) {
-        assignments.put(assignment.getLeftHandSide(), assignment);
+        ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+        // We don't evaluate addresses in c
+        if (isDistinct(leftHandSide)) {
+          assignments.put(assignment.getLeftHandSide(), assignment);
+        }
       }
     }
 
     /*Comments only make sense in the exact location of an path*/
     return new CFAMultiEdgeWithAssignments(pEdge,
         ImmutableList.copyOf(assignments.values()), pEdges, null);
+  }
+
+  private static boolean isDistinct(ALeftHandSide pLeftHandSide) {
+    //TODO Can be made more precise
+    return pLeftHandSide instanceof AIdExpression;
   }
 }
