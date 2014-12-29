@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -61,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -107,10 +107,10 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * Calculates the concrete values of the right hand side expressions {@link CRightHandSide}
- * of assignments.
+ * Creates assumption along an error path based on a given {@link CFAEdge} edge
+ * and a given {@link ConcreteState} state.
  */
-public class AssignmentToEdgeAllocator {
+public class AssumptionToEdgeAllocator {
 
   private final LogManager logger;
   private final MachineModel machineModel;
@@ -120,7 +120,19 @@ public class AssignmentToEdgeAllocator {
 
   private static final int FIRST = 0;
 
-  public AssignmentToEdgeAllocator(LogManager pLogger,
+  /**
+   * Crates an instance of the allocator that takes an {@link CFAEdge} edge
+   * along an error path and a {@link ConcreteState} state that contains the concrete
+   * values of the variables and of the memory at that edge and creates concrete assumptions
+   * for the variables at the given edge.
+   *
+   *
+   * @param pLogger logger for logging purposes
+   * @param pCfaEdge an edge along the error path.
+   * @param pModelAtEdge a state that contains the concrete values of the variables at the given edge.
+   * @param pMachineModel the machine model that holds for the error path of the given edge.
+   */
+  public AssumptionToEdgeAllocator(LogManager pLogger,
       CFAEdge pCfaEdge,
       ConcreteState pModelAtEdge,
       MachineModel pMachineModel) {
@@ -129,16 +141,22 @@ public class AssignmentToEdgeAllocator {
 
     cfaEdge = pCfaEdge;
     modelAtEdge = pModelAtEdge;
-    assert modelAtEdge != null;
   }
 
-  public CFAEdgeWithAssignments allocateAssignmentsToEdge() {
+  /**
+   * Assigns assumpions to the variables of the given {@link CFAEdge} edge.
+   *
+   * @return An {@link CFAEdgeWithAssumptions} edge that contains concrete values for variables
+   *          represented as assumptions
+   */
+  public CFAEdgeWithAssumptions allocateAssumptionsToEdge() {
 
-    List<AAssignment> assignmentsAtEdge = createAssignmentsAtEdge(cfaEdge);
+    List<AExpressionStatement> assignmentsAtEdge = createAssignmentsAtEdge(cfaEdge);
     String comment = createComment(cfaEdge);
 
-    return new CFAEdgeWithAssignments(cfaEdge, assignmentsAtEdge, comment);
+    return new CFAEdgeWithAssumptions(cfaEdge, assignmentsAtEdge, comment);
   }
+
 
   private String createComment(CFAEdge pCfaEdge) {
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
@@ -204,7 +222,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   @Nullable
-  private List<AAssignment> createAssignmentsAtEdge(CFAEdge pCFAEdge) {
+  private List<AExpressionStatement> createAssignmentsAtEdge(CFAEdge pCFAEdge) {
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration(),
@@ -269,7 +287,7 @@ public class AssignmentToEdgeAllocator {
 
     if (op instanceof CLeftHandSide) {
 
-      List<AAssignment> assignments = handleAssignment((CLeftHandSide) op);
+      List<AExpressionStatement> assignments = handleAssignment((CLeftHandSide) op);
 
       if (assignments.size() == 0) {
         return null;
@@ -277,7 +295,7 @@ public class AssignmentToEdgeAllocator {
 
         List<String> result = new ArrayList<>(assignments.size());
 
-        for (AAssignment assignment : assignments) {
+        for (AExpressionStatement assignment : assignments) {
           result.add(assignment.toASTString());
         }
 
@@ -302,7 +320,7 @@ public class AssignmentToEdgeAllocator {
     return v.evaluateNumericalValue(pOp1);
   }
 
-  private List<AAssignment> handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
+  private List<AExpressionStatement> handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
 
     if (!(pFunctionCallEdge instanceof CFunctionCallEdge)) {
       return Collections.emptyList();
@@ -314,7 +332,7 @@ public class AssignmentToEdgeAllocator {
 
     List<CParameterDeclaration> dcls = functionEntryNode.getFunctionParameters();
 
-    List<AAssignment> assignments = new ArrayList<>();
+    List<AExpressionStatement> assignments = new ArrayList<>();
 
     for (CParameterDeclaration dcl : dcls) {
       assignments.addAll(handleDeclaration(dcl, pFunctionCallEdge.getSuccessor().getFunctionName()));
@@ -324,7 +342,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   @Nullable
-  private List<AAssignment> handleAssignment(CLeftHandSide leftHandSide) {
+  private List<AExpressionStatement> handleAssignment(CLeftHandSide leftHandSide) {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
@@ -378,7 +396,7 @@ public class AssignmentToEdgeAllocator {
     return handleSimpleValueLiteralsAssignments(valueAsCode, leftHandSide);
   }
 
-  private List<AAssignment> handleAssignment(CAssignment assignment) {
+  private List<AExpressionStatement> handleAssignment(CAssignment assignment) {
     CLeftHandSide leftHandSide = assignment.getLeftHandSide();
     return handleAssignment(leftHandSide);
   }
@@ -411,7 +429,7 @@ public class AssignmentToEdgeAllocator {
     return new ValueLiterals();
   }
 
-  private List<AAssignment> handleStatement(AStatement pStatement) {
+  private List<AExpressionStatement> handleStatement(AStatement pStatement) {
 
     if (pStatement instanceof CFunctionCallAssignmentStatement) {
       CAssignment assignmentStatement =
@@ -428,7 +446,7 @@ public class AssignmentToEdgeAllocator {
     return Collections.emptyList();
   }
 
-  private List<AAssignment> handleDeclaration(ASimpleDeclaration dcl, String pFunctionName) {
+  private List<AExpressionStatement> handleDeclaration(ASimpleDeclaration dcl, String pFunctionName) {
 
     if (dcl instanceof CSimpleDeclaration) {
 
@@ -483,25 +501,31 @@ public class AssignmentToEdgeAllocator {
     return Collections.emptyList();
   }
 
-  private List<AAssignment> handleSimpleValueLiteralsAssignments(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
+  private List<AExpressionStatement> handleSimpleValueLiteralsAssignments(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
 
-    List<AAssignment> statements = new ArrayList<>(subValues.size() + 1);
+    List<AExpressionStatement> statements = new ArrayList<>(subValues.size() + 1);
 
     if (!pValueLiterals.hasUnknownValueLiteral()) {
-      AAssignment statement =
-          new CExpressionAssignmentStatement(pLValue.getFileLocation(),
-              pLValue, pValueLiterals.getExpressionValueLiteralAsCExpression());
+      CBinaryExpression assumption =
+          new CBinaryExpression(pLValue.getFileLocation(), CNumericTypes.BOOL, pLValue.getExpressionType(), pLValue,
+              pValueLiterals.getExpressionValueLiteralAsCExpression(), CBinaryExpression.BinaryOperator.EQUALS);
+
+      AExpressionStatement statement =
+          new CExpressionStatement(pLValue.getFileLocation(), assumption);
 
       statements.add(statement);
     }
 
     for (SubExpressionValueLiteral subValueLiteral : subValues) {
-      AAssignment statement =
-          new CExpressionAssignmentStatement(pLValue.getFileLocation(),
+      CBinaryExpression assumption =
+          new CBinaryExpression(pLValue.getFileLocation(), CNumericTypes.BOOL, pLValue.getExpressionType(),
               subValueLiteral.getSubExpression(),
-              subValueLiteral.getValueLiteralAsCExpression());
+              subValueLiteral.getValueLiteralAsCExpression(), CBinaryExpression.BinaryOperator.EQUALS);
+
+      AExpressionStatement statement =
+          new CExpressionStatement(pLValue.getFileLocation(), assumption);
 
       statements.add(statement);
     }

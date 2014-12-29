@@ -322,13 +322,19 @@ private boolean classifyNodes = false;
    * @throws InterruptedException
    */
   public CFA parseFileAndCreateCFA(String program)
-          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    ParseResult parseResult = parseToCFAs(program);
-    FunctionEntryNode mainFunction = parseResult.getFunctions().get(mainFunctionName);
-    assert mainFunction != null : "program lacks main function.";
+    stats.totalTime.start();
+    try {
+      ParseResult parseResult = parseToCFAs(program);
+      FunctionEntryNode mainFunction = parseResult.getFunctions().get(mainFunctionName);
+      assert mainFunction != null : "program lacks main function.";
 
-    return createCFA(parseResult, mainFunction);
+      CFA cfa = createCFA(parseResult, mainFunction);
+      return cfa;
+    } finally {
+      stats.totalTime.stop();
+    }
   }
 
   /**

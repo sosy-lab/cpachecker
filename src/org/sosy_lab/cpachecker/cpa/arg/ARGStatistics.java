@@ -48,7 +48,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -288,12 +288,12 @@ public class ARGStatistics implements IterationStatistics {
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
         CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
 
-    CFAPathWithAssignments result = null;
+    CFAPathWithAssumptions result = null;
 
     // TODO Merge different paths
     for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
       ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
-      CFAPathWithAssignments cexPath = CFAPathWithAssignments.of(path, cpa.getLogger(), cpa.getMachineModel());
+      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, cpa.getLogger(), cpa.getMachineModel());
 
       if (result != null) {
         result = result.mergePaths(cexPath);

@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
@@ -98,7 +98,7 @@ public class AssignmentToPathAllocator {
    * Additionally, provides the information, at which {@link CFAEdge} edge which
    * {@link AssignableTerm} terms have been assigned.
    */
-  public Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(List<CFAEdge> pPath,
+  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(List<CFAEdge> pPath,
       Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
 
     // create concrete state path, also remember at wich edge which terms were used.
@@ -106,8 +106,8 @@ public class AssignmentToPathAllocator {
         pModel, pSSAMaps, pMachineModel);
 
     // create the concrete error path.
-    CFAPathWithAssignments pathWithAssignments =
-        CFAPathWithAssignments.of(concreteStatePath.getFirst(), logger, pMachineModel);
+    CFAPathWithAssumptions pathWithAssignments =
+        CFAPathWithAssumptions.of(concreteStatePath.getFirst(), logger, pMachineModel);
 
     return Pair.of(pathWithAssignments, concreteStatePath.getSecond());
   }

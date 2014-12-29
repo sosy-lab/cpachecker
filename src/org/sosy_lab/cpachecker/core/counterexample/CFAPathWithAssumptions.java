@@ -55,37 +55,37 @@ import com.google.common.collect.ImmutableList;
  * the class {@link PathChecker}.
  *
  */
-public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> {
+public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> {
 
-  private final List<CFAEdgeWithAssignments> pathWithAssignments;
+  private final List<CFAEdgeWithAssumptions> pathWithAssignments;
 
-  private CFAPathWithAssignments(
-      List<CFAEdgeWithAssignments> pPathWithAssignments) {
+  private CFAPathWithAssumptions(
+      List<CFAEdgeWithAssumptions> pPathWithAssignments) {
     pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
   }
 
-  private CFAPathWithAssignments(
-      CFAPathWithAssignments pPathWithAssignments, CFAPathWithAssignments pPathWithAssignments2) {
+  private CFAPathWithAssumptions(
+      CFAPathWithAssumptions pPathWithAssignments, CFAPathWithAssumptions pPathWithAssignments2) {
 
     assert pPathWithAssignments.size() == pPathWithAssignments2.size();
 
-    List<CFAEdgeWithAssignments> result = new ArrayList<>(pPathWithAssignments.size());
-    Iterator<CFAEdgeWithAssignments> path2Iterator = pPathWithAssignments2.iterator();
+    List<CFAEdgeWithAssumptions> result = new ArrayList<>(pPathWithAssignments.size());
+    Iterator<CFAEdgeWithAssumptions> path2Iterator = pPathWithAssignments2.iterator();
 
-    for (CFAEdgeWithAssignments edge : pPathWithAssignments) {
-      CFAEdgeWithAssignments resultEdge = edge.mergeEdge(path2Iterator.next());
+    for (CFAEdgeWithAssumptions edge : pPathWithAssignments) {
+      CFAEdgeWithAssumptions resultEdge = edge.mergeEdge(path2Iterator.next());
       result.add(resultEdge);
     }
 
     pathWithAssignments = result;
   }
 
-  public CFAPathWithAssignments() {
+  public CFAPathWithAssumptions() {
     pathWithAssignments = ImmutableList.of();
   }
 
   @Nullable
-  public CFAPathWithAssignments getExactVariableValues(List<CFAEdge> pPath) {
+  public CFAPathWithAssumptions getExactVariableValues(List<CFAEdge> pPath) {
 
     if (fitsPath(pPath)) {
       return this;
@@ -97,7 +97,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
       return null;
     }
 
-    List<CFAEdgeWithAssignments> result;
+    List<CFAEdgeWithAssumptions> result;
 
     result = new ArrayList<>(pPath.size());
 
@@ -107,7 +107,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
         return null;
       }
 
-      CFAEdgeWithAssignments cfaWithAssignment = pathWithAssignments.get(index);
+      CFAEdgeWithAssumptions cfaWithAssignment = pathWithAssignments.get(index);
 
       if (!edge.equals(cfaWithAssignment.getCFAEdge())) {
         return null;
@@ -117,7 +117,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
       index++;
     }
 
-    return new CFAPathWithAssignments(result);
+    return new CFAPathWithAssumptions(result);
   }
 
   private boolean fitsPath(List<CFAEdge> pPath) {
@@ -130,7 +130,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
 
     for (CFAEdge edge : pPath) {
 
-      CFAEdgeWithAssignments cfaWithAssignment = pathWithAssignments.get(index);
+      CFAEdgeWithAssumptions cfaWithAssignment = pathWithAssignments.get(index);
 
       if (!edge.equals(cfaWithAssignment.getCFAEdge())) {
         return false;
@@ -143,19 +143,19 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
   }
 
   @Nullable
-  public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
+  public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
 
 
     if (pPath.getInnerEdges().size() != (pathWithAssignments.size())) {
       return null;
     }
 
-    Map<ARGState, CFAEdgeWithAssignments> result = new HashMap<>();
+    Map<ARGState, CFAEdgeWithAssumptions> result = new HashMap<>();
 
     PathIterator pathIterator = pPath.pathIterator();
     while (pathIterator.hasNext()) {
 
-      CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex());
+      CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex());
       CFAEdge argPathEdge = pathIterator.getOutgoingEdge();
       if (!edgeWithAssignment.getCFAEdge().equals(argPathEdge)) {
         // path is not equivalent
@@ -170,49 +170,49 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return result;
   }
 
-  public static CFAPathWithAssignments of(ConcreteStatePath statePath,
+  public static CFAPathWithAssumptions of(ConcreteStatePath statePath,
       LogManager pLogger, MachineModel pMachineModel) {
 
-    List<CFAEdgeWithAssignments> result = new ArrayList<>(statePath.size());
+    List<CFAEdgeWithAssumptions> result = new ArrayList<>(statePath.size());
 
     for (ConcerteStatePathNode node : statePath) {
       if (node instanceof SingleConcreteState) {
 
         SingleConcreteState singleState = (SingleConcreteState) node;
-        CFAEdgeWithAssignments edge = createCFAEdgeWithAssignment(singleState, pLogger, pMachineModel);
+        CFAEdgeWithAssumptions edge = createCFAEdgeWithAssignment(singleState, pLogger, pMachineModel);
         result.add(edge);
       } else {
         MultiConcreteState multiState = (MultiConcreteState) node;
-        CFAEdgeWithAssignments edge = createCFAEdgeWithAssignment(multiState, pLogger, pMachineModel);
+        CFAEdgeWithAssumptions edge = createCFAEdgeWithAssignment(multiState, pLogger, pMachineModel);
         result.add(edge);
       }
     }
 
-    return new CFAPathWithAssignments(result);
+    return new CFAPathWithAssumptions(result);
   }
 
-  private static CFAEdgeWithAssignments createCFAEdgeWithAssignment(MultiConcreteState state,
+  private static CFAEdgeWithAssumptions createCFAEdgeWithAssignment(MultiConcreteState state,
       LogManager pLogger, MachineModel pMachineModel) {
 
     MultiEdge cfaEdge = state.getCfaEdge();
-    List<CFAEdgeWithAssignments> pEdges = new ArrayList<>(cfaEdge.getEdges().size());
+    List<CFAEdgeWithAssumptions> pEdges = new ArrayList<>(cfaEdge.getEdges().size());
 
     for (SingleConcreteState node : state) {
       pEdges.add(createCFAEdgeWithAssignment(node, pLogger, pMachineModel));
     }
 
-    CFAMultiEdgeWithAssignments edge = CFAMultiEdgeWithAssignments.valueOf(cfaEdge, pEdges);
+    CFAMultiEdgeWithAssumptions edge = CFAMultiEdgeWithAssumptions.valueOf(cfaEdge, pEdges);
     return edge;
   }
 
-  private static CFAEdgeWithAssignments createCFAEdgeWithAssignment(
+  private static CFAEdgeWithAssumptions createCFAEdgeWithAssignment(
       SingleConcreteState state, LogManager pLogger, MachineModel pMachineModel) {
 
     CFAEdge cfaEdge = state.getCfaEdge();
     ConcreteState concreteState = state.getConcreteState();
-    AssignmentToEdgeAllocator allocator = new AssignmentToEdgeAllocator(pLogger, cfaEdge, concreteState, pMachineModel);
+    AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(pLogger, cfaEdge, concreteState, pMachineModel);
 
-    return allocator.allocateAssignmentsToEdge();
+    return allocator.allocateAssumptionsToEdge();
   }
 
   public boolean isEmpty() {
@@ -233,7 +233,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
   }
 
   @Override
-  public Iterator<CFAEdgeWithAssignments> iterator() {
+  public Iterator<CFAEdgeWithAssumptions> iterator() {
     return pathWithAssignments.iterator();
   }
 
@@ -269,7 +269,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
       if (index == pathWithAssignments.size()) {
         elem.put("val", "");
       } else {
-        CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(index);
+        CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(index);
         elem.put("val", edgeWithAssignment.printForHTML());
       }
 
@@ -280,12 +280,12 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     JSON.writeJSONString(path, sb);
   }
 
-  public CFAPathWithAssignments mergePaths(CFAPathWithAssignments pOtherPath) {
+  public CFAPathWithAssumptions mergePaths(CFAPathWithAssumptions pOtherPath) {
 
     if (pOtherPath.size() != this.size()) {
       return this;
     }
 
-    return new CFAPathWithAssignments(this, pOtherPath);
+    return new CFAPathWithAssumptions(this, pOtherPath);
   }
 }

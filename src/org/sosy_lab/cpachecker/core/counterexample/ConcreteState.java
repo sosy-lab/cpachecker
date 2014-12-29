@@ -42,8 +42,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * CPAs have to create an object of this class for every CFA Edge {@link CFAEdge}
  * along an Error Path {@link MutableARGPath} to create an object of
  * the concrete state path {@link ConcreteStatePath}. The allocator class
- * {@link AssignmentToEdgeAllocator} uses this object to create
- * an error path {@link CFAPathWithAssignments} where every assignment,
+ * {@link AssumptionToEdgeAllocator} uses this object to create
+ * an error path {@link CFAPathWithAssumptions} where every assignment,
  * when possible, has a concrete value.
  *
  */
