@@ -131,8 +131,9 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     //    Evaluate the applicability of them.
 
     abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
-    predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
-
+    predicateManager = new PredicateAbstractionManager(
+        abstractionManager, formulaManager, pathFormulaManager,
+        solver, config, logger, cfa.getLiveVariables());
 
     //
     //

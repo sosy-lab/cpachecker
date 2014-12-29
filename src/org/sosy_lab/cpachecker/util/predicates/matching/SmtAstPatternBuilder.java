@@ -124,6 +124,15 @@ public class SmtAstPatternBuilder {
         and(argumentMatchers));
   }
 
+  public static SmtAstPattern matchBind(Comparable<?> pFunction, String pBindMatchTo, SmtAstPatternSelection argumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>of(pFunction),
+        Optional.<SmtFormulaMatcher>absent(),
+        Optional.of(pBindMatchTo),
+        argumentMatchers);
+  }
+
+
   /**
    * Match any function (and bind its formula to a variable), but with specific arguments.
    */
@@ -133,6 +142,14 @@ public class SmtAstPatternBuilder {
         Optional.<SmtFormulaMatcher>absent(),
         Optional.of(pBindMatchTo),
         and(argumentMatchers));
+  }
+
+  public static SmtAstPattern matchAnyBind(String pBindMatchTo, SmtAstPatternSelection argumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
+        Optional.of(pBindMatchTo),
+        argumentMatchers);
   }
 
   /**
@@ -221,9 +238,21 @@ public class SmtAstPatternBuilder {
         Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
           @Override
           public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
-            // TODO: Switch from FormulaManager to FormulaManagerView
             return pMgr.getUnsafeFormulaManager().isVariable(pF)
                 && pMgr.getFormulaType(pF) instanceof NumeralType;
+          }
+        }),
+        Optional.<String>of(pBindMatchTo),
+        and());
+  }
+
+  public static SmtAstPattern matchFreeVariableBind(String pBindMatchTo) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
+          @Override
+          public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
+            return pMgr.getUnsafeFormulaManager().isFreeVariable(pF);
           }
         }),
         Optional.<String>of(pBindMatchTo),

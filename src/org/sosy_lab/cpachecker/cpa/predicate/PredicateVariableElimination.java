@@ -23,73 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.List;
-import java.util.Set;
-
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 
 public class PredicateVariableElimination {
 
-  // TODO: We might want to move this code to the class FormulaManagerView
-
-  public static List<Formula> getDeadVariables(FormulaManagerView pFmv, BooleanFormula pFormula, SSAMap pSsa) {
-    Set<Triple<Formula, String, Integer>> formulaVariables = pFmv.extractFreeVariables(pFormula);
-    List<Formula> result = Lists.newArrayList();
-
-    for (Triple<Formula, String, Integer> var: formulaVariables) {
-
-      Formula varFormula = var.getFirst();
-      String varName = var.getSecond();
-      Integer varSsaIndex = var.getThird();
-
-      if (varSsaIndex == null) {
-        if (pSsa.containsVariable(varName)) {
-          result.add(varFormula);
-        }
-
-      } else {
-
-        if (varSsaIndex != pSsa.getIndex(varName)) {
-          result.add(varFormula);
-        }
-      }
-    }
-
-    return result;
-  }
-
-  public static BooleanFormula eliminateDeadVariables(
-      final FormulaManagerView pFmv,
-      final BooleanFormula pF,
-      final SSAMap pSsa)
-    throws SolverException, InterruptedException {
-
-    Preconditions.checkNotNull(pFmv);
-    Preconditions.checkNotNull(pF);
-    Preconditions.checkNotNull(pSsa);
-
-    List<Formula> irrelevantVariables = getDeadVariables(pFmv, pF, pSsa);
-
-    BooleanFormula eliminationResult = pF;
-
-    if (!irrelevantVariables.isEmpty()) {
-      QuantifiedFormulaManagerView qfmgr = pFmv.getQuantifiedFormulaManager();
-      BooleanFormula quantifiedFormula = qfmgr.exists(irrelevantVariables, pF);
-      eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
-    }
-
-    eliminationResult = pFmv.simplify(eliminationResult); // TODO: Benchmark the effect!
-    return eliminationResult;
-  }
 
 }

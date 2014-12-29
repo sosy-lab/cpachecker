@@ -351,7 +351,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
             result.add(blockFormula);
 
           } else {
-            final BooleanFormula eliminationResult = PredicateVariableElimination.eliminateDeadVariables(fmgr, traceFormula, blockSsaMap);
+            final BooleanFormula eliminationResult = fmgr.eliminateDeadVariables(traceFormula, blockSsaMap);
             final BooleanFormula blockPrecondition = assumesStore.conjunctAssumeToLocation(loc, fmgr.makeNot(eliminationResult));
 
             result.add(bfmgr.and(blockFormula, blockPrecondition));
