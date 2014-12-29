@@ -397,10 +397,6 @@ public class AssignmentToPathAllocator {
     if (function.getArity() == 1) {
       Address address = Address.valueOf(function.getArgument(FIRST));
 
-      if (address == null) {
-        return;
-      }
-
       heap.remove(address);
     } else {
       throw new AssertionError();
@@ -420,10 +416,6 @@ public class AssignmentToPathAllocator {
 
     if (function.getArity() == 1) {
       Address address = Address.valueOf(function.getArgument(FIRST));
-
-      if(address == null) {
-        return;
-      }
 
       Object value = pFunctionAssignment.getValue();
       heap.put(address, value);
@@ -445,10 +437,6 @@ public class AssignmentToPathAllocator {
         Object addressValue = pModel.get(constant);
 
         Address address = Address.valueOf(addressValue);
-
-        if (address == null) {
-          continue;
-        }
 
         //TODO ugly, refactor?
         String constantName = name.substring(ADDRESS_PREFIX.length());

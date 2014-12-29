@@ -163,11 +163,16 @@ public final class ConcreteState {
   /**
    * Get the concrete Address of the given variable.
    *
-   * @param variable Get the concrete address of this variable.
+   * @param variable
+   *          Get the concrete address of this variable.
    * @return returns the concrete address of the given variable.
    */
   public Address getVariableAddress(LeftHandSide variable) {
     Preconditions.checkArgument(variableAddressMap.containsKey(variable));
+
+    if (variableAddressMap.containsKey(variable)) {
+      return Address.getUnknownAddress();
+    }
 
     return variableAddressMap.get(variable);
   }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -337,10 +337,10 @@ public class SMGConcreteErrorPathAllocator {
     for (SMGEdgeHasValue hvEdge : symbolicValues) {
 
       int symbolicValue = hvEdge.getValue();
-      BigDecimal value = null;
+      BigInteger value = null;
 
       if(symbolicValue == 0) {
-        value = BigDecimal.ZERO;
+        value = BigInteger.ZERO;
       } else if (pSMGState.isPointer(symbolicValue)) {
         SMGEdgePointsTo pointer;
         try {
@@ -351,9 +351,9 @@ public class SMGConcreteErrorPathAllocator {
 
 
         //TODO ugly, use common representation
-        value = (BigDecimal) pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAsNumber();
+        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
       } else if (pSMGState.isExplicit(symbolicValue)) {
-        value = BigDecimal.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
+        value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
       } else {
         continue;
       }
@@ -368,10 +368,11 @@ public class SMGConcreteErrorPathAllocator {
   private static class SMGObjectAddressMap {
 
     private Map<SMGObject, Address> objectAddressMap = new HashMap<>();
-    private Address nextAlloc = Address.valueOf(BigDecimal.valueOf(100));
+    private Address nextAlloc = Address.valueOf(BigInteger.valueOf(100));
     private Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
 
-    public Address calculateAddress(SMGObject pObject, int pOffset, SMGState pSMGState) {
+    public Address calculateAddress(SMGObject pObject, int pOffset,
+        SMGState pSMGState) {
 
       // Create a new base address for the object if necessary
       if (!objectAddressMap.containsKey(pObject)) {
@@ -380,11 +381,14 @@ public class SMGConcreteErrorPathAllocator {
         if (lhs != null) {
           variableAddressMap.put(lhs, nextAlloc);
         }
-        nextAlloc =
-            nextAlloc.addOffset(BigDecimal.valueOf(nextAlloc.getAsNumber().longValue() + pObject.getSize() + 1));
+        BigInteger objectSize = BigInteger.valueOf(pObject.getSize());
+
+        BigInteger nextAllocOffset = nextAlloc.getAddressValue().add(objectSize).add(BigInteger.ONE);
+
+        nextAlloc = nextAlloc.addOffset(nextAllocOffset);
       }
 
-      return Address.valueOf(BigDecimal.valueOf(objectAddressMap.get(pObject).getAsNumber().longValue() + pOffset));
+      return objectAddressMap.get(pObject).addOffset(BigInteger.valueOf(pOffset));
     }
 
     public Map<LeftHandSide, Address> getAddressMap() {
