@@ -351,49 +351,11 @@ public class AssumptionToEdgeAllocator {
     if (value == null) {
       return Collections.emptyList();
     }
-    // FIXME:
-    // We currently incorrectly assign the address of a struct to the struct:
-    // See for example
-    //  ldv-linux-3.4-simple/32_7_cilled_false-unreach-call_const_ok_linux-32_1-drivers--media--video--vivi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c,
-    // where
-    //   *vfd = vivi_template;
-    // becomes
-    //   *vfd = 8388480;
-    // when actually, we want to express that
-    //   vdf == 8388480;
-    // Expression statements are currently not supported, though:
-    // This whole interface is based on assignments.
-    // So if the left hand side is not a pointer expression
-    // or its operand is not a left hand side, for now, just return no assignments.
-    if (isStructOrUnionType(leftHandSide.getExpressionType())) {
-      if (leftHandSide instanceof CPointerExpression) {
-        CExpression lhs = ((CPointerExpression) leftHandSide).getOperand();
-        if (lhs instanceof CLeftHandSide) {
-          leftHandSide = (CLeftHandSide) lhs;
-        } else {
-          return Collections.emptyList();
-        }
-      } else {
-        return Collections.emptyList();
-      }
-    }
-
-    // FIXME:
-    // Assuming that printing pointer values to the error path
-    // is helpful, it would kind of make sense to express
-    //   &(a[0]) == 50
-    // as
-    //   a = 50;
-    // but it is illegal C code.
-    // For now, just return no assignments
-    if (leftHandSide.getExpressionType().getCanonicalType() instanceof CArrayType) {
-      return Collections.emptyList();
-    }
 
     Type expectedType = leftHandSide.getExpressionType();
     ValueLiterals valueAsCode = getValueAsCode(value, expectedType, leftHandSide, functionName);
 
-    return handleSimpleValueLiteralsAssignments(valueAsCode, leftHandSide);
+    return handleSimpleValueLiteralsAssumptions(valueAsCode, leftHandSide);
   }
 
   private List<AExpressionStatement> handleAssignment(CAssignment assignment) {
@@ -419,6 +381,7 @@ public class AssumptionToEdgeAllocator {
       ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, leftHandSide);
       ValueLiterals valueLiterals = cType.accept(v);
 
+      // resolve field references that lack a address
       if (isStructOrUnionType(cType) && leftHandSide instanceof CIdExpression) {
         v.resolveStruct(cType, valueLiterals, (CIdExpression) leftHandSide, functionName);
       }
@@ -459,35 +422,6 @@ public class AssumptionToEdgeAllocator {
       if (value == null) {
         return Collections.emptyList();
       }
-      // FIXME:
-      // We currently incorrectly assign the address of a struct to the struct:
-      // See for example ssh/s3_clnt.blast.01_false-unreach-call.i.cil.c,
-      // where
-      //   SSL_METHOD SSLv3_client_data = {  };
-      // becomes
-      //   SSLv3_client_data = 536870813;
-      // when actually, we want to express that
-      //   &(SSLv3_client_data) == 536870813
-      // Expression statements are currently not supported, though:
-      // This whole interface is based on assignments.
-      // For now, just return no assignments.
-      if (isStructOrUnionType(dclType)) {
-        return Collections.emptyList();
-      }
-
-      // FIXME:
-      // Say a is an array declared as
-      //   char a[80U];
-      // Assuming that printing pointer values to the error path
-      // is helpful, it would kind of make sense to express
-      //   &(a[0]) == 50
-      // as
-      //   a = 50;
-      // but it is illegal C code.
-      // For now, just return no assignments
-      if (dclType.getCanonicalType() instanceof CArrayType) {
-        return Collections.emptyList();
-      }
 
       CIdExpression idExpression = new CIdExpression(dcl.getFileLocation(), cDcl);
 
@@ -495,33 +429,39 @@ public class AssumptionToEdgeAllocator {
 
       CLeftHandSide leftHandSide = new CIdExpression(FileLocation.DUMMY, cDcl);
 
-      return handleSimpleValueLiteralsAssignments(valueAsCode, leftHandSide);
+      return handleSimpleValueLiteralsAssumptions(valueAsCode, leftHandSide);
     }
 
     return Collections.emptyList();
   }
 
-  private List<AExpressionStatement> handleSimpleValueLiteralsAssignments(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
+  private List<AExpressionStatement> handleSimpleValueLiteralsAssumptions(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
 
     List<AExpressionStatement> statements = new ArrayList<>(subValues.size() + 1);
 
     if (!pValueLiterals.hasUnknownValueLiteral()) {
+
+      CExpression leftAssumption = getLeftAssumptionFromLhs(pLValue);
+
       CBinaryExpression assumption =
-          new CBinaryExpression(pLValue.getFileLocation(), CNumericTypes.BOOL, pLValue.getExpressionType(), pLValue,
+          new CBinaryExpression(leftAssumption.getFileLocation(), CNumericTypes.BOOL, leftAssumption.getExpressionType(), leftAssumption,
               pValueLiterals.getExpressionValueLiteralAsCExpression(), CBinaryExpression.BinaryOperator.EQUALS);
 
       AExpressionStatement statement =
-          new CExpressionStatement(pLValue.getFileLocation(), assumption);
+          new CExpressionStatement(leftAssumption.getFileLocation(), assumption);
 
       statements.add(statement);
     }
 
     for (SubExpressionValueLiteral subValueLiteral : subValues) {
+
+      CExpression leftAssumption = getLeftAssumptionFromLhs(subValueLiteral.getSubExpression());
+
       CBinaryExpression assumption =
           new CBinaryExpression(pLValue.getFileLocation(), CNumericTypes.BOOL, pLValue.getExpressionType(),
-              subValueLiteral.getSubExpression(),
+              leftAssumption,
               subValueLiteral.getValueLiteralAsCExpression(), CBinaryExpression.BinaryOperator.EQUALS);
 
       AExpressionStatement statement =
@@ -531,6 +471,23 @@ public class AssumptionToEdgeAllocator {
     }
 
     return statements;
+  }
+
+  private CExpression getLeftAssumptionFromLhs(CLeftHandSide pLValue) {
+
+    // We represent structs and arrays as addresses. When we transform those to
+    // assumptions, we have to resolve them.
+
+    CType type = pLValue.getExpressionType().getCanonicalType();
+
+    if (isStructOrUnionType(type) || type instanceof CArrayType) {
+      CUnaryExpression unaryExpression = new CUnaryExpression(
+          pLValue.getFileLocation(), type, pLValue,
+          CUnaryExpression.UnaryOperator.AMPER);
+      return unaryExpression;
+    } else {
+      return pLValue;
+    }
   }
 
   private Object getValueObject(CSimpleDeclaration pDcl, String pFunctionName) {
@@ -1507,26 +1464,26 @@ public class AssumptionToEdgeAllocator {
           isPointerDeref = false;
         }
 
-        CFieldReference fieldReference =
-            new CFieldReference(subExp.getFileLocation(),
-                expectedType, pType.getName(), subExp, isPointerDeref);
+        CFieldReference fieldReference = new CFieldReference(
+            subExp.getFileLocation(), expectedType, pType.getName(), subExp,
+            isPointerDeref);
+
+        Object fieldValue;
 
         // Arrays and structs are represented as addresses
-        if (expectedType instanceof CArrayType || isStructOrUnionType(expectedType)) {
-          ValueLiteralVisitor v =
-              new ValueLiteralVisitor(fieldAddress, valueLiterals, fieldReference, visited);
-          expectedType.accept(v);
-          return;
+        if (expectedType instanceof CArrayType
+            || isStructOrUnionType(expectedType)) {
+          fieldValue = fieldAddress;
+        } else {
+          fieldValue = modelAtEdge.getValueFromMemory(fieldReference, fieldAddress);
         }
-
-        Object fieldValue = modelAtEdge.getValueFromMemory(fieldReference, fieldAddress);
 
         if (fieldValue == null) {
           return;
         }
 
         ValueLiteral valueLiteral;
-        Address valueAddress = null;
+        Address valueAddress = Address.getUnknownAddress();
 
         if (expectedType instanceof CSimpleType) {
           valueLiteral = getValueLiteral(((CSimpleType) expectedType), fieldValue);
@@ -1581,8 +1538,11 @@ public class AssumptionToEdgeAllocator {
 
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
+        int arraySize = machineModel.getSizeof(pArrayType);
 
-        if(!pArrayAddress.isConcrete()) {
+        // check if we are already out of array bound
+        // FIXME Imprecise due to imprecise getSizeOf method
+        if (!pArrayAddress.isConcrete() || arraySize <= subscriptOffset) {
           return false;
         }
 
@@ -1594,17 +1554,14 @@ public class AssumptionToEdgeAllocator {
         CArraySubscriptExpression arraySubscript =
             new CArraySubscriptExpression(subExpression.getFileLocation(), pExpectedType, subExpression, litExp);
 
-        int arraySize = machineModel.getSizeof(pArrayType);
+        Object value;
 
         if (isStructOrUnionType(pExpectedType) || pExpectedType instanceof CArrayType) {
           // Arrays and structs are represented as addresses
-
-          ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, arraySubscript, visited);
-          pExpectedType.accept(v);
-          return subscriptOffset < arraySize;
+          value = address;
+        } else {
+          value = modelAtEdge.getValueFromMemory(arraySubscript, address);
         }
-
-        Object value = modelAtEdge.getValueFromMemory(arraySubscript, address);
 
         if (value == null) {
           return false;
@@ -1625,20 +1582,15 @@ public class AssumptionToEdgeAllocator {
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
-        boolean contin = false;
-
-        if (!valueLiteral.isUnknown() && subscriptOffset < arraySize) {
+        if (!valueLiteral.isUnknown()) {
 
           SubExpressionValueLiteral subExpressionValueLiteral =
               new SubExpressionValueLiteral(valueLiteral, arraySubscript);
 
           valueLiterals.addSubExpressionValueLiteral(subExpressionValueLiteral);
-
-          //TODO Only full arrays can be resolved
-          contin = true;
         }
 
-        if (!valueAddress.isUnknown() && subscriptOffset < arraySize) {
+        if (!valueAddress.isUnknown()) {
           Pair<CType, Address> visits = Pair.of(pExpectedType, valueAddress);
 
           if (visited.contains(visits)) {
@@ -1651,7 +1603,8 @@ public class AssumptionToEdgeAllocator {
           pExpectedType.accept(v);
         }
 
-        return contin;
+        // the check if the array continued was performed at an earlier stage in this function
+        return true;
       }
 
       @Override
@@ -1661,15 +1614,15 @@ public class AssumptionToEdgeAllocator {
 
         CPointerExpression pointerExp = new CPointerExpression(subExpression.getFileLocation(), expectedType, subExpression);
 
+        Object value;
+
         if (isStructOrUnionType(expectedType) || expectedType instanceof CArrayType) {
           // Arrays and structs are represented as addresses
 
-          ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, pointerExp, visited);
-          expectedType.accept(v);
-          return null;
+          value = address;
+        } else {
+          value = modelAtEdge.getValueFromMemory(pointerExp, address);
         }
-
-        Object value = modelAtEdge.getValueFromMemory(pointerExp, address);
 
         if (value == null) {
           return null;
@@ -1799,14 +1752,14 @@ public class AssumptionToEdgeAllocator {
         CType realType = reference.getExpressionType();
 
         ValueLiteral valueLiteral;
-        Address valueAddress = null;
+        Address valueAddress = Address.getUnknownAddress();
 
         if (realType instanceof CSimpleType) {
           valueLiteral = getValueLiteral(((CSimpleType) realType), pFieldValue);
         } else {
           valueAddress = Address.valueOf(pFieldValue);
 
-          if(valueAddress == null) {
+          if(valueAddress.isUnknown()) {
             return;
           }
 

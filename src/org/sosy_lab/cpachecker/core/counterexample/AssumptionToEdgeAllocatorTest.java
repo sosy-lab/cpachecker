@@ -63,17 +63,18 @@ public class AssumptionToEdgeAllocatorTest {
   public void setUp() throws Exception {
 
     String cProgram = ""
-            + "typedef struct node {"
-            +   "int h;"
-            +   "struct node *n;"
-            +   "struct dataNode d;"
-            + "} List;" // sizeof 28
 
             + "typedef struct dataNode {"
             +   "int h;"
             +   "int h2[3];"
             +   "int *h3;"
             + "} data;" // sizeof 20
+
+            + "typedef struct node {"
+            +   "int h;"
+            +   "struct node *n;"
+            +   "data d;"
+            + "} List;" // sizeof 28
 
             + "typedef List *ListP;"
 
@@ -91,12 +92,12 @@ public class AssumptionToEdgeAllocatorTest {
             +   "**c = **c;"
             +   "d[1] = d[1];"
             +   "*(d + 1) = *(d + 1);"
-            +   "e[2][1] = e[2][1];"
+            +   "e[1][2] = e[1][2];"
             +   "list.h = list.h;"
-            +   "list->n = list->n;"
+            +   "list.n = list.n;"
             +   "list.d.h = list.d.h;"
-            +   "list->n.d.h2[0] = list->n.d.h2[0];"
-            +   "list->n.d->h3 = list->n.d->h3;"
+            +   "list.n->d.h2[0] = list.n->d.h2[0];"
+            +   "list.n->d.h3 = list.n->d.h3;"
             + "}";
 
     cfa = TestDataTools.makeCFA(cProgram);
@@ -138,19 +139,19 @@ public class AssumptionToEdgeAllocatorTest {
     values.put(makeConcreteAddress(72), 25); // e[1][1] = 25
     values.put(makeConcreteAddress(76), 26); // e[1][2] = 26
     values.put(makeConcreteAddress(80), 31); // list.h = 31
-    values.put(makeConcreteAddress(84), 108); // list->n.h = 41
+    values.put(makeConcreteAddress(84), 108); // list.n->h = 41
     values.put(makeConcreteAddress(88), 32);  // list.d.h = 32
     values.put(makeConcreteAddress(92), 33);  // list.d.h2[0] = 33
     values.put(makeConcreteAddress(96), 34);  // list.d.h2[1] = 34
     values.put(makeConcreteAddress(100), 35); // list.d.h2[2] = 35
-    values.put(makeConcreteAddress(104), 32); //list.d->h3 = 21
-    values.put(makeConcreteAddress(108), 41); // list->n.h = 41
-    values.put(makeConcreteAddress(112), 80); // list->n->n.h = 31
-    values.put(makeConcreteAddress(116), 42); // list->n.d.h = 42
-    values.put(makeConcreteAddress(120), 43); // list->n.d.h2[0] = 43
-    values.put(makeConcreteAddress(124), 44); // list->n.d.h2[1] = 44
-    values.put(makeConcreteAddress(128), 45); // list->n.d.h2[2] = 45
-    values.put(makeConcreteAddress(132), 36); // list->n.d->h3 = 22
+    values.put(makeConcreteAddress(104), 32); //list.d.h3 = 21
+    values.put(makeConcreteAddress(108), 41); // list.n.h = 41
+    values.put(makeConcreteAddress(112), 80); // list.n->n.h = 31
+    values.put(makeConcreteAddress(116), 42); // list.n->d.h = 42
+    values.put(makeConcreteAddress(120), 43); // list.n->d.h2[0] = 43
+    values.put(makeConcreteAddress(124), 44); // list.n->d.h2[1] = 44
+    values.put(makeConcreteAddress(128), 45); // list.n->d.h2[2] = 45
+    values.put(makeConcreteAddress(132), 36); // list.n->d.h3 = 22
 
     Memory memory = new Memory(MEMORYNAME, values);
     allocatedMemory.put(MEMORYNAME, memory);
@@ -205,19 +206,19 @@ public class AssumptionToEdgeAllocatorTest {
     values.put(makeSymbolicAddress(72), 25); // e[1][1] = 25
     values.put(makeSymbolicAddress(76), 26); // e[1][2] = 26
     values.put(makeSymbolicAddress(80), 31); // list.h = 31
-    values.put(makeSymbolicAddress(84), "108"); // list->n.h = 41
+    values.put(makeSymbolicAddress(84), "108"); // list.n->h = 41
     values.put(makeSymbolicAddress(88), 32);  // list.d.h = 32
     values.put(makeSymbolicAddress(92), 33);  // list.d.h2[0] = 33
     values.put(makeSymbolicAddress(96), 34);  // list.d.h2[1] = 34
     values.put(makeSymbolicAddress(100), 35); // list.d.h2[2] = 35
     values.put(makeSymbolicAddress(104), "32"); //list.d->h3 = 21
-    values.put(makeSymbolicAddress(108), 41); // list->n.h = 41
-    values.put(makeSymbolicAddress(112), "80"); // list->n->n.h = 31
-    values.put(makeSymbolicAddress(116), 42); // list->n.d.h = 42
-    values.put(makeSymbolicAddress(120), 43); // list->n.d.h2[0] = 43
-    values.put(makeSymbolicAddress(124), 44); // list->n.d.h2[1] = 44
-    values.put(makeSymbolicAddress(128), 45); // list->n.d.h2[2] = 45
-    values.put(makeSymbolicAddress(132), "36"); // list->n.d->h3 = 22
+    values.put(makeSymbolicAddress(108), 41); // list.n.h = 41
+    values.put(makeSymbolicAddress(112), "80"); // list.n->n.h = 31
+    values.put(makeSymbolicAddress(116), 42); // list.n->d.h = 42
+    values.put(makeSymbolicAddress(120), 43); // list.n->d.h2[0] = 43
+    values.put(makeSymbolicAddress(124), 44); // list.n->d.h2[1] = 44
+    values.put(makeSymbolicAddress(128), 45); // list.n->d.h2[2] = 45
+    values.put(makeSymbolicAddress(132), "36"); // list.n->d.h3 = 22
 
     Memory memory = new Memory(MEMORYNAME, values);
     allocatedMemory.put(MEMORYNAME, memory);
@@ -253,7 +254,6 @@ public class AssumptionToEdgeAllocatorTest {
     CFAEdgeWithAssumptions assignmentEdgeFull = fullStateAllocator.allocateAssumptionsToEdge();
     CFAEdgeWithAssumptions assignmentEdgeSymbolic = symbolicStateAllocator.allocateAssumptionsToEdge();
     CFAEdgeWithAssumptions assignmentEdgeEmpty = emptyStateAllocator.allocateAssumptionsToEdge();
-
     Truth.assertThat(assignmentEdgeEmpty.getExpStmts()).isEmpty();
 
     switch (pEdge.getRawStatement()) {
@@ -277,36 +277,81 @@ public class AssumptionToEdgeAllocatorTest {
       Truth.assertThat(assignmentEdgeSymbolic.getAsCode()).contains("(*(*(c))) == (1);");
       break;
     case "int  d[6];":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(&d) == (32LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[0]) == (21);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[1]) == (22);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[2]) == (23);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[3]) == (24);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[4]) == (25);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[5]) == (26);");
       break;
     case "int  e[2][3];":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(&e) == (56LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][0]) == (21);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][1]) == (22);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][2]) == (23);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][0]) == (24);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][1]) == (25);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][2]) == (26);");
       break;
     case "List list;":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(&list) == (80LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.h) == (31);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n) == (108LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->h) == (41);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n) == (80LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->d.h) == (32);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->n->d.h2)[0]) == (33);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->n->d.h2)[1]) == (34);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->n->d.h2)[2]) == (35);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->d.h3) == (32LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->n->d.h3)) == (21);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h) == (42);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[0]) == (43);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[1]) == (44);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[2]) == (45);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h3) == (36LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
       break;
     case "a = a;":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("a == (1);");
       break;
     case "*b = *b;":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(b)) == (1);");
       break;
     case "**c = **c;":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(*(c))) == (1);");
       break;
     case "d[1] = d[1];":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[1]) == (22);");
       break;
     case "*(d + 1) = *(d + 1);":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(d + (1))) == (22);");
       break;
-    case "e[2][1] = e[2][1];":
+    case "e[1][2] = e[1][2];":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][2]) == (26);");
       break;
     case "list.h = list.h;":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.h) == (31);");
       break;
-    case "list->n = list->n;":
+    case "list.n = list.n;":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n) == (108LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->h) == (41);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->h) == (31);");
       break;
     case "list.d.h = list.d.h;":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.d.h) == (32);");
       break;
-    case "list->n.d.h2[0] = list->n.d.h2[0];":
+    case "list.n->d.h2[0] = list.n->d.h2[0];":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[0]) == (43);");
       break;
-    case "list->n.d->h3 = list->n.d->h3;":
+    case "list.n->d.h3 = list.n->d.h3;":
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h3) == (36LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
       break;
     default:
-      Truth.assertThat(assignmentEdgeFull.getExpStmts()).isEmpty();
-      Truth.assertThat(assignmentEdgeFull.getExpStmts()).isEmpty();
+      Truth.assertThat(pEdge.getRawStatement()).doesNotContain(" = ");
     }
   }
 }
