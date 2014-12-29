@@ -1600,6 +1600,10 @@ cpa.value.refinement.exportInterpolationTree = "NEVER"
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 
+# heuristic to sort targets based on the quality of interpolants deriveable
+# from them
+cpa.value.refinement.itpSortedTargets = false
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = BOTTOM
   enum:     [TOP, BOTTOM, COMMON]

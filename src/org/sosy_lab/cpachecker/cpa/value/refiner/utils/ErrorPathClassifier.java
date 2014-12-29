@@ -461,4 +461,28 @@ public class ErrorPathClassifier {
 
     return successorRelation;
   }
+
+  public long obtainScoreForPrefixes(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
+    if (!classification.isPresent()) {
+      return Long.MAX_VALUE;
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Long bestScore                  = Long.MAX_VALUE;
+
+    for (ARGPath currentPrefix : pPrefixes) {
+
+      currentErrorPath.addAll(pathToList(currentPrefix));
+
+      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
+
+      Long score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
+
+      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
+        bestScore = score;
+      }
+    }
+
+    return bestScore;
+  }
 }
