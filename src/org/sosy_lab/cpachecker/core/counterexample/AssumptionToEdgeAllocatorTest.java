@@ -163,8 +163,7 @@ public class AssumptionToEdgeAllocatorTest {
   }
 
   private Address makeSymbolicAddress(int pValue) {
-    //return Address.valueOf(Integer.valueOf(pValue).toString());
-    return Address.valueOf(pValue);
+    return Address.valueOf(Integer.valueOf(pValue).toString());
   }
 
   private LeftHandSide makeVariable(String pName, String pFunction) {
@@ -191,8 +190,8 @@ public class AssumptionToEdgeAllocatorTest {
     Map<String, Memory> allocatedMemory = new HashMap<>();
     Map<Address, Object> values = new HashMap<>();
     values.put(makeSymbolicAddress(20), 1); // a = 1
-    values.put(makeSymbolicAddress(24), 20); // *b = 1
-    values.put(makeSymbolicAddress(28), 24); // **c = 1
+    values.put(makeSymbolicAddress(24), "20"); // *b = 1
+    values.put(makeSymbolicAddress(28), "24"); // **c = 1
     values.put(makeSymbolicAddress(32), 21); // d[0] = 21
     values.put(makeSymbolicAddress(36), 22); // d[1] = 22
     values.put(makeSymbolicAddress(40), 23); // d[2] = 23
@@ -206,19 +205,19 @@ public class AssumptionToEdgeAllocatorTest {
     values.put(makeSymbolicAddress(72), 25); // e[1][1] = 25
     values.put(makeSymbolicAddress(76), 26); // e[1][2] = 26
     values.put(makeSymbolicAddress(80), 31); // list.h = 31
-    values.put(makeSymbolicAddress(84), 108); // list->n.h = 41
+    values.put(makeSymbolicAddress(84), "108"); // list->n.h = 41
     values.put(makeSymbolicAddress(88), 32);  // list.d.h = 32
     values.put(makeSymbolicAddress(92), 33);  // list.d.h2[0] = 33
     values.put(makeSymbolicAddress(96), 34);  // list.d.h2[1] = 34
     values.put(makeSymbolicAddress(100), 35); // list.d.h2[2] = 35
-    values.put(makeSymbolicAddress(104), 32); //list.d->h3 = 21
+    values.put(makeSymbolicAddress(104), "32"); //list.d->h3 = 21
     values.put(makeSymbolicAddress(108), 41); // list->n.h = 41
-    values.put(makeSymbolicAddress(112), 80); // list->n->n.h = 31
+    values.put(makeSymbolicAddress(112), "80"); // list->n->n.h = 31
     values.put(makeSymbolicAddress(116), 42); // list->n.d.h = 42
     values.put(makeSymbolicAddress(120), 43); // list->n.d.h2[0] = 43
     values.put(makeSymbolicAddress(124), 44); // list->n.d.h2[1] = 44
     values.put(makeSymbolicAddress(128), 45); // list->n.d.h2[2] = 45
-    values.put(makeSymbolicAddress(132), 36); // list->n.d->h3 = 22
+    values.put(makeSymbolicAddress(132), "36"); // list->n.d->h3 = 22
 
     Memory memory = new Memory(MEMORYNAME, values);
     allocatedMemory.put(MEMORYNAME, memory);
