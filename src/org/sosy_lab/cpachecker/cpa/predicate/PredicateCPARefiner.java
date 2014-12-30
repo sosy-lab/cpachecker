@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -351,7 +351,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
             result.add(blockFormula);
 
           } else {
-            final BooleanFormula eliminationResult = PredicateVariableElimination.eliminateDeadVariables(fmgr, traceFormula, blockSsaMap);
+            final BooleanFormula eliminationResult = fmgr.eliminateDeadVariables(traceFormula, blockSsaMap);
             final BooleanFormula blockPrecondition = assumesStore.conjunctAssumeToLocation(loc, fmgr.makeNot(eliminationResult));
 
             result.add(bfmgr.and(blockFormula, blockPrecondition));
@@ -431,10 +431,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     Model model = counterexample.getModel();
 
-    Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
+    Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
         pathChecker.extractVariableAssignment(edges, ssamaps, model);
 
-    CFAPathWithAssignments pathWithAssignments = pathAndTerms.getFirst();
+    CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
     Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
 
     model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);

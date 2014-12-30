@@ -72,6 +72,11 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
 
   @Test
   public void testConclusion1() throws SolverException, InterruptedException {
+    //    (not (= (select b x) 0))
+    //    (= x (+ i 1))
+    //    -------------
+    //    (not (= (select b (+ i 1)) 0))
+
     Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(
         Lists.newArrayList(
             _b_at_x_NOTEQ_0,
@@ -173,8 +178,22 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
     assertThat(result).isEmpty();
   }
 
+  @Test
+  public void testConclusion7() throws SolverException, InterruptedException {
 
+    //  (< i al)
+    //  (= i 0))
+    //     ----- should result in -----
+    //  0 < al
 
+    ArrayList<BooleanFormula> input = Lists.newArrayList(
+        ifm.lessThan(_i, _al),
+        ifm.equal(_i, _0)
+        );
 
+    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
+
+    assertThat(result).contains(ifm.lessThan(_0, _al));
+  }
 
 }

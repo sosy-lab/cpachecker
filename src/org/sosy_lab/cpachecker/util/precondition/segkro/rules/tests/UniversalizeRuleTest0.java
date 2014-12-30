@@ -163,17 +163,17 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test
-  public void testConclusion7() throws SolverException, InterruptedException {
-    //  i < al
-
-    BooleanFormula input = ifm.lessThan(_i, _al);
-
-    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
-        Lists.newArrayList(input));
-
-    assertThat(result).isEmpty();
-  }
+//  @Test
+//  public void testConclusion7() throws SolverException, InterruptedException {
+//    //  i < al
+//
+//    BooleanFormula input = ifm.lessThan(_i, _al);
+//
+//    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+//        Lists.newArrayList(input));
+//
+//    assertThat(result).isEmpty();
+//  }
 
   @Test
   public void testConclusion8() throws SolverException, InterruptedException {

@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import junit.framework.AssertionFailedError;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
@@ -39,6 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.L
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Verify;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -125,6 +124,15 @@ public class SmtAstPatternBuilder {
         and(argumentMatchers));
   }
 
+  public static SmtAstPattern matchBind(Comparable<?> pFunction, String pBindMatchTo, SmtAstPatternSelection argumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>of(pFunction),
+        Optional.<SmtFormulaMatcher>absent(),
+        Optional.of(pBindMatchTo),
+        argumentMatchers);
+  }
+
+
   /**
    * Match any function (and bind its formula to a variable), but with specific arguments.
    */
@@ -134,6 +142,14 @@ public class SmtAstPatternBuilder {
         Optional.<SmtFormulaMatcher>absent(),
         Optional.of(pBindMatchTo),
         and(argumentMatchers));
+  }
+
+  public static SmtAstPattern matchAnyBind(String pBindMatchTo, SmtAstPatternSelection argumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
+        Optional.of(pBindMatchTo),
+        argumentMatchers);
   }
 
   /**
@@ -222,9 +238,21 @@ public class SmtAstPatternBuilder {
         Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
           @Override
           public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
-            // TODO: Switch from FormulaManager to FormulaManagerView
             return pMgr.getUnsafeFormulaManager().isVariable(pF)
                 && pMgr.getFormulaType(pF) instanceof NumeralType;
+          }
+        }),
+        Optional.<String>of(pBindMatchTo),
+        and());
+  }
+
+  public static SmtAstPattern matchFreeVariableBind(String pBindMatchTo) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
+          @Override
+          public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
+            return pMgr.getUnsafeFormulaManager().isFreeVariable(pF);
           }
         }),
         Optional.<String>of(pBindMatchTo),
@@ -312,9 +340,7 @@ public class SmtAstPatternBuilder {
         logicRelation = sel.getRelationship();
       }
 
-      if (logicRelation != sel.getRelationship()) {
-        throw new AssertionFailedError("Logic relations do not match!");
-      }
+      Verify.verify(logicRelation == sel.getRelationship(), "Logic relations must match!");
 
       patterns.addAll(sel.getPatterns());
       defaultBindings.putAll(sel.getDefaultBindings());

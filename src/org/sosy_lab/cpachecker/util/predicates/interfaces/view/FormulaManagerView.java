@@ -51,6 +51,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
@@ -73,7 +74,9 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -830,7 +833,7 @@ public class FormulaManagerView {
    * Existing instantiations are REPLACED by the
    * indices that are provided in the SSA map!
    */
-  public BooleanFormula instantiate(BooleanFormula pF, SSAMap pSsa) {
+  public <F extends Formula> F instantiate(F pF, SSAMap pSsa) {
     return myInstantiate(pSsa, pF);
   }
 
@@ -838,26 +841,36 @@ public class FormulaManagerView {
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
    *  @see {@link #instantiate(BooleanFormula, SSAMap)}
    */
-  public List<BooleanFormula> instantiate(List<BooleanFormula> pFormulas, final SSAMap pSsa) {
+  public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
     return Lists.transform(pFormulas,
-       new Function<BooleanFormula, BooleanFormula>() {
+       new Function<F, F>() {
          @Override
-         public BooleanFormula apply(BooleanFormula pF) {
+         public F apply(F pF) {
            // Apply 'instantiate'!
            return instantiate(pF, pSsa);
          }
        });
   }
 
+  public Set<String> instantiate(Set<String> pVariableNames, final SSAMap pSsa) {
+    return Sets.newHashSet(Collections2.transform(pVariableNames, new Function<String, String>() {
+      @Override
+      public String apply(String pArg0) {
+        Pair<String, Integer> parsedVar = parseName(pArg0);
+        return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
+      }
+    }));
+  }
+
   /**
    * Uninstantiate a list (!! guarantees to keep the ordering) of formulas.
    *  @see {@link #instantiate(BooleanFormula, SSAMap)}
    */
-  public List<BooleanFormula> uninstantiate(List<BooleanFormula> pFormulas) {
+  public <F extends Formula> List<F> uninstantiate(List<F> pFormulas) {
     return Lists.transform(pFormulas,
-       new Function<BooleanFormula, BooleanFormula>() {
+       new Function<F, F>() {
          @Override
-         public BooleanFormula apply(BooleanFormula pF) {
+         public F apply(F pF) {
            // Apply 'uninstantiate'!
            return uninstantiate(pF);
          }
@@ -902,7 +915,14 @@ public class FormulaManagerView {
     return name.startsWith("*");
   }
 
-  public BooleanFormula uninstantiate(BooleanFormula pF) {
+  /**
+   * Uninstantiate a given formula.
+   * (remove the SSA indices from its free variables)
+   *
+   * @param pF  Input formula
+   * @return    Uninstantiated formula
+   */
+  public <F extends Formula> F uninstantiate(F pF) {
     return myUninstantiate(pF);
   }
 
@@ -1206,11 +1226,34 @@ public class FormulaManagerView {
     return res;
   }
 
+  /**
+   * Extract the names of all free variables in a formula.
+   *
+   * @param f   The input formula
+   * @return    Set of variable names (might be instantiated)
+   */
   public Set<String> extractVariableNames(Formula f) {
     Set<String> result = Sets.newHashSet();
 
     for (Formula v: myExtractFreeVariables(unwrap(f))) {
       result.add(unsafeManager.getName(v));
+    }
+
+    return result;
+  }
+
+  /**
+   * Extract pairs of <variable name, variable formula>
+   *  of all free variables in a formula.
+   *
+   * @param f   The input formula
+   * @return
+   */
+  public Map<String, Formula> extractFreeVariableMap(Formula pF) {
+    Map<String, Formula> result = Maps.newHashMap();
+
+    for (Formula v: myExtractFreeVariables(unwrap(pF))) {
+      result.put(unsafeManager.getName(v), v);
     }
 
     return result;
@@ -1421,5 +1464,93 @@ public class FormulaManagerView {
     }
     return unsafeManager.substitute(formula, from, to);
 
+  }
+
+  /**
+   * @see {@link #getDeadVariables(BooleanFormula, SSAMap)}
+   */
+  public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
+    Set<String> result = Sets.newHashSet();
+    List<Formula> varFormulas = getDeadVariables(pFormula, pSsa);
+    for (Formula f : varFormulas) {
+      result.add(unsafeManager.getName(f));
+    }
+
+    return result;
+  }
+
+  /**
+   * Use a SSA map to conclude what variables of a
+   *  (instantiated) formula can be considered 'dead'.
+   *
+   * A variable is considered 'dead' if its SSA index
+   *  is different from the index in the SSA map.
+   *
+   * @param pFormula
+   * @param pSsa
+   * @return
+   */
+  public List<Formula> getDeadVariables(BooleanFormula pFormula, SSAMap pSsa) {
+    Set<Triple<Formula, String, Integer>> formulaVariables = extractFreeVariables(pFormula);
+    List<Formula> result = Lists.newArrayList();
+
+    for (Triple<Formula, String, Integer> var: formulaVariables) {
+
+      Formula varFormula = var.getFirst();
+      String varName = var.getSecond();
+      Integer varSsaIndex = var.getThird();
+
+      if (varSsaIndex == null) {
+        if (pSsa.containsVariable(varName)) {
+          result.add(varFormula);
+        }
+
+      } else {
+
+        if (varSsaIndex != pSsa.getIndex(varName)) {
+          result.add(varFormula);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Eliminate all propositions about 'dead' variables
+   *  in a given formula.
+   *
+   * Quantifier elimination is used! This has to be supported by the solver!
+   *    (solver-independent approaches would be possible)
+   *
+   * A variable is considered 'dead' if its SSA index
+   *  is different from the index in the SSA map.
+   *
+   * @param pF
+   * @param pSsa
+   * @return
+   * @throws SolverException
+   * @throws InterruptedException
+   */
+  public BooleanFormula eliminateDeadVariables(
+      final BooleanFormula pF,
+      final SSAMap pSsa)
+    throws SolverException, InterruptedException {
+
+    Preconditions.checkNotNull(pF);
+    Preconditions.checkNotNull(pSsa);
+
+    List<Formula> irrelevantVariables = getDeadVariables(pF, pSsa);
+
+    BooleanFormula eliminationResult = pF;
+
+    if (!irrelevantVariables.isEmpty()) {
+      QuantifiedFormulaManagerView qfmgr = getQuantifiedFormulaManager();
+      BooleanFormula quantifiedFormula = qfmgr.exists(irrelevantVariables, pF);
+      eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
+    }
+
+    eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
+    return eliminationResult;
   }
 }

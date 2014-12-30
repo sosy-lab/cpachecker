@@ -67,11 +67,13 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 public class LiveVariables {
 
@@ -159,6 +161,16 @@ public class LiveVariables {
 
   public Set<ASimpleDeclaration> getLiveVariablesForNode(CFANode node) {
     return ImmutableSet.<ASimpleDeclaration>builder().addAll(liveVariables.get(node)).addAll(globalVariables).build();
+  }
+
+  public Set<String> getLiveVariableNamesForNode(CFANode pNode) {
+    return Sets.newHashSet(
+      Collections2.transform(getLiveVariablesForNode(pNode), new Function<ASimpleDeclaration, String>() {
+        @Override
+        public String apply(ASimpleDeclaration pDecl) {
+          return pDecl.getQualifiedName();
+        }
+      }));
   }
 
   public static Optional<LiveVariables> create(final Optional<VariableClassification> variableClassification,

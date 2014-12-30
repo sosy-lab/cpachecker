@@ -62,8 +62,12 @@ public class SubstitutionRule extends PatternBasedRule {
     //    (+ i 1)
 
     premises.add(new PatternBasedPremise(
-          GenericPatterns.f_of_x_expression("f", "x")
-        ));
+          GenericPatterns.f_of_x_matcher("f",
+              and(
+                  matchAnyWithAnyArgsBind("x")),
+              and(
+                  matchAnyWithAnyArgsBind("y"))
+        )));
 
     premises.add(new PatternBasedPremise(or(
         matchBind("=", "g",
@@ -82,7 +86,27 @@ public class SubstitutionRule extends PatternBasedRule {
     final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("f"));
     final BooleanFormula g = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("g"));
 
-    return !f.equals(g);
+    final Formula e = Preconditions.checkNotNull(pAssignment.get("e"));
+    final Formula x = Preconditions.checkNotNull(pAssignment.get("x"));
+    final Formula y = Preconditions.checkNotNull(pAssignment.get("y"));
+
+    if (f.equals(g)) {
+      return false;
+    }
+
+    if (e.equals(x)) {
+      return false;
+    }
+
+    if (e.equals(y)) {
+      return false;
+    }
+
+    if (solver.isUnsat(bfm.and(f, g))) {
+      return false;
+    }
+
+    return true;
   }
 
   @Override

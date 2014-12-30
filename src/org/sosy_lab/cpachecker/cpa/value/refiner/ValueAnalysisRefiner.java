@@ -29,7 +29,6 @@ import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -64,6 +63,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -91,6 +93,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       description = "whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
   private boolean useTopDownInterpolationStrategy = true;
 
+  @Option(
+      secure = true,
+      description = "heuristic to sort targets based on the quality of interpolants deriveable from them")
+  private boolean itpSortedTargets = false;
+
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
       + "\nFINAL:   export the interpolation tree once after each refinement"
@@ -109,6 +116,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   private final LogManager logger;
 
   private int previousErrorPathId = -1;
+
+  private ErrorPathClassifier classifier;
 
   /**
    * keep log of feasible targets that were already found
@@ -149,6 +158,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     logger = pLogger;
     pathInterpolator = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
     checker = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
+
+    classifier = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
   }
 
   private boolean madeProgress(ARGPath path) {
@@ -251,9 +262,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       InterruptedException {
     ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
-    if (errorPath == null) {
-      logger.log(Level.FINEST,
-          "skipping interpolation, error path is empty, because initial interpolant is already false");
+    if (errorPath == ValueAnalysisInterpolationTree.EMPTY_PATH) {
+      logger.log(Level.FINEST, "skipping interpolation,"
+          + " because false interpolant on path to target state");
       return;
     }
 
@@ -425,8 +436,13 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     ARGPath feasiblePath = null;
     for (ARGPath currentPath : errorPaths) {
+
       if (isErrorPathFeasible(currentPath)) {
-        feasiblePath = currentPath;
+        if(feasiblePath == null) {
+          previousErrorPathId = obtainErrorPathId(currentPath);
+          feasiblePath = currentPath;
+        }
+
         feasibleTargets.add(currentPath.getLastState());
       }
     }
@@ -469,17 +485,6 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       errorPaths.add(ARGUtils.getOnePathTo(target));
     }
 
-    // sort the list, as shorter paths are cheaper during interpolation
-    // TODO: does this matter? Any other cost-measures, i.e., quality of
-    // interpolants, etc. worth trying?
-    Collections.sort(errorPaths, new Comparator<ARGPath>() {
-
-      @Override
-      public int compare(ARGPath path1, ARGPath path2) {
-        return path1.size() - path2.size();
-      }
-    });
-
     return errorPaths;
   }
 
@@ -492,14 +497,45 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    */
   private Collection<ARGState> getTargetStates(final ARGReachedSet pReached) {
 
+    // sort the list, to either favor shorter paths or better interpolants
+    Comparator<ARGState> comparator = new Comparator<ARGState>() {
+      @Override
+      public int compare(ARGState target1, ARGState target2) {
+        try {
+          ARGPath path1 = ARGUtils.getOnePathTo(target1);
+          ARGPath path2 = ARGUtils.getOnePathTo(target2);
+
+          if(itpSortedTargets) {
+            List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1, new ValueAnalysisState());
+            List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2, new ValueAnalysisState());
+
+            Long score1 = classifier.obtainScoreForPrefixes(prefixes1, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
+            Long score2 = classifier.obtainScoreForPrefixes(prefixes2, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
+
+            if(score1 < score2) {
+              return -1;
+            }
+            else {
+              return 1;
+            }
+          }
+
+          else {
+            return path1.size() - path2.size();
+          }
+        } catch (CPAException | InterruptedException e) {
+          throw new AssertionError(e);
+        }
+      }
+    };
+
     // obtain all target locations, excluding feasible ones
     // this filtering is needed to distinguish between multiple targets being available
     // because of stopAfterError=false (feasible) versus globalRefinement=true (new)
-    Set<ARGState> targets = from(pReached.asReachedSet())
+    List<ARGState> targets = from(pReached.asReachedSet())
         .transform(AbstractStates.toState(ARGState.class))
         .filter(AbstractStates.IS_TARGET_STATE)
-        .filter(Predicates.not(Predicates.in(feasibleTargets))).toSet();
-
+        .filter(Predicates.not(Predicates.in(feasibleTargets))).toSortedList(comparator);
     assert !targets.isEmpty();
 
     logger.log(Level.FINEST, "number of targets found: " + targets.size());

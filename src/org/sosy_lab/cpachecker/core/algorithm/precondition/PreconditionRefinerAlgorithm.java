@@ -270,19 +270,6 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
       final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet, wpLoc);
       final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet, wpLoc);
 
-      if (lastIterationPcViolation == null) {
-        lastIterationPcViolation = pcViolation;
-        lastIterationPcValid = pcValid;
-      } else {
-        if (lastIterationPcViolation.equals(pcViolation)
-            && lastIterationPcValid.equals(pcValid)) {
-          logger.log(Level.WARNING, "Terminated because of a fixpoint in the set of predicates!");
-          return false;
-        }
-        lastIterationPcViolation = pcViolation;
-        lastIterationPcValid = pcValid;
-      }
-
       if (isDisjoint(pcViolation, pcValid)) {
         logger.log(Level.INFO, "Necessary and sufficient precondition found!");
 
@@ -298,6 +285,19 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
         }
 
         return true && result;
+      }
+
+      if (lastIterationPcViolation == null) {
+        lastIterationPcViolation = pcViolation;
+        lastIterationPcValid = pcValid;
+      } else {
+        if (lastIterationPcViolation.equals(pcViolation)
+            && lastIterationPcValid.equals(pcValid)) {
+          logger.log(Level.WARNING, "Terminated because of a fixpoint in the set of predicates!");
+          return false;
+        }
+        lastIterationPcViolation = pcViolation;
+        lastIterationPcValid = pcValid;
       }
 
       try {

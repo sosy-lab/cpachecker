@@ -185,6 +185,10 @@ public class Rational implements Comparable<Rational>{
     return den.equals(b_one);
   }
 
+  public BigInteger getNum() {
+    return num;
+  }
+
   /**
    * @return -1, 0 or 1, representing the sign of the rational number.
    */

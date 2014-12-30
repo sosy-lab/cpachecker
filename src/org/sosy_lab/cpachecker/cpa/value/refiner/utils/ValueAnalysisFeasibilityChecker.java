@@ -148,6 +148,23 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws InterruptedException
    */
   public List<ARGPath> getInfeasilbePrefixes(final ARGPath path,
+                                             final ValueAnalysisState pInitial)
+      throws CPAException, InterruptedException {
+    return getInfeasilbePrefixes(path, pInitial, new ArrayDeque<ValueAnalysisState>());
+  }
+
+  /**
+   * This method obtains a list of prefixes of the path, that are infeasible by themselves. If the path is feasible, the whole path
+   * is returned as the only element of the list.
+   *
+   * @param path the path to check
+   * @param pInitial the initial state
+   * @param callstack callstack used for functioncalls (this allows to handle recursion in some analyses)
+   * @return the list of prefix of the path that are feasible by themselves
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private List<ARGPath> getInfeasilbePrefixes(final ARGPath path,
                                              final ValueAnalysisState pInitial,
                                              final Deque<ValueAnalysisState> callstack)
       throws CPAException, InterruptedException {

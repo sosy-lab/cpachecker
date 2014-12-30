@@ -25,12 +25,18 @@ package org.sosy_lab.cpachecker.util.test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -52,6 +58,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.collect.ImmutableList;
 
@@ -156,4 +164,19 @@ public class TestDataTools {
     return Pair.of(assumeEdge, pAssumeExr);
   }
 
+  public static CFA makeCFA(String cProgram) throws IOException, ParserException, InterruptedException {
+    try {
+      return makeCFA(cProgram, Configuration.defaultConfiguration());
+    } catch (InvalidConfigurationException e) {
+      throw new AssertionError("Default configuration is invalid?");
+    }
+  }
+
+  public static CFA makeCFA(String cProgram, Configuration config) throws InvalidConfigurationException, IOException,
+      ParserException, InterruptedException {
+
+    CFACreator creator = new CFACreator(config, TestLogManager.getInstance(), ShutdownNotifier.create());
+
+    return creator.parseFileAndCreateCFA(cProgram);
+  }
 }

@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
@@ -130,8 +130,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
 
-    CFAPathWithAssignments pathWithAssignments =
-        CFAPathWithAssignments.of(concreteStatePath, logger, pMachineModel);
+    CFAPathWithAssumptions pathWithAssignments =
+        CFAPathWithAssumptions.of(concreteStatePath, logger, pMachineModel);
 
     Model model = Model.empty();
 

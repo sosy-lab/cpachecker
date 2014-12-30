@@ -314,6 +314,32 @@ private boolean classifyNodes = false;
   /**
    * Parse a file and create a CFA, including all post-processing etc.
    *
+   * @param program  The program represented as String to parse.
+   * @return A representation of the CFA.
+   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
+   * @throws IOException If an I/O error occurs.
+   * @throws ParserException If the parser or the CFA builder cannot handle the C code.
+   * @throws InterruptedException
+   */
+  public CFA parseFileAndCreateCFA(String program)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+
+    stats.totalTime.start();
+    try {
+      ParseResult parseResult = parseToCFAs(program);
+      FunctionEntryNode mainFunction = parseResult.getFunctions().get(mainFunctionName);
+      assert mainFunction != null : "program lacks main function.";
+
+      CFA cfa = createCFA(parseResult, mainFunction);
+      return cfa;
+    } finally {
+      stats.totalTime.stop();
+    }
+  }
+
+  /**
+   * Parse a file and create a CFA, including all post-processing etc.
+   *
    * @param sourceFiles  The files to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
@@ -347,124 +373,155 @@ private boolean classifyNodes = false;
       default:
         throw new AssertionError();
       }
-      assert mainFunction != null;
 
-
-      MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
-
-      stats.checkTime.start();
-
-      // check the CFA of each function
-      for (String functionName : cfa.getAllFunctionNames()) {
-        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
-      }
-      stats.checkTime.stop();
-
-      // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
-      stats.processingTime.start();
-
-      cfa = postProcessingOnMutableCFAs(cfa, c.getGlobalDeclarations());
-
-      // Check CFA again after post-processings
-      stats.checkTime.start();
-      for (String functionName : cfa.getAllFunctionNames()) {
-        assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
-      }
-      stats.checkTime.stop();
-
-      // THIRD, do read-only post-processings on each single function CFA
-
-      // Annotate CFA nodes with reverse postorder information for later use.
-      for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
-        CFAReversePostorder sorter = new CFAReversePostorder();
-        sorter.assignSorting(function);
-      }
-
-      // get loop information
-      // (needs post-order information)
-      Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
-      cfa.setLoopStructure(loopStructure);
-
-      // FOURTH, insert call and return edges and build the supergraph
-      if (interprocedural) {
-        logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
-        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
-        spbuilder.insertCallEdgesRecursively();
-      }
-
-      // FIFTH, do post-processings on the supergraph
-      // Mutating post-processings should be checked carefully for their effect
-      // on the information collected above (such as loops and post-order ids).
-
-      // remove irrelevant locations
-      if (cfaReduction != null) {
-        stats.pruningTime.start();
-        cfaReduction.removeIrrelevantForSpecification(cfa);
-        stats.pruningTime.stop();
-
-        if (cfa.isEmpty()) {
-          logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
-                + ", analysis not necessary. "
-                + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
-
-          return ImmutableCFA.empty(machineModel, language);
-        }
-      }
-
-      // optionally transform CFA so that there is only one single loop
-      if (transformIntoSingleLoop) {
-        cfa = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa);
-        mainFunction = cfa.getMainFunction();
-      }
-
-      // SIXTH, get information about the CFA,
-      // the cfa should not be modified after this line.
-
-      // Get information about variables, needed for some analysis.
-      final Optional<VariableClassification> varClassification;
-      if (language == Language.C) {
-        try {
-          stats.variableClassificationTime.start();
-          varClassification = Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
-        } catch (UnrecognizedCCodeException e) {
-          throw new CParserException(e);
-        } finally {
-          stats.variableClassificationTime.stop();
-        }
-      } else {
-        varClassification = Optional.<VariableClassification>absent();
-      }
-
-      // create the live variables if the variable classification is present
-      if (findLiveVariables &&
-          (varClassification.isPresent() || cfa.getLanguage() != Language.C)) {
-        cfa.setLiveVariables(LiveVariables.create(varClassification,
-                                                  c.getGlobalDeclarations(),
-                                                  cfa, logger, shutdownNotifier,
-                                                  config));
-      }
-
-      stats.processingTime.stop();
-
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
-
-      // check the super CFA starting at the main function
-      stats.checkTime.start();
-      assert CFACheck.check(mainFunction, null, cfaReduction != null);
-      stats.checkTime.stop();
-
-      if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
-          || ((exportFunctionCallsFile != null) && exportFunctionCalls)) {
-        exportCFAAsync(immutableCFA);
-      }
-
-      logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
-
-      return immutableCFA;
+      return createCFA(c, mainFunction);
 
     } finally {
       stats.totalTime.stop();
     }
+  }
+
+  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction) throws InvalidConfigurationException, InterruptedException, ParserException {
+
+    FunctionEntryNode mainFunction = pMainFunction;
+
+    assert mainFunction != null;
+
+    MutableCFA cfa = new MutableCFA(machineModel, pParseResult.getFunctions(), pParseResult.getCFANodes(), mainFunction, language);
+
+    stats.checkTime.start();
+
+    // check the CFA of each function
+    for (String functionName : cfa.getAllFunctionNames()) {
+      assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
+    }
+    stats.checkTime.stop();
+
+    // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
+    stats.processingTime.start();
+
+    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.getGlobalDeclarations());
+
+    // Check CFA again after post-processings
+    stats.checkTime.start();
+    for (String functionName : cfa.getAllFunctionNames()) {
+      assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName), false);
+    }
+    stats.checkTime.stop();
+
+    // THIRD, do read-only post-processings on each single function CFA
+
+    // Annotate CFA nodes with reverse postorder information for later use.
+    for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
+      CFAReversePostorder sorter = new CFAReversePostorder();
+      sorter.assignSorting(function);
+    }
+
+    // get loop information
+    // (needs post-order information)
+    Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
+    cfa.setLoopStructure(loopStructure);
+
+    // FOURTH, insert call and return edges and build the supergraph
+    if (interprocedural) {
+      logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
+      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
+      spbuilder.insertCallEdgesRecursively();
+    }
+
+    // FIFTH, do post-processings on the supergraph
+    // Mutating post-processings should be checked carefully for their effect
+    // on the information collected above (such as loops and post-order ids).
+
+    // remove irrelevant locations
+    if (cfaReduction != null) {
+      stats.pruningTime.start();
+      cfaReduction.removeIrrelevantForSpecification(cfa);
+      stats.pruningTime.stop();
+
+      if (cfa.isEmpty()) {
+        logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
+              + ", analysis not necessary. "
+              + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
+
+        return ImmutableCFA.empty(machineModel, language);
+      }
+    }
+
+    // optionally transform CFA so that there is only one single loop
+    if (transformIntoSingleLoop) {
+      cfa = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa);
+      mainFunction = cfa.getMainFunction();
+    }
+
+    // SIXTH, get information about the CFA,
+    // the cfa should not be modified after this line.
+
+    // Get information about variables, needed for some analysis.
+    final Optional<VariableClassification> varClassification;
+    if (language == Language.C) {
+      try {
+        stats.variableClassificationTime.start();
+        varClassification = Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
+      } catch (UnrecognizedCCodeException e) {
+        throw new CParserException(e);
+      } finally {
+        stats.variableClassificationTime.stop();
+      }
+    } else {
+      varClassification = Optional.<VariableClassification>absent();
+    }
+
+    // create the live variables if the variable classification is present
+    if (findLiveVariables &&
+        (varClassification.isPresent() || cfa.getLanguage() != Language.C)) {
+      cfa.setLiveVariables(LiveVariables.create(varClassification,
+                                                pParseResult.getGlobalDeclarations(),
+                                                cfa, logger, shutdownNotifier,
+                                                config));
+    }
+
+    stats.processingTime.stop();
+
+    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
+
+    // check the super CFA starting at the main function
+    stats.checkTime.start();
+    assert CFACheck.check(mainFunction, null, cfaReduction != null);
+    stats.checkTime.stop();
+
+    if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
+        || ((exportFunctionCallsFile != null) && exportFunctionCalls)) {
+      exportCFAAsync(immutableCFA);
+    }
+
+    logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
+
+    return immutableCFA;
+  }
+
+  /** This method parses the program from the String and builds a CFA for each function.
+   * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
+  private ParseResult parseToCFAs(final String program)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+    final ParseResult parseResult;
+
+    final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+
+    parseResult = parser.parseString("test", program, sourceOriginMapping);
+
+    if (parseResult.isEmpty()) {
+      switch (language) {
+      case JAVA:
+        throw new JParserException("No methods found in program");
+      case C:
+        throw new CParserException("No functions found in program");
+      default:
+        throw new AssertionError();
+      }
+    }
+
+    return parseResult;
   }
 
   /** This method parses the sourceFiles and builds a CFA for each function.

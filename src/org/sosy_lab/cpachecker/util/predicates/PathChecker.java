@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -92,9 +92,9 @@ public class PathChecker {
       } else {
         Model model = getModel(thmProver);
 
-        Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(pPath, ssaMaps, model);
+        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(pPath, ssaMaps, model);
 
-        CFAPathWithAssignments pathWithAssignments = pathAndTerms.getFirst();
+        CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
         Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
 
         model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);
@@ -143,7 +143,7 @@ public class PathChecker {
     return createPrecisePathFormula(pPath).getSecond();
   }
 
-  public Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(List<CFAEdge> pPath,
+  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(List<CFAEdge> pPath,
       List<SSAMap> pSsaMaps, Model pModel) throws InterruptedException {
 
     AssignmentToPathAllocator allocator = new AssignmentToPathAllocator(logger, shutdownNotifier);

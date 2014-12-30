@@ -106,10 +106,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     config.inject(extraOptions);
 
     if (NativeLibraries.OS.guessOperatingSystem() == OS.WINDOWS) {
-      // Handling of depended libraries on Windows...
-      final String libPath = NativeLibraries.getNativeLibraryPath().getAbsolutePath();
-      System.setProperty("java.library.path", libPath);
-
       // Z3 itself
       NativeLibraries.loadLibrary("libz3");
     }

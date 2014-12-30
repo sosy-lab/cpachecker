@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionHelper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateVariableElimination;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
@@ -118,7 +117,7 @@ public class Refine implements PreconditionRefiner {
           throws CPATransferException, SolverException, InterruptedException {
 
     final PathFormula pf = helper.computePathformulaForArbitraryTrace(pPathToEntryLocation, Optional.of(pStopAtNode));
-    final BooleanFormula f = PredicateVariableElimination.eliminateDeadVariables(mgrv, pf.getFormula(), pf.getSsa());
+    final BooleanFormula f = mgrv.eliminateDeadVariables(pf.getFormula(), pf.getSsa());
 
     if (pMode == FormulaMode.UNINSTANTIATED) {
       return alterPf(pmgrFwd.makeEmptyPathFormula(), mgrv.uninstantiate(f));

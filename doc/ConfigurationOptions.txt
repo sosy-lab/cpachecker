@@ -903,6 +903,10 @@ cpa.predicate.abstraction.computation = BOOLEAN
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
+# Eliminate propositions about dead variables in abstraction predicates by
+# running a generalization procedure.
+cpa.predicate.abstraction.elimDeadVariablePreds = false
+
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
 cpa.predicate.abstraction.identifyTrivialPredicates = false
@@ -1229,7 +1233,8 @@ cpa.predicate.refinement.splitItpAtoms = false
 # lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme.
 # - NESTED: use callstack and previous interpolants for next interpolants
 # (see 'Nested Interpolants'),
-# - NESTED_TREE: same as NESTED, but the algorithm is different.
+# - NESTED_TREE: similar to NESTED, but the algorithm is taken from 'Tree
+# Interpolation in Vampire'.
 # - TREE: use the tree-interpolation-feature of a solver to get interpolants
 cpa.predicate.refinement.strategy = CPACHECKER_SEQ
   enum:     [CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, NESTED, TREE,
@@ -1600,6 +1605,10 @@ cpa.value.refinement.exportInterpolationTree = "NEVER"
 
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
+
+# heuristic to sort targets based on the quality of interpolants deriveable
+# from them
+cpa.value.refinement.itpSortedTargets = false
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = BOTTOM
