@@ -175,8 +175,7 @@ public class SolverInterpolationTest extends SolverBasedTest0 {
                                     List<BooleanFormula> formulas, List<BooleanFormula> itps)
           throws SolverException, InterruptedException {
 
-    assert_().withFailureMessage("there should be N-1 interpolants for N formulas")
-            .that(formulas.size() - 1 == itps.size());
+    assert formulas.size() - 1 == itps.size() : "there should be N-1 interpolants for N formulas";
 
     checkImplies(stack, formulas.get(0), itps.get(0));
     for (int i = 1; i < formulas.size() - 1; i++) {
