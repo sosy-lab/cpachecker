@@ -57,7 +57,7 @@ public class SolverInterpolationTest extends SolverBasedTest0 {
   @Parameters(name="{0} (shared={1})")
   public static List<Object[]> getAllCombinations() {
     List<Object[]> result = new ArrayList<>();
-    for (Solvers solver : Solvers.values()) {//new Solvers[] {Solvers.Z3}){
+    for (Solvers solver : Solvers.values()) {
       result.add(new Object[] {solver, false});
       result.add(new Object[] {solver, true});
     }

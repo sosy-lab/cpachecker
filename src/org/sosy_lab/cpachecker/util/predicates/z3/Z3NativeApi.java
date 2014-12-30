@@ -309,7 +309,6 @@ public final class Z3NativeApi {
   public static native long mk_eq(long context, long a1, long a2);
   private static native long mk_distinct(long context, int len, long[] as);
   public static native long mk_not(long context, long a1);
-  public static native long mk_interp(long context, long a1);
   public static native long mk_ite(long context, long a1, long a2, long a3);
   public static native long mk_iff(long context, long a1, long a2);
   public static native long mk_implies(long context, long a1, long a2);
@@ -879,24 +878,7 @@ public final class Z3NativeApi {
   public static native int stats_get_uint_value(long context, long stats, int i);
   public static native double stats_get_double_value(long context, long stats, int i);
 
-  // That's the only function used.
-  private static native int interpolateSeq(
-      long context,
-      int num,
-      long[] cnsts,
-      long[] interps,
-      PointerToLong model,
-      PointerToLong labels,
-      int incremental,
-      int num_theory,
-      long[] theory);
-
   public static native String interpolation_profile(long context);
-
-  public static int interpolateSeq(long context, long[] cnsts, long[] interps, PointerToLong model, PointerToLong labels, int incremental, long[] theory) {
-    return interpolateSeq(context, cnsts.length, cnsts, interps, model, labels, incremental, theory.length, theory);
-  }
-
 
   /**
    * Interpolation API
@@ -1020,6 +1002,10 @@ public final class Z3NativeApi {
    *
    * @return status of SAT check
    **/
+  public static native int compute_interpolant(long c, long pat, long p, PointerToLong interp, PointerToLong model);
+
+  // The same method than above, but the corresponding C-Wrapper-method contains a bugfix for a pointer-dereference.
+  // TODO switch to method above, as soon as the C-Wrapper is fixed
   public static native int compute_interpolantFixed(long c,
       long pat,
       long p,
