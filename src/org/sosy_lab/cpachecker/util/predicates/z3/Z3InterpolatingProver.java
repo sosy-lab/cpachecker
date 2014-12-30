@@ -33,7 +33,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
@@ -145,49 +144,64 @@ class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
 
   @Override
   public List<BooleanFormula> getSeqInterpolants(List<Set<Long>> partitionedFormulas) {
-    // TODO: port to new API
-    throw new UnsupportedOperationException(
-        "SeqInterpolants currently not supported, use #getInterpolant instead.");
+    Preconditions.checkArgument(partitionedFormulas.size() >= 2, "at least 2 partitions needed for interpolation");
 
-//    final long[] interpolationFormulas = new long[partitionedFormulas.size()];
-//
-//    for (int i = 0; i < interpolationFormulas.length; i++) {
-//      long partition = mk_and(z3context, Longs.toArray(partitionedFormulas.get(i)));
-//      inc_ref(z3context, partition);
-//      interpolationFormulas[i] = partition;
-//    }
-//
-//    // n groups -> n-1 interpolants
-//    final long[] itps = new long[interpolationFormulas.length - 1];
-//    Arrays.fill(itps, 1); // initialize with value != 0
-//
-//    PointerToLong labels = new PointerToLong();
-//    PointerToLong model = new PointerToLong();
-//
-//    // next lines are not needed due to a direct implementation in the C-code.
-//    //    long options = mk_params(z3context);
-//    //    inc_ref(z3context, options);
-//    //    int[] parents = new int[0]; // this line is not working
-//    long[] theory = new long[0]; // do we need a theory?
-//
-//    smtLogger.logSeqInterpolation(interpolationFormulas);
-//
-//    // get interpolant of groups
-//    int isSat = interpolateSeq(z3context, interpolationFormulas, itps, model, labels, 0, theory);
-//
-//    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
-//
-//    final List<BooleanFormula> result = new ArrayList<>();
-//    for (long itp : itps) {
-//      result.add(mgr.encapsulateBooleanFormula(itp));
-//    }
-//
-//    // cleanup
-//    for (long partition : interpolationFormulas) {
-//      dec_ref(z3context, partition);
-//    }
-//
-//    return result;
+    final long[] conjunctionFormulas = new long[partitionedFormulas.size()];
+
+    // build conjunction of each partition
+    for (int i = 0; i < partitionedFormulas.size(); i++) {
+      Preconditions.checkState(!partitionedFormulas.get(i).isEmpty());
+      long conjunction = mk_and(z3context, Longs.toArray(partitionedFormulas.get(i)));
+      inc_ref(z3context, conjunction);
+      conjunctionFormulas[i] = conjunction;
+    }
+
+    // build chain of interpolation-points, for a sequence A-B-C-D we build:
+    // AND( interpolant( AND(interpolant( AND(interpolant( A ), B), C), D)
+    final long[] interpolationFormulas = new long[partitionedFormulas.size()];
+
+    { // first element (A) has no previous interpolant, so we directly use it 'as is'.
+      interpolationFormulas[0] = conjunctionFormulas[0];
+      inc_ref(z3context, interpolationFormulas[0]);
+    }
+
+    // each middle element E has a previous element P, so we build AND(interpolant(P),E)
+    for (int i = 1; i < partitionedFormulas.size(); i++) {
+      long conjunction = mk_and(z3context,
+              mk_interpolant(z3context, interpolationFormulas[i - 1]),
+              conjunctionFormulas[i]);
+      inc_ref(z3context, conjunction);
+      interpolationFormulas[i] = conjunction;
+    }
+
+    final PointerToLong model = new PointerToLong();
+    final PointerToLong interpolant = new PointerToLong();
+    int isSat = compute_interpolantFixed(
+            z3context,
+            interpolationFormulas[interpolationFormulas.length - 1], // last element is end of chain (root of tree)
+            0,
+            interpolant,
+            model
+    );
+
+    Preconditions.checkState(isSat == Z3_LBOOL.Z3_L_FALSE.status,
+            "interpolation not possible, because SAT-check returned status '%s'", isSat);
+
+    // n partitions -> n-1 interpolants
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (int i = 0; i < partitionedFormulas.size() - 1; i++) {
+      result.add(mgr.encapsulateBooleanFormula(ast_vector_get(z3context, interpolant.value, i)));
+    }
+
+    // cleanup
+    for (long partition : conjunctionFormulas) {
+      dec_ref(z3context, partition);
+    }
+    for (long partition : interpolationFormulas) {
+      dec_ref(z3context, partition);
+    }
+
+    return result;
   }
 
   @Override
