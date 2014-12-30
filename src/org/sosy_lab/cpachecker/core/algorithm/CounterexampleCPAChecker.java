@@ -111,20 +111,23 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   }
 
 
-  @SuppressWarnings("null")
   @Override
   public boolean checkCounterexample(ARGState pRootState,
       ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
 
-    Path automatonFile = null;
+    Path automatonFile;
+    try {
+      automatonFile = Paths.createTempPath("counterexample-automaton", ".txt");
+    } catch (IOException e1) {
+      throw new CPAException("Failed while creating a temp file for the counterexample automaton.", e1);
+    }
 
     try {
       if (specFile != null) {
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates, specFile);
       }
 
-      automatonFile = Paths.createTempPath("counterexample-automaton", ".txt");
       try {
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates, automatonFile);
       } finally {
@@ -133,7 +136,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path automaton to file " +
-          automatonFile == null ? "" : automatonFile.toAbsolutePath() + " " + e.getMessage(), e);
+          automatonFile.toAbsolutePath() + " " + e.getMessage(), e);
     }
   }
 
