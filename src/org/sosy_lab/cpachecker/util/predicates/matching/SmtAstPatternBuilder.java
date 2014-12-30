@@ -29,9 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern.SmtAstMatchFlag;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
@@ -283,6 +288,36 @@ public class SmtAstPatternBuilder {
           public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
             // TODO: Switch from FormulaManager to FormulaManagerView
             return !pMgr.getUnsafeFormulaManager().isLiteral(pF);
+          }
+        }),
+        Optional.<String>absent(),
+        and());
+  }
+
+  public static SmtAstPattern matchNegativeNumber() {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
+          @Override
+          public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
+            if (!(pF instanceof NumeralFormula)) {
+              return false;
+            }
+
+            IntegerFormula minusOne = pMgr.getIntegerFormulaManager().makeNumber(-1);
+            if (pF.equals(minusOne)) {
+              return true;
+            }
+
+            try (ProverEnvironment prover = pMgr.newProverEnvironment(false, false)) {
+              BooleanFormula largerEqualZero = pMgr.getIntegerFormulaManager()
+                  .greaterOrEquals((IntegerFormula) pF, pMgr.getIntegerFormulaManager().makeNumber(0));
+              prover.push(largerEqualZero);
+              return prover.isUnsat();
+
+            } catch (SolverException | InterruptedException e) {
+              return false;
+            }
           }
         }),
         Optional.<String>absent(),

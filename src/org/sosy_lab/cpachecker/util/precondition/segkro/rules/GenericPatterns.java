@@ -26,10 +26,14 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelectionElement;
 
-final class GenericPatterns {
+import com.google.common.annotations.VisibleForTesting;
+
+@VisibleForTesting
+public final class GenericPatterns {
 
   public static SmtAstPattern f_of_x (final String pBindFunctionTo, final String pBindArgTo) {
     return matchBind(pBindFunctionTo,
@@ -67,6 +71,22 @@ final class GenericPatterns {
                     match("-",
                         and(
                             matchNullary("0"),
+                            pOp2Matcher)))),
+            match("+",
+                and (
+                    pOp1Matcher,
+                    match("*",
+                        and(
+                            or(
+                                matchNullary("-1"),
+                                matchNullary("(- 1)"),
+                                match("-",
+                                    matchNullary("1")),
+                                match("-",
+                                    matchNullary("0"),
+                                    matchNullary("1")),
+                                SmtAstPatternBuilder.matchNegativeNumber()
+                            ),
                             pOp2Matcher))))
           );
   }
