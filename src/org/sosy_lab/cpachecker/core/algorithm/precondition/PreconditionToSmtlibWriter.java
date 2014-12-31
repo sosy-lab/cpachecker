@@ -62,7 +62,11 @@ public class PreconditionToSmtlibWriter implements PreconditionWriter {
     final BooleanFormula precondition = fmgr.simplify(pPrecondition);
 
     // Write the formula in the SMT-LIB2 format to the target stream
-    fmgr.dumpFormula(precondition).appendTo(pWriteTo);
+    if (fmgr.getBooleanFormulaManager().isTrue(precondition)) {
+      pWriteTo.append("(assert true)"); // Hack; dumpFormula might write an empty string in this case; TODO: General solution in dumpFormula required!
+    } else {
+      fmgr.dumpFormula(precondition).appendTo(pWriteTo);
+    }
   }
 
   public void writePrecondition(Path pWriteTo, BooleanFormula pPrecondition, @Nonnull LogManager pCatchExceptionsTo) {
