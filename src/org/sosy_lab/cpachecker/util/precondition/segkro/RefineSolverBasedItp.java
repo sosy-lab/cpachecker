@@ -71,7 +71,6 @@ import com.google.common.collect.Multimap;
 public class RefineSolverBasedItp implements PreconditionRefiner {
 
   private static enum FormulaMode { INSTANTIATED, UNINSTANTIATED }
-  private static enum PreMode { ELIMINATE_DEAD }
 
   private final InterpolationWithCandidates ipc;
   private final BooleanFormulaManagerView bmgr;
@@ -79,7 +78,6 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
   private final PreconditionHelper helper;
   private final FormulaManagerView mgrv;
   private final AbstractionManager amgr;
-  private final ExtractNewPreds enp;
   private final Solver solver;
 
   public RefineSolverBasedItp(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
@@ -89,7 +87,6 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
 
     solver = Preconditions.checkNotNull(pSolver);
     amgr = Preconditions.checkNotNull(pAmgr);
-    enp = Preconditions.checkNotNull(pExtractNewPreds);
     ipc = Preconditions.checkNotNull(pMinCorePrio);
 
     mgrv = pSolver.getFormulaManager();
@@ -213,7 +210,12 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
           break;
         }
 
-        final List<BooleanFormula> predsNew = enp.extractNewPreds(preAtKp1.getFormula());
+        final PathFormula pf = helper.computePathformulaForArbitraryTrace(pTraceToEntryLocation, Optional.of(t.getSuccessor()));
+
+        final List<BooleanFormula> predsNew = Lists.newArrayList(
+            getInterpolants(
+                Lists.newArrayList(bmgr.not(preAtKp1.getFormula()), pf.getFormula())));
+
         preAtKp1 = alterPf(preAtKp1, bmgr.and(preAtKp1.getFormula(), bmgr.and(predsNew)));
 
         // Formula B
