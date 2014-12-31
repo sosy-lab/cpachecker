@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.precondition.segkro.ExtractNewPreds;
 import org.sosy_lab.cpachecker.util.precondition.segkro.MinCorePrio;
 import org.sosy_lab.cpachecker.util.precondition.segkro.Refine;
+import org.sosy_lab.cpachecker.util.precondition.segkro.RefineSolverBasedItp;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.PreconditionRefiner;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -127,6 +128,10 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportPreciditionsTo = Paths.get("precondition.txt");
 
+  @Option(secure=true,
+      description="Use the refiner that uses a solver-based interpolation mechanism.")
+  private boolean solverbasedInterpolation = false;
+
   private final ReachedSetFactory reachedSetFactory;
   private final Algorithm wrappedAlgorithm;
   private final AbstractionManager amgr;
@@ -180,12 +185,20 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
         : Optional.<PreconditionWriter>absent();
   }
 
-  private Refine createRefiner(Configuration pConfig, ShutdownNotifier pShutdown) throws InvalidConfigurationException {
-    return new Refine(
-        pConfig, logger, pShutdown, cfa,
-        solver, amgr,
-        new ExtractNewPreds(solver, ruleEngine),
-        new MinCorePrio(logger, cfa, solver));
+  private PreconditionRefiner createRefiner(Configuration pConfig, ShutdownNotifier pShutdown) throws InvalidConfigurationException {
+    if (solverbasedInterpolation) {
+      return new RefineSolverBasedItp(
+          pConfig, logger, pShutdown, cfa,
+          solver, amgr,
+          new ExtractNewPreds(solver, ruleEngine),
+          new MinCorePrio(logger, cfa, solver));
+    } else {
+      return new Refine(
+          pConfig, logger, pShutdown, cfa,
+          solver, amgr,
+          new ExtractNewPreds(solver, ruleEngine),
+          new MinCorePrio(logger, cfa, solver));
+    }
   }
 
   private BooleanFormula getPreconditionForViolation(ReachedSet pReachedSet, CFANode pWpLoc) {
@@ -258,8 +271,12 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
     final CFANode wpLoc = getFirstNodeInEntryFunctionBody();
 
+    boolean precisionFixpointReached = false;
+    boolean preconditionFixpointReached = false;
+
     BooleanFormula lastIterationPcViolation = null;
     BooleanFormula lastIterationPcValid = null;
+    PredicatePrecision lastPrecision = null;
 
     do {
       // Run the CPA algorithm
@@ -269,6 +286,15 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
       //    ... and separate the state space using an automaton!
       final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet, wpLoc);
       final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet, wpLoc);
+
+      if (lastIterationPcViolation != null
+          && lastIterationPcViolation.equals(pcViolation)
+          && lastIterationPcValid.equals(pcValid)) {
+            preconditionFixpointReached = true;
+      }
+      lastIterationPcViolation = pcViolation;
+      lastIterationPcValid = pcValid;
+
 
       if (isDisjoint(pcViolation, pcValid)) {
         logger.log(Level.INFO, "Necessary and sufficient precondition found!");
@@ -283,21 +309,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
             logger.log(Level.WARNING, "Writing the precondition failed!", e);
           }
         }
-
-        return true && result;
-      }
-
-      if (lastIterationPcViolation == null) {
-        lastIterationPcViolation = pcViolation;
-        lastIterationPcValid = pcValid;
-      } else {
-        if (lastIterationPcViolation.equals(pcViolation)
-            && lastIterationPcValid.equals(pcValid)) {
-          logger.log(Level.WARNING, "Terminated because of a fixpoint in the set of predicates!");
-          return false;
-        }
-        lastIterationPcViolation = pcViolation;
-        lastIterationPcValid = pcValid;
+        return true;
       }
 
       try {
@@ -321,7 +333,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
             if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
               logger.log(Level.WARNING, "non-determinism in program."); // This warning is taken 1:1 from the Seghir/Kroening paper
-              return false;
+              return true;
             }
 
             // Refine the precision so that the
@@ -337,16 +349,28 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
           }
         }
 
+        stats.refinements++;
+
+        if (lastPrecision != null) {
+          if (lastPrecision.equals(newPrecision)) {
+            precisionFixpointReached = true;
+          }
+        }
+        lastPrecision = newPrecision;
+
+        if (precisionFixpointReached && preconditionFixpointReached) {
+          logger.log(Level.WARNING, "Terminated because of a fixpoint in the set of predicates and the precondition!");
+          return true;
+        }
+
         // Restart with the initial set of reached states
         // with the new precision!
         Verify.verify(newPrecision != null);
         refinePrecisionForNextIteration(initialReachedSet, pReachedSet, newPrecision);
 
-        stats.refinements++;
-
       } catch (NoTraceFoundException e) {
         logger.log(Level.WARNING, e.getMessage());
-        return false;
+        return true;
       }
 
     } while (true);
