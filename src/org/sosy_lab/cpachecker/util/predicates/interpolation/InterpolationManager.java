@@ -895,7 +895,10 @@ public final class InterpolationManager {
 
         itpProver2.close();
 
-        final BooleanFormula rebuildItp = bfmgr.and(rebuildInterpolant(itp, itp2), scopingItp.getFirst());
+        BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
+        if (!bfmgr.isTrue(scopingItp.getFirst())) {
+          rebuildItp = bfmgr.and(rebuildItp, scopingItp.getFirst());
+        }
 
         logger.log(Level.ALL, "\nrebuild itp =", itp, "and", itp2, "=", rebuildItp);
 

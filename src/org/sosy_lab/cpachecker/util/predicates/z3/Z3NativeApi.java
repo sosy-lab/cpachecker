@@ -934,7 +934,8 @@ public final class Z3NativeApi {
    *
    * The return value is a vector of formulas representing sigma. The
    * vector contains sigma(phi) for each marked subformula of pat, in
-   * pre-order traversal. This means that subformulas of phi occur before phi
+   * pre-order traversal. // TODO documentation wrong? it is POST-ORDER traversal!
+   * This means that subformulas of phi occur before phi
    * in the vector. Also, subformulas that occur multiply in pat will
    * occur multiply in the result vector.
    *
