@@ -512,9 +512,14 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
             Long score1 = classifier.obtainScoreForPrefixes(prefixes1, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
             Long score2 = classifier.obtainScoreForPrefixes(prefixes2, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
 
-            if(score1 < score2) {
+            if(score1.equals(score2)) {
+              return 0;
+            }
+
+            else if(score1 < score2) {
               return -1;
             }
+
             else {
               return 1;
             }
@@ -588,3 +593,4 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     COMMON
   }
 }
+
