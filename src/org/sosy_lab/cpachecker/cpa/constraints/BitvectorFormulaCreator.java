@@ -25,7 +25,10 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryAndExpression;
@@ -33,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryNotE
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryOrExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryXorExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstantConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.EqualsExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanExpression;
@@ -62,12 +66,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  */
 public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
-  private static final boolean SIGNED = true;
-
   /**
    * Default bitvector size to use (in byte).
    */
   private static final int DEFAULT_BITVECTOR_SIZE = 4;
+
+  /**
+   * Size of one byte in bit in Java.
+   */
+  private static final int JAVA_BYTE_SIZE = 8;
 
   private final FormulaManagerView formulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
@@ -82,40 +89,94 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
 
   @Override
-  public BitvectorFormula visit(AdditionExpression pAdd) {
-    final BitvectorFormula op1 = (BitvectorFormula) pAdd.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pAdd.getOperand2().accept(this);
+  public BitvectorFormula visit(AdditionExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
     return bitvectorFormulaManager.add(op1, op2);
   }
 
+  private BitvectorFormula getFormula(ConstraintExpression pExpression, Type pToType) {
+    BitvectorFormula op1 = (BitvectorFormula) pExpression.accept(this);
+    final Type fromType = pExpression.getExpressionType();
+
+    return cast(op1, fromType, pToType);
+  }
+
+  private BitvectorFormula cast(BitvectorFormula pFormula, Type pFromType, Type pToType) {
+    assert !(pToType instanceof CSimpleType)
+        || (!((CSimpleType)pToType).isShort() && !(((CSimpleType)pToType).getType() == CBasicType.CHAR));
+    FormulaType<?> fromFormulaType = getFormulaType(pFromType);
+    FormulaType<?> toFormulaType = getFormulaType(pToType);
+
+    assert fromFormulaType.isBitvectorType() && toFormulaType.isBitvectorType();
+
+    int fromSize = ((FormulaType.BitvectorType) fromFormulaType).getSize();
+    int toSize = ((FormulaType.BitvectorType) toFormulaType).getSize();
+    boolean signed = isSigned(pToType);
+
+    if (fromSize == toSize) {
+      return pFormula;
+
+    } else if (fromSize < toSize) {
+      return formulaManager.makeExtend(pFormula, (toSize - fromSize), signed);
+
+    } else {
+      return formulaManager.makeExtract(pFormula, toSize-1, 0);
+    }
+  }
+
+  private boolean isSigned(Type pType) {
+    if (pType instanceof JSimpleType) {
+      JBasicType basicType = ((JSimpleType)pType).getType();
+
+      switch (basicType) {
+        case BYTE:
+        case SHORT:
+        case INT:
+        case LONG:
+        case FLOAT:
+        case DOUBLE:
+          return true;
+        default:
+          return false;
+      }
+    } else {
+      return pType instanceof CSimpleType && ((CSimpleType) pType).isSigned();
+    }
+  }
+
   @Override
-  public BitvectorFormula visit(BinaryAndExpression pAnd) {
-    final BitvectorFormula op1 = (BitvectorFormula) pAnd.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pAnd.getOperand2().accept(this);
+  public BitvectorFormula visit(BinaryAndExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
     return bitvectorFormulaManager.and(op1, op2);
   }
 
   @Override
-  public BitvectorFormula visit(BinaryNotExpression pNot) {
-    final BitvectorFormula op = (BitvectorFormula) pNot.getOperand().accept(this);
+  public BitvectorFormula visit(BinaryNotExpression pExpression) {
+    final BitvectorFormula op = (BitvectorFormula) pExpression.getOperand().accept(this);
 
     return bitvectorFormulaManager.not(op);
   }
 
   @Override
-  public BitvectorFormula visit(BinaryOrExpression pOr) {
-    final BitvectorFormula op1 = (BitvectorFormula) pOr.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pOr.getOperand2().accept(this);
+  public BitvectorFormula visit(BinaryOrExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
     return bitvectorFormulaManager.or(op1, op2);
   }
 
   @Override
-  public BitvectorFormula visit(BinaryXorExpression pXor) {
-    final BitvectorFormula op1 = (BitvectorFormula) pXor.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pXor.getOperand2().accept(this);
+  public BitvectorFormula visit(BinaryXorExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
     return bitvectorFormulaManager.xor(op1, op2);
   }
@@ -180,7 +241,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
           throw new AssertionError("Unhandled type " + pType);
       }
 
-      int sizeInBit = sizeInByte * machineModel.getSizeofCharInBits();
+      int sizeInBit = sizeInByte * JAVA_BYTE_SIZE;
       return FormulaType.getBitvectorTypeWithSize(sizeInBit);
 
     } else if (pType instanceof CType) {
@@ -193,89 +254,101 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BitvectorFormula visit(DivisionExpression pDivide) {
-    final BitvectorFormula op1 = (BitvectorFormula) pDivide.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pDivide.getOperand2().accept(this);
+  public BitvectorFormula visit(DivisionExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
-    return bitvectorFormulaManager.divide(op1, op2, SIGNED);
+    return bitvectorFormulaManager.divide(op1, op2, isSigned(toType));
   }
 
   @Override
-  public BooleanFormula visit(EqualsExpression pEqual) {
-    final BitvectorFormula op1 = (BitvectorFormula) pEqual.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pEqual.getOperand2().accept(this);
+  public BooleanFormula visit(EqualsExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
+
+
 
     return bitvectorFormulaManager.equal(op1, op2);
   }
 
   @Override
-  public BooleanFormula visit(LessThanExpression pLessThan) {
-    final BitvectorFormula op1 = (BitvectorFormula) pLessThan.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pLessThan.getOperand2().accept(this);
+  public BooleanFormula visit(LessThanExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
-    return bitvectorFormulaManager.lessThan(op1, op2, SIGNED);
+    return bitvectorFormulaManager.lessThan(op1, op2, isSigned(toType));
   }
 
   @Override
   public Formula visit(LogicalOrExpression pExpression) {
-    final BitvectorFormula op1 = (BitvectorFormula) pExpression.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pExpression.getOperand2().accept(this);
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
     return bitvectorFormulaManager.or(op1, op2);
   }
 
   @Override
-  public BooleanFormula visit(LogicalAndExpression pAnd) {
-    final BitvectorFormula op1 = (BitvectorFormula) pAnd.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pAnd.getOperand2().accept(this);
+  public BooleanFormula visit(LogicalAndExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
     return (BooleanFormula) formulaManager.makeAnd(op1, op2);
   }
 
   @Override
-  public BooleanFormula visit(LogicalNotExpression pNot) {
-    final BooleanFormula op = (BooleanFormula) pNot.getOperand().accept(this);
+  public BooleanFormula visit(LogicalNotExpression pExpression) {
+    final BooleanFormula op = (BooleanFormula) pExpression.getOperand().accept(this);
 
     return formulaManager.getBooleanFormulaManager().not(op);
   }
 
   @Override
   public Formula visit(LessThanOrEqualExpression pExpression) {
-    final Formula op1 = pExpression.getOperand1().accept(this);
-    final Formula op2 = pExpression.getOperand2().accept(this);
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
-    return formulaManager.makeLessOrEqual(op1, op2, SIGNED);
+    return formulaManager.makeLessOrEqual(op1, op2, isSigned(toType));
   }
 
   @Override
-  public BitvectorFormula visit(ModuloExpression pModulo) {
-    final BitvectorFormula op1 = (BitvectorFormula) pModulo.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pModulo.getOperand2().accept(this);
+  public BitvectorFormula visit(ModuloExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
-    return bitvectorFormulaManager.modulo(op1, op2, SIGNED);
+    return bitvectorFormulaManager.modulo(op1, op2, isSigned(toType));
   }
 
   @Override
-  public BitvectorFormula visit(MultiplicationExpression pMultiply) {
-    final BitvectorFormula op1 = (BitvectorFormula) pMultiply.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pMultiply.getOperand2().accept(this);
+  public BitvectorFormula visit(MultiplicationExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
     return bitvectorFormulaManager.multiply(op1, op2);
   }
 
   @Override
-  public BitvectorFormula visit(ShiftLeftExpression pShiftLeft) {
-    final BitvectorFormula op1 = (BitvectorFormula) pShiftLeft.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pShiftLeft.getOperand2().accept(this);
+  public BitvectorFormula visit(ShiftLeftExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
     return bitvectorFormulaManager.shiftLeft(op1, op2);
   }
 
   @Override
-  public BitvectorFormula visit(ShiftRightExpression pShiftRight) {
-    final BitvectorFormula op1 = (BitvectorFormula) pShiftRight.getOperand1().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pShiftRight.getOperand2().accept(this);
+  public BitvectorFormula visit(ShiftRightExpression pExpression) {
+    final Type toType = pExpression.getCalculationType();
+    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
 
-    return bitvectorFormulaManager.shiftRight(op1, op2, SIGNED);
+    return bitvectorFormulaManager.shiftRight(op1, op2, isSigned(toType));
   }
 }
