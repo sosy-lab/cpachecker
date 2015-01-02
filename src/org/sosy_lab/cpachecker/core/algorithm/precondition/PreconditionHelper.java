@@ -215,7 +215,7 @@ public final class PreconditionHelper {
     Preconditions.checkNotNull(pReached);
     Preconditions.checkNotNull(pPartition);
 
-    List<BooleanFormula> abstractions = getTargetStateAbstractionsFromReached(
+    List<BooleanFormula> abstractions = getAbstractionsOnLocationFromReached(
         pReached, pPartition, pSpecificTargetLocation);
 
     return mgrv.simplify(bmgr.or(abstractions));
@@ -243,7 +243,7 @@ public final class PreconditionHelper {
     return AbstractStates.extractStateByType(relevantStates.get(0), PredicateAbstractState.class);
   }
 
-  private List<BooleanFormula> getTargetStateAbstractionsFromReached(
+  private List<BooleanFormula> getAbstractionsOnLocationFromReached(
       final ReachedSet pReached,
       final PreconditionPartition pPartition,
       final CFANode pTargetLocation) {
@@ -255,7 +255,13 @@ public final class PreconditionHelper {
     List<BooleanFormula> result = Lists.newArrayList();
 
     // Also for backwards analysis can exist multiple target states (for the same CFA location)
-    FluentIterable<AbstractState> targetStates = from(pReached).filter(AbstractStates.IS_TARGET_STATE);
+    FluentIterable<AbstractState> targetStates = from(pReached)
+        .filter(Predicates.compose(
+            PredicateAbstractState.FILTER_ABSTRACTION_STATES,
+            toState(PredicateAbstractState.class)))
+        .filter(Predicates.compose(
+            equalTo(pTargetLocation),
+            AbstractStates.EXTRACT_LOCATION));
 
     for (AbstractState s: targetStates) {
       if (isStateFromPartition(s, pPartition)) {

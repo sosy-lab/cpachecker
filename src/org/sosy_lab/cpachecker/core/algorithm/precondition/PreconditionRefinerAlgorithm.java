@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.precondition;
 
+import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -62,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -209,11 +212,19 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VALID, pWpLoc);
   }
 
-  private Collection<ARGPath> getTraces(ReachedSet pReachedSet, Predicate<AbstractState> pPartitionFilterPredicate)
-      throws NoTraceFoundException {
+  private Collection<ARGPath> getTracesToAbstractionLocation(
+      final ReachedSet pReachedSet,
+      final Predicate<AbstractState> pPartitionFilterPredicate,
+      final CFANode pLoc)
+    throws NoTraceFoundException {
+
+    Preconditions.checkNotNull(pPartitionFilterPredicate);
+    Preconditions.checkNotNull(pReachedSet);
+    Preconditions.checkNotNull(pLoc);
 
     ImmutableSet<AbstractState> targetStates = from(pReachedSet)
-        .filter(AbstractStates.IS_TARGET_STATE)
+        .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES, toState(PredicateAbstractState.class)))
+        .filter(Predicates.compose(equalTo(pLoc), AbstractStates.EXTRACT_LOCATION))
         .filter(pPartitionFilterPredicate)
         .toSet();
 
@@ -280,7 +291,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
     do {
       // Run the CPA algorithm
-      final boolean result = wrappedAlgorithm.run(pReachedSet);
+      wrappedAlgorithm.run(pReachedSet);
 
       // We use one set of reached states
       //    ... and separate the state space using an automaton!
@@ -303,7 +314,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
         // -- > write the precondition.
         if (writer.isPresent()) {
           try {
-            final BooleanFormula weakestPrecondition = mgrv.getBooleanFormulaManager().not(pcViolation);
+            final BooleanFormula weakestPrecondition = pcValid;
             writer.get().writePrecondition(exportPreciditionsTo, weakestPrecondition);
           } catch (IOException e) {
             logger.log(Level.WARNING, "Writing the precondition failed!", e);
@@ -316,8 +327,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
         // Get arbitrary traces...(without disjunctions)
         // ... to the location that violates the specification
         // ... to the location that represents the exit location
-        Collection<ARGPath> tracesFromViolation = getTraces(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
-        Collection<ARGPath> tracesFromValid = getTraces(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
+        Collection<ARGPath> tracesFromViolation = getTracesToAbstractionLocation(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION, wpLoc);
+        Collection<ARGPath> tracesFromValid = getTracesToAbstractionLocation(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION, wpLoc);
 
         stats.tracesToError += tracesFromViolation.size();
         stats.tracesToExit += tracesFromValid.size();
