@@ -106,7 +106,10 @@ public class Refine implements PreconditionRefiner {
           throws SolverException, InterruptedException {
 
     List<BooleanFormula> p = enp.extractNewPreds(pPreconditionA);
-    BooleanFormula f = bmgr.and(pPreconditionA, bmgr.and(p));
+    BooleanFormula f = (p.size() == 0)
+        ? pPreconditionA
+        : bmgr.and(pPreconditionA, bmgr.and(p));
+
     return ipc.getInterpolant(f, pPreconditionB, p, pItpLocation);
   }
 
@@ -180,7 +183,9 @@ public class Refine implements PreconditionRefiner {
         }
 
         final List<BooleanFormula> predsNew = enp.extractNewPreds(preAtKp1.getFormula());
-        preAtKp1 = alterPf(preAtKp1, bmgr.and(preAtKp1.getFormula(), bmgr.and(predsNew)));
+        if (predsNew.size() > 0) {
+          preAtKp1 = alterPf(preAtKp1, bmgr.and(preAtKp1.getFormula(), bmgr.and(predsNew)));
+        }
 
         // Formula B
         final PathFormula transFromPreAtK = computeCounterCondition(t,
