@@ -108,12 +108,16 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     public int refinements = 0;
     public int tracesToExit = 0;
     public int tracesToError = 0;
+    public int infeasibleTracesToExit = 0;
+    public int infeasibleTracesToError = 0;
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
       put(pOut, "Number of precondition refinements", refinements);
       put(pOut, "Analyzed traces to the ERROR location", tracesToError);
       put(pOut, "Analyzed traces to the EXIT location", tracesToExit);
+      put(pOut, "Infeasible traces to the ERROR location", infeasibleTracesToError);
+      put(pOut, "Infeasible traces to the EXIT location", infeasibleTracesToExit);
     }
   }
 
@@ -343,13 +347,27 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
             final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceVal, Optional.of(wpLoc));
 
             if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
-              logger.log(Level.WARNING, "non-determinism in program."); // This warning is taken 1:1 from the Seghir/Kroening paper
+              logger.log(Level.WARNING, "Non-determinism in the program!");
               return true;
+            }
+
+            if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)) {
+              stats.infeasibleTracesToError++;
+            }
+
+            if (mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
+              stats.infeasibleTracesToExit++;
+            }
+
+            if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)
+             && mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
+              logger.log(Level.WARNING, "Infeasible traces during the precondition refinement! CEGAR applicable!");
             }
 
             // Refine the precision so that the
             // abstraction on the two traces is disjoint
             PredicatePrecision newPrecFromTracePair = refiner.refine(traceVio, traceVal, wpLoc);
+
             if (newPrecision == null) {
               newPrecision = newPrecFromTracePair;
             } else {
