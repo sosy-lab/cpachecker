@@ -609,7 +609,7 @@ public class PredicateAbstractionManager {
         predicateBuilder.add(predicate);
 
       } else {
-        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);
+        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables.keySet());
       }
     }
 
