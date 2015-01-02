@@ -27,11 +27,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.EqualConstraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessConstraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessOrEqualConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryNotExpression;
@@ -130,7 +125,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     Value constantValue = pConstant.getValue();
 
     if (constantValue.isNumericValue()) {
-      return bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>) getFormulaType(pConstant.getType()),
+      return bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>) getFormulaType(pConstant.getExpressionType()),
           ((NumericValue) constantValue).longValue());
 
     } else if (constantValue instanceof BooleanValue) {
@@ -282,89 +277,5 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     final BitvectorFormula op2 = (BitvectorFormula) pShiftRight.getOperand2().accept(this);
 
     return bitvectorFormulaManager.shiftRight(op1, op2, SIGNED);
-  }
-
-  @Override
-  public BooleanFormula visit(LessConstraint pConstraint) {
-    final FinalFormulaCreator creator = new FinalFormulaCreator() {
-
-      @Override
-      public BooleanFormula create(BitvectorFormula pLeft, BitvectorFormula pRight) {
-        return bitvectorFormulaManager.lessThan(pLeft, pRight, SIGNED);
-      }
-    };
-
-    return (BooleanFormula) transformConstraint(pConstraint, creator);
-  }
-
-  /**
-   * Transforms a given constraint to a {@link Formula}.
-   *
-   * <p>The type of the resulting formula depends on the given
-   * {@link FinalFormulaCreator} object, not the concrete type of the constraint. All other characteristics depend on the
-   * constraint, though.
-   *
-   * @param pConstraint the constraint whose attributes are used for creating the formula
-   * @param pCreator the creator that decides what kind of formula is created
-   *
-   * @return a formula based on the given parameters.
-   */
-  // This is done so everything around the concrete formula creation does not have to be redundant
-  private Formula transformConstraint(Constraint pConstraint, FinalFormulaCreator pCreator) {
-    final BitvectorFormula op1 = (BitvectorFormula) pConstraint.getLeftOperand().accept(this);
-    final BitvectorFormula op2 = (BitvectorFormula) pConstraint.getRightOperand().accept(this);
-
-    Formula finalFormula = pCreator.create(op1, op2);
-
-    if (!pConstraint.isPositiveConstraint()) {
-      finalFormula = createNot(finalFormula);
-    }
-
-    return finalFormula;
-  }
-
-  private BooleanFormula createNot(Formula pFormula) {
-    return (BooleanFormula) formulaManager.makeNot(pFormula);
-  }
-
-  @Override
-  public BooleanFormula visit(LessOrEqualConstraint pConstraint) {
-    final FinalFormulaCreator creator = new FinalFormulaCreator() {
-
-      @Override
-      public BooleanFormula create(BitvectorFormula pLeft, BitvectorFormula pRight) {
-        return bitvectorFormulaManager.lessOrEquals(pLeft, pRight, SIGNED);
-      }
-    };
-
-    return (BooleanFormula) transformConstraint(pConstraint, creator);
-  }
-
-  @Override
-  public BooleanFormula visit(EqualConstraint pConstraint) {
-    final FinalFormulaCreator creator = new FinalFormulaCreator() {
-
-      @Override
-      public BooleanFormula create(BitvectorFormula pLeft, BitvectorFormula pRight) {
-        return bitvectorFormulaManager.equal(pLeft, pRight);
-      }
-    };
-
-    return (BooleanFormula) transformConstraint(pConstraint, creator);
-  }
-
-  @Override
-  public Formula visit(ConstraintOperand pConstraintOperand) {
-    return pConstraintOperand.getExpression().accept(this);
-  }
-
-  /**
-   * Creates a new formula based on two given expressions.
-   *
-   * The created formula depends on the implementation.
-   * This interface is used for creating anonymous classes that are given to {@link #transformConstraint}.
-   */
-  private interface FinalFormulaCreator {
-    Formula create(BitvectorFormula pLeft, BitvectorFormula pRight);
   }
 }

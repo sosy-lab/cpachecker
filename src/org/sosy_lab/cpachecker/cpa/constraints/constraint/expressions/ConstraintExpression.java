@@ -45,5 +45,5 @@ public interface ConstraintExpression {
    *
    * @return the expression type of this <code>ConstraintExpression</code>
    */
-  Type getType();
+  Type getExpressionType();
 }

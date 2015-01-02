@@ -29,8 +29,10 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * {@link BinaryConstraintExpression} representing the 'binary xor' operation.
  */
 public class BinaryXorExpression extends BinaryConstraintExpression {
-  public BinaryXorExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    super(pOperand1, pOperand2, pType);
+
+  protected BinaryXorExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override

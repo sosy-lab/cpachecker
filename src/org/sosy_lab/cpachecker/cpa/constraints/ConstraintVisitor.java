@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.EqualConstraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessConstraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessOrEqualConstraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalNotExpression;
 
 /**
  * Visitor for {@link Constraint} objects.
@@ -36,11 +36,11 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessOrEqualConstraint;
  */
 public interface ConstraintVisitor<T> {
 
-  T visit(LessConstraint pConstraint);
+  T visit(EqualsExpression pConstraint);
 
-  T visit(LessOrEqualConstraint pConstraint);
+  T visit(LessThanExpression pConstraint);
 
-  T visit(EqualConstraint pConstraint);
+  T visit(LessThanOrEqualExpression pConstraint);
 
-  T visit(ConstraintOperand pConstraintOperand);
+  T visit(LogicalNotExpression pConstraint);
 }

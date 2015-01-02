@@ -55,7 +55,7 @@ public class ConstantConstraintExpression implements ConstraintExpression {
   }
 
   @Override
-  public Type getType() {
+  public Type getExpressionType() {
     return type;
   }
 

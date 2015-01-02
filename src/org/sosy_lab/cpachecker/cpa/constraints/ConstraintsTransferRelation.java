@@ -40,9 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -150,7 +148,7 @@ public class ConstraintsTransferRelation
   @Override
   protected ConstraintsState handleAssumption(AssumeEdge pCfaEdge, AExpression pExpression, boolean pTruthAssumption) {
 
-    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName);
+    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName, Optional.<ValueAnalysisState>absent());
     final FileLocation fileLocation = pCfaEdge.getFileLocation();
 
     ConstraintsState newState = null;
@@ -229,15 +227,12 @@ public class ConstraintsTransferRelation
   private Optional<Constraint> createConstraint(JBinaryExpression pExpression, ConstraintFactory pFactory,
       boolean pTruthAssumption) throws UnrecognizedCodeException {
 
-    JExpression leftOperand = pExpression.getOperand1();
-    JExpression rightOperand = pExpression.getOperand2();
-
     Constraint constraint;
 
     if (pTruthAssumption) {
-      constraint = pFactory.createPositiveConstraint(leftOperand, pExpression.getOperator(), rightOperand);
+      constraint = pFactory.createPositiveConstraint(pExpression);
     } else {
-      constraint = pFactory.createNegativeConstraint(leftOperand, pExpression.getOperator(), rightOperand);
+      constraint = pFactory.createNegativeConstraint(pExpression);
     }
 
     return Optional.fromNullable(constraint);
@@ -246,15 +241,12 @@ public class ConstraintsTransferRelation
   private Optional<Constraint> createConstraint(CBinaryExpression pExpression, ConstraintFactory pFactory,
       boolean pTruthAssumption) throws UnrecognizedCodeException {
 
-    CExpression leftOperand = pExpression.getOperand1();
-    CExpression rightOperand = pExpression.getOperand2();
-
     Constraint constraint;
 
     if (pTruthAssumption) {
-      constraint = pFactory.createPositiveConstraint(leftOperand, pExpression.getOperator(), rightOperand);
+      constraint = pFactory.createPositiveConstraint(pExpression);
     } else {
-      constraint = pFactory.createNegativeConstraint(leftOperand, pExpression.getOperator(), rightOperand);
+      constraint = pFactory.createNegativeConstraint(pExpression);
     }
 
     return Optional.fromNullable(constraint);
@@ -288,7 +280,7 @@ public class ConstraintsTransferRelation
 
     Collection<ConstraintsState> newStates = new ArrayList<>();
     final String functionName = pCfaEdge.getPredecessor().getFunctionName();
-    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName, pStrengtheningState);
+    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName, Optional.of(pStrengtheningState));
     final FileLocation fileLocation = pCfaEdge.getFileLocation();
 
     ConstraintsState newState = null;

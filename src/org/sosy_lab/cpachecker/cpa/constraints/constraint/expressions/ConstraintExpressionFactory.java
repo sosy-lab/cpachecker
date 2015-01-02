@@ -54,84 +54,90 @@ public class ConstraintExpressionFactory {
     }
   }
 
-  public ConstraintExpression multiply(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new MultiplicationExpression(pOperand1, pOperand1, pType);
+  public ConstraintExpression multiply(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType,
+      Type pCalculationType) {
+    return new MultiplicationExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression add(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new AdditionExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression add(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType,
+      Type pCalculationType) {
+    return new AdditionExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
   public ConstraintExpression minus(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-      Type pType) {
-    return new AdditionExpression(pOperand1, negate(pOperand2, pOperand1.getType()), pType);
+      Type pType, Type pCalculationType) {
+    return new AdditionExpression(pOperand1, negate(pOperand2, pOperand1.getExpressionType()), pType, pCalculationType);
   }
 
 
   public ConstraintExpression negate(ConstraintExpression pFormula, Type pType) {
     checkNotNull(pFormula);
     final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
-    final Type formulaType = pFormula.getType();
+    final Type formulaType = pFormula.getExpressionType();
 
-    return factory.multiply(getMinusOne(formulaType), pFormula, formulaType);
+    return factory.multiply(getMinusOne(formulaType), pFormula, formulaType, formulaType);
   }
 
   private ConstraintExpression getMinusOne(Type pType) {
     return ConstraintExpressionFactory.getInstance().asConstant(new NumericValue(-1L), pType);
   }
 
-  public ConstraintExpression divide(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new DivisionExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression divide(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType,
+      Type pCalculationType) {
+    return new DivisionExpression(pOperand1, pOperand2, pType, pCalculationType);
     
   }
 
-  public ConstraintExpression modulo(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new ModuloExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression modulo(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType,
+      Type pCalculationType) {
+    return new ModuloExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression shiftLeft(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new ShiftLeftExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression shiftLeft(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType,
+      Type pCalculationType) {
+    return new ShiftLeftExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression shiftRight(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new ShiftRightExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression shiftRight(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType,
+      Type pCalculationType) {
+    return new ShiftRightExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression binaryAnd(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new BinaryAndExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression binaryAnd(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
+    return new BinaryAndExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression binaryOr(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new BinaryOrExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression binaryOr(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
+    return new BinaryOrExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression binaryXor(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new BinaryXorExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression binaryXor(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
+    return new BinaryXorExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression equal(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new EqualsExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression equal(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
+    return new EqualsExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression lessThan(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new LessThanExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression lessThan(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
+    return new LessThanExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
   public ConstraintExpression lessThanOrEqual(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-      Type pType) {
-    return new LessThanOrEqualExpression(pOperand1, pOperand2, pType);
+      Type pType, Type pCalculationType) {
+    return new LessThanOrEqualExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression notEqual(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return logicalNot(equal(pOperand1, pOperand2, pType), pType);
+  public ConstraintExpression notEqual(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
+    return logicalNot(equal(pOperand1, pOperand2, pType, pCalculationType), pType);
   }
 
-  public ConstraintExpression logicalAnd(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new LogicalAndExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression logicalAnd(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
+    return new LogicalAndExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public ConstraintExpression logicalOr(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    return new LogicalOrExpression(pOperand1, pOperand2, pType);
+  public ConstraintExpression logicalOr(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
+    return new LogicalOrExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
   public ConstraintExpression logicalNot(ConstraintExpression pOperand, Type pType) {
@@ -142,16 +148,16 @@ public class ConstraintExpressionFactory {
     return new BinaryNotExpression(pOperand, pType);
   }
 
-  public ConstraintExpression greaterThan(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
+  public ConstraintExpression greaterThan(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType) {
 
     // represent 'a > b' as 'b < a' so we do need less classes
-    return new LessThanExpression(pOperand2, pOperand1, pType);
+    return new LessThanExpression(pOperand2, pOperand1, pType, pCalculationType);
   }
 
   public ConstraintExpression greaterThanOrEqual(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-      Type pType) {
+      Type pType, Type pCalculationType) {
 
     // represent 'a >= b' as 'b <= a' so we do need less classes
-    return new LessThanOrEqualExpression(pOperand2, pOperand1, pType);
+    return new LessThanOrEqualExpression(pOperand2, pOperand1, pType, pCalculationType);
   }
 }

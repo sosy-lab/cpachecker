@@ -23,20 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
 
 /**
- * A single constraint.
- *
- * <p>A constraint describes a relation between two {@link ConstraintOperand}s that has to be true or false,
- * depending on the constraint.</p>
- *
- * <p>Possible examples would be relations like <code>'5 < 10'</code> or <code>'n == 10'</code></p>
+ * A constraint with only one operand. Example: not(..);
  */
-public interface Constraint {
+public interface UnaryConstraint extends Constraint {
 
-  Type getExpressionType();
-
-  <T> T accept(ConstraintVisitor<T> pVisitor);
+  ConstraintExpression getOperand();
 }

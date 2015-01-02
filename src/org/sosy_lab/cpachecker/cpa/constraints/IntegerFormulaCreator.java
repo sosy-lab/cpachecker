@@ -26,11 +26,6 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.EqualConstraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessConstraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessOrEqualConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryNotExpression;
@@ -73,6 +68,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   private final FormulaManagerView formulaManager;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> numeralFormulaManager;
   private final BooleanFormulaManagerView booleanFormulaManager;
+  private int counter = 0;
 
   public IntegerFormulaCreator(FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
@@ -99,7 +95,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   private String getVariableNameByFormula(ConstraintExpression pFormula) {
-    return pFormula.toString();
+    return pFormula.toString() + counter++;
   }
 
   @Override
@@ -254,84 +250,6 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     return handleUnsupportedFormula(pShiftRight);
   }
 
-  @Override
-  public BooleanFormula visit(LessConstraint pConstraint) {
-    final FinalFormulaCreator creator = new FinalFormulaCreator() {
-
-      @Override
-      public BooleanFormula create(Formula pLeft, Formula pRight) {
-        return numeralFormulaManager.lessThan((IntegerFormula) pLeft, (IntegerFormula) pRight);
-      }
-    };
-
-    return (BooleanFormula) transformConstraint(pConstraint, creator);
-  }
-
-  /**
-   * Transforms a given constraint to a {@link org.sosy_lab.cpachecker.util.predicates.interfaces.Formula}.
-   *
-   * <p>The type of the resulting formula depends on the given
-   * {@link FinalFormulaCreator} object, not the concrete type of the constraint. All other characteristics depend on the
-   * constraint, though.
-   *
-   * @param pConstraint the constraint whose attributes are used for creating the formula
-   * @param pCreator the creator that decides what kind of formula is created
-   *
-   * @return a formula based on the given parameters.
-   */
-  // We use a pCreator so everything around the concrete formula creation does not have to be redundant
-  private Formula transformConstraint(Constraint pConstraint, FinalFormulaCreator pCreator) {
-    final Formula op1 = pConstraint.getLeftOperand().accept(this);
-    final Formula op2 = pConstraint.getRightOperand().accept(this);
-
-    Formula finalFormula = pCreator.create(op1, op2);
-
-    if (!pConstraint.isPositiveConstraint()) {
-      finalFormula = createNot(finalFormula);
-    }
-
-    return finalFormula;
-  }
-
-  private BooleanFormula createNot(Formula pFormula) {
-    return (BooleanFormula) formulaManager.makeNot(pFormula);
-  }
-
-  @Override
-  public BooleanFormula visit(LessOrEqualConstraint pConstraint) {
-    final FinalFormulaCreator creator = new FinalFormulaCreator() {
-
-      @Override
-      public BooleanFormula create(Formula pLeft, Formula pRight) {
-        return formulaManager.makeLessOrEqual(pLeft, pRight, false);
-      }
-    };
-
-    return (BooleanFormula) transformConstraint(pConstraint, creator);
-  }
-
-  @Override
-  public BooleanFormula visit(EqualConstraint pConstraint) {
-    final FinalFormulaCreator creator = new FinalFormulaCreator() {
-
-      @Override
-      public BooleanFormula create(Formula pLeft, Formula pRight) {
-        Formula leftFormula = pLeft;
-        Formula rightFormula = pRight;
-
-        if (pLeft instanceof BooleanFormula) {
-          rightFormula = createBooleanFormula(pRight);
-        } else if (pRight instanceof BooleanFormula) {
-          leftFormula = createBooleanFormula(pLeft);
-        }
-
-        return formulaManager.makeEqual(leftFormula, rightFormula);
-      }
-    };
-
-    return (BooleanFormula) transformConstraint(pConstraint, creator);
-  }
-
   private BooleanFormula createBooleanFormula(Formula pFormula) {
     IntegerFormula zeroFormula = numeralFormulaManager.makeNumber(0);
 
@@ -342,11 +260,6 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     } else {
       return (BooleanFormula) pFormula;
     }
-  }
-
-  @Override
-  public Formula visit(ConstraintOperand pConstraintOperand) {
-    return pConstraintOperand.getExpression().accept(this);
   }
 
   /**

@@ -24,11 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
 
 /**
  * {@link UnaryConstraintExpression} representing the 'logical not' operation.
  */
-public class LogicalNotExpression extends UnaryConstraintExpression {
+public class LogicalNotExpression extends UnaryConstraintExpression implements UnaryConstraint {
 
   protected LogicalNotExpression(ConstraintExpression pOperand, Type pType) {
     super (pOperand, pType);
@@ -36,6 +38,11 @@ public class LogicalNotExpression extends UnaryConstraintExpression {
 
   @Override
   public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public <T> T accept(ConstraintVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

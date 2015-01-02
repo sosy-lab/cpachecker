@@ -29,8 +29,10 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * {@link BinaryConstraintExpression} representing the 'binary or' operation.
  */
 public class BinaryOrExpression extends BinaryConstraintExpression {
-  public BinaryOrExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    super(pOperand1, pOperand2, pType);
+
+  protected BinaryOrExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override

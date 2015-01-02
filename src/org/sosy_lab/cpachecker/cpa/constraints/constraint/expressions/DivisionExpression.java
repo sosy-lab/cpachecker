@@ -29,8 +29,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * {@link BinaryConstraintExpression} representing division.
  */
 public class DivisionExpression extends BinaryConstraintExpression {
-  public DivisionExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    super(pOperand1, pOperand2, pType);
+  public DivisionExpression(ConstraintExpression pOperand1,
+      ConstraintExpression pOperand2, Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override

@@ -57,37 +57,11 @@ public class ExpressionTransformer {
   private boolean missingInformation = false;
   private Optional<ValueAnalysisState> valueState;
 
-  public ExpressionTransformer(String pFunctionName) {
+  public ExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     functionName = pFunctionName;
     valueState = Optional.absent();
+    valueState = pValueState;
   }
-
-  public ExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
-    this(pFunctionName);
-    valueState = Optional.of(pValueState);
-  }
-
-   /* Not needed if strengthening with ValueAnalysis works
-  public void addAlias(String pIdentifier) {
-    MemoryLocation memLoc = MemoryLocation.valueOf(functionName, pIdentifier, 0);
-
-    Alias oldAlias = identifierAliasses.get(memLoc);
-    Alias newAlias;
-
-    if (oldAlias != null) {
-      newAlias = Alias.createNextAlias(oldAlias);
-    } else {
-      newAlias = Alias.createAlias(memLoc.toString());
-    }
-
-    identifierAliasses.put(memLoc, newAlias);
-  }
-
-  protected Alias getNewAlias(String pIdentifier) {
-    MemoryLocation memLoc = MemoryLocation.valueOf(functionName, pIdentifier, 0);
-
-    return identifierAliasses.get(memLoc);
-  }*/
 
   protected Value createNumericValue(long pValue) {
     return new NumericValue(pValue);

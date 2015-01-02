@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -42,22 +41,16 @@ public class ConstraintFactory {
   private String functionName;
   private Optional<ValueAnalysisState> valueState;
   private boolean missingInformation = false;
+  private ConstraintExpressionFactory expressionFactory;
 
-  private ConstraintFactory(String pFunctionName) {
+
+  private ConstraintFactory(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     functionName = pFunctionName;
-    valueState = Optional.absent();
+    valueState = pValueState;
+    expressionFactory = ConstraintExpressionFactory.getInstance();
   }
 
-  private ConstraintFactory(String pFunctionName, ValueAnalysisState pValueState) {
-    this(pFunctionName);
-    valueState = Optional.of(pValueState);
-  }
-
-  public static ConstraintFactory getInstance(String pFunctionName) {
-    return new ConstraintFactory(pFunctionName);
-  }
-
-  public static ConstraintFactory getInstance(String pFunctionName, ValueAnalysisState pValueState) {
+  public static ConstraintFactory getInstance(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     return new ConstraintFactory(pFunctionName, pValueState);
   }
 
@@ -76,159 +69,159 @@ public class ConstraintFactory {
     return hasMissingInformation;
   }
 
-  public Constraint createPositiveConstraint(CExpression pLeftExpression, CBinaryExpression.BinaryOperator pOperator,
-      CExpression pRightExpression) throws UnrecognizedCodeException {
-    return createConstraint(pLeftExpression, pOperator, pRightExpression, true);
+  public Constraint createNegativeConstraint(CBinaryExpression pExpression) throws UnrecognizedCodeException {
+    Constraint positiveConstraint = createPositiveConstraint(pExpression);
+
+    if (positiveConstraint == null) {
+      return null;
+    } else {
+      return createNot(positiveConstraint);
+    }
   }
 
-  public Constraint createNegativeConstraint(CExpression pLeftExpression, CBinaryExpression.BinaryOperator pOperator,
-      CExpression pRightExpression) throws UnrecognizedCodeException {
-    return createConstraint(pLeftExpression, pOperator, pRightExpression, false);
+  public Constraint createNegativeConstraint(JBinaryExpression pExpression) throws UnrecognizedCodeException {
+    Constraint positiveConstraint = createPositiveConstraint(pExpression);
+
+    if (positiveConstraint == null) {
+      return null;
+    } else {
+      return createNot(positiveConstraint);
+    }
   }
 
-  private Constraint createConstraint(CExpression pLeftExpression, CBinaryExpression.BinaryOperator pOperator,
-      CExpression pRightExpression, boolean pIsPositive) throws UnrecognizedCodeException {
-    ConstraintOperand leftOperand;
-    ConstraintOperand rightOperand;
-    boolean isPositive = pIsPositive;
+  public Constraint createPositiveConstraint(CBinaryExpression pExpression) throws UnrecognizedCodeException {
+    final CBinaryExpression.BinaryOperator operator = pExpression.getOperator();
+    final Type expressionType = pExpression.getExpressionType();
+    final Type calculationType = pExpression.getCalculationType();
 
-    leftOperand = createOperand(pLeftExpression);
-    rightOperand = createOperand(pRightExpression);
+    final CExpressionTransformer transformer = new CExpressionTransformer(functionName, valueState);
 
+    ConstraintExpression leftOperand = pExpression.getOperand1().accept(transformer);
 
-    if (leftOperand == null || rightOperand == null) {
+    checkForMissingInfo(transformer);
+    if (leftOperand == null) {
       return null;
     }
 
-    switch (pOperator) {
-      case NOT_EQUALS:
-        isPositive = !isPositive;
-        // $FALL-THROUGH$
-      case EQUALS:
-        return new EqualConstraint(leftOperand, rightOperand, isPositive);
+    ConstraintExpression rightOperand = pExpression.getOperand2().accept(transformer);
 
+    checkForMissingInfo(transformer);
+    if (rightOperand == null) {
+      return null;
+    }
+
+    switch (operator) {
+      case EQUALS:
+        return createEqual(leftOperand, rightOperand, expressionType, calculationType);
+      case NOT_EQUALS:
+        return createNotEqual(leftOperand, rightOperand, expressionType, calculationType);
       case GREATER_EQUAL: {
-        ConstraintOperand swap = leftOperand;
+        ConstraintExpression swap = leftOperand;
         leftOperand = rightOperand;
         rightOperand = swap;
       }
       // $FALL-THROUGH$
       case LESS_EQUAL:
-        return new LessOrEqualConstraint(leftOperand, rightOperand, isPositive);
+        return createLessOrEqual(leftOperand, rightOperand, expressionType, calculationType);
 
       case GREATER_THAN: {
-        ConstraintOperand swap = leftOperand;
+        ConstraintExpression swap = leftOperand;
         leftOperand = rightOperand;
         rightOperand = swap;
       }
       // $FALL-THROUGH$
       case LESS_THAN:
-        return new LessConstraint(leftOperand, rightOperand, isPositive);
+        return createLess(leftOperand, rightOperand, expressionType, calculationType);
 
       default:
-        // TODO: Change to correct exception type (UnrecognizedCCodeException, probably)
-        throw new AssertionError("Operation " + pOperator + " not allowed as assume.");
+        throw new AssertionError("Operation " + operator + " not a constraint.");
     }
   }
 
-  public Constraint createPositiveConstraint(JExpression pLeftExpression, JBinaryExpression.BinaryOperator pOperator,
-      JExpression pRightExpression) throws UnrecognizedCodeException {
-    return createConstraint(pLeftExpression, pOperator, pRightExpression, true);
-  }
+  public Constraint createPositiveConstraint(JBinaryExpression pExpression) throws UnrecognizedCodeException {
+    final JBinaryExpression.BinaryOperator operator = pExpression.getOperator();
+    final Type expressionType = pExpression.getExpressionType();
 
-  public Constraint createNegativeConstraint(JExpression pLeftExpression, JBinaryExpression.BinaryOperator pOperator,
-      JExpression pRightExpression) throws UnrecognizedCodeException {
-    return createConstraint(pLeftExpression, pOperator, pRightExpression, false);
-  }
+    final JExpressionTransformer transformer = new JExpressionTransformer(functionName, valueState);
 
-  private Constraint createConstraint(JExpression pLeftExpression, JBinaryExpression.BinaryOperator pOperator,
-      JExpression pRightExpression, boolean pIsPositive) throws UnrecognizedCodeException {
-    ConstraintOperand leftOperand;
-    ConstraintOperand rightOperand;
-    boolean isPositive = pIsPositive;
+    ConstraintExpression leftOperand = pExpression.getOperand1().accept(transformer);
 
-    leftOperand = createOperand(pLeftExpression);
-    rightOperand = createOperand(pRightExpression);
+    checkForMissingInfo(transformer);
+    if (leftOperand == null) {
+      return null;
+    }
 
-    switch (pOperator) {
-      case NOT_EQUALS:
-        isPositive = !isPositive;
-        // $FALL-THROUGH$
+    ConstraintExpression rightOperand = pExpression.getOperand2().accept(transformer);
+
+    checkForMissingInfo(transformer);
+    if (rightOperand == null) {
+      return null;
+    }
+
+    switch (operator) {
       case EQUALS:
-        return new EqualConstraint(leftOperand, rightOperand, isPositive);
-
+        return createEqual(leftOperand, rightOperand, expressionType, expressionType);
+      case NOT_EQUALS:
+        return createNotEqual(leftOperand, rightOperand, expressionType, expressionType);
       case GREATER_EQUAL: {
-        ConstraintOperand swap = leftOperand;
+        ConstraintExpression swap = leftOperand;
         leftOperand = rightOperand;
         rightOperand = swap;
       }
       // $FALL-THROUGH$
       case LESS_EQUAL:
-        return new LessOrEqualConstraint(leftOperand, rightOperand, isPositive);
+        return createLessOrEqual(leftOperand, rightOperand, expressionType, expressionType);
 
       case GREATER_THAN: {
-        ConstraintOperand swap = leftOperand;
+        ConstraintExpression swap = leftOperand;
         leftOperand = rightOperand;
         rightOperand = swap;
       }
       // $FALL-THROUGH$
       case LESS_THAN:
-        return new LessConstraint(leftOperand, rightOperand, isPositive);
+        return createLess(leftOperand, rightOperand, expressionType, expressionType);
 
       default:
-        // TODO: Change to correct exception type (UnrecognizedCCodeException, probably)
-        throw new AssertionError("Operation " + pOperator + " not allowed as assume.");
+        throw new AssertionError("Operation " + operator + " not a constraint.");
     }
   }
 
-  private ConstraintOperand createOperand(AExpression pExpression) throws UnrecognizedCodeException {
-    ConstraintExpression operandFormula;
-
-    if (pExpression instanceof CExpression) {
-      operandFormula = transformExpression((CExpression) pExpression);
-    } else {
-      operandFormula = transformExpression((JExpression) pExpression);
-    }
-
-    return operandFormula == null ? null : new ConstraintOperand(operandFormula);
+  private void checkForMissingInfo(ExpressionTransformer pTransformer) {
+    missingInformation |= pTransformer.hasMissingInformation();
   }
 
-  private ConstraintExpression transformExpression(CExpression pExpression) throws UnrecognizedCodeException {
-    CExpressionTransformer formulaTransformer = getCTransformer();
-    ConstraintExpression expressionFormula = formulaTransformer.transform(pExpression);
-
-    if (expressionFormula == null && formulaTransformer.hasMissingInformation()) {
-      missingInformation = true;
-    }
-
-    return expressionFormula;
+  private UnaryConstraint createNot(Constraint pConstraint) {
+    // We use ConstraintExpression as Constraints, so this should be possible
+    return createNot((ConstraintExpression) pConstraint);
   }
 
-  private CExpressionTransformer getCTransformer() {
-    if (valueState.isPresent()) {
-      return new CExpressionTransformer(functionName, valueState.get());
-    } else {
-      return new CExpressionTransformer(functionName);
-    }
+  private UnaryConstraint createNot(ConstraintExpression pConstraintExpression) {
+    return (UnaryConstraint)
+        expressionFactory.logicalNot(pConstraintExpression, pConstraintExpression.getExpressionType());
   }
 
-  private ConstraintExpression transformExpression(JExpression pExpression) throws UnrecognizedCodeException {
-    JExpressionTransformer formulaTransformer = getJavaTransformer();
-    ConstraintExpression expressionFormula = formulaTransformer.transform(pExpression);
+  private Constraint createLess(ConstraintExpression pLeftOperand, ConstraintExpression pRightOperand,
+      Type pExpressionType, Type pCalculationType) {
 
-    if (expressionFormula == null && formulaTransformer.hasMissingInformation()) {
-      missingInformation = true;
-    }
-
-    return formulaTransformer.transform(pExpression);
+    return (Constraint)expressionFactory.lessThan(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
 
+  private Constraint createLessOrEqual(ConstraintExpression pLeftOperand, ConstraintExpression pRightOperand,
+      Type pExpressionType, Type pCalculationType) {
 
-  private JExpressionTransformer getJavaTransformer() {
-    if (valueState.isPresent()) {
-      return new JExpressionTransformer(functionName, valueState.get());
-    } else {
-      return new JExpressionTransformer(functionName);
-    }
+    return (Constraint)expressionFactory.lessThanOrEqual(pLeftOperand, pRightOperand, pExpressionType,
+        pCalculationType);
+  }
+
+  private Constraint createNotEqual(ConstraintExpression pLeftOperand, ConstraintExpression pRightOperand,
+      Type pExpressionType, Type pCalculationType) {
+
+    return (Constraint)expressionFactory.notEqual(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
+  }
+
+  private Constraint createEqual(ConstraintExpression pLeftOperand, ConstraintExpression pRightOperand,
+      Type pExpressionType, Type pCalculationType) {
+
+    return (Constraint) expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
 }

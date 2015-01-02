@@ -74,25 +74,26 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createAddition(
       Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
-      AAstNode pLocation)
+      Type pCalculationType, AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
     BinaryExpressionCreator additionCreator = new BinaryExpressionCreator() {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
+          Type pType, Type pCalculationType) {
 
-        return factory.add(pOperand1, pOperand2, pType);
+        return factory.add(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
-        additionCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType,
+        pLocation, additionCreator);
   }
 
   private SymbolicValue createExpression(
       Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Type pCalculationType,
       AAstNode pLocation, BinaryExpressionCreator pCreator)
       throws SymbolicBoundReachedException {
 
@@ -103,7 +104,9 @@ public class SymbolicValueFactory {
     final ConstraintExpression leftExpOperand = getConstantExpression(pLeftOperand, pLeftType);
     final ConstraintExpression rightExpOperand = getConstantExpression(pRightOperand, pRightType);
 
-    final ConstraintExpression exp = pCreator.createValue(leftExpOperand, rightExpOperand, pExpressionType);
+    final ConstraintExpression exp =
+        pCreator.createValue(leftExpOperand, rightExpOperand, pExpressionType, pCalculationType);
+
     increaseSymbolicAmount(pLocation);
 
     return new SymbolicExpression(exp);
@@ -156,7 +159,7 @@ public class SymbolicValueFactory {
   }
 
   public SymbolicValue createSubtraction(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -164,18 +167,18 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
+          Type pType, Type pCalculationType) {
 
-        return factory.minus(pOperand1, pOperand2, pType);
+        return factory.minus(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         subtractionCreator);
   }
 
   public SymbolicValue createMultiplication(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -183,17 +186,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.multiply(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.multiply(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         multiplicationCreator);
   }
 
   public SymbolicValue createDivision(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -201,17 +204,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.divide(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.divide(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         divisionCreator);
   }
 
   public SymbolicValue createModulo(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, final Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, final Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -219,17 +222,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.modulo(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.modulo(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         moduloCreator);
   }
 
   public SymbolicValue createShiftLeft(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -237,17 +240,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.shiftLeft(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.shiftLeft(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         shiftCreator);
   }
 
   public SymbolicValue createShiftRight(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -255,17 +258,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.shiftRight(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.shiftRight(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         shiftCreator);
   }
 
   public SymbolicValue createBinaryOr(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
     checkEitherSymbolic(pLeftOperand, pRightOperand);
@@ -274,16 +277,16 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.binaryOr(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.binaryOr(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, orCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation, orCreator);
   }
 
   public SymbolicValue createBinaryAnd(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -291,16 +294,16 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.binaryAnd(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.binaryAnd(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, andCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation, andCreator);
   }
 
   public SymbolicValue createBinaryXor(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -308,15 +311,15 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.binaryXor(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.binaryXor(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, xorCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation, xorCreator);
   }
 
-  public SymbolicValue createBinaryNot(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation)
+  public SymbolicValue createBinaryNot(Value pOperand, Type pOperandType, Type pExpressionType,AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
     UnaryExpressionCreator notCreator = new UnaryExpressionCreator() {
@@ -330,7 +333,7 @@ public class SymbolicValueFactory {
   }
 
   public SymbolicValue createEquals(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -338,17 +341,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.equal(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.equal(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         equalsCreator);
   }
 
   public SymbolicValue createNotEquals(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -356,17 +359,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.notEqual(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.notEqual(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         notEqualsCreator);
   }
 
   public SymbolicValue createGreaterThan(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -374,17 +377,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.greaterThan(pOperand2, pOperand1, pType);
+          Type pType, Type pCalculationType) {
+        return factory.greaterThan(pOperand2, pOperand1, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         greaterCreator);
   }
 
   public SymbolicValue createGreaterThanOrEqual(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -392,17 +395,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.greaterThanOrEqual(pOperand2, pOperand1, pType);
+          Type pType, Type pCalculationType) {
+        return factory.greaterThanOrEqual(pOperand2, pOperand1, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         greaterEqualCreator);
   }
 
   public SymbolicValue createLessThan(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -410,16 +413,16 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.lessThan(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.lessThan(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, lessCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation, lessCreator);
   }
 
   public SymbolicValue createLessThanOrEqual(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -427,17 +430,17 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.lessThanOrEqual(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.lessThanOrEqual(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation,
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation,
         lessEqualCreator);
   }
 
   public SymbolicValue createConditionalAnd(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -445,16 +448,16 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.logicalAnd(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.logicalAnd(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, andCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation, andCreator);
   }
 
   public SymbolicValue createConditionalOr(
-      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType,
+      Value pLeftOperand, Type pLeftType, Value pRightOperand, Type pRightType, Type pExpressionType, Type pCalculationType,
       AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
@@ -462,12 +465,12 @@ public class SymbolicValueFactory {
 
       @Override
       public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-          Type pType) {
-        return factory.logicalOr(pOperand1, pOperand2, pType);
+          Type pType, Type pCalculationType) {
+        return factory.logicalOr(pOperand1, pOperand2, pType, pCalculationType);
       }
     };
 
-    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pLocation, orCreator);
+    return createExpression(pLeftOperand, pLeftType, pRightOperand, pRightType, pExpressionType, pCalculationType, pLocation, orCreator);
   }
 
   public SymbolicValue createLogicalNot(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation)
@@ -511,7 +514,7 @@ public class SymbolicValueFactory {
   }
 
   private static interface BinaryExpressionCreator {
-    ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType);
+    ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType);
   }
 
   private static interface UnaryExpressionCreator {

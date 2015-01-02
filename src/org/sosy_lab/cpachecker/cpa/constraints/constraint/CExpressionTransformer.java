@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+import com.google.common.base.Optional;
+
 /**
  * Class for transforming {@link CExpression} objects into their {@link InvariantsFormula} representation.
  *
@@ -55,11 +57,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class CExpressionTransformer extends ExpressionTransformer
     implements CRightHandSideVisitor<ConstraintExpression, UnrecognizedCodeException> {
 
-  public CExpressionTransformer(String pFunctionName) {
-    super(pFunctionName);
-  }
-
-  public CExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
+  public CExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     super(pFunctionName, pValueState);
   }
 
@@ -72,6 +70,7 @@ public class CExpressionTransformer extends ExpressionTransformer
     ConstraintExpression operand1Expression = pIastBinaryExpression.getOperand1().accept(this);
     ConstraintExpression operand2Expression = pIastBinaryExpression.getOperand2().accept(this);
     final Type expressionType = pIastBinaryExpression.getExpressionType();
+    final Type calculationType = pIastBinaryExpression.getCalculationType();
 
     final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
 
@@ -83,37 +82,37 @@ public class CExpressionTransformer extends ExpressionTransformer
 
     switch (pIastBinaryExpression.getOperator()) {
       case PLUS:
-        return factory.add(operand1Expression, operand2Expression, expressionType);
+        return factory.add(operand1Expression, operand2Expression, calculationType, calculationType);
       case MINUS:
-        return factory.minus(operand1Expression, operand2Expression, expressionType);
+        return factory.minus(operand1Expression, operand2Expression, expressionType, calculationType);
       case MULTIPLY:
-        return factory.multiply(operand1Expression, operand2Expression, expressionType);
+        return factory.multiply(operand1Expression, operand2Expression, calculationType, calculationType);
       case DIVIDE:
-        return factory.divide(operand1Expression, operand2Expression, expressionType);
+        return factory.divide(operand1Expression, operand2Expression, calculationType, calculationType);
       case MODULO:
-        return factory.modulo(operand1Expression, operand2Expression, expressionType);
+        return factory.modulo(operand1Expression, operand2Expression, calculationType, calculationType);
       case SHIFT_LEFT:
-        return factory.shiftLeft(operand1Expression, operand2Expression, expressionType);
+        return factory.shiftLeft(operand1Expression, operand2Expression, calculationType, calculationType);
       case SHIFT_RIGHT:
-        return factory.shiftRight(operand1Expression, operand2Expression, expressionType);
+        return factory.shiftRight(operand1Expression, operand2Expression, calculationType, calculationType);
       case BINARY_AND:
-        return factory.binaryAnd(operand1Expression, operand2Expression, expressionType);
+        return factory.binaryAnd(operand1Expression, operand2Expression, calculationType, calculationType);
       case BINARY_OR:
-        return factory.binaryOr(operand1Expression, operand2Expression, expressionType);
+        return factory.binaryOr(operand1Expression, operand2Expression, calculationType, calculationType);
       case BINARY_XOR:
-        return factory.binaryXor(operand1Expression, operand2Expression, expressionType);
+        return factory.binaryXor(operand1Expression, operand2Expression, calculationType, calculationType);
       case EQUALS:
-        return factory.equal(operand1Expression, operand2Expression, expressionType);
+        return factory.equal(operand1Expression, operand2Expression, calculationType, calculationType);
       case NOT_EQUALS:
-        return factory.notEqual(operand1Expression, operand2Expression, expressionType);
+        return factory.notEqual(operand1Expression, operand2Expression, calculationType, calculationType);
       case LESS_THAN:
-        return factory.lessThan(operand1Expression, operand2Expression, expressionType);
+        return factory.lessThan(operand1Expression, operand2Expression, calculationType, calculationType);
       case LESS_EQUAL:
-        return factory.lessThanOrEqual(operand1Expression, operand2Expression, expressionType);
+        return factory.lessThanOrEqual(operand1Expression, operand2Expression, calculationType, calculationType);
       case GREATER_THAN:
-        return factory.greaterThan(operand1Expression, operand2Expression, expressionType);
+        return factory.greaterThan(operand1Expression, operand2Expression, calculationType, calculationType);
       case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(operand1Expression, operand2Expression, expressionType);
+        return factory.greaterThanOrEqual(operand1Expression, operand2Expression, calculationType, calculationType);
       default:
         throw new AssertionError("Unhandled binary operation " + pIastBinaryExpression.getOperator());
     }

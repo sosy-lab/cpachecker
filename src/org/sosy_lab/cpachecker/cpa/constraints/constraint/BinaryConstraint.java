@@ -24,19 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
 
 /**
- * A single constraint.
- *
- * <p>A constraint describes a relation between two {@link ConstraintOperand}s that has to be true or false,
- * depending on the constraint.</p>
- *
- * <p>Possible examples would be relations like <code>'5 < 10'</code> or <code>'n == 10'</code></p>
+ * A {@link Constraint} with two operands, like 'equals'.
  */
-public interface Constraint {
+public interface BinaryConstraint extends Constraint {
 
-  Type getExpressionType();
+  ConstraintExpression getOperand1();
 
-  <T> T accept(ConstraintVisitor<T> pVisitor);
+  ConstraintExpression getOperand2();
+
+  Type getCalculationType();
 }

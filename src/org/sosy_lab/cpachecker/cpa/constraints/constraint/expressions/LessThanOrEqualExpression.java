@@ -24,18 +24,26 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 
 /**
  * {@link BinaryConstraintExpression} representing the 'less than/equal' operation.
  */
-public class LessThanOrEqualExpression extends BinaryConstraintExpression {
+public class LessThanOrEqualExpression extends BinaryConstraintExpression implements BinaryConstraint {
 
-  protected LessThanOrEqualExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    super(pOperand1, pOperand2, pType);
+  protected LessThanOrEqualExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override
   public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public <T> T accept(ConstraintVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

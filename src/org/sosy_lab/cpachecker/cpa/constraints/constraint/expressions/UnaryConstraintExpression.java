@@ -43,7 +43,7 @@ public abstract class UnaryConstraintExpression implements ConstraintExpression 
   }
 
   @Override
-  public Type getType() {
+  public Type getExpressionType() {
     return type;
   }
 

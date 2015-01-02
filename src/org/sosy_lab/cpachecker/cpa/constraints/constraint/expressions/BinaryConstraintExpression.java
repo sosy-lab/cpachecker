@@ -35,17 +35,36 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
 
   private final ConstraintExpression operand1;
   private final ConstraintExpression operand2;
-  private final Type type;
 
-  protected BinaryConstraintExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
+  /**
+   * {@link Type} the operands are cast to during calculation.
+   */
+  private final Type calculationType;
+
+  /**
+   * {@link Type} of the binary expression
+   */
+  private final Type expressionType;
+
+  protected BinaryConstraintExpression(
+      ConstraintExpression pOperand1,
+      ConstraintExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType) {
+
     operand1 = pOperand1;
     operand2 = pOperand2;
-    type = pType;
+    expressionType = pExpressionType;
+    calculationType = pCalculationType;
   }
 
   @Override
-  public Type getType() {
-    return type;
+  public Type getExpressionType() {
+    return expressionType;
+  }
+
+  public Type getCalculationType() {
+    return calculationType;
   }
 
   public ConstraintExpression getOperand1() {
@@ -67,11 +86,12 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
 
     BinaryConstraintExpression that = (BinaryConstraintExpression) pObj;
 
-    return operand1.equals(that.operand1) && operand2.equals(that.operand2) && type.equals(that.type);
+    return operand1.equals(that.operand1) && operand2.equals(that.operand2) && expressionType
+        .equals(that.expressionType);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getClass(), operand1, operand2, type);
+    return Objects.hash(getClass(), operand1, operand2, expressionType);
   }
 }

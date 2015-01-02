@@ -30,8 +30,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class ShiftLeftExpression extends BinaryConstraintExpression {
 
-  protected ShiftLeftExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    super(pOperand1, pOperand2, pType);
+  protected ShiftLeftExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override

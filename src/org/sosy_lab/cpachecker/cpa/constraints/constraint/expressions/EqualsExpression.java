@@ -24,13 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 
 /**
  * {@link BinaryConstraintExpression} representing the 'equals' operation.
  */
-public class EqualsExpression extends BinaryConstraintExpression {
-  public EqualsExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType) {
-    super(pOperand1, pOperand2, pType);
+public class EqualsExpression extends BinaryConstraintExpression implements BinaryConstraint {
+
+  protected EqualsExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override
@@ -39,7 +43,13 @@ public class EqualsExpression extends BinaryConstraintExpression {
   }
 
   @Override
+  public <T> T accept(ConstraintVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " == " + getOperand2() + ")";
   }
+
 }
