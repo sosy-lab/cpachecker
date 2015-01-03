@@ -125,7 +125,7 @@ class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
     long conjunction = mk_and(z3context, fA, fB);
     inc_ref(z3context, conjunction);
 
-    int isSat = compute_interpolantFixed(
+    int isSat = compute_interpolant(
         z3context,
         conjunction,
         0,
@@ -176,7 +176,7 @@ class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
 
     final PointerToLong model = new PointerToLong();
     final PointerToLong interpolant = new PointerToLong();
-    int isSat = compute_interpolantFixed(
+    int isSat = compute_interpolant(
             z3context,
             interpolationFormulas[interpolationFormulas.length - 1], // last element is end of chain (root of tree)
             0,
