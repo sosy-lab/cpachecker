@@ -8,13 +8,17 @@
 
 CONTROL AUTOMATON NoSuccessorOnError
 
-INITIAL STATE Init;
+INITIAL STATE StepOverErrorOnTarget;
 
-STATE USEFIRST Init :
+STATE USEFIRST StepOverErrorOnTarget :
+  TRUE -> GOTO StopAtError;
+
+STATE USEFIRST StopAtError :
   MATCH {__VERIFIER_error($?)} -> STOP;
   MATCH {__assert_fail($?)} || MATCH {abort($?)} || MATCH {exit($?)} -> STOP;
   MATCH LABEL "LDV_ERROR" -> STOP;
   MATCH LABEL [[Ee\][Rr\][Rr\][Oo\][Rr\]] -> STOP;
-  TRUE -> GOTO Init;
+
+  TRUE -> GOTO StopAtError;
 
 END AUTOMATON
