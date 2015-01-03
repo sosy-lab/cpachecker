@@ -903,6 +903,10 @@ cpa.predicate.abstraction.computation = BOOLEAN
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
+# Eliminate propositions about dead variables in abstraction predicates by
+# running a generalization procedure.
+cpa.predicate.abstraction.elimDeadVariablePreds = false
+
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
 cpa.predicate.abstraction.identifyTrivialPredicates = false
@@ -1518,7 +1522,7 @@ cpa.statistics.statisticsCPAFile = no default value
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
 # Value to substitute for the epsilon
-cpa.stator.policy.epsilon = 1
+cpa.stator.policy.epsilon = Rational.ONE
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
@@ -1845,6 +1849,9 @@ precondition.export.target = "precondition.txt"
 # (How) should the precondition be exported?
 precondition.export.type = NONE
   enum:     [NONE, SMTLIB]
+
+# Use the refiner that uses a solver-based interpolation mechanism.
+precondition.solverbasedInterpolation = false
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"
