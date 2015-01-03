@@ -74,7 +74,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure=true, name="epsilon",
       description="Value to substitute for the epsilon")
-  private int EPSILON = 1;
+  private Rational EPSILON = Rational.ONE;
 
   private final FormulaManagerView fmgr;
 

@@ -39,12 +39,14 @@ import com.google.common.collect.ImmutableList;
 class Z3OptProver implements OptEnvironment {
 
   private final Z3FormulaManager mgr;
+  private final Z3RationalFormulaManager rfmgr;
   private static final String Z3_INFINITY_REPRESENTATION = "oo";
   private long z3context;
   private long z3optContext;
 
-  Z3OptProver(Z3FormulaManager mgr) {
-    this.mgr = mgr;
+  Z3OptProver(Z3FormulaManager pMgr) {
+    mgr = pMgr;
+    rfmgr = (Z3RationalFormulaManager)pMgr.getRationalFormulaManager();
     z3context = mgr.getEnvironment();
     z3optContext = mk_optimize(z3context);
     optimize_inc_ref(z3context, z3optContext);
@@ -93,7 +95,7 @@ class Z3OptProver implements OptEnvironment {
   }
 
   @Override
-  public Optional<Rational> upper(int handle, int epsilon) {
+  public Optional<Rational> upper(int handle, Rational epsilon) {
     long ast = optimize_get_upper(z3context, z3optContext, handle);
     if (isInfinity(ast)) {
       return Optional.absent();
@@ -102,7 +104,7 @@ class Z3OptProver implements OptEnvironment {
   }
 
   @Override
-  public Optional<Rational> lower(int handle, int epsilon) {
+  public Optional<Rational> lower(int handle, Rational epsilon) {
     long ast = optimize_get_lower(z3context, z3optContext, handle);
     if (isInfinity(ast)) {
       return Optional.absent();
@@ -143,17 +145,15 @@ class Z3OptProver implements OptEnvironment {
   /**
    * Replace the epsilon in the returned formula with a numeric value.
    */
-  private long replaceEpsilon(long ast, int newValue) {
+  private long replaceEpsilon(long ast, Rational newValue) {
     Z3Formula z = new Z3RationalFormula(z3context, ast);
 
-    Z3Formula epsFormula =
-        (Z3Formula)mgr.getIntegerFormulaManager().makeVariable("epsilon");
+    Z3Formula epsFormula = (Z3Formula)rfmgr.makeVariable("epsilon");
 
     Z3Formula out = mgr.getUnsafeFormulaManager().substitute(
         z,
         ImmutableList.of(epsFormula),
-        ImmutableList.of(
-            (Z3Formula)mgr.getIntegerFormulaManager().makeNumber(newValue))
+        ImmutableList.of((Z3Formula)rfmgr.makeNumber(newValue.toString()))
     );
     return simplify(z3context, out.getFormulaInfo());
 

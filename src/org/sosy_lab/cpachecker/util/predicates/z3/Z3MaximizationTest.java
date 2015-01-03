@@ -82,7 +82,7 @@ public class Z3MaximizationTest {
       int handle = prover.maximize(obj);
       @SuppressWarnings("unused")
       OptEnvironment.OptStatus response = prover.check();
-      Assert.assertTrue(!prover.upper(handle, 0).isPresent());
+      Assert.assertTrue(!prover.upper(handle, Rational.ZERO).isPresent());
     }
   }
 
@@ -140,7 +140,7 @@ public class Z3MaximizationTest {
           model.toString());
 
       // Check the value.
-      Assert.assertEquals(Rational.ofString("19"), prover.upper(handle, 0).get());
+      Assert.assertEquals(Rational.ofString("19"), prover.upper(handle, Rational.ZERO).get());
     }
   }
 
@@ -188,7 +188,7 @@ public class Z3MaximizationTest {
       int handle = prover.maximize(obj);
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("19"));
+      assertThat(prover.upper(handle, Rational.ZERO).get()).isEqualTo(Rational.ofString("19"));
 
       prover.pop();
       prover.push();
@@ -196,7 +196,7 @@ public class Z3MaximizationTest {
       handle = prover.maximize(x);
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("10"));
+      assertThat(prover.upper(handle, Rational.ZERO).get()).isEqualTo(Rational.ofString("10"));
 
       prover.pop();
       prover.push();
@@ -204,7 +204,7 @@ public class Z3MaximizationTest {
       handle = prover.maximize(rfmgr.makeVariable("y"));
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("9"));
+      assertThat(prover.upper(handle, Rational.ZERO).get()).isEqualTo(Rational.ofString("9"));
 
       prover.pop();
     }

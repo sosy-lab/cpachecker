@@ -81,12 +81,12 @@ public class OptEnvironmentView implements OptEnvironment {
   }
 
   @Override
-  public Optional<Rational> upper(int handle, int epsilon) {
+  public Optional<Rational> upper(int handle, Rational epsilon) {
     return delegate.upper(handle, epsilon);
   }
 
   @Override
-  public Optional<Rational> lower(int handle, int epsilon) {
+  public Optional<Rational> lower(int handle, Rational epsilon) {
     return delegate.lower(handle, epsilon);
   }
 
