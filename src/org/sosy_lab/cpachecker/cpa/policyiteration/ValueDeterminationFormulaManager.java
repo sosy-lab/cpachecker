@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -109,8 +108,7 @@ public class ValueDeterminationFormulaManager {
                   SSAMap.emptySSAMap(),
                   PointerTargetSet.emptyPointerTargetSet(),
                   0
-              ),
-              edgePrefix, bound.trace);
+              ), edgePrefix);
           BooleanFormula constraint = fmgr.makeLessOrEqual(
               templateFormula,
               fmgr.makeNumber(templateFormula, bound.bound), true
@@ -145,7 +143,7 @@ public class ValueDeterminationFormulaManager {
           }
 
           Formula outExpr = templateManager.toFormula(
-              template, edgePathFormula, edgePrefix, bound.trace);
+              template, edgePathFormula, edgePrefix);
           String varName = absDomainVarName(toNode, template);
           BooleanFormula outConstraint;
 
