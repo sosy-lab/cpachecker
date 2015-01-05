@@ -123,7 +123,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
@@ -462,23 +461,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
 
-      // If it's a symbolic formula, try if we can solve it for any of its symbolic values.
-      if (value instanceof SymbolicValueFormula) {
-        Pair<SymbolicValue, Value> replacement = null;
-        replacement = ((SymbolicValueFormula)value).inferAssignment(truthValue, logger);
-        if (replacement != null) {
-          for (MemoryLocation memloc : state.getTrackedMemoryLocations()) {
-            Value trackedValue = state.getValueFor(memloc);
-            if (trackedValue instanceof SymbolicValueFormula) {
-              SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
-              Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond(), logger);
-              if (newValue != trackedValue) {
-                element.assignConstant(memloc, newValue, state.getTypeForMemoryLocation(memloc));
-              }
-            }
-          }
-        }
-      }
+      assert !(value instanceof SymbolicValueFormula);
 
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue, booleanVariables);
 
