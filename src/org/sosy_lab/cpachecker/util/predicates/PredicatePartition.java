@@ -47,7 +47,6 @@ public class PredicatePartition {
   private ArrayList<AbstractionPredicate> predicates;
   // mapping varID -> predicate in partition
   private HashMap<Integer, AbstractionPredicate> varIDToPredicate;
-  private HashSet<Pair<Integer, Integer>> implicationRelation;
   private ArrayList<ArrayList<Integer>> similarityRelation = new ArrayList<>();
   private Solver solver;
 
@@ -56,7 +55,6 @@ public class PredicatePartition {
     this.solver = solver;
     predicates = new ArrayList<>();
     varIDToPredicate = new HashMap<>();
-    implicationRelation = new HashSet<>();
     similarityRelation = new ArrayList<>();
   }
 
@@ -76,7 +74,25 @@ public class PredicatePartition {
    * @param newPred
    */
   private void insertPredicateByImplication(AbstractionPredicate newPred) {
+    // solver does hashing
+    // find highest position in order where all predicates that imply newPred are on the left and all predicates that are implied by newPred are on the right
+    int highestImplier = -1;
+    int lowestImplied = -1;
+    for (int i = 0; i < predicates.size(); i++) {
+      AbstractionPredicate oldPred = predicates.get(i).getSymbolicAtom();
+      try {
+        if (solver.implies(oldPred, newPred)) {
+       // TODO exception handling
+          highestImplier = i;
+        }
+        if (solver.implies(newPred, oldPred)) {
+          lowestImplied = i;
+          break;
+        }
 
+      }
+
+    }
   }
 
   /**
