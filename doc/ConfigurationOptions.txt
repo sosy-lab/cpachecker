@@ -1290,7 +1290,7 @@ cpa.predicate.solver.useLogger = false
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
-cpa.predicate.solver.z3.activateZ3Logging = false
+cpa.predicate.solver.z3.log = no default value
 
 # Export solver queries in Smtlib2 format, there are small differences for
 # different solvers, choose target-solver.

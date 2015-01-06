@@ -26,15 +26,20 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 import java.io.IOException;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
@@ -76,7 +81,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     @Option(secure=true, description="Activate replayable logging in Z3."
         + " The log can be given as an input to the solver and replayed.")
-    boolean activateZ3Logging = false;
+    @FileOption(Type.OUTPUT_FILE)
+    Path log = null;
   }
 
   private Z3FormulaManager(
@@ -112,8 +118,16 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     NativeLibraries.loadLibrary("z3j");
 
-    if (extraOptions.activateZ3Logging) {
-      open_log("output/z3.log");
+    if (extraOptions.log != null) {
+      Path absolutePath = extraOptions.log.toAbsolutePath();
+      try {
+        // Z3 segfaults if it cannot write to the file, thus we write once first
+        Files.writeFile(absolutePath, "");
+
+        open_log(absolutePath.toString());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Cannot write Z3 log file");
+      }
     }
 
     long cfg = mk_config();
