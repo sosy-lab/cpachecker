@@ -694,9 +694,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     if (node instanceof FunctionEntryNode) {
       return true;
     }
-    if (node.getLeavingSummaryEdge() != null) {
-      return true;
-    }
     return false;
   }
 
