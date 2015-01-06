@@ -47,6 +47,11 @@ public class LogicalNotExpression extends UnaryConstraintExpression implements U
   }
 
   @Override
+  public LogicalNotExpression copyWithExpressionType(Type pExpressionType) {
+    return new LogicalNotExpression(getOperand(), pExpressionType);
+  }
+
+  @Override
   public String toString() {
     return "!" + getOperand();
   }

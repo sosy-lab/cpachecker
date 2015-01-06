@@ -55,8 +55,8 @@ public class SymbolicIdentifier implements SymbolicValue {
 
   // this objects unique id for identifying it
   private final long id;
-  @SuppressWarnings("unused")
-  private final Type type;
+
+  private Type type;
 
   protected SymbolicIdentifier(long pId, Type pType) {
     id = pId;
@@ -78,6 +78,14 @@ public class SymbolicIdentifier implements SymbolicValue {
     return pVisitor.visit(this);
   }
 
+  @Override
+  public SymbolicIdentifier copyWithType(Type pType) {
+
+    // we keep the same id but only change the type so we do not lose information
+    return new SymbolicIdentifier(id, pType);
+  }
+
+  @Override
   public Type getType() {
     return type;
   }
@@ -89,7 +97,8 @@ public class SymbolicIdentifier implements SymbolicValue {
 
   @Override
   public boolean equals(Object pOther) {
-    return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id;
+    return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id
+        && ((SymbolicIdentifier) pOther).type.equals(type);
   }
 
   @Override

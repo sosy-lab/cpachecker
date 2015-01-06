@@ -41,6 +41,11 @@ public class AdditionExpression extends BinaryConstraintExpression {
   }
 
   @Override
+  public AdditionExpression copyWithExpressionType(Type pExpressionType) {
+    return new AdditionExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " + " + getOperand2() + ")";
   }

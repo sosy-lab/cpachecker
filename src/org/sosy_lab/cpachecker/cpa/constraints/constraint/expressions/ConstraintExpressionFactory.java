@@ -75,7 +75,7 @@ public class ConstraintExpressionFactory {
     final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
     final Type formulaType = pFormula.getExpressionType();
 
-    return factory.multiply(getMinusOne(formulaType), pFormula, formulaType, formulaType);
+    return factory.multiply(getMinusOne(formulaType), pFormula, pType, pType);
   }
 
   private ConstraintExpression getMinusOne(Type pType) {

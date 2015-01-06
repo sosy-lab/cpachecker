@@ -40,6 +40,12 @@ public class BinaryOrExpression extends BinaryConstraintExpression {
     return pVisitor.visit(this);
   }
 
+
+  @Override
+  public BinaryOrExpression copyWithExpressionType(Type pExpressionType) {
+    return new BinaryOrExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
   @Override
   public String toString() {
     return "(" + getOperand1() + " | " + getOperand2() + ")";

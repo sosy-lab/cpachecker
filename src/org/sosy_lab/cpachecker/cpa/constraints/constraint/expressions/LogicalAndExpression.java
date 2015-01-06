@@ -41,6 +41,11 @@ public class LogicalAndExpression extends BinaryConstraintExpression {
   }
 
   @Override
+  public LogicalAndExpression copyWithExpressionType(Type pExpressionType) {
+    return new LogicalAndExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " && " + getOperand2() + ")";
   }

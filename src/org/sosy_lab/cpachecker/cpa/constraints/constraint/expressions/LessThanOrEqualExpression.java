@@ -48,6 +48,11 @@ public class LessThanOrEqualExpression extends BinaryConstraintExpression implem
   }
 
   @Override
+  public LessThanOrEqualExpression copyWithExpressionType(Type pExpressionType) {
+    return new LessThanOrEqualExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " <= " + getOperand2() + ")";
   }

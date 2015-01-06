@@ -44,7 +44,7 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
   /**
    * {@link Type} of the binary expression
    */
-  private final Type expressionType;
+  private Type expressionType;
 
   protected BinaryConstraintExpression(
       ConstraintExpression pOperand1,

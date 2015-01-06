@@ -41,6 +41,11 @@ public class MultiplicationExpression extends BinaryConstraintExpression {
   }
 
   @Override
+  public MultiplicationExpression copyWithExpressionType(Type pExpressionType) {
+    return new MultiplicationExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " * " + getOperand2() + ")";
   }

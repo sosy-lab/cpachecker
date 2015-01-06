@@ -46,4 +46,11 @@ public interface ConstraintExpression {
    * @return the expression type of this <code>ConstraintExpression</code>
    */
   Type getExpressionType();
+
+  /**
+   * Returns a copy of this <code>ConstraintExpression</code> object with the given expression type.
+   *
+   * @param pType the expression type of the returned object
+   */
+  ConstraintExpression copyWithExpressionType(Type pType);
 }

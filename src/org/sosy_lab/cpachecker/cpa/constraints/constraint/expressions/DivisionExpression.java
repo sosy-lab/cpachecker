@@ -39,6 +39,12 @@ public class DivisionExpression extends BinaryConstraintExpression {
     return pVisitor.visit(this);
   }
 
+
+  @Override
+  public DivisionExpression copyWithExpressionType(Type pExpressionType) {
+    return new DivisionExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
   @Override
   public String toString() {
     return "(" + getOperand1() + " / " + getOperand2() + ")";

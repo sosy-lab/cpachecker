@@ -41,6 +41,11 @@ public class LogicalOrExpression extends BinaryConstraintExpression {
   }
 
   @Override
+  public LogicalOrExpression copyWithExpressionType(Type pExpressionType) {
+    return new LogicalOrExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " || " + getOperand2() + ")";
   }

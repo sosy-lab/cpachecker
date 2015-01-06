@@ -41,6 +41,11 @@ public class ModuloExpression extends BinaryConstraintExpression {
   }
 
   @Override
+  public ModuloExpression copyWithExpressionType(Type pExpressionType) {
+    return new ModuloExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " % " + getOperand2() + ")";
   }

@@ -121,6 +121,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public ConstraintExpression visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
     final CUnaryExpression.UnaryOperator operator = pIastUnaryExpression.getOperator();
+    final Type expressionType = pIastUnaryExpression.getExpressionType();
 
     switch (operator) {
       case MINUS:
@@ -130,7 +131,7 @@ public class CExpressionTransformer extends ExpressionTransformer
         if (operand == null) {
           return null;
         } else {
-          return transformUnaryArithmetic(operator, operand, pIastUnaryExpression.getExpressionType());
+          return transformUnaryArithmetic(operator, operand, expressionType);
         }
       }
 
@@ -140,12 +141,12 @@ public class CExpressionTransformer extends ExpressionTransformer
   }
 
   private ConstraintExpression transformUnaryArithmetic(CUnaryExpression.UnaryOperator pOperator,
-      ConstraintExpression pOperand, Type pType) {
+      ConstraintExpression pOperand, Type pExpressionType) {
     switch (pOperator) {
       case MINUS:
-        return ConstraintExpressionFactory.getInstance().negate(pOperand, pType);
+        return ConstraintExpressionFactory.getInstance().negate(pOperand, pExpressionType);
       case TILDE:
-        return ConstraintExpressionFactory.getInstance().binaryNot(pOperand, pType);
+        return ConstraintExpressionFactory.getInstance().binaryNot(pOperand, pExpressionType);
       default:
         throw new AssertionError("No arithmetic operator: " + pOperator);
     }

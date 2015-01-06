@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -61,6 +62,16 @@ public class SymbolicExpression implements SymbolicValue {
 
   public ConstraintExpression getExpression() {
     return expression;
+  }
+
+  @Override
+  public Type getType() {
+    return expression.getExpressionType();
+  }
+
+  @Override
+  public SymbolicExpression copyWithType(Type pType) {
+    return new SymbolicExpression(expression.copyWithExpressionType(pType));
   }
 
   public <T> T accept(SymbolicValueVisitor<T> pVisitor) {

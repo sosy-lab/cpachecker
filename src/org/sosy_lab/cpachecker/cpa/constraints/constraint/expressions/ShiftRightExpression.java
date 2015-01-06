@@ -38,6 +38,11 @@ public class ShiftRightExpression extends BinaryConstraintExpression {
   }
 
   @Override
+  public ShiftRightExpression copyWithExpressionType(Type pExpressionType) {
+    return new ShiftRightExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }

@@ -41,6 +41,11 @@ public class ShiftLeftExpression extends BinaryConstraintExpression {
   }
 
   @Override
+  public ShiftLeftExpression copyWithExpressionType(Type pExpressionType) {
+    return new ShiftLeftExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " << " + getOperand2() + ")";
   }

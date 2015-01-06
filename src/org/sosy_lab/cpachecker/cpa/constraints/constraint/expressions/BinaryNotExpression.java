@@ -38,6 +38,12 @@ public class BinaryNotExpression extends UnaryConstraintExpression {
     return pVisitor.visit(this);
   }
 
+
+  @Override
+  public BinaryNotExpression copyWithExpressionType(Type pExpressionType) {
+    return new BinaryNotExpression(getOperand(), pExpressionType);
+  }
+
   @Override
   public String toString() {
     return "~" + getOperand();

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 
 /**
  * {@link ConstraintExpression} that represents a single constant value of a specific type.
@@ -57,6 +58,17 @@ public class ConstantConstraintExpression implements ConstraintExpression {
   @Override
   public Type getExpressionType() {
     return type;
+  }
+
+  @Override
+  public ConstantConstraintExpression copyWithExpressionType(Type pExpressionType) {
+    Value newValue = value;
+
+    if (value instanceof SymbolicIdentifier) {
+      newValue = ((SymbolicIdentifier) value).copyWithType(pExpressionType);
+    }
+
+    return new ConstantConstraintExpression(newValue, pExpressionType);
   }
 
   @Override

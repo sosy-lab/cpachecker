@@ -47,6 +47,12 @@ public class EqualsExpression extends BinaryConstraintExpression implements Bina
     return pVisitor.visit(this);
   }
 
+
+  @Override
+  public EqualsExpression copyWithExpressionType(Type pExpressionType) {
+    return new EqualsExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
   @Override
   public String toString() {
     return "(" + getOperand1() + " == " + getOperand2() + ")";

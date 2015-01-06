@@ -217,6 +217,14 @@ public abstract class AbstractExpressionValueVisitor
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
 
+    /* We do not cast the value to the calculation type for symbolic expressions. This allows us to
+     * keep the type information of symbolic identifiers.
+     * The calculation type is stored in the encapsulating expression.
+     */
+    if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
+      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, binaryExpr, logger);
+    }
+
     lVal = castCValue(lVal, binaryExpr.getOperand1().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
     if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
@@ -232,10 +240,6 @@ public abstract class AbstractExpressionValueVisitor
        */
       rVal =
           castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
-    }
-
-    if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
-      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, binaryExpr, logger);
     }
 
     if (!lVal.isNumericValue() || !rVal.isNumericValue()) {
@@ -1541,8 +1545,9 @@ public abstract class AbstractExpressionValueVisitor
       final CType targetType, final MachineModel machineModel,
       final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
 
-    // If we don't know the value explicitly, just return it.
-    if (!value.isExplicitlyKnown()) { return value; }
+    if (!value.isExplicitlyKnown()) {
+      return castIfSymbolic(value, targetType);
+    }
 
     // For now can only cast numeric value's
     if (!value.isNumericValue()) {
@@ -1666,6 +1671,17 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  private static Value castIfSymbolic(Value pValue, Type pTargetType) {
+    if (pValue instanceof SymbolicValue) {
+      return ((SymbolicValue) pValue).copyWithType(pTargetType);
+
+    } else {
+
+      // If the value is not symbolic, just return it.
+      return pValue;
+    }
+  }
+
   /**
    * <p>Casts the given value to the specified Java type. This also handles overflows.</p>
    *
@@ -1686,10 +1702,11 @@ public abstract class AbstractExpressionValueVisitor
   public static Value castJValue(@Nonnull final Value value, JType sourceType,
       JType targetType, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
 
-    // If we don't know the value explicitly, just return it.
-    if (!value.isExplicitlyKnown()) { return value; }
+    if (!value.isExplicitlyKnown()) {
+      return castIfSymbolic(value, targetType);
+    }
 
-    // For now can only cast numeric value's
+    // Other than symbolic values, we can only cast numeric values, for now.
     if (!value.isNumericValue()) {
       logger.logf(Level.FINE, "Can not cast Java value %s to %s", value.toString(), targetType.toString());
       return value;

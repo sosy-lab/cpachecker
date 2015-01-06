@@ -48,6 +48,11 @@ public class LessThanExpression extends BinaryConstraintExpression implements Bi
   }
 
   @Override
+  public LessThanExpression copyWithExpressionType(Type pExpressionType) {
+    return new LessThanExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
   public String toString() {
     return "(" + getOperand1() + " < " + getOperand2() + ")";
   }
