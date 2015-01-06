@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
 /**
- * Created by leostrakosch on 27.12.14.
+ * Visitor for {@link ConstraintExpression} subtypes.
+ *
+ * @param <MethodReturnT> the return type of all <code>visit</code> methods.
  */
 public interface ConstraintExpressionVisitor<MethodReturnT> {
 
@@ -34,7 +36,7 @@ public interface ConstraintExpressionVisitor<MethodReturnT> {
 
   MethodReturnT visit(MultiplicationExpression pExpression);
 
-  MethodReturnT visit(DivisionExpression pDivisionExpression);
+  MethodReturnT visit(DivisionExpression pExpression);
 
   MethodReturnT visit(ModuloExpression pExpression);
 
