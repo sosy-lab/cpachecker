@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
@@ -44,7 +45,7 @@ public class PredicatePartition {
   private static int partitionCounter = 0;
   private final int partitionID = partitionCounter++;
   private final FormulaManagerView fmgr;
-  private ArrayList<AbstractionPredicate> predicates;
+  private ArrayList<AbstractionPredicate> predicates; // LinkedList better for inserting?
   // mapping varID -> predicate in partition
   private HashMap<Integer, AbstractionPredicate> varIDToPredicate;
   private ArrayList<ArrayList<Integer>> similarityRelation = new ArrayList<>();
@@ -64,6 +65,7 @@ public class PredicatePartition {
    * @param newPred the predicate that should be inserted.
    */
   public void insertPredicate(AbstractionPredicate newPred) {
+    varIDToPredicate.put(newPred.getVariableNumber(), newPred);  // has to be done anyway
     insertPredicateByImplication(newPred);
     // insertPredicateBySimilarity(newPred);
   }
@@ -74,25 +76,27 @@ public class PredicatePartition {
    * @param newPred
    */
   private void insertPredicateByImplication(AbstractionPredicate newPred) {
-    // solver does hashing
-    // find highest position in order where all predicates that imply newPred are on the left and all predicates that are implied by newPred are on the right
-    int highestImplier = -1;
-    int lowestImplied = -1;
-    for (int i = 0; i < predicates.size(); i++) {
+    // solver does caching
+    // find lowest position of a predicate that is implied by newPred, insert newPred before that predicate
+    int lowestImplied = predicates.size();
+    for (int i = predicates.size() - 1; i >= 0; i--) {
       AbstractionPredicate oldPred = predicates.get(i).getSymbolicAtom();
       try {
-        if (solver.implies(oldPred, newPred)) {
-       // TODO exception handling
-          highestImplier = i;
-        }
         if (solver.implies(newPred, oldPred)) {
           lowestImplied = i;
+        }
+        if (solver.implies(oldPred, newPred)) {
           break;
         }
-
+      } catch (SolverException | InterruptedException e) {
+        // TODO no idea what could cause these exceptions...
       }
 
     }
+
+    // insert before lowestImplied
+    predicates.add(lowestImplied, newPred);
+
   }
 
   /**
@@ -121,7 +125,7 @@ public class PredicatePartition {
       predicates.add(indexSimilarPred + 1, newPred);
     }
 
-    varIDToPredicate.put(newPred.getVariableNumber(), newPred);
+
   }
 
   /**
@@ -155,6 +159,11 @@ public class PredicatePartition {
   // anzupassen.
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID()) {
+      // implication insert: insert every predicate on its own, insertion takes care of the sorting
+      for (newPred : newPreds.getPredicates()) {
+        insertPredicate(newPred);
+      }
+
       // 1. Für Implikationen wohl interessant: Werden Partionen einfach zusammengefügt und dann wird das neue Prädikat an
       // der richtigen Stelle eingefügt?
       // 2. Für Similarities interessant: Soll das neue Prädikat zwischen zwei Partionen eingefügt werden?
