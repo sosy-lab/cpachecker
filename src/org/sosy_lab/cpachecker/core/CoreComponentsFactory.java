@@ -121,11 +121,11 @@ public class CoreComponentsFactory {
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
-  @Option(name="algorithm.tiger",
+  @Option(secure=true, name="algorithm.tiger",
       description = "Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal Reachability Analyses, ESOP'13)")
   private boolean useTigerAlgorithm = false;
 
-  @Option(name="algorithm.tiger_with_presenceConditions",
+  @Option(secure=true, name="algorithm.tiger_with_presenceConditions",
       description = "Use Test Input GEneRator algorithm with an extension using the BDDCPA to model product line presence conditions")
   private boolean useTigerAlgorithm_with_pc = false;
 

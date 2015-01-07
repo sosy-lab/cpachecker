@@ -139,29 +139,29 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
   // we hijack the static originalMainFunction field in TigerAlgorithm
   //public static String originalMainFunction = null;
 
-  @Option(name = "fqlQuery", description = "Coverage criterion given as an FQL query")
+  @Option(secure=true, name = "fqlQuery", description = "Coverage criterion given as an FQL query")
   private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
 
-  @Option(name = "optimizeGoalAutomata", description = "Optimize the test goal automata")
+  @Option(secure=true, name = "optimizeGoalAutomata", description = "Optimize the test goal automata")
   private boolean optimizeGoalAutomata = true;
 
-  @Option(name = "printARGperGoal", description = "Print the ARG for each test goal")
+  @Option(secure=true, name = "printARGperGoal", description = "Print the ARG for each test goal")
   private boolean printARGperGoal = false;
 
-  @Option(name = "checkCoverage", description = "Checks whether a test case for one goal covers another test goal")
+  @Option(secure=true, name = "checkCoverage", description = "Checks whether a test case for one goal covers another test goal")
   private boolean checkCoverage = true;
 
-  @Option(name = "reuseARG", description = "Reuse ARG across test goals")
+  @Option(secure=true, name = "reuseARG", description = "Reuse ARG across test goals")
   private boolean reuseARG = true;
 
-  @Option(name = "reusePredicates", description = "Reuse predicates across modifications of an ARG.")
+  @Option(secure=true, name = "reusePredicates", description = "Reuse predicates across modifications of an ARG.")
   private boolean reusePredicates = true;
 
-  @Option(name = "testsuiteFile", description = "Filename for output of generated test suite")
+  @Option(secure=true, name = "testsuiteFile", description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testsuiteFile = Paths.get("testsuite.txt");
 
-  @Option(name = "useInfeasibilityPropagation", description = "Map information on infeasibility of one test goal to other test goals.")
+  @Option(secure=true, name = "useInfeasibilityPropagation", description = "Map information on infeasibility of one test goal to other test goals.")
   private boolean useInfeasibilityPropagation = false;
 
   enum TimeoutStrategy {
@@ -169,10 +169,10 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
     RETRY_AFTER_TIMEOUT
   }
 
-  @Option(name = "timeoutStrategy", description = "How to proceed with timed-out goals if some time remains after processing all other goals.")
+  @Option(secure=true, name = "timeoutStrategy", description = "How to proceed with timed-out goals if some time remains after processing all other goals.")
   private TimeoutStrategy timeoutStrategy = TimeoutStrategy.SKIP_AFTER_TIMEOUT;
 
-  @Option(name = "limitsPerGoal.time.cpu.increment", description = "Value for which timeout gets incremented if timed-out goals are re-processed.")
+  @Option(secure=true, name = "limitsPerGoal.time.cpu.increment", description = "Value for which timeout gets incremented if timed-out goals are re-processed.")
   private int timeoutIncrement = 0;
 
   /*@Option(name = "globalCoverageCheckBeforeTimeout", description = "Perform a coverage check on all remaining coverage goals before the global time out happens.")
@@ -181,16 +181,16 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
   @Option(name = "timeForGlobalCoverageCheck", description = "Time budget for coverage check before global time out.")
   private String timeForGlobalCoverageCheck = "0s";*/
 
-  @Option(name = "limitsPerGoal.time.cpu", description = "Time limit per test goal in seconds (-1 for infinity).")
+  @Option(secure=true, name = "limitsPerGoal.time.cpu", description = "Time limit per test goal in seconds (-1 for infinity).")
   private long cpuTimelimitPerGoal = -1;
 
-  @Option(name = "inverseOrder", description = "Inverses the order of test goals each time a new round of re-processing of timed-out goals begins.")
+  @Option(secure=true, name = "inverseOrder", description = "Inverses the order of test goals each time a new round of re-processing of timed-out goals begins.")
   private boolean inverseOrder = true;
 
-  @Option(name = "useOrder", description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
+  @Option(secure=true, name = "useOrder", description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
   private boolean useOrder = true;
 
-  @Option(name = "algorithmConfigurationFile", description = "Configuration file for internal cpa algorithm.")
+  @Option(secure=true, name = "algorithmConfigurationFile", description = "Configuration file for internal cpa algorithm.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path algorithmConfigurationFile = Paths.get("config/tiger-internal-algorithm.properties");
 
