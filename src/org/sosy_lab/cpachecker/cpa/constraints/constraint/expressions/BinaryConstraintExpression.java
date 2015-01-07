@@ -76,6 +76,11 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
   }
 
   @Override
+  public boolean isTrivial() {
+    return operand1.isTrivial() && operand2.isTrivial();
+  }
+
+  @Override
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;

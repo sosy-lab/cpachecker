@@ -52,6 +52,11 @@ public abstract class UnaryConstraintExpression implements ConstraintExpression 
   }
 
   @Override
+  public boolean isTrivial() {
+    return operand.isTrivial();
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;

@@ -62,6 +62,11 @@ public class ConstantConstraintExpression implements ConstraintExpression {
   }
 
   @Override
+  public boolean isTrivial() {
+    return !(value instanceof SymbolicValue);
+  }
+
+  @Override
   public ConstantConstraintExpression copyWithExpressionType(Type pExpressionType) {
     Value newValue = value;
 

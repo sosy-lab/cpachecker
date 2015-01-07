@@ -39,4 +39,6 @@ public interface Constraint {
   Type getExpressionType();
 
   <T> T accept(ConstraintVisitor<T> pVisitor);
+
+  boolean isTrivial();
 }

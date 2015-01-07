@@ -184,19 +184,25 @@ public class ConstraintsTransferRelation
       }
 
       if (newConstraint.isPresent()) {
-        newState.addConstraint(newConstraint.get());
+          newState.addConstraint(newConstraint.get());
+      }
+
+      if (newState.isUnsat()) {
+        return null;
+
+      } else {
+        if (newConstraint.isPresent() && newConstraint.get().isTrivial()) {
+          return pOldState.copyOf();
+        } else {
+          return newState;
+        }
       }
 
     } catch (UnrecognizedCodeException e) {
       logger.logUserException(Level.WARNING, e, pFileLocation.toString());
     }
 
-    if (newState.isUnsat()) {
-      return null;
-
-    } else {
-      return newState;
-    }
+    return newState;
   }
 
   private FormulaCreator<? extends Formula> getFormulaCreator() {

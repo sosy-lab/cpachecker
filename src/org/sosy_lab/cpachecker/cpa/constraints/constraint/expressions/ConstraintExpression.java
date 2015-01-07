@@ -53,4 +53,12 @@ public interface ConstraintExpression {
    * @param pType the expression type of the returned object
    */
   ConstraintExpression copyWithExpressionType(Type pType);
+
+  /**
+   * Returns whether this <code>ConstraintExpression</code> is always true and does only contain explicit values.
+   *
+   * @return <code>true</code> if this <code>ConstraintExpression</code> is always true and does only contain explicit
+   *    values, <code>false</code> otherwise
+   */
+  boolean isTrivial();
 }
