@@ -263,7 +263,8 @@ public class ConstraintsTransferRelation
       List<AbstractState> pStrengtheningStates, CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     assert pStateToStrengthen instanceof ConstraintsState;
 
-    Collection<ConstraintsState> newStates = new ArrayList<>();
+    List<ConstraintsState> newStates = new ArrayList<>();
+    boolean nothingChanged = true;
 
     if (!missingInformation) {
       return null;
@@ -271,17 +272,43 @@ public class ConstraintsTransferRelation
 
     for (AbstractState currState : pStrengtheningStates) {
       if (currState instanceof ValueAnalysisState) {
-        Collection<ConstraintsState> newValueStrengthenedStates =
-            strengthen((ConstraintsState) pStateToStrengthen, (ValueAnalysisState) currState, pCfaEdge);
+        Optional<Collection<ConstraintsState>> newValueStrengthenedStates =
+            strengthen((ConstraintsState)pStateToStrengthen, (ValueAnalysisState)currState, pCfaEdge);
 
-        newStates.addAll(newValueStrengthenedStates);
+        if (newValueStrengthenedStates.isPresent()) {
+          nothingChanged = false;
+          newStates.addAll(newValueStrengthenedStates.get());
+        }
       }
     }
 
-    return newStates;
+    resetMissingInformationStatus();
+
+    if (nothingChanged) {
+      return null;
+    } else {
+      return newStates;
+    }
   }
 
-  private Collection<ConstraintsState> strengthen(ConstraintsState pStateToStrengthen,
+  /**
+   * Strengthen the given {@link ConstraintsState} with the provided {@link ValueAnalysisState}.
+   *
+   * If the returned {@link Optional} instance is empty, strengthening of the given <code>ConstraintsState</code>
+   * changed nothing.
+   *
+   * Otherwise, the returned <code>Collection</code> contained in the <code>Optional</code> has the same
+   * meaning as the <code>Collection</code> returned by {@link #strengthen(AbstractState, List, CFAEdge, Precision)}.
+   *
+   * @param pStateToStrengthen the state to strengthen
+   * @param pStrengtheningState the state used for strengthening the given <code>ConstraintsState</code>
+   * @param pCfaEdge the current {@link CFAEdge} we are at
+   *
+   * @return an empty <code>Optional</code> instance, if <code>pStateToStrengthen</code> was not changed after
+   *    strengthening. A <code>Optional</code> instance containing a <code>Collection</code> with the strengthened state,
+   *    otherwise
+   */
+  private Optional<Collection<ConstraintsState>> strengthen(ConstraintsState pStateToStrengthen,
       ValueAnalysisState pStrengtheningState, CFAEdge pCfaEdge) {
 
     Collection<ConstraintsState> newStates = new ArrayList<>();
@@ -298,12 +325,16 @@ public class ConstraintsTransferRelation
       logger.logUserException(Level.WARNING, e, fileLocation.toString());
     }
 
+    // newState == null represents the bottom element, so we return an empty collection
     if (newState != null) {
       newStates.add(newState);
-    }
-    resetMissingInformationStatus();
 
-    return newStates;
+      if (newState.size() == pStateToStrengthen.size()) {
+        resetMissingInformationStatus();
+        return Optional.absent();
+      }
+    }
+    return Optional.of(newStates);
   }
 
 

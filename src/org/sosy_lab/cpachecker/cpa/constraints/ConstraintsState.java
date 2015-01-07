@@ -162,6 +162,15 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
       return (BooleanFormula) completeFormula;
   }
 
+  /**
+   * Returns the number of {@link Constraint}s stored in this <code>ConstraintsState</code>.
+   *
+   * @return the number of <code>Constraint</code> objects stored in this state
+   */
+  public int size() {
+    return constraints.size();
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("[");
