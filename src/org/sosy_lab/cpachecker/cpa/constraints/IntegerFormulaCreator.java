@@ -87,30 +87,30 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public IntegerFormula visit(BinaryAndExpression pAnd) {
-    return handleUnsupportedFormula(pAnd);
+    return handleUnsupportedExpression(pAnd);
   }
 
-  private IntegerFormula handleUnsupportedFormula(ConstraintExpression pFormula) {
-    return formulaManager.makeVariable(FormulaType.IntegerType, getVariableNameByFormula(pFormula));
+  private IntegerFormula handleUnsupportedExpression(ConstraintExpression pExpression) {
+    return formulaManager.makeVariable(FormulaType.IntegerType, getVariableNameByExpression(pExpression));
   }
 
-  private String getVariableNameByFormula(ConstraintExpression pFormula) {
-    return pFormula.toString() + counter++;
+  private String getVariableNameByExpression(ConstraintExpression pExpression) {
+    return pExpression.toString() + counter++;
   }
 
   @Override
   public IntegerFormula visit(BinaryNotExpression pNot) {
-    return handleUnsupportedFormula(pNot);
+    return handleUnsupportedExpression(pNot);
   }
 
   @Override
   public IntegerFormula visit(BinaryOrExpression pOr) {
-    return handleUnsupportedFormula(pOr);
+    return handleUnsupportedExpression(pOr);
   }
 
   @Override
   public IntegerFormula visit(BinaryXorExpression pXor) {
-    return handleUnsupportedFormula(pXor);
+    return handleUnsupportedExpression(pXor);
   }
 
   @Override
@@ -125,7 +125,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
       if (doubleValue % 1 == 0 && longValue == doubleValue) {
         return numeralFormulaManager.makeNumber(valueAsNumeric.longValue());
       } else {
-        return handleUnsupportedFormula(pConstant);
+        return handleUnsupportedExpression(pConstant);
       }
 
     } else if (value instanceof BooleanValue) {
@@ -190,7 +190,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(LogicalOrExpression pExpression) {
-    return handleUnsupportedFormula(pExpression);
+    return handleUnsupportedExpression(pExpression);
   }
 
   @Override
@@ -242,33 +242,11 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public IntegerFormula visit(ShiftLeftExpression pShiftLeft) {
-    return handleUnsupportedFormula(pShiftLeft);
+    return handleUnsupportedExpression(pShiftLeft);
   }
 
   @Override
   public IntegerFormula visit(ShiftRightExpression pShiftRight) {
-    return handleUnsupportedFormula(pShiftRight);
-  }
-
-  private BooleanFormula createBooleanFormula(Formula pFormula) {
-    IntegerFormula zeroFormula = numeralFormulaManager.makeNumber(0);
-
-    if (pFormula instanceof IntegerFormula) {
-      return formulaManager.makeNot(
-          numeralFormulaManager.equal((IntegerFormula) pFormula, zeroFormula));
-
-    } else {
-      return (BooleanFormula) pFormula;
-    }
-  }
-
-  /**
-   * Creates a new formula based on two given expressions.
-   *
-   * The created formula depends on the implementation.
-   * This interface is used for creating anonymous classes that are given to {@link #transformConstraint}.
-   */
-  private interface FinalFormulaCreator {
-    Formula create(Formula pLeft, Formula pRight);
+    return handleUnsupportedExpression(pShiftRight);
   }
 }
