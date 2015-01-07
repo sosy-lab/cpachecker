@@ -196,4 +196,24 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
     assertThat(result).contains(ifm.lessThan(_0, _al));
   }
 
+  @Test
+  public void testConclusion8() throws SolverException, InterruptedException {
+    // (not (= (select |copy::b@1| 0) 0))
+    // (>= 0 al@1)
+    // ----- should not result in -----
+    // (not (= (select |copy::b@1| al@1) al@1)
+    // ----- should result in -----
+    // (not (= (select |copy::b@1| al@1) 0))
+
+    ArrayList<BooleanFormula> input = Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _0), _0)),
+        ifm.greaterOrEquals(_0, _al)
+        );
+
+    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+    assertThat(result).contains(bfm.not(ifm.equal(afm.select(_b, _al), _0)));
+  }
+
 }
