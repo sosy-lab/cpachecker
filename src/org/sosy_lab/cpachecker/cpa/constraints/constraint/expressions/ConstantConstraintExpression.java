@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 
@@ -74,5 +75,27 @@ public class ConstantConstraintExpression implements ConstraintExpression {
   @Override
   public String toString() {
     return "ConstraintExpression[" + value.toString() + "]";
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    ConstantConstraintExpression that = (ConstantConstraintExpression)o;
+
+    return type.equals(that.type) && value.equals(that.value);
+
+  }
+
+  @Override
+  public int hashCode() {
+    int result = value.hashCode();
+    result = 31 * result + type.hashCode();
+    return result;
   }
 }

@@ -92,7 +92,8 @@ public class SymbolicIdentifier implements SymbolicValue {
 
   @Override
   public int hashCode() {
-    return (int) (id ^ (id >>> 32));
+    int result = (int) (id ^ (id >>> 32));
+    return result + type.hashCode();
   }
 
   @Override
