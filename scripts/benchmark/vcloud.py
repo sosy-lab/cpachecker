@@ -52,6 +52,7 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
+        Util.writeFile(cloudInput, cloudInputFile)
         outputHandler.allCreatedFiles.append(cloudInputFile)
 
         # install cloud and dependencies
