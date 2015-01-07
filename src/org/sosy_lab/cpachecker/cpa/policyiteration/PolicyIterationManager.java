@@ -21,7 +21,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
@@ -312,15 +311,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState oldState
   ) throws CPATransferException, InterruptedException {
     CFANode node = oldState.getNode();
-    Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
-        newState.getTemplates());
-
-    PathFormula newPath = newState.getPathFormula();
-    PathFormula oldPath = oldState.getPathFormula();
-    Multimap<CFANode, CFANode> trace = HashMultimap.create();
-
-    trace.putAll(newState.getTrace());
-    trace.putAll(oldState.getTrace());
 
     // Special logic for checking after the value determination:
     // if two states utilize the same traces (come from the same parent nodes)
@@ -331,6 +321,18 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     if (checkCovering(oldState, newState)) {
       return newState;
     }
+
+    // TODO: bug, old covers new.... how could that have happened?
+    // Should we ever get to that state?
+    Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
+        newState.getTemplates());
+
+    PathFormula newPath = newState.getPathFormula();
+    PathFormula oldPath = oldState.getPathFormula();
+    Multimap<CFANode, CFANode> trace = HashMultimap.create();
+
+    trace.putAll(newState.getTrace());
+    trace.putAll(oldState.getTrace());
 
     // No value determination, no abstraction, simply join incoming edges
     // and the tracked templates.
@@ -547,7 +549,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // for each optimized objective.
         solver.push();
         logger.log(Level.FINE, "Optimizing for ", objective);
+        logger.log(Level.FINE, "Constraints: ", p.getFormula());
         int handle = solver.maximize(objective);
+
+        logger.flush();
 
         // Generate the trace for the single template.
         switch (solver.check()) {
@@ -590,9 +595,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
 
-      // TODO: do not pass edge around, use a dummy value.
-      Formula t = templateManager.toFormula(template,
-          abstractState.getPathFormula());
+      Formula t = templateManager.toFormula(template, abstractState.getPathFormula());
 
       BooleanFormula constraint;
       constraint = fmgr.makeLessOrEqual(
@@ -691,9 +694,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     if (node.isLoopStart()) {
       return true;
     }
-    if (node instanceof FunctionEntryNode) {
-      return true;
-    }
+    // TODO: check
+//    if (node instanceof FunctionEntryNode) {
+//      return true;
+//    }
     return false;
   }
 
