@@ -133,7 +133,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   }
 
   public boolean isUnsat() throws SolverException, InterruptedException {
-    return solver.isUnsat(getFullFormula());
+    return !constraints.isEmpty() && solver.isUnsat(getFullFormula());
   }
 
   private BooleanFormula getFullFormula() {
