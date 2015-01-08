@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Objects;
@@ -11,32 +10,32 @@ import com.google.common.collect.Multimap;
 
 public final class PolicyIntermediateState extends PolicyState {
   private final PathFormula pathFormula;
-  private final ImmutableMultimap<CFANode, CFANode> trace;
+  private final ImmutableMultimap<Location, Location> trace;
 
   private PolicyIntermediateState(
-      CFANode pNode,
+      Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Multimap<CFANode, CFANode> pTrace) {
-    super(pNode, pTemplates);
+      Multimap<Location, Location> pTrace) {
+    super(pLocation, pTemplates);
     pathFormula = pPathFormula;
     trace = ImmutableMultimap.copyOf(pTrace);
   }
 
   public static PolicyIntermediateState of(
-      CFANode node,
+      Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Multimap<CFANode, CFANode> pTrace
+      Multimap<Location, Location> pTrace
   ) {
-    return new PolicyIntermediateState(node, pTemplates, pPathFormula, pTrace);
+    return new PolicyIntermediateState(pLocation, pTemplates, pPathFormula, pTrace);
   }
 
   public PathFormula getPathFormula() {
     return pathFormula;
   }
 
-  public ImmutableMultimap<CFANode, CFANode> getTrace() {
+  public ImmutableMultimap<Location, Location> getTrace() {
     return trace;
   }
 
@@ -52,7 +51,7 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toString() {
-    return String.format("%s: %s", node, pathFormula);
+    return String.format("%s: %s", getLocation(), pathFormula);
   }
 
   @Override

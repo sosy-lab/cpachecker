@@ -19,13 +19,13 @@ import com.google.common.collect.ImmutableSet;
  */
 public abstract class PolicyState implements AbstractState, Graphable {
 
-  protected final CFANode node;
+  private final Location location;
 
   /** Templates tracked. */
   protected final ImmutableSet<Template> templates;
 
-  protected PolicyState(CFANode pNode, Set<Template> pTemplates) {
-    node = pNode;
+  protected PolicyState(Location pLocation, Set<Template> pTemplates) {
+    location = pLocation;
     templates = ImmutableSet.copyOf(pTemplates);
   }
 
@@ -44,11 +44,11 @@ public abstract class PolicyState implements AbstractState, Graphable {
   /**
    * @return Empty abstracted state associated with {@code node}.
    */
-  public static PolicyAbstractedState empty(CFANode node, PathFormula initial) {
+  public static PolicyAbstractedState empty(Location pLocation, PathFormula initial) {
     return PolicyAbstractedState.of(
         ImmutableMap.<Template, PolicyBound>of(),
         ImmutableSet.<Template>of(), // templates
-        node, // node
+        pLocation, // node
         initial
     );
   }
@@ -60,7 +60,11 @@ public abstract class PolicyState implements AbstractState, Graphable {
   }
 
   public CFANode getNode() {
-    return node;
+    return location.node;
+  }
+
+  public Location getLocation() {
+    return location;
   }
 
   @Override
@@ -77,11 +81,11 @@ public abstract class PolicyState implements AbstractState, Graphable {
       return false;
     }
     PolicyState other = (PolicyState)o;
-    return (templates.equals(other.templates) && node.equals(other.node));
+    return (templates.equals(other.templates) && location.equals(other.location));
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(node, templates);
+    return Objects.hashCode(location, templates);
   }
 }

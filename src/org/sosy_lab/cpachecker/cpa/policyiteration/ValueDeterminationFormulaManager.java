@@ -13,7 +13,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -78,14 +77,14 @@ public class ValueDeterminationFormulaManager {
    * @throws InterruptedException
    */
   public List<BooleanFormula> valueDeterminationFormula(
-      Map<CFANode, PolicyAbstractedState> policy,
-      final CFANode focusedNode,
+      Map<Location, PolicyAbstractedState> policy,
+      final Location focusedLocation,
       final Map<Template, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
 
-    for (Entry<CFANode, PolicyAbstractedState> entry : policy.entrySet()) {
-      CFANode toNode = entry.getKey();
+    for (Entry<Location, PolicyAbstractedState> entry : policy.entrySet()) {
+      Location toLocation = entry.getKey();
       PolicyState state = entry.getValue();
       Preconditions.checkState(state.isAbstract());
       Set<String> visitedEdges = new HashSet<>();
@@ -98,7 +97,7 @@ public class ValueDeterminationFormulaManager {
         // We encode the whole paths, as things might differ inside the path.
         String edgePrefix = String.format(EDGE_PREFIX, bound.toPathString());
 
-        if (toNode == focusedNode && !updated.containsKey(template)) {
+        if (toLocation == focusedLocation && !updated.containsKey(template)) {
 
           // Insert the invariant from the previous constraint.
           Formula templateFormula = templateManager.toFormula(
@@ -118,14 +117,14 @@ public class ValueDeterminationFormulaManager {
         } else {
           CFAEdge trace = incoming.getValue().trace;
 
-          CFANode fromNode = trace.getPredecessor();
-          int toNodeNo = toNode.getNodeNumber();
-          int toNodePrimeNo = toPrime(toNodeNo);
+          Location fromLocation = incoming.getValue().updatedFrom;
+          int toLocationNo = toLocation.toID();
+          int toLocationPrimeNo = toPrime(toLocationNo);
 
           PathFormula edgePathFormula = pathFormulaWithCustomIdxAndPrefix(
               trace,
-              toNodeNo,
-              toNodePrimeNo,
+              toLocationNo,
+              toLocationPrimeNo,
               edgePrefix
           );
           BooleanFormula edgeFormula = edgePathFormula.getFormula();
@@ -137,14 +136,14 @@ public class ValueDeterminationFormulaManager {
             // Check for visited.
             constraints.add(edgeFormula);
           }
-          if (policy.get(fromNode) == null) {
+          if (policy.get(fromLocation) == null) {
             // NOTE: nodes with no templates aren't in the policy.
             continue;
           }
 
           Formula outExpr = templateManager.toFormula(
               template, edgePathFormula, edgePrefix);
-          String varName = absDomainVarName(toNode, template);
+          String varName = absDomainVarName(toLocation, template);
           BooleanFormula outConstraint;
 
           outConstraint = fmgr.makeEqual(
@@ -261,7 +260,7 @@ public class ValueDeterminationFormulaManager {
   private int getThreshold(CFA cfa) {
     double magnitude = Math.log10(cfa.getAllNodes().size());
     return Math.max(
-        1000,
+        10000,
         (int)Math.pow(10, magnitude)
     );
   }
@@ -274,7 +273,7 @@ public class ValueDeterminationFormulaManager {
     return threshold + no;
   }
 
-  String absDomainVarName(CFANode node, Template template) {
-    return String.format(BOUND_VAR_NAME, node.getNodeNumber(), template);
+  String absDomainVarName(Location pLocation, Template template) {
+    return String.format(BOUND_VAR_NAME, pLocation.toID(), template);
   }
 }

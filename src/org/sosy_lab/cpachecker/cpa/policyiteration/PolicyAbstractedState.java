@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Objects;
@@ -24,11 +23,11 @@ public final class PolicyAbstractedState extends PolicyState
    */
   private final PathFormula formula;
 
-  private PolicyAbstractedState(CFANode pNode,
+  private PolicyAbstractedState(Location pLocation,
       Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
       PathFormula pFormula) {
-    super(pNode, pTemplates);
+    super(pLocation, pTemplates);
     abstraction = ImmutableMap.copyOf(pAbstraction);
     formula = pFormula;
   }
@@ -36,10 +35,10 @@ public final class PolicyAbstractedState extends PolicyState
   public static PolicyAbstractedState of(
       Map<Template, PolicyBound> data,
       Set<Template> templates,
-      CFANode node,
+      Location pLocation,
       PathFormula pFormula
   ) {
-    return new PolicyAbstractedState(node, templates, data, pFormula);
+    return new PolicyAbstractedState(pLocation, templates, data, pFormula);
   }
 
   public PolicyAbstractedState withUpdates(
@@ -65,7 +64,7 @@ public final class PolicyAbstractedState extends PolicyState
       }
     }
     return new PolicyAbstractedState(
-        node, newTemplates, builder.build(),  newPathFormula
+        getLocation(), newTemplates, builder.build(),  newPathFormula
     );
   }
 
@@ -98,7 +97,7 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public String toString() {
-    return String.format("%s: %s", node, abstraction);
+    return String.format("%s: %s", getLocation(), abstraction);
   }
 
   @Override
