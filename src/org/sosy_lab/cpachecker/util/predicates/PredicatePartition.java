@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -80,12 +78,12 @@ public class PredicatePartition {
     // find lowest position of a predicate that is implied by newPred, insert newPred before that predicate
     int lowestImplied = predicates.size();
     for (int i = predicates.size() - 1; i >= 0; i--) {
-      AbstractionPredicate oldPred = predicates.get(i).getSymbolicAtom();
+      AbstractionPredicate oldPred = predicates.get(i);
       try {
-        if (solver.implies(newPred, oldPred)) {
+        if (solver.implies(newPred.getSymbolicAtom(), oldPred.getSymbolicAtom())) {
           lowestImplied = i;
         }
-        if (solver.implies(oldPred, newPred)) {
+        if (solver.implies(oldPred.getSymbolicAtom(), newPred.getSymbolicAtom())) {
           break;
         }
       } catch (SolverException | InterruptedException e) {
@@ -107,6 +105,7 @@ public class PredicatePartition {
    * @param newPred the new predicate that should be inserted.
    */
   private void insertPredicateBySimilarity(AbstractionPredicate newPred) {
+
     // first update the predicate similarities
     updatePredicateSimilarities(newPred);
 
@@ -159,14 +158,19 @@ public class PredicatePartition {
   // anzupassen.
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID()) {
-      // implication insert: insert every predicate on its own, insertion takes care of the sorting
-      for (newPred : newPreds.getPredicates()) {
+
+      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
+      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
         insertPredicate(newPred);
       }
 
-      // 1. Für Implikationen wohl interessant: Werden Partionen einfach zusammengefügt und dann wird das neue Prädikat an
-      // der richtigen Stelle eingefügt?
-      // 2. Für Similarities interessant: Soll das neue Prädikat zwischen zwei Partionen eingefügt werden?
+      // 2. similarity insert: place the partition with more predicates first
+      // TODO Soll das Prädikat zwischen die Partitionen oder an den Anfang?
+/*      if (newPreds.predicates.size() > this.predicates.size()) {
+        this.predicates.addAll(0, newPreds.predicates);
+      } else {
+        this.predicates.addAll(newPreds.predicates);
+      }*/
     }
 
     return this;
