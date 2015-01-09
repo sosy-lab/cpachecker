@@ -309,7 +309,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             createErrorPath(reachedSet, prover);
           }
 
-          prover.pop(); // remove program formula from solver stack
+          if (checkTargetStates) {
+            prover.pop(); // remove program formula from solver stack
+          }
 
           if (!safe) {
             return soundInner;
