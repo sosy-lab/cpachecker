@@ -578,13 +578,29 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         switch (solver.check()) {
           case OPT:
             Optional<Rational> bound = solver.upper(handle, EPSILON);
+            boolean isLowerBound = (template.type.isUnsigned() &&
+                  template.linearExpression.size() == 1 &&
+                  template.linearExpression.iterator().next().getValue().equals(Rational.NEG_ONE));
             if (bound.isPresent()) {
               Model model = solver.getModel();
               Pair<MultiEdge, Location> pair = traceFromModel(state, model);
               MultiEdge edge = pair.getFirst();
               Location location = pair.getSecond();
 
-              abstraction.put(template, new PolicyBound(edge, bound.get(), location));
+              Rational boundValue = bound.get();
+              if  (isLowerBound) {
+                boundValue = Rational.max(boundValue, Rational.ZERO);
+              }
+
+              abstraction.put(template, new PolicyBound(edge, boundValue, location));
+            } else {
+              if (isLowerBound) {
+                Model model = solver.getModel();
+                Pair<MultiEdge, Location> pair = traceFromModel(state, model);
+                MultiEdge edge = pair.getFirst();
+                Location location = pair.getSecond();
+                abstraction.put(template, new PolicyBound(edge, Rational.ZERO, location));
+              }
             }
             logger.log(Level.FINE, "Got bound: ", bound);
             break;
