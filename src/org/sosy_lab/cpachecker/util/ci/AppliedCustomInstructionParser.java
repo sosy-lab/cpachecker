@@ -68,7 +68,11 @@ public class AppliedCustomInstructionParser {
 
       while(br.ready()) {
         notifier.shutdownIfNecessary();
+
         line = br.readLine();
+        if (line==null) {
+          break;
+        }
         String firstLine = line.trim();
 
         if ((line = br.readLine())==null){
