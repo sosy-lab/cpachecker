@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm_with_pc;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -121,14 +122,6 @@ public class CoreComponentsFactory {
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.tiger",
-      description = "Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal Reachability Analyses, ESOP'13)")
-  private boolean useTigerAlgorithm = false;
-
-  @Option(secure=true, name="algorithm.tiger_with_presenceConditions",
-      description = "Use Test Input GEneRator algorithm with an extension using the BDDCPA to model product line presence conditions")
-  private boolean useTigerAlgorithm_with_pc = false;
-
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -198,11 +191,11 @@ public class CoreComponentsFactory {
       if (useTestGenAlgorithm) {
         algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
       }
-
-      if (useTigerAlgorithm) {
+      TigerConfiguration tigerConfig = new TigerConfiguration(config);
+      if (tigerConfig.useTigerAlgorithm) {
         algorithm = new TigerAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger, programDenotation, stats);
       }
-      if (useTigerAlgorithm_with_pc) {
+      if (tigerConfig.useTigerAlgorithm_with_pc) {
         algorithm = new TigerAlgorithm_with_pc(algorithm, cpa, shutdownNotifier, cfa, config, logger, programDenotation, stats);
       }
 

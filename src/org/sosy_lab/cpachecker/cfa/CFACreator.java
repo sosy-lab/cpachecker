@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -218,12 +219,6 @@ public class CFACreator {
 
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
-
-  @Option(name="analysis.algorithm.tiger", description="")
-  private boolean useTigerAlgorithm = false;
-  @Option(name="analysis.algorithm.tiger_with_presenceConditions",
-  description = "Use Test Input GEneRator algorithm with an extension using the BDDCPA to model product line presence conditions")
-  private boolean useTigerAlgorithm_with_pc = false;
 
   private final LogManager logger;
   private final Parser parser;
@@ -483,7 +478,8 @@ public class CFACreator {
 
     final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
-    if (useTigerAlgorithm || useTigerAlgorithm_with_pc) {
+    TigerConfiguration tigerConfig = new TigerConfiguration(config);
+    if (tigerConfig.useTigerAlgorithm || tigerConfig.useTigerAlgorithm_with_pc) {
       if (language != Language.C) {
         throw new InvalidConfigurationException("Tiger algorithm is only supported for C!");
       }
