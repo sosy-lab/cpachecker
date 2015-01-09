@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -131,6 +132,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                              }
                            },
                        AbstractStates.toState(AssumptionStorageState.class));
+
+  /**
+   * If these functions appear in the program, we must assume that the program
+   * contains concurrency and we cannot rule out error locations that appear to
+   * be syntactically unreachable.
+   */
+  private static final Set<String> CONCURRENT_FUNCTIONS = ImmutableSet.of("pthread_create");
 
   private static class BMCStatistics implements Statistics {
 
@@ -221,6 +229,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final BooleanFormulaManagerView bfmgr;
 
+  private final TargetLocationProvider tlp;
+
+  private final boolean isProgramConcurrent;
+
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
@@ -252,6 +264,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
     machineModel = predCpa.getMachineModel();
+
+    tlp = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+
+    isProgramConcurrent = from(cfa.getAllFunctionNames()).anyMatch(in(CONCURRENT_FUNCTIONS));
   }
 
   @Override
@@ -278,7 +294,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           shutdownNotifier.shutdownIfNecessary();
 
           if (induction) {
-            if (targetLocations == null) {
+            if (targetLocations == null && !isProgramConcurrent) {
+              targetLocations = tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction());
+            } else {
               targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
             }
             if (targetLocations != null && targetLocations.isEmpty()) {
@@ -765,9 +783,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             trivialResult = null;
             reachedSet = reachedSetFactory.create();
-            // TODO find a better solution; causes false negatives for pthread programs
-            //CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
-            //targetLocations = tlp.tryGetAutomatonTargetLocations(loopHead);
+            if (!isProgramConcurrent) {
+              CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+              targetLocations = tlp.tryGetAutomatonTargetLocations(loopHead);
+            }
           }
           stats.inductionPreparation.stop();
         }
