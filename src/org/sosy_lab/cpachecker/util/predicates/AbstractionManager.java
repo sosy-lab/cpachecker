@@ -29,6 +29,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -77,7 +78,7 @@ public final class AbstractionManager {
   private final Map<Integer, AbstractionPredicate> varIDToPredicate = Maps.newHashMap();
 
   // Properties for BDD variable ordering:
-  // how much variables have two predicates in common?
+  // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
@@ -137,7 +138,7 @@ public final class AbstractionManager {
    * Calculates the partition(s) the new predicate is similar to and inserts the new predicate. If there is no similar
    * partition found, a new partition containing the new predicate will be created.
    * If there is more than one partition similar to the new predicate, the similar partitions are merged together and
-   * the new predicate is inserted between the partitions that are most similar to it.
+   * the new predicate is inserted into the partition that results of the merging.
    *
    * @param newPredicate the new predicate as symbolic atom.
    */
@@ -158,7 +159,7 @@ public final class AbstractionManager {
         firstPartition = firstPartition.merge(predVarToPartition.get(varIterator.next()));
       }
     } else {
-      firstPartition = new PredicatePartition(fmgr, solver);
+      firstPartition = new PredicatePartition(fmgr, solver, logger);
     }
 
     firstPartition.insertPredicate(newPredicate);
@@ -176,7 +177,7 @@ public final class AbstractionManager {
     ArrayList<Integer> predicateOrdering = new ArrayList<>();
 
     for (PredicatePartition partition : predVarToPartition.values()) {
-      ArrayList<AbstractionPredicate> predicates = partition.getPredicates();
+      LinkedList<AbstractionPredicate> predicates = partition.getPredicates();
 
       for (AbstractionPredicate predicate : predicates) {
         predicateOrdering.add(predicate.getVariableNumber());

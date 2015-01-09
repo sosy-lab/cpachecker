@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Set;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -36,23 +38,25 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * Two predicates are similar if they have at least one variable in common.
  * <p/>
  * It is used by the {@link AbstractionManager} to generate a variable ordering for BDDs where a BDD variable
- * represents
- * a predicate.
+ * represents a predicate.
  */
 public class PredicatePartition {
   private static int partitionCounter = 0;
+
+  private final LogManager logger;
   private final int partitionID = partitionCounter++;
   private final FormulaManagerView fmgr;
-  private ArrayList<AbstractionPredicate> predicates; // LinkedList better for inserting?
+  private LinkedList<AbstractionPredicate> predicates;
   // mapping varID -> predicate in partition
   private HashMap<Integer, AbstractionPredicate> varIDToPredicate;
   private ArrayList<ArrayList<Integer>> similarityRelation = new ArrayList<>();
   private Solver solver;
 
-  public PredicatePartition(FormulaManagerView fmgr, Solver solver) {
+  public PredicatePartition(FormulaManagerView fmgr, Solver solver, LogManager logger) {
     this.fmgr = fmgr;
     this.solver = solver;
-    predicates = new ArrayList<>();
+    this.logger = logger;
+    predicates = new LinkedList<>();
     varIDToPredicate = new HashMap<>();
     similarityRelation = new ArrayList<>();
   }
@@ -69,43 +73,42 @@ public class PredicatePartition {
   }
 
   /**
-   * Insertion method of hagenhoff
+   * Inserts a new predicate before the most left predicate of the partition that is implied by the new predicate.
    *
-   * @param newPred
+   * @param newPred the predicate that should be inserted.
    */
   private void insertPredicateByImplication(AbstractionPredicate newPred) {
     // solver does caching
     // find lowest position of a predicate that is implied by newPred, insert newPred before that predicate
     int lowestImplied = predicates.size();
-    for (int i = predicates.size() - 1; i >= 0; i--) {
-      AbstractionPredicate oldPred = predicates.get(i);
+    int elementIndex = predicates.size() - 1;
+    LinkedList<AbstractionPredicate> predicatesCopy = new LinkedList<>(predicates);
+    Collections.reverse(predicatesCopy);
+    for (AbstractionPredicate oldPred : predicatesCopy) {
       try {
         if (solver.implies(newPred.getSymbolicAtom(), oldPred.getSymbolicAtom())) {
-          lowestImplied = i;
+          lowestImplied = elementIndex;
         }
+
         if (solver.implies(oldPred.getSymbolicAtom(), newPred.getSymbolicAtom())) {
           break;
         }
-      } catch (SolverException | InterruptedException e) {
-        // TODO no idea what could cause these exceptions...
-      }
 
+        elementIndex--;
+      } catch (SolverException | InterruptedException e) {
+        logger.log(java.util.logging.Level.WARNING, "Error while adding the predicate ", newPred, " by implications to the list of predicates");
+      }
     }
 
-    // insert before lowestImplied
     predicates.add(lowestImplied, newPred);
-
   }
 
   /**
-   * Insertion method of scheffel.
-   *
    * Inserts a new predicate next to the predicate of the partition that is most similar to the new one.
    *
    * @param newPred the new predicate that should be inserted.
    */
   private void insertPredicateBySimilarity(AbstractionPredicate newPred) {
-
     // first update the predicate similarities
     updatePredicateSimilarities(newPred);
 
@@ -123,8 +126,6 @@ public class PredicatePartition {
     } else {
       predicates.add(indexSimilarPred + 1, newPred);
     }
-
-
   }
 
   /**
@@ -161,7 +162,7 @@ public class PredicatePartition {
 
       // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
       for (AbstractionPredicate newPred : newPreds.getPredicates()) {
-        insertPredicate(newPred);
+       this.insertPredicate(newPred);
       }
 
       // 2. similarity insert: place the partition with more predicates first
@@ -180,7 +181,7 @@ public class PredicatePartition {
     return partitionID;
   }
 
-  public ArrayList<AbstractionPredicate> getPredicates() {
+  public LinkedList<AbstractionPredicate> getPredicates() {
     return predicates;
   }
 }
