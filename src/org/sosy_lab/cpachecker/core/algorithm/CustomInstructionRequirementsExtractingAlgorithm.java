@@ -27,7 +27,6 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -40,6 +39,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -60,7 +60,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private final ShutdownNotifier shutdownNotifier;
 
   @Option(secure=true, name="definitionFile", description = "") //TODO
-  @FileOption(FileOption.Type.OUTPUT_FILE) // TODO Input_File gibt es nicht
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path appliedCustomInstructionsDefinition;
 
   /**
@@ -86,7 +86,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       throw new InvalidConfigurationException("The given path " + appliedCustomInstructionsDefinition + "is not a valid path to a file.");
     }
 
-    // TODO was ist mit den anderen Parametern?
+    // TODO cpa spaeter
   }
 
   @Override
@@ -106,14 +106,14 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
 
     try (BufferedReader br = new BufferedReader(new FileReader(appliedCustomInstructionsDefinition.toFile()))) {
 
-      // TODO file parsen
+      // TODO file parsen mit geschriebenen parser
 
     } catch (FileNotFoundException ex) {
       logger.log(Level.SEVERE, "The file '" + appliedCustomInstructionsDefinition + "' was not found", ex);
       return false;
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Parsing the file '" + appliedCustomInstructionsDefinition + "' failed.", e);
-
+      return false;
     }
 
     shutdownNotifier.shutdownIfNecessary();
@@ -131,7 +131,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param pCustomIA
    */
   private void extractRequirements(final ARGState root, final CustomInstructionApplications pCustomIA) {
-    // TODO was genau?
+    // TODO was genau? spaeter
 //    getCustomInstructionState(root, pCustomIA); ?
   }
 
@@ -142,9 +142,11 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param pCustomIA CustomInstructionApplication
    * @return ImmutableSet of ARGState
    * @throws InterruptedException
+   * @throws CPAException
    */
   private ImmutableSet<ARGState> getCustomInstructionState(
-      final ARGState root, final CustomInstructionApplications pCustomIA) throws InterruptedException{
+      final ARGState root, final CustomInstructionApplications pCustomIA)
+      throws InterruptedException, CPAException{
 
     Builder<ARGState> set = new ImmutableSet.Builder<>();
     Set<ARGState> visitedNodes = new HashSet<>();
@@ -156,13 +158,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       ARGState tmp = queue.poll();
       visitedNodes.add(tmp);
 
-      try {
-        if (pCustomIA.isStartState(tmp)) {
+        if (pCustomIA.isEndState(tmp, root)) {
           set.add(tmp);
         }
-      } catch (CPAException e) {
-        // TODO try-catch oder trows?
-      }
 
       // breadth-first-search
       Collection<ARGState> children = tmp.getChildren();
