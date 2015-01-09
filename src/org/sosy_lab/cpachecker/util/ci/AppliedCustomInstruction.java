@@ -74,6 +74,6 @@ public class AppliedCustomInstruction {
       throw new CPAException("The State " + pState+ " has to contain a location state!");
     }
 
-    return locState.equals(ciEndNode);
+    return ciEndNode.contains(locState);
   }
 }
