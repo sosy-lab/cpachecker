@@ -595,6 +595,10 @@ cpa.automaton.extraIterationsLimit = -1
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# Whether to treat automaton states with an internal error state as targets.
+# This should be the standard use case.
+cpa.automaton.treatErrorsAsTargets = true
+
 # if enabled, cache queries also consider blocks with non-matching precision
 # for reuse.
 cpa.bam.aggressiveCaching = true
