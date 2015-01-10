@@ -123,9 +123,9 @@ public class ExtendLeftRuleTest0 extends AbstractRuleTest0 {
 
     BooleanFormula _x_range = bfm.and(
         ifm.greaterOrEquals(_x, _i),
-        ifm.lessOrEquals(_x, _j));
+        ifm.lessThan(_x, _j));
 
-    BooleanFormula _right_ext = ifm.lessOrEquals(_k, _i);
+    BooleanFormula _right_ext = ifm.lessThan(_k, _i);
 
     BooleanFormula _EXISTS_x = qmgr.exists(
         Lists.newArrayList(_x),

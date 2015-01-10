@@ -102,22 +102,6 @@ public class SmtAstPatternBuilder {
         pArgumentMatchers);
   }
 
-  public static SmtAstPattern matchBind(String pBindMatchTo, SmtAstPattern... argumentMatchers) {
-    return new SmtFunctionApplicationPattern(
-        Optional.<Comparable<?>>absent(),
-        Optional.<SmtFormulaMatcher>absent(),
-        Optional.of(pBindMatchTo),
-        and(argumentMatchers));
-  }
-
-  public static SmtAstPattern matchBind(String pBindMatchTo, SmtAstPatternSelection pPatternSelection) {
-    return new SmtFunctionApplicationPattern(
-        Optional.<Comparable<?>>absent(),
-        Optional.<SmtFormulaMatcher>absent(),
-        Optional.of(pBindMatchTo),
-        pPatternSelection);
-  }
-
   /**
    * The same as described in {@link #match}, but binds the matching formula to a variable.
    */
@@ -235,6 +219,19 @@ public class SmtAstPatternBuilder {
         Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>of(pBindMatchTo),
         and());
+  }
+
+  public static SmtAstPattern matchNumeralExpressionBind(String pBindMatchTo) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
+          @Override
+          public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
+            return pMgr.getFormulaType(pF) instanceof NumeralType;
+          }
+        }),
+        Optional.<String>of(pBindMatchTo),
+        dontcare());
   }
 
   public static SmtAstPattern matchNumeralVariableBind(String pBindMatchTo) {
@@ -394,10 +391,24 @@ public class SmtAstPatternBuilder {
         pBodyMatchers);
   }
 
+  public static SmtAstPattern matchExistsQuantBind(String pBindMatchTo, SmtAstPatternSelection pBodyMatchers) {
+    return new SmtQuantificationPattern(
+        Optional.of(QuantifierType.EXISTS),
+        Optional.<String>of(pBindMatchTo),
+        pBodyMatchers);
+  }
+
   public static SmtAstPattern matchForallQuant(SmtAstPatternSelection pBodyMatchers) {
     return new SmtQuantificationPattern(
         Optional.of(QuantifierType.FORALL),
         Optional.<String>absent(),
+        pBodyMatchers);
+  }
+
+  public static SmtAstPattern matchForallQuantBind(String pBindMatchTo, SmtAstPatternSelection pBodyMatchers) {
+    return new SmtQuantificationPattern(
+        Optional.of(QuantifierType.FORALL),
+        Optional.<String>of(pBindMatchTo),
         pBodyMatchers);
   }
 

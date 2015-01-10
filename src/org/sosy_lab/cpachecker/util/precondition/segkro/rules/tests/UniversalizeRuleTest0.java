@@ -182,7 +182,7 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(_b_at_0_EQ_0));
 
-    assertThat(result).isEmpty();
+    assertThat(result).isNotEmpty();
   }
 
   @Test
@@ -192,7 +192,7 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(bfm.not(_b_at_0_EQ_0)));
 
-    assertThat(result).isEmpty();
+    assertThat(result).isNotEmpty();
   }
 
 }

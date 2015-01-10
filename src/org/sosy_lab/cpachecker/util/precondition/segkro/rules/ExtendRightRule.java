@@ -52,21 +52,33 @@ public class ExtendRightRule extends PatternBasedRule {
 
     premises.add(new PatternBasedPremise(
         or(
-          matchExistsQuant(
+          matchExistsQuantBind("exists",
               and(
-                GenericPatterns.f_of_x_expression("f", quantified("x")),
+                GenericPatterns.array_at_index_matcher("f", quantified("x")),
                 match(">=",
                     matchAnyWithAnyArgsBind(quantified("x")),
                     matchAnyWithAnyArgsBind("i")),
-                match("<=",
+                match("<",
+                    matchAnyWithAnyArgsBind(quantified("x")),
+                    matchAnyWithAnyArgsBind("j")))),
+
+          matchForallQuantBind("forall",
+              and(
+                GenericPatterns.array_at_index_matcher("f", quantified("x")),
+                match(">=",
+                    matchAnyWithAnyArgsBind(quantified("x")),
+                    matchAnyWithAnyArgsBind("i")),
+                match("<",
                     matchAnyWithAnyArgsBind(quantified("x")),
                     matchAnyWithAnyArgsBind("j"))))
         )));
 
-    premises.add(new PatternBasedPremise(or(
-        match("<=",
-            matchAnyWithAnyArgsBind("j"),
-            matchAnyWithAnyArgsBind("k")))));
+    premises.add(new PatternBasedPremise(
+        or(
+            match("<=",
+                matchAnyWithAnyArgsBind("j"),
+                matchAnyWithAnyArgsBind("k"))
+    )));
   }
 
   @Override
@@ -90,9 +102,12 @@ public class ExtendRightRule extends PatternBasedRule {
 
     final BooleanFormula xConstraint =  bfm.and(
         ifm.greaterOrEquals(xNew, i),
-        ifm.lessOrEquals(xNew, k));
+        ifm.lessThan(xNew, k));
 
-    return Lists.newArrayList(
-        qfm.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+    if (pAssignment.containsKey("forall")) {
+      return Lists.newArrayList(qfm.forall(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+    } else {
+      return Lists.newArrayList(qfm.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+    }
   }
 }

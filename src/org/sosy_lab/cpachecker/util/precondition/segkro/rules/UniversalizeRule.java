@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
+
 import java.util.Collection;
 import java.util.Map;
 
@@ -56,7 +58,7 @@ public class UniversalizeRule extends PatternBasedRule {
     // TODO: Handling of deeper nestings (implementation of matchInSubtree)
 
     premises.add(new PatternBasedPremise(
-        GenericPatterns.array_at_index_subtree_matcher("a", "i")
+        GenericPatterns.array_at_index_matcher("a", or(matchNumeralExpressionBind("i")))
           ));
   }
 
@@ -70,11 +72,10 @@ public class UniversalizeRule extends PatternBasedRule {
     final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("a"));
     final IntegerFormula i = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("i"));
 
-    assert f != null;
-    assert i != null;
-
     final IntegerFormula x = ifm.makeVariable("x");
-    final BooleanFormula xConstraint =  ifm.equal(x, i);
+    final BooleanFormula xConstraint =  bfm.and(
+        ifm.greaterOrEquals(x, i),
+        ifm.lessThan(x, ifm.subtract(i, ifm.makeNumber(1))));
 
     Map<Formula, Formula> transformation = Maps.newHashMap();
     transformation.put(i, x);

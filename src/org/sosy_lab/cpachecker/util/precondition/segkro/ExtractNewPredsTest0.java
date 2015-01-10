@@ -82,6 +82,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   private IntegerFormula _0;
   private IntegerFormula _1;
   private IntegerFormula _i;
+  private IntegerFormula _n;
   private IntegerFormula _al;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b0;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
@@ -113,6 +114,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
     _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
     _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
+    _n = mgrv.makeVariable(NumeralType.IntegerType, "n");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
     IntegerFormula _i0 = mgrv.makeVariable(NumeralType.IntegerType, "i0");
@@ -190,24 +192,6 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-
-  @Test(timeout=500)
-  public void testOnErrorTrace() throws SolverException, InterruptedException {
-    //   (and (= i2 0)
-    //        (not (= (select b0 i2) 0))
-    //        (>= i2 al0)
-    //        (= (select a1 i2) (select b0 i2))
-    //        (= i1 (+ i2 1))
-    //        (= (select b0 i1) 0)
-    //        (>= i1 al0)
-
-    // This is not supposed to terminate.
-    // The algorithm is designed to work on WPs
-
-    List<BooleanFormula> result = enp.extractNewPreds(_errorTrace);
-    assertThat(result).isNotEmpty();
-  }
-
   @Test
   public void testOnErrorWp1() throws SolverException, InterruptedException {
     BooleanFormula wpError = bfm.and(Lists.newArrayList(
@@ -246,5 +230,29 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
+  @Test
+  public void testOnArrayPreds1() throws SolverException, InterruptedException {
+    BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _0), _al)), // b[0] != al
+        bfm.not(ifm.lessOrEquals(_i, _0))            // not i <= 0
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testOnArrayPreds2() throws SolverException, InterruptedException {
+    // (not (<= n i|)),
+    // (not (= (select M i) e))
+
+    BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _i), _al)),
+        bfm.not(ifm.lessOrEquals(_n, _i))
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
+    assertThat(result).isNotEmpty();
+  }
 
 }

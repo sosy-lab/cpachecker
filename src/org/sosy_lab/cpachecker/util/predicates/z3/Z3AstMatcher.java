@@ -81,6 +81,7 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
 
   @Override
   protected SmtAstMatchResult internalPerform(
+      final Formula pParentFormula,
       final Formula pRootFormula,
       final Stack<String> pQuantifiedVariables,
       final SmtAstPattern pP, Optional<Multimap<String, Formula>> pBindingRestrictions) {
@@ -91,6 +92,7 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
     if (pP.getBindMatchTo().isPresent()) {
       final String bindMatchTo = pP.getBindMatchTo().get();
       result.putBoundVaribale(bindMatchTo, pRootFormula);
+      result.putBoundVaribale(bindMatchTo + ".parent" , pParentFormula);
 
       if (pBindingRestrictions.isPresent()) {
         Collection<Formula> variableAlreadyBoundTo = pBindingRestrictions.get().get(bindMatchTo);
@@ -169,6 +171,12 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
         = is_quantifier_forall(ctx, ast)
           ? QuantifierType.FORALL
           : QuantifierType.EXISTS;
+
+      if (qp.matchQuantificationWithType.isPresent()) {
+        if (!qp.matchQuantificationWithType.get().equals(quantifierType)) {
+          return newMatchFailedResult("Different quantifier!");
+        }
+      }
 
       BooleanFormula bodyFormula = (BooleanFormula) encapsulateAstAsFormula(get_quantifier_body(ctx, ast));
 

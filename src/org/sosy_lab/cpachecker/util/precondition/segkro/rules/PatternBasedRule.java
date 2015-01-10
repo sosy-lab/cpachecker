@@ -176,6 +176,7 @@ public abstract class PatternBasedRule extends AbstractRule {
         matchingTimer.start();
         final SmtAstMatchResult matchingResult = matcher.perform(
             pp.getPatternSelection(),
+            null,
             predicate,
             Optional.of(matchingBindings));
         matchingTimer.stop();

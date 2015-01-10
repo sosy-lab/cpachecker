@@ -237,11 +237,12 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   @Test
   public void t1() {
     SmtAstPatternSelection p1 = or(
-        matchBind("f",
-            matchAnyWithAnyArgsBind("e"),
-            match("select",
-                matchAnyWithAnyArgsBind("a"),
-                matchAnyWithAnyArgsBind("i"))));
+        match("f",
+            and(
+              matchAnyWithAnyArgsBind("e"),
+              match("select",
+                  matchAnyWithAnyArgsBind("a"),
+                  matchAnyWithAnyArgsBind("i")))));
 
     SmtAstMatchResult r = matcher.perform(p1, _0_EQ_b_at_i_plus_1_);
     assertThat(r.matches()).isTrue();

@@ -95,7 +95,7 @@ public class ExistentialRule extends PatternBasedRule {
 
     final BooleanFormula xConstraint =  bfm.and(
         ifm.greaterOrEquals(x, i),
-        ifm.lessOrEquals(x, j));
+        ifm.lessThan(x, ifm.subtract(j, ifm.makeNumber(1))));
 
     return Lists.newArrayList(
         qfm.exists(Lists.newArrayList(x), bfm.and(fPrime, xConstraint)),

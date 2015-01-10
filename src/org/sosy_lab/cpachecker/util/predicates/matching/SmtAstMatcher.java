@@ -27,6 +27,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -56,7 +58,11 @@ public interface SmtAstMatcher {
    * bindings are used to further restrict possible matches.
    *
    */
-  public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions);
+  public SmtAstMatchResult perform(
+      SmtAstPatternSelection pPatternSelection,
+      @Nullable Formula pParent,
+      Formula pF,
+      Optional<Multimap<String, Formula>> bBindingRestrictions);
 
   /**
    * Define that a specific function (represented by its name/function symbol)

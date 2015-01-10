@@ -179,7 +179,7 @@ public class Refine implements PreconditionRefiner {
             FormulaMode.INSTANTIATED);
 
         if (bmgr.isTrue(preAtKp1.getFormula())) {
-          break;
+          continue;
         }
 
         final List<BooleanFormula> predsNew = enp.extractNewPreds(preAtKp1.getFormula());
@@ -246,6 +246,7 @@ public class Refine implements PreconditionRefiner {
     PathFormula pcValid = pre(pTraceFromValidTermination, pWpLocation, FormulaMode.INSTANTIATED);
 
     // "Enrich" the preconditions with more general predicates
+    // TODO: Is this part completely useless when using QE?
     pcViolation = alterPf(pcViolation,
         interpolate(pcViolation.getFormula(), pcValid.getFormula(), pWpLocation));
     pcValid = alterPf(pcValid,

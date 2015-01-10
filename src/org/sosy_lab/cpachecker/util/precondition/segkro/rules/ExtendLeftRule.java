@@ -48,22 +48,44 @@ public class ExtendLeftRule extends PatternBasedRule {
 
   @Override
   protected void setupPatterns() {
-    premises.add(new PatternBasedPremise(or(
-        matchExistsQuant(
+    premises.add(new PatternBasedPremise(
+      or(
+        matchExistsQuantBind("exists",
             and(
-              GenericPatterns.f_of_x_expression("f", quantified("x")),
+              GenericPatterns.array_at_index_matcher("f", quantified("x")),
               match(">=",
                   matchAnyWithAnyArgsBind(quantified("x")),
                   matchAnyWithAnyArgsBind("i")),
-              match("<=",
+              match("<",
                   matchAnyWithAnyArgsBind(quantified("x")),
-                  matchAnyWithAnyArgsBind("j"))
+                  matchAnyWithAnyArgsBind("j")),
+
+        matchForallQuantBind("forall",
+            and(
+              GenericPatterns.array_at_index_matcher("f", quantified("x")),
+              match(">=",
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("i")),
+              match("<",
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("j"))))
     )))));
 
-    premises.add(new PatternBasedPremise(or(
+    premises.add(new PatternBasedPremise(
+      or(
+        match("<",
+            matchAnyWithAnyArgsBind("k"),
+            matchAnyWithAnyArgsBind("i")),
         match("<=",
             matchAnyWithAnyArgsBind("k"),
-            matchAnyWithAnyArgsBind("i")))));
+            matchAnyWithAnyArgsBind("i"))
+//
+//        match("not",
+//            match(">",
+//                matchAnyWithAnyArgsBind("k"),
+//                matchAnyWithAnyArgsBind("i")))
+        )
+    ));
   }
 
   @Override
@@ -89,7 +111,10 @@ public class ExtendLeftRule extends PatternBasedRule {
         ifm.greaterOrEquals(xNew, k),
         ifm.lessOrEquals(xNew, j));
 
-    return Lists.newArrayList(
-        qfm.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+    if (pAssignment.containsKey("forall")) {
+      return Lists.newArrayList(qfm.forall(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+    } else {
+      return Lists.newArrayList(qfm.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+    }
   }
 }

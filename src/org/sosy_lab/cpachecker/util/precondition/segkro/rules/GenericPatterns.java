@@ -36,7 +36,7 @@ import com.google.common.annotations.VisibleForTesting;
 public final class GenericPatterns {
 
   public static SmtAstPattern f_of_x (final String pBindFunctionTo, final String pBindArgTo) {
-    return matchBind(pBindFunctionTo,
+    return matchAnyBind(pBindFunctionTo,
         or(
           match("select",
               matchAnyWithAnyArgs(),
@@ -113,34 +113,49 @@ public final class GenericPatterns {
   }
 
   public static SmtAstPatternSelection array_at_index_subtree_matcher (final String pBindFunctionTo, final String pBindArgTo) {
-    return array_at_index_matcher(pBindFunctionTo, matchInSubtreeBoundedDepth(10, matchNumeralVariableBind(pBindArgTo)));
+    return array_at_index_matcher(pBindFunctionTo, matchInSubtreeBoundedDepth(10, matchNumeralExpressionBind(pBindArgTo)));
   }
 
-  public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final SmtAstPatternSelection pLeaveMatcher) {
+  public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final String pBindArgTo) {
+    return array_at_index_matcher(pBindFunctionTo, and(matchNumeralExpressionBind(pBindArgTo)));
+  }
+
+  public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final SmtAstPatternSelection pIndexMatcher) {
+    return array_at_index_matcher(pBindFunctionTo, pIndexMatcher, matchAnyWithAnyArgs());
+  }
+
+  public static SmtAstPatternSelection array_at_index_matcher (
+      final String pBindFunctionTo,
+      final SmtAstPatternSelection pIndexMatcher,
+      final SmtAstPatternSelectionElement pSecondOpLeaveMatcher) {
+
     return or(
         matchBind("not", pBindFunctionTo,
             match("not",
-              matchAny(
-                  match("select",
-                      and(
-                          matchAnyWithAnyArgs(),
-                          pLeaveMatcher)),
-                  matchAnyWithAnyArgs()))),
+                matchAnyWithArgs(
+                    and(
+                      match("select",
+                          and(
+                              matchAnyWithAnyArgs(),
+                              pIndexMatcher)),
+                      pSecondOpLeaveMatcher)))),
 
         matchBind("not", pBindFunctionTo,
-            matchAny(
-                match("select",
-                    and(
-                        matchAnyWithAnyArgs(),
-                        pLeaveMatcher)),
-                matchAnyWithAnyArgs())),
+            matchAnyWithArgs(
+                and(
+                    match("select",
+                        and(
+                            matchAnyWithAnyArgs(),
+                            pIndexMatcher)),
+                     pSecondOpLeaveMatcher))),
 
         matchAnyBind(pBindFunctionTo,
-            match("select",
-                and(
-                    matchAnyWithAnyArgs(),
-                    pLeaveMatcher)),
-            matchAnyWithAnyArgs())
+            and(
+              match("select",
+                  and(
+                      matchAnyWithAnyArgs(),
+                      pIndexMatcher)),
+              pSecondOpLeaveMatcher))
         );
   }
 

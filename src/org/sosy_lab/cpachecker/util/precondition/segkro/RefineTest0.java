@@ -37,6 +37,7 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -94,6 +95,8 @@ public class RefineTest0 extends SolverBasedTest0 {
   private CFAEdge _stmt_al_assign_0;
   private CAssumeEdge _assume_not_b_at_i_neq_0;
   private CDeclarationEdge _stmt_declare_al;
+  private CFAEdge _stmt_a_at_i_assign_b_at_i;
+  private CFAEdge _stmt_i_assign_i_plus_1;
 
   @Override
   protected Solvers solverToUse() {
@@ -145,23 +148,36 @@ public class RefineTest0 extends SolverBasedTest0 {
     CIntegerLiteralExpression _0 = CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT);
     CIntegerLiteralExpression _1 = CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT);
 
+    CBinaryExpression _i_plus_1 = expressionBuilder.buildBinaryExpression(_i, _1, BinaryOperator.PLUS);
+
     CArraySubscriptExpression _b_at_i = new CArraySubscriptExpression(
         FileLocation.DUMMY,
         unlimitedIntArrayType,
         _b.getThird(),
         _i);
 
+    CArraySubscriptExpression _a_at_i = new CArraySubscriptExpression(
+        FileLocation.DUMMY,
+        unlimitedIntArrayType,
+        _a.getThird(),
+        _i);
+
+    _while = TestDataTools.makeBlankEdge("while");
+    _dummy = makeBlankEdge("dummy");
     _label_error = TestDataTools.makeBlankEdge("ERROR");
+
     _assume_i_geq_al = makeAssume(expressionBuilder.buildBinaryExpression(_i, _al, BinaryOperator.GREATER_EQUAL)).getFirst();
     _assume_b_at_i_neq_0 = makeAssume(expressionBuilder.buildBinaryExpression(_b_at_i, _0, BinaryOperator.NOT_EQUALS)).getFirst();
     _assume_not_b_at_i_neq_0 = makeNegatedAssume(expressionBuilder.buildBinaryExpression(_b_at_i, _0, BinaryOperator.NOT_EQUALS)).getFirst();
-    _while = TestDataTools.makeBlankEdge("while");
+
+    _stmt_a_at_i_assign_b_at_i = makeAssignment(_a_at_i, _b_at_i).getFirst();
     _stmt_i_assign_0 = makeAssignment(_i, _0).getFirst();
+    _stmt_i_assign_i_plus_1 = makeAssignment(_i, _i_plus_1).getFirst();
+    _stmt_al_assign_0 = makeAssignment(_al, _0).getFirst();
+
     _stmt_declare_i = _i_decl.getFirst();
     _stmt_declare_al = _al_decl.getFirst();
-    _dummy = makeBlankEdge("dummy");
     _function_declaration= _funct_decl.getFirst();
-    _stmt_al_assign_0 = makeAssignment(_al, _0).getFirst();
   }
 
   @Test
@@ -184,6 +200,65 @@ public class RefineTest0 extends SolverBasedTest0 {
         _stmt_i_assign_0,
         _stmt_declare_i,
         _stmt_declare_al
+        ));
+
+    PredicatePrecision result = refine.refine(traceError, traceSafe, _stmt_declare_i.getPredecessor());
+
+    assertThat(result).isNotNull();
+    assertThat(result.getGlobalPredicates()).isNotEmpty();
+  }
+
+  @Test
+  public void testRefineCase2() throws CPATransferException, SolverException, InterruptedException {
+
+    ARGPath traceError = mock(ARGPath.class);
+    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+        _label_error,
+        _assume_i_geq_al,
+        _assume_b_at_i_neq_0,
+        _stmt_i_assign_i_plus_1,
+        _stmt_a_at_i_assign_b_at_i,
+        _assume_i_geq_al,
+        _assume_b_at_i_neq_0,
+        _while,
+        _stmt_i_assign_0,
+        _stmt_declare_i,
+        _stmt_declare_al
+        ));
+
+    ARGPath traceSafe = mock(ARGPath.class);
+    when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+        _assume_not_b_at_i_neq_0,
+        _stmt_i_assign_i_plus_1,
+        _stmt_a_at_i_assign_b_at_i,
+        _assume_i_geq_al,
+        _assume_b_at_i_neq_0,
+        _stmt_i_assign_0,
+        _stmt_declare_i,
+        _stmt_declare_al
+        ));
+
+    PredicatePrecision result = refine.refine(traceError, traceSafe, _stmt_declare_i.getPredecessor());
+
+    assertThat(result).isNotNull();
+    assertThat(result.getGlobalPredicates()).isNotEmpty();
+  }
+
+  @Test
+  public void testRefineCase3() throws CPATransferException, SolverException, InterruptedException {
+
+    ARGPath traceError = mock(ARGPath.class);
+    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+        _stmt_i_assign_i_plus_1,
+        _assume_b_at_i_neq_0,
+        _stmt_declare_i
+        ));
+
+    ARGPath traceSafe = mock(ARGPath.class);
+    when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+        _stmt_i_assign_0,
+        _assume_not_b_at_i_neq_0,
+        _stmt_declare_i
         ));
 
     PredicatePrecision result = refine.refine(traceError, traceSafe, _stmt_declare_i.getPredecessor());

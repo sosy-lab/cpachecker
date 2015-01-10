@@ -86,7 +86,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
 
     SmtAstMatchResult r1 = matcher.perform(pp1.getPatternSelection(), _0_EQ_b_at_i_plus_1);
     assertThat(r1.matches()).isTrue();
-    assertThat(r1.getBoundVariables().size()).isEqualTo(2);
+    assertThat(r1.getBoundVariables().size()).isGreaterThan(1);
   }
 
   @Test
@@ -99,7 +99,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
     SmtAstMatchResult r2 = matcher.perform(pp1.getPatternSelection(), _b_at_i_plus_1_EQ_0);
     assertThat(r2.matches()).isTrue();
 
-    assertThat(r2.getBoundVariables().size()).isEqualTo(2);
+    assertThat(r2.getBoundVariables().size()).isGreaterThan(1);
   }
 
   @Test
@@ -136,6 +136,15 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
         Lists.newArrayList(
             _b_at_i_EQ_0,
             _b_at_i_plus_1_NOTEQ_0));
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  public void testConclusion3() throws SolverException, InterruptedException {
+    Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            ifm.equal(afm.select(_b, _0), _0),
+            bfm.not(ifm.equal(afm.select(_b, _0), _0))));
     assertThat(result).isEmpty();
   }
 

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.base.Preconditions;
@@ -61,6 +62,10 @@ public class SubstitutionRule extends PatternBasedRule {
     //    al
     //    (+ i 1)
 
+    // consider some axioms:
+    //    i < n   <==>   i <= n-1
+    //  not i >= n   <==>   i <= n-1
+
     premises.add(new PatternBasedPremise(
           GenericPatterns.f_of_x_matcher("f",
               and(
@@ -70,12 +75,16 @@ public class SubstitutionRule extends PatternBasedRule {
         )));
 
     premises.add(new PatternBasedPremise(or(
-        matchBind("=", "g",
+        matchBind("=", "eq",
             matchAnyWithAnyArgsBind("x"),
             matchAnyWithAnyArgsBind("e")),
-        matchBind("=", "g",
-            matchAnyWithAnyArgsBind("e"),
-            matchAnyWithAnyArgsBind("x"))
+        matchBind("<", "lt",
+            matchNumeralExpressionBind("x"),
+            matchNumeralExpressionBind("e")),
+        match("not",
+            matchBind(">=", "lt",
+                matchNumeralExpressionBind("x"),
+                matchNumeralExpressionBind("e")))
     )));
   }
 
@@ -84,27 +93,24 @@ public class SubstitutionRule extends PatternBasedRule {
       throws SolverException, InterruptedException {
 
     final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("f"));
-    final BooleanFormula g = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("g"));
+    final Formula eq = pAssignment.get("eq");
+    final Formula lt = pAssignment.get("lt");
 
     final Formula e = Preconditions.checkNotNull(pAssignment.get("e"));
     final Formula x = Preconditions.checkNotNull(pAssignment.get("x"));
     final Formula y = Preconditions.checkNotNull(pAssignment.get("y"));
 
-    if (f.equals(g)) {
+    final Formula parentOfX = pAssignment.get("x.parent");
+    if (parentOfX == null) {
       return false;
     }
 
-    if (e.equals(x)) {
-      return false;
-    }
-
-    if (e.equals(y)) {
-      return false;
-    }
-
-    if (solver.isUnsat(bfm.and(f, g))) {
-      return false;
-    }
+    if (lt == null && eq == null) { return false; }
+    if (lt != null && f.equals(lt)) { return false; }
+    if (eq != null && f.equals(eq)) { return false; }
+    if (e.equals(x)) { return false; }
+    if (e.equals(y)) { return false; }
+    if (eq != null && solver.isUnsat(bfm.and(f, (BooleanFormula)eq))) { return false; }
 
     return true;
   }
@@ -114,12 +120,22 @@ public class SubstitutionRule extends PatternBasedRule {
 
     final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("f"));
     final Formula x = Preconditions.checkNotNull(pAssignment.get("x"));
-    final Formula e = Preconditions.checkNotNull(pAssignment.get("e"));
+    final Formula parentOfX = Preconditions.checkNotNull(pAssignment.get("x.parent"));
 
     Map<Formula, Formula> transformation = Maps.newHashMap();
-    transformation.put(x, e);
+    final Formula e = Preconditions.checkNotNull(pAssignment.get("e"));
+    if (pAssignment.containsKey("lt")) {
+      transformation.put(x, ifm.subtract((IntegerFormula)e, ifm.makeNumber(1)));
+    } else {
+      transformation.put(x, e);
+    }
 
-    final BooleanFormula fPrime = matcher.substitute(f, transformation);
+    final Formula parentOfXPrime = matcher.substitute(parentOfX, transformation);
+
+    Map<Formula, Formula> transformation2 = Maps.newHashMap();
+    transformation2.put(parentOfX, parentOfXPrime);
+
+    final BooleanFormula fPrime = matcher.substitute(f, transformation2);
 
     return Lists.newArrayList(fPrime);
   }

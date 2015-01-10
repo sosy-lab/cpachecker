@@ -91,5 +91,27 @@ public class ExtendRightRuleTest0 extends AbstractRuleTest0 {
     assertThat(result).isNotEmpty();
   }
 
+  @Test
+  public void testConclusion2() throws SolverException, InterruptedException {
+
+    BooleanFormula _x_range = bfm.and(
+        ifm.greaterOrEquals(_x, _i),
+        ifm.lessOrEquals(_x, _j));
+
+    BooleanFormula _right_ext = ifm.lessOrEquals(_j, _k);
+
+    BooleanFormula _FORALL_x = qmgr.forall(
+        Lists.newArrayList(_x),
+        bfm.and(Lists.newArrayList(
+            _b_at_x_NOTEQ_0,
+            _x_range)));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            _FORALL_x,
+            _right_ext));
+
+    assertThat(result).isNotEmpty();
+  }
 
 }
