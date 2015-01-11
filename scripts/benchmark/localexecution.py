@@ -23,9 +23,10 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
+from _collections import defaultdict
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 try:
@@ -33,13 +34,16 @@ try:
 except ImportError: # Queue was renamed to queue in Python 3
   import queue as Queue
 
+import itertools
 import logging
+import math
 import os
 import resource
 import threading
 import time
 
 from .benchmarkDataStructures import CORELIMIT, MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
+from . import cgroups
 from .runexecutor import RunExecutor
 from . import util as Util
 
@@ -55,6 +59,11 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
     runSetsExecuted = 0
 
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
+
+    # calculate cores to use
+    coreAssignment = None
+    if CORELIMIT in benchmark.rlimits:
+        coreAssignment = _getCpuCoresPerRun(benchmark.rlimits[CORELIMIT], benchmark.numOfThreads)
 
     # iterate over run sets
     for runSet in benchmark.runSets:
@@ -84,8 +93,9 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
                 _Worker.workingQueue.put(run)
 
             # create some workers
-            for i in range(benchmark.numOfThreads):
-                WORKER_THREADS.append(_Worker(benchmark, i, outputHandler))
+            for i in xrange(benchmark.numOfThreads):
+                cores = coreAssignment[i] if coreAssignment else None
+                WORKER_THREADS.append(_Worker(benchmark, cores, outputHandler))
 
             # wait until all tasks are done,
             # instead of queue.join(), we use a loop and sleep(1) to handle KeyboardInterrupt
@@ -131,32 +141,154 @@ def killScriptLocal():
         worker.join()
 
 
+def _getCpuCoresPerRun(coreLimit, numOfThreads):
+    """
+    Calculate an assignment of the available CPU cores to a number
+    of parallel benchmark executions such that each run gets its own cores
+    without overlapping of cores between runs.
+    In case the machine has hyper-threading, this method tries to avoid
+    putting two different runs on the same physical core
+    (but it does not guarantee this if the number of parallel runs is too high to avoid it).
+    In case the machine has multiple CPUs, this method avoids
+    splitting a run across multiple CPUs if the number of cores per run
+    is lower than the number of cores per CPU
+    (splitting a run over multiple CPUs provides worse performance).
+    It will also try to split the runs evenly across all available CPUs.
+
+    A few theoretically-possible cases are not implemented,
+    for example assigning three 10-core runs on a machine
+    with two 16-core CPUs (this would have unfair core assignment
+    and thus undesirable performance characteristics anyway).
+
+    The list of available cores is read from the cgroup filesystem,
+    such that the assigned cores are a subset of the cores
+    that the current process is allowed to use.
+    This script does currently not support situations
+    where the available cores are assymetrically split over CPUs,
+    e.g. 3 cores on one CPU and 5 on another.
+
+    @param coreLimit: the number of cores for each run
+    @param numOfThreads: the number of parallel benchmark executions
+    @return a list of lists, where each inner list contains the cores for one run
+    """
+    # read list of available CPU cores
+    cgroupsParents = {}
+    cgroups.initCgroup(cgroupsParents, 'cpuset')
+    cgroupCpuset = cgroupsParents['cpuset']
+    if not cgroupCpuset:
+        sys.exit("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
+    try:
+        allCpus = Util.parseIntList(Util.readFile(cgroupCpuset, 'cpuset.cpus'))
+        logging.debug("List of available CPU cores is {0}.".format(allCpus))
+
+        physical_packages = map(lambda core : int(Util.readFile('/sys/devices/system/cpu/cpu{0}/topology/physical_package_id'.format(core))), allCpus)
+        cores_of_package = defaultdict(list)
+        for core, package in zip(allCpus, physical_packages):
+            cores_of_package[package].append(core)
+        logging.debug("Physical packages of cores are {0}.".format(str(cores_of_package)))
+
+        siblings_of_core = {}
+        for core in allCpus:
+            siblings = Util.parseIntList(Util.readFile('/sys/devices/system/cpu/cpu{0}/topology/thread_siblings_list'.format(core)))
+            siblings_of_core[core] = siblings
+        logging.debug("Siblings of cores are {0}.".format(str(siblings_of_core)))
+    except ValueError as e:
+        sys.exit("Could not read CPU information from kernel: {0}".format(e.strerror))
+
+    return _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core)
+
+def _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core):
+    """This method does the actual work of _getCpuCoresPerRun
+    without reading the machine architecture from the filesystem
+    in order to be testable. For description, c.f. above.
+    Note that this method might change the input parameters!
+    Do not call it directly, call getCpuCoresPerRun()!
+    @param allCpus: the list of all available cores
+    @param cores_of_package: a mapping from package (CPU) ids to lists of cores that belong to this CPU
+    @param siblings_of_core: a mapping from each core to a list of sibling cores including the core itself (a sibling is a core sharing the same physical core)
+    """
+    # First, do some checks whether this algorithm has a chance to work.
+    if coreLimit > len(allCpus):
+        sys.exit("Cannot run benchmarks with {0} CPU cores, only {1} CPU cores available.".format(coreLimit, len(allCpus)))
+    if coreLimit * numOfThreads > len(allCpus):
+        sys.exit("Cannot run {0} benchmarks in parallel with {1} CPU cores each, only {2} CPU cores available. Please reduce the number of threads to {3}.".format(numOfThreads, coreLimit, len(allCpus), len(allCpus) // coreLimit))
+
+    package_size = None # Number of cores per package
+    for package, cores in cores_of_package.iteritems():
+        if package_size is None:
+            package_size = len(cores)
+        elif package_size != len(cores):
+            sys.exit("Assymetric machine architecture not supported: CPU package {0} has {1} cores, but other package has {2} cores.".format(package, len(cores), package_size)) 
+
+    core_size = None # Number of threads per core
+    for core, siblings in siblings_of_core.iteritems():
+        if core_size is None:
+            core_size = len(siblings)
+        elif core_size != len(siblings):
+            sys.exit("Assymetric machine architecture not supported: CPU core {0} has {1} siblings, but other core has {2} siblings.".format(core, len(siblings), core_size)) 
+
+    # Second, compute some values we will need.
+    package_count = len(cores_of_package)
+
+    coreLimit_rounded_up = int(math.ceil(coreLimit / core_size) * core_size)
+    assert coreLimit <= coreLimit_rounded_up < (coreLimit + core_size)
+    #assert coreLimit_rounded_up <= package_size
+    if coreLimit_rounded_up * numOfThreads > len(allCpus):
+        logging.warning("The number of threads is too high and hyper-threading sibling cores need to be split among different runs, which makes benchmarking unreliable. Please reduce the number of threads to {0}.".format(len(allCpus) // coreLimit_rounded_up))
+
+    packages_per_run = int(math.ceil(coreLimit_rounded_up / package_size))
+    if packages_per_run > 1 and packages_per_run * numOfThreads > package_count:
+        sys.exit("Cannot split runs over multiple CPUs and at the same time assign multiple runs to the same CPU. Please reduce the number of threads to {0}.".format(package_count // packages_per_run))
+
+    runs_per_package = int(math.ceil(numOfThreads / package_count))
+    assert packages_per_run == 1 or runs_per_package == 1
+    if packages_per_run == 1 and runs_per_package * coreLimit > package_size:
+        sys.exit("Cannot run {} benchmarks with {} cores on {} CPUs with {} cores, because runs would need to be split across multiple CPUs. Please reduce the number of threads.".format(numOfThreads, coreLimit, package_count, package_size))
+
+    logging.debug("Going to assign at most {0} runs per package, each one using {1} cores and blocking {2} cores on {3} packages.".format(runs_per_package, coreLimit, coreLimit_rounded_up, packages_per_run))
+
+    # Third, do the actual core assignment.
+    result = []
+    used_cores = set()
+    for run in xrange(numOfThreads):
+        # this calculation ensures that runs are split evenly across packages
+        start_package = (run * packages_per_run) % package_count
+        cores = []
+        for package in xrange(start_package, start_package + packages_per_run):
+            for core in cores_of_package[package]:
+                if core not in cores:
+                    cores.extend(c for c in siblings_of_core[core] if not c in used_cores)
+                if len(cores) >= coreLimit:
+                    break
+            cores = cores[:coreLimit] # shrink if we got more cores than necessary
+            # remove used cores such that we do not try to use them again
+            cores_of_package[package] = [core for core in cores_of_package[package] if core not in cores]
+
+        assert len(cores) == coreLimit, "Wrong number of cores for run {} - previous results: {}, remaining cores per package: {}, current cores: {}".format(run, result, cores_of_package, cores)
+        used_cores.update(cores)
+        result.append(sorted(cores))
+
+    assert len(result) == numOfThreads
+    assert all(len(cores) == coreLimit for cores in result)
+    assert len(set(itertools.chain(*result))) == numOfThreads * coreLimit, "Cores are not uniquely assigned to runs: " + result
+
+    logging.debug("Final core assignment: {0}.".format(str(result)))
+    return result
+
+
 class _Worker(threading.Thread):
     """
     A Worker is a deamonic thread, that takes jobs from the workingQueue and runs them.
     """
     workingQueue = Queue.Queue()
 
-    def __init__(self, benchmark, numberOfThread, outputHandler):
+    def __init__(self, benchmark, myCpus, outputHandler):
         threading.Thread.__init__(self) # constuctor of superclass
         self.benchmark = benchmark
+        self.myCpus = myCpus
         self.outputHandler = outputHandler
         self.runExecutor = RunExecutor()
         self.setDaemon(True)
-
-        # calculate cores to use
-        self.myCpus = None
-        if CORELIMIT in benchmark.rlimits:
-            allCpus = self.runExecutor.cpus
-            if not allCpus:
-                sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
-            myCpuCount = benchmark.rlimits[CORELIMIT]
-            totalCpuCount = len(allCpus)
-            if myCpuCount > totalCpuCount:
-                sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, totalCpuCount))
-            myCpusStart = (numberOfThread * myCpuCount) % totalCpuCount
-            myCpusEnd = (myCpusStart + myCpuCount - 1) % totalCpuCount
-            self.myCpus = map(lambda i: allCpus[i], range(myCpusStart, myCpusEnd + 1))
 
         self.start()
 
