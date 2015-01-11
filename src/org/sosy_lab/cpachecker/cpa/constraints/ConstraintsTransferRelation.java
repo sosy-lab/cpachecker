@@ -186,6 +186,8 @@ public class ConstraintsTransferRelation
 
       if (newConstraint.isPresent()) {
           newState.addConstraint(newConstraint.get());
+      } else {
+        return newState;
       }
 
       if (newState.isUnsat()) {
@@ -268,6 +270,7 @@ public class ConstraintsTransferRelation
     boolean nothingChanged = true;
 
     if (!missingInformation) {
+      assert !missingInformationTruth && missingInformationExpression == null;
       return null;
     }
 
