@@ -248,28 +248,29 @@ public class JExpressionTransformer extends ExpressionTransformer
   @Override
   public ConstraintExpression visit(JArrayCreationExpression pJBooleanLiteralExpression)
       throws UnrecognizedCodeException {
-    return null;
+    throw new UnsupportedOperationException("Array creations can't be transformed to ConstraintExpressions");
   }
 
   @Override
   public ConstraintExpression visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCodeException {
-    return null;
+    throw new UnsupportedOperationException("Array initializations can't be transformed to ConstraintExpressions");
   }
 
   @Override
   public ConstraintExpression visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCodeException {
-    return null;
+    throw new UnsupportedOperationException("A variable's runtime type can't be transformed to ConstraintExpressions");
   }
 
   @Override
   public ConstraintExpression visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType)
       throws UnrecognizedCodeException {
-    return null;
+    throw new UnsupportedOperationException("Equal checks on runtime types can't be transformed to"
+        + "ConstraintExpressions");
   }
 
   @Override
   public ConstraintExpression visit(JCastExpression pJCastExpression) throws UnrecognizedCodeException {
-    return null;
+    throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
   }
 
   @Override

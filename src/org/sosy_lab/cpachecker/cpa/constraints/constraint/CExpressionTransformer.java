@@ -216,16 +216,16 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public ConstraintExpression visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws UnrecognizedCodeException {
-    return null;
+    throw new UnsupportedOperationException("Function calls can't be transformed to ConstraintExpressions");
   }
 
   @Override
   public ConstraintExpression visit(CCastExpression pIastCastExpression) throws UnrecognizedCodeException {
-    return null;
+    throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
   }
 
   @Override
   public ConstraintExpression visit(CComplexCastExpression complexCastExpression) throws UnrecognizedCodeException {
-    return null;
+    throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
   }
 }
