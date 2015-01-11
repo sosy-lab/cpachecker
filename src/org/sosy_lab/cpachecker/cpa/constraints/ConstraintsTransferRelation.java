@@ -175,6 +175,7 @@ public class ConstraintsTransferRelation
       Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
 
       if (pFactory.hasMissingInformation()) {
+        // assert we don't overwrite any information - all information should be reset after strengthening
         assert !missingInformation && missingInformationExpression == null && !missingInformationTruth;
         missingInformation = true;
         missingInformationExpression = pExpression;
