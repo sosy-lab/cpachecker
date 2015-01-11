@@ -122,6 +122,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -1604,7 +1605,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
 
-      if (value == null) {
+      if (value == null || !value.isExplicitlyKnown()) {
         return null;
       } else if ((((AssumeEdge) edge).getTruthAssumption() && value.equals(new NumericValue(1L)))
           || (!((AssumeEdge) edge).getTruthAssumption() && value.equals(new NumericValue(1L)))) {
@@ -1631,6 +1632,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
     return null;
+  }
+
+  private boolean isNonExplicitAssumeValue(Value pValue) {
+    return pValue instanceof SymbolicValue;
   }
 
   private String getRTTScopedVariableName(String fieldName, String uniqueObject) {
