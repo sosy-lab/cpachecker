@@ -68,17 +68,20 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public ConstraintExpression visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
     ConstraintExpression operand1Expression = pIastBinaryExpression.getOperand1().accept(this);
+
+    if (operand1Expression == null) {
+      return null;
+    }
+
     ConstraintExpression operand2Expression = pIastBinaryExpression.getOperand2().accept(this);
-    final Type expressionType = pIastBinaryExpression.getExpressionType();
+
+    if (operand2Expression == null) {
+      return null;
+    }
+        final Type expressionType = pIastBinaryExpression.getExpressionType();
     final Type calculationType = pIastBinaryExpression.getCalculationType();
 
     final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
-
-    if (operand1Expression == null) {
-      return operand2Expression;
-    } else if (operand2Expression == null) {
-      return operand1Expression;
-    }
 
     switch (pIastBinaryExpression.getOperator()) {
       case PLUS:

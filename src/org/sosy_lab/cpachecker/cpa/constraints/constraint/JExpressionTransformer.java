@@ -76,17 +76,21 @@ public class JExpressionTransformer extends ExpressionTransformer
   @Override
   public ConstraintExpression visit(JBinaryExpression paBinaryExpression) throws UnrecognizedCodeException {
     ConstraintExpression operand1Expression = paBinaryExpression.getOperand1().accept(this);
+
+    if (operand1Expression == null) {
+      return null;
+    }
+
     ConstraintExpression operand2Expression = paBinaryExpression.getOperand2().accept(this);
+
+    if (operand2Expression == null) {
+      return null;
+    }
+
     final JBinaryExpression.BinaryOperator operator = paBinaryExpression.getOperator();
     final Type expressionType = paBinaryExpression.getExpressionType();
 
     final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
-
-    if (operand1Expression == null) {
-      return operand2Expression;
-    } else if (operand2Expression == null) {
-      return operand1Expression;
-    }
 
     switch (operator) {
       case PLUS:
