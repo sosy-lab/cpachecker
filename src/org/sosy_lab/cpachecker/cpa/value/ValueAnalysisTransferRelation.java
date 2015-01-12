@@ -1606,10 +1606,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
 
+      boolean truthAssumption = ((AssumeEdge) edge).getTruthAssumption();
       if (value == null) {
         return null;
-      } else if ((((AssumeEdge) edge).getTruthAssumption() && value.equals(new NumericValue(1L)))
-          || (!((AssumeEdge) edge).getTruthAssumption() && value.equals(new NumericValue(1L)))) {
+      } else if (representsBoolean(value, truthAssumption)) {
         return Collections.singleton(newElement);
       } else {
         return new HashSet<>();
