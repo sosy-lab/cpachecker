@@ -75,7 +75,7 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
     if MEMLIMIT in benchmark.rlimits:
         # check whether we have enough memory in the used memory banks for all runs
         memLimit = benchmark.rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
-        _checkMemorySize(memLimit, benchmark.numOfThreads, memoryAssignment, cgroupCpuset)
+        _checkMemorySize(memLimit, benchmark.numOfThreads, memoryAssignment, cgroupsParents)
 
 
     # iterate over run sets
@@ -324,17 +324,39 @@ def _getMemoryBanksListedInDir(dir):
     return [int(entry[4:]) for entry in os.listdir(dir) if entry.startswith('node')]
 
 
-def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupCpuset):
+def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
     """Check whether the desired amount of parallel benchmarks fits in the memory.
-    So far this method does not yet check limitations imposed by the memory cgroup.
+    Implemented are checks for memory limits via cgroup controller "memory" and
+    memory bank restrictions via cgroup controller "cpuset",
+    as well as whether the system actually has enough memory installed.
     @param memLimit: the memory limit in bytes per run
     @param numOfThreads: the number of parallel benchmark executions
     @param memoryAssignment: the allocation of memory banks to runs (if not present, all banks are assigned to all runs)
-    @param cgroupCpuset: the cpuset cgroup, if available
     """
-    # get list of all memory banks, either from memory assignment or from system
     try:
+        # Check amount of memory allowed via cgroups.
+        def checkLimit(actualLimit):
+            if actualLimit < memLimit:
+                sys.exit("Cgroups allow only {} bytes of memory to be used, cannot execute runs with {} bytes of memory.".format(actualLimit, memLimit))
+            elif actualLimit < memLimit * numOfThreads:
+                sys.exit("Cgroups allow only {} bytes of memory to be used, not enough for {} benchmarks with {} bytes each. Please reduce the number of threads".format(actualLimit, numOfThreads, memLimit))
+
+        cgroups.initCgroup(cgroupsParents, 'memory')
+        cgroupMemory = cgroupsParents['memory']
+        if cgroupMemory:
+            # We use the entries hierarchical_*_limit in memory.stat and not memory.*limit_in_bytes
+            # because the former may be lower if memory.use_hierarchy is enabled.
+            with open(os.path.join(cgroupMemory, 'memory.stat')) as f:
+                for line in f:
+                    if line.startswith('hierarchical_memory_limit'):
+                        checkLimit(int(line.split()[1]))
+                    elif line.startswith('hierarchical_memsw_limit'):
+                        checkLimit(int(line.split()[1]))
+
+        # Get list of all memory banks, either from memory assignment or from system.
         if not memoryAssignment:
+            cgroups.initCgroup(cgroupsParents, 'cpuset')
+            cgroupCpuset = cgroupParents['cpuset']
             if cgroupCpuset:
                 allMems = _getAllowedMemoryBanks(cgroupCpuset)
             else:
@@ -347,6 +369,10 @@ def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupCpuset):
     except ValueError as e:
         sys.exit("Could not read memory information from kernel: {0}".format(e))
 
+    # Check whether enough memory is allocatable on the assigned memory banks.
+    # As the sum of the sizes of the memory banks is at most the total size of memory in the system,
+    # and we do this check always even if the banks are not restricted,
+    # this also checks whether the system has actually enough memory installed.
     usedMem = collections.Counter()
     for mems_of_run in memoryAssignment:
         totalSize = sum(memSizes[mem] for mem in mems_of_run)
