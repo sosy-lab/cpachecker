@@ -33,6 +33,7 @@ try:
 except ImportError: # Queue was renamed to queue in Python 3
   import queue as Queue
 
+import collections
 import itertools
 import logging
 import math
@@ -59,10 +60,23 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
 
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
 
-    # calculate cores to use
-    coreAssignment = None
+    cgroupsParents = {}
+    cgroups.initCgroup(cgroupsParents, 'cpuset')
+    cgroupCpuset = cgroupsParents['cpuset']
+
+    coreAssignment = None # cores per run
+    memoryAssignment = None # memory banks per run
     if CORELIMIT in benchmark.rlimits:
-        coreAssignment = _getCpuCoresPerRun(benchmark.rlimits[CORELIMIT], benchmark.numOfThreads)
+        if not cgroupCpuset:
+            sys.exit("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
+        coreAssignment = _getCpuCoresPerRun(benchmark.rlimits[CORELIMIT], benchmark.numOfThreads, cgroupCpuset)
+        memoryAssignment = _getMemoryBanksPerRun(coreAssignment, cgroupCpuset)
+
+    if MEMLIMIT in benchmark.rlimits:
+        # check whether we have enough memory in the used memory banks for all runs
+        memLimit = benchmark.rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
+        _checkMemorySize(memLimit, benchmark.numOfThreads, memoryAssignment, cgroupCpuset)
+
 
     # iterate over run sets
     for runSet in benchmark.runSets:
@@ -94,7 +108,8 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
             # create some workers
             for i in xrange(benchmark.numOfThreads):
                 cores = coreAssignment[i] if coreAssignment else None
-                WORKER_THREADS.append(_Worker(benchmark, cores, outputHandler))
+                memBanks = memoryAssignment[i] if memoryAssignment else None
+                WORKER_THREADS.append(_Worker(benchmark, cores, memBanks, outputHandler))
 
             # wait until all tasks are done,
             # instead of queue.join(), we use a loop and sleep(1) to handle KeyboardInterrupt
@@ -140,7 +155,7 @@ def killScriptLocal():
         worker.join()
 
 
-def _getCpuCoresPerRun(coreLimit, numOfThreads):
+def _getCpuCoresPerRun(coreLimit, numOfThreads, cgroupCpuset):
     """
     Calculate an assignment of the available CPU cores to a number
     of parallel benchmark executions such that each run gets its own cores
@@ -170,12 +185,6 @@ def _getCpuCoresPerRun(coreLimit, numOfThreads):
     @param numOfThreads: the number of parallel benchmark executions
     @return a list of lists, where each inner list contains the cores for one run
     """
-    # read list of available CPU cores
-    cgroupsParents = {}
-    cgroups.initCgroup(cgroupsParents, 'cpuset')
-    cgroupCpuset = cgroupsParents['cpuset']
-    if not cgroupCpuset:
-        sys.exit("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
     try:
         # read list of available CPU cores
         allCpus = Util.parseIntList(Util.readFile(cgroupCpuset, 'cpuset.cpus'))
@@ -278,16 +287,102 @@ def _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, sibl
     return result
 
 
+def _getMemoryBanksPerRun(coreAssignment, cgroupCpuset):
+    """Get an assignment of memory banks to runs that fits to the given coreAssignment,
+    i.e., no run is allowed to use memory that is not local (on the same NUMA node)
+    to one of its CPU cores."""
+    try:
+        # read list of available memory banks
+        allMems = set(_getAllowedMemoryBanks(cgroupCpuset))
+
+        result = []
+        for cores in coreAssignment:
+            mems = set()
+            for core in cores:
+                coreDir = '/sys/devices/system/cpu/cpu{0}/'.format(core)
+                mems.update(_getMemoryBanksListedInDir(coreDir))
+            allowedMems = sorted(mems.intersection(allMems))
+            logging.debug("Memory banks for cores {} are {}, of which we can use {}.".format(core, list(mems), allowedMems))
+
+            result.append(allowedMems)
+
+        assert len(result) == len(coreAssignment)
+        return result
+    except ValueError as e:
+        sys.exit("Could not read memory information from kernel: {0}".format(e))
+
+
+def _getAllowedMemoryBanks(cgroupCpuset):
+    """Get the list of all memory banks allowed by the given cgroup."""
+    return Util.parseIntList(Util.readFile(cgroupCpuset, 'cpuset.mems'))
+
+def _getMemoryBanksListedInDir(dir):
+    """Get all memory banks the kernel lists in a given directory.
+    Such a directory can be /sys/devices/system/node/ (contains all memory banks)
+    or /sys/devices/system/cpu/cpu*/ (contains all memory banks on the same NUMA node as that core)."""
+    # Such directories contain entries named "node<id>" for each memory bank
+    return [int(entry[4:]) for entry in os.listdir(dir) if entry.startswith('node')]
+
+
+def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupCpuset):
+    """Check whether the desired amount of parallel benchmarks fits in the memory.
+    So far this method does not yet check limitations imposed by the memory cgroup.
+    @param memLimit: the memory limit in bytes per run
+    @param numOfThreads: the number of parallel benchmark executions
+    @param memoryAssignment: the allocation of memory banks to runs (if not present, all banks are assigned to all runs)
+    @param cgroupCpuset: the cpuset cgroup, if available
+    """
+    # get list of all memory banks, either from memory assignment or from system
+    try:
+        if not memoryAssignment:
+            if cgroupCpuset:
+                allMems = _getAllowedMemoryBanks(cgroupCpuset)
+            else:
+                allMems = _getMemoryBanksListedInDir('/sys/devices/system/node/')
+            memoryAssignment = [allMems] * numOfThreads # "fake" memory assignment: all threads on all banks
+        else:
+            allMems = set(itertools.chain(*memoryAssignment))
+
+        memSizes = dict((mem, _getMemoryBankSize(mem)) for mem in allMems)
+    except ValueError as e:
+        sys.exit("Could not read memory information from kernel: {0}".format(e))
+
+    usedMem = collections.Counter()
+    for mems_of_run in memoryAssignment:
+        totalSize = sum(memSizes[mem] for mem in mems_of_run)
+        if totalSize < memLimit:
+            sys.exit("Memory banks {} do not have enough memory for one run, only {} bytes available.".format(mems_of_run, totalSize))
+        usedMem[tuple(mems_of_run)] += memLimit
+        if usedMem[tuple(mems_of_run)] > totalSize:
+            sys.exit("Memory banks {} do not have enough memory for all runs, only {} bytes available. Please reduce the number of threads.".format(mems_of_run, totalSize))
+
+def _getMemoryBankSize(memBank):
+    """Get the size of a memory bank in bytes."""
+    fileName = '/sys/devices/system/node/node{0}/meminfo'.format(memBank)
+    size = None
+    with open(fileName) as f:
+        for line in f:
+            if 'MemTotal' in line:
+                size = line.split(':')[1].strip()
+                if size[-3:] != ' kB':
+                    raise ValueError('"{}" in file {} is not a memory size.'.format(size, fileName))
+                size = int(size[:-3]) * 1024 # kB to Byte
+                logging.debug("Memory bank {} has size {} bytes.".format(memBank, size))
+                return size
+    raise ValueError('Failed to read total memory from {}.'.format(fileName))
+
+
 class _Worker(threading.Thread):
     """
     A Worker is a deamonic thread, that takes jobs from the workingQueue and runs them.
     """
     workingQueue = Queue.Queue()
 
-    def __init__(self, benchmark, myCpus, outputHandler):
+    def __init__(self, benchmark, myCpus, myMemNodes, outputHandler):
         threading.Thread.__init__(self) # constuctor of superclass
         self.benchmark = benchmark
         self.myCpus = myCpus
+        self.myMemNodes = myMemNodes
         self.outputHandler = outputHandler
         self.runExecutor = RunExecutor()
         self.setDaemon(True)
@@ -329,6 +424,7 @@ class _Worker(threading.Thread):
                 hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
                 softtimelimit=benchmark.rlimits.get(SOFTTIMELIMIT),
                 myCpus=self.myCpus,
+                memoryNodes=self.myMemNodes,
                 memlimit=memlimit,
                 environments=benchmark.getEnvironments(),
                 workingDir=benchmark.workingDirectory(),
