@@ -1,6 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
@@ -18,6 +21,9 @@ public class PolicyBound {
   // storing infinities or negative infinities.
   final Rational bound;
 
+  private static final Map<Pair<Location, MultiEdge>, Integer> serializationMap = new HashMap<>();
+  private static int pathCounter = -1;
+
   PolicyBound(MultiEdge pTrace, Rational pBound, Location pUpdatedFrom) {
     trace = pTrace;
     bound = pBound;
@@ -28,22 +34,19 @@ public class PolicyBound {
     return new PolicyBound(edge, bound, pUpdatedFrom);
   }
 
-  public String toPathString() {
-    StringBuilder b = new StringBuilder();
-    b.append(updatedFrom.toString()).append("|");
-    for (CFAEdge e : trace) {
-      if (b.length() == 0) {
-        b.append(e.getPredecessor().toString());
-      }
-      b.append(",").append(e.getSuccessor().toString());
-
+  public int serializePath() {
+    Pair<Location, MultiEdge> p = Pair.of(updatedFrom, trace);
+    Integer serialization = serializationMap.get(p);
+    if (serialization == null) {
+      serialization = ++pathCounter;
+      serializationMap.put(p, serialization);
     }
-    return b.toString();
+    return serialization;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(bound, trace);
+    return Objects.hashCode(updatedFrom, bound, trace);
   }
 
   @Override
@@ -59,6 +62,6 @@ public class PolicyBound {
     PolicyBound o = (PolicyBound) other;
     // Hm what about the cases where the constraints are equal, but
     // the traces are not?..
-    return bound.equals(o.bound) && trace.equals(o.trace);
+    return updatedFrom.equals(o.updatedFrom) && bound.equals(o.bound) && trace.equals(o.trace);
   }
 }

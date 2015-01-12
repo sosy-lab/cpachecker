@@ -5,10 +5,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -39,18 +37,6 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
   public PolicyAbstractedState asAbstracted() {
     return (PolicyAbstractedState) this;
-  }
-
-  /**
-   * @return Empty abstracted state associated with {@code node}.
-   */
-  public static PolicyAbstractedState empty(Location pLocation, PathFormula initial) {
-    return PolicyAbstractedState.of(
-        ImmutableMap.<Template, PolicyBound>of(),
-        ImmutableSet.<Template>of(), // templates
-        pLocation, // node
-        initial
-    );
   }
 
   public abstract boolean isAbstract();

@@ -10,6 +10,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>> {
@@ -20,32 +22,37 @@ public final class PolicyAbstractedState extends PolicyState
 
   /**
    * Non-abstracted section of the formula.
+   *
+   * NOTE: contains {@code PointerTargetSet} inside.
    */
-  private final PathFormula formula;
+
+  /**
+   * State used to generate the abstraction.
+   */
+  private final PolicyIntermediateState generatingState;
 
   private PolicyAbstractedState(Location pLocation,
       Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
-      PathFormula pFormula) {
+      PolicyIntermediateState pGeneratingState) {
     super(pLocation, pTemplates);
     abstraction = ImmutableMap.copyOf(pAbstraction);
-    formula = pFormula;
+    generatingState = pGeneratingState;
   }
 
   public static PolicyAbstractedState of(
       Map<Template, PolicyBound> data,
       Set<Template> templates,
       Location pLocation,
-      PathFormula pFormula
+      PolicyIntermediateState pGeneratingState
   ) {
-    return new PolicyAbstractedState(pLocation, templates, data, pFormula);
+    return new PolicyAbstractedState(pLocation, templates, data, pGeneratingState);
   }
 
   public PolicyAbstractedState withUpdates(
       Map<Template, PolicyBound> updates,
       Set<Template> unbounded,
-      Set<Template> newTemplates,
-      PathFormula newPathFormula) {
+      Set<Template> newTemplates) {
 
     ImmutableMap.Builder<Template, PolicyBound> builder =
         ImmutableMap.builder();
@@ -64,12 +71,12 @@ public final class PolicyAbstractedState extends PolicyState
       }
     }
     return new PolicyAbstractedState(
-        getLocation(), newTemplates, builder.build(),  newPathFormula
+        getLocation(), newTemplates, builder.build(),  generatingState
     );
   }
 
   public PathFormula getPathFormula() {
-    return formula;
+    return generatingState.getPathFormula();
   }
 
   /**
@@ -78,6 +85,23 @@ public final class PolicyAbstractedState extends PolicyState
    */
   public Optional<PolicyBound> getBound(Template e) {
     return Optional.fromNullable(abstraction.get(e));
+  }
+
+  /**
+   * @return Empty abstracted state associated with {@code node}.
+   */
+  public static PolicyAbstractedState empty(Location pLocation,
+      PathFormula initial) {
+    PolicyIntermediateState Iinitial = PolicyIntermediateState.of(
+        pLocation, ImmutableSet.<Template>of(),
+        initial, ImmutableMultimap.<Location, Location>of()
+    );
+    return PolicyAbstractedState.of(
+        ImmutableMap.<Template, PolicyBound>of(),
+        ImmutableSet.<Template>of(), // templates
+        pLocation, // node
+        Iinitial
+    );
   }
 
   @Override
@@ -91,7 +115,7 @@ public final class PolicyAbstractedState extends PolicyState
         "%s%n%s%n %n %s",
         (new PolicyDotWriter()).toDOTLabel(abstraction),
         templates,
-        formula
+        generatingState.getPathFormula()
     );
   }
 
@@ -107,7 +131,7 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(formula, abstraction, super.hashCode());
+    return Objects.hashCode(generatingState, abstraction, super.hashCode());
   }
 
   @Override
@@ -119,7 +143,7 @@ public final class PolicyAbstractedState extends PolicyState
       return false;
     }
     PolicyAbstractedState other = (PolicyAbstractedState)o;
-    return (formula.equals(other.formula) &&
+    return (generatingState.equals(other.generatingState) &&
         abstraction.equals(other.abstraction) && super.equals(o));
   }
 }

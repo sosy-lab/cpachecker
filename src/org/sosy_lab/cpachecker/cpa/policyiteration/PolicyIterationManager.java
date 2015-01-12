@@ -156,8 +156,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   // Temporary variable for edge selection.
   private static final String SELECTION_VAR_TEMPLATE = "__BRANCH_SELECTION_(%d)";
 
-  // Option #2: track the location on my own?
-
   /**
    * @param pNode Initial node
    * @return Initial state for the analysis, assuming the first node
@@ -166,7 +164,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Override
   public PolicyState getInitialState(CFANode pNode) {
     Location initialLocation = Location.initial(pNode);
-    PolicyAbstractedState initial = PolicyState.empty(initialLocation, pfmgr.makeEmptyPathFormula());
+    PolicyAbstractedState initial = PolicyAbstractedState.empty(
+        initialLocation, pfmgr.makeEmptyPathFormula());
     abstractStates.put(initialLocation, initial);
     return initial;
   }
@@ -191,10 +190,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       trace.putAll(iOldState.getTrace());
     }
 
-
     // NOTE: possible optimization: only add extra variables
     // if there is a choice (more than one incoming edge).
-
 
     // Create path selection variables if there are multiple choices for
     // the entering edge.
@@ -242,7 +239,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       List<AbstractState> otherStates,
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
-    statistics.abstractionTimer.start();
+    statistics.startAbstractionTimer();
     CFANode toNode = state.getNode();
     try {
       // Perform the abstraction, if necessary.
@@ -260,64 +257,53 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     } finally {
       abstractStates.put(state.getLocation(), state);
-      statistics.abstractionTimer.stop();
+      statistics.stopAbstractionTimer();
     }
 
     // Perform the reachability check for the target states.
-    statistics.strengthenTimer.start();
-    try {
-      if (state.isAbstract()) {
+    if (state.isAbstract()) {
+      return Collections.singleton(state);
+    }
+    boolean hasTargetState = false;
+    for (AbstractState oState : otherStates) {
+      if (AbstractStates.isTargetState(oState)) {
+        hasTargetState = true;
+      }
+    }
+
+    if (hasTargetState) {
+      boolean isSat = checkSatisfiability(state.asIntermediate());
+      if (!isSat) {
+        return Collections.emptyList();
+      } else {
         return Collections.singleton(state);
       }
-      boolean hasTargetState = false;
-      for (AbstractState oState : otherStates) {
-        if (AbstractStates.isTargetState(oState)) {
-          hasTargetState = true;
-        }
-      }
-
-      if (hasTargetState) {
-        boolean isSat = checkSatisfiability(state.asIntermediate());
-        if (!isSat) {
-          return Collections.emptyList();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
-      return Collections.singleton(state);
-
-    } finally {
-      statistics.strengthenTimer.stop();
     }
+    return Collections.singleton(state);
   }
 
   @Override
   public PolicyState join(PolicyState newState, PolicyState oldState)
       throws CPATransferException, InterruptedException, SolverException {
-    statistics.timeInMerge.start();
-    try {
-      PolicyState out;
-      Preconditions.checkState(oldState.getNode() == newState.getNode());
-      Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
+    PolicyState out;
+    Preconditions.checkState(oldState.getNode() == newState.getNode());
+    Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
 
-      if (oldState.isAbstract()) {
-        out = joinAbstractedStates(
-            newState.asAbstracted(), oldState.asAbstracted());
-      } else {
-        out = joinIntermediateStates(
-            newState.asIntermediate(), oldState.asIntermediate());
-      }
-      abstractStates.put(out.getLocation(), out);
-
-      // Note: returning an exactly same state is important, due to the issues
-      // with .equals() handling.
-      if (out.equals(oldState)) {
-        return oldState;
-      }
-      return out;
-    } finally {
-      statistics.timeInMerge.stop();
+    if (oldState.isAbstract()) {
+      out = joinAbstractedStates(
+          newState.asAbstracted(), oldState.asAbstracted());
+    } else {
+      out = joinIntermediateStates(
+          newState.asIntermediate(), oldState.asIntermediate());
     }
+    abstractStates.put(out.getLocation(), out);
+
+    // Note: returning an exactly same state is important, due to the issues
+    // with .equals() handling.
+    if (out.equals(oldState)) {
+      return oldState;
+    }
+    return out;
   }
 
   private PolicyIntermediateState joinIntermediateStates(
@@ -337,8 +323,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return newState;
     }
 
-    // TODO: bug, old covers new.... how could that have happened?
-    // Should we ever get to that state?
     Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
         newState.getTemplates());
 
@@ -394,8 +378,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     PolicyAbstractedState stateWithUpdates =
-        oldState.withUpdates(updated, unbounded, allTemplates,
-            oldState.getPathFormula());
+        oldState.withUpdates(updated, unbounded, allTemplates);
     logger.log(Level.FINE, "# State with updates: ", stateWithUpdates);
 
     if (!shouldPerformValueDetermination(node, updated)) {
@@ -436,8 +419,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Set<Template> unbounded = new HashSet<>();
 
     // Maximize for each template subject to the overall constraints.
-    statistics.valueDeterminationSolverTimer.start();
-    statistics.valueDetCalls++;
+    statistics.startValueDeterminationTimer();
     try (OptEnvironment solver = this.solver.newOptEnvironment()) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -460,7 +442,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         objectiveHandles.put(template, handle);
       }
 
-      OptEnvironment.OptStatus result = solver.check();
+
+      OptEnvironment.OptStatus result;
+      try {
+        statistics.startOPTTimer();
+        result = solver.check();
+      } finally {
+        statistics.stopOPTTimer();
+      }
       if (result != OptEnvironment.OptStatus.OPT) {
         throw new CPATransferException("Unexpected solver state, " +
             "value determination problem should be feasible");
@@ -486,11 +475,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } catch (SolverException e) {
       throw new CPATransferException("Failed maximization ", e);
     } finally {
-      statistics.valueDeterminationSolverTimer.stop();
+      statistics.stopValueDeterminationTimer();
     }
 
-    return prevState.withUpdates(builder.build(), unbounded, templates,
-        prevState.getPathFormula());
+    return prevState.withUpdates(builder.build(), unbounded, templates);
   }
 
   /**
@@ -533,9 +521,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         throws CPATransferException, InterruptedException {
 
     try {
+      statistics.startCheckSATTimer();
       return !solver.isUnsat(state.getPathFormula().getFormula());
     } catch (SolverException e) {
       throw new CPATransferException("Failed solving", e);
+    } finally {
+      statistics.stopCheckSATTimer();
     }
   }
 
@@ -547,10 +538,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * otherwise.
    */
   private Optional<PolicyAbstractedState> performAbstraction(
-      PolicyIntermediateState state)
+      final PolicyIntermediateState state)
       throws CPATransferException, InterruptedException {
     final PathFormula p = state.getPathFormula();
-
     ImmutableMap.Builder<Template, PolicyBound> abstraction
         = ImmutableMap.builder();
 
@@ -574,13 +564,18 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         logger.flush();
 
+        OptEnvironment.OptStatus status;
+        try {
+          statistics.startOPTTimer();
+          status = solver.check();
+        } finally {
+          statistics.stopOPTTimer();
+        }
+
         // Generate the trace for the single template.
-        switch (solver.check()) {
+        switch (status) {
           case OPT:
             Optional<Rational> bound = solver.upper(handle, EPSILON);
-            boolean isLowerBound = (template.type.isUnsigned() &&
-                  template.linearExpression.size() == 1 &&
-                  template.linearExpression.iterator().next().getValue().equals(Rational.NEG_ONE));
             if (bound.isPresent()) {
               Model model = solver.getModel();
               Pair<MultiEdge, Location> pair = traceFromModel(state, model);
@@ -588,13 +583,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               Location location = pair.getSecond();
 
               Rational boundValue = bound.get();
-              if  (isLowerBound) {
+              if  (template.type.isUnsigned() && template.isLowerBound()) {
                 boundValue = Rational.max(boundValue, Rational.ZERO);
               }
 
               abstraction.put(template, new PolicyBound(edge, boundValue, location));
             } else {
-              if (isLowerBound) {
+              if (template.type.isUnsigned() && template.isLowerBound()) {
                 Model model = solver.getModel();
                 Pair<MultiEdge, Location> pair = traceFromModel(state, model);
                 MultiEdge edge = pair.getFirst();
@@ -620,7 +615,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     return Optional.of(
         PolicyAbstractedState.of(
             abstraction.build(),
-            state.getTemplates(), state.getLocation(), p));
+            state.getTemplates(),
+            state.getLocation(),
+            state));
   }
 
   /**

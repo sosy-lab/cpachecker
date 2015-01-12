@@ -44,7 +44,7 @@ public class ValueDeterminationFormulaManager {
 
   /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
-  private static final String EDGE_PREFIX = "[%s]_";
+  private static final String EDGE_PREFIX = "[%d]_";
 
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
@@ -95,7 +95,7 @@ public class ValueDeterminationFormulaManager {
 
         // Prefix the constraints by the edges.
         // We encode the whole paths, as things might differ inside the path.
-        String edgePrefix = String.format(EDGE_PREFIX, bound.toPathString());
+        String edgePrefix = String.format(EDGE_PREFIX, bound.serializePath());
 
         if (toLocation == focusedLocation && !updated.containsKey(template)) {
 
