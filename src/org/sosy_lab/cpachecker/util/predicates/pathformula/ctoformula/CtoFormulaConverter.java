@@ -1110,14 +1110,41 @@ public class CtoFormulaConverter {
     return fmgr.assignment(l, r);
   }
 
-  Formula buildTerm(CRightHandSide exp, CFAEdge edge, String function,
+  /**
+   * Convert a simple C expression to a formula consistent with the
+   * current state of the {@code pFormula}.
+   *
+   * @param pFormula Current {@link PathFormula}.
+   * @param expr Expression to convert.
+   * @param edge Reference edge, used for log messages only.
+   * @return Created formula.
+   * @throws UnrecognizedCCodeException
+   */
+  public Formula buildTermFromPathFormula(PathFormula pFormula,
+      CIdExpression expr,
+      CFAEdge edge) throws UnrecognizedCCodeException {
+
+    String functionName = edge.getPredecessor().getFunctionName();
+    Constraints constraints = new Constraints(bfmgr);
+    return buildTerm(
+        expr,
+        edge,
+        functionName,
+        pFormula.getSsa().builder(),
+        createPointerTargetSetBuilder(pFormula.getPointerTargetSet()),
+        constraints,
+        ErrorConditions.dummyInstance(bfmgr)
+    );
+  }
+
+  protected Formula buildTerm(CRightHandSide exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions)
           throws UnrecognizedCCodeException {
     return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
-  Formula buildLvalueTerm(CLeftHandSide exp,
+  protected Formula buildLvalueTerm(CLeftHandSide exp,
       CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {

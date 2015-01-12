@@ -51,26 +51,23 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.princess.PrincessFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.princess.PrincessInterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.princess.PrincessTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3TheoremProver;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
 
+/**
+ * Factory class for loading and instantiating SMT solvers.
+ * Most code should not access {@link FormulaManager} instances directly
+ * and instead use the class {@link Solver} and the classes from
+ * the {@link org.sosy_lab.cpachecker.util.predicates.interfaces.view} package
+ * (most notably {@link FormulaManagerView}).
+ * The preferred way to instantiate all of this is
+ * {@link Solver#create(Configuration, LogManager, ShutdownNotifier)}.
+ */
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
 
@@ -82,10 +79,6 @@ public class FormulaManagerFactory {
     PRINCESS
     ;
   }
-
-  @Option(secure=true, name="solver.useLogger",
-      description="log some solver actions, this may be slow!")
-  private boolean useLogger = false;
 
   @Option(secure=true, name="solver.logAllQueries",
       description = "Export solver queries in Smtlib format into a file.")
@@ -110,6 +103,7 @@ public class FormulaManagerFactory {
 
   private volatile SolverFactory smtInterpolFactory = null;
 
+  @VisibleForTesting
   public FormulaManagerFactory(Configuration config, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
@@ -133,7 +127,7 @@ public class FormulaManagerFactory {
     if (interpolationSolver != null) {
       itpFmgr = instantiateSolver(interpolationSolver, config);
     } else {
-      itpFmgr = null;
+      itpFmgr = fmgr;
     }
   }
 
@@ -179,84 +173,8 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  public ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
-    ProverEnvironment pe;
-    switch (solver) {
-    case SMTINTERPOL:
-      pe = loadSmtInterpol().createProver(fmgr);
-      break;
-    case MATHSAT5:
-      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels, generateUnsatCore);
-      break;
-    case Z3:
-      pe = new Z3TheoremProver((Z3FormulaManager) fmgr, generateUnsatCore);
-      break;
-    case PRINCESS:
-      pe = new PrincessTheoremProver((PrincessFormulaManager) fmgr, shutdownNotifier);
-      break;
-    default:
-      throw new AssertionError("no solver selected");
-    }
-
-    if (useLogger) {
-      return new LoggingProverEnvironment(logger, pe);
-    } else {
-      return pe;
-    }
-  }
-
-  public OptEnvironment newOptEnvironment() {
-    OptEnvironment environment;
-    switch (solver) {
-        case Z3:
-            environment = ((Z3FormulaManager) fmgr).newOptProver();
-            break;
-        default:
-            throw new AssertionError("Only Z3 supports the optimization interface");
-    }
-
-    if (useLogger) {
-      return new LoggingOptEnvironment(logger, environment);
-    } else {
-      return environment;
-    }
-  }
-
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
-    if (interpolationSolver != null) {
-      InterpolatingProverEnvironment<?> env = newProverEnvironmentWithInterpolation(interpolationSolver, itpFmgr, shared);
-      return new SeparateInterpolatingProverEnvironment<>(fmgr, itpFmgr, env);
-    }
-
-    return newProverEnvironmentWithInterpolation(solver, fmgr, shared);
-  }
-
-  private InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
-          Solvers solver, FormulaManager fmgr, boolean shared) {
-
-    InterpolatingProverEnvironment<?> ipe;
-    switch (solver) {
-    case SMTINTERPOL:
-      ipe = loadSmtInterpol().createInterpolatingProver(fmgr);
-      break;
-    case MATHSAT5:
-      ipe = new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
-      break;
-    case Z3:
-      ipe = new Z3InterpolatingProver((Z3FormulaManager) fmgr);
-      break;
-    case PRINCESS:
-      ipe = new PrincessInterpolatingProver((PrincessFormulaManager) fmgr);
-      break;
-    default:
-      throw new AssertionError("no solver selected");
-    }
-
-    if (useLogger) {
-      return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
-    } else {
-      return ipe;
-    }
+  public FormulaManager getFormulaManagerForInterpolation() {
+    return itpFmgr;
   }
 
   /**
@@ -270,10 +188,6 @@ public class FormulaManagerFactory {
     FormulaManager create(Configuration config, LogManager logger,
         ShutdownNotifier pShutdownNotifier,
         @Nullable PathCounterTemplate solverLogfile) throws InvalidConfigurationException;
-
-    ProverEnvironment createProver(FormulaManager mgr);
-
-    InterpolatingProverEnvironment<?> createInterpolatingProver(FormulaManager mgr);
   }
 
   // ------------------------- SmtInterpol -------------------------

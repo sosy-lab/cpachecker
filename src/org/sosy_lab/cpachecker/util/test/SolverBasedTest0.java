@@ -29,17 +29,16 @@ import javax.annotation.Nullable;
 
 import org.junit.After;
 import org.junit.Before;
-import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -107,13 +106,14 @@ public abstract class SolverBasedTest0 {
     return Solvers.SMTINTERPOL;
   }
 
+  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
+    return TestDataTools.configurationForTest()
+        .setOption("cpa.predicate.solver", solverToUse().toString());
+  }
+
   @Before
   public final void initSolver() throws Exception {
-    ConfigurationBuilder builder = new Builder();
-    builder.setOption("cpa.predicate.solver", solverToUse().toString());
-    // FileOption-Converter for correct output-paths, otherwise files are written in current working directory.
-    builder.addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()));
-    config = builder.build();
+    config = createTestConfigBuilder().build();
 
     try {
       factory = new FormulaManagerFactory(config, logger,
@@ -155,7 +155,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support rationals.
    */
   protected final void requireRationals() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support the theory of rationals")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of rationals")
             .that(rmgr).isNotNull();
   }
 
@@ -163,7 +163,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support quantifiers.
    */
   protected final void requireQuantifiers() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support quantifiers")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support quantifiers")
             .that(qmgr).isNotNull();
   }
 
@@ -171,7 +171,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support arrays.
    */
   protected final void requireArrays() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support the theory of arrays")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of arrays")
             .that(amgr).isNotNull();
   }
 
@@ -182,7 +182,7 @@ public abstract class SolverBasedTest0 {
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormula())")
   protected final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormula() {
-    return BooleanFormulaOfSolver(factory);
+    return BooleanFormulaOfSolver(mgr);
   }
 
   /**
@@ -193,11 +193,26 @@ public abstract class SolverBasedTest0 {
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormulaOfSolver())")
   public static final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
-      final FormulaManagerFactory factory) {
+      final FormulaManager mgr) {
     return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
           @Override
           public BooleanFormulaSubject getSubject(FailureStrategy pFs, BooleanFormula pFormula) {
-            return new BooleanFormulaSubject(pFs, pFormula, factory);
+            return new BooleanFormulaSubject(pFs, pFormula, mgr);
+          }
+        };
+  }
+
+  /**
+   * Use this for checking assertions about ProverEnvironments with Truth:
+   * <code>assert_().about(ProverEnvironment()).that(stack).is...()</code>.
+   */
+  @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
+      justification="fits better when called as about(ProverEnvironment())")
+  public static final SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
+    return new SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>() {
+          @Override
+          public ProverEnvironmentSubject getSubject(FailureStrategy pFs, BasicProverEnvironment<?> pFormula) {
+            return new ProverEnvironmentSubject(pFs, pFormula);
           }
         };
   }

@@ -63,7 +63,7 @@ public class InvariantsWriter {
   private final FormulaManagerView fmgr;
 
   public InvariantsWriter(PredicateCPA pCpa) {
-    this(pCpa.getFormulaManager());
+    this(pCpa.getSolver().getFormulaManager());
   }
 
   public InvariantsWriter(FormulaManagerView pFmgr) {

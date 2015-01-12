@@ -27,49 +27,72 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Set;
-import java.util.Stack;
 
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 
 
 public class AppliedCustomInstructionParser {
 
+  private final ShutdownNotifier notifier;
+
+  public AppliedCustomInstructionParser(final ShutdownNotifier pShN) {
+    notifier = pShN;
+  }
+
   /**
-   * Creates a ImmutableMap if the file contains all reqiered data, null if not
+   * Creates a ImmutableMap if the file contains all required data, null if not
    * @param file Path of the file to be read
    * @return ImmutableMap containing a startNode (key) and a set of endNodes (value).
    * @throws IOException if the file doesn't contain all required data.
    * @throws AppliedCustomInstructionParsingFailedException
+   * @throws InterruptedException
    */
   public ImmutableMap<CFANode, AppliedCustomInstruction> parse (Path file)
-      throws IOException, AppliedCustomInstructionParsingFailedException {
+      throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
 
-    // TODO wann parsingFailedException werfen?
+    Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
 
-    BufferedReader br = new BufferedReader(new FileReader(file.toFile()));
-    String firstLine = br.readLine().trim();
-    String[] secLine = br.readLine().trim().split(" ");
-    br.close();
+    try (BufferedReader br = new BufferedReader(new FileReader(file.toFile()))) {
+      String line = "";
 
-    CFANode firstNode = getCFANode(firstLine, GlobalInfo.getInstance().getCFAInfo().get());
-    ImmutableSet<CFANode> secNodes = getCFANodes(secLine);
+      while(br.ready()) {
+        notifier.shutdownIfNecessary();
 
-    //TODO immutableSet mit nur einem Element?
-    if (sanityCheckCIApplication(firstNode, secNodes)) {
-      return new ImmutableMap.Builder<CFANode, AppliedCustomInstruction>()
-            .put(firstNode, new AppliedCustomInstruction(firstNode, secNodes))
-            .build();
+        line = br.readLine();
+        if (line==null) {
+          break;
+        }
+        String firstLine = line.trim();
+
+        if ((line = br.readLine())==null){
+          throw new AppliedCustomInstructionParsingFailedException("The number of lines is incorrect. There is a second line missing!");
+        }
+        String[] secLine = line.trim().split("(\\w)+");
+
+        CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+        CFANode firstNode = getCFANode(firstLine, cfaInfo);
+        ImmutableSet<CFANode> secNodes = getCFANodes(secLine, cfaInfo);
+
+        if (sanityCheckCIApplication(firstNode, secNodes)) {
+          map.put(firstNode, new AppliedCustomInstruction(firstNode, secNodes));
+        }
+      }
     }
 
-    return null;
+    return map.build();
   }
+
 
   /**
    * Creates a new CFANode with respect to the given parameters
@@ -93,10 +116,10 @@ public class AppliedCustomInstructionParser {
    * @return Immutable Set of CFANodes out of the String[]
    * @throws AppliedCustomInstructionParsingFailedException
    */
-  public ImmutableSet<CFANode> getCFANodes (String[] pNodes) throws AppliedCustomInstructionParsingFailedException {
+  public ImmutableSet<CFANode> getCFANodes (String[] pNodes, CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (int i=0; i<pNodes.length; i++) {
-      builder.add(getCFANode(pNodes[i], GlobalInfo.getInstance().getCFAInfo().get()));
+      builder.add(getCFANode(pNodes[i], cfaInfo));
     }
     return builder.build();
   }
@@ -107,75 +130,40 @@ public class AppliedCustomInstructionParser {
    * @param pSet Set of CFANodes
    * @return true if all nodes out of the given set can be reached from the given pNode, false if not.
    * @throws AppliedCustomInstructionParsingFailedException if the given node or set is null.
+   * @throws InterruptedException
    */
   private boolean sanityCheckCIApplication (CFANode pNode, Set<CFANode> pSet)
-        throws AppliedCustomInstructionParsingFailedException {
+        throws AppliedCustomInstructionParsingFailedException, InterruptedException {
 
-    if (pNode == null || pSet == null) {
-      throw new AppliedCustomInstructionParsingFailedException
-        ("The CFANode "+pNode+" is null, that is no valid value for sanityCheckCIApplication");
-    }
-
-    CFANode currentNode = pNode;
     Set<CFANode> endNodes = new HashSet<>();
     Set<CFANode> visitedNodes = new HashSet<>();
-    Stack<Tupel> stack = new Stack<>();
-    int i = 0;
-    int visitedCurrenNodeNum = 0;
+    Queue<CFANode> queue = new LinkedList<>();
+    queue.add(pNode);
 
-    while (visitedCurrenNodeNum != pNode.getNumLeavingEdges()) {
-      CFANode tmp = currentNode.getLeavingEdge(i).getSuccessor();
+    while (!queue.isEmpty()) {
+      notifier.shutdownIfNecessary();
+      CFANode tmp = queue.poll();
       visitedNodes.add(tmp);
 
       // If tmp is endNode and in pSet => save that tmp is in pSet.
       // At the end of the method we compare the given pSet and the set of endNodes we visited,
       // to decide if all nodes of pSet are contained in the graph of pNode.
-      if (tmp.getNumLeavingEdges() == 0 && pSet.contains(tmp)) {
+      if (pSet.contains(tmp)) {
         endNodes.add(tmp);
       }
 
-      // If tmp is not an endNode => we want to go to the child node i.
-      // If we want to go back from the child node to the parent node, we have to know which node
-      // of the (perhaps more than one) possible parent nodes is the one we want to visit again.
-      else if (tmp.getNumLeavingEdges()>0) {
-        stack.push(new Tupel(currentNode, i));
-        currentNode = tmp;
-        i=0;
+      // breadth-first-search
+      int numLeavingEdges = tmp.getNumLeavingEdges();
+      for (int i=0; i<numLeavingEdges; i++) {
+        CFANode x = tmp.getLeavingEdge(i).getSuccessor();
+        if (!visitedNodes.contains(x)){
+          queue.add(x);
+        }
       }
-
-      // all leaving edges are visited => we want to go to the parent node
-      // and visit all the other child nodes of it
-      else if (i == currentNode.getNumLeavingEdges()) {
-        Tupel t = stack.pop();
-        currentNode = t.getCFANode();
-        i = t.getI();
-      }
-
-      // visit the next child node
-      i++;
     }
 
     // if the set endNode is equal to pSet => all nodes of pSet are endNodes
     return pSet.equals(endNodes);
   }
 
-}
-
-class Tupel {
-
-  private final CFANode cfa;
-  private final int i;
-
-  public Tupel(CFANode pCfa, int pI) {
-    cfa = pCfa;
-    i = pI;
-  }
-
-  public CFANode getCFANode() {
-    return cfa;
-  }
-
-  public int getI() {
-    return i;
-  }
 }

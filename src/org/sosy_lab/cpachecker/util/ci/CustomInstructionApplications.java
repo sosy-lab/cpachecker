@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -53,7 +54,7 @@ public class CustomInstructionApplications {
   public boolean isStartState(final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
-      throw new CPAException("TheState " + pState+ " has to contain a location state!");
+      throw new CPAException("The state " + pState + " has to contain a location state!");
     }
     return cis.containsKey(locState);
   }
@@ -78,6 +79,20 @@ public class CustomInstructionApplications {
    */
   public boolean isEndState(final AbstractState pIsEnd, final CFANode pCIStart) throws CPAException {
     return cis.get(pCIStart).isEndState(pIsEnd);
+  }
+
+  public AppliedCustomInstruction getAppliedCustomInstructionFor(final ARGState pState) throws CPAException{
+    CFANode locState = AbstractStates.extractLocation(pState);
+
+    if (locState == null) {
+      throw new CPAException("The state " + pState + " has to contain a location state!");
+    }
+
+    if (!isStartState(pState)) {
+      throw new CPAException("The state does not represent start of known custom instruction");
+    }
+
+    return cis.get(locState);
   }
 
 }

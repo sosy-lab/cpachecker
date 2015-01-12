@@ -190,7 +190,7 @@ public final class DOTBuilder {
         + escapeGraphvizLabel(nodeAnnotation, "\\\\n") + "\"]";
   }
 
-  private static String escapeGraphvizLabel(String input, String newlineReplacement) {
+  public static String escapeGraphvizLabel(String input, String newlineReplacement) {
     return input.replaceAll("\\Q\\\"\\E", "\\ \"")
         .replaceAll("\\\"", "\\\\\\\"")
         .replaceAll("\n", newlineReplacement);

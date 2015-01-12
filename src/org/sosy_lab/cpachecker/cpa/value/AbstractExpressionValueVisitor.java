@@ -833,7 +833,7 @@ public abstract class AbstractExpressionValueVisitor
         SymbolicValue equalsFormula =
             factory.createEquals(pLeftValue, pLeftType, pRightValue, pRightType);
 
-        return factory.createLogicalNot(equalsFormula, new JSimpleType(JBasicType.BOOLEAN));
+        return factory.createLogicalNot(equalsFormula, JSimpleType.getBoolean());
       case LESS_THAN:
         return factory.createLessThan(pLeftValue, pLeftType, pRightValue, pRightType);
       case LESS_EQUAL:

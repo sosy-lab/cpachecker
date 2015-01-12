@@ -146,16 +146,13 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
 
   @Test
   public void testGetFormulaType() {
-    requireArrays();
-
     BooleanFormula _boolVar = bmgr.makeVariable("boolVar");
-    assertThat(mgr.getFormulaType(_boolVar))
-      .isInstanceOf(FormulaType.BooleanType.getClass());
+    assertThat(mgr.getFormulaType(_boolVar)).isEqualTo(FormulaType.BooleanType);
 
     IntegerFormula _intVar = imgr.makeNumber(1);
-    assertThat(mgr.getFormulaType(_intVar))
-      .isInstanceOf(FormulaType.IntegerType.getClass());
+    assertThat(mgr.getFormulaType(_intVar)).isEqualTo(FormulaType.IntegerType);
 
+    requireArrays();
     ArrayFormula<IntegerFormula, IntegerFormula> _arrayVar = amgr.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     assertThat(mgr.getFormulaType(_arrayVar))
       .isInstanceOf(FormulaType.ArrayFormulaType.class);

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
 import com.google.common.truth.FailureStrategy;
@@ -51,17 +52,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
 public class BooleanFormulaSubject extends Subject<BooleanFormulaSubject, BooleanFormula> {
 
-  private final FormulaManagerFactory factory;
+  private final FormulaManager mgr;
 
   BooleanFormulaSubject(FailureStrategy pFailureStrategy,
-      BooleanFormula pFormula, FormulaManagerFactory pFactory) {
+      BooleanFormula pFormula, FormulaManager pMgr) {
     super(pFailureStrategy, pFormula);
-    factory = checkNotNull(pFactory);
+    mgr = checkNotNull(pMgr);
   }
 
   private void checkIsUnsat(final BooleanFormula subject, final String verb, final Object expected)
       throws SolverException, InterruptedException {
-    try (final ProverEnvironment prover = factory.newProverEnvironment(true, false)) {
+    try (final ProverEnvironment prover = mgr.newProverEnvironment(true, false)) {
       prover.push(subject);
       if (prover.isUnsat()) {
         return; // success
@@ -82,7 +83,7 @@ public class BooleanFormulaSubject extends Subject<BooleanFormulaSubject, Boolea
    * Will show a model (satisfying assignment) on failure.
    */
   public void isUnsatisfiable() throws SolverException, InterruptedException {
-    if (factory.getFormulaManager().getBooleanFormulaManager().isTrue(getSubject())) {
+    if (mgr.getBooleanFormulaManager().isTrue(getSubject())) {
       failWithBadResults("is", "unsatisfiable", "is", "trivially satisfiable");
     }
 
@@ -94,11 +95,11 @@ public class BooleanFormulaSubject extends Subject<BooleanFormulaSubject, Boolea
    * Will show an unsat core on failure.
    */
   public void isSatisfiable() throws SolverException, InterruptedException {
-    if (factory.getFormulaManager().getBooleanFormulaManager().isFalse(getSubject())) {
+    if (mgr.getBooleanFormulaManager().isFalse(getSubject())) {
       failWithBadResults("is", "satisfiable", "is", "trivially unsatisfiable");
     }
 
-    try (ProverEnvironment prover = factory.newProverEnvironment(false, true)) {
+    try (ProverEnvironment prover = mgr.newProverEnvironment(false, true)) {
       prover.push(getSubject());
       if (!prover.isUnsat()) {
         return; // success
@@ -125,7 +126,7 @@ public class BooleanFormulaSubject extends Subject<BooleanFormulaSubject, Boolea
       return;
     }
 
-    final BooleanFormula f = factory.getFormulaManager().getBooleanFormulaManager()
+    final BooleanFormula f = mgr.getBooleanFormulaManager()
         .xor(getSubject(), expected);
 
     checkIsUnsat(f, "is equivalent to", expected);
@@ -142,7 +143,7 @@ public class BooleanFormulaSubject extends Subject<BooleanFormulaSubject, Boolea
       return;
     }
 
-    final BooleanFormulaManager bmgr = factory.getFormulaManager().getBooleanFormulaManager();
+    final BooleanFormulaManager bmgr = mgr.getBooleanFormulaManager();
     final BooleanFormula implication = bmgr.or(bmgr.not(getSubject()), expected);
 
     checkIsUnsat(bmgr.not(implication), "implies", expected);

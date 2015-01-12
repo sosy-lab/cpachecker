@@ -1,4 +1,4 @@
 /**
- * Implementation of multiple analysis in the STATOR framework.
+ * Policy iteration implementation.
  */
 package org.sosy_lab.cpachecker.cpa.policyiteration;

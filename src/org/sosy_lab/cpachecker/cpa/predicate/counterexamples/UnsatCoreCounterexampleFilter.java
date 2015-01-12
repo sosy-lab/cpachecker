@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
@@ -53,7 +53,7 @@ import com.google.common.collect.ImmutableList;
 public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexampleFilter<ImmutableList<BooleanFormula>> {
 
   private final LogManager logger;
-  private final FormulaManagerFactory solverFactory;
+  private final Solver solver;
 
   public UnsatCoreCounterexampleFilter(Configuration pConfig, LogManager pLogger,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -65,13 +65,13 @@ public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexa
       throw new InvalidConfigurationException(UnsatCoreCounterexampleFilter.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    solverFactory = predicateCpa.getFormulaManagerFactory();
+    solver = predicateCpa.getSolver();
   }
 
   @Override
   protected Optional<ImmutableList<BooleanFormula>> getCounterexampleRepresentation(List<BooleanFormula> formulas) throws InterruptedException {
 
-    try (ProverEnvironment thmProver = solverFactory.newProverEnvironment(false, true)) {
+    try (ProverEnvironment thmProver = solver.newProverEnvironmentWithUnsatCoreGeneration()) {
 
       for (BooleanFormula f : formulas) {
         thmProver.push(f);

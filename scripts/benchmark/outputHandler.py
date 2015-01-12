@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import threading
 import time
@@ -419,7 +419,7 @@ class OutputHandler:
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
                 blockFileName = self.getFileName(runSet.name, block.name + ".xml")
-                filewriter.writeFile(
+                Util.writeFile(
                     Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)),
                     blockFileName
                 )

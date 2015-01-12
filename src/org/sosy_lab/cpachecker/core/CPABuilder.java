@@ -84,6 +84,13 @@ public class CPABuilder {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> specificationFiles = null;
 
+  @Option(secure=true, name="backwardSpecification",
+      description="comma-separated list of files with specifications that should be used "
+      + "\nin a backwards analysis; used if the full analysis consists of a forward AND a backward part!"
+        + "\n(see config/specification/ for examples)")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private List<Path> backwardSpecificationFiles = null;
+
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -98,9 +105,17 @@ public class CPABuilder {
     config.inject(this);
   }
 
-  public ConfigurableProgramAnalysis buildCPAs(final CFA cfa) throws InvalidConfigurationException, CPAException {
+  public ConfigurableProgramAnalysis buildCPAWithSpecAutomatas(final CFA cfa)
+      throws InvalidConfigurationException, CPAException {
+
     // create automata cpas for the specification files given in "specification"
     return buildCPAs(cfa, specificationFiles);
+  }
+
+  public ConfigurableProgramAnalysis buildCPAWithBackwardSpecAutomatas(final CFA cfa)
+      throws InvalidConfigurationException, CPAException {
+    // create automata cpas for the specification files given in "backwardSpecification"
+    return buildCPAs(cfa, backwardSpecificationFiles);
   }
 
   public ConfigurableProgramAnalysis buildCPAs(final CFA cfa, @Nullable final List<Path> specAutomatonFiles)

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -218,19 +219,17 @@ public class ValueAnalysisPathInterpolator implements Statistics {
         new AssumptionUseDefinitionCollector() :
         new InitialAssumptionUseDefinitionCollector();
 
-    Set<String> useDefRelation = useDefinitionCollector.obtainUseDefInformation(errorPathPrefix.asEdgesList());
-
-    totalInterpolationQueries.setNextValue(1);
-    sizeOfInterpolant.setNextValue(useDefRelation.size() * errorPathPrefix.size());
-
+    Multimap<ARGState, MemoryLocation> fakeInterpolants = useDefinitionCollector.obtainFakeInterpolants(errorPathPrefix);
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPathPrefix.size());
-
     // add the "fake" interpolant for each state except the root of the ARG;
     // this makes the first child of the root the refinement root
-    ValueAnalysisInterpolant fakeItp = createFakeInterpolant(useDefRelation);
     for(ARGState state : Iterables.skip(errorPathPrefix.asStatesList(), 1)) {
+      ValueAnalysisInterpolant fakeItp = createFakeInterpolant(fakeInterpolants.get(state));
       pathInterpolants.put(state, fakeItp);
     }
+
+    totalInterpolationQueries.setNextValue(1);
+    sizeOfInterpolant.setNextValue(fakeInterpolants.size());
 
     return pathInterpolants;
   }
@@ -241,10 +240,10 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * @param relevantVariables
    * @return the "fake" interpolant
    */
-  private ValueAnalysisInterpolant createFakeInterpolant(Set<String> relevantVariables) {
+  private ValueAnalysisInterpolant createFakeInterpolant(Collection<MemoryLocation> relevantVariables) {
     HashMap<MemoryLocation, Value> values = new HashMap<>();
-    for (String relevantVariable : relevantVariables) {
-      values.put(MemoryLocation.valueOf(relevantVariable), UnknownValue.getInstance());
+    for (MemoryLocation relevantVariable : relevantVariables) {
+      values.put(MemoryLocation.valueOf(relevantVariable.getAsSimpleString()), UnknownValue.getInstance());
     }
 
     return new ValueAnalysisInterpolant(values, Collections.<MemoryLocation, Type>emptyMap());
@@ -340,16 +339,16 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
   @Override
   public String getName() {
-    return "ValueAnalysisInterpolationBasedRefiner";
+    return getClass().getSimpleName();
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
+    writer.put(timerInterpolation);
     writer.put(totalInterpolations);
     writer.put(totalInterpolationQueries);
     writer.put(sizeOfInterpolant);
-    writer.put(timerInterpolation);
   }
 
   public int getInterpolationOffset() {

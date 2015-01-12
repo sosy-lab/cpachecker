@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -126,10 +125,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     LogManager logger = predicateCpa.getLogger();
 
-    InterpolationManager manager = new InterpolationManager(predicateCpa.getFormulaManager(),
+    InterpolationManager manager = new InterpolationManager(
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getSolver(),
-                                          predicateCpa.getFormulaManagerFactory(),
                                           predicateCpa.getConfiguration(),
                                           predicateCpa.getShutdownNotifier(),
                                           logger);
@@ -144,7 +142,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           predicateCpa.getConfiguration(),
                                           logger,
                                           predicateCpa,
-                                          predicateCpa.getFormulaManager(),
                                           predicateCpa.getSolver(),
                                           predicateCpa.getPredicateManager(),
                                           predicateCpa.getStaticRefiner());
@@ -155,7 +152,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           pCpa,
                                           manager,
                                           pathChecker,
-                                          predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
                                           strategy,
                                           predicateCpa.getSolver(),
@@ -181,14 +177,13 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         final ConfigurableProgramAnalysis pCpa,
         final InterpolationManager pInterpolationManager,
         final PathChecker pPathChecker,
-        final FormulaManagerView pFormulaManager,
         final PathFormulaManager pPathFormulaManager,
         final RefinementStrategy pStrategy,
         final Solver pSolver,
         final PredicateAssumeStore pAssumesStore)
             throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pFormulaManager, pPathFormulaManager, pStrategy, pSolver, pAssumesStore);
+      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pPathFormulaManager, pStrategy, pSolver, pAssumesStore);
 
     }
 
@@ -344,12 +339,12 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     private BAMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
         final BAMPredicateCPA predicateCpa,
-        final FormulaManagerView pFormulaManager, final Solver pSolver,
+        final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr,
         final PredicateStaticRefiner pStaticRefiner)
             throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, predicateCpa.getShutdownNotifier(), pFormulaManager, pPredAbsMgr, pStaticRefiner, pSolver);
+      super(config, logger, predicateCpa.getShutdownNotifier(), pPredAbsMgr, pStaticRefiner, pSolver);
 
       RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
       if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {

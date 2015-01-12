@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -52,10 +53,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -93,9 +92,6 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
   private final AbstractionManager abstractionManager;
   @SuppressWarnings("unused")
   private final PredicateAbstractionManager predicateManager;
-  private final FormulaManager __no_direct_use_fmgr; // use formulaManager instead!
-  private final FormulaManagerView formulaManager;
-  private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
 
 
@@ -123,23 +119,21 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     //
     //
     // Create specific instances that are needed to run this analysis.
-    formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
-
-    __no_direct_use_fmgr = formulaManagerFactory.getFormulaManager();
-    formulaManager = new FormulaManagerView(__no_direct_use_fmgr, config, logger);
+    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa, AnalysisDirection.BACKWARD);
     // TODO: We might use a caching path formula manager
     //    pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
 
-    solver = new Solver(formulaManager, formulaManagerFactory);
 
     regionManager = new BDDManagerFactory(config, logger).createRegionManager();
     // TODO: There are different implementations of the region manager.
     //    Evaluate the applicability of them.
 
     abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
-    predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
-
+    predicateManager = new PredicateAbstractionManager(
+        abstractionManager, formulaManager, pathFormulaManager,
+        solver, config, logger, cfa.getLiveVariables());
 
     //
     //
@@ -197,7 +191,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
    * @see ConfigurableProgramAnalysis#getInitialState()
    */
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return domain.getTopInstance();
   }
 
@@ -205,7 +199,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
    * @see ConfigurableProgramAnalysis#getInitialPrecision()
    */
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     // FIXME: Exchange this by a WpPrecision
     return SingletonPrecision.getInstance();
   }
@@ -213,9 +207,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
 
   @Override
   public void close() throws Exception {
-    if (__no_direct_use_fmgr instanceof AutoCloseable) {
-      ((AutoCloseable)__no_direct_use_fmgr).close();
-    }
+    solver.close();
   }
 
   @Override

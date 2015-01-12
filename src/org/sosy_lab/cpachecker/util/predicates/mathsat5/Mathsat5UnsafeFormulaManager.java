@@ -49,6 +49,12 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   }
 
   @Override
+  public boolean isLiteral(Long t) {
+    return msat_term_is_not(msatEnv, t)
+        || isAtom(t);
+  }
+
+  @Override
   public int getArity(Long pT) {
     return msat_term_arity(pT);
   }
@@ -133,4 +139,30 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   protected Long simplify(Long pF) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  protected boolean isQuantification(Long pT) {
+    return false;
+  }
+
+  @Override
+  protected boolean isFreeVariable(Long pT) {
+    return isVariable(pT);
+  }
+
+  @Override
+  protected boolean isBoundVariable(Long pT) {
+    return false;
+  }
+
+  @Override
+  protected Long getQuantifiedBody(Long pT) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected Long replaceQuantifiedBody(Long pF, Long pBody) {
+    throw new UnsupportedOperationException();
+  }
+
 }

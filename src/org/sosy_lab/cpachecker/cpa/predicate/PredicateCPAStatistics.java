@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
@@ -130,14 +131,12 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final AbstractionManager absmgr;
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
-  private final PreconditionWriter preconditionWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
 
   private final Timer invariantGeneratorTime;
 
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      PreconditionWriter pPreconditions,
       Timer pInvariantGeneratorTimer,
       Configuration pConfig)
           throws InvalidConfigurationException {
@@ -150,12 +149,12 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
     pConfig.inject(this, PredicateCPAStatistics.class);
 
-    loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
-    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());
-    preconditionWriter = checkNotNull(pPreconditions);
+    final FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
+    loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, fmgr, pRmgr);
+    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, fmgr);
 
     if (exportPredmap && predmapFile != null) {
-      precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());
+      precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), fmgr);
     } else {
       precisionWriter = null;
     }
@@ -250,10 +249,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
     int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
 
     int allDistinctPreds = absmgr.getNumberOfPredicates();
-
-    if (preconditionExport && preconditionFile != null) {
-      preconditionWriter.writePrecondition(preconditionFile, reached, cpa.logger);
-    }
 
     if (exportInvariants && invariantsFile != null) {
       loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);

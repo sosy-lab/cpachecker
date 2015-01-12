@@ -66,6 +66,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
+  static final String INTERNAL_STATE_IS_TARGET_PROPERTY = "internalStateIsTarget";
+
   static class TOP extends AutomatonState {
     private static final long serialVersionUID = -7848577870312049023L;
 
@@ -159,7 +161,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
   @Override
   public boolean isTarget() {
-    return internalState.isTarget();
+    return this.automatonCPA.isTreatingErrorsAsTargets() && internalState.isTarget();
   }
 
   @Override
@@ -334,7 +336,19 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    // e.g. "state == name-of-state" where name-of state can be top, bottom, error, or any state defined in the automaton definition.
+    /*
+     * Check properties of the state, which are either:
+     * a) "internalStateIsTarget", to check if the internal state is a target
+     *    state.
+     * b) "state == name-of-state" where name-of-state is the name of the
+     *    internal state, e.g. _predefinedState_ERROR, _predefinedState_BOTTOM,
+     *    _predefinedState_BREAK.
+     * c) "name-of-variable == int-value" where name-of-variable is the name of
+     *    an automaton variable and int-value is an integer value.
+     */
+    if (pProperty.equalsIgnoreCase(INTERNAL_STATE_IS_TARGET_PROPERTY)) {
+      return getInternalState().isTarget();
+    }
     String[] parts = pProperty.split("==");
     if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");

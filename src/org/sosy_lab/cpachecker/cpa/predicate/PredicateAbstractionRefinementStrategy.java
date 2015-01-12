@@ -218,24 +218,23 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr,
       final PredicateStaticRefiner pStaticRefiner, final Solver pSolver)
           throws CPAException, InvalidConfigurationException {
-    super(pFormulaManager.getBooleanFormulaManager(), pSolver);
+    super(pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    fmgr = pFormulaManager;
-    bfmgr = pFormulaManager.getBooleanFormulaManager();
+    fmgr = pSolver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
     staticRefiner = pStaticRefiner;
-    formulaMeasuring = new FormulaMeasuring(pFormulaManager);
+    formulaMeasuring = new FormulaMeasuring(fmgr);
 
     if (dumpPredicates && dumpPredicatesFile != null) {
-      precisionWriter = new PredicateMapWriter(config, pFormulaManager);
+      precisionWriter = new PredicateMapWriter(config, fmgr);
     } else {
       precisionWriter = null;
     }

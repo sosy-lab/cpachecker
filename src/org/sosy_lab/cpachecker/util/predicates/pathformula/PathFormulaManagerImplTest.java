@@ -100,7 +100,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         .setOption("cpa.predicate.handlePointerAliasing", "false") // not yet supported by the backwards analysis
         .build();
 
-    fmgr = new FormulaManagerView(super.mgr, config, TestLogManager.getInstance());
+    fmgr = new FormulaManagerView(factory, config, TestLogManager.getInstance());
 
     pfmgrFwd = new PathFormulaManagerImpl(
         fmgr,

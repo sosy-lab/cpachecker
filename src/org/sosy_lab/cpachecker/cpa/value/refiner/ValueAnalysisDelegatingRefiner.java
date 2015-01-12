@@ -52,11 +52,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 /**
@@ -121,18 +119,14 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       return null;
 
     } else {
-        FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
-        FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
         Solver solver                               = predicateCpa.getSolver();
         PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
         PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
         MachineModel machineModel                   = predicateCpa.getMachineModel();
 
         InterpolationManager manager = new InterpolationManager(
-            formulaManager,
             pathFormulaManager,
             solver,
-            factory,
             config,
             predicateCpa.getShutdownNotifier(),
             logger);
@@ -143,7 +137,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             config,
             logger,
             predicateCpa.getShutdownNotifier(),
-            formulaManager,
             predicateCpa.getPredicateManager(),
             extractor,
             solver);
@@ -154,7 +147,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             cpa,
             manager,
             pathChecker,
-            formulaManager,
             pathFormulaManager,
             backupRefinementStrategy,
             solver,
@@ -207,28 +199,21 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    // if infeasible, refine with the optional static refiner or the value refiner
-    if (!isPathFeasable(pErrorPath)) {
+    boolean isRefined = staticRefiner.performRefinement(reached, pErrorPath)
+        || valueRefiner.performRefinement(reached);
 
-      if(!staticRefiner.performRefinement(reached, pErrorPath)) {
-        valueRefiner.performRefinement(reached);
-      }
-
+    if(isRefined) {
       return CounterexampleInfo.spurious();
     }
 
-    // if feasible, refine with the optional predicate refiner or return CEX
-    else {
+    else if(predicatingRefiner != null) {
+      return predicatingRefiner.performRefinement(reached, pErrorPath);
+    }
 
-      if (predicatingRefiner != null) {
-        return predicatingRefiner.performRefinement(reached, pErrorPath);
-      }
-
-      try {
-        return CounterexampleInfo.feasible(pErrorPath, createModel(pErrorPath));
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Failed to configure feasbility checker", e);
-      }
+    try {
+      return CounterexampleInfo.feasible(pErrorPath, createModel(pErrorPath));
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Failed to configure feasbility checker", e);
     }
   }
 

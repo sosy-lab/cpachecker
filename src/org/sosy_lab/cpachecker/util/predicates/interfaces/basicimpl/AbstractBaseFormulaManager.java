@@ -77,6 +77,11 @@ abstract class AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> {
     } else if (formulaType.isFloatingPointType()) {
       FormulaType.FloatingPointType fpType = (FormulaType.FloatingPointType)formulaType;
       t = getFormulaCreator().getFloatingPointType(fpType);
+    } else if (formulaType.isArrayType()) {
+      FormulaType.ArrayFormulaType<?, ?> arrType = (FormulaType.ArrayFormulaType<?, ?>)formulaType;
+      TType indexType = toSolverType(arrType.getIndexType());
+      TType elementType = toSolverType(arrType.getElementType());
+      t = getFormulaCreator().getArrayType(indexType, elementType);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

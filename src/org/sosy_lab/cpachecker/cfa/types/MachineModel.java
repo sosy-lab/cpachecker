@@ -537,8 +537,4 @@ public enum MachineModel {
   public int getAlignof(CType type) {
     return type.accept(alignofVisitor);
   }
-
-  public CType getArrayIndexType() {
-    return CNumericTypes.INT;
-  }
 }

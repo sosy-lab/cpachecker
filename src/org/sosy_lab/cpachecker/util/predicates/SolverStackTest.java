@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.truth.Truth.assert_;
+import static com.google.common.truth.Truth.*;
 import static com.google.common.truth.TruthJUnit.assume;
-import static org.junit.Assert.*;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,22 +37,33 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
+
+import com.google.common.collect.ImmutableList;
 
 @RunWith(Parameterized.class)
 public class SolverStackTest extends SolverBasedTest0 {
 
-  @Parameters(name="{0}")
-  public static Object[] getAllSolvers() {
-    return Solvers.values();
+  @Parameters(name="{0} (interpolation={1}}")
+  public static List<Object[]> getAllCombinations() {
+    List<Object[]> result = new ArrayList<>();
+    for (Solvers solver : Solvers.values()) {
+      result.add(new Object[] {solver, false});
+      result.add(new Object[] {solver, true});
+    }
+    return result;
   }
 
   @Parameter(0)
@@ -58,6 +72,21 @@ public class SolverStackTest extends SolverBasedTest0 {
   @Override
   protected Solvers solverToUse() {
     return solver;
+  }
+
+  @Parameter(1)
+  public boolean useInterpolatingEnvironment;
+
+  /**
+   * Generate a prover environment depending on the parameter above.
+   * @param generateUnsatCore should be true unless unsat core is explicitly not desired
+   */
+  private BasicProverEnvironment<?> newEnvironmentForTest(boolean generateUnsatCore) {
+    if (useInterpolatingEnvironment) {
+      return mgr.newProverEnvironmentWithInterpolation(false);
+    } else {
+      return mgr.newProverEnvironment(true, generateUnsatCore);
+    }
   }
 
   @Rule
@@ -70,9 +99,14 @@ public class SolverStackTest extends SolverBasedTest0 {
             .that(solver).isNotEqualTo(Solvers.SMTINTERPOL);
   }
 
+  protected final void requireUfValuesInModel() {
+    assume().withFailureMessage("Integration of solver does not support retrieving values for UFs from a model")
+            .that(solver).isNotEqualTo(Solvers.Z3);
+  }
+
   @Test
   public void simpleStackTestBool() throws SolverException, InterruptedException {
-    ProverEnvironment stack = factory.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack = newEnvironmentForTest(true);
 
     int i = index.getFreshId();
     BooleanFormula a = bmgr.makeVariable("bool_a"+i);
@@ -80,45 +114,45 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula or = bmgr.or(a, b);
 
     stack.push(or); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
     BooleanFormula c = bmgr.makeVariable("bool_c"+i);
     BooleanFormula d = bmgr.makeVariable("bool_d"+i);
     BooleanFormula and = bmgr.and(c, d);
 
     stack.push(and); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     BooleanFormula notOr = bmgr.not(or);
 
     stack.push(notOr); //L3
-    assertTrue(stack.isUnsat()); // "or" AND "not or" --> UNSAT
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable(); // "or" AND "not or" --> UNSAT
 
     stack.pop(); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     // we are lower than before creating c and d.
     // however we assume that they are usable now (this violates SMTlib).
     stack.push(and); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.push(notOr); //L2
-    assertTrue(stack.isUnsat()); // "or" AND "not or" --> UNSAT
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable(); // "or" AND "not or" --> UNSAT
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L0 empty stack
   }
 
   @Test
   public void singleStackTestInteger() throws Exception {
-    ProverEnvironment env = factory.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> env = newEnvironmentForTest(true);
     simpleStackTestNum(imgr, env);
   }
 
@@ -126,63 +160,56 @@ public class SolverStackTest extends SolverBasedTest0 {
   public void singleStackTestRational() throws Exception {
     requireRationals();
 
-    ProverEnvironment env = factory.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> env = newEnvironmentForTest(true);
     simpleStackTestNum(rmgr, env);
   }
 
-  private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, ProverEnvironment stack) throws Exception {
+  private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, BasicProverEnvironment<?> stack) throws Exception {
     int i = index.getFreshId();
     X a = nmgr.makeVariable("num_a"+i);
     X b = nmgr.makeVariable("num_b"+i);
     BooleanFormula leqAB = nmgr.lessOrEquals(a, b);
 
     stack.push(leqAB); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
     X c = nmgr.makeVariable("num_c"+i);
     X d = nmgr.makeVariable("num_d"+i);
     BooleanFormula eqCD = nmgr.lessOrEquals(c, d);
 
     stack.push(eqCD); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     BooleanFormula gtAB = nmgr.greaterThan(a, b);
 
     stack.push(gtAB); //L3
-    assertTrue(stack.isUnsat()); // "<=" AND ">" --> UNSAT
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable(); // "<=" AND ">" --> UNSAT
 
     stack.pop(); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     // we are lower than before creating c and d.
     // however we assume that they are usable now (this violates SMTlib).
     stack.push(eqCD); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.push(gtAB); //L2
-    assertTrue(stack.isUnsat()); // "or" AND "not or" --> UNSAT
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable(); // "or" AND "not or" --> UNSAT
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L0 empty stack
   }
 
   @Test
   public void stackTest() throws Exception {
-    ProverEnvironment stack = factory.newProverEnvironment(true, true);
-    thrown.expect(RuntimeException.class);
-    stack.pop();
-  }
-
-  @Test
-  public void stackTestItp() throws Exception {
-    InterpolatingProverEnvironment<?> stack = factory.newProverEnvironmentWithInterpolation(true);
+    BasicProverEnvironment<?> stack = newEnvironmentForTest(true);
     thrown.expect(RuntimeException.class);
     stack.pop();
   }
@@ -194,18 +221,18 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
 
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack1 = newEnvironmentForTest(true);
     stack1.push(a); // L1
     stack1.push(a); // L2
-    ProverEnvironment stack2 = factory.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack2 = newEnvironmentForTest(true);
     stack1.pop(); // L1
     stack1.pop(); // L0
 
     stack1.push(a); //L1
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
 
     stack2.push(not); //L1
-    assertFalse(stack2.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack2).isSatisfiable();
 
     stack1.pop(); // L0
     stack2.pop(); // L0
@@ -218,20 +245,20 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
 
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
-    ProverEnvironment stack2 = factory.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack1 = newEnvironmentForTest(true);
+    BasicProverEnvironment<?> stack2 = newEnvironmentForTest(true);
     stack1.push(a); // L1
     stack1.push(bmgr.makeBoolean(true)); // L2
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
     stack2.push(not); // L1
-    assertFalse(stack2.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack2).isSatisfiable();
     stack1.pop(); // L1
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
     stack1.pop(); // L1
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
     stack2.pop(); // L1
-    assertFalse(stack2.isUnsat());
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack2).isSatisfiable();
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
   }
 
   /**
@@ -248,7 +275,7 @@ public class SolverStackTest extends SolverBasedTest0 {
     requireMultipleStackSupport();
 
     // Create non-empty stack
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack1 = newEnvironmentForTest(true);
     stack1.push(bmgr.makeVariable("bool_a"));
 
     // Declare b while non-empty stack exists
@@ -257,7 +284,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
     // Clear stack (without global declarations b gets deleted)
     stack1.push(b);
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
     stack1.pop();
     stack1.pop();
     stack1.close();
@@ -266,5 +293,74 @@ public class SolverStackTest extends SolverBasedTest0 {
     // is equivalent to a new formula with the same variable
     assert_().about(BooleanFormula())
              .that(b).isEquivalentTo(bmgr.makeVariable(varName));
+  }
+
+  @Test
+  public void modelForUnsatFormula() throws Exception {
+    try (BasicProverEnvironment<?> stack = newEnvironmentForTest(true)) {
+      stack.push(imgr.greaterThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
+      stack.push(imgr.lessThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
+      assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable();
+
+      thrown.expect(Exception.class);
+      stack.getModel();
+    }
+  }
+
+  @Test
+  public void modelForSatFormula() throws Exception {
+    try (BasicProverEnvironment<?> stack = newEnvironmentForTest(false)) {
+      stack.push(imgr.greaterThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
+      stack.push(imgr.lessThan(imgr.makeVariable("a"), imgr.makeNumber(2)));
+      assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
+
+      Model model = stack.getModel();
+      Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);
+      assertThat(model.keySet()).containsExactly(expectedVar);
+      assertThat(model).containsEntry(expectedVar, BigInteger.ONE);
+    }
+  }
+
+  @Test
+  public void modelForSatFormulaWithLargeValue() throws Exception {
+    try (BasicProverEnvironment<?> stack = newEnvironmentForTest(false)) {
+      BigInteger val = BigInteger.TEN.pow(1000);
+      stack.push(imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(val)));
+      assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
+
+      Model model = stack.getModel();
+      Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);
+      assertThat(model.keySet()).containsExactly(expectedVar);
+      assertThat(model).containsEntry(expectedVar, val);
+    }
+  }
+
+  @Test
+  public void modelForSatFormulaWithUF() throws Exception {
+    try (BasicProverEnvironment<?> stack = newEnvironmentForTest(false)) {
+      IntegerFormula zero = imgr.makeNumber(0);
+      IntegerFormula varA = imgr.makeVariable("a");
+      IntegerFormula varB = imgr.makeVariable("b");
+      stack.push(imgr.equal(varA, zero));
+      stack.push(imgr.equal(varB, zero));
+      UninterpretedFunctionDeclaration<IntegerFormula> uf = fmgr.declareUninterpretedFunction("uf", FormulaType.IntegerType, FormulaType.IntegerType);
+      stack.push(imgr.equal(fmgr.callUninterpretedFunction(uf, ImmutableList.of(varA)), zero));
+      stack.push(imgr.equal(fmgr.callUninterpretedFunction(uf, ImmutableList.of(varB)), zero));
+      assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
+
+      Model model = stack.getModel();
+      Model.Constant expectedVarA = new Model.Constant("a", TermType.Integer);
+      Model.Constant expectedVarB = new Model.Constant("b", TermType.Integer);
+      assertThat(model.keySet()).containsAllOf(expectedVarA, expectedVarB);
+      // actual type of object is not defined, thus do string matching:
+      assertThat(model).containsEntry(expectedVarA, BigInteger.ZERO);
+      assertThat(model).containsEntry(expectedVarB, BigInteger.ZERO);
+
+      requireUfValuesInModel();
+
+      Model.Function expectedFunc = new Model.Function("uf", TermType.Integer, new Object[]{BigInteger.ZERO});
+      assertThat(model.keySet()).containsExactly(expectedVarA, expectedVarB, expectedFunc);
+      assertThat(model).containsEntry(expectedFunc, BigInteger.ZERO);
+    }
   }
 }

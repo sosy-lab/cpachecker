@@ -58,6 +58,25 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
       super(pReturnType, pArgumentTypes);
       this.wrapped = checkNotNull(wrapped);
     }
+
+    @Override
+    public int hashCode() {
+      return 17 + wrapped.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof ReplaceUninterpretedFunctionDeclaration)) {
+        return false;
+      }
+      ReplaceUninterpretedFunctionDeclaration<?> other =
+          (ReplaceUninterpretedFunctionDeclaration<?>)obj;
+
+      return wrapped.equals(other.wrapped);
+    }
   }
 
   @Override

@@ -1,0 +1,11 @@
+(declare-fun al () Int) 
+(declare-fun |copy::i| () Int) 
+(declare-fun |copy::bl| () Int) 
+
+*:
+(assert  (let (($x20 (<= |copy::bl| 0))) (not $x20)))
+(assert  (<= |copy::bl| 0))
+(assert  (> |copy::bl| al))
+(assert  (>= 0 al))
+(assert  (let (($x26 (>= 0 al))) (not $x26)))
+

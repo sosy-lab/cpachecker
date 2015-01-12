@@ -29,11 +29,14 @@ import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 /**
@@ -163,6 +166,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel) {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
+  }
+
+  @Override
+  public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr,
+      CFAEdge edge) throws UnrecognizedCCodeException {
+    return delegate.expressionToFormula(pFormula, expr, edge);
   }
 
 }

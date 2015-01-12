@@ -316,7 +316,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   /**
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    */
-  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(MutableARGPath path) throws CPAException {
+  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(MutableARGPath path) throws CPAException, InterruptedException {
     try {
       OctagonAnalysisFeasabilityChecker checker;
 
@@ -335,7 +335,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       }
 
       return checker;
-    } catch (InterruptedException | InvalidConfigurationException e) {
+    } catch (InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
     }
   }

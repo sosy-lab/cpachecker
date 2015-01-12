@@ -59,7 +59,8 @@ class Mathsat5FloatingPointFormulaManager
     return makeNumberImpl(pN.toPlainString(), pType);
   }
 
-  private Long makeNumberImpl(String pN, FloatingPointType pType) {
+  @Override
+  protected Long makeNumberImpl(String pN, FloatingPointType pType) {
     return msat_make_fp_rat_number(mathsatEnv, pN,
         pType.getExponentSize(), pType.getMantissaSize(), roundingMode);
   }
