@@ -26,7 +26,6 @@ CPAchecker web page:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
-from _collections import defaultdict
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 try:
@@ -178,22 +177,25 @@ def _getCpuCoresPerRun(coreLimit, numOfThreads):
     if not cgroupCpuset:
         sys.exit("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
     try:
+        # read list of available CPU cores
         allCpus = Util.parseIntList(Util.readFile(cgroupCpuset, 'cpuset.cpus'))
         logging.debug("List of available CPU cores is {0}.".format(allCpus))
 
+        # read mapping of core to CPU ("physical package")
         physical_packages = map(lambda core : int(Util.readFile('/sys/devices/system/cpu/cpu{0}/topology/physical_package_id'.format(core))), allCpus)
-        cores_of_package = defaultdict(list)
+        cores_of_package = collections.defaultdict(list)
         for core, package in zip(allCpus, physical_packages):
             cores_of_package[package].append(core)
         logging.debug("Physical packages of cores are {0}.".format(str(cores_of_package)))
 
+        # read hyper-threading information (sibling cores sharing the same physical core)
         siblings_of_core = {}
         for core in allCpus:
             siblings = Util.parseIntList(Util.readFile('/sys/devices/system/cpu/cpu{0}/topology/thread_siblings_list'.format(core)))
             siblings_of_core[core] = siblings
         logging.debug("Siblings of cores are {0}.".format(str(siblings_of_core)))
     except ValueError as e:
-        sys.exit("Could not read CPU information from kernel: {0}".format(e.strerror))
+        sys.exit("Could not read CPU information from kernel: {0}".format(e))
 
     return _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core)
 
