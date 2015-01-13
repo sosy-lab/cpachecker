@@ -431,7 +431,7 @@ class RunExecutor():
         self._terminationReason = None
 
         logging.debug("executeRun: setting up Cgroups.")
-        cgroups = self._setupCGroups(args, myCpus, memlimit, None)
+        cgroups = self._setupCGroups(args, myCpus, memlimit, memoryNodes)
 
         try:
             logging.debug("executeRun: executing tool.")
