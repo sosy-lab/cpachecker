@@ -21,32 +21,35 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * {@link BinaryConstraintExpression} representing the 'logical or' operation.
+ * {@link BinarySymbolicExpression} representing the 'shift right' operation.
+ *
+ * <p>There is no differentiation between signed and unsigned shifts.</p>
  */
-public class LogicalOrExpression extends BinaryConstraintExpression {
+public class ShiftRightExpression extends BinarySymbolicExpression {
 
-  protected LogicalOrExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+  protected ShiftRightExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override
-  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+  public ShiftRightExpression copyWithType(Type pExpressionType) {
+    return new ShiftRightExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
-  public LogicalOrExpression copyWithExpressionType(Type pExpressionType) {
-    return new LogicalOrExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
-  @Override
   public String toString() {
-    return "(" + getOperand1() + " || " + getOperand2() + ")";
+    return "(" + getOperand1() + " >> " + getOperand2() + ")";
   }
 }

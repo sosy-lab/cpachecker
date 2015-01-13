@@ -21,38 +21,42 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
  * An expression used to describe one side of a {@link Constraint}.
  */
-public interface ConstraintExpression {
+public abstract class SymbolicExpression implements SymbolicValue {
 
   /**
-   * Accepts the given {@link ConstraintExpressionVisitor}.
+   * Accepts the given {@link SymbolicExpressionVisitor}.
    *
    * @param pVisitor the visitor to accept
    * @param <VisitorReturnT> the return type of the visitor's specific <code>visit</code> method
    * @return the value returned by the visitor's <code>visit</code> method
    */
-  <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor);
+  public abstract <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor);
 
   /**
    * Returns the expression type of this <code>ConstraintExpression</code>.
    *
    * @return the expression type of this <code>ConstraintExpression</code>
    */
-  Type getExpressionType();
+  public abstract Type getType();
 
   /**
    * Returns a copy of this <code>ConstraintExpression</code> object with the given expression type.
    *
    * @param pType the expression type of the returned object
    */
-  ConstraintExpression copyWithExpressionType(Type pType);
+  public abstract SymbolicExpression copyWithType(Type pType);
 
   /**
    * Returns whether this <code>ConstraintExpression</code> is always true and does only contain explicit values.
@@ -60,5 +64,30 @@ public interface ConstraintExpression {
    * @return <code>true</code> if this <code>ConstraintExpression</code> is always true and does only contain explicit
    *    values, <code>false</code> otherwise
    */
-  boolean isTrivial();
+  public abstract boolean isTrivial();
+
+  @Override
+  public boolean isNumericValue() {
+    return false;
+  }
+
+  @Override
+  public boolean isUnknown() {
+    return false;
+  }
+
+  @Override
+  public boolean isExplicitlyKnown() {
+    return false;
+  }
+
+  @Override
+  public NumericValue asNumericValue() {
+    throw new UnsupportedOperationException("Symbolic expressions can't be expressed as numeric values");
+  }
+
+  @Override
+  public Long asLong(CType type) {
+    throw new UnsupportedOperationException("Symbolic expressions can't be expressed as numeric values");
+  }
 }

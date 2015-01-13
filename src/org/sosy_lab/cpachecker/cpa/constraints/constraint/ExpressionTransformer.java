@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import com.google.common.base.Optional;
 
 /**
- * Class for transforming {@link AExpression}s to {@link ConstraintExpression}s.
+ * Class for transforming {@link AExpression}s to {@link SymbolicExpression}s.
  *
  * <p>For each transformation, a new object has to be created. Otherwise, the resulting expressions might not reflect the
  * programs possible concrete states.</p>
@@ -87,7 +87,7 @@ public class ExpressionTransformer {
     return missingInformation;
   }
 
-  public ConstraintExpression visit(AIdExpression pIastIdExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(AIdExpression pIastIdExpression) throws UnrecognizedCodeException {
     if (!valueState.isPresent()) {
       missingInformation = true;
       return null;
@@ -117,7 +117,7 @@ public class ExpressionTransformer {
     }
   }
 
-  public ConstraintExpression visit(AIntegerLiteralExpression pIastIntegerLiteralExpression)
+  public SymbolicExpression visit(AIntegerLiteralExpression pIastIntegerLiteralExpression)
       throws UnrecognizedCodeException {
     final BigInteger value = pIastIntegerLiteralExpression.getValue();
     final Type intType = pIastIntegerLiteralExpression.getExpressionType();
@@ -125,7 +125,7 @@ public class ExpressionTransformer {
     return ConstraintExpressionFactory.getInstance().asConstant(createNumericValue(value), intType);
   }
 
-  public ConstraintExpression visit(ACharLiteralExpression pIastCharLiteralExpression)
+  public SymbolicExpression visit(ACharLiteralExpression pIastCharLiteralExpression)
       throws UnrecognizedCodeException {
     final long castValue = (long) pIastCharLiteralExpression.getCharacter();
     final Type charType = pIastCharLiteralExpression.getExpressionType();
@@ -133,7 +133,7 @@ public class ExpressionTransformer {
     return ConstraintExpressionFactory.getInstance().asConstant(createNumericValue(castValue), charType);
   }
 
-  public ConstraintExpression visit(AFloatLiteralExpression pIastFloatLiteralExpression)
+  public SymbolicExpression visit(AFloatLiteralExpression pIastFloatLiteralExpression)
       throws UnrecognizedCodeException {
     final BigDecimal value = pIastFloatLiteralExpression.getValue();
     final Type floatType = pIastFloatLiteralExpression.getExpressionType();

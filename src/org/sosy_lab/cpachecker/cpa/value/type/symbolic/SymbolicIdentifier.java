@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 
 /**
  * Identifier for basic symbolic values.

@@ -21,39 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * {@link BinaryConstraintExpression} representing the 'less than' operation.
+ * {@link BinarySymbolicExpression} representing division.
  */
-public class LessThanExpression extends BinaryConstraintExpression implements BinaryConstraint {
-
-  protected LessThanExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
-      Type pExpressionType, Type pCalculationType) {
+public class DivisionExpression extends BinarySymbolicExpression {
+  public DivisionExpression(SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2, Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override
-  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
 
-  @Override
-  public <T> T accept(ConstraintVisitor<T> pVisitor) {
-    return pVisitor.visit(this);
-  }
 
   @Override
-  public LessThanExpression copyWithExpressionType(Type pExpressionType) {
-    return new LessThanExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  public DivisionExpression copyWithType(Type pExpressionType) {
+    return new DivisionExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
   }
 
   @Override
   public String toString() {
-    return "(" + getOperand1() + " < " + getOperand2() + ")";
+    return "(" + getOperand1() + " / " + getOperand2() + ")";
   }
 }

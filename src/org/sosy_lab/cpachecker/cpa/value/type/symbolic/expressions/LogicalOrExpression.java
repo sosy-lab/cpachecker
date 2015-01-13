@@ -21,32 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * {@link BinaryConstraintExpression} representing the 'binary and' operation.
+ * {@link BinarySymbolicExpression} representing the 'logical or' operation.
  */
-public class BinaryAndExpression extends BinaryConstraintExpression {
+public class LogicalOrExpression extends BinarySymbolicExpression {
 
-  protected BinaryAndExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+  protected LogicalOrExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override
-  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
-  public BinaryAndExpression copyWithExpressionType(Type pExpressionType) {
-    return new BinaryAndExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  public LogicalOrExpression copyWithType(Type pExpressionType) {
+    return new LogicalOrExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
   }
 
   @Override
   public String toString() {
-    return "(" + getOperand1() + " & " + getOperand2() + ")";
+    return "(" + getOperand1() + " || " + getOperand2() + ")";
   }
 }

@@ -21,31 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * {@link UnaryConstraintExpression} representing the 'binary not' operation.
+ * {@link BinarySymbolicExpression} representing modulo.
  */
-public class BinaryNotExpression extends UnaryConstraintExpression {
-  protected BinaryNotExpression(ConstraintExpression pOperand, Type pType) {
-    super (pOperand, pType);
+public class ModuloExpression extends BinarySymbolicExpression {
+
+  protected ModuloExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override
-  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
 
-
   @Override
-  public BinaryNotExpression copyWithExpressionType(Type pExpressionType) {
-    return new BinaryNotExpression(getOperand(), pExpressionType);
+  public ModuloExpression copyWithType(Type pExpressionType) {
+    return new ModuloExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
   }
 
   @Override
   public String toString() {
-    return "~" + getOperand();
+    return "(" + getOperand1() + " % " + getOperand2() + ")";
   }
 }

@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,9 @@
  */
 
 /**
- * This package includes the {@link ConstraintExpression} interface and all its implementing classes that can be used
- * to describe constraint operands.
+ * This package contains all {@link Value}s of a symbolic nature and classes that they depend on, like
+ * factories.
+ * All <code>Value</code> objects in this package usually are implementations of {@link SymbolicValue} and are used in
+ * symbolic execution and in the {@link org.sosy_lab.cpachecker.cpa.constraints} CPA.
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic;

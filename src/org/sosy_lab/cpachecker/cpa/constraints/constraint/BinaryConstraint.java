@@ -24,16 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 
 /**
  * A {@link Constraint} with two operands, like 'equals'.
  */
 public interface BinaryConstraint extends Constraint {
 
-  ConstraintExpression getOperand1();
+  SymbolicExpression getOperand1();
 
-  ConstraintExpression getOperand2();
+  SymbolicExpression getOperand2();
 
   Type getCalculationType();
 }

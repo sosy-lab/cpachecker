@@ -21,20 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * A binary {@link ConstraintExpression}.
+ * A binary {@link SymbolicExpression}.
  * Represents all <code>ConstraintExpression</code>s that consist of two operands.
  */
-public abstract class BinaryConstraintExpression implements ConstraintExpression {
+public abstract class BinarySymbolicExpression extends SymbolicExpression {
 
-  private final ConstraintExpression operand1;
-  private final ConstraintExpression operand2;
+  private final SymbolicExpression operand1;
+  private final SymbolicExpression operand2;
 
   /**
    * {@link Type} the operands are cast to during calculation.
@@ -46,9 +46,9 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
    */
   private Type expressionType;
 
-  protected BinaryConstraintExpression(
-      ConstraintExpression pOperand1,
-      ConstraintExpression pOperand2,
+  protected BinarySymbolicExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
       Type pExpressionType,
       Type pCalculationType) {
 
@@ -59,7 +59,7 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
   }
 
   @Override
-  public Type getExpressionType() {
+  public Type getType() {
     return expressionType;
   }
 
@@ -67,11 +67,11 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
     return calculationType;
   }
 
-  public ConstraintExpression getOperand1() {
+  public SymbolicExpression getOperand1() {
     return operand1;
   }
 
-  public ConstraintExpression getOperand2() {
+  public SymbolicExpression getOperand2() {
     return operand2;
   }
 
@@ -89,7 +89,7 @@ public abstract class BinaryConstraintExpression implements ConstraintExpression
       return false;
     }
 
-    BinaryConstraintExpression that = (BinaryConstraintExpression) pObj;
+    BinarySymbolicExpression that = (BinarySymbolicExpression) pObj;
 
     return operand1.equals(that.operand1) && operand2.equals(that.operand2) && expressionType
         .equals(that.expressionType);

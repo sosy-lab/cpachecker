@@ -29,31 +29,30 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.AdditionExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryAndExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryNotExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryOrExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryXorExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstantConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.DivisionExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanOrEqualExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalAndExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalNotExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalOrExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ModuloExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.MultiplicationExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ShiftLeftExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.AdditionExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryAndExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryOrExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.DivisionExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalAndExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalOrExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ModuloExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftLeftExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftRightExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -95,9 +94,9 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     return getCastFormulaFromBinaryExp(creator, pExpression);
   }
 
-  private BitvectorFormula getFormula(ConstraintExpression pExpression, Type pToType) {
+  private BitvectorFormula getFormula(SymbolicExpression pExpression, Type pToType) {
     BitvectorFormula op1 = (BitvectorFormula) pExpression.accept(this);
-    final Type fromType = pExpression.getExpressionType();
+    final Type fromType = pExpression.getType();
 
     return cast(op1, fromType, pToType);
   }
@@ -187,12 +186,12 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public Formula visit(ConstantConstraintExpression pConstant) {
+  public Formula visit(ConstantSymbolicExpression pConstant) {
     Value constantValue = pConstant.getValue();
 
     if (constantValue.isNumericValue()) {
       return bitvectorFormulaManager
-          .makeBitvector((FormulaType<BitvectorFormula>)getFormulaType(pConstant.getExpressionType()),
+          .makeBitvector((FormulaType<BitvectorFormula>)getFormulaType(pConstant.getType()),
               ((NumericValue)constantValue).longValue());
 
     } else if (constantValue instanceof BooleanValue) {
@@ -213,11 +212,6 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   private String getName(SymbolicIdentifier pIdentifier) {
     return pIdentifier.toString();
-  }
-
-  @Override
-  public Formula visit(SymbolicExpression pValue) {
-    return pValue.getExpression().accept(this);
   }
 
   private FormulaType<?> getFormulaType(Type pType) {
@@ -275,10 +269,10 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   @Override
   public BooleanFormula visit(EqualsExpression pExpression) {
     final Type calculationType = pExpression.getCalculationType();
-    final ConstraintExpression op1 = pExpression.getOperand1();
-    final ConstraintExpression op2 = pExpression.getOperand2();
-    final Type op1Type = pExpression.getOperand1().getExpressionType();
-    final Type op2Type = pExpression.getOperand2().getExpressionType();
+    final SymbolicExpression op1 = pExpression.getOperand1();
+    final SymbolicExpression op2 = pExpression.getOperand2();
+    final Type op1Type = pExpression.getOperand1().getType();
+    final Type op2Type = pExpression.getOperand2().getType();
 
     final BitvectorFormula op1Formula = getFormula(op1, calculationType);
     final BitvectorFormula op2Formula = getFormula(op2, calculationType);
@@ -391,7 +385,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public BitvectorFormula visit(ShiftRightExpression pExpression) {
-    final Type leftOperandType = pExpression.getOperand1().getExpressionType();
+    final Type leftOperandType = pExpression.getOperand1().getType();
 
     final BinaryCreator creator = new BinaryCreator() {
       @Override
@@ -404,13 +398,13 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   private BitvectorFormula getCastFormulaFromBinaryExp(BinaryCreator pCreator,
-      BinaryConstraintExpression pExpression) {
+      BinarySymbolicExpression pExpression) {
 
     final Type calculationType = pExpression.getCalculationType();
     final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), calculationType);
     final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), calculationType);
 
-    final Type expressionType = pExpression.getExpressionType();
+    final Type expressionType = pExpression.getType();
 
     BitvectorFormula formula = pCreator.create(op1, op2, calculationType);
 

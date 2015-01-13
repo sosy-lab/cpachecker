@@ -21,23 +21,24 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * {@link UnaryConstraintExpression} representing the 'logical not' operation.
+ * {@link UnarySymbolicExpression} representing the 'logical not' operation.
  */
-public class LogicalNotExpression extends UnaryConstraintExpression implements UnaryConstraint {
+public class LogicalNotExpression extends UnarySymbolicExpression implements UnaryConstraint {
 
-  protected LogicalNotExpression(ConstraintExpression pOperand, Type pType) {
+  protected LogicalNotExpression(SymbolicExpression pOperand, Type pType) {
     super (pOperand, pType);
   }
 
   @Override
-  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
 
@@ -47,7 +48,7 @@ public class LogicalNotExpression extends UnaryConstraintExpression implements U
   }
 
   @Override
-  public LogicalNotExpression copyWithExpressionType(Type pExpressionType) {
+  public LogicalNotExpression copyWithType(Type pExpressionType) {
     return new LogicalNotExpression(getOperand(), pExpressionType);
   }
 

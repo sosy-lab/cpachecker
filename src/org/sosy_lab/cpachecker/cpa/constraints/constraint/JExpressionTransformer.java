@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -63,25 +63,25 @@ import com.google.common.base.Optional;
  * <p>Always use {@link #transform} to create correct representations. Otherwise, correctness can't be assured.</p>
  */
 public class JExpressionTransformer extends ExpressionTransformer
-    implements JRightHandSideVisitor<ConstraintExpression, UnrecognizedCodeException> {
+    implements JRightHandSideVisitor<SymbolicExpression, UnrecognizedCodeException> {
 
   public JExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     super(pFunctionName, pValueState);
   }
 
-  public ConstraintExpression transform(JExpression pExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression transform(JExpression pExpression) throws UnrecognizedCodeException {
     return pExpression.accept(this);
   }
 
   @Override
-  public ConstraintExpression visit(JBinaryExpression paBinaryExpression) throws UnrecognizedCodeException {
-    ConstraintExpression operand1Expression = paBinaryExpression.getOperand1().accept(this);
+  public SymbolicExpression visit(JBinaryExpression paBinaryExpression) throws UnrecognizedCodeException {
+    SymbolicExpression operand1Expression = paBinaryExpression.getOperand1().accept(this);
 
     if (operand1Expression == null) {
       return null;
     }
 
-    ConstraintExpression operand2Expression = paBinaryExpression.getOperand2().accept(this);
+    SymbolicExpression operand2Expression = paBinaryExpression.getOperand2().accept(this);
 
     if (operand2Expression == null) {
       return null;
@@ -141,8 +141,8 @@ public class JExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
-  public ConstraintExpression visit(JUnaryExpression pAUnaryExpression) throws UnrecognizedCodeException {
-    ConstraintExpression operand = pAUnaryExpression.getOperand().accept(this);
+  public SymbolicExpression visit(JUnaryExpression pAUnaryExpression) throws UnrecognizedCodeException {
+    SymbolicExpression operand = pAUnaryExpression.getOperand().accept(this);
 
     if (operand == null) {
       return null;
@@ -167,25 +167,25 @@ public class JExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
-  public ConstraintExpression visit(JCharLiteralExpression paCharLiteralExpression)
+  public SymbolicExpression visit(JCharLiteralExpression paCharLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(paCharLiteralExpression);
   }
 
   @Override
-  public ConstraintExpression visit(JStringLiteralExpression paStringLiteralExpression)
+  public SymbolicExpression visit(JStringLiteralExpression paStringLiteralExpression)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
+  public SymbolicExpression visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(pJIntegerLiteralExpression);
   }
 
   @Override
-  public ConstraintExpression visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
+  public SymbolicExpression visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
       throws UnrecognizedCodeException {
     final boolean value = pJBooleanLiteralExpression.getValue();
     final Type booleanType = pJBooleanLiteralExpression.getExpressionType();
@@ -198,13 +198,13 @@ public class JExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
-  public ConstraintExpression visit(JFloatLiteralExpression pJFloatLiteralExpression)
+  public SymbolicExpression visit(JFloatLiteralExpression pJFloatLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(pJFloatLiteralExpression);
   }
 
   @Override
-  public ConstraintExpression visit(JNullLiteralExpression pJNullLiteralExpression)
+  public SymbolicExpression visit(JNullLiteralExpression pJNullLiteralExpression)
       throws UnrecognizedCodeException {
 
     final Type nullType = pJNullLiteralExpression.getExpressionType();
@@ -217,7 +217,7 @@ public class JExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
-  public ConstraintExpression visit(JEnumConstantExpression pJEnumConstantExpression)
+  public SymbolicExpression visit(JEnumConstantExpression pJEnumConstantExpression)
       throws UnrecognizedCodeException {
     String enumConstant = pJEnumConstantExpression.getConstantName();
     Type enumType = pJEnumConstantExpression.getExpressionType();
@@ -229,57 +229,57 @@ public class JExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
-  public ConstraintExpression visit(JIdExpression pJIdExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(JIdExpression pJIdExpression) throws UnrecognizedCodeException {
     return super.visit(pJIdExpression);
   }
 
   @Override
-  public ConstraintExpression visit(JMethodInvocationExpression pAFunctionCallExpression)
+  public SymbolicExpression visit(JMethodInvocationExpression pAFunctionCallExpression)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(JClassInstanceCreation pJClassInstanceCreation)
+  public SymbolicExpression visit(JClassInstanceCreation pJClassInstanceCreation)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(JArrayCreationExpression pJBooleanLiteralExpression)
+  public SymbolicExpression visit(JArrayCreationExpression pJBooleanLiteralExpression)
       throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("Array creations can't be transformed to ConstraintExpressions");
   }
 
   @Override
-  public ConstraintExpression visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("Array initializations can't be transformed to ConstraintExpressions");
   }
 
   @Override
-  public ConstraintExpression visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("A variable's runtime type can't be transformed to ConstraintExpressions");
   }
 
   @Override
-  public ConstraintExpression visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType)
+  public SymbolicExpression visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType)
       throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("Equal checks on runtime types can't be transformed to"
         + "ConstraintExpressions");
   }
 
   @Override
-  public ConstraintExpression visit(JCastExpression pJCastExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(JCastExpression pJCastExpression) throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
   }
 
   @Override
-  public ConstraintExpression visit(JThisExpression pThisExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(JThisExpression pThisExpression) throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(JArraySubscriptExpression pAArraySubscriptExpression)
+  public SymbolicExpression visit(JArraySubscriptExpression pAArraySubscriptExpression)
       throws UnrecognizedCodeException {
     return null;
   }

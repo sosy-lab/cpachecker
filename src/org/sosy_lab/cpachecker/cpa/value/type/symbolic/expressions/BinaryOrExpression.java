@@ -21,32 +21,34 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * {@link BinaryConstraintExpression} representing multiplication.
+ * {@link BinarySymbolicExpression} representing the 'binary or' operation.
  */
-public class MultiplicationExpression extends BinaryConstraintExpression {
+public class BinaryOrExpression extends BinarySymbolicExpression {
 
-  protected MultiplicationExpression(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+  protected BinaryOrExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
   @Override
-  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
 
+
   @Override
-  public MultiplicationExpression copyWithExpressionType(Type pExpressionType) {
-    return new MultiplicationExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  public BinaryOrExpression copyWithType(Type pExpressionType) {
+    return new BinaryOrExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
   }
 
   @Override
   public String toString() {
-    return "(" + getOperand1() + " * " + getOperand2() + ")";
+    return "(" + getOperand1() + " | " + getOperand2() + ")";
   }
 }

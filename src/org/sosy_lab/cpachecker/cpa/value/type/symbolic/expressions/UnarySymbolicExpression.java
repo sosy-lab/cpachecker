@@ -21,33 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * Represents a unary {@link ConstraintExpression}. Represents all <code>ConstraintExpression</code>s that consist of
+ * Represents a unary {@link SymbolicExpression}. Represents all <code>ConstraintExpression</code>s that consist of
  * only one operand.
  */
-public abstract class UnaryConstraintExpression implements ConstraintExpression {
+public abstract class UnarySymbolicExpression extends SymbolicExpression {
 
-  private final ConstraintExpression operand;
+  private final SymbolicExpression operand;
   private final Type type;
 
-  public UnaryConstraintExpression(ConstraintExpression pOperand, Type pType) {
+  public UnarySymbolicExpression(SymbolicExpression pOperand, Type pType) {
     operand = pOperand;
     type = pType;
 
   }
 
   @Override
-  public Type getExpressionType() {
+  public Type getType() {
     return type;
   }
 
-  public ConstraintExpression getOperand() {
+  public SymbolicExpression getOperand() {
     return operand;
   }
 
@@ -65,7 +65,7 @@ public abstract class UnaryConstraintExpression implements ConstraintExpression 
       return false;
     }
 
-    UnaryConstraintExpression that = (UnaryConstraintExpression)o;
+    UnarySymbolicExpression that = (UnarySymbolicExpression)o;
 
     return operand.equals(that.operand) && type.equals(that.type);
   }

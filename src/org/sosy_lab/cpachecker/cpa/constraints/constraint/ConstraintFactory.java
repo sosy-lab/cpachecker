@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -96,14 +96,14 @@ public class ConstraintFactory {
 
     final CExpressionTransformer transformer = new CExpressionTransformer(functionName, valueState);
 
-    ConstraintExpression leftOperand = pExpression.getOperand1().accept(transformer);
+    SymbolicExpression leftOperand = pExpression.getOperand1().accept(transformer);
 
     checkForMissingInfo(transformer);
     if (leftOperand == null) {
       return null;
     }
 
-    ConstraintExpression rightOperand = pExpression.getOperand2().accept(transformer);
+    SymbolicExpression rightOperand = pExpression.getOperand2().accept(transformer);
 
     checkForMissingInfo(transformer);
     if (rightOperand == null) {
@@ -116,7 +116,7 @@ public class ConstraintFactory {
       case NOT_EQUALS:
         return createNotEqual(leftOperand, rightOperand, expressionType, calculationType);
       case GREATER_EQUAL: {
-        ConstraintExpression swap = leftOperand;
+        SymbolicExpression swap = leftOperand;
         leftOperand = rightOperand;
         rightOperand = swap;
       }
@@ -125,7 +125,7 @@ public class ConstraintFactory {
         return createLessOrEqual(leftOperand, rightOperand, expressionType, calculationType);
 
       case GREATER_THAN: {
-        ConstraintExpression swap = leftOperand;
+        SymbolicExpression swap = leftOperand;
         leftOperand = rightOperand;
         rightOperand = swap;
       }
@@ -144,14 +144,14 @@ public class ConstraintFactory {
 
     final JExpressionTransformer transformer = new JExpressionTransformer(functionName, valueState);
 
-    ConstraintExpression leftOperand = pExpression.getOperand1().accept(transformer);
+    SymbolicExpression leftOperand = pExpression.getOperand1().accept(transformer);
 
     checkForMissingInfo(transformer);
     if (leftOperand == null) {
       return null;
     }
 
-    ConstraintExpression rightOperand = pExpression.getOperand2().accept(transformer);
+    SymbolicExpression rightOperand = pExpression.getOperand2().accept(transformer);
 
     checkForMissingInfo(transformer);
     if (rightOperand == null) {
@@ -164,7 +164,7 @@ public class ConstraintFactory {
       case NOT_EQUALS:
         return createNotEqual(leftOperand, rightOperand, expressionType, expressionType);
       case GREATER_EQUAL: {
-        ConstraintExpression swap = leftOperand;
+        SymbolicExpression swap = leftOperand;
         leftOperand = rightOperand;
         rightOperand = swap;
       }
@@ -173,7 +173,7 @@ public class ConstraintFactory {
         return createLessOrEqual(leftOperand, rightOperand, expressionType, expressionType);
 
       case GREATER_THAN: {
-        ConstraintExpression swap = leftOperand;
+        SymbolicExpression swap = leftOperand;
         leftOperand = rightOperand;
         rightOperand = swap;
       }
@@ -192,34 +192,34 @@ public class ConstraintFactory {
 
   private UnaryConstraint createNot(Constraint pConstraint) {
     // We use ConstraintExpression as Constraints, so this should be possible
-    return createNot((ConstraintExpression) pConstraint);
+    return createNot((SymbolicExpression) pConstraint);
   }
 
-  private UnaryConstraint createNot(ConstraintExpression pConstraintExpression) {
+  private UnaryConstraint createNot(SymbolicExpression pSymbolicExpression) {
     return (UnaryConstraint)
-        expressionFactory.logicalNot(pConstraintExpression, pConstraintExpression.getExpressionType());
+        expressionFactory.logicalNot(pSymbolicExpression, pSymbolicExpression.getType());
   }
 
-  private Constraint createLess(ConstraintExpression pLeftOperand, ConstraintExpression pRightOperand,
+  private Constraint createLess(SymbolicExpression pLeftOperand, SymbolicExpression pRightOperand,
       Type pExpressionType, Type pCalculationType) {
 
     return (Constraint)expressionFactory.lessThan(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
 
-  private Constraint createLessOrEqual(ConstraintExpression pLeftOperand, ConstraintExpression pRightOperand,
+  private Constraint createLessOrEqual(SymbolicExpression pLeftOperand, SymbolicExpression pRightOperand,
       Type pExpressionType, Type pCalculationType) {
 
     return (Constraint)expressionFactory.lessThanOrEqual(pLeftOperand, pRightOperand, pExpressionType,
         pCalculationType);
   }
 
-  private Constraint createNotEqual(ConstraintExpression pLeftOperand, ConstraintExpression pRightOperand,
+  private Constraint createNotEqual(SymbolicExpression pLeftOperand, SymbolicExpression pRightOperand,
       Type pExpressionType, Type pCalculationType) {
 
     return (Constraint)expressionFactory.notEqual(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
 
-  private Constraint createEqual(ConstraintExpression pLeftOperand, ConstraintExpression pRightOperand,
+  private Constraint createEqual(SymbolicExpression pLeftOperand, SymbolicExpression pRightOperand,
       Type pExpressionType, Type pCalculationType) {
 
     return (Constraint) expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);

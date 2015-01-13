@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanOrEqualExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalNotExpression;
 
 /**
  * Visitor for {@link Constraint} objects.

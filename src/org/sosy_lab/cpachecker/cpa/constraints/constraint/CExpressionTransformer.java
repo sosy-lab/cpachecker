@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -55,25 +55,25 @@ import com.google.common.base.Optional;
  * <p>Always use {@link #transform} to create correct representations. Otherwise, correctness can't be assured.</p>
  */
 public class CExpressionTransformer extends ExpressionTransformer
-    implements CRightHandSideVisitor<ConstraintExpression, UnrecognizedCodeException> {
+    implements CRightHandSideVisitor<SymbolicExpression, UnrecognizedCodeException> {
 
   public CExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     super(pFunctionName, pValueState);
   }
 
-  public ConstraintExpression transform(CExpression pExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression transform(CExpression pExpression) throws UnrecognizedCodeException {
     return pExpression.accept(this);
   }
 
   @Override
-  public ConstraintExpression visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
-    ConstraintExpression operand1Expression = pIastBinaryExpression.getOperand1().accept(this);
+  public SymbolicExpression visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
+    SymbolicExpression operand1Expression = pIastBinaryExpression.getOperand1().accept(this);
 
     if (operand1Expression == null) {
       return null;
     }
 
-    ConstraintExpression operand2Expression = pIastBinaryExpression.getOperand2().accept(this);
+    SymbolicExpression operand2Expression = pIastBinaryExpression.getOperand2().accept(this);
 
     if (operand2Expression == null) {
       return null;
@@ -122,14 +122,14 @@ public class CExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
-  public ConstraintExpression visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
     final CUnaryExpression.UnaryOperator operator = pIastUnaryExpression.getOperator();
     final Type expressionType = pIastUnaryExpression.getExpressionType();
 
     switch (operator) {
       case MINUS:
       case TILDE: {
-        ConstraintExpression operand = pIastUnaryExpression.getOperand().accept(this);
+        SymbolicExpression operand = pIastUnaryExpression.getOperand().accept(this);
 
         if (operand == null) {
           return null;
@@ -143,8 +143,8 @@ public class CExpressionTransformer extends ExpressionTransformer
     }
   }
 
-  private ConstraintExpression transformUnaryArithmetic(CUnaryExpression.UnaryOperator pOperator,
-      ConstraintExpression pOperand, Type pExpressionType) {
+  private SymbolicExpression transformUnaryArithmetic(CUnaryExpression.UnaryOperator pOperator,
+      SymbolicExpression pOperand, Type pExpressionType) {
     switch (pOperator) {
       case MINUS:
         return ConstraintExpressionFactory.getInstance().negate(pOperand, pExpressionType);
@@ -156,76 +156,76 @@ public class CExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
-  public ConstraintExpression visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
     return super.visit(pIastIdExpression);
   }
 
   @Override
-  public ConstraintExpression visit(CCharLiteralExpression pIastCharLiteralExpression)
+  public SymbolicExpression visit(CCharLiteralExpression pIastCharLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(pIastCharLiteralExpression);
   }
 
   @Override
-  public ConstraintExpression visit(CFloatLiteralExpression pIastFloatLiteralExpression)
+  public SymbolicExpression visit(CFloatLiteralExpression pIastFloatLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(pIastFloatLiteralExpression);
   }
 
   @Override
-  public ConstraintExpression visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+  public SymbolicExpression visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
       throws UnrecognizedCodeException {
     return super.visit(pIastIntegerLiteralExpression);
   }
 
   @Override
-  public ConstraintExpression visit(CStringLiteralExpression pIastStringLiteralExpression)
+  public SymbolicExpression visit(CStringLiteralExpression pIastStringLiteralExpression)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(CImaginaryLiteralExpression pIastLiteralExpression)
+  public SymbolicExpression visit(CImaginaryLiteralExpression pIastLiteralExpression)
       throws UnrecognizedCodeException {
     assert false : "Imaginary literal";
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+  public SymbolicExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
       throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(CFieldReference pIastFieldReference) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(CFieldReference pIastFieldReference) throws UnrecognizedCodeException {
     return null;
   }
 
   @Override
-  public ConstraintExpression visit(CPointerExpression pointerExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(CPointerExpression pointerExpression) throws UnrecognizedCodeException {
     return null;
   }
 
 
   @Override
-  public ConstraintExpression visit(CFunctionCallExpression pIastFunctionCallExpression)
+  public SymbolicExpression visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("Function calls can't be transformed to ConstraintExpressions");
   }
 
   @Override
-  public ConstraintExpression visit(CCastExpression pIastCastExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(CCastExpression pIastCastExpression) throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
   }
 
   @Override
-  public ConstraintExpression visit(CComplexCastExpression complexCastExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(CComplexCastExpression complexCastExpression) throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
   }
 }

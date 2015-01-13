@@ -21,17 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * {@link ConstraintExpression} that represents a single constant value of a specific type.
+ * {@link SymbolicExpression} that represents a single constant value of a specific type.
  */
-public class ConstantConstraintExpression implements ConstraintExpression {
+public class ConstantSymbolicExpression extends SymbolicExpression {
 
   private final Value value;
   private final Type type;
@@ -42,13 +43,13 @@ public class ConstantConstraintExpression implements ConstraintExpression {
    * @param pValue the value of the new object
    * @param pType the type of the value of the new object
    */
-  public ConstantConstraintExpression(Value pValue, Type pType) {
+  public ConstantSymbolicExpression(Value pValue, Type pType) {
     value = pValue;
     type = pType;
   }
 
   @Override
-  public <VisitorReturnT> VisitorReturnT accept(ConstraintExpressionVisitor<VisitorReturnT> pVisitor) {
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
 
@@ -57,7 +58,7 @@ public class ConstantConstraintExpression implements ConstraintExpression {
   }
 
   @Override
-  public Type getExpressionType() {
+  public Type getType() {
     return type;
   }
 
@@ -67,14 +68,14 @@ public class ConstantConstraintExpression implements ConstraintExpression {
   }
 
   @Override
-  public ConstantConstraintExpression copyWithExpressionType(Type pExpressionType) {
+  public ConstantSymbolicExpression copyWithType(Type pExpressionType) {
     Value newValue = value;
 
     if (value instanceof SymbolicIdentifier) {
       newValue = ((SymbolicIdentifier) value).copyWithType(pExpressionType);
     }
 
-    return new ConstantConstraintExpression(newValue, pExpressionType);
+    return new ConstantSymbolicExpression(newValue, pExpressionType);
   }
 
   @Override
@@ -91,7 +92,7 @@ public class ConstantConstraintExpression implements ConstraintExpression {
       return false;
     }
 
-    ConstantConstraintExpression that = (ConstantConstraintExpression)o;
+    ConstantSymbolicExpression that = (ConstantSymbolicExpression)o;
 
     return type.equals(that.type) && value.equals(that.value);
 

@@ -21,32 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * Marker interface for symbolic values.
- *
- * Each class implementing this interface should provide an <code>equals(Object)</code> method
- * that allows checks for equality of symbolic values.
+ * {@link BinarySymbolicExpression} representing addition.
  */
-public interface SymbolicValue extends Value {
+public class AdditionExpression extends BinarySymbolicExpression {
 
-  <T> T accept(SymbolicValueVisitor<T> pVisitor);
+  protected AdditionExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
+  }
 
-  /**
-   * Sets this <code>SymbolicValue</code>'s {@link Type}.
-   *
-   * @param pType the new type of this symbolic value
-   */
-  SymbolicValue copyWithType(Type pType);
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
 
-  /**
-   * Returns this object's {@link Type}.
-   *
-   * @return the type of the variable this symbolic value describes
-   */
-  Type getType();
+  @Override
+  public AdditionExpression copyWithType(Type pExpressionType) {
+    return new AdditionExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
+  }
+
+  @Override
+  public String toString() {
+    return "(" + getOperand1() + " + " + getOperand2() + ")";
+  }
 }

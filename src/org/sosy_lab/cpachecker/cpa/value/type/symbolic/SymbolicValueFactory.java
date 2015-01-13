@@ -32,9 +32,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpressionFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Optional;
@@ -80,7 +79,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator additionCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
 
         return factory.add(pOperand1, pOperand2, pType, pCalculationType);
@@ -101,15 +100,15 @@ public class SymbolicValueFactory {
 
     checkInBound(pLocation);
 
-    final ConstraintExpression leftExpOperand = getConstantExpression(pLeftOperand, pLeftType);
-    final ConstraintExpression rightExpOperand = getConstantExpression(pRightOperand, pRightType);
+    final SymbolicExpression leftExpOperand = getConstantExpression(pLeftOperand, pLeftType);
+    final SymbolicExpression rightExpOperand = getConstantExpression(pRightOperand, pRightType);
 
-    final ConstraintExpression exp =
+    final SymbolicExpression exp =
         pCreator.createValue(leftExpOperand, rightExpOperand, pExpressionType, pCalculationType);
 
     increaseSymbolicAmount(pLocation);
 
-    return new SymbolicExpression(exp);
+    return exp;
   }
 
   private SymbolicValue createExpression(Value pOperand, Type pOperandType, Type pExpressionType, AAstNode pLocation,
@@ -120,12 +119,12 @@ public class SymbolicValueFactory {
 
     checkInBound(pLocation);
 
-    final ConstraintExpression expOperand = getConstantExpression(pOperand, pOperandType);
+    final SymbolicExpression expOperand = getConstantExpression(pOperand, pOperandType);
 
-    final ConstraintExpression exp = pCreator.createValue(expOperand, pExpressionType);
+    final SymbolicExpression exp = pCreator.createValue(expOperand, pExpressionType);
     increaseSymbolicAmount(pLocation);
 
-    return new SymbolicExpression(exp);
+    return exp;
   }
 
   private void checkInBound(AAstNode pLocation) throws SymbolicBoundReachedException {
@@ -137,9 +136,9 @@ public class SymbolicValueFactory {
     }
   }
 
-  private ConstraintExpression getConstantExpression(Value pValue, Type pType) {
+  private SymbolicExpression getConstantExpression(Value pValue, Type pType) {
     if (pValue instanceof SymbolicExpression) {
-      return ((SymbolicExpression) pValue).getExpression();
+      return (SymbolicExpression) pValue;
     } else {
       return getConstant(pValue, pType);
     }
@@ -166,7 +165,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator subtractionCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
 
         return factory.minus(pOperand1, pOperand2, pType, pCalculationType);
@@ -185,7 +184,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator multiplicationCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.multiply(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -203,7 +202,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator divisionCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.divide(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -221,7 +220,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator moduloCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.modulo(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -239,7 +238,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator shiftCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.shiftLeft(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -257,7 +256,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator shiftCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.shiftRight(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -276,7 +275,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator orCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.binaryOr(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -293,7 +292,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator andCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.binaryAnd(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -310,7 +309,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator xorCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.binaryXor(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -324,7 +323,7 @@ public class SymbolicValueFactory {
 
     UnaryExpressionCreator notCreator = new UnaryExpressionCreator() {
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand, Type pType) {
+      public SymbolicExpression createValue(SymbolicExpression pOperand, Type pType) {
         return factory.binaryNot(pOperand, pType);
       }
     };
@@ -340,7 +339,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator equalsCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.equal(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -358,7 +357,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator notEqualsCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.notEqual(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -376,7 +375,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator greaterCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.greaterThan(pOperand2, pOperand1, pType, pCalculationType);
       }
@@ -394,7 +393,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator greaterEqualCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.greaterThanOrEqual(pOperand2, pOperand1, pType, pCalculationType);
       }
@@ -412,7 +411,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator lessCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.lessThan(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -429,7 +428,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator lessEqualCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.lessThanOrEqual(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -447,7 +446,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator andCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.logicalAnd(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -464,7 +463,7 @@ public class SymbolicValueFactory {
     BinaryExpressionCreator orCreator = new BinaryExpressionCreator() {
 
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2,
+      public SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
           Type pType, Type pCalculationType) {
         return factory.logicalOr(pOperand1, pOperand2, pType, pCalculationType);
       }
@@ -478,7 +477,7 @@ public class SymbolicValueFactory {
 
     UnaryExpressionCreator notCreator = new UnaryExpressionCreator() {
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand, Type pType) {
+      public SymbolicExpression createValue(SymbolicExpression pOperand, Type pType) {
         return factory.logicalNot(pOperand, pType);
       }
     };
@@ -486,7 +485,7 @@ public class SymbolicValueFactory {
     return createExpression(pOperand, pOperandType, pExpressionType, pLocation, notCreator);
   }
 
-  private ConstraintExpression getConstant(Value pValue, Type pType) {
+  private SymbolicExpression getConstant(Value pValue, Type pType) {
     checkNotNull(pValue);
     return ConstraintExpressionFactory.getInstance().asConstant(pValue, pType);
   }
@@ -505,7 +504,7 @@ public class SymbolicValueFactory {
 
     UnaryExpressionCreator xorCreator = new UnaryExpressionCreator() {
       @Override
-      public ConstraintExpression createValue(ConstraintExpression pOperand, Type pType) {
+      public SymbolicExpression createValue(SymbolicExpression pOperand, Type pType) {
         return factory.negate(pOperand, pType);
       }
     };
@@ -514,10 +513,10 @@ public class SymbolicValueFactory {
   }
 
   private static interface BinaryExpressionCreator {
-    ConstraintExpression createValue(ConstraintExpression pOperand1, ConstraintExpression pOperand2, Type pType, Type pCalculationType);
+    SymbolicExpression createValue(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType, Type pCalculationType);
   }
 
   private static interface UnaryExpressionCreator {
-    ConstraintExpression createValue(ConstraintExpression pOperand, Type pType);
+    SymbolicExpression createValue(SymbolicExpression pOperand, Type pType);
   }
 }

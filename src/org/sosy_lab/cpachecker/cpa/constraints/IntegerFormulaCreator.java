@@ -26,29 +26,28 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.AdditionExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryAndExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryNotExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryOrExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.BinaryXorExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstantConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ConstraintExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.DivisionExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LessThanOrEqualExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalAndExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalNotExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.LogicalOrExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ModuloExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.MultiplicationExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ShiftLeftExpression;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.expressions.ShiftRightExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.AdditionExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryAndExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryOrExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.DivisionExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalAndExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalOrExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ModuloExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftLeftExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -90,11 +89,11 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     return handleUnsupportedExpression(pAnd);
   }
 
-  private IntegerFormula handleUnsupportedExpression(ConstraintExpression pExpression) {
+  private IntegerFormula handleUnsupportedExpression(SymbolicExpression pExpression) {
     return formulaManager.makeVariable(FormulaType.IntegerType, getVariableNameByExpression(pExpression));
   }
 
-  private String getVariableNameByExpression(ConstraintExpression pExpression) {
+  private String getVariableNameByExpression(SymbolicExpression pExpression) {
     return pExpression.toString() + counter++;
   }
 
@@ -114,7 +113,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public Formula visit(ConstantConstraintExpression pConstant) {
+  public Formula visit(ConstantSymbolicExpression pConstant) {
     Value value = pConstant.getValue();
 
     if (value.isNumericValue()) {
@@ -141,11 +140,6 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   @Override
   public Formula visit(SymbolicIdentifier pValue) {
     return formulaManager.makeVariable(getFormulaType(pValue.getType()), pValue.toString());
-  }
-
-  @Override
-  public Formula visit(SymbolicExpression pValue) {
-    return pValue.getExpression().accept(this);
   }
 
   private FormulaType<?> getFormulaType(Type pType) {

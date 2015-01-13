@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
  */
 public interface Constraint {
 
-  Type getExpressionType();
+  Type getType();
 
   <T> T accept(ConstraintVisitor<T> pVisitor);
 
