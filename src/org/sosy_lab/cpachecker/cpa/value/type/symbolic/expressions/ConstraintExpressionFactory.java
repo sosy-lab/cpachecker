@@ -114,7 +114,7 @@ public class ConstraintExpressionFactory {
     return new BinaryXorExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public SymbolicExpression equal(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType, Type pCalculationType) {
+  public EqualsExpression equal(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType, Type pCalculationType) {
     return new EqualsExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 

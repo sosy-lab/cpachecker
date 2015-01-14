@@ -23,12 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
@@ -69,8 +82,28 @@ public class ConstraintFactory {
     return hasMissingInformation;
   }
 
+  public Constraint createNegativeConstraint(CUnaryExpression pExpression) throws UnrecognizedCodeException {
+    Constraint positiveConstraint = createPositiveConstraint(pExpression);
+
+    if (positiveConstraint == null) {
+      return null;
+    } else {
+      return createNot(positiveConstraint);
+    }
+  }
+
   public Constraint createNegativeConstraint(CBinaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createPositiveConstraint(pExpression);
+
+    if (positiveConstraint == null) {
+      return null;
+    } else {
+      return createNot(positiveConstraint);
+    }
+  }
+
+  public Constraint createNegativeConstraint(JUnaryExpression pExpression) throws UnrecognizedCodeException {
+    Constraint positiveConstraint = createNot(createPositiveConstraint(pExpression));
 
     if (positiveConstraint == null) {
       return null;
@@ -86,6 +119,37 @@ public class ConstraintFactory {
       return null;
     } else {
       return createNot(positiveConstraint);
+    }
+  }
+
+  public Constraint createNegativeConstraint(AIdExpression pExpression) throws UnrecognizedCodeException {
+   Constraint positiveConstraint = createPositiveConstraint(pExpression);
+
+    if (positiveConstraint == null) {
+      return null;
+    } else {
+      return createNot(positiveConstraint);
+    }
+  }
+
+
+  public Constraint createPositiveConstraint(CUnaryExpression pExpression) throws UnrecognizedCodeException {
+    CUnaryExpression.UnaryOperator operator = pExpression.getOperator();
+
+    switch (operator) {
+      case SIZEOF:
+      case ALIGNOF:
+      case AMPER:
+        return null;
+
+      default:
+        SymbolicExpression operandExpression = pExpression.accept(getCTransformer());
+
+        if (operandExpression == null) {
+          return null;
+        } else {
+          return transformValueToConstraint(operandExpression, pExpression.getExpressionType());
+        }
     }
   }
 
@@ -138,11 +202,26 @@ public class ConstraintFactory {
     }
   }
 
+  public Constraint createPositiveConstraint(JUnaryExpression pExpression) throws UnrecognizedCodeException {
+    assert pExpression.getOperator() == JUnaryExpression.UnaryOperator.NOT;
+
+    JExpression operand = pExpression.getOperand();
+    SymbolicExpression operandExpression = operand.accept(getJavaTransformer());
+
+    if (operandExpression == null) {
+      return null;
+
+    } else {
+      return createNot(operandExpression);
+    }
+  }
+
+
   public Constraint createPositiveConstraint(JBinaryExpression pExpression) throws UnrecognizedCodeException {
     final JBinaryExpression.BinaryOperator operator = pExpression.getOperator();
     final Type expressionType = pExpression.getExpressionType();
 
-    final JExpressionTransformer transformer = new JExpressionTransformer(functionName, valueState);
+    final JExpressionTransformer transformer = getJavaTransformer();
 
     SymbolicExpression leftOperand = pExpression.getOperand1().accept(transformer);
 
@@ -184,6 +263,131 @@ public class ConstraintFactory {
       default:
         throw new AssertionError("Operation " + operator + " not a constraint.");
     }
+  }
+
+  public Constraint createPositiveConstraint(AIdExpression pExpression) throws UnrecognizedCodeException {
+    ExpressionTransformer transformer = new ExpressionTransformer(functionName, valueState);
+    SymbolicExpression symbolicExpression = transformer.visit(pExpression);
+
+    if (symbolicExpression == null) {
+      return null;
+    } else if (symbolicExpression instanceof Constraint) {
+      return (Constraint) symbolicExpression;
+
+    } else {
+      return transformValueToConstraint(symbolicExpression, pExpression.getExpressionType());
+    }
+  }
+
+  private Constraint transformValueToConstraint(SymbolicExpression pExpression, Type expressionType) {
+
+    if (isNumeric(expressionType)) {
+      return createLessOrEqual(getZeroConstant(expressionType), pExpression, expressionType,
+          getCalculationType(expressionType));
+
+    } else if (isBoolean(expressionType)) {
+      assert expressionType instanceof JType : "Expression is boolean but not a constraint in C!";
+      return expressionFactory.equal(pExpression, getTrueValueConstant(), expressionType, expressionType);
+
+    } else {
+      throw new AssertionError("Unexpected type " + expressionType);
+    }
+
+  }
+
+  private JExpressionTransformer getJavaTransformer() {
+    return new JExpressionTransformer(functionName, valueState);
+  }
+
+  private CExpressionTransformer getCTransformer() {
+    return new CExpressionTransformer(functionName, valueState);
+  }
+
+  private boolean isNumeric(Type pType) {
+    if (pType instanceof CType) {
+      CType canonicalType = ((CType) pType).getCanonicalType();
+      if (canonicalType instanceof CSimpleType) {
+        switch (((CSimpleType) canonicalType).getType()) {
+          case FLOAT:
+          case INT:
+            return true;
+          default:
+            // DO NOTHING, false is returned below
+        }
+      }
+
+      return false;
+    } else if (pType instanceof JSimpleType) {
+      switch (((JSimpleType)pType).getType()) {
+        case BYTE:
+        case CHAR:
+        case SHORT:
+        case INT:
+        case LONG:
+        case FLOAT:
+        case DOUBLE:
+          return true;
+        default:
+          // DO NOTHING, false is returned below
+      }
+
+      return false;
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
+  }
+
+  private boolean isBoolean(Type pType) {
+    if (pType instanceof CType) {
+      CType canonicalType = ((CType) pType).getCanonicalType();
+
+      return canonicalType instanceof CSimpleType
+          && ((CSimpleType) canonicalType).getType() == CBasicType.BOOL;
+    }
+
+    if(pType instanceof JSimpleType) {
+      return ((JSimpleType)pType).getType() == JBasicType.BOOLEAN;
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
+  }
+
+  private SymbolicExpression getZeroConstant(Type pType) {
+    return expressionFactory.asConstant(new NumericValue(0L), pType);
+  }
+
+  private SymbolicExpression getTrueValueConstant() {
+    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.getBoolean());
+  }
+
+  private Type getCalculationType(Type pType) {
+    if (pType instanceof CType) {
+      return getCCalculationType((CType) pType);
+    } else if (pType instanceof JType) {
+      return getJCalculationType((JType) pType);
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
+  }
+
+  private Type getCCalculationType(CType pType) {
+    CType canonicalType = pType.getCanonicalType();
+
+    if (canonicalType instanceof CSimpleType) {
+      switch (((CSimpleType)canonicalType).getType()) {
+        case CHAR:
+        case INT:
+          return CNumericTypes.SIGNED_INT;
+        default:
+          return pType;
+      }
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
+  }
+
+  private Type getJCalculationType(JType pType) {
+    return pType;
   }
 
   private void checkForMissingInfo(ExpressionTransformer pTransformer) {

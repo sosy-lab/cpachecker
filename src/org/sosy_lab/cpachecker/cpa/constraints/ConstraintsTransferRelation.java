@@ -36,11 +36,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -228,9 +231,17 @@ public class ConstraintsTransferRelation
     if (pExpression instanceof JBinaryExpression) {
       return createConstraint((JBinaryExpression) pExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
+    } else if (pExpression instanceof JUnaryExpression) {
+      return createConstraint((JUnaryExpression) pExpression, pFactory, pTruthAssumption);
 
+    } else if (pExpression instanceof CBinaryExpression) {
+      return createConstraint((CBinaryExpression)pExpression, pFactory, pTruthAssumption);
+
+    } else if (pExpression instanceof CUnaryExpression) {
+      return createConstraint((CUnaryExpression) pExpression, pFactory, pTruthAssumption);
+
+    } else if (pExpression instanceof AIdExpression) {
+      return createConstraint((AIdExpression) pExpression, pFactory, pTruthAssumption);
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());
     }
@@ -250,10 +261,49 @@ public class ConstraintsTransferRelation
     return Optional.fromNullable(constraint);
   }
 
+  private Optional<Constraint> createConstraint(JUnaryExpression pExpression, ConstraintFactory pFactory,
+      boolean pTruthAssumption) throws UnrecognizedCodeException {
+    Constraint constraint;
+
+    if (pTruthAssumption) {
+      constraint = pFactory.createPositiveConstraint(pExpression);
+    } else {
+      constraint = pFactory.createNegativeConstraint(pExpression);
+    }
+
+    return Optional.fromNullable(constraint);
+  }
+
   private Optional<Constraint> createConstraint(CBinaryExpression pExpression, ConstraintFactory pFactory,
       boolean pTruthAssumption) throws UnrecognizedCodeException {
 
     Constraint constraint;
+
+    if (pTruthAssumption) {
+      constraint = pFactory.createPositiveConstraint(pExpression);
+    } else {
+      constraint = pFactory.createNegativeConstraint(pExpression);
+    }
+
+    return Optional.fromNullable(constraint);
+  }
+
+  private Optional<Constraint> createConstraint(CUnaryExpression pExpression, ConstraintFactory pFactory,
+      boolean pTruthAssumption) throws UnrecognizedCodeException {
+    Constraint constraint;
+
+    if (pTruthAssumption) {
+      constraint = pFactory.createPositiveConstraint(pExpression);
+    } else {
+      constraint = pFactory.createNegativeConstraint(pExpression);
+    }
+
+    return Optional.fromNullable(constraint);
+  }
+
+  private Optional<Constraint> createConstraint(AIdExpression pExpression, ConstraintFactory pFactory,
+      boolean pTruthAssumption) throws UnrecognizedCodeException {
+   Constraint constraint;
 
     if (pTruthAssumption) {
       constraint = pFactory.createPositiveConstraint(pExpression);
