@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -62,9 +61,6 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis {
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
-  private VariableTrackingPrecision precision;
-  private PrecisionAdjustment precisionAdjustment;
-
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ConstraintsCPA.class);
