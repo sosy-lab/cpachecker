@@ -68,8 +68,8 @@ public class PredicatePartition {
    */
   public void insertPredicate(AbstractionPredicate newPred) {
     varIDToPredicate.put(newPred.getVariableNumber(), newPred);  // has to be done anyway
-    //insertPredicateByImplication(newPred);
-    insertPredicateBySimilarity(newPred);
+    insertPredicateByImplication(newPred);
+    //insertPredicateBySimilarity(newPred);
   }
 
   /**
@@ -160,18 +160,18 @@ public class PredicatePartition {
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID()) {
 
-//      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
-//      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
-//       this.insertPredicate(newPred);
-//      }
-
-      // 2. similarity insert: place the partition with more predicates first
-      // TODO Soll das Prädikat zwischen die Partitionen oder an den Anfang?
-      if (newPreds.predicates.size() > this.predicates.size()) {
-        this.predicates.addAll(0, newPreds.predicates);
-      } else {
-        this.predicates.addAll(newPreds.predicates);
+      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
+      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
+       this.insertPredicate(newPred);
       }
+//
+//      // 2. similarity insert: place the partition with more predicates first
+//      // TODO Soll das Prädikat zwischen die Partitionen oder an den Anfang?
+//      if (newPreds.predicates.size() > this.predicates.size()) {
+//        this.predicates.addAll(0, newPreds.predicates);
+//      } else {
+//        this.predicates.addAll(newPreds.predicates);
+//      }
     }
 
     return this;
