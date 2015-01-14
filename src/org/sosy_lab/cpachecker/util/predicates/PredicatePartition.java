@@ -167,19 +167,22 @@ public class PredicatePartition {
   // anzupassen.
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID()) {
+      // merge the mappings varIDToPredicate of the two partitions.
+      // this has to be done no matter which insertion strategy is used.
+      this.varIDToPredicate.putAll(newPreds.getVarIDToPredicate());
 
 //      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
 //      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
 //       this.insertPredicate(newPred);
 //      }
 
-      // 2. similarity insert: place the partition with more predicates first
-      // TODO Soll das Prädikat zwischen die Partitionen oder an den Anfang?
+      // 2. similarity insert: place the partition with more predicates first and merge similarity relations.
       if (newPreds.predicates.size() > this.predicates.size()) {
         this.predicates.addAll(0, newPreds.predicates);
       } else {
         this.predicates.addAll(newPreds.predicates);
       }
+      this.similarityRelation.putAll(newPreds.getSimilarityRelation());
     }
 
     return this;
@@ -191,5 +194,13 @@ public class PredicatePartition {
 
   public LinkedList<AbstractionPredicate> getPredicates() {
     return predicates;
+  }
+
+  public HashMap<Integer, HashMap<Integer, Integer>> getSimilarityRelation() {
+    return similarityRelation;
+  }
+
+  public HashMap<Integer, AbstractionPredicate> getVarIDToPredicate() {
+    return varIDToPredicate;
   }
 }
