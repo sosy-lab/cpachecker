@@ -55,13 +55,21 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -158,6 +166,106 @@ public class ARGUtils {
       currentARGState = parentElement;
     }
     return new ARGPath(Lists.reverse(states));
+  }
+
+  public static Optional<ARGPath> getOnePathTo(
+      final ARGState pEndState, final Collection<ARGPath> pOtherPathThan) {
+
+    List<ARGState> states = new ArrayList<>(); // reversed order
+    Set<ARGState> seenElements = new HashSet<>();
+
+    // each element of the path consists of the abstract state and the outgoing
+    // edge to its successor
+
+    ARGState currentARGState = pEndState;
+    CFANode currentLocation = AbstractStates.extractLocation(pEndState);
+    states.add(currentARGState);
+    seenElements.add(currentARGState);
+
+    Collection<PathPosition> tracePrefixesToAvoid = Collections2.transform(pOtherPathThan,
+        new Function<ARGPath, PathPosition>() {
+          @Override
+          public PathPosition apply(ARGPath pArg0) {
+            PathPosition result = pArg0.reversePathIterator().getPosition();
+            CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
+            Verify.verify(result.getLocation().equals(expectedPostfixLoc));
+            return result;
+          }
+    });
+
+    // Get all traces from pTryCoverOtherStatesThan that start at the same location
+    tracePrefixesToAvoid = getTracePrefixesBeforePostfix(tracePrefixesToAvoid, currentLocation);
+
+    boolean lastTransitionIsDifferent = false;
+    while (!currentARGState.getParents().isEmpty()) {
+      List<ARGState> potentialParents = Lists.newArrayList();
+      potentialParents.addAll(currentARGState.getParents());
+      if (!tracePrefixesToAvoid.isEmpty()) {
+        potentialParents.addAll(currentARGState.getCoveredByThis());
+      }
+      Iterator<ARGState> parents = potentialParents.iterator();
+
+      boolean uniqueParentFound = false;
+      ARGState parentElement = parents.next();
+
+      do {
+        while (!seenElements.add(parentElement) && parents.hasNext()) {
+          // while seenElements already contained parentElement, try next parent
+          parentElement = parents.next();
+        }
+
+        // goal: choosen a path that has not yet been taken
+        uniqueParentFound = true;
+        final CFANode parentLocation = extractLocation(parentElement);
+        for (PathPosition t: tracePrefixesToAvoid) {
+          if (t.getLocation().equals(parentLocation)) {
+            uniqueParentFound = false;
+            lastTransitionIsDifferent = false;
+            break;
+          }
+        }
+
+        lastTransitionIsDifferent = tracePrefixesToAvoid.isEmpty();
+      } while (!uniqueParentFound && parents.hasNext());
+
+      states.add(parentElement);
+
+      currentARGState = parentElement;
+      currentLocation = AbstractStates.extractLocation(currentARGState);
+      tracePrefixesToAvoid = getTracePrefixesBeforePostfix(tracePrefixesToAvoid, currentLocation);
+    }
+
+    if (!lastTransitionIsDifferent) {
+      return Optional.absent();
+    }
+
+    return Optional.of(new ARGPath(Lists.reverse(states)));
+  }
+
+  public static Collection<PathPosition> getTracePrefixesBeforePostfix(
+      final Collection<PathPosition> pTracePosition,
+      final CFANode pPostfixLocation) {
+
+    Preconditions.checkNotNull(pTracePosition);
+    Preconditions.checkNotNull(pPostfixLocation);
+
+    Builder<PathPosition> result = ImmutableList.builder();
+
+    for (PathPosition p: pTracePosition) {
+
+      if (pPostfixLocation.equals(p.getLocation())) {
+        PathIterator it = p.reverseIterator();
+
+        if (!it.hasNext()) {
+          continue;
+        }
+
+        it.advance();
+        result.add(it.getPosition());
+      }
+    }
+
+    return result.build();
   }
 
   /**
