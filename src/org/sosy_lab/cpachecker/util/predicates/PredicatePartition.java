@@ -68,8 +68,8 @@ public class PredicatePartition {
    */
   public void insertPredicate(AbstractionPredicate newPred) {
     varIDToPredicate.put(newPred.getVariableNumber(), newPred);  // has to be done anyway
-    //insertPredicateByImplication(newPred);
-    insertPredicateBySimilarity(newPred);
+    insertPredicateByImplication(newPred);
+    //insertPredicateBySimilarity(newPred);
   }
 
   /**
@@ -163,26 +163,24 @@ public class PredicatePartition {
     similarityRelation.put(varIDNewPredicate, similarities);
   }
 
-  // @TODO: Hier muss überlegt werden wie gemerged wird. Ggf. ist die updatePartitions Methode des AbstractionManagers
-  // anzupassen.
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID()) {
       // merge the mappings varIDToPredicate of the two partitions.
       // this has to be done no matter which insertion strategy is used.
       this.varIDToPredicate.putAll(newPreds.getVarIDToPredicate());
 
-//      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
-//      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
-//       this.insertPredicate(newPred);
-//      }
-
-      // 2. similarity insert: place the partition with more predicates first and merge similarity relations.
-      if (newPreds.predicates.size() > this.predicates.size()) {
-        this.predicates.addAll(0, newPreds.predicates);
-      } else {
-        this.predicates.addAll(newPreds.predicates);
+      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
+      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
+       this.insertPredicate(newPred);
       }
-      this.similarityRelation.putAll(newPreds.getSimilarityRelation());
+
+//      // 2. similarity insert: place the partition with more predicates first and merge similarity relations.
+//      if (newPreds.predicates.size() > this.predicates.size()) {
+//        this.predicates.addAll(0, newPreds.predicates);
+//      } else {
+//        this.predicates.addAll(newPreds.predicates);
+//      }
+//      this.similarityRelation.putAll(newPreds.getSimilarityRelation());
     }
 
     return this;
