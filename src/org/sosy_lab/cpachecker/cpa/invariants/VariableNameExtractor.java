@@ -27,8 +27,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
@@ -96,7 +95,7 @@ public class VariableNameExtractor {
     } else if (pLhs instanceof JFieldAccess) {
       JFieldAccess fieldRef = (JFieldAccess) pLhs;
       String varName = fieldRef.getName();
-      JIdExpression owner = fieldRef.getReferencedVariable();
+      JExpression owner = fieldRef.getReferencedVariable();
       return getFieldReferenceVarName(varName, owner, false);
     } else if (pLhs instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pLhs;

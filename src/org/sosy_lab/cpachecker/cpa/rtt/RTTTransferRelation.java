@@ -795,7 +795,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
         JType type = fiExpr.getExpressionType();
 
-        JIdExpression qualifier = fiExpr.getReferencedVariable();
+        JIdExpression qualifier = (JIdExpression) fiExpr.getReferencedVariable();
 
         String uniqueQualifierObject = qualifier.accept(this);
         String variableName =

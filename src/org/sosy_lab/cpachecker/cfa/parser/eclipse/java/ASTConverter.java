@@ -1171,8 +1171,8 @@ class ASTConverter {
 
     boolean canBeResolved = fieldBinding != null;
 
-    if (canBeResolved) {
-      scope.registerClass(e.resolveFieldBinding().getDeclaringClass());
+    if (canBeResolved && !isArrayAccess(e)) {
+      scope.registerClass(fieldBinding.getDeclaringClass());
     }
 
     JAstNode identifier = convertExpressionWithoutSideEffects(e.getName());
@@ -1193,23 +1193,34 @@ class ASTConverter {
       return idExpIdentifier;
     }
 
-    if (!(qualifier instanceof JIdExpression)) {
-      throw new CFAGenerationRuntimeException(
-        "Qualifier of FieldAccess could not be processed.", e);
-    }
-
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
-
 
     if (!(decl instanceof JFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
         "Identifier of FieldAccess does not identify a field.", e);
     }
 
-    return new JFieldAccess(idExpIdentifier.getFileLocation(),
+    if (qualifier instanceof JIdExpression) {
+      return new JFieldAccess(idExpIdentifier.getFileLocation(),
         idExpIdentifier.getExpressionType(),
         idExpIdentifier.getName(), (JFieldDeclaration) decl,
         (JIdExpression) qualifier);
+
+    } else if (qualifier instanceof JArraySubscriptExpression) {
+
+      return new JFieldAccess(idExpIdentifier.getFileLocation(),
+          idExpIdentifier.getExpressionType(),
+          idExpIdentifier.getName(), (JFieldDeclaration) decl,
+          (JArraySubscriptExpression) qualifier);
+
+    } else {
+      throw new CFAGenerationRuntimeException(
+          "Qualifier of FieldAccess could not be processed.", e);
+    }
+  }
+
+  private boolean isArrayAccess(FieldAccess e) {
+    return e.getExpression() instanceof ArrayAccess;
   }
 
   private JAstNode convert(ClassInstanceCreation cIC) {
@@ -1365,7 +1376,7 @@ class ASTConverter {
 
     IBinding binding = e.resolveBinding();
 
-    boolean canBeResolved = e.resolveBinding() != null;
+    boolean canBeResolved = binding != null;
 
     if (canBeResolved) {
 
@@ -1558,17 +1569,13 @@ class ASTConverter {
 
     String name = null;
     JSimpleDeclaration declaration = null;
-    boolean canBeResolved = e.resolveBinding() != null;
+
+    IBinding binding = e.resolveBinding();
+    boolean canBeResolved = binding != null;
 
     //TODO Complete declaration by finding all Bindings
     if (canBeResolved) {
-
-      IBinding binding = e.resolveBinding();
-
-
-
       if (binding instanceof IVariableBinding) {
-
         return convertSimpleVariable(e, (IVariableBinding) binding);
 
       } else if (binding instanceof IMethodBinding) {
