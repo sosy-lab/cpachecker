@@ -27,13 +27,13 @@ int main() {
     goto ERROR;
   }
 
-  int temp = b;
+/*  int temp = b;
   b = b >> a;
   a = a >> temp;
 
   if (a != b) {
     goto ERROR;
-  }
+  } */
 
   a = - a;
   b = - b;

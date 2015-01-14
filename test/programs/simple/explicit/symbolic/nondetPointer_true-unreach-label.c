@@ -1,10 +1,14 @@
 
 int main() {
   int var = 100;
-  int * pointer1 = &var;
-  int * pointer2 = pointer1;
+  int * p1 = &var;
+  int * p2 = pointer1;
   
-  if (pointer1 == pointer2) {
+  if (p1 != p2) {
+    
+  }
+
+  if (p1 == p2) {
     return 0;
   } else {
 ERROR:
