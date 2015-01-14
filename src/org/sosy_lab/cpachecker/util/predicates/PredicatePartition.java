@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
@@ -49,7 +49,7 @@ public class PredicatePartition {
   private LinkedList<AbstractionPredicate> predicates;
   // mapping varID -> predicate in partition
   private HashMap<Integer, AbstractionPredicate> varIDToPredicate;
-  private ArrayList<ArrayList<Integer>> similarityRelation = new ArrayList<>();
+  private HashMap<Integer, HashMap<Integer, Integer>> similarityRelation;
   private Solver solver;
 
   public PredicatePartition(FormulaManagerView fmgr, Solver solver, LogManager logger) {
@@ -58,7 +58,7 @@ public class PredicatePartition {
     this.logger = logger;
     predicates = new LinkedList<>();
     varIDToPredicate = new HashMap<>();
-    similarityRelation = new ArrayList<>();
+    similarityRelation = new HashMap<>();
   }
 
   /**
@@ -68,8 +68,8 @@ public class PredicatePartition {
    */
   public void insertPredicate(AbstractionPredicate newPred) {
     varIDToPredicate.put(newPred.getVariableNumber(), newPred);  // has to be done anyway
-    insertPredicateByImplication(newPred);
-    //insertPredicateBySimilarity(newPred);
+    //insertPredicateByImplication(newPred);
+    insertPredicateBySimilarity(newPred);
   }
 
   /**
@@ -113,18 +113,27 @@ public class PredicatePartition {
     updatePredicateSimilarities(newPred);
 
     // calculate the predicate that is most similar to the new one
-    ArrayList<Integer> similarities = similarityRelation.get(newPred.getVariableNumber());
-    ArrayList<Integer> similaritiesSortedHighLow = new ArrayList<>(similarities);
-    Collections.sort(similaritiesSortedHighLow, Collections.reverseOrder());
-    AbstractionPredicate mostSimilarPredicate = varIDToPredicate.get(similaritiesSortedHighLow.get(0));
-    int indexSimilarPred = predicates.indexOf(mostSimilarPredicate);
+    HashMap<Integer, Integer> similarities = similarityRelation.get(newPred.getVariableNumber());
+    Map.Entry<Integer, Integer> entryWithMaxSimilarity = null;
+    for (Map.Entry<Integer, Integer> entry : similarities.entrySet()) {
+      if (entryWithMaxSimilarity == null || entry.getValue().compareTo(entryWithMaxSimilarity.getValue()) > 0) {
+        entryWithMaxSimilarity = entry;
+      }
+    }
 
-    // the new predicate is inserted before the most similar if it contains more variables else it's the other way round
-    if (fmgr.extractVariableNames(mostSimilarPredicate.getSymbolicAtom()).size() <
-        fmgr.extractVariableNames(newPred.getSymbolicAtom()).size()) {
-      predicates.add(indexSimilarPred, newPred);
+    if (entryWithMaxSimilarity != null) {
+      AbstractionPredicate mostSimilarPredicate = varIDToPredicate.get(entryWithMaxSimilarity.getKey());
+      int indexSimilarPred = predicates.indexOf(mostSimilarPredicate);
+
+      // the new predicate is inserted before the most similar if it contains more variables else it's the other way round
+      if (fmgr.extractVariableNames(mostSimilarPredicate.getSymbolicAtom()).size() <
+          fmgr.extractVariableNames(newPred.getSymbolicAtom()).size()) {
+        predicates.add(indexSimilarPred, newPred);
+      } else {
+        predicates.add(indexSimilarPred + 1, newPred);
+      }
     } else {
-      predicates.add(indexSimilarPred + 1, newPred);
+      predicates.add(newPred);
     }
   }
 
@@ -135,8 +144,8 @@ public class PredicatePartition {
    * @param newPredicate the new predicated that arrived.
    */
   private void updatePredicateSimilarities(AbstractionPredicate newPredicate) {
-    int numberOfPredicates = similarityRelation.size();
-    ArrayList<Integer> similarities = new ArrayList<>(numberOfPredicates);
+    int varIDNewPredicate = newPredicate.getVariableNumber();
+    HashMap<Integer, Integer> similarities = new HashMap<>();
     Set<String> varsInNewPred = fmgr.extractVariableNames(newPredicate.getSymbolicAtom());
 
     // calculate for each of the old predicates the number of variables the old and the new predicate have in common
@@ -146,13 +155,12 @@ public class PredicatePartition {
       // the similarity is equal to the number of variables the predicates have in common
       varsInPrevPred.retainAll(varsInNewPred);
       Integer similarity = varsInPrevPred.size();
-      ArrayList<Integer> similaritiesPrevPred = similarityRelation.get(index);
-      similaritiesPrevPred.add(similarity);
-      similarities.add(index, similarity);
+      HashMap<Integer, Integer> similaritiesPrevPred = similarityRelation.get(index);
+      similaritiesPrevPred.put(varIDNewPredicate, similarity);
+      similarities.put(index, similarity);
     }
 
-    similarities.add(0);
-    similarityRelation.add(similarities);
+    similarityRelation.put(varIDNewPredicate, similarities);
   }
 
   // @TODO: Hier muss überlegt werden wie gemerged wird. Ggf. ist die updatePartitions Methode des AbstractionManagers
@@ -160,18 +168,18 @@ public class PredicatePartition {
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID()) {
 
-      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
-      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
-       this.insertPredicate(newPred);
-      }
-//
-//      // 2. similarity insert: place the partition with more predicates first
-//      // TODO Soll das Prädikat zwischen die Partitionen oder an den Anfang?
-//      if (newPreds.predicates.size() > this.predicates.size()) {
-//        this.predicates.addAll(0, newPreds.predicates);
-//      } else {
-//        this.predicates.addAll(newPreds.predicates);
+//      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
+//      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
+//       this.insertPredicate(newPred);
 //      }
+
+      // 2. similarity insert: place the partition with more predicates first
+      // TODO Soll das Prädikat zwischen die Partitionen oder an den Anfang?
+      if (newPreds.predicates.size() > this.predicates.size()) {
+        this.predicates.addAll(0, newPreds.predicates);
+      } else {
+        this.predicates.addAll(newPreds.predicates);
+      }
     }
 
     return this;
