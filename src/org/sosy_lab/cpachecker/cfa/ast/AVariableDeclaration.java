@@ -86,6 +86,7 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(initializer);
+    result = prime * result + qualifiedName.hashCode();
     result = prime * result + super.hashCode();
     return result;
   }
@@ -106,7 +107,8 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
 
     AVariableDeclaration other = (AVariableDeclaration) obj;
 
-    return Objects.equals(other.initializer, initializer);
+    return Objects.equals(other.initializer, initializer)
+        && qualifiedName.equals(other.qualifiedName);
   }
 
 }

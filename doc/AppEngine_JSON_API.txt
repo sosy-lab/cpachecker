@@ -133,7 +133,7 @@ Required:
   "programText" : "...",
   "sourceFileName" : "example.c"
   "specification" : "sv-comp.spc",
-  "configuration" : "explicitAnalysis.properties",
+  "configuration" : "valueAnalysis.properties",
   "options" :
   {
     "output.disable" : "true",
@@ -196,7 +196,7 @@ Response
   "status" : "DONE",
   "statusMessage" : null,
   "specification" : "sv-comp.spc",
-  "configuration" : "explicitAnalysis.properties",
+  "configuration" : "valueAnalysis.properties",
   "sourceFileName" : "example.c",
   "retries" : 0,
   "result" : "TRUE",

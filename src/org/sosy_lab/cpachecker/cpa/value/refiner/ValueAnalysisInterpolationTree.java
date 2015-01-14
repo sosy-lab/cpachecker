@@ -51,11 +51,11 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner.RestartStr
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
 
 /**
  * This class represents an interpolation tree, i.e. a set of states connected through a successor-predecessor-relation.
@@ -76,12 +76,12 @@ class ValueAnalysisInterpolationTree {
   /**
    * the predecessor relation of the states contained in this tree
    */
-  private final Map<ARGState, ARGState> predecessorRelation = Maps.newHashMap();
+  private final Map<ARGState, ARGState> predecessorRelation = Maps.newLinkedHashMap();
 
   /**
    * the successor relation of the states contained in this tree
    */
-  private final SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
+  private final ListMultimap<ARGState, ARGState> successorRelation = ArrayListMultimap.create();
 
   /**
    * the mapping from state to the identified interpolants
@@ -104,6 +104,11 @@ class ValueAnalysisInterpolationTree {
    * the strategy on how to select paths for interpolation
    */
   private final InterpolationStrategy strategy;
+
+  /**
+   * the path denoting the empty path
+   */
+  public static final ARGPath EMPTY_PATH = null;
 
   /**
    * This method acts as constructor of the interpolation tree.
@@ -155,10 +160,15 @@ class ValueAnalysisInterpolationTree {
       final ARGState currentState = todo.removeFirst();
 
       if (currentState.getParents().iterator().hasNext()) {
-        ARGState parentState = currentState.getParents().iterator().next();
-        todo.add(parentState);
-        predecessorRelation.put(currentState, parentState);
-        successorRelation.put(parentState, currentState);
+
+        if(!predecessorRelation.containsKey(currentState)) {
+          ARGState parentState = currentState.getParents().iterator().next();
+
+          predecessorRelation.put(currentState, parentState);
+          successorRelation.put(parentState, currentState);
+
+          todo.addFirst(parentState);
+        }
 
       } else if (itpTreeRoot == null) {
         itpTreeRoot = currentState;
@@ -263,7 +273,7 @@ class ValueAnalysisInterpolationTree {
         }
       }
 
-      Set<ARGState> successors = successorRelation.get(currentState);
+      Collection<ARGState> successors = successorRelation.get(currentState);
       todo.addAll(successors);
     }
 
@@ -307,7 +317,7 @@ class ValueAnalysisInterpolationTree {
         continue;
       }
 
-      Set<ARGState> successors = successorRelation.get(currentState);
+      Collection<ARGState> successors = successorRelation.get(currentState);
       todo.addAll(successors);
     }
 
@@ -334,7 +344,7 @@ class ValueAnalysisInterpolationTree {
 
       }
 
-      Set<ARGState> successors = successorRelation.get(currentState);
+      Collection<ARGState> successors = successorRelation.get(currentState);
       todo.addAll(successors);
     }
 
@@ -359,7 +369,7 @@ class ValueAnalysisInterpolationTree {
         continue;
       }
 
-      Set<ARGState> successors = successorRelation.get(currentState);
+      Collection<ARGState> successors = successorRelation.get(currentState);
       todo.addAll(successors);
     }
 
@@ -433,8 +443,8 @@ class ValueAnalysisInterpolationTree {
       ARGState current = sources.pop();
 
       if (!isValidInterpolationRoot(predecessorRelation.get(current))) {
-        logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
-        return null;
+        logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false, so return empty path");
+        return EMPTY_PATH;
       }
 
       // if the current state is not the root, it is a child of a branch , however, the path should not start with the
@@ -449,11 +459,14 @@ class ValueAnalysisInterpolationTree {
         errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
 
         // push all other children of the current state, if any, onto the stack for later interpolations
-        if (children.hasNext()) {
+        int size = 1;
+        while (children.hasNext()) {
+          size++;
           ARGState sibling = children.next();
           logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
           sources.push(sibling);
         }
+        assert(size <= 2);
 
         current = child;
 
@@ -520,6 +533,11 @@ class ValueAnalysisInterpolationTree {
       while (predecessorRelation.get(current) != null) {
 
         ARGState parent = predecessorRelation.get(current);
+
+        if(stateHasFalseInterpolant(parent)) {
+          logger.log(Level.FINEST, "interpolant on path, namely for state ", parent.getStateId(), " is already false, so return empty path");
+          return EMPTY_PATH;
+        }
 
         errorPath.addFirst(Pair.of(parent, parent.getEdgeToChild(current)));
 

@@ -29,17 +29,16 @@ import javax.annotation.Nullable;
 
 import org.junit.After;
 import org.junit.Before;
-import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -48,7 +47,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 
 import com.google.common.truth.FailureStrategy;
@@ -108,13 +106,14 @@ public abstract class SolverBasedTest0 {
     return Solvers.SMTINTERPOL;
   }
 
+  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
+    return TestDataTools.configurationForTest()
+        .setOption("cpa.predicate.solver", solverToUse().toString());
+  }
+
   @Before
   public final void initSolver() throws Exception {
-    ConfigurationBuilder builder = new Builder();
-    builder.setOption("cpa.predicate.solver", solverToUse().toString());
-    // FileOption-Converter for correct output-paths, otherwise files are written in current working directory.
-    builder.addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()));
-    config = builder.build();
+    config = createTestConfigBuilder().build();
 
     try {
       factory = new FormulaManagerFactory(config, logger,
@@ -209,10 +208,10 @@ public abstract class SolverBasedTest0 {
    */
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(ProverEnvironment())")
-  public static final SubjectFactory<ProverEnvironmentSubject, ProverEnvironment> ProverEnvironment() {
-    return new SubjectFactory<ProverEnvironmentSubject, ProverEnvironment>() {
+  public static final SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
+    return new SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>() {
           @Override
-          public ProverEnvironmentSubject getSubject(FailureStrategy pFs, ProverEnvironment pFormula) {
+          public ProverEnvironmentSubject getSubject(FailureStrategy pFs, BasicProverEnvironment<?> pFormula) {
             return new ProverEnvironmentSubject(pFs, pFormula);
           }
         };

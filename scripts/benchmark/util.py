@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
 import glob
@@ -243,6 +243,22 @@ def findExecutable(program, fallback=None, exitOnError=True):
 def commonBaseDir(l):
     # os.path.commonprefix returns the common prefix, not the common directory
     return os.path.dirname(os.path.commonprefix(l))
+
+
+def writeFile(content, *path):
+    """
+    Simply write some content to a file, overriding the file if necessary.
+    """
+    with open(os.path.join(*path), "w") as file:
+        return file.write(content)
+
+
+def readFile(*path):
+    """
+    Read the full content of a file.
+    """
+    with open(os.path.join(*path)) as f:
+        return f.read().strip()
 
 
 def addFilesToGitRepository(baseDir, files, description):

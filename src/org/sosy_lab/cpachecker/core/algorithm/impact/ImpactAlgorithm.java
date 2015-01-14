@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -144,11 +145,11 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   public AbstractState getInitialState(CFANode location) {
-    return new Vertex(bfmgr, bfmgr.makeBoolean(true), cpa.getInitialState(location));
+    return new Vertex(bfmgr, bfmgr.makeBoolean(true), cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
   }
 
   public Precision getInitialPrecision(CFANode location) {
-    return cpa.getInitialPrecision(location);
+    return cpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition());
   }
 
   @Override

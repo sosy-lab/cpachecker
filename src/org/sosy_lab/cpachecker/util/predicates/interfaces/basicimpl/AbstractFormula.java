@@ -77,17 +77,25 @@ abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
  */
 @SuppressWarnings("serial")
 class ArrayFormulaImpl<TI extends Formula, TE extends Formula, TFormulaInfo>
-extends AbstractFormula<TFormulaInfo>
-implements ArrayFormula<TI, TE> {
+    extends AbstractFormula<TFormulaInfo>
+    implements ArrayFormula<TI, TE> {
+
   private final FormulaType<TI> indexType;
   private final FormulaType<TE> elementType;
+
   public ArrayFormulaImpl(TFormulaInfo info, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
     super(info);
     this.indexType = pIndexType;
     this.elementType = pElementType;
   }
-  public FormulaType<TI> getIndexType() { return indexType; }
-  public FormulaType<TE> getElementType() { return elementType; }
+
+  public FormulaType<TI> getIndexType() {
+    return indexType;
+  }
+
+  public FormulaType<TE> getElementType() {
+    return elementType;
+  }
 }
 
 /**

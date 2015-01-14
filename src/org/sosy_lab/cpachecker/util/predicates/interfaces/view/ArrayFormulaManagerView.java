@@ -25,38 +25,16 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
 
 public class ArrayFormulaManagerView
   extends BaseManagerView
   implements ArrayFormulaManager {
 
   private ArrayFormulaManager manager;
-
-  /**
-   * Used to keep track of the types that were used
-   * to wrap the array index (the domain), and its values (the range).
-   *
-   * This information is needed when accessing the array:
-   *    The result (of a 'select') has to be wrapped with the intended type again.
-   */
-  private static class UnwrappedArrayFormula<TI extends Formula, TE extends Formula> implements ArrayFormula<TI, TE> {
-
-    public final FormulaType<TI> indexTypeWasWrappedAs;
-    public final FormulaType<TE> elementTypeWasWrappedAs;
-    public final ArrayFormula<?, ?> formula;
-
-    public UnwrappedArrayFormula(
-        ArrayFormula<?, ?> pFormula,
-        FormulaType<TI> pIndexWasWrappedAs,
-        FormulaType<TE> pElementTypeWasWrappedAs) {
-      indexTypeWasWrappedAs = pIndexWasWrappedAs;
-      elementTypeWasWrappedAs = pElementTypeWasWrappedAs;
-      formula = pFormula;
-    }
-
-  }
 
   ArrayFormulaManagerView(FormulaManagerView pViewManager, ArrayFormulaManager pManager) {
     super(pViewManager);
@@ -67,10 +45,13 @@ public class ArrayFormulaManagerView
   public <TI extends Formula, TE extends Formula> TE select (
       ArrayFormula<TI, TE> pArray, Formula pIndex) {
 
-    final ArrayFormula<TI, TE> declaredArray = rewrapIfNeeded(pArray);
+    @SuppressWarnings("unchecked")
+    final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
     final TE selectResult = manager.select(declaredArray, unwrap(pIndex));
     final FormulaType<TE> resultType = getElementType(pArray);
 
+    // the result of a select can also be a reference to an array! (multi-dimensional arrays)
+    // example: returns an array
     return wrap(resultType, selectResult);
   }
 
@@ -78,7 +59,8 @@ public class ArrayFormulaManagerView
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store (
       ArrayFormula<TI, TE> pArray, Formula pIndex, Formula pValue) {
 
-    final ArrayFormula<TI, TE> declaredArray = rewrapIfNeeded(pArray);
+    @SuppressWarnings("unchecked")
+    final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
 
     return manager.store(declaredArray, unwrap(pIndex), unwrap(pValue));
   }
@@ -88,40 +70,44 @@ public class ArrayFormulaManagerView
   public <TI extends Formula, TE extends Formula, FTI extends FormulaType<TI>, FTE extends FormulaType<TE>> ArrayFormula<TI, TE> makeArray(
       String pName, FTI pIndexType, FTE pElementType) {
 
+    final ArrayFormulaType<TI, TE> inputArrayType = new ArrayFormulaType<>(pIndexType, pElementType);
     final FTI unwrappedIndexType = (FTI) unwrapType(pIndexType);
     final FTE unwrappedElementType = (FTE) unwrapType(pElementType);
 
-    final ArrayFormula<TI, TE> resultWithUnwrappedTypes = manager.makeArray(pName, unwrappedIndexType, unwrappedElementType);
+    final ArrayFormula<TI, TE> result = manager.makeArray(pName, unwrappedIndexType, unwrappedElementType);
 
-    return new UnwrappedArrayFormula<>(resultWithUnwrappedTypes, pIndexType, pElementType);
+    return wrap(inputArrayType, result);
   }
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
-  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> rewrapIfNeeded (
-      ArrayFormula<TI, TE> pArray) {
-    if (pArray instanceof UnwrappedArrayFormula) {
-      return ((UnwrappedArrayFormula) pArray).formula;
-    }
-
-    return pArray;
-  }
-
-  @SuppressWarnings("unchecked")
   @Override
-  public <TD extends Formula, FTI extends FormulaType<TD>> FTI getIndexType(ArrayFormula<TD, ?> pArray) {
-    if (pArray instanceof UnwrappedArrayFormula) {
-      return (FTI) ((UnwrappedArrayFormula<TD, ?>) pArray).indexTypeWasWrappedAs;
+  public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray) {
+    if (pArray instanceof WrappingFormula) {
+      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula) pArray).getType();
+      return (FTI) t.getIndexType();
     }
     return manager.getIndexType(pArray);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <TR extends Formula, FTE extends FormulaType<TR>> FTE getElementType(ArrayFormula<?, TR> pArray) {
-    if (pArray instanceof UnwrappedArrayFormula) {
-      return (FTE) ((UnwrappedArrayFormula<?, TR>) pArray).elementTypeWasWrappedAs;
+  public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray) {
+    if (pArray instanceof WrappingFormula) {
+      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula) pArray).getType();
+      return (FTE) t.getElementType();
     }
     return manager.getElementType(pArray);
+  }
+
+  @Override
+  public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(ArrayFormula<TI, TE> pArray1,
+      ArrayFormula<TI, TE> pArray2) {
+
+    @SuppressWarnings("unchecked")
+    final ArrayFormula<TI, TE> declaredArray1 = (ArrayFormula<TI, TE>) unwrap(pArray1);
+    @SuppressWarnings("unchecked")
+    final ArrayFormula<TI, TE> declaredArray2 = (ArrayFormula<TI, TE>) unwrap(pArray2);
+
+    BooleanFormula result = manager.equivalence(declaredArray1, declaredArray2);
+    return wrap(FormulaType.BooleanType, result);
   }
 
 }

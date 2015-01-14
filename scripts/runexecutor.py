@@ -24,7 +24,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -117,7 +117,7 @@ def main(argv=None):
     # exitCode is a special number:
     # It is a 16bit int of which the lowest 7 bit are the signal number,
     # and the high byte is the real exit code of the process (here 0).
-    returnValue = exitCode / 256
+    returnValue = exitCode // 256
     exitSignal = exitCode % 128
 
     # output results

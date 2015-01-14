@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
@@ -94,8 +95,8 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
-    return getWrappedCpa().getInitialState(pNode);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return getWrappedCpa().getInitialState(pNode, pPartition);
   }
 
   public PropertyChecker getPropChecker() {

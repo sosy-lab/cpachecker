@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -47,7 +48,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -55,6 +56,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithCo
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Function;
@@ -170,9 +173,37 @@ public class ARGStatistics implements IterationStatistics {
     }
 
     if (exportARG) {
-      final ARGState rootState = (ARGState)pReached.getFirstState();
-      exportARG(rootState, Predicates.in(allTargetPathEdges));
+      // The state space might be partitioned ...
+      // ... so we would export a separate ARG for each partition ...
+      boolean partitionedArg = AbstractStates.extractStateByType(
+          pReached.getFirstState(), PartitionState.class) != null;
+
+      final Set<ARGState> rootStates = partitionedArg
+          ? ARGUtils.getRootStates(pReached)
+          : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
+
+      for (ARGState rootState: rootStates) {
+        exportARG(rootState, Predicates.in(allTargetPathEdges));
+      }
     }
+  }
+
+  private Path adjustPathNameForPartitioning(ARGState rootState, Path pPath) {
+    if (pPath == null) {
+      return null;
+    }
+
+    PartitionState partyState = AbstractStates.extractStateByType(rootState, PartitionState.class);
+    if (partyState == null) {
+      return pPath;
+    }
+
+    final String partitionKey = partyState.getStateSpacePartition().getPartitionKey().toString();
+
+    int sepIx = pPath.getPath().lastIndexOf(".");
+    String prefix = pPath.getPath().substring(0, sepIx);
+    String extension = pPath.getPath().substring(sepIx, pPath.getPath().length());
+    return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
   private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
@@ -180,7 +211,7 @@ public class ARGStatistics implements IterationStatistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
     if (argFile != null) {
-      try (Writer w = Files.openOutputFile(argFile)) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, argFile))) {
         ARGToDotWriter.write(w, rootState,
             ARGUtils.CHILDREN_OF_STATE,
             Predicates.alwaysTrue(),
@@ -191,7 +222,7 @@ public class ARGStatistics implements IterationStatistics {
     }
 
     if (simplifiedArgFile != null) {
-      try (Writer w = Files.openOutputFile(simplifiedArgFile)) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, simplifiedArgFile))) {
         ARGToDotWriter.write(w, rootState,
             relevantSuccessorFunction,
             Predicates.alwaysTrue(),
@@ -204,6 +235,7 @@ public class ARGStatistics implements IterationStatistics {
     assert (refinementGraphUnderlyingWriter == null) == (refinementGraphWriter == null);
     if (refinementGraphUnderlyingWriter != null) {
       try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
+        // TODO: Support for partitioned state spaces
         refinementGraphWriter.writeSubgraph(rootState,
             relevantSuccessorFunction,
             Predicates.alwaysTrue(),
@@ -256,12 +288,12 @@ public class ARGStatistics implements IterationStatistics {
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
         CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
 
-    CFAPathWithAssignments result = null;
+    CFAPathWithAssumptions result = null;
 
     // TODO Merge different paths
     for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
       ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
-      CFAPathWithAssignments cexPath = CFAPathWithAssignments.of(path, cpa.getLogger(), cpa.getMachineModel());
+      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, cpa.getLogger(), cpa.getMachineModel());
 
       if (result != null) {
         result = result.mergePaths(cexPath);

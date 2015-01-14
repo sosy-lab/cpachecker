@@ -23,20 +23,10 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-
-def writeFile(content, *path):
-    """
-    Simply write some content to a file, overriding the file if necessary.
-    """
-    with open(os.path.join(*path), "w") as file:
-        return file.write(content)
-
-def readFile(*path):
-    with open(os.path.join(*path)) as f:
-        return f.read().strip()
+from . import util
 
 class FileWriter:
     """
@@ -54,7 +44,7 @@ class FileWriter:
         self.__content = content
 
         # Open file with "w" at least once so it will be overwritten.
-        writeFile(content, self.__filename)
+        util.writeFile(content, self.__filename)
 
     def append(self, newContent, keep=True):
         """
@@ -73,7 +63,7 @@ class FileWriter:
             """
             tmpFilename = self.__filename + ".tmp"
 
-            writeFile(content, tmpFilename)
+            util.writeFile(content, tmpFilename)
 
             os.rename(tmpFilename, self.__filename)
         else:

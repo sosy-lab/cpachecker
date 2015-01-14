@@ -38,7 +38,7 @@ abstract class Z3NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
-  private final long z3context;
+  protected final long z3context;
 
   public Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
@@ -93,17 +93,6 @@ abstract class Z3NumeralFormulaManager
   @Override
   public Long subtract(Long pNumber1, Long pNumber2) {
     return mk_sub(z3context, pNumber1, pNumber2);
-  }
-
-  @Override
-  public Long divide(Long pNumber1, Long pNumber2) {
-    long result;
-    if (is_numeral_ast(z3context, pNumber2)) {
-      result = mk_div(z3context, pNumber1, pNumber2);
-    } else {
-      result = super.divide(pNumber1, pNumber2);
-    }
-    return result;
   }
 
   @Override

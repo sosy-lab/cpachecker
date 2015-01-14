@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 
 import com.google.common.base.Optional;
 
-class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
   private final CtoFormulaConverter conv;
   private final CFAEdge       edge;
@@ -55,7 +55,7 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
   private final Constraints   constraints;
   private final ErrorConditions errorConditions;
 
-  LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+  protected LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
 
     conv = pConv;

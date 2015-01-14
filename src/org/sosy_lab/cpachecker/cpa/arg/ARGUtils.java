@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -109,9 +109,9 @@ public class ARGUtils {
   /**
    * Get all abstract states without parents.
    */
-  public static Set<AbstractState> getRootStates(ReachedSet pReached) {
+  public static Set<ARGState> getRootStates(ReachedSet pReached) {
 
-    Set<AbstractState> result = new HashSet<>();
+    Set<ARGState> result = new HashSet<>();
 
     Iterator<AbstractState> it = pReached.iterator();
     while (it.hasNext()) {
@@ -536,15 +536,15 @@ public class ARGUtils {
       throws IOException {
 
     Model model = pCounterExampleTrace.getModel();
-    CFAPathWithAssignments assignmentCFAPath = model.getCFAPathWithAssignments();
+    CFAPathWithAssumptions assignmentCFAPath = model.getCFAPathWithAssignments();
 
     int stateCounter = 1;
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
     sb.append("INITIAL STATE STATE" + stateCounter + ";\n\n");
 
-    for (Iterator<CFAEdgeWithAssignments> it = assignmentCFAPath.iterator(); it.hasNext();) {
-      CFAEdgeWithAssignments edge = it.next();
+    for (Iterator<CFAEdgeWithAssumptions> it = assignmentCFAPath.iterator(); it.hasNext();) {
+      CFAEdgeWithAssumptions edge = it.next();
 
       sb.append("STATE USEFIRST STATE" + stateCounter + " :\n");
 
@@ -554,7 +554,7 @@ public class ARGUtils {
 
       if (it.hasNext()) {
         String code = edge.getAsCode();
-        String assumption = code == null ? "" : "ASSUME {" + code + "}";
+        String assumption = code.isEmpty() ? "" : "ASSUME {" + code + "}";
         sb.append(assumption + "GOTO STATE" + ++stateCounter);
       } else {
         sb.append("GOTO EndLoop");
@@ -591,10 +591,10 @@ public class ARGUtils {
       Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample, boolean generateAssumes) throws IOException {
     checkNotNull(pCounterExample);
 
-    Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
+    Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
     Model model = pCounterExample.getTargetPathModel();
-    CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
+    CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
     if (cfaPath != null) {
       ARGPath targetPath = pCounterExample.getTargetPath();
       valueMap = model.getExactVariableValues(targetPath);
@@ -708,11 +708,11 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
+    Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
     if (pCounterExample != null) {
       Model model = pCounterExample.getTargetPathModel();
-      CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
+      CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
       if (cfaPath != null) {
         ARGPath targetPath = pCounterExample.getTargetPath();
         valueMap = model.getExactVariableValues(targetPath);
@@ -794,15 +794,15 @@ public class ARGUtils {
     sb.append("END AUTOMATON\n");
   }
 
-  private static void addAssumption(Map<ARGState, CFAEdgeWithAssignments> pValueMap,
+  private static void addAssumption(Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
       ARGState pState, Appendable sb) throws IOException {
 
-    CFAEdgeWithAssignments cfaEdgeWithAssignments = pValueMap.get(pState);
+    CFAEdgeWithAssumptions cfaEdgeWithAssignments = pValueMap.get(pState);
 
     if (cfaEdgeWithAssignments != null) {
       String code = cfaEdgeWithAssignments.getAsCode();
 
-      if (code != null) {
+      if (!code.isEmpty()) {
         sb.append("ASSUME {" + code + "} ");
       }
     }

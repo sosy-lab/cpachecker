@@ -114,8 +114,7 @@ analysis.functionPointerEdgesForUnknownPointer = true
 analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE}
 
 # What CFA nodes should be the starting point of the analysis?
-analysis.initialStatesFor = ENTRY
-  enum:     [ENTRY, FUNCTION_ENTRIES, TARGET, EXIT, FUNCTION_SINKS, PROGRAM_SINKS]
+analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
 
 # run interprocedural analysis
 analysis.interprocedural = true
@@ -123,6 +122,10 @@ analysis.interprocedural = true
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
+
+# Partition the initial states based on the type of location they were
+# created for (see 'initialStatesFor')
+analysis.partitionInitialStates = false
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
@@ -134,6 +137,14 @@ analysis.programNames = no default value
 # PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED]
+
+# Refine the preconditions until the set of unsafe and safe states are
+# disjoint.
+analysis.refinePreconditions = false
+
+# Do not report 'False' result, return UNKNOWN instead.  Useful for
+# incomplete analysis with no counterexample checking.
+analysis.reportFalseAsUnknown = false
 
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
@@ -192,6 +203,12 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 # write collected assumptions to file
 assumptions.export = true
 assumptions.file = "assumptions.txt"
+
+# comma-separated list of files with specifications that should be used 
+# in a backwards analysis; used if the full analysis consists of a forward
+# AND a backward part!
+# (see config/specification/ for examples)
+backwardSpecification = no default value
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
@@ -322,6 +339,9 @@ cfa.checkNullPointers = false
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
 
+# This option enables the computation of a classification of CFA nodes.
+cfa.classifyNodes = false
+
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
 cfa.expandFunctionPointerArrayAssignments = false
@@ -417,7 +437,7 @@ counterexample.checker = "CBMC"
   allowed values: [CBMC, CPACHECKER]
 
 # configuration file for counterexample checks with CPAchecker
-counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
+counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
 
 # File name where to put the path specification that is generated as input
 # for the counterexample check. A temporary file is used if this is
@@ -574,6 +594,10 @@ cpa.automaton.extraIterationsLimit = -1
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
+
+# Whether to treat automaton states with an internal error state as targets.
+# This should be the standard use case.
+cpa.automaton.treatErrorsAsTargets = true
 
 # if enabled, cache queries also consider blocks with non-matching precision
 # for reuse.
@@ -732,6 +756,9 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
+cpa.constraints.formulaNumberHandling = INTEGER
+  enum:     [INTEGER, BITVECTOR]
+
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
@@ -883,6 +910,10 @@ cpa.predicate.abstraction.computation = BOOLEAN
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
+# Eliminate propositions about dead variables in abstraction predicates by
+# running a generalization procedure.
+cpa.predicate.abstraction.elimDeadVariablePreds = false
+
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
 cpa.predicate.abstraction.identifyTrivialPredicates = false
@@ -1009,6 +1040,9 @@ cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
+
+# Handle arrays using the theory of arrays.
+cpa.predicate.handleArrays = false
 
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
@@ -1261,6 +1295,10 @@ cpa.predicate.solver.smtinterpol.furtherOptions = []
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
 
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+cpa.predicate.solver.z3.log = no default value
+
 # Export solver queries in Smtlib2 format, there are small differences for
 # different solvers, choose target-solver.
 cpa.predicate.solver.z3.logger.target = Z3
@@ -1273,6 +1311,9 @@ cpa.predicate.solver.z3.objectivePrioritizationMode = "box"
 # Engine to use for the optimization
 cpa.predicate.solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+cpa.predicate.solver.z3.requireProofs = true
 
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
@@ -1488,7 +1529,7 @@ cpa.statistics.statisticsCPAFile = no default value
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
 # Value to substitute for the epsilon
-cpa.stator.policy.epsilon = 1
+cpa.stator.policy.epsilon = Rational.ONE
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
@@ -1548,6 +1589,9 @@ cpa.value.initAssumptionVars = false
 # get an initial precison from file
 cpa.value.initialPrecisionFile = no default value
 
+# The maximum amount of symbolic values to create per ast node.
+cpa.value.maxSymbolicValues = 4000
+
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -1569,6 +1613,10 @@ cpa.value.refinement.exportInterpolationTree = "NEVER"
 
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
+
+# heuristic to sort targets based on the quality of interpolants deriveable
+# from them
+cpa.value.refinement.itpSortedTargets = false
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = BOTTOM
@@ -1609,13 +1657,15 @@ cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
-# enables generation of symbolic values
-cpa.value.symbolicValues = false
+# Use symbolic execution. This allows tracking of non-deterministic values.
+cpa.value.symbolicExecution = false
 
 # Track Java array values in explicit value analysis. This may be costly if
 # the verified program uses big or lots of arrays. Arrays in C programs will
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
+
+customInstructions.definitionFile = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -1804,6 +1854,16 @@ precision.variableBlacklist = ""
 # whitelist regex for variables that will always be tracked by the CPA using
 # this precision
 precision.variableWhitelist = ""
+
+# Where should the precondition be exported to?
+precondition.export.target = "precondition.txt"
+
+# (How) should the precondition be exported?
+precondition.export.type = NONE
+  enum:     [NONE, SMTLIB]
+
+# Use the refiner that uses a solver-based interpolation mechanism.
+precondition.solverbasedInterpolation = false
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"

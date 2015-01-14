@@ -23,64 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.List;
-import java.util.Set;
-
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
-import com.google.common.collect.Lists;
 
 
 public class PredicateVariableElimination {
 
-  // TODO: We might want to move this code to the class FormulaManagerView
-
-  public static List<Formula> getDeadVariables(FormulaManagerView pFmv, BooleanFormula pFormula, SSAMap pSsa) {
-    Set<Triple<Formula, String, Integer>> formulaVariables = pFmv.extractVariables(pFormula);
-    List<Formula> result = Lists.newArrayList();
-
-    for (Triple<Formula, String, Integer> var: formulaVariables) {
-
-      Formula varFormula = var.getFirst();
-      String varName = var.getSecond();
-      Integer varSsaIndex = var.getThird();
-
-      if (varSsaIndex == null) {
-        if (pSsa.containsVariable(varName)) {
-          result.add(varFormula);
-        }
-
-      } else {
-
-        if (varSsaIndex != pSsa.getIndex(varName)) {
-          result.add(varFormula);
-        }
-      }
-    }
-
-    return result;
-  }
-
-  public static BooleanFormula eliminateDeadVariables(FormulaManagerView pFmv, BooleanFormula pF, SSAMap pSsa)
-      throws SolverException, InterruptedException {
-
-    BooleanFormula eliminationResult = pFmv.simplify(pF); // TODO: Benchmark the effect!
-
-    List<Formula> irrelevantVariables = getDeadVariables(pFmv, eliminationResult, pSsa);
-
-    if (!irrelevantVariables.isEmpty()) {
-      QuantifiedFormulaManagerView qfmgr = pFmv.getQuantifiedFormulaManager();
-      BooleanFormula quantifiedFormula = qfmgr.exists(irrelevantVariables, pF);
-      eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
-    }
-
-    return eliminationResult;
-  }
 
 }

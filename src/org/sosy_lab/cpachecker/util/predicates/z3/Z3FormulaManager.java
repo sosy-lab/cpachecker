@@ -26,24 +26,31 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 import java.io.IOException;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
+import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 @Options(prefix = "cpa.predicate.solver.z3")
@@ -62,9 +69,21 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   String objectivePrioritizationMode = "box";
 
   private final Z3SmtLogger z3smtLogger;
+  private Z3AstMatcher z3astMatcher;
 
-  private static final String OPT_ENGINE_CONFIG_KEY = "engine";
+  private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
+
+  @Options(prefix="cpa.predicate.solver.z3")
+  public static class ExtraOptions {
+    @Option(secure=true, description="Require proofs from SMT solver")
+    boolean requireProofs = true;
+
+    @Option(secure=true, description="Activate replayable logging in Z3."
+        + " The log can be given as an input to the solver and replayed.")
+    @FileOption(Type.OUTPUT_FILE)
+    Path log = null;
+  }
 
   private Z3FormulaManager(
       Z3FormulaCreator pFormulaCreator,
@@ -77,21 +96,46 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3QuantifiedFormulaManager pQuantifiedManager,
       Z3ArrayFormulaManager pArrayManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
+
     super(pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager,
         pIntegerManager, pRationalManager, pBitpreciseManager, null, pQuantifiedManager, pArrayManager);
+
     config.inject(this);
     this.z3smtLogger = smtLogger;
+    this.z3astMatcher = new Z3AstMatcher(this);
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger,
       Configuration config, @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
+    ExtraOptions extraOptions = new ExtraOptions();
+    config.inject(extraOptions);
+
+    if (NativeLibraries.OS.guessOperatingSystem() == OS.WINDOWS) {
+      // Z3 itself
+      NativeLibraries.loadLibrary("libz3");
+    }
 
     NativeLibraries.loadLibrary("z3j");
 
+    if (extraOptions.log != null) {
+      Path absolutePath = extraOptions.log.toAbsolutePath();
+      try {
+        // Z3 segfaults if it cannot write to the file, thus we write once first
+        Files.writeFile(absolutePath, "");
+
+        open_log(absolutePath.toString());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Cannot write Z3 log file");
+      }
+    }
+
     long cfg = mk_config();
     set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
-    set_param_value(cfg, "PROOF", "true");
+
+    if (extraOptions.requireProofs) {
+      set_param_value(cfg, "PROOF", "true");
+    }
 
     // TODO add some other params, memory-limit?
     final long context = mk_context_rc(cfg);
@@ -115,7 +159,9 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     // this options should match the option set above!
     smtLogger.logOption("model", "true");
-    smtLogger.logOption("proof", "true");
+    if (extraOptions.requireProofs) {
+      smtLogger.logOption("proof", "true");
+    }
 
     Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, integerSort, realSort, smtLogger);
 
@@ -151,6 +197,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   }
 
   @Override
+  public SmtAstMatcher getSmtAstMatcher() {
+    return z3astMatcher;
+  }
+
+  @Override
   public OptEnvironment newOptEnvironment() {
     Z3OptProver out = new Z3OptProver(this);
     out.setParam(OPT_ENGINE_CONFIG_KEY, this.optimizationEngine);
@@ -174,9 +225,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     return encapsulateBooleanFormula(e);
   }
 
-
   static long getZ3Expr(Formula pT) {
-    return ((Z3Formula) pT).getExpr();
+    if (pT instanceof Z3Formula) {
+      return ((Z3Formula)pT).getFormulaInfo();
+    }
+    throw new IllegalArgumentException("Cannot get the formula info of type " + pT.getClass().getSimpleName() + " in the Solver!");
   }
 
   @Override

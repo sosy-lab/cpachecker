@@ -1,40 +1,30 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="500" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="200" hardtimelimit="1000" memlimit="2000" cpuCores="1">
+    <option name="-noout" />
+    <option name="-policy-counterexample-checking"/>
 
-    <option name="-noout"/>
-    <option name="-policy"/>
-    <option name="-setprop">log.consoleLevel=INFO</option>
-
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
     <sourcefiles>
-        <include>../programs/policyiteration/*.c</include>
+        <includesfile>../programs/benchmarks/Loops.set</includesfile>
     </sourcefiles>
 
-    <rundefinition name="vanilla">
-        <sourcefiles>
-            <include>../programs/policyiteration/pointers/*.c</include>
-        </sourcefiles>
+    <rundefinition>
     </rundefinition>
-
-    <rundefinition name="noPointerAliasing">
-        <option name ="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-    </rundefinition>
-
-    <rundefinition name="noPathFocusing">
-        <option name ="-setprop">cpa.stator.policy.pathFocusing=false</option>
-    </rundefinition>
-
-    <rundefinition name="octagons">
-        <sourcefiles>
-            <include>../programs/policyiteration/octagons/*.c</include>
-        </sourcefiles>
-        <option name ="-setprop">cpa.stator.policy.generateOctagons=true</option>
-    </rundefinition>
-
 
     <columns>
-        <column title="total">Total time for CPA algorithm</column>
-        <column title="abstraction">Time spent in abstraction</column>
-        <column title="value determination">Time spent in merge-step</column>
+        <column title="total">time for CPAchecker</column>
+        <column title="cpa time">time for CPA algorithm</column>
+        <column title="reached">Total size of all ARGs</column>
+
+        <column title="value determination time">Time spent in value determination</column>
+        <column title="abstraction time">Time spent in abstraction</column>
+        <column title="SMT-satisfiability time">Time spent in checking satisfiability</column>
+        <column title="optimization">Time spent in optimization</column>
+
+        <column title="SMT solving">Time spent in SMT solver</column>
+
+        <column title="#counterexample checks">Number of counterexample checks</column>
+        <column title="counterexample checking time">Time for counterexample checks</column>
     </columns>
 </benchmark>

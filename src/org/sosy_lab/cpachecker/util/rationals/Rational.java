@@ -185,6 +185,10 @@ public class Rational implements Comparable<Rational>{
     return den.equals(b_one);
   }
 
+  public BigInteger getNum() {
+    return num;
+  }
+
   /**
    * @return -1, 0 or 1, representing the sign of the rational number.
    */
@@ -228,5 +232,12 @@ public class Rational implements Comparable<Rational>{
   @Override
   public int hashCode() {
     return Objects.hashCode(num, den);
+  }
+
+  public static Rational max(Rational a, Rational b) {
+    if (a.compareTo(b) >= 0) {
+      return a;
+    }
+    return b;
   }
 }

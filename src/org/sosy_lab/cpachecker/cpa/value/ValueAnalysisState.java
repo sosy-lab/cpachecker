@@ -139,7 +139,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   /**
    * This method removes a memory location from the underlying map and returns the removed value.
    *
-   * @param variableName the name of the memory location to remove
+   * @param nameInFormula the name of the memory location to remove
    * @return the value of the removed memory location
    */
   public Pair<Value, Type> forget(MemoryLocation pMemoryLocation) {

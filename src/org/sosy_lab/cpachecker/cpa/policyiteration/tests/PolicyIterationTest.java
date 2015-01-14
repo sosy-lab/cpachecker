@@ -16,31 +16,31 @@ import com.google.common.collect.ImmutableMap;
  */
 public class PolicyIterationTest {
 
-  @Test public void checkInitialState() throws Exception {
+  @Test public void stateful_true_assert() throws Exception {
     check("test/programs/policyiteration/stateful_true_assert.c");
   }
 
-  @Test public void checkComplexLoop() throws Exception {
+  @Test public void tests_true_assert() throws Exception {
     check("test/programs/policyiteration/tests_true_assert.c");
   }
 
-  @Test public void checkLoopBounds() throws Exception {
+  @Test public void loop_bounds_true_assert() throws Exception {
     check("test/programs/policyiteration/loop_bounds_true_assert.c");
   }
 
-  @Test public void checkPointerRead() throws Exception {
+  @Test public void pointer_read_true_assert() throws Exception {
     check("test/programs/policyiteration/pointers/pointer_read_true_assert.c");
   }
 
-  @Test public void checkPointerReadFail() throws Exception {
+  @Test public void pointer_read_false_assert() throws Exception {
     check("test/programs/policyiteration/pointers/pointer_read_false_assert.c");
   }
 
-  @Test public void checkPointerWrite() throws Exception {
+  @Test public void pointer_write_false_assert() throws Exception {
     check("test/programs/policyiteration/pointers/pointer_write_false_assert.c");
   }
 
-  @Test public void checkPointerAssignment() throws Exception {
+  @Test public void pointer2_true_assert() throws Exception {
     check("test/programs/policyiteration/pointers/pointer2_true_assert.c");
   }
 
@@ -48,27 +48,27 @@ public class PolicyIterationTest {
     check("test/programs/policyiteration/loop2_true_assert.c");
   }
 
-  @Test public void checkSimpleFail() throws Exception {
+  @Test public void simplest_false_assert() throws Exception {
     check("test/programs/policyiteration/simplest_false_assert.c");
   }
 
-  @Test public void checkLoopFail() throws Exception {
+  @Test public void loop_false_assert() throws Exception {
     check("test/programs/policyiteration/loop_false_assert.c");
   }
 
-  @Test public void checkDoublePointer() throws Exception {
+  @Test public void double_pointer() throws Exception {
     check("test/programs/policyiteration/pointers/double_pointer.c");
   }
 
-  @Test public void checkNestedLoopFail() throws Exception {
+  @Test public void loop_nested_false_assert() throws Exception {
     check("test/programs/policyiteration/loop_nested_false_assert.c");
   }
 
-  @Test public void checkPointerPastAbstractionTrue() throws Exception {
+  @Test public void pointer_past_abstraction_true_assert() throws Exception {
     check("test/programs/policyiteration/pointers/pointer_past_abstraction_true_assert.c");
   }
 
-  @Test public void checkPointerPastAbstractionFalse() throws Exception {
+  @Test public void pointer_past_abstraction_false_assert() throws Exception {
     check("test/programs/policyiteration/pointers/pointer_past_abstraction_false_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
@@ -99,7 +99,7 @@ public class PolicyIterationTest {
     );
     if (filename.contains("_true_assert")) {
       results.assertIsSafe();
-    } else if (filename.contains("_false_assert")) {
+    } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
       results.assertIsUnsafe();
     }
   }
@@ -118,6 +118,7 @@ public class PolicyIterationTest {
             ))
         )
         .putAll(extra)
+        .put("reachedSet.export", "true")
         .put("cpa.predicate.solver", "Z3")
         .put("log.consoleLevel", "FINE")
         .put("specification", "config/specification/default.spc")

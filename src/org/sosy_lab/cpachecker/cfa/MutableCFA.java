@@ -156,8 +156,7 @@ public class MutableCFA implements CFA {
     return Optional.absent();
   }
 
-  public ImmutableCFA makeImmutableCFA(
-      Optional<VariableClassification> pVarClassification) {
+  public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
     return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
         loopStructure, pVarClassification, liveVariables, language);
   }
@@ -180,4 +179,5 @@ public class MutableCFA implements CFA {
   public Language getLanguage() {
       return language;
   }
+
 }

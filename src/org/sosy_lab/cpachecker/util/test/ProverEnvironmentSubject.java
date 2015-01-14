@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
@@ -44,9 +45,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * when calling {@link TestVerb#about(com.google.common.truth.SubjectFactory)}..
  */
 @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
-public class ProverEnvironmentSubject extends Subject<ProverEnvironmentSubject, ProverEnvironment> {
+public class ProverEnvironmentSubject extends Subject<ProverEnvironmentSubject, BasicProverEnvironment<?>> {
 
-  ProverEnvironmentSubject(FailureStrategy pFailureStrategy, ProverEnvironment pStack) {
+  ProverEnvironmentSubject(FailureStrategy pFailureStrategy, BasicProverEnvironment<?> pStack) {
     super(pFailureStrategy, pStack);
   }
 
@@ -77,12 +78,14 @@ public class ProverEnvironmentSubject extends Subject<ProverEnvironmentSubject, 
       return; // success
     }
 
-    // get unsat core for failure message
-    final List<BooleanFormula> unsatCore = getSubject().getUnsatCore();
-    if (unsatCore.isEmpty()) {
-      fail("is", "satisfiable");
-    } else {
-      failWithBadResults("is", "satisfiable", "has unsat core", unsatCore);
+    // get unsat core for failure message if possible
+    if (getSubject() instanceof ProverEnvironment) {
+      final List<BooleanFormula> unsatCore = ((ProverEnvironment)getSubject()).getUnsatCore();
+      if (!unsatCore.isEmpty()) {
+        failWithBadResults("is", "satisfiable", "has unsat core", unsatCore);
+        return;
+      }
     }
+    fail("is", "satisfiable");
   }
 }

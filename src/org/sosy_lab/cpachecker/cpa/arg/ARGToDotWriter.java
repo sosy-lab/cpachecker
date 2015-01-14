@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -302,7 +303,8 @@ public class ARGToDotWriter {
     }
 
     builder.append("\\n");
-    builder.append(currentElement.toDOTLabel());
+    builder.append(
+        DOTBuilder.escapeGraphvizLabel(currentElement.toDOTLabel(), "\\\\n"));
 
     return builder.toString().trim();
   }

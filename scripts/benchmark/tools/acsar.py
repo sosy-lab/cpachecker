@@ -1,7 +1,6 @@
 import os
 import subprocess
 
-import benchmark.filewriter as filewriter
 import benchmark.util as Util
 import benchmark.tools.template
 import benchmark.result as result
@@ -33,7 +32,7 @@ class Tool(benchmark.tools.template.BaseTool):
             "ERROR:", "ERROR_LOCATION:").replace(
             "errorFn();", "goto ERROR_LOCATION; ERROR_LOCATION:;")
         newFilename = sourcefile + "_acsar.c"
-        filewriter.writeFile(newFilename, content)
+        Util.writeFile(newFilename, content)
         return newFilename
 
 

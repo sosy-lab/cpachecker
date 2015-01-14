@@ -42,8 +42,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * CPAs have to create an object of this class for every CFA Edge {@link CFAEdge}
  * along an Error Path {@link MutableARGPath} to create an object of
  * the concrete state path {@link ConcreteStatePath}. The allocator class
- * {@link AssignmentToEdgeAllocator} uses this object to create
- * an error path {@link CFAPathWithAssignments} where every assignment,
+ * {@link AssumptionToEdgeAllocator} uses this object to create
+ * an error path {@link CFAPathWithAssumptions} where every assignment,
  * when possible, has a concrete value.
  *
  */
@@ -163,12 +163,12 @@ public final class ConcreteState {
   /**
    * Get the concrete Address of the given variable.
    *
-   * @param variable Get the concrete address of this variable.
+   * @param variable
+   *          Get the concrete address of this variable.
    * @return returns the concrete address of the given variable.
    */
   public Address getVariableAddress(LeftHandSide variable) {
     Preconditions.checkArgument(variableAddressMap.containsKey(variable));
-
     return variableAddressMap.get(variable);
   }
 

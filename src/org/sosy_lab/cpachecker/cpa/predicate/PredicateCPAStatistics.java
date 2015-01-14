@@ -131,14 +131,12 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final AbstractionManager absmgr;
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
-  private final PreconditionWriter preconditionWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
 
   private final Timer invariantGeneratorTime;
 
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      PreconditionWriter pPreconditions,
       Timer pInvariantGeneratorTimer,
       Configuration pConfig)
           throws InvalidConfigurationException {
@@ -154,7 +152,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
     final FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, fmgr, pRmgr);
     abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, fmgr);
-    preconditionWriter = checkNotNull(pPreconditions);
 
     if (exportPredmap && predmapFile != null) {
       precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), fmgr);
@@ -252,10 +249,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
     int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
 
     int allDistinctPreds = absmgr.getNumberOfPredicates();
-
-    if (preconditionExport && preconditionFile != null) {
-      preconditionWriter.writePrecondition(preconditionFile, reached, cpa.logger);
-    }
 
     if (exportInvariants && invariantsFile != null) {
       loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);

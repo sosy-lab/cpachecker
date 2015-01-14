@@ -104,18 +104,23 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
           }
 
         } else {
+          // BACKWARDS: Build the stack on the function-return edge (add element to the stack)
           return Collections.singleton(new CallstackState(e, nextAnalysisFunction, correspondingCallNode));
         }
       }
 
     case FunctionCallEdge: {
-        final CFANode callingNode = nextAnalysisLoc;
-
         if (isWildcardState(e)) {
           throw new UnsupportedCCodeException("ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
         }
 
-        return Collections.singleton(new CallstackState(e, nextAnalysisFunction, callingNode));
+        CallstackState nextStackState = e.getPreviousState();
+        if (nextStackState == null) {
+          // BACKWARDS: The analysis might start somewhere in the call tree (and we might have not predecessor state)
+          nextStackState = new CallstackState(null, nextAnalysisFunction, nextAnalysisLoc);
+        }
+
+        return Collections.singleton(nextStackState);
       }
 
     default:

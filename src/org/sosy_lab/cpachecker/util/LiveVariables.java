@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -66,11 +67,13 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 public class LiveVariables {
 
@@ -158,6 +161,16 @@ public class LiveVariables {
 
   public Set<ASimpleDeclaration> getLiveVariablesForNode(CFANode node) {
     return ImmutableSet.<ASimpleDeclaration>builder().addAll(liveVariables.get(node)).addAll(globalVariables).build();
+  }
+
+  public Set<String> getLiveVariableNamesForNode(CFANode pNode) {
+    return Sets.newHashSet(
+      Collections2.transform(getLiveVariablesForNode(pNode), new Function<ASimpleDeclaration, String>() {
+        @Override
+        public String apply(ASimpleDeclaration pDecl) {
+          return pDecl.getQualifiedName();
+        }
+      }));
   }
 
   public static Optional<LiveVariables> create(final Optional<VariableClassification> variableClassification,
@@ -258,8 +271,8 @@ public class LiveVariables {
     for (FunctionEntryNode node : functionHeads) {
       FunctionExitNode exitNode = node.getExitNode();
       if (pCfa.getAllNodes().contains(exitNode)) {
-        analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode),
-                                     analysisParts.cpa.getInitialPrecision(exitNode));
+        analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode, StateSpacePartition.getDefaultPartition()),
+                                     analysisParts.cpa.getInitialPrecision(exitNode, StateSpacePartition.getDefaultPartition()));
       }
     }
 
@@ -277,8 +290,8 @@ public class LiveVariables {
         // function calls inside have no outgoing edges
         if (from(l.getOutgoingEdges()).filter(not(instanceOf(FunctionCallEdge.class))).isEmpty()) {
           CFANode functionHead = l.getLoopHeads().iterator().next();
-          analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(functionHead),
-                                       analysisParts.cpa.getInitialPrecision(functionHead));
+          analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(functionHead, StateSpacePartition.getDefaultPartition()),
+                                       analysisParts.cpa.getInitialPrecision(functionHead, StateSpacePartition.getDefaultPartition()));
         }
       }
     }
@@ -319,7 +332,7 @@ public class LiveVariables {
       ConfigurableProgramAnalysis cpa = new CPABuilder(config,
                                                        logger,
                                                        shutdownNotifier,
-                                                       reachedFactory).buildCPAs(cfa);
+                                                       reachedFactory).buildCPAWithSpecAutomatas(cfa);
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,

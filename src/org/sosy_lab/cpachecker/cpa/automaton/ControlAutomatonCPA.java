@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -103,6 +104,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(secure=true, description="the maximum number of iterations performed after the initial error is found, despite the limit"
       + "given as cpa.automaton.breakOnTargetState is not yet reached")
   private int extraIterationsLimit = -1;
+
+  @Option(secure=true, description="Whether to treat automaton states with an internal error state as targets. This should be the standard use case.")
+  private boolean treatErrorsAsTargets = true;
 
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
@@ -210,12 +214,12 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 
@@ -274,5 +278,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   LogManager getLogManager() {
     return logger;
+  }
+
+  boolean isTreatingErrorsAsTargets() {
+    return treatErrorsAsTargets;
   }
 }

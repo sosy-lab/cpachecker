@@ -46,4 +46,23 @@ class AbstractUninterpretedFunctionDeclaration<T extends Formula, TFuncDecl> ext
   TFuncDecl getFuncDecl() {
     return funcDecl;
   }
+
+  @Override
+  public int hashCode() {
+    return 31 + funcDecl.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof AbstractUninterpretedFunctionDeclaration)) {
+      return false;
+    }
+    AbstractUninterpretedFunctionDeclaration<?, ?> other =
+        (AbstractUninterpretedFunctionDeclaration<?, ?>)obj;
+
+    return funcDecl.equals(other.funcDecl);
+  }
 }

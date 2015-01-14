@@ -190,6 +190,10 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
     return wrap(type, numericFormulaManager.makeNumber(pN));
   }
 
+  public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
+    return wrap(type, numericFormulaManager.makeNumber(pN));
+  }
+
   @Override
   public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType pType) {
     return wrap(pType, numericFormulaManager.makeVariable(pVar));

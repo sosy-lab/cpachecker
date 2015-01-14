@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Objects;
 
@@ -17,6 +18,11 @@ public final class Template {
       CSimpleType pType) {
     linearExpression = pLinearExpression;
     type = pType;
+  }
+
+  public boolean isLowerBound() {
+    return linearExpression.size() == 1 &&
+        linearExpression.iterator().next().getValue() == Rational.NEG_ONE;
   }
 
   @Override

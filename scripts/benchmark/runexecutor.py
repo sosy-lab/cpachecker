@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import multiprocessing
@@ -36,11 +36,10 @@ import time
 
 from . import util as Util
 from .cgroups import *
-from . import filewriter
 from . import oomhandler
 
-readFile = filewriter.readFile
-writeFile = filewriter.writeFile
+readFile = Util.readFile
+writeFile = Util.writeFile
 
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
@@ -432,7 +431,7 @@ class RunExecutor():
         self._terminationReason = None
 
         logging.debug("executeRun: setting up Cgroups.")
-        cgroups = self._setupCGroups(args, myCpus, memlimit, None)
+        cgroups = self._setupCGroups(args, myCpus, memlimit, memoryNodes)
 
         try:
             logging.debug("executeRun: executing tool.")

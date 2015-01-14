@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -355,7 +356,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     // first build initial precision for current run
     logger.log(Level.FINEST, "Construct precision for current run");
     Precision precision =
-        buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction()));
+        buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
     oldPrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
 
     // clear reached set for current run
@@ -363,7 +364,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
     // initialize reached set
     if (initialWrappedState == null) {
-      initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction())).getWrappedState();
+      initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition())).getWrappedState();
     }
     pReachedSet.add(new ARGState(initialWrappedState, null), precision);
   }

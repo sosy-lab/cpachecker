@@ -63,6 +63,13 @@ public interface ArrayFormulaManager {
     FTI extends FormulaType<TI>, FTE extends FormulaType<TE>>
     ArrayFormula<TI, TE> makeArray(String pName, FTI pIndexType, FTE pElementType);
 
+  /**
+   * Make a {@link BooleanFormula} that represents the equality of
+   * two {@link ArrayFormula}.
+   */
+  public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(
+      ArrayFormula<TI, TE> pArray1, ArrayFormula<TI, TE> pArray2);
+
   public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray);
   public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray);
 

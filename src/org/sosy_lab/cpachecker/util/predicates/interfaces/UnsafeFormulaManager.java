@@ -62,12 +62,36 @@ public interface UnsafeFormulaManager {
    * @return
    */
   boolean isAtom(Formula f);
+
+  /**
+   * Checks if the given Formula is a literal (atom or the negation of an atom).
+   * @param f
+   * @return
+   */
+  boolean isLiteral(Formula pF);
+
   /**
    * Checks if the given Formula is a variable.
+   * (either free or quantified)
    * @param f
    * @return
    */
   boolean isVariable(Formula f);
+
+  /**
+   * Checks if the given Formula is a free (not quantified) variable.
+   * @param f
+   * @return
+   */
+  boolean isFreeVariable(Formula f);
+
+  /**
+   * Checks if the given Formula is a bound (by a quantifier) variable.
+   * @param f
+   * @return
+   */
+  boolean isBoundVariable(Formula f);
+
   /**
    * Checks if the given Formula is a Number.
    * @param pTt
@@ -80,6 +104,36 @@ public interface UnsafeFormulaManager {
    * @return
    */
   boolean isUF(Formula f);
+
+  /**
+   * Checks if the given Formula is quantified (either FORALL ..., or EXISTS ...).
+   * @param f
+   * @return
+   */
+  boolean isQuantification(Formula f);
+
+  /**
+   * Get the body of the given, quantified, formula.
+   *
+   * Precondition:
+   *    isQuantification(f) == true
+   *
+   * @param f
+   * @return
+   */
+  BooleanFormula getQuantifiedBody(Formula pQuantifiedFormula);
+
+  /**
+   * Replace the body of a quantified formula.
+   *
+   * Precondition:
+   *    isQuantification(pF) == true
+   *
+   * @param pTt
+   * @param pNewBody
+   * @return
+   */
+  BooleanFormula replaceQuantifiedBody(BooleanFormula pF, BooleanFormula pNewBody);
 
   /**
    * Returns the name of the formula (or function)
@@ -144,4 +198,5 @@ public interface UnsafeFormulaManager {
    * @return  Simplified version of the formula
    */
   <T extends Formula> T simplify(T f);
+
 }
