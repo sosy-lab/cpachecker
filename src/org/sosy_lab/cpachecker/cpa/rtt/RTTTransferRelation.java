@@ -342,9 +342,10 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
         String scopedName = NameProvider.getInstance()
                                         .getScopedVariableName(
-                                            declaration,
+                                            ((JIdExpression) op1).getName(),
                                             methodName,
-                                            newElement.getClassObjectScope());
+                                            newElement.getClassObjectScope(),
+                                            newElement);
 
         newElement.forget(scopedName);
         return;
