@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -46,19 +43,15 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Configurable Program Analysis that tracks constraints for analysis.
  */
-public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker {
+public class ConstraintsCPA implements ConfigurableProgramAnalysis {
 
   private final Configuration config;
   private final LogManager logger;
@@ -124,28 +117,12 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
     return new ConstraintsState();
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode node) {
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition) {
     return SingletonPrecision.getInstance();
-  }
-
-  @Override
-  public boolean areAbstractSuccessors(AbstractState state, CFAEdge cfaEdge,
-      Collection<? extends AbstractState> successors) throws CPATransferException, InterruptedException {
-    return false;
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState state, AbstractState otherState) throws CPAException, InterruptedException {
-    return false;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-
   }
 }
