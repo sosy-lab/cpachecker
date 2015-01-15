@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.LogManager;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -69,6 +68,7 @@ public class PredicatePartition {
   public void insertPredicate(AbstractionPredicate newPred) {
     varIDToPredicate.put(newPred.getVariableNumber(), newPred);  // has to be done anyway
     insertPredicateByImplication(newPred);
+    //insertPredicateByImplicationReversed(newPred);
     //insertPredicateBySimilarity(newPred);
   }
 
@@ -101,6 +101,36 @@ public class PredicatePartition {
     }
 
     predicates.add(lowestImplied, newPred);
+  }
+
+  /**
+   * Inserts a new predicate before the most left predicate of the partition that implies the new predicate.
+   *
+   * @param newPred the predicate that should be inserted.
+   */
+  private void insertPredicateByImplicationReversed(AbstractionPredicate newPred) {
+    // solver does caching
+    // find lowest position of a predicate that is implied by newPred, insert newPred before that predicate
+    int lowestImplier = predicates.size();
+    int elementIndex = predicates.size() - 1;
+    LinkedList<AbstractionPredicate> predicatesCopy = new LinkedList<>(predicates);
+    Collections.reverse(predicatesCopy);
+    for (AbstractionPredicate oldPred : predicatesCopy) {
+      try {
+        if (solver.implies(oldPred.getSymbolicAtom(), newPred.getSymbolicAtom())) {
+          lowestImplier = elementIndex;
+        }
+        if (solver.implies(newPred.getSymbolicAtom(), oldPred.getSymbolicAtom())) {
+          break;
+        }
+
+        elementIndex--;
+      } catch (SolverException | InterruptedException e) {
+        logger.log(java.util.logging.Level.WARNING, "Error while adding the predicate ", newPred, " by implications to the list of predicates");
+      }
+    }
+
+    predicates.add(lowestImplier, newPred);
   }
 
   /**

@@ -31,16 +31,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 
-import org.sosy_lab.common.AbstractMBean;
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
+import javax.security.auth.login.Configuration;
+
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -50,10 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBu
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
+import sun.security.pkcs11.wrapper.Functions;
 
 /**
  * This class stores a mapping between abstract regions and the corresponding
@@ -77,6 +71,8 @@ public final class AbstractionManager {
   // and the mapping varID -> predicate
   private final Map<Integer, AbstractionPredicate> varIDToPredicate = Maps.newHashMap();
 
+  private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
+
   // Properties for BDD variable ordering:
   // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
@@ -86,6 +82,7 @@ public final class AbstractionManager {
   @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
+  private boolean insertRandomly = true;
 
   public AbstractionManager(RegionManager pRmgr, FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, Solver pSolver)
@@ -127,7 +124,14 @@ public final class AbstractionManager {
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
       varIDToPredicate.put(numberOfPredicates, result);
-      updatePartitions(result);
+
+      if (insertRandomly ) {
+        int randomIndex = new Random().nextInt(randomListOfVarIDs.size() + 1);
+        randomListOfVarIDs.add(randomIndex, numberOfPredicates);
+      } else {
+        updatePartitions(result);
+      }
+
       numberOfPredicates++;
     }
 
@@ -174,15 +178,20 @@ public final class AbstractionManager {
    * Reorders the BDD variables.
    */
   public void reorderPredicates() {
+
     ArrayList<Integer> predicateOrdering = new ArrayList<>();
+    if (insertRandomly) {
+      predicateOrdering.addAll(randomListOfVarIDs);
+    } else {
+      for (PredicatePartition partition : predVarToPartition.values()) {
+        LinkedList<AbstractionPredicate> predicates = partition.getPredicates();
 
-    for (PredicatePartition partition : predVarToPartition.values()) {
-      LinkedList<AbstractionPredicate> predicates = partition.getPredicates();
-
-      for (AbstractionPredicate predicate : predicates) {
-        predicateOrdering.add(predicate.getVariableNumber());
+        for (AbstractionPredicate predicate : predicates) {
+          predicateOrdering.add(predicate.getVariableNumber());
+        }
       }
     }
+
 
     rmgr.setVarOrder(predicateOrdering);
   }
