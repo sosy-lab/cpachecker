@@ -451,10 +451,18 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     final boolean isSigned;
     final int bitLength;
 
-    if (pTargetType instanceof CSimpleType) {
-      CSimpleType targetType = ((CSimpleType) pTargetType).getCanonicalType();
+    Type type = pTargetType;
+    if (type instanceof CType) {
+      type = ((CType) type).getCanonicalType();
+    }
+
+    if (type instanceof CSimpleType) {
+      CSimpleType targetType = ((CSimpleType) type).getCanonicalType();
       isSigned = pMachineModel.isSigned(targetType);
       bitLength = pMachineModel.getSizeof(targetType) * pMachineModel.getSizeofCharInBits();
+    } else if (type instanceof CType) {
+      isSigned = false;
+      bitLength = pMachineModel.getSizeof((CType) type) * pMachineModel.getSizeofCharInBits();
     } else {
       // TODO java types
       return TOP;
