@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -92,7 +93,7 @@ public final class AbstractionManager {
   @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
-  private boolean insertRandomly = true;
+  private boolean insertRandomly = false;
 
   public AbstractionManager(RegionManager pRmgr, FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, Solver pSolver)
@@ -194,7 +195,7 @@ public final class AbstractionManager {
       predicateOrdering.addAll(randomListOfVarIDs);
     } else {
       for (PredicatePartition partition : predVarToPartition.values()) {
-        LinkedList<AbstractionPredicate> predicates = partition.getPredicates();
+        List<AbstractionPredicate> predicates = partition.getPredicates();
 
         for (AbstractionPredicate predicate : predicates) {
           predicateOrdering.add(predicate.getVariableNumber());

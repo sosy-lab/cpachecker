@@ -24,9 +24,12 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
@@ -51,6 +54,7 @@ public class PredicatePartition {
   private HashMap<Integer, AbstractionPredicate> varIDToPredicate;
   private HashMap<Integer, HashMap<Integer, Integer>> similarityRelation;
   private Solver solver;
+  private PriorityQueue<AbstractionPredicate> predicatesFreq;
 
   public PredicatePartition(FormulaManagerView fmgr, Solver solver, LogManager logger) {
     this.fmgr = fmgr;
@@ -59,6 +63,15 @@ public class PredicatePartition {
     predicates = new LinkedList<>();
     varIDToPredicate = new HashMap<>();
     similarityRelation = new HashMap<>();
+
+    // priority queue for sort by number of variables
+    Comparator<AbstractionPredicate> comparator = new Comparator<AbstractionPredicate>() {
+
+      @Override
+      public int compare(AbstractionPredicate pred1, AbstractionPredicate pred2) {
+        return pred2.getVariableNumber() - pred1.getVariableNumber();
+      }};
+    predicatesFreq = new PriorityQueue<>(1, comparator );
   }
 
   /**
@@ -68,9 +81,20 @@ public class PredicatePartition {
    */
   public void insertPredicate(AbstractionPredicate newPred) {
     varIDToPredicate.put(newPred.getVariableNumber(), newPred);  // has to be done anyway
-    insertPredicateByImplication(newPred);
+    //insertPredicateByImplication(newPred);
     //insertPredicateByImplicationReversed(newPred);
     //insertPredicateBySimilarity(newPred);
+    insertPredicateByNumberOfVariables(newPred);
+  }
+
+  /**
+   * Inserts a new predicate such that predicates with a higher number of variables are left
+   * and predicates with a lower number of variables are right of the new predicate.
+   *
+   * @param newPred the new predicate to be inserted in the partition
+   */
+  private void insertPredicateByNumberOfVariables(AbstractionPredicate newPred) {
+    predicatesFreq.add(newPred);
   }
 
   /**
@@ -200,10 +224,10 @@ public class PredicatePartition {
       // this has to be done no matter which insertion strategy is used.
       this.varIDToPredicate.putAll(newPreds.getVarIDToPredicate());
 
-      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
-      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
-       this.insertPredicate(newPred);
-      }
+//      // 1. implication insert: insert every predicate on its own, insertion takes care of the sorting
+//      for (AbstractionPredicate newPred : newPreds.getPredicates()) {
+//       this.insertPredicate(newPred);
+//      }
 
 //      // 2. similarity insert: place the partition with more predicates first and merge similarity relations.
 //      if (newPreds.predicates.size() > this.predicates.size()) {
@@ -212,6 +236,10 @@ public class PredicatePartition {
 //        this.predicates.addAll(newPreds.predicates);
 //      }
 //      this.similarityRelation.putAll(newPreds.getSimilarityRelation());
+
+      // 3. number of variables insert: insert all predicates of the other partition
+      //    at the right place in the priority queue of this partition
+      this.predicatesFreq.addAll(newPreds.predicatesFreq);
     }
 
     return this;
@@ -221,7 +249,12 @@ public class PredicatePartition {
     return partitionID;
   }
 
-  public LinkedList<AbstractionPredicate> getPredicates() {
+  public List<AbstractionPredicate> getPredicates() {
+    if (predicatesFreq.size() != 0) {
+      while (!predicatesFreq.isEmpty()) {
+        predicates.add(predicatesFreq.poll());
+      }
+    }
     return predicates;
   }
 
