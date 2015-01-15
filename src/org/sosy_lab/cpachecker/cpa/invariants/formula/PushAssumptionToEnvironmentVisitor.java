@@ -181,14 +181,24 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
       InvariantsFormula<CompoundInterval> op2 = pEqual.getOperand2();
       if (op1 instanceof Variable) {
         String varName = ((Variable<?>) op1).getName();
-        if (environment.get(varName) == null) {
-          environment.put(varName, op2);
+        InvariantsFormula<CompoundInterval> previous = environment.get(varName);
+        environment.put(varName, op2);
+        if (previous != null
+            && !CompoundIntervalFormulaManager.definitelyImplies(
+                environment,
+                CompoundIntervalFormulaManager.INSTANCE.equal(op1, previous))) {
+          environment.put(varName, previous);
         }
       }
       if (op2 instanceof Variable) {
         String varName = ((Variable<?>) op2).getName();
-        if (environment.get(varName) == null) {
-          environment.put(varName, op1);
+        InvariantsFormula<CompoundInterval> previous = environment.get(varName);
+        environment.put(varName, op1);
+        if (previous != null
+            && !CompoundIntervalFormulaManager.definitelyImplies(
+                environment,
+                CompoundIntervalFormulaManager.INSTANCE.equal(op2, previous))) {
+          environment.put(varName, previous);
         }
       }
       return pEqual.getOperand1().accept(this, rightValue)
@@ -202,13 +212,13 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (op1 instanceof Variable) {
       String varName = ((Variable<?>) op1).getName();
       if (environment.get(varName) == null) {
-        environment.put(varName, CompoundIntervalFormulaManager.exclude(op2));
+        environment.put(varName, CompoundIntervalFormulaManager.INSTANCE.exclude(op2));
       }
     }
     if (op2 instanceof Variable) {
       String varName = ((Variable<?>) op2).getName();
       if (environment.get(varName) == null) {
-        environment.put(varName, CompoundIntervalFormulaManager.exclude(op1));
+        environment.put(varName, CompoundIntervalFormulaManager.INSTANCE.exclude(op1));
       }
     }
 
@@ -423,8 +433,10 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     if (resolved instanceof Constant<?>) {
       CompoundInterval resolvedValue = ((Constant<CompoundInterval>) resolved).getValue();
       newValue = resolvedValue.intersectWith(parameter);
-    } else {
+    } else if (!parameter.equals(pParameter)) {
       newValue = parameter;
+    } else {
+      return true;
     }
     if (newValue.isBottom()) {
       return false;
