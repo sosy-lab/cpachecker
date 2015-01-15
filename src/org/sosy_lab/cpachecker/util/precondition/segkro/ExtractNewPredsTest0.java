@@ -86,6 +86,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   private IntegerFormula _i;
   private IntegerFormula _n;
   private IntegerFormula _al;
+  private IntegerFormula _bl;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b0;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
   private IntegerFormula _k;
@@ -119,6 +120,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
     _k = mgrv.makeVariable(NumeralType.IntegerType, "k");
     _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
+    _bl = mgrv.makeVariable(NumeralType.IntegerType, "bl");
     _n = mgrv.makeVariable(NumeralType.IntegerType, "n");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
@@ -340,6 +342,17 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
     List<BooleanFormula> result = enp.extractNewPreds(preds);
     assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testLinCombPreds() throws SolverException, InterruptedException {
+    BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
+        ifm.lessThan(_0, _bl),
+        ifm.greaterOrEquals(_0, _al)
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
+    assertThat(result).contains(ifm.lessThan(_al, _bl));
   }
 
 }

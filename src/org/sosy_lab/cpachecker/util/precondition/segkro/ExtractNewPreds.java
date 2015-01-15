@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.InEqualityRule;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -113,8 +112,7 @@ public class ExtractNewPreds {
           final boolean isBasicPredicatesOnlyRule = false
               || rule instanceof InEqualityRule
               || rule instanceof EliminationRule
-              || rule instanceof EquivalenceRule
-              || rule instanceof LinCombineRule;
+              || rule instanceof EquivalenceRule;
 
           if ((!isBasicPredicatesOnlyRule) || tupleContainsOnlyBasePredicates) {
             // Conclude new, general, predicates.
