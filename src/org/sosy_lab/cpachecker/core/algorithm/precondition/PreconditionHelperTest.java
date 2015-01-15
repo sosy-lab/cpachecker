@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,7 +59,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
-
+@Ignore
 public class PreconditionHelperTest extends SolverBasedTest0 {
 
   private PreconditionHelper helper;
