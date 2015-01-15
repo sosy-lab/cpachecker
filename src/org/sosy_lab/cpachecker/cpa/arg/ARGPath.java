@@ -142,7 +142,7 @@ public class ARGPath implements Appender {
   }
 
   /**
-   * Create a fresh {@link DefaultPathIterator} for this path,
+   * Create a fresh {@link PathIterator} for this path,
    * with its position at the first state.
    */
   public PathIterator pathIterator() {
@@ -150,8 +150,8 @@ public class ARGPath implements Appender {
   }
 
   /**
-   * Create a fresh {@link DefaultPathIterator} for this path,
-   * with its position at the first state.
+   * Create a fresh {@link PathIterator} for this path,
+   * with its position at the last state and iterating backwards.
    */
   public PathIterator reversePathIterator() {
     return new ReversePathIterator(this);
@@ -252,12 +252,12 @@ public class ARGPath implements Appender {
    * }
    * </code>
    */
-  public static abstract class PathIterator implements Cloneable {
+  public static abstract class PathIterator {
 
     protected int pos; // the index of the current stat
     protected final ARGPath path;
 
-    public PathIterator(ARGPath pPath, int pPos) {
+    private PathIterator(ARGPath pPath, int pPos) {
       this.path = pPath;
       this.pos = pPos;
     }
@@ -330,7 +330,7 @@ public class ARGPath implements Appender {
     }
   }
 
-  public static class PathPosition {
+  public static final class PathPosition {
 
     private final int pos;
     private final ARGPath path;
@@ -344,7 +344,7 @@ public class ARGPath implements Appender {
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((path == null) ? 0 : path.hashCode());
+      result = prime * result + path.hashCode();
       result = prime * result + pos;
       return result;
     }
@@ -382,7 +382,7 @@ public class ARGPath implements Appender {
    * The implementation of PathIterator that iterates
    * in the direction of the analysis.
    */
-  public static class DefaultPathIterator extends PathIterator {
+  private static class DefaultPathIterator extends PathIterator {
 
     private DefaultPathIterator(ARGPath pPath, int pPos) {
       super(pPath, pPos);
@@ -408,13 +408,13 @@ public class ARGPath implements Appender {
    * The implementation of PathIterator that iterates
    * in the reverse direction of the analysis.
    */
-  public static class ReversePathIterator extends PathIterator {
+  private static class ReversePathIterator extends PathIterator {
 
-    public ReversePathIterator(ARGPath pPath, int pPos) {
+    private ReversePathIterator(ARGPath pPath, int pPos) {
       super(pPath, pPos);
     }
 
-    public ReversePathIterator(ARGPath pPath) {
+    private ReversePathIterator(ARGPath pPath) {
       super(pPath, pPath.states.size()-1);
     }
 
