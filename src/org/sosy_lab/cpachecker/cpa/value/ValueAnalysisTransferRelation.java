@@ -1607,7 +1607,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       missingInformationRightJExpression = null;
 
       boolean truthAssumption = ((AssumeEdge) edge).getTruthAssumption();
-      if (value == null) {
+      if (value == null || !value.isExplicitlyKnown()) {
         return null;
       } else if (representsBoolean(value, truthAssumption)) {
         return Collections.singleton(newElement);
