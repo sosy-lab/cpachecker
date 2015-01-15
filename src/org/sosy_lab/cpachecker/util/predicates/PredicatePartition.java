@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.LogManager;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
