@@ -266,6 +266,28 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  public void testRotation() {
+    SmtAstPatternSelection p = or(
+      matchBind(">=", "f",
+          matchAnyWithAnyArgsBind("a"),
+          matchAnyWithAnyArgsBind("b")));
+
+    SmtAstMatchResult r = matcher.perform(p,
+        imgr.lessOrEquals(imgr.makeNumber(1),
+            imgr.makeNumber(2)));
+
+    assertThat(r.matches()).isTrue();
+
+    SmtAstMatchResult r2 = matcher.perform(p,
+        imgr.greaterOrEquals(imgr.makeNumber(2),
+            imgr.makeNumber(1)));
+
+    assertThat(r2.matches()).isTrue();
+
+  }
+
+
+  @Test
   public void testSubtreeMatching1() {
     _0 = imgr.makeNumber(0);
     _1 = imgr.makeNumber(1);

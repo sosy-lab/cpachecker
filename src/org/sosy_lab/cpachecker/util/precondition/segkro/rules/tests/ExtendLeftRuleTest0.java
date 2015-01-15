@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
@@ -123,7 +124,7 @@ public class ExtendLeftRuleTest0 extends AbstractRuleTest0 {
 
     BooleanFormula _x_range = bfm.and(
         ifm.greaterOrEquals(_x, _i),
-        ifm.lessThan(_x, _j));
+        ifm.lessOrEquals(_x, _j));
 
     BooleanFormula _right_ext = ifm.lessThan(_k, _i);
 
@@ -137,6 +138,45 @@ public class ExtendLeftRuleTest0 extends AbstractRuleTest0 {
         Lists.newArrayList(
             _EXISTS_x,
             _right_ext));
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion4() throws SolverException, InterruptedException {
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                bfm.not(ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0))),
+                ifm.greaterOrEquals(boundVar, _i),
+                ifm.lessOrEquals(boundVar, _i)))),
+        ifm.lessOrEquals(_k, _i));
+
+    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion8() throws SolverException, InterruptedException {
+    // i = 0
+    // exists x in {i..i+1} . b[x] = 0
+    // ----- should result in ------
+    // exists x in {0..i+1} . b[x] = 0
+
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0)),
+                ifm.greaterOrEquals(boundVar, _i),
+                ifm.lessOrEquals(boundVar, ifm.add(_i, ifm.makeNumber(1)))))),
+        ifm.equal(_i, _0));
+
+    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(input);
 
     assertThat(result).isNotEmpty();
   }

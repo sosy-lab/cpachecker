@@ -74,5 +74,19 @@ public class LinCombineRuleTest0 extends AbstractRuleTest0 {
     assertThat(result).isEmpty();
   }
 
+  @Test
+  public void test4() throws SolverException, InterruptedException {
+    //  (<= |foo::a@1| 1000)
+    //  (<= |foo::a@1| 1000)]
+    // ------ should not result in --------
+    //    [(< |foo::a@1| 1000)]
+
+    Set<BooleanFormula> result = lc.applyWithInputRelatingPremises(Lists.newArrayList(
+        imgr.lessOrEquals(imgr.makeVariable("a"), imgr.makeNumber(1000)),
+        imgr.lessOrEquals(imgr.makeVariable("a"), imgr.makeNumber(1000))
+        ));
+    assertThat(result).isEmpty();
+  }
+
 
 }

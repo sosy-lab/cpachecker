@@ -104,4 +104,58 @@ public class LinkRuleTest0 extends AbstractRuleTest0 {
     assertThat(result).isNotEmpty();
   }
 
+  @Test
+  public void testConclusion3() throws SolverException, InterruptedException {
+
+    // forall x in [0] . b[x] != 0
+    // forall x in [1] . b[x] != 0
+
+    final BooleanFormula _FORALL_i = qmgr.forall(
+        Lists.newArrayList(_x),
+        bfm.and(
+            Lists.newArrayList(
+              _b_at_x_NOTEQ_0,
+              ifm.greaterOrEquals(_x, _0),
+              ifm.lessOrEquals(_x, _0)
+            )));
+
+    final BooleanFormula _FORALL_i_plus_1 = qmgr.forall(
+        Lists.newArrayList(_x),
+        bfm.and(
+            Lists.newArrayList(
+              _b_at_x_NOTEQ_0,
+              ifm.greaterOrEquals(_x, _1),
+              ifm.lessOrEquals(_x, _1)
+            )));
+
+    final Set<BooleanFormula> result = lr.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            _FORALL_i,
+            _FORALL_i_plus_1));
+
+    assertThat(result).isNotEmpty();
+  }
+
+
+  @Test
+  public void testConclusion2() throws SolverException, InterruptedException {
+    //  (forall ((x Int))
+    //      (and (not (= (select |copy::b@1| x) 0))
+    //           (>= x (+ (- 3) al@1))
+    //           (<= x |copy::i@4|)))
+
+    //  (forall ((x Int))
+    //      (and (not (= (select |copy::b@1| x) 0))
+    //           (>= x (+ 1 |copy::i@4|))
+    //           (<= x (+ 1 |copy::i@4|))))
+    // ------- should not result in ------
+    //  (exists ((x Int))
+    //      (and (not (= (select |copy::b@1| x) 0))
+    //           (>= x (+ (- 3) al@1))
+    //           (<= x (+ 1 |copy::i@4|))))
+
+
+  }
+
+
 }

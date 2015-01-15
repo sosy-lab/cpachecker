@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 import static org.sosy_lab.cpachecker.util.precondition.segkro.FormulaUtils.*;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.InEqualityRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -70,6 +72,12 @@ public class ExtractNewPreds {
     return mgrv.extractLiterals(pInputFormula, false, false, false); // TODO: check the argument 'conjunctionsOnly'
   }
 
+  private void printFormulaCollection(PrintStream pOut, Collection<BooleanFormula> pC) {
+    for (BooleanFormula f: pC) {
+      pOut.println("===" + f);
+    }
+  }
+
   public List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
     final List<BooleanFormula> resultPredicates = Lists.newArrayList();
     final LinkedList<BooleanFormula> resultPredicatesPrime = Lists.newLinkedList();
@@ -77,7 +85,7 @@ public class ExtractNewPreds {
     // Start with the list of basic predicates.
     //    This predicates have (initially) the LOWEST PRIORITY!!!
 
-    resultPredicatesPrime.addAll(pBasePredicates);
+    resultPredicatesPrime.addAll(ruleEngine.canonicalize(pBasePredicates));
 
     // Keep applying the rules until no new predicates get produced
     do {
@@ -103,6 +111,7 @@ public class ExtractNewPreds {
 
           // The rules ELIM and EQ are only applied to the base predicates!!
           final boolean isBasicPredicatesOnlyRule = false
+              || rule instanceof InEqualityRule
               || rule instanceof EliminationRule
               || rule instanceof EquivalenceRule
               || rule instanceof LinCombineRule;
@@ -112,6 +121,7 @@ public class ExtractNewPreds {
             Collection<BooleanFormula> concluded = rule.applyWithInputRelatingPremises(tuple);
 
             if (!concluded.isEmpty()) {
+
               // Store predicates according to their priority.
               //    Put the new predicates (that are more general than the predicates in the premise)
               //    after the predicates that were used as premise
@@ -139,7 +149,7 @@ public class ExtractNewPreds {
         }
       }
 
-      // Fix-point iteration: Until now new predicates are produced.
+      // Fix-point iteration: Until now new pre dicates are produced.
     } while(!resultPredicates.equals(resultPredicatesPrime)); // TODO: Does this compare what was intended?
 
     // Store new predicates (instantiated!!) according to their priority;
