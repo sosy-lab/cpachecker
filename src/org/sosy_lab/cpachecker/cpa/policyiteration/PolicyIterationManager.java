@@ -190,19 +190,22 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       trace.putAll(iOldState.getTrace());
     }
 
-    // NOTE: possible optimization: only add extra variables
-    // if there is a choice (more than one incoming edge).
-
     // Create path selection variables if there are multiple choices for
-    // the entering edge.
-    IntegerFormula branchVar = ifmgr.makeVariable(
-        String.format(SELECTION_VAR_TEMPLATE, newLocation.toID()));
+    // the entering edge, or the edge is return-edge
+    // (multiple possible callsites).
+    if (node.getNumEnteringEdges() > 1
+        || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+        || edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
 
-    BooleanFormula branchConstraint = ifmgr.equal(
-        branchVar,
-        ifmgr.makeNumber(oldLocation.toID())
-    );
-    prev = pfmgr.makeAnd(prev, branchConstraint);
+      IntegerFormula branchVar = ifmgr.makeVariable(
+          String.format(SELECTION_VAR_TEMPLATE, newLocation.toID()));
+
+      BooleanFormula branchConstraint = ifmgr.equal(
+          branchVar,
+          ifmgr.makeNumber(oldLocation.toID())
+      );
+      prev = pfmgr.makeAnd(prev, branchConstraint);
+    }
 
     // Serialize the choice to trace as well.
     trace.put(newLocation, oldLocation);
@@ -686,19 +689,30 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       int fromNodeNo;
 
       if (toNode.getNumEnteringEdges() != 0) {
+        if (toNode.getNumEnteringEdges() == 1 &&
+            toNode.getEnteringEdge(0).getEdgeType()
+                  != CFAEdgeType.FunctionReturnEdge &&
+            toNode.getEnteringEdge(0).getEdgeType()
+                  != CFAEdgeType.FunctionCallEdge
+            ) {
+          edge = toNode.getEnteringEdge(0);
+          successor = Location.withNode(
+              successor, edge.getPredecessor()
+          );
+        } else {
+          Object o = model.get(
+              new Model.Constant(String.format(SELECTION_VAR_TEMPLATE, locationNo),
+                  Model.TermType.Integer)
+          );
+          if (o == null) { // Trace has finished.
+            break;
+          }
+          int fromLocationID = Integer.parseInt(o.toString());
+          successor = Location.ofID(fromLocationID);
 
-        Object o = model.get(
-            new Model.Constant(String.format(SELECTION_VAR_TEMPLATE, locationNo),
-                Model.TermType.Integer)
-        );
-        if (o == null) { // Trace has finished.
-          break;
+          fromNodeNo = successor.node.getNodeNumber();
+          edge = edgeFromIdentifier(fromNodeNo, toNodeNo);
         }
-        int fromLocationID = Integer.parseInt(o.toString());
-        successor = Location.ofID(fromLocationID);
-
-        fromNodeNo = successor.node.getNodeNumber();
-        edge = edgeFromIdentifier(fromNodeNo, toNodeNo);
       } else {
 
         // Function start.
