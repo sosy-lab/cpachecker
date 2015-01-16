@@ -174,7 +174,7 @@ public final class AbstractionManager {
         firstPartition = firstPartition.merge(predVarToPartition.get(varIterator.next()));
       }
     } else {
-      firstPartition = new PredicatePartition(fmgr, solver, logger);
+      firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
     }
 
     firstPartition.insertPredicate(newPredicate);
