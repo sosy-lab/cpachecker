@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,10 +106,26 @@ public class FormulaSlicingManager {
 
     if (unsafeManager.isAtom(f)) {
       Set<String> containedVariables = fmgr.extractVariableNames(f);
-      if (Sets.intersection(closure, containedVariables).isEmpty()) {
-        out = bfmgr.makeBoolean(!isInsideNot);
-      } else {
+      if (!Sets.intersection(closure, containedVariables).isEmpty()) {
         out = f;
+      } else {
+        // Hack to propagate call variables,
+        // TODO: remove.
+        if (containedVariables.size() == 2) {
+          Iterator<String> iterator = containedVariables.iterator();
+          String first = iterator.next();
+          String second = iterator.next();
+          if (first.contains("::") && second.contains("::") &&
+              !first.substring(0, first.indexOf("::")).equals(
+              second.substring(0, second.indexOf("::"))
+          )) {
+            out = f;
+          } else {
+            out = bfmgr.makeBoolean(!isInsideNot);
+          }
+        } else {
+          out = bfmgr.makeBoolean(!isInsideNot);
+        }
       }
     } else {
       int count = unsafeManager.getArity(f);

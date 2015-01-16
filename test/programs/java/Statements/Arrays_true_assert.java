@@ -5,6 +5,7 @@ public class Arrays_true_assert {
   public static void main(String[] args) {
     checkInitialValues();
     checkCallByReference();
+    checkLength(args);
   }
 
   private static void checkInitialValues() {
@@ -39,5 +40,38 @@ public class Arrays_true_assert {
     boolean[][][] booleanArray = new boolean[100][50][20];
     booleanArray[90][40][1] = true;
     assert booleanArray[90][40][1] == true;
+  }
+
+  private static void checkLength(String[] args) {
+    int[][] intArray = new int[10][5];
+
+    assert intArray.length == 10;
+    assert intArray[0].length == 5;
+
+    intArray[5] = new int[100];
+
+    assert intArray[5].length == 100;
+
+    checkLength(intArray);
+
+    switch (args.length) {
+      case 0:
+      case 1:
+      case 2:
+        assert true;
+      default:
+        // DO NOTHING
+    }
+
+    if (args.length == 0) {
+      if (args.length >= 0) {
+        assert args.length == 0;
+      }
+    }
+  }
+
+  private static void checkLength(int[][] array) {
+    assert array.length == 10;
+    assert array[8].length == 5;
   }
 }

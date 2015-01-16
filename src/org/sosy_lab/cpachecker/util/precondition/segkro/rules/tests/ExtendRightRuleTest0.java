@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.List;
 import java.util.Set;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.ExtendRightRule;
@@ -43,7 +45,9 @@ public class ExtendRightRuleTest0 extends AbstractRuleTest0 {
   private ExtendRightRule err;
 
   private IntegerFormula _0;
+  private IntegerFormula _1;
   private IntegerFormula _i;
+  private IntegerFormula _n;
   private IntegerFormula _j;
   private IntegerFormula _x;
 
@@ -59,7 +63,9 @@ public class ExtendRightRuleTest0 extends AbstractRuleTest0 {
     err = new ExtendRightRule(solver, matcher);
 
     _0 = ifm.makeNumber(0);
+    _1 = ifm.makeNumber(1);
     _i = ifm.makeVariable("i");
+    _n = ifm.makeVariable("n");
     _j = ifm.makeVariable("j");
     _x = ifm.makeVariable("x");
     _k = ifm.makeVariable("k");
@@ -91,7 +97,7 @@ public class ExtendRightRuleTest0 extends AbstractRuleTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test
+  @Test  @Ignore
   public void testConclusion2() throws SolverException, InterruptedException {
 
     BooleanFormula _x_range = bfm.and(
@@ -113,5 +119,180 @@ public class ExtendRightRuleTest0 extends AbstractRuleTest0 {
 
     assertThat(result).isNotEmpty();
   }
+
+  @Test
+  public void testConclusion3() throws SolverException, InterruptedException {
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                bfm.not(ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0))),
+                ifm.greaterOrEquals(boundVar, _i),
+                ifm.lessThan(boundVar, _i)))),
+        ifm.lessThan(_k, _i));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  public void testConclusion4() throws SolverException, InterruptedException {
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                bfm.not(ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0))),
+                ifm.greaterOrEquals(boundVar, _0),
+                ifm.lessThan(boundVar, _i)))),
+        ifm.lessThan(_i, _k));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  public void testConclusion5() throws SolverException, InterruptedException {
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                bfm.not(ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0))),
+                ifm.greaterOrEquals(boundVar, _0),
+                ifm.lessOrEquals(boundVar, _i)))),
+        ifm.lessOrEquals(_i, _k));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test  @Ignore
+  public void testConclusion6() throws SolverException, InterruptedException {
+    //  (forall ((x Int))
+    //        (and (not (= (select |init::M@1| x) |init::e@1|))
+    //             (>= x |init::i@1|)
+    //             (<= x |init::i@1|)))
+
+
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.forall(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                bfm.not(ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0))),
+                ifm.greaterOrEquals(boundVar, _i),
+                ifm.lessOrEquals(boundVar, _i)))),
+        ifm.lessOrEquals(_i, _k));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion7() throws SolverException, InterruptedException {
+
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                bfm.not(ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0))),
+                ifm.greaterOrEquals(boundVar, _i),
+                ifm.lessOrEquals(boundVar, _i)))),
+        ifm.lessOrEquals(_i, ifm.subtract(_k, ifm.makeNumber(1))));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion8() throws SolverException, InterruptedException {
+    // i+1 <= n
+    // exists x in {i..i+1} . b[x] = 0
+    // ----- should result in ------
+    // exists x in {i..n} . b[x] = 0
+
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0)),
+                ifm.greaterOrEquals(boundVar, _i),
+                ifm.lessOrEquals(boundVar, ifm.add(_i, ifm.makeNumber(1)))))),
+        ifm.lessOrEquals(ifm.add(_i, ifm.makeNumber(1)), _n));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion9() throws SolverException, InterruptedException {
+    // (exists ((x Int)) (and (= (select |copy::b@1| x) 0) (>= x 0) (<= x 1)))
+    // (<= (+ 0 1) al@1)
+
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0)),
+                ifm.greaterOrEquals(boundVar, _0),
+                ifm.lessOrEquals(boundVar, ifm.makeNumber(1))))),
+        ifm.lessOrEquals(ifm.add(_0, _1), _n));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion10() throws SolverException, InterruptedException {
+    // (<= (+ 0 1) |init::n@1|)
+    // (exists ((x Int)) (and (not (= (select |init::M@1| x) |init::e@1|)) (>= x 1) (<= x 1)))
+
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                bfm.not(ifm.equal(afm.select(_b, boundVar), _k)),
+                ifm.greaterOrEquals(boundVar, _1),
+                ifm.lessOrEquals(boundVar, ifm.makeNumber(1))))),
+        ifm.lessOrEquals(ifm.add(_0, _1), _n));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test @Ignore
+  public void testConclusion11() throws SolverException, InterruptedException {
+    // (< 0 al@1)
+    // (forall ((x Int)) (and (not (= (select |copy::b@1| x) 0)) (>= x 0) (<= x 0)))
+
+    IntegerFormula boundVar = ifm.makeVariable("x");
+    List<BooleanFormula> input = Lists.newArrayList(
+        qfm.exists(
+            Lists.newArrayList(boundVar),
+            bfm.and(Lists.newArrayList(
+                bfm.not(ifm.equal(afm.select(_b, boundVar),  _0)),
+                ifm.greaterOrEquals(boundVar, _0),
+                ifm.lessOrEquals(boundVar, _0)))),
+        ifm.lessThan(_0, _n));
+
+    Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
 
 }

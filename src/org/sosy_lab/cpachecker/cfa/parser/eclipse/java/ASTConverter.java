@@ -86,6 +86,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
@@ -1167,12 +1168,16 @@ class ASTConverter {
 
   private JAstNode convert(FieldAccess e) {
 
+    if (isArrayLengthExpression(e)) {
+      return createJArrayLengthExpression(e);
+    }
+
     IVariableBinding fieldBinding = e.resolveFieldBinding();
 
     boolean canBeResolved = fieldBinding != null;
 
     if (canBeResolved) {
-      scope.registerClass(e.resolveFieldBinding().getDeclaringClass());
+      scope.registerClass(fieldBinding.getDeclaringClass());
     }
 
     JAstNode identifier = convertExpressionWithoutSideEffects(e.getName());
@@ -1210,6 +1215,16 @@ class ASTConverter {
         idExpIdentifier.getExpressionType(),
         idExpIdentifier.getName(), (JFieldDeclaration) decl,
         (JIdExpression) qualifier);
+  }
+
+  private boolean isArrayLengthExpression(FieldAccess e) {
+    return e.getExpression() instanceof ArrayAccess;
+  }
+
+  private JArrayLengthExpression createJArrayLengthExpression(FieldAccess e) {
+    JExpression qualifierExpression = convertExpressionWithoutSideEffects(e.getExpression());
+
+    return JArrayLengthExpression.getInstance(qualifierExpression, getFileLocation(e));
   }
 
   private JAstNode convert(ClassInstanceCreation cIC) {
@@ -1363,9 +1378,13 @@ class ASTConverter {
 
   private JAstNode convert(QualifiedName e) {
 
+    if (isArrayLengthExpression(e)) {
+      return createJArrayLengthExpression(e);
+    }
+
     IBinding binding = e.resolveBinding();
 
-    boolean canBeResolved = e.resolveBinding() != null;
+    boolean canBeResolved = binding != null;
 
     if (canBeResolved) {
 
@@ -1396,6 +1415,42 @@ class ASTConverter {
       return new JIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, null);
 
     }
+  }
+
+  private boolean isArrayLengthExpression(QualifiedName e) {
+    JExpression qualifierExpression = convertExpressionWithoutSideEffects(e.getQualifier());
+    final String lengthExpression = "length";
+    final IBinding lengthBinding = e.resolveBinding();
+
+    return (lengthBinding != null && lengthBinding.getName().equals(lengthExpression)
+            && isArrayType(qualifierExpression.getExpressionType()))
+        || isMainArgumentArray(e, qualifierExpression);
+  }
+
+  private boolean isMainArgumentArray(QualifiedName e, JExpression qualifierExpression) {
+    final IBinding lengthBinding = e.resolveBinding();
+
+    if (qualifierExpression instanceof JIdExpression) {
+      JSimpleDeclaration qualifierDecl = ((JIdExpression) qualifierExpression).getDeclaration();
+
+      // check that no binding exists (special case for main argument array) and that
+      // the given qualifier is an array and a parameter
+      return lengthBinding == null && isArrayType(qualifierDecl.getType()) && qualifierDecl instanceof JParameterDeclaration;
+
+    } else {
+      return false;
+    }
+
+  }
+
+  private JArrayLengthExpression createJArrayLengthExpression(QualifiedName e) {
+    JExpression qualifierExpression = convertExpressionWithoutSideEffects(e.getQualifier());
+
+    return JArrayLengthExpression.getInstance(qualifierExpression, getFileLocation(e));
+  }
+
+  private boolean isArrayType(JType pType) {
+    return pType instanceof JArrayType;
   }
 
   private JAstNode convertQualifiedVariableIdentificationExpression(
@@ -1558,17 +1613,13 @@ class ASTConverter {
 
     String name = null;
     JSimpleDeclaration declaration = null;
-    boolean canBeResolved = e.resolveBinding() != null;
+
+    IBinding binding = e.resolveBinding();
+    boolean canBeResolved = binding != null;
 
     //TODO Complete declaration by finding all Bindings
     if (canBeResolved) {
-
-      IBinding binding = e.resolveBinding();
-
-
-
       if (binding instanceof IVariableBinding) {
-
         return convertSimpleVariable(e, (IVariableBinding) binding);
 
       } else if (binding instanceof IMethodBinding) {

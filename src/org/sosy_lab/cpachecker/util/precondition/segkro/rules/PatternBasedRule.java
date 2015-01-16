@@ -96,7 +96,24 @@ public abstract class PatternBasedRule extends AbstractRule {
 
   @Override
   public Set<BooleanFormula> apply(BooleanFormula pInput) throws SolverException, InterruptedException {
-    return apply(fmv.extractAtoms(pInput, false, false));
+    return apply(fmv.extractLiterals(pInput, false, false, false), HashMultimap.<String, Formula>create());
+  }
+
+  protected Formula substituteInParent(
+      final Formula pParent,
+      final Formula pToSubstitute,
+      final Formula pSubstituteBy,
+      final Formula pReplaceParentIn) {
+
+    Map<Formula, Formula> transformation = Maps.newHashMap();
+    transformation.put(pToSubstitute, pSubstituteBy);
+
+    final Formula parentPrime = matcher.substitute(pParent, transformation);
+
+    Map<Formula, Formula> transformation2 = Maps.newHashMap();
+    transformation2.put(pParent, parentPrime);
+
+    return matcher.substitute(pReplaceParentIn, transformation2);
   }
 
   @Override
@@ -162,6 +179,10 @@ public abstract class PatternBasedRule extends AbstractRule {
       Preconditions.checkArgument(pConjunctiveInputPredicates.size() == getPremises().size());
 
       final Set<BooleanFormula> result = Sets.newHashSet();
+
+//      if (solver.isUnsat(bfm.and(Lists.newArrayList(pConjunctiveInputPredicates)))) {
+//        return Collections.<BooleanFormula>emptySet();
+//      }
 
       // Check premises -------------------
       boolean allPremisesMatch = true;

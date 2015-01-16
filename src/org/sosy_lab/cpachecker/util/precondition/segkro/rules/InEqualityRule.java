@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuil
 import java.util.Collection;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.GenericPatterns.PropositionType;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -39,44 +37,34 @@ import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-public class UniversalizeRule extends PatternBasedRule {
 
-  public UniversalizeRule(Solver pSolver, SmtAstMatcher pMatcher) {
+public class InEqualityRule extends PatternBasedRule {
+
+  // a <= b
+  // a, b: Integers
+  // ====>
+  // a = b
+
+  public InEqualityRule(Solver pSolver, SmtAstMatcher pMatcher) {
     super(pSolver, pMatcher);
   }
 
   @Override
   protected void setupPatterns() {
-    // (not (bar (+ a c)))
-    // (not (= (select b (+ i 1)) 0))
-    // (bar (+ a c))
-    // (= (select b (+ i 1)) 0)
-    // (= 0 (select b (+ i 1)))
-
     premises.add(new PatternBasedPremise(
-        GenericPatterns.array_at_index_matcher("a", or(matchNumeralExpressionBind("i")), PropositionType.ALL)
-    ));
-  }
-
-  @Override
-  protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
-    return true;
+        or(
+              match("<=",
+                  matchNumeralExpressionBind("a"),
+                  matchNumeralExpressionBind("b"))
+        )));
   }
 
   @Override
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
-    final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("a"));
-    final IntegerFormula i = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("i"));
-    final Formula parentOfI = Preconditions.checkNotNull(pAssignment.get(parentOf("i")));
+    IntegerFormula a = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("a"));
+    IntegerFormula b = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("b"));
 
-    final IntegerFormula x = ifm.makeVariable("x");
-    final BooleanFormula xConstraint =  bfm.and(
-        ifm.greaterOrEquals(x, i),
-        ifm.lessOrEquals(x, i));
-
-    final BooleanFormula fPrime = (BooleanFormula) substituteInParent(parentOfI, i, x, f);
-
-    return Lists.newArrayList(
-        qfm.forall(Lists.newArrayList(x), bfm.and(fPrime, xConstraint)));
+    return Lists.newArrayList(ifm.equal(a, b));
   }
+
 }

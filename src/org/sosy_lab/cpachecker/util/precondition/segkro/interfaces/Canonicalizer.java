@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,31 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
+package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
-import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
+import java.util.Collection;
 
-import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 
-public class PatternBasedPremise implements Premise {
+public interface Canonicalizer {
 
-  private final SmtAstPatternSelection patternSelection;
+  public abstract BooleanFormula canonicalize(BooleanFormula pPredicate)
+      throws SolverException, InterruptedException;
 
-  public PatternBasedPremise(SmtAstPatternSelection pPatternSelection) {
-    super();
-
-    patternSelection = Preconditions.checkNotNull(pPatternSelection);
-  }
-
-  public SmtAstPatternSelection getPatternSelection() {
-    return patternSelection;
-  }
-
-  @Override
-  public String toString() {
-    return patternSelection.toString();
-  }
+  public abstract Collection<BooleanFormula> canonicalize(Collection<BooleanFormula> pPredicates)
+      throws SolverException, InterruptedException;
 
 }

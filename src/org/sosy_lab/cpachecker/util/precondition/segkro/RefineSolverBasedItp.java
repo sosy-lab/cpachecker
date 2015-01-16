@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -39,6 +38,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionHelper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -58,19 +58,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 public class RefineSolverBasedItp implements PreconditionRefiner {
 
   private static enum FormulaMode { INSTANTIATED, UNINSTANTIATED }
+  private static enum PreMode { ELIMINATE_DEAD }
 
   private final InterpolationWithCandidates ipc;
   private final BooleanFormulaManagerView bmgr;
@@ -78,17 +77,16 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
   private final PreconditionHelper helper;
   private final FormulaManagerView mgrv;
   private final AbstractionManager amgr;
-  private final Solver solver;
+  private final ExtractNewPreds enp;
 
   public RefineSolverBasedItp(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Solver pSolver, AbstractionManager pAmgr, ExtractNewPreds pExtractNewPreds,
       InterpolationWithCandidates pMinCorePrio)
           throws InvalidConfigurationException {
 
-    solver = Preconditions.checkNotNull(pSolver);
-    amgr = Preconditions.checkNotNull(pAmgr);
-    ipc = Preconditions.checkNotNull(pMinCorePrio);
-
+    amgr = pAmgr;
+    enp = pExtractNewPreds;
+    ipc = pMinCorePrio;
     mgrv = pSolver.getFormulaManager();
     bmgr = mgrv.getBooleanFormulaManager();
     pmgrFwd = new PathFormulaManagerImpl(
@@ -101,53 +99,28 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
     return mgrv.extractLiterals(pF, false, false, pMode == FormulaMode.UNINSTANTIATED);
   }
 
-  private <T> ImmutableSet<BooleanFormula> getInterpolants(List<BooleanFormula> formulas) throws InterruptedException, SolverException {
-
-    try (@SuppressWarnings("unchecked")
-         InterpolatingProverEnvironment<T> itpProver =
-           (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation()) {
-
-      List<T> itpGroups = new ArrayList<>(formulas.size());
-      for (BooleanFormula f : formulas) {
-        itpGroups.add(itpProver.push(f));
-      }
-
-      if (!itpProver.isUnsat()) {
-        return ImmutableSet.of();
-      }
-
-      ImmutableSet.Builder<BooleanFormula> result = ImmutableSet.builder();
-      for (int i = 1; i < itpGroups.size(); i++) {
-        result.add(itpProver.getInterpolant(itpGroups.subList(0, i)));
-      }
-
-      return result.build();
-    }
-  }
-
   @VisibleForTesting
   BooleanFormula interpolate(
-      final BooleanFormula pFirstCond,
-      final BooleanFormula pSecondCond,
-      final PathFormula pPfViolationTrace, final CFANode pItpLocation)
+      final BooleanFormula pPreconditionA,
+      final BooleanFormula pPreconditionB,
+      final PathPosition pItpPosition)
           throws SolverException, InterruptedException {
 
-    ArrayList<BooleanFormula> itps = Lists.newArrayList(
-        getInterpolants(
-            Lists.newArrayList(bmgr.not(pFirstCond), pPfViolationTrace.getFormula())));
+    List<BooleanFormula> p = enp.extractNewPreds(pPreconditionA);
+    BooleanFormula f = (p.size() == 0)
+        ? pPreconditionA
+        : bmgr.and(pPreconditionA, bmgr.and(p));
 
-    BooleanFormula f = bmgr.and(pFirstCond, bmgr.and(itps));
-
-    return ipc.getInterpolant(f, pSecondCond, itps, pItpLocation);
+    return ipc.getInterpolant(f, pPreconditionB, p, null);
   }
 
   private PathFormula pre(
-      final ARGPath pPathToEntryLocation,
-      final CFANode pStopAtNode,
+      final PathPosition pPreForPosition,
       final FormulaMode pMode)
           throws CPATransferException, SolverException, InterruptedException {
 
-    final PathFormula pf = helper.computePathformulaForArbitraryTrace(pPathToEntryLocation, Optional.of(pStopAtNode));
+    final ARGPath pathToPosition = pPreForPosition.getPath();
+    final PathFormula pf = helper.computePathformulaForArbitraryTrace(pathToPosition, pPreForPosition);
     final BooleanFormula f = mgrv.eliminateDeadVariables(pf.getFormula(), pf.getSsa());
 
     if (pMode == FormulaMode.UNINSTANTIATED) {
@@ -157,15 +130,57 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
     }
   }
 
+  @VisibleForTesting
+  static class ReversedEdge {
+
+    private CFAEdge original;
+
+    public ReversedEdge(CFAEdge pOriginal) {
+      Preconditions.checkNotNull(pOriginal);
+      this.original = pOriginal;
+    }
+
+    public CFAEdge getOriginal() {
+      return original;
+    }
+
+    public CFAEdgeType getEdgeType() {
+      return original.getEdgeType();
+    }
+
+    public CFANode getPredecessor() {
+      return original.getSuccessor();
+    }
+
+    public CFANode getSuccessor() {
+      return original.getPredecessor();
+    }
+
+    @Override
+    public String toString() {
+      return getPredecessor() + " -{" +
+          original.getDescription().replaceAll("\n", " ") + "}-> " + getSuccessor();
+    }
+  }
+
+  @VisibleForTesting
+  List<ReversedEdge> getReversedTrace(ARGPath pTrace) {
+    List<ReversedEdge> result = Lists.newArrayListWithCapacity(pTrace.asEdgesList().size());
+    for (CFAEdge g: Lists.reverse(pTrace.asEdgesList())) {
+      if (g != null) {
+        result.add(new ReversedEdge(g));
+      }
+    }
+    return result;
+  }
+
   private Multimap<CFANode, BooleanFormula> predsFromTrace(
-      final ARGPath pTraceToEntryLocation,
-      final PathFormula pInstanciatedTracePrecond,
-      final CFANode pEntryWpLocation)
+      final PathPosition pFinalWpPosition,
+      final PathFormula pInstanciatedTracePrecond)
           throws SolverException, InterruptedException, CPATransferException {
 
     Preconditions.checkNotNull(pInstanciatedTracePrecond);
-    Preconditions.checkNotNull(pEntryWpLocation);
-    Preconditions.checkNotNull(pTraceToEntryLocation);
+    Preconditions.checkNotNull(pFinalWpPosition);
 
     ImmutableMultimap.Builder<CFANode, BooleanFormula> result = ImmutableMultimap.builder();
 
@@ -176,17 +191,17 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
 
     PathFormula preAtK = pInstanciatedTracePrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
 
-    boolean skippedUntilEntryWpLocation = false;
-    List<CFAEdge> edgesStartingAtEntry = Lists.reverse(pTraceToEntryLocation.asEdgesList());
+    PathIterator reverseIt = pFinalWpPosition.reverseIterator();
 
-    for (CFAEdge t: edgesStartingAtEntry) {
+    while (reverseIt.hasNext()) {
 
-      if (!skippedUntilEntryWpLocation) {
-        if (t.getPredecessor().equals(pEntryWpLocation)) {
-          skippedUntilEntryWpLocation = true;
-        } else {
-          continue;
-        }
+      final CFAEdge t = reverseIt.getIncomingEdge();
+      final PathPosition currentPos = reverseIt.getPosition();
+      reverseIt.advance();
+      final PathPosition nextPos = reverseIt.getPosition();
+
+      if (t == null) {
+        continue;
       }
 
       if (t.getEdgeType() != CFAEdgeType.BlankEdge) {
@@ -202,21 +217,16 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
         //      afterTransCond === varphi_{k+1}
 
         // Formula A
-        PathFormula preAtKp1 = pre(
-            pTraceToEntryLocation, t.getSuccessor(),
-            FormulaMode.INSTANTIATED);
+        PathFormula preAtKp1 = pre(nextPos, FormulaMode.INSTANTIATED);
 
         if (bmgr.isTrue(preAtKp1.getFormula())) {
-          break;
+          continue;
         }
 
-        final PathFormula pf = helper.computePathformulaForArbitraryTrace(pTraceToEntryLocation, Optional.of(t.getSuccessor()));
-
-        final List<BooleanFormula> predsNew = Lists.newArrayList(
-            getInterpolants(
-                Lists.newArrayList(bmgr.not(preAtKp1.getFormula()), pf.getFormula())));
-
-        preAtKp1 = alterPf(preAtKp1, bmgr.and(preAtKp1.getFormula(), bmgr.and(predsNew)));
+        final List<BooleanFormula> predsNew = enp.extractNewPreds(preAtKp1.getFormula());
+        if (predsNew.size() > 0) {
+          preAtKp1 = alterPf(preAtKp1, bmgr.and(preAtKp1.getFormula(), bmgr.and(predsNew)));
+        }
 
         // Formula B
         final PathFormula transFromPreAtK = computeCounterCondition(t,
@@ -267,23 +277,20 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
 
   @Override
   public PredicatePrecision refine(
-      final ARGPath pTraceFromViolation,
-      final ARGPath pTraceFromValidTermination,
-      final CFANode pWpLocation)
+      final PathPosition pTraceFromViolation,
+      final PathPosition pTraceFromValidTermination)
     throws SolverException, InterruptedException, CPATransferException {
 
     // Compute the precondition for both traces
-    PathFormula pcViolation = pre(pTraceFromViolation, pWpLocation, FormulaMode.INSTANTIATED);
-    PathFormula pcValid = pre(pTraceFromValidTermination, pWpLocation, FormulaMode.INSTANTIATED);
-
-    final PathFormula pfViolationTrace = helper.computePathformulaForArbitraryTrace(pTraceFromViolation, Optional.of(pWpLocation));
-    final PathFormula pfValidTrace = helper.computePathformulaForArbitraryTrace(pTraceFromValidTermination, Optional.of(pWpLocation));
+    PathFormula pcViolation = pre(pTraceFromViolation, FormulaMode.INSTANTIATED);
+    PathFormula pcValid = pre(pTraceFromValidTermination, FormulaMode.INSTANTIATED);
 
     // "Enrich" the preconditions with more general predicates
+    // TODO: Is this part completely useless when using QE?
     pcViolation = alterPf(pcViolation,
-        interpolate(pcViolation.getFormula(), pcValid.getFormula(), pfViolationTrace, pWpLocation));
+        interpolate(pcViolation.getFormula(), pcValid.getFormula(), pTraceFromViolation));
     pcValid = alterPf(pcValid,
-        interpolate(pcValid.getFormula(), pcViolation.getFormula(), pfValidTrace, pWpLocation));
+        interpolate(pcValid.getFormula(), pcViolation.getFormula(), pTraceFromValidTermination));
 
     // Now we have an initial set of useful predicates; add them to the corresponding list.
     Builder<BooleanFormula> globalPreds = ImmutableList.builder();
@@ -296,10 +303,10 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
     //    (or the WPs along the trace)...
     //
     // -- along the trace to the violating state...
-    Multimap<CFANode, BooleanFormula> predsViolation = predsFromTrace(pTraceFromViolation, pcViolation, pWpLocation);
+    Multimap<CFANode, BooleanFormula> predsViolation = predsFromTrace(pTraceFromViolation, pcViolation);
     localPreds.putAll(predsViolation);
     // -- along the trace to the termination state...
-    Multimap<CFANode, BooleanFormula> predsFromValid = predsFromTrace(pTraceFromValidTermination, pcValid, pWpLocation);
+    Multimap<CFANode, BooleanFormula> predsFromValid = predsFromTrace(pTraceFromValidTermination, pcValid);
     localPreds.putAll(predsFromValid);
 
     return predicatesAsGlobalPrecision(globalPreds.build(), localPreds.build());

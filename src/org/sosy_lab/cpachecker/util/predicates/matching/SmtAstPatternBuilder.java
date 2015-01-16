@@ -362,6 +362,7 @@ public class SmtAstPatternBuilder {
   }
 
   public static SmtAstPatternSelection concat(SmtAstPatternSelection... pSelections) {
+
     Map<String,Formula> defaultBindings = Maps.newHashMap();
     List<SmtAstPatternSelectionElement> patterns = Lists.newArrayList();
 
@@ -374,7 +375,9 @@ public class SmtAstPatternBuilder {
 
       Verify.verify(logicRelation == sel.getRelationship(), "Logic relations must match!");
 
-      patterns.addAll(sel.getPatterns());
+      for (SmtAstPatternSelectionElement p: sel.getPatterns()) {
+        patterns.add(p);
+      }
       defaultBindings.putAll(sel.getDefaultBindings());
     }
 
@@ -447,6 +450,10 @@ public class SmtAstPatternBuilder {
 
   public static String quantified(String pVariableName) {
     return "." + pVariableName;
+  }
+
+  public static String parentOf(String pVariableName) {
+    return pVariableName + ".parent";
   }
 
 }

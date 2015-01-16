@@ -25,26 +25,49 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import org.junit.Before;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
+
+import com.google.common.collect.Lists;
 
 
 public abstract class AbstractRuleTest0 extends SolverBasedTest0 {
 
   protected ArrayFormulaManagerView afm;
   protected BooleanFormulaManagerView bfm;
+  protected QuantifiedFormulaManagerView qfm;
   protected NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
   protected FormulaManagerView mgrv;
   protected SmtAstMatcher matcher;
   protected Solver solver;
+
+  protected BooleanFormula rangePredicate(boolean pForall, IntegerFormula pLowerLimit, IntegerFormula pUpperLimit) {
+    IntegerFormula _x = ifm.makeVariable("x");
+    ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+    BooleanFormula _range = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _x), ifm.makeNumber(0))),
+        ifm.greaterOrEquals(_x, pLowerLimit),
+        ifm.lessOrEquals(_x, pUpperLimit)));
+
+    if (pForall) {
+      return qfm.forall(Lists.newArrayList(_x), _range);
+    } else {
+      return qfm.exists(Lists.newArrayList(_x), _range);
+    }
+  }
 
   @Override
   protected Solvers solverToUse() {
@@ -60,6 +83,13 @@ public abstract class AbstractRuleTest0 extends SolverBasedTest0 {
     afm = mgrv.getArrayFormulaManager();
     bfm = mgrv.getBooleanFormulaManager();
     ifm = mgrv.getIntegerFormulaManager();
+    qfm = mgrv.getQuantifiedFormulaManager();
+  }
+
+  protected boolean isFormulaEqual(BooleanFormula pFormula, BooleanFormula pIsEqualTo)
+      throws SolverException, InterruptedException {
+
+    return solver.isUnsat(bfm.notEquivalence(pFormula, pIsEqualTo));
   }
 
 }

@@ -273,7 +273,11 @@ class RunExecutor():
             except OSError as e:
                 returnvalue = 0
                 ru_child = None
-                logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
+                if self.PROCESS_KILLED:
+                    # OSError 4 (interrupted system call) seems always to happen if we killed the process ourselves after Ctrl+C was pressed
+                    logging.debug("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
+                else:
+                    logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
 
         finally:
             wallTimeAfter = time.time()

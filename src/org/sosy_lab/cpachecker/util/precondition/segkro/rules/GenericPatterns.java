@@ -35,6 +35,12 @@ import com.google.common.annotations.VisibleForTesting;
 @VisibleForTesting
 public final class GenericPatterns {
 
+  public static enum PropositionType {
+    POSITIVE,
+    NEGATIV,
+    ALL
+  }
+
   public static SmtAstPattern f_of_x (final String pBindFunctionTo, final String pBindArgTo) {
     return matchAnyBind(pBindFunctionTo,
         or(
@@ -112,51 +118,66 @@ public final class GenericPatterns {
     return f_of_x_matcher(pBindFunctionTo, and(matchAnyWithAnyArgsBind(pBindArgTo)), matchAnyWithAnyArgs());
   }
 
-  public static SmtAstPatternSelection array_at_index_subtree_matcher (final String pBindFunctionTo, final String pBindArgTo) {
-    return array_at_index_matcher(pBindFunctionTo, matchInSubtreeBoundedDepth(10, matchNumeralExpressionBind(pBindArgTo)));
+  public static SmtAstPatternSelection array_at_index_subtree_matcher (final String pBindFunctionTo, final String pBindArgTo, final PropositionType pOnlyPositive) {
+    return array_at_index_matcher(pBindFunctionTo, matchInSubtreeBoundedDepth(10, matchNumeralExpressionBind(pBindArgTo)), pOnlyPositive);
   }
 
-  public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final String pBindArgTo) {
-    return array_at_index_matcher(pBindFunctionTo, and(matchNumeralExpressionBind(pBindArgTo)));
+  public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final String pBindArgTo, final PropositionType pPropType) {
+    return array_at_index_matcher(pBindFunctionTo, and(matchNumeralExpressionBind(pBindArgTo)), pPropType);
   }
 
-  public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final SmtAstPatternSelection pIndexMatcher) {
-    return array_at_index_matcher(pBindFunctionTo, pIndexMatcher, matchAnyWithAnyArgs());
+  public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final SmtAstPatternSelection pIndexMatcher, final PropositionType pPropType) {
+    return array_at_index_matcher(pBindFunctionTo, pIndexMatcher, matchAnyWithAnyArgs(), pPropType);
   }
 
   public static SmtAstPatternSelection array_at_index_matcher (
       final String pBindFunctionTo,
       final SmtAstPatternSelection pIndexMatcher,
-      final SmtAstPatternSelectionElement pSecondOpLeaveMatcher) {
+      final SmtAstPatternSelectionElement pSecondOpLeaveMatcher,
+      final PropositionType pPropType) {
 
-    return or(
-        matchBind("not", pBindFunctionTo,
-            match("not",
-                matchAnyWithArgs(
-                    and(
-                      match("select",
-                          and(
-                              matchAnyWithAnyArgs(),
-                              pIndexMatcher)),
-                      pSecondOpLeaveMatcher)))),
+    SmtAstPatternSelection result = or();
 
-        matchBind("not", pBindFunctionTo,
-            matchAnyWithArgs(
+    if (pPropType == PropositionType.ALL || pPropType == PropositionType.POSITIVE) {
+      result = concat(
+          result,
+          or(
+            matchAnyBind(pBindFunctionTo,
                 and(
+                  match("select",
+                      and(
+                          matchAnyWithAnyArgs(),
+                          pIndexMatcher)),
+                  pSecondOpLeaveMatcher)),
+
+            matchBind("not", pBindFunctionTo,
+                match("not",
+                    matchAnyWithArgs(
+                      and(
+                        match("select",
+                            and(
+                                matchAnyWithAnyArgs(),
+                                pIndexMatcher)),
+                        pSecondOpLeaveMatcher))))
+            ));
+    }
+
+    if (pPropType == PropositionType.ALL || pPropType == PropositionType.NEGATIV) {
+      result = concat(
+          result,
+          or(
+            matchBind("not", pBindFunctionTo,
+                matchAnyWithArgs(
+                  and(
                     match("select",
                         and(
                             matchAnyWithAnyArgs(),
                             pIndexMatcher)),
-                     pSecondOpLeaveMatcher))),
+                    pSecondOpLeaveMatcher)))
+            ));
+    }
 
-        matchAnyBind(pBindFunctionTo,
-            and(
-              match("select",
-                  and(
-                      matchAnyWithAnyArgs(),
-                      pIndexMatcher)),
-              pSecondOpLeaveMatcher))
-        );
+    return result;
   }
 
   public static SmtAstPatternSelection f_of_x_matcher (

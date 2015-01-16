@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvalua
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaDepthCountVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PushAssumptionToEnvironmentVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ReplaceVisitor;
@@ -501,7 +500,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
       assert !atomic.isEmpty();
       Iterator<InvariantsFormula<CompoundInterval>> iterator = atomic.iterator();
-      InvariantsFormula<CompoundInterval> assumption = InvariantsFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalFalse());
+      InvariantsFormula<CompoundInterval> assumption = ifm.asConstant(CompoundInterval.logicalFalse());
       while (iterator.hasNext()) {
         InvariantsFormula<CompoundInterval> equation = ifm.equal(variable, iterator.next());
         if (isExclusion) {

@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.base.Preconditions;
@@ -69,18 +68,21 @@ public class SubstitutionRule extends PatternBasedRule {
     premises.add(new PatternBasedPremise(
           GenericPatterns.f_of_x_matcher("f",
               and(
-                  matchAnyWithAnyArgsBind("x")),
+                  matchNumeralExpressionBind("x")),
               and(
                   matchAnyWithAnyArgsBind("y"))
         )));
 
     premises.add(new PatternBasedPremise(or(
-        matchBind("=", "eq",
-            matchAnyWithAnyArgsBind("x"),
-            matchAnyWithAnyArgsBind("e")),
-        matchBind("<", "lt",
+        matchBind(">=", "eq",
             matchNumeralExpressionBind("x"),
-            matchNumeralExpressionBind("e")),
+            matchAnyWithAnyArgsBind("e")),
+        matchBind("<=", "eq",
+            matchNumeralExpressionBind("x"),
+            matchAnyWithAnyArgsBind("e")),
+        matchBind("=", "eq",
+            matchNumeralExpressionBind("x"),
+            matchAnyWithAnyArgsBind("e")),
         match("not",
             matchBind(">=", "lt",
                 matchNumeralExpressionBind("x"),
@@ -108,8 +110,6 @@ public class SubstitutionRule extends PatternBasedRule {
     if (lt == null && eq == null) { return false; }
     if (lt != null && f.equals(lt)) { return false; }
     if (eq != null && f.equals(eq)) { return false; }
-    if (e.equals(x)) { return false; }
-    if (e.equals(y)) { return false; }
     if (eq != null && solver.isUnsat(bfm.and(f, (BooleanFormula)eq))) { return false; }
 
     return true;
@@ -124,11 +124,7 @@ public class SubstitutionRule extends PatternBasedRule {
 
     Map<Formula, Formula> transformation = Maps.newHashMap();
     final Formula e = Preconditions.checkNotNull(pAssignment.get("e"));
-    if (pAssignment.containsKey("lt")) {
-      transformation.put(x, ifm.subtract((IntegerFormula)e, ifm.makeNumber(1)));
-    } else {
-      transformation.put(x, e);
-    }
+    transformation.put(x, e);
 
     final Formula parentOfXPrime = matcher.substitute(parentOfX, transformation);
 

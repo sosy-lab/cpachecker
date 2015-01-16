@@ -126,7 +126,7 @@ public class LinCombineRule extends PatternBasedRule {
 
     final IntegerFormula z = (IntegerFormula) f;
 
-    return !solver.isUnsat(ifm.equal(z, pIsEqualTo));
+    return solver.isUnsat(bfm.not(ifm.equal(z, pIsEqualTo)));
   }
 
   @Override
@@ -154,7 +154,7 @@ public class LinCombineRule extends PatternBasedRule {
       return false;
     }
 
-    if (!checkIfAvailable(pAssignment, "eMinusOne", ifm.subtract(e, zero))) {
+    if (!checkIfAvailable(pAssignment, "eMinusOne", ifm.subtract(e, one))) {
       return false;
     }
 

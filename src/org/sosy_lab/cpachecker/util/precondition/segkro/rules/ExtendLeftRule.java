@@ -26,18 +26,18 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.GenericPatterns.PropositionType;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 
 public class ExtendLeftRule extends PatternBasedRule {
@@ -52,60 +52,59 @@ public class ExtendLeftRule extends PatternBasedRule {
       or(
         matchExistsQuantBind("exists",
             and(
-              GenericPatterns.array_at_index_matcher("f", quantified("x")),
+              GenericPatterns.array_at_index_matcher("f", quantified("var"), PropositionType.ALL),
               match(">=",
                   matchAnyWithAnyArgsBind(quantified("x")),
                   matchAnyWithAnyArgsBind("i")),
-              match("<",
+              match("<=",
                   matchAnyWithAnyArgsBind(quantified("x")),
-                  matchAnyWithAnyArgsBind("j")),
+                  matchAnyWithAnyArgsBind("j")))),
 
         matchForallQuantBind("forall",
             and(
-              GenericPatterns.array_at_index_matcher("f", quantified("x")),
+              GenericPatterns.array_at_index_matcher("f", quantified("var"), PropositionType.ALL),
               match(">=",
                   matchAnyWithAnyArgsBind(quantified("x")),
                   matchAnyWithAnyArgsBind("i")),
-              match("<",
+              match("<=",
                   matchAnyWithAnyArgsBind(quantified("x")),
                   matchAnyWithAnyArgsBind("j"))))
-    )))));
+    )));
 
     premises.add(new PatternBasedPremise(
       or(
         match("<",
-            matchAnyWithAnyArgsBind("k"),
-            matchAnyWithAnyArgsBind("i")),
+            matchNumeralExpressionBind("k"),
+            matchNumeralExpressionBind("i")),
+        match("=",
+            matchNumeralExpressionBind("k"),
+            matchNumeralExpressionBind("i")),
         match("<=",
-            matchAnyWithAnyArgsBind("k"),
-            matchAnyWithAnyArgsBind("i"))
-//
-//        match("not",
-//            match(">",
-//                matchAnyWithAnyArgsBind("k"),
-//                matchAnyWithAnyArgsBind("i")))
+            matchNumeralExpressionBind("k"),
+            matchNumeralExpressionBind("i"))
         )
     ));
   }
 
   @Override
   protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
+//    final IntegerFormula i = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("i"));
+//    final IntegerFormula equalToI = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("=i"));
+//
+//    return solver.isUnsat(bfm.not(ifm.equal(i, equalToI)));
     return true;
   }
 
   @Override
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
-    final BooleanFormula f = (BooleanFormula) pAssignment.get("f");
-    final IntegerFormula j = (IntegerFormula) pAssignment.get("j");
-    final IntegerFormula k = (IntegerFormula) pAssignment.get("k");
+    final IntegerFormula j = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("j"));
+    final IntegerFormula k = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("k"));
+    final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("f"));
 
-    final IntegerFormula xBound = (IntegerFormula) pAssignment.get(quantified("x"));
-
+    final IntegerFormula xBound = (IntegerFormula) pAssignment.get(quantified("var"));
+    final Formula xBoundParent = pAssignment.get(parentOf(quantified("var")));
     final IntegerFormula xNew = ifm.makeVariable("x");
-
-    HashMap<Formula, Formula> mapping = Maps.newHashMap();
-    mapping.put(xBound, xNew);
-    final BooleanFormula fNew = matcher.substitute(f, mapping);
+    final BooleanFormula fNew = (BooleanFormula) substituteInParent(xBoundParent, xBound, xNew, f);
 
     final BooleanFormula xConstraint =  bfm.and(
         ifm.greaterOrEquals(xNew, k),
