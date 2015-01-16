@@ -1423,7 +1423,7 @@ class ASTConverter {
     final IBinding lengthBinding = e.resolveBinding();
 
     return (lengthBinding != null && lengthBinding.getName().equals(lengthExpression)
-            && isArrayType((JType)  qualifierExpression.getExpressionType()))
+            && isArrayType(qualifierExpression.getExpressionType()))
         || isMainArgumentArray(e, qualifierExpression);
   }
 
