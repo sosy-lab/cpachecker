@@ -40,18 +40,9 @@ public class JFieldAccess extends JIdExpression {
 
   //TODO Investigate if this should be refactored.
 
-  private final JExpression qualifier;
+  private final JIdExpression qualifier;
 
-  public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration,
-      JIdExpression pQualifier) {
-
-    super(pFileLocation, pType, pName, pDeclaration);
-    qualifier = pQualifier;
-  }
-
-  public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration,
-      JArraySubscriptExpression pQualifier) {
-
+  public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, JIdExpression pQualifier) {
     super(pFileLocation, pType, pName, pDeclaration);
     qualifier = pQualifier;
   }
@@ -61,7 +52,7 @@ public class JFieldAccess extends JIdExpression {
     return (JFieldDeclaration) super.getDeclaration();
   }
 
-  public JExpression getReferencedVariable() {
+  public JIdExpression getReferencedVariable() {
     return qualifier;
   }
 

@@ -1198,30 +1198,23 @@ class ASTConverter {
       return idExpIdentifier;
     }
 
+    if (!(qualifier instanceof JIdExpression)) {
+      throw new CFAGenerationRuntimeException(
+        "Qualifier of FieldAccess could not be processed.", e);
+    }
+
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
+
 
     if (!(decl instanceof JFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
         "Identifier of FieldAccess does not identify a field.", e);
     }
 
-    if (qualifier instanceof JIdExpression) {
-      return new JFieldAccess(idExpIdentifier.getFileLocation(),
+    return new JFieldAccess(idExpIdentifier.getFileLocation(),
         idExpIdentifier.getExpressionType(),
         idExpIdentifier.getName(), (JFieldDeclaration) decl,
         (JIdExpression) qualifier);
-
-    } else if (qualifier instanceof JArraySubscriptExpression) {
-
-      return new JFieldAccess(idExpIdentifier.getFileLocation(),
-          idExpIdentifier.getExpressionType(),
-          idExpIdentifier.getName(), (JFieldDeclaration) decl,
-          (JArraySubscriptExpression) qualifier);
-
-    } else {
-      throw new CFAGenerationRuntimeException(
-          "Qualifier of FieldAccess could not be processed.", e);
-    }
   }
 
   private boolean isArrayLengthExpression(FieldAccess e) {
