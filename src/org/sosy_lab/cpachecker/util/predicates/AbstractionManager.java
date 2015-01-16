@@ -90,13 +90,14 @@ public final class AbstractionManager {
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
   private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
+  private final boolean reorderWithFrameworkStrategy = false;
+  private final boolean insertRandomly = false;
 
   private final Map<Region, BooleanFormula> toConcreteCache;
   private volatile int numberOfPredicates = 0;
   @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
-  private boolean insertRandomly = false;
 
   public AbstractionManager(RegionManager pRmgr, FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, Solver pSolver)
@@ -211,7 +212,9 @@ public final class AbstractionManager {
    */
   public void reorderPredicates() {
     ArrayList<Integer> predicateOrdering = new ArrayList<>();
-    if (insertRandomly) {
+    if (reorderWithFrameworkStrategy) {
+      rmgr.reorder();
+    }else if (insertRandomly) {
       predicateOrdering.addAll(randomListOfVarIDs);
     } else {
       for (PredicatePartition partition : partitions) {

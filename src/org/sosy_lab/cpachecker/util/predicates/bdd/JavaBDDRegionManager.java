@@ -447,6 +447,13 @@ class JavaBDDRegionManager implements RegionManager {
   @Override
   public void reorder() {
     factory.reorder(BDDFactory.REORDER_WIN3ITE);
+//    factory.reorder(BDDFactory.REORDER_WIN3);
+//    factory.reorder(BDDFactory.REORDER_RANDOM);
+//    factory.reorder(BDDFactory.REORDER_WIN2ITE);
+//    factory.reorder(BDDFactory.REORDER_WIN2);
+//    factory.reorder(BDDFactory.REORDER_RANDOM);
+//    factory.reorder(BDDFactory.REORDER_SIFTITE);
+//    factory.reorder(BDDFactory.REORDER_SIFT);
   }
 
   private class BDDRegionBuilder implements RegionBuilder {
