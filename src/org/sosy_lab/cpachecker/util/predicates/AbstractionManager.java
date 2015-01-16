@@ -85,8 +85,11 @@ public final class AbstractionManager {
   private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
 
   // Properties for BDD variable ordering:
+  private final LinkedList<PredicatePartition> partitions = new LinkedList<>();
   // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
+  // and mapping partition ID -> set of predicate variables covered by partition
+  private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
   private volatile int numberOfPredicates = 0;
@@ -136,7 +139,7 @@ public final class AbstractionManager {
       atomToPredicate.put(atom, result);
       varIDToPredicate.put(numberOfPredicates, result);
 
-      if (insertRandomly ) {
+      if (insertRandomly) {
         int randomIndex = new Random().nextInt(randomListOfVarIDs.size() + 1);
         randomListOfVarIDs.add(randomIndex, numberOfPredicates);
       } else {
@@ -159,42 +162,59 @@ public final class AbstractionManager {
    */
   private void updatePartitions(AbstractionPredicate newPredicate) {
     Set<String> predVars = fmgr.extractVariableNames(newPredicate.getSymbolicAtom());
-
-    // check which variables of the predicate are covered by the partitions.
-    Set<String> varIntersection = new HashSet<>(predVars);
-    varIntersection.retainAll(predVarToPartition.keySet());
     PredicatePartition firstPartition;
 
-    if (!varIntersection.isEmpty()) {
-      // merge partitions that are similar to the new predicate
-      Iterator<String> varIterator = varIntersection.iterator();
-      firstPartition = predVarToPartition.get(varIterator.next());
-
-      while (varIterator.hasNext()) {
-        firstPartition = firstPartition.merge(predVarToPartition.get(varIterator.next()));
-      }
-    } else {
+    // this is the case if the new predicate contains just "false" or "true"
+    // create an own partition for that
+    if (predVars.isEmpty()) {
       firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
+      predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
+      partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<String>());
+      partitions.add(firstPartition);
+    } else {
+      HashSet<String> predVarsCoveredByPartition = new HashSet<>(predVars);
+
+      // check which variables of the predicate are covered by the partitions.
+      Set<String> varIntersection = new HashSet<>(predVars);
+      varIntersection.retainAll(predVarToPartition.keySet());
+
+      if (!varIntersection.isEmpty()) {
+        // merge partitions that are similar to the new predicate
+        Iterator<String> varIterator = varIntersection.iterator();
+        firstPartition = predVarToPartition.get(varIterator.next());
+        predVarsCoveredByPartition.addAll(partitionIDToPredVars.get(firstPartition.getPartitionID()));
+
+        while (varIterator.hasNext()) {
+          PredicatePartition nextPartition = predVarToPartition.get(varIterator.next());
+          firstPartition = firstPartition.merge(nextPartition);
+          predVarsCoveredByPartition.addAll(partitionIDToPredVars.get(nextPartition.getPartitionID()));
+          partitions.remove(nextPartition);
+        }
+      } else {
+        firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
+        partitions.add(firstPartition);
+      }
+
+      // update predicate variables covered by the new partition
+      partitionIDToPredVars.put(firstPartition.getPartitionID(), predVarsCoveredByPartition);
+      // update keys such that they point to the result partition of the merging
+      for (String predVar : predVarsCoveredByPartition) {
+        predVarToPartition.put(predVar, firstPartition);
+      }
     }
 
     firstPartition.insertPredicate(newPredicate);
-
-    // update keys such that they point to the result partition of the merging
-    for (String predVar : predVars) {
-      predVarToPartition.put(predVar, firstPartition);
-    }
   }
 
   /**
    * Reorders the BDD variables.
    */
   public void reorderPredicates() {
-
     ArrayList<Integer> predicateOrdering = new ArrayList<>();
     if (insertRandomly) {
       predicateOrdering.addAll(randomListOfVarIDs);
     } else {
-      for (PredicatePartition partition : predVarToPartition.values()) {
+      for (PredicatePartition partition : partitions) {
         List<AbstractionPredicate> predicates = partition.getPredicates();
 
         for (AbstractionPredicate predicate : predicates) {
@@ -202,7 +222,6 @@ public final class AbstractionManager {
         }
       }
     }
-
 
     rmgr.setVarOrder(predicateOrdering);
   }
