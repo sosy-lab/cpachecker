@@ -51,6 +51,8 @@ public interface JExpressionVisitor<R, X extends Exception> extends JLeftHandSid
 
   R visit(JArrayInitializer pJArrayInitializer) throws X;
 
+  R visit(JArrayLengthExpression pJArrayLengthExpression) throws X;
+
   R visit(JVariableRunTimeType pJThisRunTimeType) throws X;
 
   R visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws X;

@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
@@ -1225,6 +1226,21 @@ public abstract class AbstractExpressionValueVisitor
 
     } else {
       return Value.UnknownValue.getInstance();
+    }
+  }
+
+  @Override
+  public Value visit(JArrayLengthExpression pJArrayLengthExpression) throws RuntimeException {
+    final JExpression arrayId = pJArrayLengthExpression.getQualifier();
+
+    Value array = arrayId.accept(this);
+
+    if (!array.isExplicitlyKnown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      assert array instanceof ArrayValue;
+      return new NumericValue(((ArrayValue) array).getArraySize());
     }
   }
 

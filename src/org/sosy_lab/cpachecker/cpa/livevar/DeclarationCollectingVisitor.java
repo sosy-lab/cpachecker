@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -107,6 +108,12 @@ public class DeclarationCollectingVisitor extends AExpressionVisitor<Set<ASimple
       result = Sets.union(result, innerExp.accept(this));
     }
     return result;
+  }
+
+  @Override
+  public Set<ASimpleDeclaration> visit(JArrayLengthExpression exp) throws RuntimeException {
+    // TODO it has to be checked whether some other value should be returned for this
+    return Collections.emptySet();
   }
 
   @Override
