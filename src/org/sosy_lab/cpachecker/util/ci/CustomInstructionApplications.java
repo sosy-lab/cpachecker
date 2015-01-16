@@ -78,6 +78,7 @@ public class CustomInstructionApplications {
    * @throws CPAException
    */
   public boolean isEndState(final AbstractState pIsEnd, final CFANode pCIStart) throws CPAException {
+    assert(cis.containsKey(pCIStart));
     return cis.get(pCIStart).isEndState(pIsEnd);
   }
 
