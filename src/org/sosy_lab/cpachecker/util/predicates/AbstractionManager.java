@@ -85,7 +85,6 @@ public final class AbstractionManager {
   private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
 
   // Properties for BDD variable ordering:
-  private final LinkedList<PredicatePartition> partitions = new LinkedList<>();
   // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
@@ -171,7 +170,6 @@ public final class AbstractionManager {
       firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
       predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
       partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<String>());
-      partitions.add(firstPartition);
     } else {
       HashSet<String> predVarsCoveredByPartition = new HashSet<>(predVars);
 
@@ -189,11 +187,9 @@ public final class AbstractionManager {
           PredicatePartition nextPartition = predVarToPartition.get(varIterator.next());
           firstPartition = firstPartition.merge(nextPartition);
           predVarsCoveredByPartition.addAll(partitionIDToPredVars.get(nextPartition.getPartitionID()));
-          partitions.remove(nextPartition);
         }
       } else {
         firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
-        partitions.add(firstPartition);
       }
 
       // update predicate variables covered by the new partition
@@ -217,12 +213,13 @@ public final class AbstractionManager {
     }else if (insertRandomly) {
       predicateOrdering.addAll(randomListOfVarIDs);
     } else {
+      HashSet<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
       for (PredicatePartition partition : partitions) {
-        List<AbstractionPredicate> predicates = partition.getPredicates();
+          List<AbstractionPredicate> predicates = partition.getPredicates();
 
-        for (AbstractionPredicate predicate : predicates) {
-          predicateOrdering.add(predicate.getVariableNumber());
-        }
+          for (AbstractionPredicate predicate : predicates) {
+            predicateOrdering.add(predicate.getVariableNumber());
+          }
       }
     }
 

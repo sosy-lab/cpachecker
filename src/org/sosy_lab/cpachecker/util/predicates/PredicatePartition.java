@@ -92,4 +92,8 @@ public abstract class PredicatePartition {
    * @return mapping of variable id to predicate.
    */
   public HashMap<Integer, AbstractionPredicate> getVarIDToPredicate() { return varIDToPredicate; }
+
+  public boolean equals(PredicatePartition otherPartition) {
+    return this.partitionID == otherPartition.getPartitionID();
+  }
 }
