@@ -435,7 +435,8 @@ def _parseCloudResultFile(filePath):
     returnValue = int(values["@vcloud-exitcode"])
     wallTime = float(values["walltime"].strip('s'))
     cpuTime = float(values["cputime"].strip('s'))
-    values["energy"] = eval(values["energy"])  
+    if "energy" in values:
+        values["energy"] = eval(values["energy"])
     values["memUsage"] = int(values["@vcloud-memory"].strip('B'))     
     
     return (wallTime, cpuTime, returnValue, values)
