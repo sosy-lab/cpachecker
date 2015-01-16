@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.rtt;
 
-import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
@@ -72,27 +70,15 @@ public class NameProvider {
   }
 
   private String getScopedFieldName(JFieldAccess pFieldAccess, String pMethodName, RTTState pRttState) {
-    JExpression qualifier = pFieldAccess.getReferencedVariable();
+    JIdExpression qualifier = pFieldAccess.getReferencedVariable();
 
     String variableName;
     String qualifierScope;
 
-    if (qualifier instanceof JIdExpression) {
-      JSimpleDeclaration declaration = ((JIdExpression) qualifier).getDeclaration();
-      qualifierScope = getObjectScope(pRttState, pMethodName, (JIdExpression) qualifier);
+    JSimpleDeclaration declaration = qualifier.getDeclaration();
+    qualifierScope = getObjectScope(pRttState, pMethodName, qualifier);
 
-      return getScopedVariableName(declaration, pMethodName, qualifierScope);
-
-    } else if (qualifier instanceof JArraySubscriptExpression) {
-      qualifierScope = "arrrr";
-      variableName = "";
-
-      return getScopedVariableName(variableName, pMethodName, qualifierScope, pRttState);
-    } else {
-      throw new AssertionError("Unexpected field qualifier " + qualifier);
-    }
-
-
+    return getScopedVariableName(declaration, pMethodName, qualifierScope);
   }
 
   public String getScopedVariableName(String pVariableName, String pFunctionName, String pUniqueObject,
