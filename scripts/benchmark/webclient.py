@@ -297,8 +297,8 @@ def _getResults(runIDs, outputHandler, webclient, benchmark):
         finishedRunIDs = []
         for runID in runIDs.keys():
             if _isFinished(runID, webclient, benchmark):
-                _getAndHandleResult(runID, runIDs[runID], outputHandler, webclient, benchmark)
-                finishedRunIDs.append(runID)
+                if(_getAndHandleResult(runID, runIDs[runID], outputHandler, webclient, benchmark)):
+                    finishedRunIDs.append(runID)
 
         for runID in finishedRunIDs:
              del runIDs[runID]
@@ -324,6 +324,12 @@ def _isFinished(runID, webclient, benchmark):
             logging.debug('Run {0} finished.'.format(runID))  
             return True
         
+        # UNKNOWN is returned for unknown runs. This happens, 
+        # when the webclient is restarted since the submission of the runs.
+        if state == "UNKNOWN":
+            logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(runID))  
+            return True
+        
         else:
             return False
         
@@ -338,7 +344,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
     # download result as zip file
     counter = 0
     sucess = False
-    while (not sucess and counter < 30):
+    while (not sucess and counter < 10):
         counter += 1
         resquest = urllib2.Request(webclient + "runs/" + runID + "/result")
         try:
@@ -347,7 +353,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
              logging.info('Could get result of run with id {0}: {1}'.format(run.identifier, e))
              _auth(webclient, benchmark)
              sleep(10)
-             continue        
+             return False        
 
         if response.getcode() == 200:
             with open(zipFilePath, 'w+b') as zipFile:
@@ -390,8 +396,11 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
            os.rmdir(resultDir)        
 
        outputHandler.outputAfterRun(run)
+       return True
+       
     else:
-        logging.warning('Could not get run result: {0}'.format(runID))     
+        logging.warning('Could not get run result, run is not finished: {0}'.format(runID))
+        return False     
     
 def _parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
     try:
