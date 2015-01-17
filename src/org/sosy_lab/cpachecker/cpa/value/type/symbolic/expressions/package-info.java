@@ -23,7 +23,7 @@
  */
 
 /**
- * This package includes the {@link ConstraintExpression} interface and all its implementing classes that can be used
- * to describe constraint operands.
+ * This package includes the {@link SymbolicExpression} interface and all its implementing classes that can be used
+ * to describe symbolic operands and constraints.
  */
 package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;

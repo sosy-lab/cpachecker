@@ -33,7 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Optional;
@@ -56,7 +56,7 @@ public class SymbolicValueFactory {
 
   private final Map<AAstNode, Integer> valuesPerNodeMap = new HashMap<>();
 
-  private final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
+  private final SymbolicExpressionFactory factory = SymbolicExpressionFactory.getInstance();
 
   private SymbolicValueFactory() {
     // do nothing special
@@ -487,7 +487,7 @@ public class SymbolicValueFactory {
 
   private SymbolicExpression getConstant(Value pValue, Type pType) {
     checkNotNull(pValue);
-    return ConstraintExpressionFactory.getInstance().asConstant(pValue, pType);
+    return SymbolicExpressionFactory.getInstance().asConstant(pValue, pType);
   }
 
   private void checkEitherSymbolic(Value pVal1, Value pVal2) {

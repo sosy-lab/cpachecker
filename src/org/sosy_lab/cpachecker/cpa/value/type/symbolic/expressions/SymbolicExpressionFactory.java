@@ -32,15 +32,15 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 /**
  * Factory for creating {@link SymbolicExpression}s
  */
-public class ConstraintExpressionFactory {
+public class SymbolicExpressionFactory {
 
-  private static final ConstraintExpressionFactory SINGLETON = new ConstraintExpressionFactory();
+  private static final SymbolicExpressionFactory SINGLETON = new SymbolicExpressionFactory();
 
-  private ConstraintExpressionFactory() {
+  private SymbolicExpressionFactory() {
     // DO NOTHING
   }
 
-  public static ConstraintExpressionFactory getInstance() {
+  public static SymbolicExpressionFactory getInstance() {
     return SINGLETON;
   }
 
@@ -71,14 +71,14 @@ public class ConstraintExpressionFactory {
 
   public SymbolicExpression negate(SymbolicExpression pFormula, Type pType) {
     checkNotNull(pFormula);
-    final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
+    final SymbolicExpressionFactory factory = SymbolicExpressionFactory.getInstance();
     final Type formulaType = pFormula.getType();
 
     return factory.multiply(getMinusOne(formulaType), pFormula, pType, pType);
   }
 
   private SymbolicExpression getMinusOne(Type pType) {
-    return ConstraintExpressionFactory.getInstance().asConstant(new NumericValue(-1L), pType);
+    return SymbolicExpressionFactory.getInstance().asConstant(new NumericValue(-1L), pType);
   }
 
   public SymbolicExpression divide(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,

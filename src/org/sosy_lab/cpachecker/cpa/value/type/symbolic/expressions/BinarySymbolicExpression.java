@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
  * A binary {@link SymbolicExpression}.
- * Represents all <code>ConstraintExpression</code>s that consist of two operands.
+ * Represents all <code>SymbolicExpression</code>s that consist of two operands.
  */
 public abstract class BinarySymbolicExpression extends SymbolicExpression {
 

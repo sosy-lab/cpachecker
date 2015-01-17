@@ -38,7 +38,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   private final Type type;
 
   /**
-   * Create a new <code>ConstantConstraintExpression</code> object with the given value and type.
+   * Create a new <code>ConstantSymbolicExpression</code> object with the given value and type.
    *
    * @param pValue the value of the new object
    * @param pType the type of the value of the new object
@@ -80,7 +80,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
 
   @Override
   public String toString() {
-    return "ConstraintExpression[" + value.toString() + "]";
+    return "SymEx[" + value.toString() + "]";
   }
 
   @Override

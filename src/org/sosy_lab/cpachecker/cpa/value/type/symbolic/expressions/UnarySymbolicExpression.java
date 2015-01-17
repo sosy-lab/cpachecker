@@ -28,7 +28,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * Represents a unary {@link SymbolicExpression}. Represents all <code>ConstraintExpression</code>s that consist of
+ * Represents a unary {@link SymbolicExpression}. Represents all <code>SymbolicExpression</code>s that consist of
  * only one operand.
  */
 public abstract class UnarySymbolicExpression extends SymbolicExpression {

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -101,7 +101,7 @@ public class ExpressionTransformer {
     if (state.contains(memLoc)) {
       final Value idValue = state.getValueFor(memLoc);
 
-      return ConstraintExpressionFactory.getInstance().asConstant(idValue, idType);
+      return SymbolicExpressionFactory.getInstance().asConstant(idValue, idType);
 
     } else {
       return null;
@@ -122,7 +122,7 @@ public class ExpressionTransformer {
     final BigInteger value = pIastIntegerLiteralExpression.getValue();
     final Type intType = pIastIntegerLiteralExpression.getExpressionType();
 
-    return ConstraintExpressionFactory.getInstance().asConstant(createNumericValue(value), intType);
+    return SymbolicExpressionFactory.getInstance().asConstant(createNumericValue(value), intType);
   }
 
   public SymbolicExpression visit(ACharLiteralExpression pIastCharLiteralExpression)
@@ -130,7 +130,7 @@ public class ExpressionTransformer {
     final long castValue = (long) pIastCharLiteralExpression.getCharacter();
     final Type charType = pIastCharLiteralExpression.getExpressionType();
 
-    return ConstraintExpressionFactory.getInstance().asConstant(createNumericValue(castValue), charType);
+    return SymbolicExpressionFactory.getInstance().asConstant(createNumericValue(castValue), charType);
   }
 
   public SymbolicExpression visit(AFloatLiteralExpression pIastFloatLiteralExpression)
@@ -138,7 +138,7 @@ public class ExpressionTransformer {
     final BigDecimal value = pIastFloatLiteralExpression.getValue();
     final Type floatType = pIastFloatLiteralExpression.getExpressionType();
 
-    return ConstraintExpressionFactory.getInstance().asConstant(createNumericValue(value), floatType);
+    return SymbolicExpressionFactory.getInstance().asConstant(createNumericValue(value), floatType);
   }
 
 }

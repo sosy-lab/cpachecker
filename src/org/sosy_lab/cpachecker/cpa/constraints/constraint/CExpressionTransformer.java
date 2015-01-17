@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -81,7 +81,7 @@ public class CExpressionTransformer extends ExpressionTransformer
         final Type expressionType = pIastBinaryExpression.getExpressionType();
     final Type calculationType = pIastBinaryExpression.getCalculationType();
 
-    final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
+    final SymbolicExpressionFactory factory = SymbolicExpressionFactory.getInstance();
 
     switch (pIastBinaryExpression.getOperator()) {
       case PLUS:
@@ -147,9 +147,9 @@ public class CExpressionTransformer extends ExpressionTransformer
       SymbolicExpression pOperand, Type pExpressionType) {
     switch (pOperator) {
       case MINUS:
-        return ConstraintExpressionFactory.getInstance().negate(pOperand, pExpressionType);
+        return SymbolicExpressionFactory.getInstance().negate(pOperand, pExpressionType);
       case TILDE:
-        return ConstraintExpressionFactory.getInstance().binaryNot(pOperand, pExpressionType);
+        return SymbolicExpressionFactory.getInstance().binaryNot(pOperand, pExpressionType);
       default:
         throw new AssertionError("No arithmetic operator: " + pOperator);
     }

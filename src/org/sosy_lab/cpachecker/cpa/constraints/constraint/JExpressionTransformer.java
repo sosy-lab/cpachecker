@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -90,7 +90,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     final JBinaryExpression.BinaryOperator operator = paBinaryExpression.getOperator();
     final Type expressionType = paBinaryExpression.getExpressionType();
 
-    final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
+    final SymbolicExpressionFactory factory = SymbolicExpressionFactory.getInstance();
 
     switch (operator) {
       case PLUS:
@@ -147,7 +147,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     if (operand == null) {
       return null;
     } else {
-      final ConstraintExpressionFactory factory = ConstraintExpressionFactory.getInstance();
+      final SymbolicExpressionFactory factory = SymbolicExpressionFactory.getInstance();
       final JUnaryExpression.UnaryOperator operator = pAUnaryExpression.getOperator();
       final Type expressionType = pAUnaryExpression.getExpressionType();
 
@@ -190,7 +190,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     final boolean value = pJBooleanLiteralExpression.getValue();
     final Type booleanType = pJBooleanLiteralExpression.getExpressionType();
 
-    return ConstraintExpressionFactory.getInstance().asConstant(createBooleanValue(value), booleanType);
+    return SymbolicExpressionFactory.getInstance().asConstant(createBooleanValue(value), booleanType);
   }
 
   private Value createBooleanValue(boolean pValue) {
@@ -209,7 +209,7 @@ public class JExpressionTransformer extends ExpressionTransformer
 
     final Type nullType = pJNullLiteralExpression.getExpressionType();
 
-    return ConstraintExpressionFactory.getInstance().asConstant(getNullValue(), nullType);
+    return SymbolicExpressionFactory.getInstance().asConstant(getNullValue(), nullType);
   }
 
   private Value getNullValue() {
@@ -221,7 +221,7 @@ public class JExpressionTransformer extends ExpressionTransformer
       throws UnrecognizedCodeException {
     String enumConstant = pJEnumConstantExpression.getConstantName();
     Type enumType = pJEnumConstantExpression.getExpressionType();
-    return ConstraintExpressionFactory.getInstance().asConstant(createEnumValue(enumType, enumConstant), enumType);
+    return SymbolicExpressionFactory.getInstance().asConstant(createEnumValue(enumType, enumConstant), enumType);
   }
 
   private Value createEnumValue(Type pType, String pConstant) {

@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 
 /**
- * An expression used to describe one side of a {@link Constraint}.
+ * An expression containing {@link SymbolicValue}s.
  */
 public abstract class SymbolicExpression implements SymbolicValue {
 
@@ -45,23 +44,23 @@ public abstract class SymbolicExpression implements SymbolicValue {
   public abstract <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor);
 
   /**
-   * Returns the expression type of this <code>ConstraintExpression</code>.
+   * Returns the expression type of this <code>SymbolicExpression</code>.
    *
-   * @return the expression type of this <code>ConstraintExpression</code>
+   * @return the expression type of this <code>SymbolicExpression</code>
    */
   public abstract Type getType();
 
   /**
-   * Returns a copy of this <code>ConstraintExpression</code> object with the given expression type.
+   * Returns a copy of this <code>SymbolicExpression</code> object with the given expression type.
    *
    * @param pType the expression type of the returned object
    */
   public abstract SymbolicExpression copyWithType(Type pType);
 
   /**
-   * Returns whether this <code>ConstraintExpression</code> is always true and does only contain explicit values.
+   * Returns whether this <code>SymbolicExpression</code> is always true and does only contain explicit values.
    *
-   * @return <code>true</code> if this <code>ConstraintExpression</code> is always true and does only contain explicit
+   * @return <code>true</code> if this <code>SymbolicExpression</code> is always true and does only contain explicit
    *    values, <code>false</code> otherwise
    */
   public abstract boolean isTrivial();

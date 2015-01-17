@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstraintExpressionFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -54,13 +54,13 @@ public class ConstraintFactory {
   private String functionName;
   private Optional<ValueAnalysisState> valueState;
   private boolean missingInformation = false;
-  private ConstraintExpressionFactory expressionFactory;
+  private SymbolicExpressionFactory expressionFactory;
 
 
   private ConstraintFactory(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     functionName = pFunctionName;
     valueState = pValueState;
-    expressionFactory = ConstraintExpressionFactory.getInstance();
+    expressionFactory = SymbolicExpressionFactory.getInstance();
   }
 
   public static ConstraintFactory getInstance(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
