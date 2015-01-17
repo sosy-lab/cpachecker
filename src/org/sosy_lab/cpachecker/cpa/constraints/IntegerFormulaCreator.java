@@ -26,13 +26,18 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryOrExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryXorExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanExpression;
@@ -44,18 +49,21 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ModuloExpress
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.MultiplicationExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftRightExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+
+import com.google.common.collect.ForwardingTable;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 /**
  * Creator for {@link Formula}s using only integer values.
@@ -63,16 +71,29 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaMan
 public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   private static final boolean SIGNED = true;
+  private static final String B_AND_FUNC_NAME = "b_and";
+  private static final String B_OR_FUNC_NAME = "b_or";
+  private static final String B_XOR_FUNC_NAME = "b_xor";
+  private static final String B_NOT_FUNC_NAME = "b_not";
+  private static final String SHIFT_RIGHT_FUNC_NAME = "sh_r";
+  private static final String SHIFT_LEFT_FUNC_NAME = "sh_l";
+  private static final String FLOAT_VAR_NAME = "float";
+
 
   private final FormulaManagerView formulaManager;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> numeralFormulaManager;
   private final BooleanFormulaManagerView booleanFormulaManager;
+  private final FunctionFormulaManagerView functionFormulaManager;
+
+  private final FunctionSet declaredFunctions = new FunctionSet();
+
   private int counter = 0;
 
   public IntegerFormulaCreator(FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
     numeralFormulaManager = formulaManager.getIntegerFormulaManager();
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
+    functionFormulaManager = formulaManager.getFunctionFormulaManager();
   }
 
 
@@ -85,30 +106,98 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public IntegerFormula visit(BinaryAndExpression pAnd) {
+  public Formula visit(BinaryAndExpression pAnd) {
     return handleUnsupportedExpression(pAnd);
   }
 
-  private IntegerFormula handleUnsupportedExpression(SymbolicExpression pExpression) {
-    return formulaManager.makeVariable(FormulaType.IntegerType, getVariableNameByExpression(pExpression));
+  private Formula handleUnsupportedExpression(BinarySymbolicExpression pExp) {
+    final Formula leftOperand = pExp.getOperand1().accept(this);
+    final Formula rightOperand = pExp.getOperand2().accept(this);
+
+    final FormulaType<?> expressionType = getFormulaType(pExp.getType());
+    final FormulaType<?> calculationType = getFormulaType(pExp.getCalculationType());
+    final String functionName = getFunctionNameByExpression(pExp);
+
+    UninterpretedFunctionDeclaration<?> functionDeclaration;
+
+    if (!declaredFunctions.contains(functionName, expressionType)) {
+
+      // we pass calculation type two times because we have two arguments
+      functionDeclaration = functionFormulaManager.declareUninterpretedFunction(
+          functionName, expressionType, calculationType, calculationType);
+
+      declaredFunctions.put(functionName, expressionType, functionDeclaration);
+
+    } else {
+      functionDeclaration = declaredFunctions.get(functionName, expressionType);
+    }
+
+    return functionFormulaManager.callUninterpretedFunction(functionDeclaration, leftOperand, rightOperand);
   }
 
-  private String getVariableNameByExpression(SymbolicExpression pExpression) {
-    return pExpression.toString() + counter++;
+  private String getFunctionNameByExpression(SymbolicExpression pExpression) {
+    if (pExpression instanceof BinaryAndExpression) {
+      return B_AND_FUNC_NAME;
+    }
+
+    if (pExpression instanceof BinaryOrExpression) {
+      return B_OR_FUNC_NAME;
+    }
+
+    if (pExpression instanceof BinaryXorExpression) {
+      return B_XOR_FUNC_NAME;
+    }
+
+    if (pExpression instanceof BinaryNotExpression) {
+      return B_NOT_FUNC_NAME;
+    }
+
+    if (pExpression instanceof ShiftLeftExpression) {
+      return SHIFT_LEFT_FUNC_NAME;
+    }
+
+    if (pExpression instanceof ShiftRightExpression) {
+      return SHIFT_RIGHT_FUNC_NAME;
+    }
+
+    throw new AssertionError("Unexpected expression " + pExpression);
   }
 
   @Override
-  public IntegerFormula visit(BinaryNotExpression pNot) {
+  public Formula visit(BinaryNotExpression pNot) {
     return handleUnsupportedExpression(pNot);
   }
 
+  private Formula handleUnsupportedExpression(UnarySymbolicExpression pExp) {
+    final Formula operand = pExp.getOperand().accept(this);
+
+    final FormulaType<?> expressionType = getFormulaType(pExp.getType());
+    final String functionName = getFunctionNameByExpression(pExp);
+
+    UninterpretedFunctionDeclaration<?> functionDeclaration;
+
+    if (!declaredFunctions.contains(functionName, expressionType)) {
+
+      // we pass calculation type two times because we have two arguments
+      functionDeclaration = functionFormulaManager.declareUninterpretedFunction(
+          functionName, expressionType, expressionType);
+
+      declaredFunctions.put(functionName, expressionType, functionDeclaration);
+
+    } else {
+      functionDeclaration = declaredFunctions.get(functionName, expressionType);
+    }
+
+    return functionFormulaManager.callUninterpretedFunction(functionDeclaration, operand);
+  }
+
   @Override
-  public IntegerFormula visit(BinaryOrExpression pOr) {
+  public Formula visit(BinaryOrExpression pOr) {
     return handleUnsupportedExpression(pOr);
   }
 
   @Override
-  public IntegerFormula visit(BinaryXorExpression pXor) {
+  public Formula visit(BinaryXorExpression pXor) {
     return handleUnsupportedExpression(pXor);
   }
 
@@ -124,7 +213,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
       if (doubleValue % 1 == 0 && longValue == doubleValue) {
         return numeralFormulaManager.makeNumber(valueAsNumeric.longValue());
       } else {
-        return handleUnsupportedExpression(pConstant);
+        return handleFloatValue(pConstant);
       }
 
     } else if (value instanceof BooleanValue) {
@@ -135,6 +224,11 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     }
 
     return null; // if we can't handle it, 'abort'
+  }
+
+  private Formula handleFloatValue(ConstantSymbolicExpression pExpression) {
+    return formulaManager.makeVariable(getFormulaType(pExpression.getType()),
+                                       FLOAT_VAR_NAME + counter++);
   }
 
   @Override
@@ -184,7 +278,10 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(LogicalOrExpression pExpression) {
-    return handleUnsupportedExpression(pExpression);
+    final BooleanFormula op1 = (BooleanFormula) pExpression.getOperand1().accept(this);
+    final BooleanFormula op2 = (BooleanFormula) pExpression.getOperand2().accept(this);
+
+    return booleanFormulaManager.and(op1, op2);
   }
 
   @Override
@@ -235,12 +332,24 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public IntegerFormula visit(ShiftLeftExpression pShiftLeft) {
+  public Formula visit(ShiftLeftExpression pShiftLeft) {
     return handleUnsupportedExpression(pShiftLeft);
   }
 
   @Override
-  public IntegerFormula visit(ShiftRightExpression pShiftRight) {
+  public Formula visit(ShiftRightExpression pShiftRight) {
     return handleUnsupportedExpression(pShiftRight);
+  }
+
+  private static class FunctionSet
+      extends ForwardingTable<String, FormulaType<?>, UninterpretedFunctionDeclaration<?>> {
+
+    private Table<String, FormulaType<?>, UninterpretedFunctionDeclaration<?>> functionTable
+        = HashBasedTable.create();
+
+    @Override
+    protected Table<String, FormulaType<?>, UninterpretedFunctionDeclaration<?>> delegate() {
+      return functionTable;
+    }
   }
 }
