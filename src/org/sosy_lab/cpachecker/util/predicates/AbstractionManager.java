@@ -90,7 +90,7 @@ public final class AbstractionManager {
   // and mapping partition ID -> set of predicate variables covered by partition
   private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
   private final boolean reorderWithFrameworkStrategy = false;
-  private final boolean insertRandomly = true;
+  private final boolean insertRandomly = false;
 
   private final Map<Region, BooleanFormula> toConcreteCache;
   private volatile int numberOfPredicates = 0;
@@ -169,7 +169,7 @@ public final class AbstractionManager {
     // this is the case if the new predicate contains just "false" or "true"
     // create an own partition for that
     if (predVars.isEmpty()) {
-      firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
+      firstPartition = new PredicatePartitionSimilarity(fmgr, solver, logger);
       predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
       partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<String>());
     } else {
@@ -191,7 +191,7 @@ public final class AbstractionManager {
           predVarsCoveredByPartition.addAll(partitionIDToPredVars.get(nextPartition.getPartitionID()));
         }
       } else {
-        firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
+        firstPartition = new PredicatePartitionSimilarity(fmgr, solver, logger);
       }
 
       // update predicate variables covered by the new partition
