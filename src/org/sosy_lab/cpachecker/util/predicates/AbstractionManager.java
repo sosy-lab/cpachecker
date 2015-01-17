@@ -89,7 +89,7 @@ public final class AbstractionManager {
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
   private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
-  private final boolean reorderWithFrameworkStrategy = false;
+  private final boolean reorderWithFrameworkStrategy = true;
   private final boolean insertRandomly = false;
 
   private final Map<Region, BooleanFormula> toConcreteCache;
