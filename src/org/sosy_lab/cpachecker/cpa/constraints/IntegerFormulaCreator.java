@@ -23,9 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -233,7 +237,11 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(SymbolicIdentifier pValue) {
-    return formulaManager.makeVariable(getFormulaType(pValue.getType()), pValue.toString());
+    return formulaManager.makeVariable(getFormulaType(pValue.getType()), getVariableName(pValue));
+  }
+
+  private String getVariableName(SymbolicIdentifier pValue) {
+    return IdentifierConverter.getInstance().convert(pValue);
   }
 
   private FormulaType<?> getFormulaType(Type pType) {
@@ -339,6 +347,54 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   @Override
   public Formula visit(ShiftRightExpression pShiftRight) {
     return handleUnsupportedExpression(pShiftRight);
+  }
+
+  @Override
+  public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment) {
+    Formula variable = createVariable(pTerm);
+
+    final FormulaType<?> type = getFormulaType(pTerm.getType());
+    Formula rightFormula;
+
+    if (termAssignment instanceof Number) {
+      assert type.isIntegerType();
+
+      if (termAssignment instanceof Long) {
+        rightFormula = numeralFormulaManager.makeNumber((Long) termAssignment);
+      } else if (termAssignment instanceof Double) {
+        rightFormula = numeralFormulaManager.makeNumber((Double) termAssignment);
+      } else if (termAssignment instanceof BigInteger) {
+        rightFormula = numeralFormulaManager.makeNumber((BigInteger) termAssignment);
+      } else if (termAssignment instanceof BigDecimal) {
+        rightFormula = numeralFormulaManager.makeNumber((BigDecimal) termAssignment);
+      } else {
+        throw new AssertionError("Unhandled assignment number " + termAssignment);
+      }
+
+    } else {
+      throw new AssertionError("Unhandled assignment object " + termAssignment);
+    }
+
+    return formulaManager.makeEqual(variable, rightFormula);
+  }
+
+  private Formula createVariable(Model.AssignableTerm pTerm) {
+    final String name = pTerm.getName();
+    final FormulaType<?> type = getFormulaType(pTerm.getType());
+
+    return formulaManager.makeVariable(type, name);
+  }
+
+  private FormulaType<?> getFormulaType(Model.TermType pType) {
+    if (pType.equals(Model.TermType.Boolean)) {
+      return FormulaType.BooleanType;
+
+    } else if (pType.equals(Model.TermType.Integer)) {
+      return FormulaType.IntegerType;
+
+    } else {
+      throw new AssertionError("Unexpected term type " + pType);
+    }
   }
 
   private static class FunctionSet

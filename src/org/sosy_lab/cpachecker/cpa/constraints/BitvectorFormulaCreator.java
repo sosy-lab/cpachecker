@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -409,6 +410,56 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     BitvectorFormula formula = pCreator.create(op1, op2, calculationType);
 
     return cast(formula, calculationType, expressionType);
+  }
+
+  @Override
+  public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment) {
+    return null;
+    /*
+    Formula variable = createVariable(pTerm);
+
+    final FormulaType<?> type = getFormulaType(pTerm.getType());
+    Formula rightFormula = null;
+
+    if (termAssignment instanceof Number) {
+      assert type.isIntegerType();
+
+      if (termAssignment instanceof Long) {
+        rightFormula = bitvectorFormulaManager.makeNumber((Long) termAssignment);
+      } else if (termAssignment instanceof Double) {
+        rightFormula = bitvectorFormulaManager.makeNumber((Double) termAssignment);
+      } else if (termAssignment instanceof BigInteger) {
+        rightFormula = bitvectorFormulaManager.makeNumber((BigInteger) termAssignment);
+      } else if (termAssignment instanceof BigDecimal) {
+        rightFormula = bitvectorFormulaManager.makeNumber((BigDecimal) termAssignment);
+      } else {
+        throw new AssertionError("Unhandled assignment number " + termAssignment);
+      }
+
+    } else {
+      throw new AssertionError("Unhandled assignment object " + termAssignment);
+    }
+
+    return formulaManager.makeEqual(variable, rightFormula); */
+  }
+
+  private Formula createVariable(Model.AssignableTerm pTerm) {
+    final String name = pTerm.getName();
+    final FormulaType<?> type = getFormulaType(pTerm.getType());
+
+    return formulaManager.makeVariable(type, name);
+  }
+
+  private FormulaType<?> getFormulaType(Model.TermType pType) {
+    if (pType.equals(Model.TermType.Boolean)) {
+      return FormulaType.BooleanType;
+
+    } else if (pType.equals(Model.TermType.Integer)) {
+      return FormulaType.IntegerType;
+
+    } else {
+      throw new AssertionError("Unexpected term type " + pType);
+    }
   }
 
   private static interface BinaryCreator {

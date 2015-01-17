@@ -180,7 +180,7 @@ public class ConstraintsTransferRelation
       if (pFactory.hasMissingInformation()) {
         // log if we overwrite any information
         if (!missingInformation && missingInformationExpression == null && !missingInformationTruth) {
-          logger.log(Level.INFO, "Overwriting assume information");
+          logger.log(Level.FINER, "Overwriting assume information");
         }
 
         missingInformation = true;
@@ -191,7 +191,7 @@ public class ConstraintsTransferRelation
       }
 
       if (newConstraint.isPresent()) {
-          newState.addConstraint(newConstraint.get());
+        newState.addConstraint(newConstraint.get());
       } else {
         return newState;
       }
@@ -202,6 +202,7 @@ public class ConstraintsTransferRelation
       } else {
         if (newConstraint.isPresent() && newConstraint.get().isTrivial()) {
           return pOldState.copyOf();
+
         } else {
           return newState;
         }

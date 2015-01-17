@@ -24,16 +24,24 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableSet;
@@ -49,8 +57,17 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   private Set<Constraint> constraints;
 
   private Solver solver;
+  private ProverEnvironment prover;
   private FormulaCreator<? extends Formula> formulaCreator;
   private FormulaManagerView formulaManager;
+
+  private Model validAssignment;
+  private IdentifierAssignment definiteAssignment = new IdentifierAssignment();
+
+  /**
+   * Stores whether the constraints stored in this state have changed in the last transfer
+   */
+  private boolean constraintsHaveChanged;
 
   /**
    * Creates a new <code>ConstraintsState</code> object with the given constraints.
@@ -88,7 +105,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
    *
    * @return the constraints stored in this state
    */
-  public Set<Constraint> getConstraints() {
+  protected Set<Constraint> getConstraints() {
     return ImmutableSet.copyOf(constraints);
   }
 
@@ -120,6 +137,8 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
    */
   public void addConstraint(Constraint pConstraint) {
     constraints.add(pConstraint);
+    validAssignment = null;
+    constraintsHaveChanged = true;
   }
 
   public boolean isInitialized() {
@@ -133,7 +152,97 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   }
 
   public boolean isUnsat() throws SolverException, InterruptedException {
-    return !constraints.isEmpty() && solver.isUnsat(getFullFormula());
+    boolean unsat = false;
+
+    try {
+      prover = solver.newProverEnvironmentWithModelGeneration();
+      if (!constraints.isEmpty()) {
+        prover.push(getFullFormula());
+        unsat = prover.isUnsat();
+
+        if (!unsat) {
+          validAssignment = prover.getModel();
+        }
+
+      }
+    } finally {
+      prover.close();
+    }
+
+    return unsat;
+  }
+
+  public boolean hasNewSatisfyingAssignment() {
+    return validAssignment != null && constraintsHaveChanged;
+  }
+
+  public IdentifierAssignment getDefiniteAssignment()
+      throws SolverException, InterruptedException {
+
+    try {
+      prover = solver.newProverEnvironment();
+      prover.push(getFullFormula());
+
+      for (Map.Entry<Model.AssignableTerm, Object> entry : validAssignment.entrySet()) {
+        Model.AssignableTerm term = entry.getKey();
+        Object termAssignment = entry.getValue();
+
+        if (isSymbolicTerm(term)) {
+
+          SymbolicIdentifier identifier = toSymbolicIdentifier(term.getName());
+          Value concreteValue = convertToValue(termAssignment, term.getType());
+
+          if (!definiteAssignment.containsKey(identifier)
+              && isOnlySatisfyingAssignment(term, termAssignment)) {
+
+            definiteAssignment.put(identifier, concreteValue);
+          }
+        }
+      }
+
+      return new IdentifierAssignment(definiteAssignment);
+
+    } finally {
+      prover.close();
+    }
+  }
+
+  private boolean isSymbolicTerm(Model.AssignableTerm pTerm) {
+    return IdentifierConverter.getInstance().isSymbolicEncoding(pTerm.getName());
+  }
+
+  private boolean isOnlySatisfyingAssignment(Model.AssignableTerm pTerm, Object termAssignment) throws SolverException, InterruptedException {
+
+    BooleanFormula prohibitAssignment = solver.getFormulaManager()
+                                       .makeNot(formulaCreator.transformAssignment(pTerm, termAssignment));
+
+    prover.push(prohibitAssignment);
+    boolean isUnsat = prover.isUnsat();
+
+    // remove the just added formula again so we return to the original constraint formula
+    // - other assignments will probably be tested before closing prover.
+    prover.pop();
+
+    return isUnsat;
+  }
+
+  private SymbolicIdentifier toSymbolicIdentifier(String pEncoding) {
+    return IdentifierConverter.getInstance().convert(pEncoding);
+  }
+
+  private Value convertToValue(Object pTermAssignment, Model.TermType pType) {
+    if (pType.equals(Model.TermType.Integer) || pType.equals(Model.TermType.Bitvector)
+        || pType.equals(Model.TermType.FloatingPoint)) {
+      assert pTermAssignment instanceof Number;
+
+      return new NumericValue((Number) pTermAssignment);
+
+    } else if (pType.equals(Model.TermType.Boolean)) {
+      return BooleanValue.valueOf(true);
+
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
   }
 
   private BooleanFormula getFullFormula() {

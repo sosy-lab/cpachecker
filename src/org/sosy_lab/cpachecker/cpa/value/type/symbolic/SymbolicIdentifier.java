@@ -57,7 +57,7 @@ public class SymbolicIdentifier implements SymbolicValue {
 
   private Type type;
 
-  protected SymbolicIdentifier(long pId, Type pType) {
+  public SymbolicIdentifier(long pId, Type pType) {
     id = pId;
     type = pType;
   }
@@ -69,10 +69,11 @@ public class SymbolicIdentifier implements SymbolicValue {
    *
    * @return a new instance of a <code>SymbolicIdentifier</code>
    */
-  static SymbolicIdentifier getInstance(Type pType) {
+  static SymbolicIdentifier getNewIdentifier(Type pType) {
     return new SymbolicIdentifier(nextId++, pType);
   }
 
+  @Override
   public <T> T accept(SymbolicValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
@@ -87,6 +88,10 @@ public class SymbolicIdentifier implements SymbolicValue {
   @Override
   public Type getType() {
     return type;
+  }
+
+  public long getId() {
+    return id;
   }
 
   @Override

@@ -100,8 +100,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
@@ -113,6 +115,8 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
@@ -126,8 +130,11 @@ import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -1309,7 +1316,19 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
+      } else if (ae instanceof ConstraintsState) {
+        result.clear();
+        for (ValueAnalysisState state : toStrengthen) {
+          super.setInfo(element, precision, cfaEdge);
+          Collection<ValueAnalysisState> ret = strengthen((ValueAnalysisState) element, (ConstraintsState) ae);
+          if (ret == null) {
+            result.add(state);
+          } else {
+            result.addAll(ret);
+          }
+        }
       }
+
     }
 
     // Do post processing
@@ -1715,6 +1734,134 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return methodName + "::" + decl.getName();
     }
   }
+
+  private Collection<ValueAnalysisState> strengthen(
+      ValueAnalysisState pStateToStrengthen, ConstraintsState pStrengtheningState) {
+
+    Optional<ValueAnalysisState> newElement = Optional.absent();
+
+    try {
+      if (pStrengtheningState.hasNewSatisfyingAssignment()) {
+        newElement = evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
+      }
+
+    } catch (SolverException | InterruptedException e) {
+      return null;
+    }
+
+    if (newElement == null) {
+      return null;
+    } else if (newElement.isPresent()) {
+      return Collections.singleton(newElement.get());
+    } else {
+      return Collections.emptySet();
+    }
+  }
+
+  private Optional<ValueAnalysisState> evaluateAssignment(
+      IdentifierAssignment pAssignment, ValueAnalysisState pValueState) {
+
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
+    boolean somethingChanged = false;
+
+    for (Map.Entry<? extends SymbolicIdentifier, Value> onlyValidAssignment : pAssignment.entrySet()) {
+      final long identifierId = onlyValidAssignment.getKey().getId();
+      final Value newValue = onlyValidAssignment.getValue();
+
+      for (Map.Entry<MemoryLocation, Value> valueEntry : pValueState.getConstantsMap().entrySet()) {
+        final Value currentValue = valueEntry.getValue();
+        final MemoryLocation memLoc = valueEntry.getKey();
+        final Type storageType = pValueState.getTypeForMemoryLocation(memLoc);
+
+        if (currentValue instanceof SymbolicIdentifier
+            && ((SymbolicIdentifier) currentValue).getId() == identifierId) {
+
+          // if the current variable can never obtain the only valid value, the path is infeasible
+          if (isValueOutOfTypeBounds(newValue, storageType)) {
+            return Optional.absent();
+          }
+
+          newElement.assignConstant(memLoc, newValue, storageType);
+          somethingChanged = true;
+
+        } else if (currentValue instanceof SymbolicExpression) {
+
+        }
+      }
+    }
+
+    if (somethingChanged) {
+      return Optional.of(newElement);
+    } else {
+      return null;
+    }
+  }
+
+  private boolean isValueOutOfTypeBounds(Value pValue, Type pType) {
+    if (pType instanceof JSimpleType) {
+      return isValueOutOfJTypeBounds(pValue, (JSimpleType) pType);
+
+    } else {
+      assert pType instanceof CSimpleType;
+
+      return isValueOutOfCTypeBounds(pValue, (CSimpleType) pType);
+    }
+  }
+
+  private boolean isValueOutOfJTypeBounds(Value pValue, JSimpleType pType) {
+    final JBasicType basicType = pType.getType();
+
+    if (basicType == JBasicType.BOOLEAN) {
+      assert pValue instanceof BooleanValue;
+      return false;
+
+    } else if (basicType.isFloatingPointType()) {
+      if (basicType == JBasicType.DOUBLE) {
+        return true;
+      } else {
+        final double concreteValue = ((NumericValue) pValue).doubleValue();
+        float castValue = (float) concreteValue;
+
+        return concreteValue == castValue;
+      }
+    } else {
+      assert basicType.isIntegerType();
+      final long concreteValue = pValue.asNumericValue().longValue();
+
+      switch (basicType) {
+        case BYTE:
+          return concreteValue == ((byte) concreteValue);
+        case SHORT:
+          return concreteValue == ((short) concreteValue);
+        case CHAR:
+          return concreteValue == ((char) concreteValue);
+        case INT:
+          return concreteValue == ((int) concreteValue);
+        case LONG:
+          return true;
+
+        default:
+          throw new AssertionError("Unexpected type " + pType.getType() + " for integer value");
+      }
+    }
+  }
+
+  private boolean isValueOutOfCTypeBounds(Value pValue, CSimpleType pType) {
+    final CBasicType basicType = pType.getType();
+
+    if (basicType.isFloatingPointType()) {
+      return false; // we can't handle this easily, as C float values can't be easily represented as bits
+    } else {
+      assert basicType.isIntegerType();
+
+      final BigInteger concreteValue = BigInteger.valueOf(pValue.asNumericValue().longValue());
+      final BigInteger maxValue = machineModel.getMaximalIntegerValue(pType);
+      final BigInteger minValue = machineModel.getMinimalIntegerValue(pType);
+
+      return concreteValue.compareTo(minValue) < 0 || maxValue.compareTo(concreteValue) < 0;
+    }
+  }
+
 
   private static class MissingInformation {
 

@@ -68,7 +68,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
 
-    return SymbolicIdentifier.getInstance(pType);
+    return SymbolicIdentifier.getNewIdentifier(pType);
   }
 
   public SymbolicValue createAddition(

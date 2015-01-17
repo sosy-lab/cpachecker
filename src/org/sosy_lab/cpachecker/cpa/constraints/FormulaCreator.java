@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
@@ -34,4 +36,5 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * @param T concrete {@link Formula} type the implementation creates
  */
 public interface FormulaCreator<T extends Formula> extends ConstraintVisitor<T>, SymbolicValueVisitor<T> {
+  BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment);
 }
