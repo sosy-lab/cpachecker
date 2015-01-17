@@ -56,6 +56,7 @@ public class PredicatePartitionFrequency extends PredicatePartition {
    * @param newPred the new predicate to be inserted in the partition
    */
   public void insertPredicate(AbstractionPredicate newPred) {
+    this.varIDToPredicate.put(newPred.getVariableNumber(), newPred);
     predicatesSortedByVarFrequency.add(newPred);
   }
 

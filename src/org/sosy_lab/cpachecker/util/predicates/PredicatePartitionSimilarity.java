@@ -51,6 +51,7 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
    * @param newPred the new predicate that should be inserted.
    */
   public void insertPredicate(AbstractionPredicate newPred) {
+    this.varIDToPredicate.put(newPred.getVariableNumber(), newPred);
     // first update the predicate similarities
     updatePredicateSimilarities(newPred);
 

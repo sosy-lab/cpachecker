@@ -49,6 +49,7 @@ public class PredicatePartitionRevImplication extends PredicatePartition {
    * @param newPred the predicate that should be inserted.
    */
   public void insertPredicate(AbstractionPredicate newPred) {
+    this.varIDToPredicate.put(newPred.getVariableNumber(), newPred);
     // solver does caching
     // find lowest position of a predicate that is implied by newPred, insert newPred before that predicate
     int lowestImplier = this.predicates.size();

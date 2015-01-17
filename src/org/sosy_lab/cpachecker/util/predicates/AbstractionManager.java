@@ -90,7 +90,7 @@ public final class AbstractionManager {
   // and mapping partition ID -> set of predicate variables covered by partition
   private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
   private final boolean reorderWithFrameworkStrategy = false;
-  private final boolean insertRandomly = false;
+  private final boolean insertRandomly = true;
 
   private final Map<Region, BooleanFormula> toConcreteCache;
   private volatile int numberOfPredicates = 0;
@@ -139,11 +139,13 @@ public final class AbstractionManager {
       atomToPredicate.put(atom, result);
       varIDToPredicate.put(numberOfPredicates, result);
 
-      if (insertRandomly) {
-        int randomIndex = new Random().nextInt(randomListOfVarIDs.size() + 1);
-        randomListOfVarIDs.add(randomIndex, numberOfPredicates);
-      } else {
-        updatePartitions(result);
+      if (!reorderWithFrameworkStrategy) {
+        if (insertRandomly) {
+          int randomIndex = new Random().nextInt(randomListOfVarIDs.size() + 1);
+          randomListOfVarIDs.add(randomIndex, numberOfPredicates);
+        } else {
+          updatePartitions(result);
+        }
       }
 
       numberOfPredicates++;
@@ -207,23 +209,25 @@ public final class AbstractionManager {
    * Reorders the BDD variables.
    */
   public void reorderPredicates() {
-    ArrayList<Integer> predicateOrdering = new ArrayList<>();
     if (reorderWithFrameworkStrategy) {
       rmgr.reorder();
-    }else if (insertRandomly) {
-      predicateOrdering.addAll(randomListOfVarIDs);
     } else {
-      HashSet<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
-      for (PredicatePartition partition : partitions) {
+      ArrayList<Integer> predicateOrdering = new ArrayList<>();
+      if (insertRandomly) {
+        predicateOrdering.addAll(randomListOfVarIDs);
+      } else {
+        HashSet<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
+        for (PredicatePartition partition : partitions) {
           List<AbstractionPredicate> predicates = partition.getPredicates();
 
           for (AbstractionPredicate predicate : predicates) {
             predicateOrdering.add(predicate.getVariableNumber());
           }
+        }
       }
-    }
 
-    rmgr.setVarOrder(predicateOrdering);
+      rmgr.setVarOrder(predicateOrdering);
+    }
   }
 
   /**
