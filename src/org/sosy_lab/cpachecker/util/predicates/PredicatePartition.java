@@ -93,7 +93,38 @@ public abstract class PredicatePartition {
    */
   public HashMap<Integer, AbstractionPredicate> getVarIDToPredicate() { return varIDToPredicate; }
 
-  public boolean equals(PredicatePartition otherPartition) {
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + partitionID;
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null) {
+      return false;
+    }
+    if (!(object instanceof PredicatePartition)) {
+      return false;
+    }
+    PredicatePartition otherPartition = (PredicatePartition) object;
     return this.partitionID == otherPartition.getPartitionID();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append('{');
+    for (AbstractionPredicate predicate : getPredicates()) {
+      sb.append(predicate.getVariableNumber());
+      sb.append(',');
+    }
+    sb.append('}');
+    return sb.toString();
   }
 }

@@ -55,11 +55,13 @@ public class PredicatePartitionFrequency extends PredicatePartition {
    *
    * @param newPred the new predicate to be inserted in the partition
    */
+  @Override
   public void insertPredicate(AbstractionPredicate newPred) {
     this.varIDToPredicate.put(newPred.getVariableNumber(), newPred);
     predicatesSortedByVarFrequency.add(newPred);
   }
 
+  @Override
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID()) {
       // merge the mappings varIDToPredicate of the two partitions.
@@ -73,13 +75,14 @@ public class PredicatePartitionFrequency extends PredicatePartition {
     return this;
   }
 
+  @Override
   public List<AbstractionPredicate> getPredicates() {
     if (predicatesSortedByVarFrequency.size() != 0) {
       while (!predicatesSortedByVarFrequency.isEmpty()) {
         predicates.add(predicatesSortedByVarFrequency.poll());
       }
     }
-
     return predicates;
   }
+
 }

@@ -50,6 +50,7 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
    *
    * @param newPred the new predicate that should be inserted.
    */
+  @Override
   public void insertPredicate(AbstractionPredicate newPred) {
     this.varIDToPredicate.put(newPred.getVariableNumber(), newPred);
     // first update the predicate similarities
@@ -80,6 +81,7 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
     }
   }
 
+  @Override
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID() && newPreds instanceof PredicatePartitionSimilarity) {
       PredicatePartitionSimilarity newPartition = (PredicatePartitionSimilarity) newPreds;
@@ -126,4 +128,5 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
 
     similarityRelation.put(varIDNewPredicate, similarities);
   }
+
 }

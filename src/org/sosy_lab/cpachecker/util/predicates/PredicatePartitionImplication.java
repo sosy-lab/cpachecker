@@ -48,6 +48,7 @@ public class PredicatePartitionImplication extends PredicatePartition {
    *
    * @param newPred the predicate that should be inserted.
    */
+  @Override
   public void insertPredicate(AbstractionPredicate newPred) {
     this.varIDToPredicate.put(newPred.getVariableNumber(), newPred);
     // solver does caching
@@ -76,6 +77,7 @@ public class PredicatePartitionImplication extends PredicatePartition {
     this.predicates.add(lowestImplied, newPred);
   }
 
+  @Override
   public PredicatePartition merge(PredicatePartition newPreds) {
     if (this.partitionID != newPreds.getPartitionID()) {
       // merge the mappings varIDToPredicate of the two partitions.
