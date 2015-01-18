@@ -191,7 +191,7 @@ public class ConstraintsTransferRelation
       }
 
       if (newConstraint.isPresent()) {
-        newState.addConstraint(newConstraint.get());
+        newState.add(newConstraint.get());
       } else {
         return newState;
       }
