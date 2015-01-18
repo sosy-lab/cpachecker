@@ -164,6 +164,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
           validAssignment = prover.getModel();
         }
 
+        constraintsHaveChanged = false;
       }
     } finally {
       prover.close();
