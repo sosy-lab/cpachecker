@@ -90,7 +90,7 @@ public final class AbstractionManager {
   private PredicatePartition partition;
   private final boolean reorderWithFrameworkStrategy = false;
   private final boolean insertRandomly = false;
-  private final boolean singlePartitionOnly = false;
+  private final boolean singlePartitionOnly = true;
   private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
