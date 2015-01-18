@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -113,10 +112,36 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
     return formulaCreator;
   }
 
+  /**
+   * Join this <code>ConstraintsState</code> with the given one.
+   *
+   * Join is defined as the intersection of both states.
+   *
+   * @param other the state to join this state with
+   *
+   * @return the join (that is, intersection) of both states
+   */
   @Override
-  public ConstraintsState join(ConstraintsState other) throws CPAException {
-    // we currently use merge^sep
-    throw new UnsupportedOperationException();
+  public ConstraintsState join(ConstraintsState other) {
+    ConstraintsState newState = new ConstraintsState();
+
+    final Set<Constraint> otherConstraints = other.getConstraints();
+
+    if (constraints.size() < otherConstraints.size()) {
+      for (Constraint c : constraints) {
+        if (otherConstraints.contains(c)) {
+          newState.addConstraint(c);
+        }
+      }
+    } else {
+      for (Constraint c : otherConstraints) {
+        if (constraints.contains(c)) {
+          newState.addConstraint(c);
+        }
+      }
+    }
+
+    return newState;
   }
 
   /**
