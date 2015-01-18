@@ -1314,7 +1314,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       } else if (ae instanceof ConstraintsState) {
         result.clear();
 
-        ConstraintsStrengthenOperator strengthenOperator = ConstraintsStrengthenOperator.getInstance(machineModel);
+        ConstraintsStrengthenOperator strengthenOperator = ConstraintsStrengthenOperator.getInstance(machineModel, logger);
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           Collection<ValueAnalysisState> ret =
