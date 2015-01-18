@@ -82,15 +82,16 @@ public final class AbstractionManager {
   // and the mapping varID -> predicate
   private final Map<Integer, AbstractionPredicate> varIDToPredicate = Maps.newHashMap();
 
-  private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
-
   // Properties for BDD variable ordering:
   // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
   private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
-  private final boolean reorderWithFrameworkStrategy = true;
+  private PredicatePartition partition;
+  private final boolean reorderWithFrameworkStrategy = false;
   private final boolean insertRandomly = false;
+  private final boolean singlePartitionOnly = false;
+  private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
   private volatile int numberOfPredicates = 0;
@@ -107,6 +108,7 @@ public final class AbstractionManager {
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     solver = pSolver;
+    this.partition = new PredicatePartitionImplication(fmgr, solver, logger);
 
     if (useCache) {
       toConcreteCache = new HashMap<>();
@@ -143,6 +145,8 @@ public final class AbstractionManager {
         if (insertRandomly) {
           int randomIndex = new Random().nextInt(randomListOfVarIDs.size() + 1);
           randomListOfVarIDs.add(randomIndex, numberOfPredicates);
+        } else if (singlePartitionOnly) {
+          this.partition.insertPredicate(result);
         } else {
           updatePartitions(result);
         }
@@ -212,9 +216,14 @@ public final class AbstractionManager {
     if (reorderWithFrameworkStrategy) {
       rmgr.reorder();
     } else {
-      ArrayList<Integer> predicateOrdering = new ArrayList<>();
+      ArrayList<Integer> predicateOrdering = new ArrayList<>(numberOfPredicates);
       if (insertRandomly) {
         predicateOrdering.addAll(randomListOfVarIDs);
+      } else if (singlePartitionOnly) {
+        List<AbstractionPredicate> predicates = partition.getPredicates();
+        for (AbstractionPredicate predicate : predicates) {
+          predicateOrdering.add(predicate.getVariableNumber());
+        }
       } else {
         HashSet<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
         for (PredicatePartition partition : partitions) {
