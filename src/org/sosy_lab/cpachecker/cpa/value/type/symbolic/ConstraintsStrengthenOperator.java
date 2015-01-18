@@ -32,40 +32,15 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
-import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.AdditionExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryAndExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryOrExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryXorExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.DivisionExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LessThanOrEqualExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalAndExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalOrExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ModuloExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.MultiplicationExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftLeftExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftRightExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 import com.google.common.base.Optional;
@@ -143,7 +118,8 @@ public class ConstraintsStrengthenOperator {
         final Type storageType = pValueState.getTypeForMemoryLocation(memLoc);
 
         if (currentValue instanceof SymbolicValue) {
-          IdentifierReplacer replacer = new IdentifierReplacer(identifierToReplace, newIdentifierValue);
+          IdentifierReplacer replacer = new IdentifierReplacer(identifierToReplace, newIdentifierValue,
+              machineModel, logger);
 
           Value valueAfterReplacingIdentifier = ((SymbolicValue) currentValue).accept(replacer);
 
