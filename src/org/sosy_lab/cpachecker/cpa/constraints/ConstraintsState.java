@@ -60,7 +60,6 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   private FormulaCreator<? extends Formula> formulaCreator;
   private FormulaManagerView formulaManager;
 
-  private Model validAssignment;
   private IdentifierAssignment definiteAssignment = new IdentifierAssignment();
 
   /**
@@ -167,7 +166,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    */
   @Override
   public boolean add(Constraint pConstraint) {
-    validAssignment = null;
+    definiteAssignment = null;
     constraintsHaveChanged = true;
     return super.add(pConstraint);
   }
@@ -190,12 +189,14 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
       if (!constraints.isEmpty()) {
         prover.push(getFullFormula());
         unsat = prover.isUnsat();
+        constraintsHaveChanged = false;
 
         if (!unsat) {
-          validAssignment = prover.getModel();
+          // doing this while the complete formula is still on the prover environment stack is
+          // cheaper than performing another complete SAT check when the assignment is really requested
+          definiteAssignment = getDefiniteAssignment();
         }
 
-        constraintsHaveChanged = false;
       }
     } finally {
       prover.close();
@@ -206,17 +207,31 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   }
 
   public boolean hasNewSatisfyingAssignment() {
-    return validAssignment != null && constraintsHaveChanged;
+    return definiteAssignment != null && constraintsHaveChanged;
   }
 
   public IdentifierAssignment getDefiniteAssignment()
       throws SolverException, InterruptedException {
 
+    if (definiteAssignment != null) {
+      return definiteAssignment;
+    }
+
     try {
-      if (prover == null) {
-        prover = solver.newProverEnvironment();
+      Model validAssignment;
+
+      if (prover == null || constraintsHaveChanged) {
+        // depending on the solver, this might result in an exception if the previous prover was not closed properly
+        prover = solver.newProverEnvironmentWithModelGeneration();
         prover.push(getFullFormula());
+
+        // we have to perform a sat check so an up-to-date model gets created
+        if (prover.isUnsat()) {
+          return null;
+        }
       }
+
+      validAssignment = prover.getModel();
 
       for (Map.Entry<Model.AssignableTerm, Object> entry : validAssignment.entrySet()) {
         Model.AssignableTerm term = entry.getKey();
