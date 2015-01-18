@@ -67,6 +67,8 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    */
   private boolean constraintsHaveChanged;
 
+  private boolean hasNewAssignment;
+
   /**
    * Creates a new <code>ConstraintsState</code> object with the given constraints.
    *
@@ -166,7 +168,6 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    */
   @Override
   public boolean add(Constraint pConstraint) {
-    definiteAssignment = null;
     constraintsHaveChanged = true;
     return super.add(pConstraint);
   }
@@ -189,72 +190,58 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
       if (!constraints.isEmpty()) {
         prover.push(getFullFormula());
         unsat = prover.isUnsat();
-        constraintsHaveChanged = false;
 
         if (!unsat) {
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really requested
-          definiteAssignment = getDefiniteAssignment();
+          computeDefiniteAssignment();
         }
+
+        constraintsHaveChanged = false;
 
       }
     } finally {
-      prover.close();
-      prover = null;
+      closeProver();
     }
 
     return unsat;
   }
 
+  private void closeProver() {
+    prover.close();
+    prover = null;
+  }
+
+  private void computeDefiniteAssignment() throws SolverException, InterruptedException {
+    Model validAssignment = prover.getModel();
+
+    for (Map.Entry<Model.AssignableTerm, Object> entry : validAssignment.entrySet()) {
+      Model.AssignableTerm term = entry.getKey();
+      Object termAssignment = entry.getValue();
+
+      if (isSymbolicTerm(term)) {
+
+        SymbolicIdentifier identifier = toSymbolicIdentifier(term.getName());
+        Value concreteValue = convertToValue(termAssignment, term.getType());
+
+        if (!definiteAssignment.containsKey(identifier)
+            && isOnlySatisfyingAssignment(term, termAssignment)) {
+
+          definiteAssignment.put(identifier, concreteValue);
+          hasNewAssignment = true;
+        }
+      }
+    }
+  }
+
   public boolean hasNewSatisfyingAssignment() {
-    return definiteAssignment != null && constraintsHaveChanged;
+    return hasNewAssignment;
   }
 
   public IdentifierAssignment getDefiniteAssignment()
       throws SolverException, InterruptedException {
-
-    if (definiteAssignment != null) {
-      return definiteAssignment;
-    }
-
-    try {
-      Model validAssignment;
-
-      if (prover == null || constraintsHaveChanged) {
-        // depending on the solver, this might result in an exception if the previous prover was not closed properly
-        prover = solver.newProverEnvironmentWithModelGeneration();
-        prover.push(getFullFormula());
-
-        // we have to perform a sat check so an up-to-date model gets created
-        if (prover.isUnsat()) {
-          return null;
-        }
-      }
-
-      validAssignment = prover.getModel();
-
-      for (Map.Entry<Model.AssignableTerm, Object> entry : validAssignment.entrySet()) {
-        Model.AssignableTerm term = entry.getKey();
-        Object termAssignment = entry.getValue();
-
-        if (isSymbolicTerm(term)) {
-
-          SymbolicIdentifier identifier = toSymbolicIdentifier(term.getName());
-          Value concreteValue = convertToValue(termAssignment, term.getType());
-
-          if (!definiteAssignment.containsKey(identifier)
-              && isOnlySatisfyingAssignment(term, termAssignment)) {
-
-            definiteAssignment.put(identifier, concreteValue);
-          }
-        }
-      }
-
-      return new IdentifierAssignment(definiteAssignment);
-
-    } finally {
-      prover.close();
-    }
+    hasNewAssignment = false;
+    return new IdentifierAssignment(definiteAssignment);
   }
 
   private boolean isSymbolicTerm(Model.AssignableTerm pTerm) {
