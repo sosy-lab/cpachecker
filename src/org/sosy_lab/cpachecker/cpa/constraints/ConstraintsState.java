@@ -122,12 +122,26 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   /**
    * Returns whether this state is less or equal than another given state.
    *
+   * <p>A <code>ConstraintsState</code> is less or equal another given state, if it is a super set of it.</p>
+   *
    * @param other the other state to check against
    * @return <code>true</code> if this state is less or equal than the given state, <code>false</code> otherwise
    */
   @Override
   public boolean isLessOrEqual(ConstraintsState other) {
-    return false;
+    Set<Constraint> otherConstraints = other.getConstraints();
+
+    if (otherConstraints.size() > constraints.size()) {
+      return false;
+    }
+
+    for (Constraint c : otherConstraints) {
+      if (!constraints.contains(c)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
