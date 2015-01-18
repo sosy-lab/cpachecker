@@ -167,6 +167,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
       }
     } finally {
       prover.close();
+      prover = null;
     }
 
     return unsat;
@@ -180,8 +181,10 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
       throws SolverException, InterruptedException {
 
     try {
-      prover = solver.newProverEnvironment();
-      prover.push(getFullFormula());
+      if (prover == null) {
+        prover = solver.newProverEnvironment();
+        prover.push(getFullFormula());
+      }
 
       for (Map.Entry<Model.AssignableTerm, Object> entry : validAssignment.entrySet()) {
         Model.AssignableTerm term = entry.getKey();
