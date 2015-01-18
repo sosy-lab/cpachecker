@@ -43,12 +43,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ForwardingSet;
 
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState implements LatticeAbstractState<ConstraintsState> {
+public class ConstraintsState extends ForwardingSet<Constraint> implements LatticeAbstractState<ConstraintsState> {
 
   /**
    * Stores identifiers and their corresponding constraints
@@ -87,25 +87,18 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
     constraints = new HashSet<>();
   }
 
+  @Override
+  protected Set<Constraint> delegate() {
+    return constraints;
+  }
+
   /**
    * Returns a new copy of the given <code>ConstraintsState</code> object.
    *
-   * @param pState the state to copy
    * @return a new copy of the given <code>ConstraintsState</code> object
    */
   public ConstraintsState copyOf() {
     return new ConstraintsState(this);
-  }
-
-  /**
-   * Returns the constraints stored in this state.
-   *
-   * <p>A new set is returned, so changing the returned set will not change the constraints in this state.</p>
-   *
-   * @return the constraints stored in this state
-   */
-  protected Set<Constraint> getConstraints() {
-    return ImmutableSet.copyOf(constraints);
   }
 
   protected FormulaCreator<? extends Formula> getFormulaCreator() {
@@ -125,18 +118,16 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   public ConstraintsState join(ConstraintsState other) {
     ConstraintsState newState = new ConstraintsState();
 
-    final Set<Constraint> otherConstraints = other.getConstraints();
-
-    if (constraints.size() < otherConstraints.size()) {
+    if (constraints.size() < other.size()) {
       for (Constraint c : constraints) {
-        if (otherConstraints.contains(c)) {
-          newState.addConstraint(c);
+        if (other.contains(c)) {
+          newState.add(c);
         }
       }
     } else {
-      for (Constraint c : otherConstraints) {
+      for (Constraint c : other) {
         if (constraints.contains(c)) {
-          newState.addConstraint(c);
+          newState.add(c);
         }
       }
     }
@@ -154,13 +145,11 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
    */
   @Override
   public boolean isLessOrEqual(ConstraintsState other) {
-    Set<Constraint> otherConstraints = other.getConstraints();
-
-    if (otherConstraints.size() > constraints.size()) {
+    if (other.size() > constraints.size()) {
       return false;
     }
 
-    for (Constraint c : otherConstraints) {
+    for (Constraint c : other) {
       if (!constraints.contains(c)) {
         return false;
       }
@@ -173,11 +162,14 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
    * Adds the given {@link Constraint} to this state.
    *
    * @param pConstraint the <code>Constraint</code> to add
+   * @return <code>true</code> if this state did not already contain the given <code>Constraint</code>,
+   *    <code>false</code> otherwise
    */
-  public void addConstraint(Constraint pConstraint) {
-    constraints.add(pConstraint);
+  @Override
+  public boolean add(Constraint pConstraint) {
     validAssignment = null;
     constraintsHaveChanged = true;
+    return super.add(pConstraint);
   }
 
   public boolean isInitialized() {
@@ -289,7 +281,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   }
 
   private BooleanFormula getFullFormula() {
-      final Set<Constraint> constraints = getConstraints();
       Formula completeFormula = null;
       Formula currFormula;
 
@@ -312,15 +303,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
       }
 
       return (BooleanFormula) completeFormula;
-  }
-
-  /**
-   * Returns the number of {@link Constraint}s stored in this <code>ConstraintsState</code>.
-   *
-   * @return the number of <code>Constraint</code> objects stored in this state
-   */
-  public int size() {
-    return constraints.size();
   }
 
   @Override

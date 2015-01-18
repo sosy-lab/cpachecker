@@ -69,9 +69,10 @@ public class StackUsingConstraintsState extends ConstraintsState {
   }
 
   @Override
-  public void addConstraint(Constraint pConstraint) {
-    super.addConstraint(pConstraint);
+  public boolean add(Constraint pConstraint) {
+    super.add(pConstraint);
     addToProverEnvironment(pConstraint, getFormulaCreator());
+    return false;
   }
 
   private void addToProverEnvironment(Constraint pConstraint, FormulaCreator<? extends Formula> pFormulaCreator) {
@@ -82,7 +83,7 @@ public class StackUsingConstraintsState extends ConstraintsState {
 
   @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
-    if (getConstraints().isEmpty()) {
+    if (isEmpty()) {
       return false;
     } else {
       return proverEnvironment.isUnsat();
