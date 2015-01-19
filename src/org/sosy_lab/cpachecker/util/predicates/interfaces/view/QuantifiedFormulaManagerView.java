@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
+
+import com.google.common.base.Preconditions;
 
 
 public class QuantifiedFormulaManagerView
@@ -36,11 +40,16 @@ public class QuantifiedFormulaManagerView
   implements QuantifiedFormulaManager {
 
   private final QuantifiedFormulaManager manager;
+  private final BooleanFormulaManagerView bfm;
+  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
-  public QuantifiedFormulaManagerView(FormulaManagerView pViewManager,
+  public QuantifiedFormulaManagerView(
+      FormulaManagerView pViewManager,
       QuantifiedFormulaManager pManager) {
     super(pViewManager);
     this.manager = pManager;
+    this.bfm = pViewManager.getBooleanFormulaManager();
+    this.ifm = pViewManager.getIntegerFormulaManager();
   }
 
   @Override
@@ -48,14 +57,86 @@ public class QuantifiedFormulaManagerView
     return manager.exists(unwrap(pVariables), pBody);
   }
 
+  public <T extends Formula> BooleanFormula exists(T pVariable, BooleanFormula pBody) {
+    return manager.exists(Collections.singletonList(unwrap(pVariable)), pBody);
+  }
+
   @Override
   public BooleanFormula forall(List<? extends Formula> pVariables, BooleanFormula pBody) {
     return manager.forall(unwrap(pVariables), pBody);
   }
 
+  public <T extends Formula> BooleanFormula forall(T pVariable, BooleanFormula pBody) {
+    return manager.forall(Collections.singletonList(unwrap(pVariable)), pBody);
+  }
+
   @Override
   public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
     return manager.eliminateQuantifiers(pF);
+  }
+
+  /**
+   * @return A universal quantified formula for that the quantification
+   *          is restricted to a specific range (an interval.
+   *
+   *          The result is a 'range predicate' (this term is used in
+   *          several papers that describe quantified formulas over arrays).
+   *
+   * @param pVariable     The variable for that the quantification should be restricted to a specific range.
+   * @param pLowerBound   The lower bound of the range (interval; included in the range).
+   * @param pUpperBound   The upper bound of the range (included in the range).
+   * @param pBody         Formula for that the (restricted) quantification is applied.
+   */
+  public <R extends IntegerFormula> BooleanFormula forall (
+      final R pVariable,
+      final R pLowerBound,
+      final R pUpperBound,
+      final BooleanFormula pBody) {
+
+    Preconditions.checkNotNull(pVariable);
+    Preconditions.checkNotNull(pLowerBound);
+    Preconditions.checkNotNull(pUpperBound);
+    Preconditions.checkNotNull(pBody);
+
+    BooleanFormula rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
+
+    return manager.forall(
+        Collections.singletonList(pVariable),
+        bfm.and(pBody, rangeConstraint));
+  }
+
+  /**
+   * @return  An (restricted) existential quantified formula.
+   * @see {@link #forall(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)}
+   */
+  public <R extends IntegerFormula> BooleanFormula exists (
+      final R pVariable,
+      final R pLowerBound,
+      final R pUpperBound,
+      final BooleanFormula pBody) {
+
+    Preconditions.checkNotNull(pVariable);
+    Preconditions.checkNotNull(pLowerBound);
+    Preconditions.checkNotNull(pUpperBound);
+    Preconditions.checkNotNull(pBody);
+
+    BooleanFormula rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
+
+    return manager.exists(
+        Collections.singletonList(pVariable),
+        bfm.and(pBody, rangeConstraint));
+  }
+
+  private <R extends IntegerFormula> BooleanFormula makeRangeConstraint(
+      final R pVariable,
+      final R pLowerBound,
+      final R pUpperBound) {
+
+    BooleanFormula rangeConstraint = bfm.and(
+        ifm.greaterOrEquals(pVariable, pLowerBound),
+        ifm.lessOrEquals(pVariable, pUpperBound));
+
+    return rangeConstraint;
   }
 
 }
