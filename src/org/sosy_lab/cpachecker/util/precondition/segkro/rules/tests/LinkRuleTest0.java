@@ -50,8 +50,6 @@ public class LinkRuleTest0 extends AbstractRuleTest0 {
   private IntegerFormula _x;
   private IntegerFormula _i_plus_1;
   private BooleanFormula _b_at_x_NOTEQ_0;
-  private IntegerFormula _j;
-  private IntegerFormula _k;
 
   @Override
   public void setUp() throws Exception {
@@ -62,8 +60,6 @@ public class LinkRuleTest0 extends AbstractRuleTest0 {
     _0 = ifm.makeNumber(0);
     _1 = ifm.makeNumber(1);
     _i = ifm.makeVariable("i");
-    _j = ifm.makeVariable("j");
-    _k = ifm.makeVariable("k");
     _x = ifm.makeVariable("x");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
@@ -78,23 +74,8 @@ public class LinkRuleTest0 extends AbstractRuleTest0 {
     // forall x in [i+1] . b[x] != 0
     // forall x in [i] .   b[x] != 0
 
-    final BooleanFormula _FORALL_i = qmgr.forall(
-        Lists.newArrayList(_x),
-        bfm.and(
-            Lists.newArrayList(
-              _b_at_x_NOTEQ_0,
-              ifm.greaterOrEquals(_x, _j),
-              ifm.lessOrEquals(_x, _i)
-            )));
-
-    final BooleanFormula _FORALL_i_plus_1 = qmgr.forall(
-        Lists.newArrayList(_x),
-        bfm.and(
-            Lists.newArrayList(
-              _b_at_x_NOTEQ_0,
-              ifm.greaterOrEquals(_x, _i_plus_1),
-              ifm.lessOrEquals(_x, _k)
-            )));
+    final BooleanFormula _FORALL_i_plus_1 = qfm.forall(_x, _i_plus_1, _i_plus_1, _b_at_x_NOTEQ_0);
+    final BooleanFormula _FORALL_i = qfm.forall(_x, _i, _i, _b_at_x_NOTEQ_0);
 
     final Set<BooleanFormula> result = lr.applyWithInputRelatingPremises(
         Lists.newArrayList(
@@ -110,28 +91,12 @@ public class LinkRuleTest0 extends AbstractRuleTest0 {
     // forall x in [0] . b[x] != 0
     // forall x in [1] . b[x] != 0
 
-    final BooleanFormula _FORALL_i = qmgr.forall(
-        Lists.newArrayList(_x),
-        bfm.and(
-            Lists.newArrayList(
-              _b_at_x_NOTEQ_0,
-              ifm.greaterOrEquals(_x, _0),
-              ifm.lessOrEquals(_x, _0)
-            )));
-
-    final BooleanFormula _FORALL_i_plus_1 = qmgr.forall(
-        Lists.newArrayList(_x),
-        bfm.and(
-            Lists.newArrayList(
-              _b_at_x_NOTEQ_0,
-              ifm.greaterOrEquals(_x, _1),
-              ifm.lessOrEquals(_x, _1)
-            )));
+    final BooleanFormula _FORALL_i = qfm.forall(_x, _0, _0, _b_at_x_NOTEQ_0);
+    final BooleanFormula _FORALL_i_plus = qfm.forall(_x, _1, _1, _b_at_x_NOTEQ_0);
 
     final Set<BooleanFormula> result = lr.applyWithInputRelatingPremises(
         Lists.newArrayList(
-            _FORALL_i,
-            _FORALL_i_plus_1));
+            _FORALL_i, _FORALL_i_plus));
 
     assertThat(result).isNotEmpty();
   }

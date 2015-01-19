@@ -279,14 +279,8 @@ public class ExtendRightRuleTest0 extends AbstractRuleTest0 {
     // (< 0 al@1)
     // (forall ((x Int)) (and (not (= (select |copy::b@1| x) 0)) (>= x 0) (<= x 0)))
 
-    IntegerFormula boundVar = ifm.makeVariable("x");
     List<BooleanFormula> input = Lists.newArrayList(
-        qfm.exists(
-            Lists.newArrayList(boundVar),
-            bfm.and(Lists.newArrayList(
-                bfm.not(ifm.equal(afm.select(_b, boundVar),  _0)),
-                ifm.greaterOrEquals(boundVar, _0),
-                ifm.lessOrEquals(boundVar, _0)))),
+        qfm.exists(_x, _0, _0, bfm.not(ifm.equal(afm.select(_b, _x),  _0))),
         ifm.lessThan(_0, _n));
 
     Set<BooleanFormula> result = err.applyWithInputRelatingPremises(input);

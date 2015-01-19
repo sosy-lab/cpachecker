@@ -211,10 +211,10 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
     List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
 
-    assertThat(toStringList(result)).containsAllIn(
-        toStringList(Lists.newArrayList(
+    assertThat(result).containsAllIn(
+        Lists.newArrayList(
             rangePredicate(false, _i, ifm.add(_i, _1)),
-            rangePredicate(false, _i, _al))));
+            rangePredicate(false, _i, _al)));
   }
 
   @Test
@@ -228,10 +228,10 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
     List<BooleanFormula> result = enp.extractNewPreds(wpError);
 
-    assertThat(toStringList(result)).containsAllIn(
-        toStringList(Lists.newArrayList(
+    assertThat(result).containsAllIn(
+        Lists.newArrayList(
             rangePredicate(true, _i, ifm.add(_i, _1)),
-            rangePredicate(true, _i, _al))));
+            rangePredicate(true, _i, _al)));
   }
 
   @Test
@@ -245,11 +245,11 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
     List<BooleanFormula> result = enp.extractNewPreds(wpError);
 
-    assertThat(toStringList(result)).containsAllIn(
-        toStringList(Lists.newArrayList(
+    assertThat(result).containsAllIn(
+        Lists.newArrayList(
             ifm.equal(_al,  _1),
             rangePredicate(true, _0, _1),
-            rangePredicate(true, _0, _al))));
+            rangePredicate(true, _0, _al)));
   }
 
   @Test
@@ -262,10 +262,10 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
     List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
 
-    assertThat(toStringList(result)).containsAllIn(
-        toStringList(Lists.newArrayList(
+    assertThat(result).containsAllIn(
+        Lists.newArrayList(
             rangePredicate(false, _0, _1),
-            rangePredicate(false, _0, _al))));
+            rangePredicate(false, _0, _al)));
   }
 
   @Test

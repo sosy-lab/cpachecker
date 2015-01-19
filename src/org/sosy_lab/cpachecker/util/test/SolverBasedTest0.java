@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.test;
 
 import static com.google.common.truth.TruthJUnit.assume;
 
-import java.util.Collection;
-
 import javax.annotation.Nullable;
 
 import org.junit.After;
@@ -51,8 +49,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.SubjectFactory;
 
@@ -219,18 +215,6 @@ public abstract class SolverBasedTest0 {
             return new ProverEnvironmentSubject(pFs, pFormula);
           }
         };
-  }
-
-  /**
-   * Helper function.
-   * Used in combination with assertThat(toStringList(...a..list...)).contains(...
-   */
-  protected Collection<String> toStringList(Collection<?> pList) {
-    return Collections2.transform(pList, new Function<Object, String>() {
-      @Override
-      public String apply(Object pArg0) {
-        return pArg0.toString();
-      }});
   }
 
 }
