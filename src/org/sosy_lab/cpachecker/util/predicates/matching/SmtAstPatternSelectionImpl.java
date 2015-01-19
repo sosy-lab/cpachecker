@@ -72,7 +72,11 @@ public class SmtAstPatternSelectionImpl implements SmtAstPatternSelection {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    try { SmtAstPatternPrinter.print(sb, this); } catch (IOException e) {}
+    try {
+      SmtAstPatternPrinter.print(sb, this);
+    } catch (IOException e) {
+      throw new AssertionError("StringBuilder threw IOException", e);
+    }
     return sb.toString();
   }
 

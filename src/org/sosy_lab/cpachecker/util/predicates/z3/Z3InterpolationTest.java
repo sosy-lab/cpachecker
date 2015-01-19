@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
+@SuppressWarnings("unused")
 public class Z3InterpolationTest {
   private Z3FormulaManager mgr;
   private Z3IntegerFormulaManager ifmgr;

@@ -50,6 +50,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Tests for the maximization using the Z3 opt branch.
  */
+@SuppressWarnings("unused")
+@SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
 public class Z3MaximizationTest {
 
   private Z3FormulaManager mgr;
@@ -68,7 +70,6 @@ public class Z3MaximizationTest {
     bfmgr = (Z3BooleanFormulaManager) mgr.getBooleanFormulaManager();
   }
 
-  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   @Test public void testUnbounded() throws Exception {
     try (OptEnvironment prover = new Z3OptProver(mgr)) {
       RationalFormula x, obj;
@@ -86,7 +87,6 @@ public class Z3MaximizationTest {
     }
   }
 
-  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   @Test public void testUnfeasible() throws Exception {
     try (OptEnvironment prover = new Z3OptProver(mgr)) {
       RationalFormula x, y;

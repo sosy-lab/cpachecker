@@ -50,6 +50,7 @@ public class FormulaSlicingManager {
    */
   BooleanFormula pointerFormulaSlice(BooleanFormula f) throws InterruptedException {
     Set<String> closure = findClosure(f, new Predicate<String>() {
+      @Override
       public boolean apply(String input) {
         return input.contains(POINTER_ADDR_VAR_NAME);
       }

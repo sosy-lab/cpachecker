@@ -24,11 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.collect.Iterables.getLast;
-import static com.google.common.truth.Truth.*;
+import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,9 +45,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnv
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -108,7 +109,7 @@ public class SolverInterpolationTest extends SolverBasedTest0 {
     T TA = stack.push(A);
     T TB = stack.push(B);
     T TC = stack.push(C);
-    T TD = stack.push(D);
+    stack.push(D);
 
     assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable();
 

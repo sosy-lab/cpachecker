@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
+@SuppressWarnings("unused")
 public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
   private ExtractNewPreds enp;

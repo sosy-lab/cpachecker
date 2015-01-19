@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 
 import com.google.common.collect.Lists;
 
-
+@SuppressWarnings("unused")
 public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
 
   private UniversalizeRule ur;

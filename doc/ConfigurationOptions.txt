@@ -1659,6 +1659,8 @@ cpa.value.symbolicValues = false
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
 
+customInstructions.definitionFile = no default value
+
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
