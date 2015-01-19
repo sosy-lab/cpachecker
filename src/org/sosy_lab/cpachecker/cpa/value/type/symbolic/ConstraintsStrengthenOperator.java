@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 import com.google.common.base.Optional;
 
@@ -84,13 +83,8 @@ public class ConstraintsStrengthenOperator {
 
     Optional<ValueAnalysisState> newElement = Optional.absent();
 
-    try {
-      if (pStrengtheningState.hasNewSatisfyingAssignment()) {
-        newElement = evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
-      }
-
-    } catch (SolverException | InterruptedException e) {
-      return null;
+    if (pStrengtheningState.hasNewSatisfyingAssignment()) {
+      newElement = evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
     }
 
     if (newElement == null) {

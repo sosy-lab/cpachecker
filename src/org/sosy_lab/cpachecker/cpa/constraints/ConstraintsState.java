@@ -238,8 +238,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     return hasNewAssignment;
   }
 
-  public IdentifierAssignment getDefiniteAssignment()
-      throws SolverException, InterruptedException {
+  public IdentifierAssignment getDefiniteAssignment() {
     hasNewAssignment = false;
     return new IdentifierAssignment(definiteAssignment);
   }
