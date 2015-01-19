@@ -112,8 +112,7 @@ public class DeclarationCollectingVisitor extends AExpressionVisitor<Set<ASimple
 
   @Override
   public Set<ASimpleDeclaration> visit(JArrayLengthExpression exp) throws RuntimeException {
-    // TODO it has to be checked whether some other value should be returned for this
-    return Collections.emptySet();
+    return exp.getQualifier().accept(this);
   }
 
   @Override
