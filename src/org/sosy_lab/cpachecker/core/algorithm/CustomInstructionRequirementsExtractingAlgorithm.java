@@ -102,7 +102,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     }
 
     shutdownNotifier.shutdownIfNecessary();
-    logger.log(Level.INFO, "Get custom instruction application in program.");
+    logger.log(Level.INFO, "Get custom instruction applications in program.");
 
     try (BufferedReader br = new BufferedReader(new FileReader(appliedCustomInstructionsDefinition.toFile()))) {
 
