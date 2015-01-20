@@ -23,18 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.collect.ImmutableSet;
 
 
 public class AppliedCustomInstruction {
 
   private final CFANode ciStartNode;
-  private final ImmutableSet<CFANode> ciEndNode;
+  private final Collection<CFANode> ciEndNode;
 
   /**
    * Constructor of AppliedCustomInstruction.
@@ -42,7 +43,7 @@ public class AppliedCustomInstruction {
    * @param pCiStartNode CFANode
    * @param pCiEndNode ImmutableSet
    */
-  public AppliedCustomInstruction (final CFANode pCiStartNode, final ImmutableSet<CFANode> pCiEndNode){
+  public AppliedCustomInstruction (final CFANode pCiStartNode, final Collection<CFANode> pCiEndNode){
     ciStartNode = pCiStartNode;
     ciEndNode = pCiEndNode;
   }

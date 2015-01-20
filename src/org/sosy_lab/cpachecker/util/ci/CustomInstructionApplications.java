@@ -23,24 +23,24 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.collect.ImmutableMap;
-
 
 public class CustomInstructionApplications {
 
-  private final ImmutableMap<CFANode, AppliedCustomInstruction> cis;
+  private final Map<CFANode, AppliedCustomInstruction> cis;
 
   /**
    * Constructor of CustomInstructionApplications
    * @param pCis ImmutableMap
    */
-  public CustomInstructionApplications(final ImmutableMap<CFANode, AppliedCustomInstruction> pCis) {
+  public CustomInstructionApplications(final Map<CFANode, AppliedCustomInstruction> pCis) {
     cis = pCis;
   }
 
