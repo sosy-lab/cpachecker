@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -60,7 +62,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -88,7 +93,7 @@ public class ConstraintsTransferRelation
   private FormulaNumberHandlingType formulaNumberHandling = FormulaNumberHandlingType.INTEGER;
 
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
   private boolean missingInformation = false;
   private AExpression missingInformationExpression = null;
@@ -99,11 +104,13 @@ public class ConstraintsTransferRelation
   private Solver solver;
   private FormulaManagerView formulaManager;
 
-  public ConstraintsTransferRelation(MachineModel pMachineModel, LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
+  public ConstraintsTransferRelation(MachineModel pMachineModel, LogManager pLogger,
+      Configuration pConfig, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+
     pConfig.inject(this);
 
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     initializeSolver(pLogger, pConfig, pShutdownNotifier);
   }
@@ -200,12 +207,11 @@ public class ConstraintsTransferRelation
         return null;
 
       } else {
-        if (newConstraint.isPresent() && newConstraint.get().isTrivial()) {
-          return pOldState.copyOf();
+        assert newConstraint.isPresent();
 
-        } else {
-          return newState;
-        }
+        newState = simplify(newState);
+
+        return newState;
       }
 
     } catch (UnrecognizedCodeException e) {
@@ -314,6 +320,50 @@ public class ConstraintsTransferRelation
 
     return Optional.fromNullable(constraint);
   }
+
+  private ConstraintsState simplify(ConstraintsState pState) {
+    ConstraintsState newState;
+
+    newState = replaceSymbolicIdentifiersWithConcreteValues(pState);
+    newState = removeTrivialConstraints(newState);
+
+    return newState;
+  }
+
+  private ConstraintsState replaceSymbolicIdentifiersWithConcreteValues(ConstraintsState pState) {
+    final IdentifierAssignment definiteAssignment = pState.getDefiniteAssignment();
+
+    if (definiteAssignment.isEmpty()) {
+      return pState;
+    }
+
+    ConstraintsState newState = new ConstraintsState();
+
+    for (Map.Entry<SymbolicIdentifier, Value> entry : definiteAssignment.entrySet()) {
+      final SymbolicIdentifier id = entry.getKey();
+      final Value newValue = entry.getValue();
+
+      ConstraintIdentifierReplacer replacer = new ConstraintIdentifierReplacer(id, newValue, machineModel, logger);
+      for (Constraint c : pState) {
+        newState.add(c.accept(replacer));
+      }
+    }
+
+    return newState;
+  }
+
+  private ConstraintsState removeTrivialConstraints(ConstraintsState pState) {
+    ConstraintsState newState = new ConstraintsState();
+
+    for (Constraint currConstraint : pState) {
+      if (!currConstraint.isTrivial()) {
+        newState.add(currConstraint);
+      }
+    }
+
+    return newState;
+  }
+
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pStateToStrengthen,
