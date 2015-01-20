@@ -108,7 +108,7 @@ public final class AbstractionManager {
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     solver = pSolver;
-    this.partition = new PredicatePartitionImplication(fmgr, solver, logger);
+    this.partition = new PredicatePartitionRevImplication(fmgr, solver, logger);
 
     if (useCache) {
       toConcreteCache = new HashMap<>();
