@@ -421,6 +421,8 @@ class _Worker(threading.Thread):
             currentRun = _Worker.workingQueue.get_nowait()
             try:
                 self.execute(currentRun)
+            except SystemExit as e:
+                logging.critical(e)
             except BaseException as e:
                 logging.exception('Exception during run execution')
             _Worker.workingQueue.task_done()

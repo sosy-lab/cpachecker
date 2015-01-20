@@ -74,16 +74,14 @@ class RunExecutor():
 
         initCgroup(self.cgroupsParents, MEMORY)
         if not self.cgroupsParents[MEMORY]:
-            logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
+            logging.warning('Cannot measure memory consumption without memory cgroup.')
 
         initCgroup(self.cgroupsParents, CPUSET)
 
+        self.cpus = None # to indicate that we cannot limit cores
+        self.memoryNodes = None # to indicate that we cannot limit cores
         cgroupCpuset = self.cgroupsParents[CPUSET]
-        if not cgroupCpuset:
-            self.cpus = None # to indicate that we cannot limit cores
-            self.memoryNodes = None # to indicate that we cannot limit cores
-            logging.warning("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
-        else:
+        if cgroupCpuset:
             # Read available cpus/memory nodes:
             cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
             try:
@@ -122,9 +120,6 @@ class RunExecutor():
 
         # Setup cpuset cgroup if necessary to limit the CPU cores/memory nodes to be used.
         if myCpus is not None:
-            if CPUSET not in cgroups:
-                sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
-
             cgroupCpuset = cgroups[CPUSET]
             myCpusStr = ','.join(map(str, myCpus))
             writeFile(myCpusStr, cgroupCpuset, 'cpuset.cpus')
@@ -132,9 +127,6 @@ class RunExecutor():
             logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpusStr))
 
         if memoryNodes is not None:
-            if CPUSET not in cgroups:
-                sys.exit("Cannot restrict the memory nodes because cgroups are not available.")
-
             cgroupCpuset = cgroups[CPUSET]
             writeFile(','.join(map(str, memoryNodes)), cgroupCpuset, 'cpuset.mems')
             memoryNodesStr = readFile(cgroupCpuset, 'cpuset.mems')
@@ -143,9 +135,6 @@ class RunExecutor():
 
         # Setup memory limit
         if memlimit is not None:
-            if not MEMORY in cgroups:
-                sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
-
             cgroupMemory = cgroups[MEMORY]
 
             limitFile = 'memory.limit_in_bytes'
@@ -411,10 +400,10 @@ class RunExecutor():
 
         if myCpus is not None:
             if self.cpus is None:
-                sys.exit("Cannot limit CPU cores without cpuset cgroup")
+                sys.exit("Cannot limit CPU cores without cpuset cgroup.")
             myCpuCount = len(myCpus)
             if myCpuCount == 0:
-                sys.exit("Cannot execute run without any CPU core")
+                sys.exit("Cannot execute run without any CPU core.")
             if not set(myCpus).issubset(self.cpus):
                 sys.exit("Cores {0} are not allowed to be used".format(list(set(myCpus).difference(self.cpus))))
         else:
@@ -426,12 +415,14 @@ class RunExecutor():
         if memlimit is not None:
             if memlimit <= 0:
                 sys.exit("Invalid memory limit {0}.".format(memlimit))
+            if not self.cgroupsParents[MEMORY]:
+                sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
 
         if memoryNodes is not None:
             if self.memoryNodes is None:
-                sys.exit("Cannot restrict memory nodes without cpuset cgroup")
+                sys.exit("Cannot restrict memory nodes without cpuset cgroup.")
             if len(memoryNodes) == 0:
-                sys.exit("Cannot execute run without any memory node")
+                sys.exit("Cannot execute run without any memory node.")
             if not set(memoryNodes).issubset(self.memoryNodes):
                 sys.exit("Memory nodes {0} are not allowed to be used".format(list(set(memoryNodes).difference(self.memoryNodes))))
 

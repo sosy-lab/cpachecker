@@ -133,7 +133,8 @@ def main(argv=None):
         print("exitsignal=" + str(exitSignal))
     print("walltime=" + str(wallTime) + "s")
     print("cputime=" + str(cpuTime) + "s")
-    print("memory=" + str(memUsage))
+    if memUsage:
+        print("memory=" + str(memUsage))
     if energy:
         print("energy=" + str(energy))
 
