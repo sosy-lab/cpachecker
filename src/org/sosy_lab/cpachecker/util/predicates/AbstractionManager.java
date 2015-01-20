@@ -173,7 +173,7 @@ public final class AbstractionManager {
     // this is the case if the new predicate contains just "false" or "true"
     // create an own partition for that
     if (predVars.isEmpty()) {
-      firstPartition = new PredicatePartitionSimilarity(fmgr, solver, logger);
+      firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
       predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
       partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<String>());
     } else {
@@ -195,7 +195,7 @@ public final class AbstractionManager {
           predVarsCoveredByPartition.addAll(partitionIDToPredVars.get(nextPartition.getPartitionID()));
         }
       } else {
-        firstPartition = new PredicatePartitionSimilarity(fmgr, solver, logger);
+        firstPartition = new PredicatePartitionImplication(fmgr, solver, logger);
       }
 
       // update predicate variables covered by the new partition
