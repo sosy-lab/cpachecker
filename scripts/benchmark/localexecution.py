@@ -106,7 +106,7 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
                 _Worker.workingQueue.put(run)
 
             # create some workers
-            for i in xrange(benchmark.numOfThreads):
+            for i in range(benchmark.numOfThreads):
                 cores = coreAssignment[i] if coreAssignment else None
                 memBanks = memoryAssignment[i] if memoryAssignment else None
                 WORKER_THREADS.append(_Worker(benchmark, cores, memBanks, outputHandler))
@@ -225,14 +225,14 @@ def _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, sibl
         sys.exit("Cannot run {0} benchmarks in parallel with {1} CPU cores each, only {2} CPU cores available. Please reduce the number of threads to {3}.".format(numOfThreads, coreLimit, len(allCpus), len(allCpus) // coreLimit))
 
     package_size = None # Number of cores per package
-    for package, cores in cores_of_package.iteritems():
+    for package, cores in cores_of_package.items():
         if package_size is None:
             package_size = len(cores)
         elif package_size != len(cores):
             sys.exit("Assymetric machine architecture not supported: CPU package {0} has {1} cores, but other package has {2} cores.".format(package, len(cores), package_size)) 
 
     core_size = None # Number of threads per core
-    for core, siblings in siblings_of_core.iteritems():
+    for core, siblings in siblings_of_core.items():
         if core_size is None:
             core_size = len(siblings)
         elif core_size != len(siblings):
@@ -261,11 +261,11 @@ def _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, sibl
     # Third, do the actual core assignment.
     result = []
     used_cores = set()
-    for run in xrange(numOfThreads):
+    for run in range(numOfThreads):
         # this calculation ensures that runs are split evenly across packages
         start_package = (run * packages_per_run) % package_count
         cores = []
-        for package in xrange(start_package, start_package + packages_per_run):
+        for package in range(start_package, start_package + packages_per_run):
             for core in cores_of_package[package]:
                 if core not in cores:
                     cores.extend(c for c in siblings_of_core[core] if not c in used_cores)
