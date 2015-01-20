@@ -35,8 +35,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableSet;
 
 
 public class LinkRule extends PatternBasedRule {
@@ -49,28 +50,22 @@ public class LinkRule extends PatternBasedRule {
   protected void setupPatterns() {
     premises.add(new PatternBasedPremise(
         or(
-          matchForallQuant(
-              and(
-                GenericPatterns.array_at_index_matcher("f", quantified("var1"), PropositionType.ALL),
-                match(">=",
-                    matchAnyWithAnyArgsBind(quantified("x1")),
-                    matchAnyWithAnyArgsBind("j")),
-                match("<=",
-                    matchAnyWithAnyArgsBind(quantified("x1")),
-                    matchAnyWithAnyArgsBind("i"))
-    )))));
+          GenericPatterns.range_predicate_matcher("forall",
+              QuantifierType.FORALL,
+              "f",
+              "i", "j",
+              GenericPatterns.array_at_index_matcher("f", quantified("var1"), PropositionType.ALL))
 
-    premises.add(new PatternBasedPremise(or(
-        matchForallQuant(
-            and(
-              GenericPatterns.array_at_index_matcher("f", quantified("var2"), PropositionType.ALL),
-              match(">=",
-                  matchAnyWithAnyArgsBind(quantified("x2")),
-                  matchAnyWithAnyArgsBind("iPlusOneEq")),
-              match("<=",
-                  matchAnyWithAnyArgsBind(quantified("x2")),
-                  matchAnyWithAnyArgsBind("k"))
-    )))));
+    )));
+
+    premises.add(new PatternBasedPremise(
+        or(
+          GenericPatterns.range_predicate_matcher("forallRight",
+              QuantifierType.FORALL,
+              "f",
+              "iPlusOneEq", "k",
+              GenericPatterns.array_at_index_matcher("f", quantified("var2"), PropositionType.ALL))
+    )));
   }
 
   @Override
@@ -92,11 +87,8 @@ public class LinkRule extends PatternBasedRule {
     final IntegerFormula xNew = ifm.makeVariable("x");
     final BooleanFormula fNew = (BooleanFormula) substituteInParent(xBoundParent, xBound, xNew, f1);
 
-    final BooleanFormula xConstraint =  bfm.and(
-        ifm.greaterOrEquals(xNew, j),
-        ifm.lessOrEquals(xNew, k));
+    return ImmutableSet.of(qfm.forall(xNew, j, k, fNew));
 
-    return Lists.newArrayList(qfm.forall(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
 //    if (pAssignment.containsKey("forall")) {
 //      return Lists.newArrayList(qfm.forall(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
 //    } else {

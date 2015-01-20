@@ -35,9 +35,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableSet;
 
 
 public class ExtendRightRule extends PatternBasedRule {
@@ -52,25 +53,17 @@ public class ExtendRightRule extends PatternBasedRule {
 
     premises.add(new PatternBasedPremise(
         or(
-          matchExistsQuantBind("exists",
-              and(
-                GenericPatterns.array_at_index_matcher("f", quantified("var"), PropositionType.ALL),
-                match(">=",
-                    matchAnyWithAnyArgsBind(quantified("x")),
-                    matchAnyWithAnyArgsBind("i")),
-                match("<=",
-                    matchAnyWithAnyArgsBind(quantified("x")),
-                    matchAnyWithAnyArgsBind("j")))),
+          GenericPatterns.range_predicate_matcher("exists",
+              QuantifierType.EXISTS,
+              "f",
+              "i", "j",
+              GenericPatterns.array_at_index_matcher("f", quantified("var"), PropositionType.ALL)),
 
-          matchForallQuantBind("forall",
-              and(
-                GenericPatterns.array_at_index_matcher("f", quantified("var"), PropositionType.ALL),
-                match(">=",
-                    matchAnyWithAnyArgsBind(quantified("x")),
-                    matchAnyWithAnyArgsBind("i")),
-                match("<=",
-                    matchAnyWithAnyArgsBind(quantified("x")),
-                    matchAnyWithAnyArgsBind("j"))))
+          GenericPatterns.range_predicate_matcher("forall",
+              QuantifierType.FORALL,
+              "f",
+              "i", "j",
+              GenericPatterns.array_at_index_matcher("f", quantified("var"), PropositionType.ALL))
         )));
 
     premises.add(new PatternBasedPremise(
@@ -119,14 +112,10 @@ public class ExtendRightRule extends PatternBasedRule {
     final IntegerFormula xNew = ifm.makeVariable("x");
     final BooleanFormula fNew = (BooleanFormula) substituteInParent(xBoundParent, xBound, xNew, f);
 
-    final BooleanFormula xConstraint =  bfm.and(
-        ifm.greaterOrEquals(xNew, i),
-        ifm.lessOrEquals(xNew, k));
-
     if (pAssignment.containsKey("forall")) {
-      return Lists.newArrayList(qfm.forall(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+      return ImmutableSet.of(qfm.forall(xNew, i, k, fNew));
     } else {
-      return Lists.newArrayList(qfm.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+      return ImmutableSet.of(qfm.exists(xNew, i, k, fNew));
     }
   }
 }

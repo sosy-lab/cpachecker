@@ -29,8 +29,11 @@ import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelectionElement;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
 
 @VisibleForTesting
 public final class GenericPatterns {
@@ -40,6 +43,8 @@ public final class GenericPatterns {
     NEGATIV,
     ALL
   }
+
+
 
   public static SmtAstPattern f_of_x (final String pBindFunctionTo, final String pBindArgTo) {
     return matchAnyBind(pBindFunctionTo,
@@ -128,6 +133,41 @@ public final class GenericPatterns {
 
   public static SmtAstPatternSelection array_at_index_matcher (final String pBindFunctionTo, final SmtAstPatternSelection pIndexMatcher, final PropositionType pPropType) {
     return array_at_index_matcher(pBindFunctionTo, pIndexMatcher, matchAnyWithAnyArgs(), pPropType);
+  }
+
+  public static SmtAstPattern range_predicate_matcher(
+      final String pBindPredicateTo,
+      final QuantifierType pQuantifier,
+      final String pBindArrayFunctionTo,
+      final String pBindLowerBoundTo,
+      final String pBindUpperBoundTo,
+      final SmtAstPatternSelection pBodyProposition) {
+
+    SmtAstPatternSelection rangeConstraintMatcher = and (
+        match(">=",
+            matchAnyWithAnyArgsBind(quantified("?")),
+            matchAnyWithAnyArgsBind(pBindLowerBoundTo)),
+        match("<=",
+            matchAnyWithAnyArgsBind(quantified("?")),
+            matchAnyWithAnyArgsBind(pBindUpperBoundTo)));
+
+    SmtAstPatternSelection bodyMatcher;
+    if (pQuantifier == QuantifierType.FORALL) {
+      bodyMatcher = and(
+          match("or",
+            and(
+                match("not", match("and", rangeConstraintMatcher)),
+                pBodyProposition)));
+    } else {
+      bodyMatcher = concat(
+                rangeConstraintMatcher,
+                and (pBodyProposition));
+    }
+
+    return new SmtQuantificationPattern(
+        Optional.of(pQuantifier),
+        Optional.of(pBindPredicateTo),
+        bodyMatcher);
   }
 
   public static SmtAstPatternSelection array_at_index_matcher (

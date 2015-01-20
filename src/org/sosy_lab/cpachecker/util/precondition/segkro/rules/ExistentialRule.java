@@ -90,13 +90,10 @@ public class ExistentialRule extends PatternBasedRule {
     final BooleanFormula nfPrime = (BooleanFormula) substituteInParent(parentOfI, i, x, nf);
     final BooleanFormula fPrime = (BooleanFormula) substituteInParent(parentOfJ, j, x, f);
 
-    final BooleanFormula xConstraint =  bfm.and(
-        ifm.greaterOrEquals(x, i),
-        ifm.lessOrEquals(x, j));
-
     return Lists.newArrayList(
-        qfm.exists(Lists.newArrayList(x), bfm.and(fPrime, xConstraint)),
-        qfm.exists(Lists.newArrayList(x), bfm.and(nfPrime, xConstraint)));
+        qfm.exists(x, i, j, fPrime),
+        qfm.exists(x, i, j, nfPrime)
+      );
   }
 
 }

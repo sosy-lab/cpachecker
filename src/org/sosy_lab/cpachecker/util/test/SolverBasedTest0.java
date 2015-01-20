@@ -94,7 +94,7 @@ public abstract class SolverBasedTest0 {
   protected FunctionFormulaManager fmgr;
   protected NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
   protected @Nullable NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
-  protected @Nullable QuantifiedFormulaManager qmgr;
+  protected @Nullable QuantifiedFormulaManager qfm;
   protected @Nullable ArrayFormulaManager amgr;
 
   /**
@@ -133,9 +133,9 @@ public abstract class SolverBasedTest0 {
       rmgr = null;
     }
     try {
-      qmgr = mgr.getQuantifiedFormulaManager();
+      qfm = mgr.getQuantifiedFormulaManager();
     } catch (UnsupportedOperationException e) {
-      qmgr = null;
+      qfm = null;
     }
     try {
       amgr = mgr.getArrayFormulaManager();
@@ -164,7 +164,7 @@ public abstract class SolverBasedTest0 {
    */
   protected final void requireQuantifiers() {
     assume().withFailureMessage("Solver " + solverToUse() + " does not support quantifiers")
-            .that(qmgr).isNotNull();
+            .that(qfm).isNotNull();
   }
 
   /**
