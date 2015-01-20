@@ -441,14 +441,14 @@ class RunExecutor():
 
         try:
             logging.debug("executeRun: executing tool.")
-            (returnvalue, wallTime, cpuTime, energy) = \
+            (exitcode, wallTime, cpuTime, energy) = \
                 self._execute(args, outputFileName, cgroups,
                               hardtimelimit, softtimelimit, walltimelimit,
                               myCpuCount, memlimit,
                               environments, workingDir)
 
             logging.debug("executeRun: getting exact measures.")
-            (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
+            (cpuTime, memUsage) = self._getExactMeasures(cgroups, exitcode, wallTime, cpuTime)
 
         finally: # always try to cleanup cgroups, even on sys.exit()
             logging.debug("executeRun: cleaning up CGroups.")
@@ -460,14 +460,24 @@ class RunExecutor():
 
         _reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
 
-        if returnvalue not in [0,1]:
+        if exitcode not in [0,1]:
             logging.debug("executeRun: analysing output for crash-info.")
             _getDebugOutputAfterCrash(outputFileName)
 
         logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
-                      .format(returnvalue, wallTime, cpuTime, memUsage, energy))
+                      .format(exitcode, wallTime, cpuTime, memUsage, energy))
 
-        return (wallTime, cpuTime, memUsage, returnvalue, self._terminationReason, energy)
+        result = {'walltime': wallTime,
+                  'cputime':  cpuTime,
+                  'exitcode': exitcode,
+                  }
+        if memUsage:
+            result['memory'] = memUsage
+        if self._terminationReason:
+            result['terminationReason'] = self._terminationReason
+        if energy:
+            result['energy'] = energy
+        return result
 
     def _setTerminationReason(self, reason):
         self._terminationReason = reason

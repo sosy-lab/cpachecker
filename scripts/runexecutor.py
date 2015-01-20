@@ -104,7 +104,7 @@ def main(argv=None):
     logging.info('Writing output to ' + options.output)
 
     # actual run execution
-    (wallTime, cpuTime, memUsage, exitCode, reason, energy) = \
+    result = \
         executor.executeRun(args=options.args,
                             outputFileName=options.output,
                             hardtimelimit=options.timelimit,
@@ -120,23 +120,25 @@ def main(argv=None):
     # exitCode is a special number:
     # It is a 16bit int of which the lowest 7 bit are the signal number,
     # and the high byte is the real exit code of the process (here 0).
+    exitCode = result['exitcode']
     returnValue = exitCode // 256
     exitSignal = exitCode % 128
 
+    def printOptionalResult(key):
+        if key in result:
+            print(key + "_" + str(result[key]))
+
     # output results
-    if reason:
-        print("terminationreason=" + str(reason))
+    printOptionalResult('terminationreason')
     print("exitcode=" + str(exitCode))
     if (exitSignal == 0) or (returnValue != 0):
         print("returnvalue=" + str(returnValue))
     if exitSignal != 0 :
         print("exitsignal=" + str(exitSignal))
-    print("walltime=" + str(wallTime) + "s")
-    print("cputime=" + str(cpuTime) + "s")
-    if memUsage:
-        print("memory=" + str(memUsage))
-    if energy:
-        print("energy=" + str(energy))
+    print("walltime=" + str(result['walltime']) + "s")
+    print("cputime=" + str(result['cputime']) + "s")
+    printOptionalResult('memory')
+    printOptionalResult('energy')
 
 if __name__ == "__main__":
     sys.exit(main())

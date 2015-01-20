@@ -446,7 +446,7 @@ class _Worker(threading.Thread):
         elif maxLogfileSize == -1:
             maxLogfileSize = None
 
-        (run.wallTime, run.cpuTime, memUsage, returnvalue, terminationReason, energy) = \
+        result = \
             self.runExecutor.executeRun(
                 run.getCmdline(), run.logFile,
                 hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
@@ -457,8 +457,13 @@ class _Worker(threading.Thread):
                 environments=benchmark.getEnvironments(),
                 workingDir=benchmark.workingDirectory(),
                 maxLogfileSize=maxLogfileSize)
-        run.values['memUsage'] = memUsage
-        run.values['energy'] = energy
+
+        run.wallTime = result['walltime']
+        run.cpuTime = result['cputime']
+        if 'memory' in result:
+            run.values['memUsage'] = result['memory']
+        if 'energy' in result:
+            run.values['energy'] = result['energy']
 
         if self.runExecutor.PROCESS_KILLED:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -473,7 +478,7 @@ class _Worker(threading.Thread):
                 pass
             return
 
-        run.afterExecution(returnvalue)
+        run.afterExecution(result['exitcode'])
         self.outputHandler.outputAfterRun(run)
 
 
