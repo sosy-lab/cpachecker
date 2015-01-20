@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -93,8 +93,8 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     _x = ifm.makeVariable("x");
     _b = afm.makeArray("b", FormulaType.IntegerType, FormulaType.IntegerType);
 
-    _b_at_x_eq_1 = ifm.equal(afm.select(_b, ifm.makeNumber(0)), ifm.makeNumber(1));
-    _b_at_x_eq_0 = ifm.equal(afm.select(_b, ifm.makeNumber(0)), ifm.makeNumber(0));
+    _b_at_x_eq_1 = ifm.equal(afm.select(_b, _x), ifm.makeNumber(1));
+    _b_at_x_eq_0 = ifm.equal(afm.select(_b, _x), ifm.makeNumber(0));
 
     _forall_x_bx_1 = qfm.forall(_x, _b_at_x_eq_1);
     _forall_x_bx_0 = qfm.forall(_x, _b_at_x_eq_0);
@@ -102,20 +102,18 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testForallArrayConjunct() throws SolverException, InterruptedException {
-    requireQuantifiers();
-    requireArrays();
 
     BooleanFormula f;
 
     // (forall x . b[x] = 0) AND (b[123] = 1) is UNSAT
-    f = bfm.or(
+    f = bfm.and(
         qfm.forall(_x, _b_at_x_eq_0),
         ifm.equal(afm.select(_b, ifm.makeNumber(123)), ifm.makeNumber(1))
       );
     assertThat(solver.isUnsat(f)).isTrue();
 
     // (forall x . b[x] = 0) AND (b[123] = 0) is SAT
-    f = bfm.or(
+    f = bfm.and(
           qfm.forall(_x, _b_at_x_eq_0),
           ifm.equal(afm.select(_b, ifm.makeNumber(123)), ifm.makeNumber(0))
         );
@@ -124,9 +122,6 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testForallArrayDisjunct() throws SolverException, InterruptedException {
-    requireQuantifiers();
-    requireArrays();
-
     BooleanFormula f;
 
     // (forall x . b[x] = 0) AND (b[123] = 1 OR b[123] = 0) is SAT
@@ -149,9 +144,6 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testNotExistsArrayConjunct() throws SolverException, InterruptedException {
-    requireQuantifiers();
-    requireArrays();
-
     BooleanFormula f;
 
     // (not exists x . not b[x] = 0) AND (b[123] = 1) is UNSAT
@@ -162,34 +154,31 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     assertThat(solver.isUnsat(f)).isTrue();
 
     // (not exists x . not b[x] = 0) AND (b[123] = 0) is SAT
-    f = bfm.and(Lists.newArrayList(
+    f = bfm.and(
         bfm.not(qfm.exists(_x, bfm.not(_b_at_x_eq_0))),
         ifm.equal(afm.select(_b, ifm.makeNumber(123)), ifm.makeNumber(0))
-    ));
-    assertThat(solver.isUnsat(f)).isTrue();
+    );
+    assertThat(solver.isUnsat(f)).isFalse();
 
     // (not exists x . b[x] = 0) AND (b[123] = 0) is UNSAT
-    f = bfm.and(Lists.newArrayList(
+    f = bfm.and(
         bfm.not(qfm.exists(_x, _b_at_x_eq_0)),
         ifm.equal(afm.select(_b, ifm.makeNumber(123)), ifm.makeNumber(0))
-    ));
+    );
     assertThat(solver.isUnsat(f)).isTrue();
   }
 
   @Test
   public void testNotExistsArrayDisjunct() throws SolverException, InterruptedException {
-    requireQuantifiers();
-    requireArrays();
-
     BooleanFormula f;
 
     // (not exists x . not b[x] = 0) AND (b[123] = 1 OR b[123] = 0) is SAT
-    f = bfm.and(Lists.newArrayList(
+    f = bfm.and(
           bfm.not(qfm.exists(_x, bfm.not(_b_at_x_eq_0))),
           bfm.or(
               ifm.equal(afm.select(_b, ifm.makeNumber(123)), ifm.makeNumber(1)),
               ifm.equal(afm.select(_b, ifm.makeNumber(123)), ifm.makeNumber(0))
-        )));
+        ));
     assertThat(solver.isUnsat(f)).isFalse();
 
     // (not exists x . not b[x] = 0) OR (b[123] = 1) is SAT
@@ -202,9 +191,6 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testExistsArrayConjunct() throws SolverException, InterruptedException {
-    requireQuantifiers();
-    requireArrays();
-
     BooleanFormula f;
 
     // (exists x . b[x] = 0) AND (b[123] = 1) is SAT
@@ -216,7 +202,7 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     // (exists x . b[x] = 1) AND  (forall x . b[x] = 0) is UNSAT
     f = bfm.and(
         qfm.exists(_x, _b_at_x_eq_1),
-        _forall_x_bx_1);
+        _forall_x_bx_0);
     assertThat(solver.isUnsat(f)).isTrue();
 
     // (exists x . b[x] = 0) AND  (forall x . b[x] = 0) is SAT
@@ -228,9 +214,6 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testExistsArrayDisjunct() throws SolverException, InterruptedException {
-    requireQuantifiers();
-    requireArrays();
-
     BooleanFormula f;
 
     // (exists x . b[x] = 0) OR  (forall x . b[x] = 1) is SAT
@@ -244,9 +227,6 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testExistsRestrictedRange() throws SolverException, InterruptedException {
-    requireQuantifiers();
-    requireArrays();
-
     BooleanFormula f;
 
     BooleanFormula _exists_10_20_bx_0 = qfm.exists(_x,
@@ -282,9 +262,6 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testForallRestrictedRange() throws SolverException, InterruptedException {
-    requireQuantifiers();
-    requireArrays();
-
     BooleanFormula f;
 
     BooleanFormula _forall_10_20_bx_0 = qfm.forall(_x,
@@ -301,7 +278,7 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     f = bfm.and(
         _forall_10_20_bx_0,
         qfm.forall(_x, _b_at_x_eq_0));
-    assertThat(solver.isUnsat(f)).isFalse();
+    assert_().about(BooleanFormula()).that(f).isSatisfiable();
 
     // (forall x in [10..20] . b[x] = 1) AND (exits x in [15..17] . b[x] = 0) is UNSAT
     f = bfm.and(
@@ -356,7 +333,6 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testContradiction() throws SolverException, InterruptedException {
-    requireQuantifiers();
 
     // forall x . x = x+1  is UNSAT
 
@@ -369,7 +345,6 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
 
   @Test
   public void testSimple() throws SolverException, InterruptedException {
-    requireQuantifiers();
 
     // forall x . x+2 = x+1+1  is SAT
     BooleanFormula f = qfm.forall(_x,

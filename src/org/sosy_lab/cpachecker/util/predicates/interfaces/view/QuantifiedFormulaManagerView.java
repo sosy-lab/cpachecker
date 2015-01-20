@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 
 public class QuantifiedFormulaManagerView
@@ -98,11 +100,11 @@ public class QuantifiedFormulaManagerView
     Preconditions.checkNotNull(pUpperBound);
     Preconditions.checkNotNull(pBody);
 
-    BooleanFormula rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
+    List<BooleanFormula> rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
 
     return manager.forall(
         Collections.singletonList(pVariable),
-        bfm.and(pBody, rangeConstraint));
+        bfm.implication(bfm.and(rangeConstraint), pBody));
   }
 
   /**
@@ -120,23 +122,25 @@ public class QuantifiedFormulaManagerView
     Preconditions.checkNotNull(pUpperBound);
     Preconditions.checkNotNull(pBody);
 
-    BooleanFormula rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
+    List<BooleanFormula> rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
+
+    List<BooleanFormula> bodyPredicates = Lists.newArrayListWithExpectedSize(rangeConstraint.size() + 1);
+    bodyPredicates.addAll(rangeConstraint);
+    bodyPredicates.add(pBody);
 
     return manager.exists(
         Collections.singletonList(pVariable),
-        bfm.and(pBody, rangeConstraint));
+        bfm.and(bodyPredicates));
   }
 
-  private <R extends IntegerFormula> BooleanFormula makeRangeConstraint(
+  private <R extends IntegerFormula> List<BooleanFormula> makeRangeConstraint(
       final R pVariable,
       final R pLowerBound,
       final R pUpperBound) {
 
-    BooleanFormula rangeConstraint = bfm.and(
+    return ImmutableList.of(
         ifm.greaterOrEquals(pVariable, pLowerBound),
         ifm.lessOrEquals(pVariable, pUpperBound));
-
-    return rangeConstraint;
   }
 
 }
