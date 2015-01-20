@@ -56,6 +56,8 @@ def main(argv=None):
                         help="CPU time limit in seconds")
     parser.add_argument("--softtimelimit", type=int, metavar="SECONDS",
                         help='"soft" CPU time limit in seconds')
+    parser.add_argument("--walltimelimit", type=int, metavar="SECONDS",
+                        help='wall time limit in seconds (default is CPU time plus a few seconds)')
     parser.add_argument("--cores", type=util.parseIntList, metavar="N,M-K",
                         help="the list of CPU cores to use")
     parser.add_argument("--memoryNodes", type=util.parseIntList, metavar="N,M-K",
@@ -107,6 +109,7 @@ def main(argv=None):
                             outputFileName=options.output,
                             hardtimelimit=options.timelimit,
                             softtimelimit=options.softtimelimit,
+                            walltimelimit=options.walltimelimit,
                             myCpus=options.cores,
                             memlimit=options.memlimit,
                             memoryNodes=options.memoryNodes,

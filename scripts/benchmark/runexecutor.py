@@ -45,7 +45,7 @@ CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'
 
-_WALLTIME_LIMIT_OVERHEAD = 30 # seconds
+_WALLTIME_LIMIT_DEFAULT_OVERHEAD = 30 # seconds more than cputime limit
 
 
 class RunExecutor():
@@ -173,7 +173,7 @@ class RunExecutor():
         return cgroups
 
 
-    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, workingDir):
+    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, walltimelimit, myCpuCount, memlimit, environments, workingDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -254,7 +254,7 @@ class RunExecutor():
             if hardtimelimit is not None and CPUACCT in cgroups:
                 # Start a timer to periodically check timelimit with cgroup
                 # if the tool uses subprocesses and ulimit does not work.
-                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, p, myCpuCount, self._setTerminationReason)
+                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, walltimelimit, p, myCpuCount, self._setTerminationReason)
                 timelimitThread.start()
 
             if memlimit is not None:
@@ -369,7 +369,8 @@ class RunExecutor():
 
 
     def executeRun(self, args, outputFileName,
-                   hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None, memoryNodes=None,
+                   hardtimelimit=None, softtimelimit=None, walltimelimit=None,
+                   myCpus=None, memlimit=None, memoryNodes=None,
                    environments={}, workingDir=None, maxLogfileSize=None):
         """
         This function executes a given command with resource limits,
@@ -378,6 +379,7 @@ class RunExecutor():
         @param outputFileName: the file where the output should be written to
         @param hardtimelimit: None or the CPU time in seconds after which the tool is forcefully killed.
         @param softtimelimit: None or the CPU time in seconds after which the tool is sent a kill signal.
+        @param walltimelimit: None or the wall time in seconds after which the tool is forcefully killed (default: hardtimelimit + a few seconds)
         @param myCpus: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
         @param memoryNodes: None or a list of memory nodes in a NUMA system to use
@@ -397,6 +399,15 @@ class RunExecutor():
                 sys.exit("Soft time limit without hard time limit is not implemented.")
             if softtimelimit > hardtimelimit:
                 sys.exit("Soft time limit cannot be larger than the hard time limit.")
+
+        if walltimelimit is None:
+            if hardtimelimit is not None:
+                walltimelimit = hardtimelimit + _WALLTIME_LIMIT_DEFAULT_OVERHEAD
+        else:
+            if walltimelimit <= 0:
+                sys.exit("Invalid wall time limit {0}.".format(walltimelimit))
+            if hardtimelimit is None:
+                sys.exit("Wall time limit without hard time limit is not implemented.")
 
         if myCpus is not None:
             if self.cpus is None:
@@ -441,7 +452,8 @@ class RunExecutor():
             logging.debug("executeRun: executing tool.")
             (returnvalue, wallTime, cpuTime, energy) = \
                 self._execute(args, outputFileName, cgroups,
-                              hardtimelimit, softtimelimit, myCpuCount, memlimit,
+                              hardtimelimit, softtimelimit, walltimelimit,
+                              myCpuCount, memlimit,
                               environments, workingDir)
 
             logging.debug("executeRun: getting exact measures.")
@@ -571,14 +583,14 @@ class _TimelimitThread(threading.Thread):
     Thread that periodically checks whether the given process has already
     reached its timelimit. After this happens, the process is terminated.
     """
-    def __init__(self, cgroupCpuacct, hardtimelimit, softtimelimit, process, cpuCount=1,
+    def __init__(self, cgroupCpuacct, hardtimelimit, softtimelimit, walltimelimit, process, cpuCount=1,
                  callbackFn=lambda reason: None):
         super(_TimelimitThread, self).__init__()
         self.daemon = True
         self.cgroupCpuacct = cgroupCpuacct
         self.timelimit = hardtimelimit
         self.softtimelimit = softtimelimit or hardtimelimit
-        self.latestKillTime = time.time() + self.timelimit + _WALLTIME_LIMIT_OVERHEAD
+        self.latestKillTime = time.time() + walltimelimit
         self.cpuCount = cpuCount
         self.process = process
         self.callback = callbackFn
