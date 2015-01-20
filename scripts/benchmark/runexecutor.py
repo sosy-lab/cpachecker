@@ -359,7 +359,7 @@ class RunExecutor():
 
     def executeRun(self, args, outputFileName,
                    hardtimelimit=None, softtimelimit=None, walltimelimit=None,
-                   myCpus=None, memlimit=None, memoryNodes=None,
+                   cores=None, memlimit=None, memoryNodes=None,
                    environments={}, workingDir=None, maxLogfileSize=None):
         """
         This function executes a given command with resource limits,
@@ -369,7 +369,7 @@ class RunExecutor():
         @param hardtimelimit: None or the CPU time in seconds after which the tool is forcefully killed.
         @param softtimelimit: None or the CPU time in seconds after which the tool is sent a kill signal.
         @param walltimelimit: None or the wall time in seconds after which the tool is forcefully killed (default: hardtimelimit + a few seconds)
-        @param myCpus: None or a list of the CPU cores to use
+        @param cores: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
         @param memoryNodes: None or a list of memory nodes in a NUMA system to use
         @param environments: special environments for running the command
@@ -398,19 +398,19 @@ class RunExecutor():
             if hardtimelimit is None:
                 sys.exit("Wall time limit without hard time limit is not implemented.")
 
-        if myCpus is not None:
+        if cores is not None:
             if self.cpus is None:
                 sys.exit("Cannot limit CPU cores without cpuset cgroup.")
-            myCpuCount = len(myCpus)
-            if myCpuCount == 0:
+            coreCount = len(cores)
+            if coreCount == 0:
                 sys.exit("Cannot execute run without any CPU core.")
-            if not set(myCpus).issubset(self.cpus):
-                sys.exit("Cores {0} are not allowed to be used".format(list(set(myCpus).difference(self.cpus))))
+            if not set(cores).issubset(self.cpus):
+                sys.exit("Cores {0} are not allowed to be used".format(list(set(cores).difference(self.cpus))))
         else:
             try:
-                myCpuCount = multiprocessing.cpu_count()
+                coreCount = multiprocessing.cpu_count()
             except NotImplementedError:
-                myCpuCount = 1
+                coreCount = 1
 
         if memlimit is not None:
             if memlimit <= 0:
@@ -437,14 +437,14 @@ class RunExecutor():
         self._terminationReason = None
 
         logging.debug("executeRun: setting up Cgroups.")
-        cgroups = self._setupCGroups(args, myCpus, memlimit, memoryNodes)
+        cgroups = self._setupCGroups(args, cores, memlimit, memoryNodes)
 
         try:
             logging.debug("executeRun: executing tool.")
             (exitcode, wallTime, cpuTime, energy) = \
                 self._execute(args, outputFileName, cgroups,
                               hardtimelimit, softtimelimit, walltimelimit,
-                              myCpuCount, memlimit,
+                              coreCount, memlimit,
                               environments, workingDir)
 
             logging.debug("executeRun: getting exact measures.")

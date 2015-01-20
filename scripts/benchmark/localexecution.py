@@ -451,7 +451,7 @@ class _Worker(threading.Thread):
                 run.getCmdline(), run.logFile,
                 hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
                 softtimelimit=benchmark.rlimits.get(SOFTTIMELIMIT),
-                myCpus=self.myCpus,
+                cores=self.myCpus,
                 memoryNodes=self.myMemNodes,
                 memlimit=memlimit,
                 environments=benchmark.getEnvironments(),
