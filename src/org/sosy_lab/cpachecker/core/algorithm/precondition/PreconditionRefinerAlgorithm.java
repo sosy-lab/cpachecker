@@ -433,6 +433,9 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
         Set<ARGPath> handledViolatingTraces = Sets.newHashSet();
         Set<ARGPath> handledValidTraces = Sets.newHashSet();
 
+        // Some cases that have to be considered:
+        //    One trace to the ERROR location, more traces to the EXIT location
+
         if (!isDisjoint(
             violatingAbstState.getAbstractionFormula().asFormula(),
             validAbstState.getAbstractionFormula().asFormula())) {
@@ -465,7 +468,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    throw new NoTraceFoundException("No two disjoint abstract traces found!");
+    throw new NoTraceFoundException("No new pair of disjoint abstract traces found! "
+        + "The choosen predicate abstraction method might be too imprecise!");
   }
 
   private void refinePrecisionForNextIteration(
