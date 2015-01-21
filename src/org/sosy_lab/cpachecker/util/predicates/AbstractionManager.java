@@ -88,7 +88,7 @@ public final class AbstractionManager {
   // and mapping partition ID -> set of predicate variables covered by partition
   private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
   private PredicatePartition partition;
-  private final boolean reorderWithFrameworkStrategy = false;
+  private final boolean reorderWithFrameworkStrategy = true;
   private final boolean insertRandomly = false;
   private final boolean singlePartitionOnly = false;
   private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
