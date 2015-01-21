@@ -172,16 +172,19 @@ public class ConstraintsTransferRelation
     try {
       Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
 
-      assert !pFactory.hasMissingInformation();
-      assert newConstraint.isPresent();
+      if (newConstraint.isPresent()) {
+        newState.add(newConstraint.get());
 
-      newState.add(newConstraint.get());
+        if (newState.isUnsat()) {
+          return null;
 
-      if (newState.isUnsat()) {
-        return null;
+        } else {
+          newState = simplify(newState);
+
+          return newState;
+        }
 
       } else {
-        newState = simplify(newState);
 
         return newState;
       }
@@ -355,7 +358,8 @@ public class ConstraintsTransferRelation
 
     Collection<ConstraintsState> newStates = new ArrayList<>();
     final String functionName = pCfaEdge.getPredecessor().getFunctionName();
-    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName, Optional.of(pStrengtheningState));
+    final ConstraintFactory factory =
+        ConstraintFactory.getInstance(functionName, Optional.of(pStrengtheningState), machineModel, logger);
     final FileLocation fileLocation = pCfaEdge.getFileLocation();
 
     ConstraintsState newState = null;

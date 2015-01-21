@@ -52,10 +52,10 @@ import com.google.common.base.Optional;
  */
 public class ExpressionTransformer {
 
-  private final String functionName;
+  protected final String functionName;
 
-  private boolean missingInformation = false;
-  private Optional<ValueAnalysisState> valueState;
+  protected boolean missingInformation = false;
+  protected Optional<ValueAnalysisState> valueState;
 
   public ExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     functionName = pFunctionName;

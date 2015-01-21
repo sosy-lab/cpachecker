@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -40,12 +41,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
@@ -58,8 +63,16 @@ import com.google.common.base.Optional;
 public class CExpressionTransformer extends ExpressionTransformer
     implements CRightHandSideVisitor<SymbolicExpression, UnrecognizedCodeException> {
 
-  public CExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
+  private final MachineModel machineModel;
+  private final LogManagerWithoutDuplicates logger;
+
+
+  public CExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState,
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     super(pFunctionName, pValueState);
+
+    machineModel = pMachineModel;
+    logger = pLogger;
   }
 
   public SymbolicExpression transform(CExpression pExpression) throws UnrecognizedCodeException {
@@ -188,6 +201,7 @@ public class CExpressionTransformer extends ExpressionTransformer
 
   @Override
   public SymbolicExpression visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCodeException {
+    assert false;
     return null;
   }
 
@@ -201,16 +215,42 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
       throws UnrecognizedCodeException {
-    return null;
+    return evaluateToValue(pIastArraySubscriptExpression);
   }
 
   @Override
   public SymbolicExpression visit(CFieldReference pIastFieldReference) throws UnrecognizedCodeException {
-    return null;
+    return evaluateToValue(pIastFieldReference);
+  }
+
+  private SymbolicExpression evaluateToValue(CExpression pExpression) throws UnrecognizedCCodeException {
+
+    if (!valueState.isPresent()) {
+      missingInformation = true;
+      return null;
+
+    } else {
+      final ValueAnalysisState state = valueState.get();
+      ExpressionValueVisitor valueVisitor =
+          new ExpressionValueVisitor(state, functionName, machineModel, logger);
+
+      ValueAnalysisState.MemoryLocation memLoc = valueVisitor.evaluateMemoryLocation(pExpression);
+
+      if (memLoc == null) {
+        missingInformation = true;
+        return null;
+
+      } else {
+        Value value = state.getValueFor(memLoc);
+        return SymbolicExpressionFactory.getInstance().asConstant(
+            value, pExpression.getExpressionType());
+      }
+    }
   }
 
   @Override
   public SymbolicExpression visit(CPointerExpression pointerExpression) throws UnrecognizedCodeException {
+    assert false;
     return null;
   }
 
@@ -226,11 +266,16 @@ public class CExpressionTransformer extends ExpressionTransformer
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = pIastCastExpression.getOperand().accept(this);
 
-    return factory.createCast(operand, pIastCastExpression.getCastType());
+    if (operand == null) {
+      return null;
+
+    } else {
+      return factory.createCast(operand, pIastCastExpression.getCastType());
+    }
   }
 
   @Override
   public SymbolicExpression visit(CComplexCastExpression complexCastExpression) throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
+    return null;
   }
 }

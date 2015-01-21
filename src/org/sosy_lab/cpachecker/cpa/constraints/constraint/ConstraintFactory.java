@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -51,20 +53,28 @@ import com.google.common.base.Optional;
  */
 public class ConstraintFactory {
 
-  private String functionName;
-  private Optional<ValueAnalysisState> valueState;
+  private final MachineModel machineModel;
+  private final LogManagerWithoutDuplicates logger;
+  private final String functionName;
+  private final Optional<ValueAnalysisState> valueState;
+
   private boolean missingInformation = false;
   private SymbolicExpressionFactory expressionFactory;
 
 
-  private ConstraintFactory(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
+  private ConstraintFactory(String pFunctionName, Optional<ValueAnalysisState> pValueState, MachineModel pMachineModel,
+      LogManagerWithoutDuplicates pLogger) {
+
+    machineModel = pMachineModel;
+    logger = pLogger;
     functionName = pFunctionName;
     valueState = pValueState;
     expressionFactory = SymbolicExpressionFactory.getInstance();
   }
 
-  public static ConstraintFactory getInstance(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
-    return new ConstraintFactory(pFunctionName, pValueState);
+  public static ConstraintFactory getInstance(String pFunctionName, Optional<ValueAnalysisState> pValueState,
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
+    return new ConstraintFactory(pFunctionName, pValueState, pMachineModel, pLogger);
   }
 
   /**
@@ -158,7 +168,7 @@ public class ConstraintFactory {
     final Type expressionType = pExpression.getExpressionType();
     final Type calculationType = pExpression.getCalculationType();
 
-    final CExpressionTransformer transformer = new CExpressionTransformer(functionName, valueState);
+    final CExpressionTransformer transformer = getCTransformer();
 
     SymbolicExpression leftOperand = pExpression.getOperand1().accept(transformer);
 
@@ -300,7 +310,7 @@ public class ConstraintFactory {
   }
 
   private CExpressionTransformer getCTransformer() {
-    return new CExpressionTransformer(functionName, valueState);
+    return new CExpressionTransformer(functionName, valueState, machineModel, logger);
   }
 
   private boolean isNumeric(Type pType) {
