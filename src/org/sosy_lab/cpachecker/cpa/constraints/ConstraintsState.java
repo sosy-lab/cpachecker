@@ -77,8 +77,13 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   protected ConstraintsState(ConstraintsState pState) {
     constraints = new HashSet<>(pState.constraints);
     solver = pState.solver;
+    prover = pState.prover;
     formulaCreator = pState.formulaCreator;
     formulaManager = pState.formulaManager;
+
+    constraintsHaveChanged = pState.constraintsHaveChanged;
+    hasNewAssignment = pState.hasNewAssignment;
+    definiteAssignment = pState.definiteAssignment;
   }
 
   /**
