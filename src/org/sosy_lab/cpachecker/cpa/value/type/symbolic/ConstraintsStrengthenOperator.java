@@ -81,11 +81,8 @@ public class ConstraintsStrengthenOperator {
   public Collection<ValueAnalysisState> strengthen(
       ValueAnalysisState pStateToStrengthen, ConstraintsState pStrengtheningState) {
 
-    Optional<ValueAnalysisState> newElement = Optional.absent();
-
-    if (pStrengtheningState.hasNewSatisfyingAssignment()) {
-      newElement = evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
-    }
+    Optional<ValueAnalysisState> newElement =
+        evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
 
     if (newElement == null) {
       return null;

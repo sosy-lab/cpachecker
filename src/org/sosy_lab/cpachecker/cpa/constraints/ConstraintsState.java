@@ -68,8 +68,6 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    */
   private boolean constraintsHaveChanged;
 
-  private boolean hasNewAssignment;
-
   /**
    * Creates a new <code>ConstraintsState</code> shallow copy of the given <code>ConstraintsState</code>.
    *
@@ -85,7 +83,6 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     formulaManager = pState.formulaManager;
 
     constraintsHaveChanged = pState.constraintsHaveChanged;
-    hasNewAssignment = pState.hasNewAssignment;
     definiteAssignment = pState.definiteAssignment;
   }
 
@@ -309,14 +306,9 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
             && isOnlySatisfyingAssignment(term, termAssignment)) {
 
           definiteAssignment.put(identifier, concreteValue);
-          hasNewAssignment = true;
         }
       }
     }
-  }
-
-  public boolean hasNewSatisfyingAssignment() {
-    return hasNewAssignment;
   }
 
   /**
@@ -327,7 +319,6 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    * @return the known assignment of variables that have no other fulfilling assignment
    */
   public IdentifierAssignment getDefiniteAssignment() {
-    hasNewAssignment = false;
     return new IdentifierAssignment(definiteAssignment);
   }
 
