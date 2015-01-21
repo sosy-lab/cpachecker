@@ -1326,6 +1326,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
             result.addAll(ret);
           }
         }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       }
 
     }
