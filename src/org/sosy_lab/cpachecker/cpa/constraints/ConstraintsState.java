@@ -70,9 +70,11 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   private boolean hasNewAssignment;
 
   /**
-   * Creates a new <code>ConstraintsState</code> object with the given constraints.
+   * Creates a new <code>ConstraintsState</code> shallow copy of the given <code>ConstraintsState</code>.
    *
-   * @param pConstraints the constraints to use for the newly created <code>ConstraintsState</code> object
+   * This constructor is used by {@link #copyOf()}.
+   *
+   * @param pState the state to copy
    */
   protected ConstraintsState(ConstraintsState pState) {
     constraints = new HashSet<>(pState.constraints);
@@ -103,6 +105,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    *
    * @return a new copy of the given <code>ConstraintsState</code> object
    */
+  // We use a method here so subtypes can override it, in constrast to a public copy constructor
   public ConstraintsState copyOf() {
     return new ConstraintsState(this);
   }
@@ -177,16 +180,41 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     return super.add(pConstraint);
   }
 
+  /**
+   * Returns whether this state is initialized.
+   * If a state is not initialized, calls to {@link #isUnsat()} will fail with an exception.
+   *
+   * <p>A state will never be initialized upon creation.
+   * It can be initialized by calling {@link #initialize(Solver, FormulaManagerView, FormulaCreator)}.</p>
+   *
+   * @return <code>true</code> if the state is initialized.
+   */
   public boolean isInitialized() {
     return solver != null;
   }
 
+  /**
+   * Initializes this state with the given objects. After initializing, SAT checks can be performed on this state's
+   * constraints by calling {@link #isUnsat()}.
+   *
+   * @param pSolver the solver to use for SAT checks.
+   * @param pFormulaManager the formula manager to use for creating {@link Formula}s
+   * @param pFormulaCreator the formula creator to use for creating <code>Formula</code>s
+   */
   public void initialize(Solver pSolver, FormulaManagerView pFormulaManager, FormulaCreator<?> pFormulaCreator) {
     solver = pSolver;
     formulaManager = pFormulaManager;
     formulaCreator = pFormulaCreator;
   }
 
+  /**
+   * Returns whether this state is unsatisfiable.
+   * A state without constraints (that is, an empty state), is always satisfiable.
+   *
+   * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
+   * @throws SolverException
+   * @throws InterruptedException
+   */
   public boolean isUnsat() throws SolverException, InterruptedException {
     boolean unsat = false;
 
@@ -243,6 +271,13 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     return hasNewAssignment;
   }
 
+  /**
+   * Returns the known unambigious assignment of variables so this state's {@link Constraint}s are fulfilled.
+   * Variables that can have more than one valid assignment are not included in the
+   * returned {@link IdentifierAssignment}.
+   *
+   * @return the known assignment of variables that have no other fulfilling assignment
+   */
   public IdentifierAssignment getDefiniteAssignment() {
     hasNewAssignment = false;
     return new IdentifierAssignment(definiteAssignment);
