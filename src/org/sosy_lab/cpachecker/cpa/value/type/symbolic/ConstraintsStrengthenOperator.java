@@ -120,8 +120,10 @@ public class ConstraintsStrengthenOperator {
           }*/ // We can only do this if the memorylocation is exactly the variable/field represented
               // by the ConstraintsCPA's constraint
 
-          newElement.assignConstant(memLoc, valueAfterReplacingIdentifier, storageType);
-          somethingChanged = true;
+          if (!valueAfterReplacingIdentifier.equals(currentValue)) {
+            newElement.assignConstant(memLoc, valueAfterReplacingIdentifier, storageType);
+            somethingChanged = true;
+          }
         }
       }
     }
