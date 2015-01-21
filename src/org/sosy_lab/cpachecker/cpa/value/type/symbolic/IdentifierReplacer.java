@@ -87,23 +87,20 @@ public class IdentifierReplacer implements SymbolicValueVisitor<Value> {
   public Value visit(SymbolicIdentifier pSymbolicValue) {
     long id = pSymbolicValue.getId();
 
-    return id == idToReplace ? cast(newValue, pSymbolicValue) : pSymbolicValue;
+    return id == idToReplace ? cast(newValue, pSymbolicValue.getType()) : pSymbolicValue;
   }
 
-  private Value cast(Value pValue, SymbolicIdentifier pIdentifierValue) {
-    Type type = pIdentifierValue.getType();
+  private Value cast(Value pValue, Type toType) {
 
-    if (type instanceof JType) {
-      JType toType = (JType)type;
-      JType fromType = getJFromType(toType);
-      return AbstractExpressionValueVisitor.castJValue(pValue, fromType, toType, logger, null);
+    if (toType instanceof JType) {
+      JType fromType = getJFromType((JType) toType);
+      return AbstractExpressionValueVisitor.castJValue(pValue, fromType, (JType) toType, logger, null);
 
     } else {
-      assert type instanceof CType;
+      assert toType instanceof CType;
+      CType fromType = getCFromType((CType) toType);
 
-      CType toType = (CType)type;
-      CType fromType = getCFromType(toType);
-      return AbstractExpressionValueVisitor.castCValue(pValue, fromType, toType, machineModel, logger, null);
+      return AbstractExpressionValueVisitor.castCValue(pValue, fromType, (CType) toType, machineModel, logger, null);
     }
   }
 
