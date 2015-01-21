@@ -111,7 +111,7 @@ public class Refine implements PreconditionRefiner {
         ? pPreconditionA
         : bmgr.and(pPreconditionA, bmgr.and(p));
 
-    return ipc.getInterpolant(f, pPreconditionB, p, null);
+    return ipc.getInterpolant(f, pPreconditionB, p, pItpPosition.getLocation());
   }
 
   private PathFormula pre(
