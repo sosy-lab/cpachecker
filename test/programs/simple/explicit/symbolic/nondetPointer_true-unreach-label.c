@@ -2,7 +2,7 @@
 int main() {
   int var = 100;
   int * p1 = &var;
-  int * p2 = pointer1;
+  int * p2 = p1;
   
   if (p1 != p2) {
     

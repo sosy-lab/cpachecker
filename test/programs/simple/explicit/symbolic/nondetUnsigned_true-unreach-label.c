@@ -20,7 +20,7 @@ int main() {
   b = b >> 1; // result: 01...
 
   if (a == b) {
-ERROR_:
+ERROR:
     return -1;
   }
   
