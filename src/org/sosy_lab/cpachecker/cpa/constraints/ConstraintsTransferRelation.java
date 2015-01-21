@@ -157,19 +157,11 @@ public class ConstraintsTransferRelation
 
   @Override
   protected ConstraintsState handleAssumption(AssumeEdge pCfaEdge, AExpression pExpression, boolean pTruthAssumption) {
+    missingInformationExpression = pExpression;
+    missingInformationTruth = pTruthAssumption;
+    missingInformation = true;
 
-    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName, Optional.<ValueAnalysisState>absent());
-    final FileLocation fileLocation = pCfaEdge.getFileLocation();
-
-    ConstraintsState newState = null;
-    try {
-      newState = getNewState(state, pExpression, factory, pTruthAssumption, fileLocation);
-
-    } catch (SolverException | InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, fileLocation.toString());
-    }
-
-    return newState;
+    return state;
   }
 
   private ConstraintsState getNewState(ConstraintsState pOldState, AExpression pExpression, ConstraintFactory pFactory,
@@ -184,31 +176,15 @@ public class ConstraintsTransferRelation
     try {
       Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
 
-      if (pFactory.hasMissingInformation()) {
-        // log if we overwrite any information
-        if (!missingInformation && missingInformationExpression == null && !missingInformationTruth) {
-          logger.log(Level.FINER, "Overwriting assume information");
-        }
+      assert !pFactory.hasMissingInformation();
+      assert newConstraint.isPresent();
 
-        missingInformation = true;
-        missingInformationExpression = pExpression;
-        missingInformationTruth = pTruthAssumption;
-
-        assert !newConstraint.isPresent();
-      }
-
-      if (newConstraint.isPresent()) {
-        newState.add(newConstraint.get());
-      } else {
-        return newState;
-      }
+      newState.add(newConstraint.get());
 
       if (newState.isUnsat()) {
         return null;
 
       } else {
-        assert newConstraint.isPresent();
-
         newState = simplify(newState);
 
         return newState;
