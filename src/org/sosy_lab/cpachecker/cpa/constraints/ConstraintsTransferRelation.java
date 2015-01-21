@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -63,10 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -299,53 +294,10 @@ public class ConstraintsTransferRelation
   }
 
   private ConstraintsState simplify(ConstraintsState pState) {
-    ConstraintsState newState;
+    StateSimplifier simplifier = new StateSimplifier(machineModel, logger);
 
-    newState = replaceSymbolicIdentifiersWithConcreteValues(pState);
-    newState = removeTrivialConstraints(newState);
-
-    return newState;
+    return simplifier.simplify(pState);
   }
-
-  private ConstraintsState replaceSymbolicIdentifiersWithConcreteValues(ConstraintsState pState) {
-    final IdentifierAssignment definiteAssignment = pState.getDefiniteAssignment();
-
-    if (definiteAssignment.isEmpty()) {
-      return pState;
-    }
-
-    ConstraintsState newState = pState.copyOf();
-    newState.clear();
-
-    for (Map.Entry<SymbolicIdentifier, Value> entry : definiteAssignment.entrySet()) {
-      final SymbolicIdentifier id = entry.getKey();
-      final Value newValue = entry.getValue();
-
-      ConstraintIdentifierReplacer replacer = new ConstraintIdentifierReplacer(id, newValue, machineModel, logger);
-      for (Constraint c : pState) {
-        newState.add(c.accept(replacer));
-      }
-    }
-
-    return newState;
-  }
-
-  private ConstraintsState removeTrivialConstraints(ConstraintsState pState) {
-    ConstraintsState newState = pState.copyOf();
-
-    Iterator<Constraint> it = newState.iterator();
-
-    while (it.hasNext()) {
-      Constraint currConstraint = it.next();
-
-      if (currConstraint.isTrivial()) {
-        it.remove();
-      }
-    }
-
-    return newState;
-  }
-
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pStateToStrengthen,
