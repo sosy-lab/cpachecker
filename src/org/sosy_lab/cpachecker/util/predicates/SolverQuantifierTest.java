@@ -356,4 +356,12 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     assertThat(solver.isUnsat(f)).isFalse();;
   }
 
+  @Test
+  public void testEquals() {
+    BooleanFormula f1 = qfm.exists(ifm.makeVariable("x"), ifm.makeNumber(1), ifm.makeNumber(2), _b_at_x_eq_1);
+    BooleanFormula f2 = qfm.exists(ifm.makeVariable("x"), ifm.makeNumber(1), ifm.makeNumber(2), _b_at_x_eq_1);
+
+    assertThat(f1).isEqualTo(f2);
+  }
+
 }
