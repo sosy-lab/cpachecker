@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -313,7 +314,8 @@ public class ConstraintsTransferRelation
       return pState;
     }
 
-    ConstraintsState newState = new ConstraintsState();
+    ConstraintsState newState = pState.copyOf();
+    newState.clear();
 
     for (Map.Entry<SymbolicIdentifier, Value> entry : definiteAssignment.entrySet()) {
       final SymbolicIdentifier id = entry.getKey();
@@ -329,11 +331,15 @@ public class ConstraintsTransferRelation
   }
 
   private ConstraintsState removeTrivialConstraints(ConstraintsState pState) {
-    ConstraintsState newState = new ConstraintsState();
+    ConstraintsState newState = pState.copyOf();
 
-    for (Constraint currConstraint : pState) {
-      if (!currConstraint.isTrivial()) {
-        newState.add(currConstraint);
+    Iterator<Constraint> it = newState.iterator();
+
+    while (it.hasNext()) {
+      Constraint currConstraint = it.next();
+
+      if (currConstraint.isTrivial()) {
+        it.remove();
       }
     }
 
