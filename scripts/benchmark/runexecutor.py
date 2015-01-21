@@ -179,7 +179,7 @@ class RunExecutor():
 
             # put us into the cgroup(s)
             pid = os.getpid()
-            # On some systems, cgrulesngd would move our process into other cgroups.
+            # On some systems, cgrulesengd would move our process into other cgroups.
             # We disable this behavior via libcgroup if available.
             # Unfortunately, logging/printing does not seem to work here.
             from ctypes import cdll
