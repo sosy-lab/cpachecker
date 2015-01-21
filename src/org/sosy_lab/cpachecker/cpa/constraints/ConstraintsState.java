@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -176,8 +177,55 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    */
   @Override
   public boolean add(Constraint pConstraint) {
-    constraintsHaveChanged = true;
-    return super.add(pConstraint);
+    boolean setHasChanged = super.add(pConstraint);
+
+    constraintsHaveChanged |= setHasChanged;
+
+    return setHasChanged;
+  }
+
+  @Override
+  public void clear() {
+    if (!isEmpty()) {
+      constraintsHaveChanged = true;
+    }
+    super.clear();
+  }
+
+  @Override
+  public boolean remove(Object pObj) {
+    boolean setHasChagned = super.remove(pObj);
+
+    constraintsHaveChanged |= setHasChagned;
+
+    return setHasChagned;
+  }
+
+  @Override
+  public boolean addAll(Collection<? extends Constraint> pConstraintsToAdd) {
+    boolean setHasChanged = super.addAll(pConstraintsToAdd);
+
+    constraintsHaveChanged |= setHasChanged;
+
+    return setHasChanged;
+  }
+
+  @Override
+  public boolean removeAll(Collection<?> pObjectsToRemove) {
+    boolean setHasChanged = super.removeAll(pObjectsToRemove);
+
+    constraintsHaveChanged |= setHasChanged;
+
+    return setHasChanged;
+  }
+
+  @Override
+  public boolean retainAll(Collection<?> pObjectsToRetain) {
+    boolean setHasChanged = super.retainAll(pObjectsToRetain);
+
+    constraintsHaveChanged |= setHasChanged;
+
+    return setHasChanged;
   }
 
   /**
