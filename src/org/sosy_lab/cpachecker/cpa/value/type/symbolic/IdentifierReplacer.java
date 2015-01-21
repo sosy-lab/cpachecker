@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpr
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
@@ -152,7 +153,7 @@ public class IdentifierReplacer implements SymbolicValueVisitor<Value> {
     Value newValue = pExpression.getValue();
 
     if (newValue instanceof SymbolicIdentifier) {
-      newValue = ((SymbolicIdentifier)newValue).accept(this);
+      newValue = ((SymbolicIdentifier) newValue).accept(this);
     }
 
     return factory.asConstant(newValue, pExpression.getType());
@@ -368,6 +369,33 @@ public class IdentifierReplacer implements SymbolicValueVisitor<Value> {
         return factory.logicalAnd(pLeftOp, pRightOp, pExpType, pCalcType);
       }
     });
+  }
+
+  @Override
+  public Value visit(CastExpression pExpression) {
+    Value newValue = pExpression.getOperand().accept(this);
+
+    if (newValue instanceof SymbolicExpression) {
+      return new CastExpression((SymbolicExpression) newValue, pExpression.getType());
+
+    } else {
+      assert !(newValue instanceof SymbolicValue);
+      Type toType = pExpression.getType();
+      Type fromType = pExpression.getOperand().getType();
+
+      if (toType instanceof CType) {
+        assert fromType instanceof CType;
+        return AbstractExpressionValueVisitor.castCValue(
+            newValue, (CType) fromType, (CType) toType, machineModel, logger, null);
+
+      } else if (toType instanceof JType) {
+        assert fromType instanceof JType;
+        return AbstractExpressionValueVisitor.castJValue(newValue, (JType) fromType, (JType) toType, logger, null);
+
+      } else {
+        throw new AssertionError("Unhandled type " + toType);
+      }
+    }
   }
 
   private interface BinaryFactoryFunction {

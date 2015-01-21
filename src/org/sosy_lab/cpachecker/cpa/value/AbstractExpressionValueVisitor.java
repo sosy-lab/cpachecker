@@ -1672,8 +1672,10 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static Value castIfSymbolic(Value pValue, Type pTargetType) {
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
     if (pValue instanceof SymbolicValue) {
-      return ((SymbolicValue) pValue).copyWithType(pTargetType);
+      return factory.createCast((SymbolicValue)pValue, pTargetType);
 
     } else {
 

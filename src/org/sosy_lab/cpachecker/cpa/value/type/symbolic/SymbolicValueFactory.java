@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -510,6 +511,23 @@ public class SymbolicValueFactory {
     };
 
     return createExpression(pOperand, pOperandType, pExpressionType, pLocation, xorCreator);
+  }
+
+  public SymbolicExpression createCast(SymbolicValue pValue, Type pTargetType) {
+    SymbolicExpression operand;
+
+    if (!(pValue instanceof SymbolicExpression)) {
+      operand = getConstant(pValue, pValue.getType());
+    } else {
+      operand = (SymbolicExpression) pValue;
+    }
+
+    if (operand.getType().equals(pTargetType)) {
+      return operand;
+
+    } else {
+      return new CastExpression(operand, pTargetType);
+    }
   }
 
   private static interface BinaryExpressionCreator {

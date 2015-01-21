@@ -45,14 +45,15 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
@@ -270,7 +271,10 @@ public class JExpressionTransformer extends ExpressionTransformer
 
   @Override
   public SymbolicExpression visit(JCastExpression pJCastExpression) throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression operand = pJCastExpression.getOperand().accept(this);
+
+    return factory.createCast(operand, pJCastExpression.getCastType());
   }
 
   @Override

@@ -41,10 +41,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
@@ -78,7 +79,8 @@ public class CExpressionTransformer extends ExpressionTransformer
     if (operand2Expression == null) {
       return null;
     }
-        final Type expressionType = pIastBinaryExpression.getExpressionType();
+
+    final Type expressionType = pIastBinaryExpression.getExpressionType();
     final Type calculationType = pIastBinaryExpression.getCalculationType();
 
     final SymbolicExpressionFactory factory = SymbolicExpressionFactory.getInstance();
@@ -221,7 +223,10 @@ public class CExpressionTransformer extends ExpressionTransformer
 
   @Override
   public SymbolicExpression visit(CCastExpression pIastCastExpression) throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException("Casts can't be transformed to ConstraintExpressions");
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression operand = pIastCastExpression.getOperand().accept(this);
+
+    return factory.createCast(operand, pIastCastExpression.getCastType());
   }
 
   @Override

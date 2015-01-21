@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;

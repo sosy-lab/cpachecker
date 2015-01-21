@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpr
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
@@ -306,6 +307,12 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     final BooleanFormula op2 = (BooleanFormula) pAnd.getOperand2().accept(this);
 
     return booleanFormulaManager.and(op1, op2);
+  }
+
+  @Override
+  public Formula visit(CastExpression pExpression) {
+    // ignore the cast for integer formulas
+    return pExpression.getOperand().accept(this);
   }
 
   @Override

@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryAndExpr
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
@@ -83,5 +84,7 @@ public interface SymbolicValueVisitor<T> {
   T visit(LogicalOrExpression pExpression);
 
   T visit(LogicalAndExpression pExpression);
+
+  T visit(CastExpression pExpression);
 
 }

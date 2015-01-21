@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpr
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.EqualsExpression;
@@ -330,6 +331,15 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), calculationType);
 
     return (BooleanFormula) formulaManager.makeAnd(op1, op2);
+  }
+
+  @Override
+  public Formula visit(CastExpression pExpression) {
+    BitvectorFormula formula = (BitvectorFormula) pExpression.getOperand().accept(this);
+    final Type fromType = pExpression.getOperand().getType();
+    final Type toType = pExpression.getType();
+
+    return cast(formula, fromType, toType);
   }
 
   @Override
