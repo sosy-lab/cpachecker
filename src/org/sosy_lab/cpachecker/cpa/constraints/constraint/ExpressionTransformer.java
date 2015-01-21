@@ -59,7 +59,6 @@ public class ExpressionTransformer {
 
   public ExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
     functionName = pFunctionName;
-    valueState = Optional.absent();
     valueState = pValueState;
   }
 

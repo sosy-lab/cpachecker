@@ -131,6 +131,7 @@ public class ConstraintsStrengthenOperator {
     if (somethingChanged) {
       return Optional.of(newElement);
     } else {
+      // null represents 'no change'
       return null;
     }
   }
