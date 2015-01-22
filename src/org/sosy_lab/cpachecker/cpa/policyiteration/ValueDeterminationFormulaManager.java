@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -116,13 +117,29 @@ public class ValueDeterminationFormulaManager {
           int toLocationNo = toLocation.toID();
           int toLocationPrimeNo = toPrime(toLocationNo);
 
-          // TODO: BUG! The constraints from the previous node are missing.
           PathFormula prefixedPathFormula = pathFormulaWithCustomIdxAndPrefix(
               formula,
               toLocationPrimeNo,
               prefix
           );
           BooleanFormula edgeFormula = prefixedPathFormula.getFormula();
+
+          PolicyAbstractedState incomingState = policy.get(fromLocation);
+          for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
+            Template incomingTemplate = incomingConstraint.getKey();
+            Formula templateFormula = templateWithInitialMap(
+                incomingTemplate, formula,  prefix);
+            String prevAbstractDomainElement = absDomainVarName(fromLocation,
+                incomingTemplate);
+            Formula absDomainElementFormula = fmgr.makeVariable(
+                fmgr.getFormulaType(templateFormula), prevAbstractDomainElement
+            );
+
+            BooleanFormula constraint = fmgr.makeLessOrEqual(
+                templateFormula, absDomainElementFormula, true
+            );
+            constraints.add(constraint);
+          }
 
           // Optimization.
           if (!(edgeFormula.equals(bfmgr.makeBoolean(true))
@@ -246,5 +263,47 @@ public class ValueDeterminationFormulaManager {
 
   String absDomainVarName(Location pLocation, Template template) {
     return String.format(BOUND_VAR_NAME, pLocation.toID(), template);
+  }
+
+  private Formula templateWithInitialMap(Template template,
+      PathFormula p, String prefix) {
+    SSAMap initialMap = deriveInitialSSAMap(p);
+    PathFormula initialFormula = new PathFormula(
+        p.getFormula(), initialMap, p.getPointerTargetSet(),
+        p.getLength()
+    );
+    return templateManager.toFormula(
+        template, initialFormula, prefix
+    );
+  }
+
+  private SSAMap deriveInitialSSAMap(PathFormula pFormula) {
+    Set<Triple<Formula, String, Integer>> allVars =
+        fmgr.extractFreeVariables(pFormula.getFormula());
+    Map<String, Integer> initialSSA = new HashMap<>();
+    for (Triple<Formula, String, Integer> e : allVars) {
+      String varName = e.getSecond();
+      Integer newValue = e.getThird();
+      if (!initialSSA.containsKey(varName) && newValue != null) {
+        initialSSA.put(varName, newValue);
+      } else if (initialSSA.containsKey(varName) && newValue != null) {
+        initialSSA.put(
+            varName, Math.min(newValue, initialSSA.get(varName))
+        );
+      }
+    }
+
+    SSAMap.SSAMapBuilder b = SSAMap.emptySSAMap().builder();
+    for (Entry<String, Integer> e : initialSSA.entrySet()) {
+      String varName = e.getKey();
+      int newIdx = e.getValue();
+      CType type = pFormula.getSsa().getType(varName);
+      if (type == null) {
+        type = CNumericTypes.DOUBLE;
+      }
+      b = b.setIndex(varName, type , newIdx);
+    }
+
+    return b.build();
   }
 }

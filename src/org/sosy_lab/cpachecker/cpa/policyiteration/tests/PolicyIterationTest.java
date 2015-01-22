@@ -92,6 +92,10 @@ public class PolicyIterationTest {
     check("test/programs/policyiteration/inequality_true_assert.c");
   }
 
+  @Test public void initial_true_assert() throws Exception {
+    check("test/programs/policyiteration/initial_true_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }

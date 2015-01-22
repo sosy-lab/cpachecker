@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -150,6 +151,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   /** Constants */
   private static final String INITIAL_CONDITION_FLAG = "__INITIAL_CONDITION_TRUE";
+  private static final String START_LOCATION_FLAG = "__INITIAL_LOCATION";
 
   /**
    * @param pNode Initial node
@@ -595,11 +597,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               // NOTE: it is important to use the formula which does not include
               // the initial condition.
               PolicyBound policyBound = policyBoundFromModel(
-                  p,
-                  annotatedFormula,
-                  state.getLocation(),
-                  model,
-                  boundValue);
+                  p, annotatedFormula, model, boundValue);
 
               abstraction.put(template, policyBound);
             } else {
@@ -607,9 +605,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
                 Model model = solver.getModel();
                 abstraction.put(
                     template, policyBoundFromModel(
-                        p, transferRelation, state.getLocation(), model,
-                        Rational.ZERO)
-                );
+                        p, transferRelation, model, Rational.ZERO));
               }
             }
             logger.log(Level.FINE, "Got bound: ", bound);
@@ -663,7 +659,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     BooleanFormula initialConstraint = bfmgr.and(tokens);
     initialConstraint = bfmgr.or(
         bfmgr.not(bfmgr.makeVariable(INITIAL_CONDITION_FLAG)),
-        initialConstraint
+        bfmgr.and(
+            initialConstraint,
+            ifmgr.equal(
+                ifmgr.makeVariable(START_LOCATION_FLAG),
+                ifmgr.makeNumber(abstractState.getLocation().toID())
+            )
+        )
     );
 
     // TODO: check that it is correct, that is,
@@ -700,7 +702,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private PolicyBound policyBoundFromModel(
       PathFormula inputPathFormula,
       BooleanFormula transferRelation,
-      Location location,
       Model model,
       Rational bound) {
 
@@ -709,10 +710,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         transferRelation, model.entrySet(), false
     );
 
+    BigInteger prevLocationID = (BigInteger) model.get(
+        new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer));
+    int locationID = prevLocationID.intValueExact();
+    Location prevLocation = Location.ofID(locationID);
+
     return PolicyBound.of(
-        inputPathFormula.updateFormula(policyFormula),
-        bound, location
-    );
+        inputPathFormula.updateFormula(policyFormula), bound, prevLocation);
   }
 
   /**
@@ -758,8 +762,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       } else {
         state = abstractStates.get(loc);
       }
-      Preconditions.checkState(state.isAbstract());
-
       PolicyAbstractedState aState = state.asAbstracted();
       out.put(loc, aState);
 
@@ -769,7 +771,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Do not follow the edges which are associated with the focused node
         // but are not in <updated>.
-        if (!(state == newState && !updated.containsKey(template))) {
+        if (state != newState || updated.containsKey(template)) {
           Location toVisit = bound.predecessor;
 
           if (!visited.contains(toVisit)) {
