@@ -78,6 +78,14 @@ public final class PathFormula implements Serializable {
     return getFormula().toString();
   }
 
+  /**
+   * Change the constraint associated with the path formula, but keep everything
+   * else as is.
+   */
+  public PathFormula updateFormula(BooleanFormula newConstraint) {
+    return new PathFormula(newConstraint, ssa, pts, length);
+  }
+
   @Override
   public boolean equals(@Nullable Object obj) {
     if (this == obj) {
