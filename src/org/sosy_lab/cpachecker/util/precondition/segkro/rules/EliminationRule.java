@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuil
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -109,6 +110,13 @@ public class EliminationRule extends PatternBasedRule {
                 ifm.multiply(c2, e1),
                 ifm.multiply(c1, e2)),
             zero));
+  }
+
+  @Override
+  protected boolean isValidConclusion(Collection<BooleanFormula> pConjunctiveInputPredicates,
+      Set<BooleanFormula> pResult) throws SolverException, InterruptedException {
+
+    return true;
   }
 
 

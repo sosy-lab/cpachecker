@@ -228,12 +228,10 @@ public abstract class PatternBasedRule extends AbstractRule {
         conclusionTimer.stop();
       }
 
+
       // The conclusion must be a valid over-approximation
       conclusionValidationTimer.start();
-      boolean isValidOverapproximation =
-          solver.isUnsat(bfm.not(bfm.implication(
-              bfm.and(ImmutableList.copyOf(pConjunctiveInputPredicates)),
-              bfm.and(ImmutableList.copyOf(result)))));
+      boolean isValidOverapproximation = isValidConclusion(pConjunctiveInputPredicates, result);
       conclusionValidationTimer.stop();
 
       if (!isValidOverapproximation) {
@@ -245,6 +243,16 @@ public abstract class PatternBasedRule extends AbstractRule {
     } finally {
       overallTimer.stop();
     }
+  }
+
+  protected boolean isValidConclusion(
+      final Collection<BooleanFormula> pConjunctiveInputPredicates,
+      final Set<BooleanFormula> pResult)
+          throws SolverException, InterruptedException {
+
+    return solver.isUnsat(bfm.not(bfm.implication(
+        bfm.and(ImmutableList.copyOf(pConjunctiveInputPredicates)),
+        bfm.and(ImmutableList.copyOf(pResult)))));
   }
 
 }

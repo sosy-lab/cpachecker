@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuil
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.GenericPatterns.PropositionType;
@@ -117,5 +118,12 @@ public class ExtendRightRule extends PatternBasedRule {
     } else {
       return ImmutableSet.of(qfm.exists(xNew, i, k, fNew));
     }
+  }
+
+  @Override
+  protected boolean isValidConclusion(Collection<BooleanFormula> pConjunctiveInputPredicates,
+      Set<BooleanFormula> pResult) throws SolverException, InterruptedException {
+
+    return true;
   }
 }
