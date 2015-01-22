@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -64,8 +65,8 @@ public class GlobalInfo {
     return Optional.fromNullable(cfaInfo);
   }
 
-  public void storeAutomaton(Automaton automaton) {
-    automatonInfo.register(automaton);
+  public void storeAutomaton(Automaton automaton, ControlAutomatonCPA automatonCPA) {
+    automatonInfo.register(automaton, automatonCPA);
   }
 
   public AutomatonInfo getAutomatonInfo() {
