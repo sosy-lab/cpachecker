@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -27,7 +26,6 @@ public class FormulaSlicingManager {
   private final FormulaManagerView fmgr;
   private final UnsafeFormulaManager unsafeManager;
   private final BooleanFormulaManager bfmgr;
-  private final ShutdownNotifier shutdownNotifier;
 
   private static final String NOT_FUNC_NAME = "not";
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
@@ -35,13 +33,11 @@ public class FormulaSlicingManager {
   public FormulaSlicingManager(LogManager pLogger,
       FormulaManagerView pFmgr,
       UnsafeFormulaManager pUnsafeManager,
-      BooleanFormulaManager pBfmgr,
-      ShutdownNotifier pShutdownNotifier) {
+      BooleanFormulaManager pBfmgr) {
     logger = pLogger;
     fmgr = pFmgr;
     unsafeManager = pUnsafeManager;
     bfmgr = pBfmgr;
-    shutdownNotifier = pShutdownNotifier;
   }
 
   /**
@@ -98,8 +94,6 @@ public class FormulaSlicingManager {
       ImmutableSet<String> closure,
       boolean isInsideNot,
       Map<Formula, Formula> memoization) throws InterruptedException {
-    shutdownNotifier.shutdownIfNecessary();
-
     Formula out = memoization.get(f);
     if (out != null) {
       return out;

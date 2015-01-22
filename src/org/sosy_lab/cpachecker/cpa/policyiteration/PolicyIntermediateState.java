@@ -67,7 +67,8 @@ public final class PolicyIntermediateState extends PolicyState {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIntermediateState other = (org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIntermediateState)o;
-    return (pathFormula.equals(other.pathFormula) && super.equals(o));
+    PolicyIntermediateState other = (PolicyIntermediateState)o;
+    return (
+        pathFormula.equals(other.pathFormula) && super.equals(o));
   }
 }

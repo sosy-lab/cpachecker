@@ -88,6 +88,10 @@ public class PolicyIterationTest {
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
 
+  @Test public void ineqality_true_assert() throws Exception {
+    check("test/programs/policyiteration/inequality_true_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }
