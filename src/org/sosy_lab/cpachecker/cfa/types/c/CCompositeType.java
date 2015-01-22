@@ -124,10 +124,11 @@ public final class CCompositeType implements CComplexType, Serializable {
    * This is the declaration of a member of a composite type.
    * It contains a type and an optional name.
    */
-  public static final class CCompositeTypeMemberDeclaration {
+  public static final class CCompositeTypeMemberDeclaration implements Serializable{
 
 
 
+    private static final long serialVersionUID = 8647666228796784933L;
     private final CType    type;
     private final String   name;
 

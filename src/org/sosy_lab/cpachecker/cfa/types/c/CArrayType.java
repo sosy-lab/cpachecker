@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -31,10 +30,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 
-public class CArrayType extends AArrayType implements CType, Serializable {
+public class CArrayType extends AArrayType implements CType {
 
 
-  private static final long serialVersionUID = -6314468260643330323L;
   private final CExpression    length;
   private boolean   isConst;
   private boolean   isVolatile;
