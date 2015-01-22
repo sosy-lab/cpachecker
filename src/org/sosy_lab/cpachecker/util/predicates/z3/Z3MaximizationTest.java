@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -64,7 +65,8 @@ public class Z3MaximizationTest {
     NativeLibraries.loadLibrary("z3j");
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = TestLogManager.getInstance();
-    mgr = Z3FormulaManager.create(logger, config, null);
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    mgr = Z3FormulaManager.create(logger, config, shutdownNotifier, null);
     rfmgr = (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
     ifmgr = (Z3IntegerFormulaManager) mgr.getIntegerFormulaManager();
     bfmgr = (Z3BooleanFormulaManager) mgr.getBooleanFormulaManager();
