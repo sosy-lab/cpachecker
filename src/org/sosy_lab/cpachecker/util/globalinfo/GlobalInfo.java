@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
@@ -42,6 +43,7 @@ public class GlobalInfo {
   private ConfigurableProgramAnalysis cpa;
   private FormulaManagerView formulaManager;
   private ArrayList<Serializable> helperStorages = new ArrayList<>();
+  private AbstractionManager absManager;
 
   private GlobalInfo() {
 
@@ -83,9 +85,18 @@ public class GlobalInfo {
     this.formulaManager = formulaManager;
   }
 
+  public void storeAbstractionManager(AbstractionManager absManager) {
+    this.absManager = absManager;
+  }
+
   public FormulaManagerView getFormulaManager() {
     Preconditions.checkState(formulaManager != null);
     return formulaManager;
+  }
+
+  public AbstractionManager getAbstractionManager() {
+    Preconditions.checkState(absManager != null);
+    return absManager;
   }
 
   public int addHelperStorage(Serializable e) {

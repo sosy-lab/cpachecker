@@ -211,6 +211,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         cfa, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
+    GlobalInfo.getInstance().storeAbstractionManager(abstractionManager);
 
     machineModel = cfa.getMachineModel();
 
