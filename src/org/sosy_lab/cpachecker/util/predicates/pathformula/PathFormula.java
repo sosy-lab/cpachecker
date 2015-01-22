@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
 
@@ -131,8 +132,8 @@ public final class PathFormula implements Serializable {
         }
       }
 
-      for(String var: highestIndexForVar.keySet()){
-        if(ssa.getIndex(var)!=highestIndexForVar.get(var)) {
+      for(Entry<String, Integer> varIndex: highestIndexForVar.entrySet()){
+        if(ssa.getIndex(varIndex.getKey())!=varIndex.getValue()) {
           throw new IOException("Proof is corrupted, abort reading");
         }
       }

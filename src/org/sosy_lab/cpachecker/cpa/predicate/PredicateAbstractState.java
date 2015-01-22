@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -259,13 +260,13 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     return pathFormula;
   }
 
-  private Object readResolve() throws ObjectStreamException {
+  protected Object readResolve() throws ObjectStreamException {
     if (this instanceof AbstractionState) {
       return new AbstractionState(GlobalInfo.getInstance().getFormulaManager()
         .getBooleanFormulaManager(), getPathFormula(), getAbstractionFormula(),
-        abstractionLocations.empty());
+        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
     }
     return new NonAbstractionState(getPathFormula(), getAbstractionFormula(),
-        abstractionLocations.empty());
+        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
   }
 }
