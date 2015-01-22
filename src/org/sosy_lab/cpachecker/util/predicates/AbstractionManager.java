@@ -322,6 +322,20 @@ public final class AbstractionManager {
         }, Functions.forMap(atomToPredicate)));
   }
 
+  public Region buildRegionFromFormulaWithUnknownAtoms(BooleanFormula pF) {
+    return rmgr.fromFormula(pF, fmgr,
+        new Function<BooleanFormula, Region>() {
+
+          @Override
+          public Region apply(BooleanFormula pInput) {
+            if (symbVarToPredicate.containsKey(pInput)) {
+            return atomToPredicate.get(pInput).getAbstractVariable();
+            }
+            return makePredicate(pInput).getAbstractVariable();
+          }
+        });
+  }
+
   public RegionCreator getRegionCreator() {
     return new RegionCreator();
   }

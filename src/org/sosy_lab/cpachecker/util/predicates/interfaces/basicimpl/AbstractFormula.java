@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 
+import java.io.ObjectStreamException;
 import java.io.Serializable;
 
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -125,6 +127,25 @@ class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInf
 class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BooleanFormula {
   public BooleanFormulaImpl(TFormulaInfo pT) {
     super(pT);
+  }
+
+  private Object writeReplace() throws ObjectStreamException {
+    return new SerialProxyFormula(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this).toString());
+  }
+
+  private static class SerialProxyFormula implements Serializable {
+
+    private static final long serialVersionUID = -7575415230982043491L;
+    private final String formula;
+
+    public SerialProxyFormula(final String pF) {
+      formula = pF;
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+      return GlobalInfo.getInstance().getFormulaManager().parse(formula);
+    }
+
   }
 }
 

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import org.sosy_lab.common.collect.PersistentMap;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -203,7 +205,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   private AbstractionFormula abstractionFormula;
 
   /** How often each abstraction location was visited on the path to the current state. */
-  private final PersistentMap<CFANode, Integer> abstractionLocations;
+  private final transient PersistentMap<CFANode, Integer> abstractionLocations;
 
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
@@ -255,5 +257,15 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   public PathFormula getPathFormula() {
     return pathFormula;
+  }
+
+  private Object readResolve() throws ObjectStreamException {
+    if (this instanceof AbstractionState) {
+      return new AbstractionState(GlobalInfo.getInstance().getFormulaManager()
+        .getBooleanFormulaManager(), getPathFormula(), getAbstractionFormula(),
+        abstractionLocations.empty());
+    }
+    return new NonAbstractionState(getPathFormula(), getAbstractionFormula(),
+        abstractionLocations.empty());
   }
 }

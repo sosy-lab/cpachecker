@@ -25,17 +25,25 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+
+import com.google.common.collect.Maps;
 
 public final class PathFormula implements Serializable {
 
   private static final long serialVersionUID = -7716850731790578619L;
-  private final transient BooleanFormula formula;
+  private final BooleanFormula formula;
   private final SSAMap ssa;
   private final int length;
   private final PointerTargetSet pts;
@@ -95,5 +103,42 @@ public final class PathFormula implements Serializable {
     result = prime * result + pts.hashCode();
     result = prime * result + ssa.hashCode();
     return result;
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException {
+    try {
+      in.defaultReadObject();
+
+      // check if formula agrees with SSA map
+      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
+      Pair<String,Integer> splitName;
+      Map<String,Integer> highestIndexForVar = Maps.newHashMap();
+      Integer highestIndex;
+
+      for (String var : mgr.extractFreeVariableMap(formula).keySet()) {
+        splitName = FormulaManagerView.parseName(var);
+
+        if (splitName.getSecond() == null) {
+          if (ssa.containsVariable(splitName.getFirst())) {
+            throw new IOException("Proof is corrupted, abort reading");
+          }
+          continue;
+        }
+
+        highestIndex = highestIndexForVar.get(splitName.getFirst()) ;
+        if(highestIndex == null || highestIndex<splitName.getSecond()) {
+          highestIndexForVar.put(splitName.getFirst(), splitName.getSecond());
+        }
+      }
+
+      for(String var: highestIndexForVar.keySet()){
+        if(ssa.getIndex(var)!=highestIndexForVar.get(var)) {
+          throw new IOException("Proof is corrupted, abort reading");
+        }
+      }
+
+    } catch (ClassNotFoundException e) {
+      throw new IOException("", e);
+    }
   }
 }

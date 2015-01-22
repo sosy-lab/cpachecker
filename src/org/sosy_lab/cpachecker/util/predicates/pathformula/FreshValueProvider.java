@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import java.io.Serializable;
+
 import com.google.common.annotations.VisibleForTesting;
 
 /** Class for retrieving fresh indices for an old value from an SSAMap, based on some increment. */
@@ -36,8 +38,9 @@ public interface FreshValueProvider {
 
 
   /** The default implementation returns always the old index plus default increment. */
-  public static class DefaultFreshValueProvider implements FreshValueProvider {
+  public static class DefaultFreshValueProvider implements FreshValueProvider, Serializable {
 
+    private static final long serialVersionUID = 8349867460915893626L;
     // Default difference for two SSA-indizes of the same name.
     @VisibleForTesting
     public static final int DEFAULT_INCREMENT = 1;
