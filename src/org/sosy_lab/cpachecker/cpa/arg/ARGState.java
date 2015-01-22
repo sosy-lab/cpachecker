@@ -122,7 +122,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    */
   @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
-    checkArgument(children.contains(pChild));
+    // Disabled the following check:
+    //    checkArgument(children.contains(pChild));
+    // In some cases we want to iterate all traces that have been explored
+    // by an analysis. Possible traces might be 'interrupted' by covered states.
+    // Covered states do not have children, so we expect the return value null in this case.
 
     CFANode currentLoc = extractLocation(this);
     CFANode childLoc = extractLocation(pChild);
