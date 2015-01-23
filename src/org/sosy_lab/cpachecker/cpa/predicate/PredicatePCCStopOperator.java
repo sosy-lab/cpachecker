@@ -27,8 +27,6 @@ import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -39,14 +37,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-@Options(prefix="cpa.predicate")
 public class PredicatePCCStopOperator implements StopOperator {
 
   private final PredicateAbstractionManager paMgr;
   private final FormulaManagerView fMgr;
-
-  @Option(secure=true, description="whether abstraction states are used to check coverage of non abstraction states")
-  private boolean doAbstractionStatesCoverNonAbstractionStates = false;
 
   private final AbstractionFormula trueAbs;
 
