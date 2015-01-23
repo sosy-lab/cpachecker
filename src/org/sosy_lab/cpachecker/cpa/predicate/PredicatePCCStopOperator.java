@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 public class PredicatePCCStopOperator implements StopOperator {
 
   private final PredicateAbstractionManager paMgr;
-  private final PathFormulaManager pfMgr;
   private final FormulaManagerView fMgr;
 
   @Option(secure=true, description="whether abstraction states are used to check coverage of non abstraction states")
@@ -55,7 +54,6 @@ public class PredicatePCCStopOperator implements StopOperator {
       throws InvalidConfigurationException {
     pConfig.inject(this);
     paMgr = pCPA.getPredicateManager();
-    pfMgr = pCPA.getPathFormulaManager();
     fMgr = GlobalInfo.getInstance().getFormulaManager();
 
     trueAbs = paMgr.makeTrueAbstractionFormula(null);
@@ -83,21 +81,18 @@ public class PredicatePCCStopOperator implements StopOperator {
       return paMgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
 
     } else if (e2.isAbstractionState()) {
-
-      if (doAbstractionStatesCoverNonAbstractionStates) {
         return paMgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
-      } else {
-        return false;
-      }
 
     } else if (e1.isAbstractionState()) {
       return false;
 
     } else {
       if (e1.getAbstractionFormula() == e2.getAbstractionFormula()) {
-        PathFormula pF1 = e1.getPathFormula();
-        pF1 = new PathFormula(fMgr.makeNot(pF1.getFormula()), pF1.getSsa(), pF1.getPointerTargetSet(), pF1.getLength());
-        return paMgr.unsat(trueAbs, pfMgr.makeOr(pF1, e2.getPathFormula()));
+        PathFormula pF = e1.getPathFormula();
+        BooleanFormula bF = e2.getPathFormula().getFormula();
+        bF = fMgr.makeNot(bF);
+        bF = fMgr.makeAnd(e1.getPathFormula().getFormula(), bF);
+        return paMgr.unsat(trueAbs, new PathFormula(bF, pF.getSsa(), pF.getPointerTargetSet(), pF.getLength()));
       }
       return false;
     }
