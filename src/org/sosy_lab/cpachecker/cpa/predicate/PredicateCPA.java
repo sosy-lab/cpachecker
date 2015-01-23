@@ -223,7 +223,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     if (stopType.equals("SEP")) {
       stop = new PredicateStopOperator(domain);
-    } else if (mergeType.equals("SEPPCC")) {
+    } else if (stopType.equals("SEPPCC")) {
       stop = new PredicatePCCStopOperator(this, config);
     } else {
       throw new InternalError("Update list of allowed stop operators");
