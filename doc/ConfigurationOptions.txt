@@ -1014,6 +1014,10 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
+# whether abstraction states are used to check coverage of non abstraction
+# states
+cpa.predicate.doAbstractionStatesCoverNonAbstractionStates = false
+
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
@@ -1314,6 +1318,11 @@ cpa.predicate.solver.z3.requireProofs = true
 
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
+
+# which stop operator to use for predicate cpa (usually SEP should be used in
+# analysis)
+cpa.predicate.stop = "SEP"
+  allowed values: [SEP, SEPPCC]
 
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
