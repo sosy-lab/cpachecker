@@ -97,6 +97,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
+  @Option(secure=true, name="stop", values={"SEP", "SEPPCC"}, toUppercase=true,
+      description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
+  private String stopType = "SEP";
+
   @Option(secure=true, name="refinement.performInitialStaticRefinement",
       description="use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
@@ -216,7 +220,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     machineModel = cfa.getMachineModel();
 
     prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
-    stop = new PredicateStopOperator(domain);
+
+    if (stopType.equals("SEP")) {
+      stop = new PredicateStopOperator(domain);
+    } else if (mergeType.equals("SEPPCC")) {
+      stop = new PredicatePCCStopOperator(this, config);
+    } else {
+      throw new InternalError("Update list of allowed stop operators");
+    }
   }
 
   public PredicateAssumeStore getAssumesStore() {
