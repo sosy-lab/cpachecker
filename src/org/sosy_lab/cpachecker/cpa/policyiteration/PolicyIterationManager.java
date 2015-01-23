@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -51,6 +51,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 
 /**
  * Main logic in a single class.
@@ -712,7 +713,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     BigInteger prevLocationID = (BigInteger) model.get(
         new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer));
-    int locationID = prevLocationID.intValueExact();
+    int locationID = Ints.checkedCast(prevLocationID.longValue());
     Location prevLocation = Location.ofID(locationID);
 
     return PolicyBound.of(
