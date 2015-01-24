@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -202,7 +204,19 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @return the value associated with the given variable
    */
   public Value getValueFor(MemoryLocation variableName) {
-    return checkNotNull(constantsMap.get(variableName));
+    Value value = constantsMap.get(variableName);
+
+    if (value == null) {
+      try {
+        value = SymbolicValueFactory.getInstance().createIdentifier(null);
+        constantsMap.putAndCopy(variableName, value);
+
+      } catch (SymbolicBoundReachedException e) {
+        throw new AssertionError("Symbolic bound reached, though no location specified");
+      }
+    }
+
+    return checkNotNull(value);
   }
 
 

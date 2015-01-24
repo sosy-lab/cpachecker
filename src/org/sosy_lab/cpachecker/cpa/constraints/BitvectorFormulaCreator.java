@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalNotExp
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
@@ -342,6 +343,11 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     final Type toType = pExpression.getType();
 
     return cast(formula, fromType, toType);
+  }
+
+  @Override
+  public Formula visit(PointerExpression pExpression) {
+    return null; // TODO
   }
 
   @Override

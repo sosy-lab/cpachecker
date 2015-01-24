@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalNotExp
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
@@ -398,6 +399,11 @@ public class IdentifierReplacer implements SymbolicValueVisitor<Value> {
         throw new AssertionError("Unhandled type " + toType);
       }
     }
+  }
+
+  @Override
+  public Value visit(PointerExpression pExpression) {
+    return pExpression;
   }
 
   private interface BinaryFactoryFunction {

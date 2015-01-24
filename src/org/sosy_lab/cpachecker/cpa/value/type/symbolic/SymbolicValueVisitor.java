@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalNotExp
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.LogicalOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftRightExpression;
 
@@ -86,4 +87,6 @@ public interface SymbolicValueVisitor<T> {
   T visit(LogicalAndExpression pExpression);
 
   T visit(CastExpression pExpression);
+
+  T visit(PointerExpression pExpression);
 }
