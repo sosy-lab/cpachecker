@@ -53,6 +53,8 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
   private BooleanFormula _b_at_x_NOTEQ_0;
   private IntegerFormula _al;
 
+  private IntegerFormula _n;
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
@@ -62,6 +64,7 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
     _0 = ifm.makeNumber(0);
     _1 = ifm.makeNumber(1);
     _i = ifm.makeVariable("i");
+    _n = ifm.makeVariable("n");
     _x = ifm.makeVariable("x");
     _al = ifm.makeVariable("al");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
@@ -104,63 +107,6 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
   }
 
   @Test
-  public void testConclusion3() throws SolverException, InterruptedException {
-
-    //    (= (select b (+ i 1)) 0)
-    //    (= al (+ i 1))
-    //     ----- should result in -----
-    //    (= (select b al) 0)
-
-    ArrayList<BooleanFormula> input = Lists.newArrayList(
-        ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0),
-        ifm.equal(_al, ifm.add(_i, _1))
-        );
-
-    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
-
-    assertThat(result).isNotEmpty();
-    assertThat(result).contains(ifm.equal(afm.select(_b, _al), _0));
-  }
-
-  @Test
-  public void testConclusion4() throws SolverException, InterruptedException {
-
-    //    (= (select b 1) 0)
-    //    (<= 1 al)
-    //     ----- should result in -----
-    //    (= (select b al) 0)
-
-    ArrayList<BooleanFormula> input = Lists.newArrayList(
-        ifm.equal(afm.select(_b, _1), _0),
-        ifm.lessOrEquals(_1, _al)
-        );
-
-    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
-
-    assertThat(result).isNotEmpty();
-    assertThat(result).contains(ifm.equal(afm.select(_b, _al), _0));
-  }
-
-  @Test
-  public void testConclusion5() throws SolverException, InterruptedException {
-
-    //    (= (select b 1) 0)
-    //    (<= al 1)
-    //     ----- should result in -----
-    //    (= (select b al) 0)
-
-    ArrayList<BooleanFormula> input = Lists.newArrayList(
-        ifm.equal(afm.select(_b, _1), _0),
-        ifm.lessOrEquals(_al, _1)
-        );
-
-    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
-
-    assertThat(result).isNotEmpty();
-    assertThat(result).contains(ifm.equal(afm.select(_b, _al), _0));
-  }
-
-  @Test
   public void testConclusion6() throws SolverException, InterruptedException {
 
     //    (= (select b 0) 0)
@@ -194,6 +140,45 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
     Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
 
     assertThat(result).contains(ifm.lessThan(_0, _al));
+  }
+
+
+  @Test
+  public void testConclusion11() throws SolverException, InterruptedException {
+    // IMPORTANT! To correct range-predicates later !
+
+    //    (not (= (select b i|) 0))
+    //    (i = 0)
+    //     ----- should result in -----
+    //    (not (= (select b 0|) 0))
+
+    ArrayList<BooleanFormula> input = Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _i), _0)),
+        ifm.equal(_i, _0)
+        );
+
+    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion12() throws SolverException, InterruptedException {
+    // IMPORTANT! To correct range-predicates later !
+
+    //    (i < n)
+    //    (i = 0)
+    //     ----- should result in -----
+    //    0 < n
+
+    ArrayList<BooleanFormula> input = Lists.newArrayList(
+        ifm.lessThan(_i, _n),
+        ifm.equal(_i, _0)
+        );
+
+    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
   }
 
 }

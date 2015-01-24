@@ -24,7 +24,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -56,6 +56,8 @@ def main(argv=None):
                         help="CPU time limit in seconds")
     parser.add_argument("--softtimelimit", type=int, metavar="SECONDS",
                         help='"soft" CPU time limit in seconds')
+    parser.add_argument("--walltimelimit", type=int, metavar="SECONDS",
+                        help='wall time limit in seconds (default is CPU time plus a few seconds)')
     parser.add_argument("--cores", type=util.parseIntList, metavar="N,M-K",
                         help="the list of CPU cores to use")
     parser.add_argument("--memoryNodes", type=util.parseIntList, metavar="N,M-K",
@@ -102,12 +104,13 @@ def main(argv=None):
     logging.info('Writing output to ' + options.output)
 
     # actual run execution
-    (wallTime, cpuTime, memUsage, exitCode, reason, energy) = \
+    result = \
         executor.executeRun(args=options.args,
                             outputFileName=options.output,
                             hardtimelimit=options.timelimit,
                             softtimelimit=options.softtimelimit,
-                            myCpus=options.cores,
+                            walltimelimit=options.walltimelimit,
+                            cores=options.cores,
                             memlimit=options.memlimit,
                             memoryNodes=options.memoryNodes,
                             environments=env,
@@ -117,22 +120,25 @@ def main(argv=None):
     # exitCode is a special number:
     # It is a 16bit int of which the lowest 7 bit are the signal number,
     # and the high byte is the real exit code of the process (here 0).
-    returnValue = exitCode / 256
+    exitCode = result['exitcode']
+    returnValue = exitCode // 256
     exitSignal = exitCode % 128
 
+    def printOptionalResult(key):
+        if key in result:
+            print(key + "_" + str(result[key]))
+
     # output results
-    if reason:
-        print("terminationreason=" + str(reason))
+    printOptionalResult('terminationreason')
     print("exitcode=" + str(exitCode))
     if (exitSignal == 0) or (returnValue != 0):
         print("returnvalue=" + str(returnValue))
     if exitSignal != 0 :
         print("exitsignal=" + str(exitSignal))
-    print("walltime=" + str(wallTime) + "s")
-    print("cputime=" + str(cpuTime) + "s")
-    print("memory=" + str(memUsage))
-    if energy:
-        print("energy=" + str(energy))
+    print("walltime=" + str(result['walltime']) + "s")
+    print("cputime=" + str(result['cputime']) + "s")
+    printOptionalResult('memory')
+    printOptionalResult('energy')
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.math.DoubleMath;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * The address of a left hand side expression {@link ALeftHandSide}. May be symbolic or concrete.
  * Addresses are preferably used to get values of variables that are stored in the {@link ConcreteState} state.
@@ -298,6 +300,7 @@ public abstract class Address {
     }
 
     @Override
+    @SuppressFBWarnings("EQ_UNUSUAL")
     public boolean equals(Object pObj) {
       throw new UnsupportedOperationException("Can't compare unknown addresses.");
     }

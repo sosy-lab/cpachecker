@@ -23,14 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 
 /**
  * This type is used when the parser could not determine the correct type.
  */
-public class CProblemType implements CType {
+public class CProblemType implements CType, Serializable {
 
+  private static final long serialVersionUID = -5658149239682173246L;
   private final String typeName;
 
   public CProblemType(String pTypeName) {

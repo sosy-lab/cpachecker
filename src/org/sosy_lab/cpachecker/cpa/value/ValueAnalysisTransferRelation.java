@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
@@ -111,6 +110,7 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
@@ -1217,10 +1217,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         return null;
       }
 
-      String objectScope = getObjectScope(jortState, functionName, expr);
+      NameProvider nameProvider = NameProvider.getInstance();
+      String objectScope = nameProvider.getObjectScope(jortState, functionName, expr);
 
-      return getRTTScopedVariableName(decl, functionName, objectScope);
-
+      return nameProvider.getScopedVariableName(decl, functionName, objectScope);
     }
 
     @Override
@@ -1606,10 +1606,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
 
-      if (value == null) {
+      boolean truthAssumption = ((AssumeEdge) edge).getTruthAssumption();
+      if (value == null || !value.isExplicitlyKnown()) {
         return null;
-      } else if ((((AssumeEdge) edge).getTruthAssumption() && value.equals(new NumericValue(1L)))
-          || (!((AssumeEdge) edge).getTruthAssumption() && value.equals(new NumericValue(1L)))) {
+      } else if (representsBoolean(value, truthAssumption)) {
         return Collections.singleton(newElement);
       } else {
         return new HashSet<>();
@@ -1618,7 +1618,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       Value value = handleMissingInformationRightJExpression(rttState);
 
-      if (value.isExplicitlyKnown()) {
+      if (!value.isUnknown()) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
@@ -1647,7 +1647,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private ValueAnalysisState handleNotScopedVariable(RTTState rttState, ValueAnalysisState newElement) throws UnrecognizedCCodeException {
 
-   String objectScope = getObjectScope(rttState, functionName, notScopedField);
+   String objectScope = NameProvider.getInstance()
+                                    .getObjectScope(rttState, functionName, notScopedField);
 
    if (objectScope != null) {
 
@@ -1670,52 +1671,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
    }
 
 
-  }
-
-  private String getObjectScope(RTTState rttState, String methodName,
-      JIdExpression notScopedField) {
-
-    // Could not resolve var
-    if (notScopedField.getDeclaration() == null) {
-      return null;
-    }
-
-    if (notScopedField instanceof JFieldAccess) {
-
-      JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
-
-      String qualifierScope = getObjectScope(rttState, methodName, qualifier);
-
-      String scopedFieldName =
-          getRTTScopedVariableName(qualifier.getDeclaration(), methodName, qualifierScope);
-
-      if (rttState.contains(scopedFieldName)) {
-        return rttState.getUniqueObjectFor(scopedFieldName);
-      } else {
-        return null;
-      }
-    } else {
-      if (rttState.contains(RTTState.KEYWORD_THIS)) {
-        return rttState.getUniqueObjectFor(RTTState.KEYWORD_THIS);
-      } else {
-        return null;
-      }
-    }
-  }
-
-  private String getRTTScopedVariableName(
-      JSimpleDeclaration decl,
-      String methodName, String uniqueObject) {
-
-    if (decl == null) { return ""; }
-
-    if (decl instanceof JFieldDeclaration && ((JFieldDeclaration) decl).isStatic()) {
-      return decl.getName();
-    } else if (decl instanceof JFieldDeclaration) {
-      return uniqueObject + "::" + decl.getName();
-    } else {
-      return methodName + "::" + decl.getName();
-    }
   }
 
   private static class MissingInformation {

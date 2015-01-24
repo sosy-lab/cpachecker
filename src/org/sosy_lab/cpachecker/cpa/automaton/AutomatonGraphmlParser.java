@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -207,7 +208,18 @@ public class AutomatonGraphmlParser {
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
-        List<AutomatonBoolExpr> emptyAssertions = Collections.emptyList();
+        final List<AutomatonBoolExpr> assertions;
+        if (!targetNodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(targetStateId).isEmpty()
+            || targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
+          AutomatonBoolExpr otherAutomataSafe =
+              new AutomatonBoolExpr.Negation(
+                  new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY)
+              );
+          assertions = Collections.singletonList(otherAutomataSafe);
+        } else {
+          assertions = Collections.emptyList();
+        }
+
         List<AutomatonAction> actions = Collections.emptyList();
         List<CStatement> assumptions = Lists.newArrayList();
 
@@ -284,7 +296,7 @@ public class AutomatonGraphmlParser {
                   startingLineMatchingExpr);
               transitions.add(new AutomatonTransition(
                   trigger,
-                  emptyAssertions, assumptions, actions, AutomatonInternalState.BOTTOM, null));
+                  assertions, assumptions, actions, AutomatonInternalState.BOTTOM, null));
             } else {
               // Generate special conditions for single path error trace
               Collection<Node> siblings = graph.get(sourceStateId);
@@ -312,7 +324,7 @@ public class AutomatonGraphmlParser {
                   AutomatonBoolExpr matchEdgeTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
                       new AutomatonBoolExpr.MatchEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
 
-                  AutomatonTransition tr = new AutomatonTransition(matchEdgeTriggers, emptyAssertions, assumptions, actions, targetStateId);
+                  AutomatonTransition tr = new AutomatonTransition(matchEdgeTriggers, assertions, assumptions, actions, targetStateId);
                   transitions.add(0, tr);
 
                   AutomatonBoolExpr existsMatchEdgeTriggers = new AutomatonBoolExpr.And(
@@ -321,7 +333,7 @@ public class AutomatonGraphmlParser {
 
                   AutomatonTransition trSink = new AutomatonTransition(
                       existsMatchEdgeTriggers,
-                      emptyAssertions,
+                      assertions,
                       Collections.<AutomatonAction>emptyList(),
                       AutomatonInternalState.BOTTOM);
                   transitions.add(trSink);
@@ -341,7 +353,7 @@ public class AutomatonGraphmlParser {
               AutomatonTransition relevantLineMatchTransition =
                   new AutomatonTransition(
                       relevantLineMatchTrigger,
-                      emptyAssertions,
+                      assertions,
                       assumptions,
                       actions,
                       targetStateId);
@@ -360,7 +372,7 @@ public class AutomatonGraphmlParser {
                 AutomatonTransition irrelevantLineMatchTransition =
                     new AutomatonTransition(
                         irrelevantLineMatchTrigger,
-                        emptyAssertions,
+                        assertions,
                         assumptions,
                         actions,
                         targetStateId);
@@ -376,14 +388,14 @@ public class AutomatonGraphmlParser {
                 // If both do not apply, go to the sink
                 elseTransition = new AutomatonTransition(
                     elseTrigger,
-                    emptyAssertions,
+                    assertions,
                     Collections.<AutomatonAction>emptyList(),
                     AutomatonInternalState.BOTTOM);
               } else {
                 // If both do not apply, loop back to the source state
                 elseTransition = new AutomatonTransition(
                     elseTrigger,
-                    emptyAssertions,
+                    assertions,
                     Collections.<AutomatonAction>emptyList(),
                     sourceStateId);
               }
@@ -393,7 +405,7 @@ public class AutomatonGraphmlParser {
             AutomatonTransition tr = new AutomatonTransition(
                 new AutomatonBoolExpr.Negation(
                     AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
-                      emptyAssertions, assumptions, actions, targetStateId);
+                      assertions, assumptions, actions, targetStateId);
             transitions.add(0, tr);
           }
 
@@ -412,11 +424,11 @@ public class AutomatonGraphmlParser {
 
           if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
             // Transition to the BOTTOM state
-            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+            transitions.add(new AutomatonTransition(conjunctedTriggers, assertions, actions, AutomatonInternalState.BOTTOM));
           } else {
             // Transition to the next state
-            transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
-            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(conjunctedTriggers), emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+            transitions.add(new AutomatonTransition(conjunctedTriggers, assertions, actions, targetStateId));
+            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(conjunctedTriggers), assertions, actions, AutomatonInternalState.BOTTOM));
 
             // If CPAchecker has more than one edge for the same piece of source code, allow the automaton to wait them out
             LinkedList<AutomatonTransition> followStateTransitions = stateTransitions.get(targetStateId);
@@ -424,7 +436,7 @@ public class AutomatonGraphmlParser {
               followStateTransitions = Lists.newLinkedList();
               stateTransitions.put(targetStateId, followStateTransitions);
             }
-            followStateTransitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
+            followStateTransitions.add(new AutomatonTransition(conjunctedTriggers, assertions, actions, targetStateId));
           }
         } else {
           if (considerNegativeSemanticsAttribute) {
@@ -452,7 +464,21 @@ public class AutomatonGraphmlParser {
 
         List<AutomatonTransition> transitions = stateTransitions.get(stateId);
         if (transitions == null) {
-          transitions = Collections.emptyList();
+          transitions = new ArrayList<>();
+        }
+
+        if (!nodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(stateId).isEmpty()) {
+          AutomatonBoolExpr otherAutomataSafe =
+              new AutomatonBoolExpr.Negation(
+                  new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY)
+              );
+          List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
+          transitions.add(
+              new AutomatonTransition(
+                  AutomatonBoolExpr.TRUE,
+                  assertions,
+                  Collections.<AutomatonAction>emptyList(),
+                  stateId));
         }
 
         if (nodeFlags.contains(NodeFlag.ISENTRY)) {

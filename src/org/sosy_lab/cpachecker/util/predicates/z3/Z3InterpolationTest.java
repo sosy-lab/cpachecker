@@ -31,10 +31,12 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
+@SuppressWarnings("unused")
 public class Z3InterpolationTest {
   private Z3FormulaManager mgr;
   private Z3IntegerFormulaManager ifmgr;
@@ -44,7 +46,7 @@ public class Z3InterpolationTest {
     NativeLibraries.loadLibrary("z3j");
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = TestLogManager.getInstance();
-    mgr = Z3FormulaManager.create(logger, config, null);
+    mgr = Z3FormulaManager.create(logger, config, ShutdownNotifier.create(), null);
     ifmgr = (Z3IntegerFormulaManager) mgr.getIntegerFormulaManager();
   }
 

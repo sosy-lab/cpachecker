@@ -33,7 +33,10 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -64,6 +67,19 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import com.google.common.collect.ImmutableList;
 
 public class TestDataTools {
+
+  /**
+   * Create a configuration suitable for unit tests
+   * (writing output files is disabled).
+   * @return A {@link ConfigurationBuilder} which can be further modified and then can be used to {@link ConfigurationBuilder#build()} a {@link Configuration} object.
+   */
+  public static ConfigurationBuilder configurationForTest() throws InvalidConfigurationException {
+    Configuration typeConverterConfig = Configuration.builder()
+        .setOption("output.disable", "true")
+        .build();
+    return Configuration.builder()
+        .addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(typeConverterConfig));
+  }
 
   public static final CFANode DUMMY_CFA_NODE = new CFANode("DUMMY");
 
@@ -151,22 +167,25 @@ public class TestDataTools {
     return Pair.of(assumeEdge, pAssumeExr);
   }
 
-
-  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr) {
+  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr, CFANode pPred, CFANode pSucc) {
     CAssumeEdge assumeEdge = new CAssumeEdge(
         "dummyassume",
         FileLocation.DUMMY,
-        newDummyNode(),
-        newDummyNode(),
+        pPred,
+        pSucc,
         pAssumeExr,
         true);
 
     return Pair.of(assumeEdge, pAssumeExr);
   }
 
+  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr) {
+    return makeAssume(pAssumeExr, newDummyNode(), newDummyNode());
+  }
+
   public static CFA makeCFA(String cProgram) throws IOException, ParserException, InterruptedException {
     try {
-      return makeCFA(cProgram, Configuration.defaultConfiguration());
+      return makeCFA(cProgram, configurationForTest().build());
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }

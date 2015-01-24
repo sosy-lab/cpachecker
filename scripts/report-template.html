@@ -227,6 +227,7 @@ a.action:hover {
 }
 
 #zoomSlider_tab_art, #zoomSlider_tab_cfa { /* DO NOT CHANGE, USED FOR CALCULATION */
+    direction: rtl;
     width: 400px;
     overflow-x: scroll;
     overflow-y: hidden;
@@ -474,7 +475,7 @@ a.action:hover {
             /* This function reads the position of a slider and calculates the zoomLevel. */
             function setZoomLevel(sliderId) {
               var tabId = sliderId.substring(11);
-              zoomData[tabId].zoomLevel = Math.round(100 - (document.getElementById(sliderId).scrollLeft / 20));
+              zoomData[tabId].zoomLevel = Math.round(100 + (document.getElementById(sliderId).scrollLeft / 20));
               document.getElementById('zoomLabel_' + tabId).innerHTML =  zoomData[tabId].zoomLevel + ' %';
             }
 

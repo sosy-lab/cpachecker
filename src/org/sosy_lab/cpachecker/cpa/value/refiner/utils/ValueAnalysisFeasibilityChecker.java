@@ -176,7 +176,7 @@ public class ValueAnalysisFeasibilityChecker {
 
     try {
       MutableARGPath currentPrefix = new MutableARGPath();
-      ValueAnalysisState next = pInitial;
+      ValueAnalysisState next = ValueAnalysisState.copyOf(pInitial);
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {

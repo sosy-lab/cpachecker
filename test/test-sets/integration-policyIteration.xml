@@ -16,10 +16,14 @@
         <column title="total">time for CPAchecker</column>
         <column title="cpa time">time for CPA algorithm</column>
         <column title="reached">Total size of all ARGs</column>
+
         <column title="value determination time">Time spent in value determination</column>
         <column title="abstraction time">Time spent in abstraction</column>
-        <column title="merge">Time spent in merge-step</column>
-        <column title="#val det calls">Number of calls to the value determination solver</column>
+        <column title="SMT-satisfiability time">Time spent in checking satisfiability</column>
+        <column title="optimization">Time spent in optimization</column>
+
+        <column title="SMT solving">Time spent in SMT solver</column>
+
         <column title="#counterexample checks">Number of counterexample checks</column>
         <column title="counterexample checking time">Time for counterexample checks</column>
     </columns>

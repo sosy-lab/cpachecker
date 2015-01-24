@@ -38,6 +38,7 @@ import org.junit.runners.Suite.SuiteClasses;
   ExtendLeftRuleTest0.class,
   LinkRuleTest0.class,
   SubstitutionRuleTest0.class,
-  UniversalizeRuleTest0.class })
+  UniversalizeRuleTest0.class,
+  CanonicalizerTest.class })
 
 public class AllRuleTests { }

@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Canonicalizer;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Concluding;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -42,7 +44,7 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public class RuleEngine implements Concluding, StatisticsProvider {
+public class RuleEngine implements Concluding, StatisticsProvider, Canonicalizer {
 
   private final List<Rule> rules;
 
@@ -54,20 +56,24 @@ public class RuleEngine implements Concluding, StatisticsProvider {
           PatternBasedRule pr = (PatternBasedRule) r;
           put(pOut, 1, "Rule", pr.getRuleName());
           put(pOut, 2, pr.overallTimer.getTitle(), pr.overallTimer.toString());
+          put(pOut, 3, "Number of derived conclusions", pr.conclusionTimer.getUpdateCount());
           put(pOut, 3, pr.conclusionTimer.getTitle(), pr.conclusionTimer.toString());
           put(pOut, 3, pr.constraintCheckTimer.getTitle(), pr.constraintCheckTimer.toString());
           put(pOut, 3, pr.matchingTimer.getTitle(), pr.matchingTimer.toString());
+          put(pOut, 3, pr.conclusionValidationTimer.getTitle(), pr.conclusionValidationTimer.toString());
         }
       }
     }
   }
-  private RuleEngineStatistics stats = new RuleEngineStatistics();
+  private final RuleEngineStatistics stats = new RuleEngineStatistics();
+  private final Canonicalizer canon;
 
   public RuleEngine(LogManager pLogger, Solver pSolver) {
     final SmtAstMatcher matcher = pSolver.getSmtAstMatcher();
 
     // ATTENTION: The ordering of the rules is important!!!!!!
     rules = Lists.newArrayList();
+    rules.add(new InEqualityRule(pSolver, matcher));
     rules.add(new LinCombineRule(pSolver, matcher));
     rules.add(new EliminationRule(pSolver, matcher));
     rules.add(new EquivalenceRule(pSolver, matcher));
@@ -78,6 +84,8 @@ public class RuleEngine implements Concluding, StatisticsProvider {
     rules.add(new ExtendLeftRule(pSolver, matcher));
     rules.add(new ExtendRightRule(pSolver, matcher));
     // ATTENTION: The ordering of the rules is important!!!!!!
+
+    this.canon = new DefaultCanonicalizer(pSolver, matcher);
   }
 
   public ImmutableList<Rule> getRules() {
@@ -102,6 +110,20 @@ public class RuleEngine implements Concluding, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+  }
+
+  @Override
+  public BooleanFormula canonicalize(BooleanFormula pPredicate)
+      throws SolverException, InterruptedException {
+
+    return canon.canonicalize(pPredicate);
+  }
+
+  @Override
+  public Collection<BooleanFormula> canonicalize(Collection<BooleanFormula> pPredicates)
+      throws SolverException, InterruptedException {
+
+    return canon.canonicalize(pPredicates);
   }
 
 }

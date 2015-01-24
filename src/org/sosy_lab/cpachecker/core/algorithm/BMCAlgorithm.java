@@ -89,7 +89,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsPrecision;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
-import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -101,6 +100,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -132,6 +132,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                              }
                            },
                        AbstractStates.toState(AssumptionStorageState.class));
+
+  /**
+   * If these functions appear in the program, we must assume that the program
+   * contains concurrency and we cannot rule out error locations that appear to
+   * be syntactically unreachable.
+   */
+  private static final Set<String> CONCURRENT_FUNCTIONS = ImmutableSet.of("pthread_create");
 
   private static class BMCStatistics implements Statistics {
 
@@ -222,6 +229,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final BooleanFormulaManagerView bfmgr;
 
+  private final TargetLocationProvider tlp;
+
+  private final boolean isProgramConcurrent;
+
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
@@ -253,6 +264,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
     machineModel = predCpa.getMachineModel();
+
+    tlp = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+
+    isProgramConcurrent = from(cfa.getAllFunctionNames()).anyMatch(in(CONCURRENT_FUNCTIONS));
   }
 
   @Override
@@ -279,7 +294,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           shutdownNotifier.shutdownIfNecessary();
 
           if (induction) {
-            if (targetLocations == null) {
+            if (targetLocations == null && !isProgramConcurrent) {
+              targetLocations = tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction());
+            } else {
               targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
             }
             if (targetLocations != null && targetLocations.isEmpty()) {
@@ -310,7 +327,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             createErrorPath(reachedSet, prover);
           }
 
-          prover.pop(); // remove program formula from solver stack
+          if (checkTargetStates) {
+            prover.pop(); // remove program formula from solver stack
+          }
 
           if (!safe) {
             return soundInner;
@@ -462,42 +481,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      LoopstackCPA loopstackCPA = CPAs.retrieveCPA(cpa, LoopstackCPA.class);
-
-      Set<ARGState> realTargetStates = new HashSet<>();
-
-      for (ARGState targetState : from(pReachedSet).filter(ARGState.class).filter(IS_TARGET_STATE).toSet()) {
-        LoopstackState ls = AbstractStates.extractStateByType(targetState, LoopstackState.class);
-        if (ls.getIteration() != loopstackCPA.getMaxLoopIterations()) {
-          Queue<ARGState> toRemove = new ArrayDeque<>();
-          Set<ARGState> visited = new HashSet<>();
-          toRemove.offer(targetState);
-          visited.add(targetState);
-          while (!toRemove.isEmpty()) {
-            ARGState r = toRemove.poll();
-            if (r.getParents().size() == 1) {
-              ARGState parent = r.getParents().iterator().next();
-              if (visited.add(parent)) {
-                toRemove.offer(parent);
-              }
-            }
-            if (!r.isDestroyed()) {
-              if (r.getChildren().size() == 1) {
-                ARGState child = r.getChildren().iterator().next();
-                if (visited.add(child)) {
-                  toRemove.offer(child);
-                }
-              }
-              r.removeFromARG();
-            }
-            pReachedSet.remove(r);
-          }
-        } else {
-          realTargetStates.add(targetState);
-        }
-      }
-
-      Set<ARGState> targetStates = realTargetStates;
+      Set<ARGState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
 
       final boolean shouldCheckBranching;
       if (targetStates.size() == 1) {
@@ -799,9 +783,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             trivialResult = null;
             reachedSet = reachedSetFactory.create();
-            // TODO find a better solution; causes false negatives for pthread programs
-            //CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
-            //targetLocations = tlp.tryGetAutomatonTargetLocations(loopHead);
+            if (!isProgramConcurrent) {
+              CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+              targetLocations = tlp.tryGetAutomatonTargetLocations(loopHead);
+            }
           }
           stats.inductionPreparation.stop();
         }

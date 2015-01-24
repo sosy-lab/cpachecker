@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -42,7 +41,7 @@ public interface PreconditionRefiner {
    * @param pTraceToViolation         Trace to the error location
    * @param pTraceToValidTermination  Trace to the exit location of the entry function
    *
-   * @param pWpLocation   The goal is to provide a precondition for this location.
+   * @param pWpPosition   The goal is to provide a precondition for this location.
    *
    * @return
    *
@@ -51,9 +50,8 @@ public interface PreconditionRefiner {
    * @throws CPATransferException
    */
   public abstract PredicatePrecision refine(
-      final ARGPath pTraceToViolation,
-      final ARGPath pTraceToValidTermination,
-      final CFANode pWpLocation)
+      final PathPosition pTraceToViolation,
+      final PathPosition pTraceToValidTermination)
     throws SolverException, InterruptedException, CPATransferException;
 
 }

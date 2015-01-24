@@ -233,4 +233,11 @@ public class Rational implements Comparable<Rational>{
   public int hashCode() {
     return Objects.hashCode(num, den);
   }
+
+  public static Rational max(Rational a, Rational b) {
+    if (a.compareTo(b) >= 0) {
+      return a;
+    }
+    return b;
+  }
 }

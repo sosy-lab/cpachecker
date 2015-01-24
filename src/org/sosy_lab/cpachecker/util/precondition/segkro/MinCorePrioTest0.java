@@ -176,4 +176,29 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
     assertThat(resultingInterpolantPreds).contains(linCombi);
   }
 
+  @Test
+  public void testWpExample2() throws SolverException, InterruptedException {
+    final BooleanFormula phiMinus = bfm.and(Lists.newArrayList(
+          bfm.not(ifm.equal(ifm.makeVariable("p"), ifm.makeNumber(1))),
+          ifm.lessOrEquals(ifm.makeVariable("a"), ifm.makeNumber(1000)))
+        );
+    final BooleanFormula phiPlus = bfm.and(Lists.newArrayList(
+        ifm.equal(ifm.makeVariable("p"), ifm.makeNumber(1)),
+        ifm.greaterThan(ifm.makeVariable("a"), ifm.makeNumber(50)))
+      );
+
+    List<BooleanFormula> candidates = Lists.newArrayList(
+        bfm.not(ifm.equal(ifm.makeVariable("p"), ifm.makeNumber(1))),
+        ifm.lessOrEquals(ifm.makeVariable("a"), ifm.makeNumber(1000)),
+        ifm.equal(ifm.makeVariable("p"), ifm.makeNumber(1)),
+        ifm.greaterThan(ifm.makeVariable("a"), ifm.makeNumber(50))
+        );
+
+    assertThat(solver.isUnsat(bfm.and(phiMinus, phiPlus))).isTrue();
+
+    Collection<BooleanFormula> result = mcp.getInterpolantAsPredicateCollection(phiMinus, phiPlus, candidates, null);
+
+    assertThat(result).contains(bfm.not(ifm.equal(ifm.makeVariable("p"), ifm.makeNumber(1))));
+  }
+
 }

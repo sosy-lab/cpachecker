@@ -187,7 +187,7 @@ class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
 
     final PointerToLong model = new PointerToLong();
     final PointerToLong interpolant = new PointerToLong();
-    int isSat = compute_interpolantFixed(
+    int isSat = compute_interpolant(
         z3context,
         root, // last element is end of chain (root of tree)
         0,

@@ -595,6 +595,10 @@ cpa.automaton.extraIterationsLimit = -1
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# Whether to treat automaton states with an internal error state as targets.
+# This should be the standard use case.
+cpa.automaton.treatErrorsAsTargets = true
+
 # if enabled, cache queries also consider blocks with non-matching precision
 # for reuse.
 cpa.bam.aggressiveCaching = true
@@ -1292,7 +1296,7 @@ cpa.predicate.solver.useLogger = false
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
-cpa.predicate.solver.z3.activateZ3Logging = false
+cpa.predicate.solver.z3.log = no default value
 
 # Export solver queries in Smtlib2 format, there are small differences for
 # different solvers, choose target-solver.
@@ -1312,6 +1316,11 @@ cpa.predicate.solver.z3.requireProofs = true
 
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
+
+# which stop operator to use for predicate cpa (usually SEP should be used in
+# analysis)
+cpa.predicate.stop = "SEP"
+  allowed values: [SEP, SEPPCC]
 
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
@@ -1524,7 +1533,7 @@ cpa.statistics.statisticsCPAFile = no default value
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
 # Value to substitute for the epsilon
-cpa.stator.policy.epsilon = 1
+cpa.stator.policy.epsilon = Rational.ONE
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
@@ -1656,6 +1665,8 @@ cpa.value.symbolicValues = false
 # the verified program uses big or lots of arrays. Arrays in C programs will
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
+
+customInstructions.definitionFile = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -1851,6 +1862,9 @@ precondition.export.target = "precondition.txt"
 # (How) should the precondition be exported?
 precondition.export.type = NONE
   enum:     [NONE, SMTLIB]
+
+# Use the refiner that uses a solver-based interpolation mechanism.
+precondition.solverbasedInterpolation = false
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"

@@ -50,9 +50,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
   private IntegerFormula _1;
   private IntegerFormula _i;
   private BooleanFormula _b_at_i_plus_1_EQ_0;
-  private BooleanFormula _b_at_i_NOTEQ_0;
   private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
-  private BooleanFormula _b_at_i_EQ_0;
   private BooleanFormula _0_EQ_b_at_i_plus_1;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
@@ -70,42 +68,40 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     _i = ifm.makeVariable("i");
 
-    _b_at_i_EQ_0 = ifm.equal(_0, afm.select(_b, _i));
     _0_EQ_b_at_i_plus_1 = ifm.equal(_0, afm.select(_b, ifm.add(_i, _1)));
     _b_at_i_plus_1_EQ_0 = ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0);
-    _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
     _b_at_i_plus_1_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0));
   }
 
   @Test
-  public void testPremise1() throws SolverException, InterruptedException {
+  public void testPremise2() throws SolverException, InterruptedException {
 
-    Premise p1 = er.getPremises().get(0);
+    Premise p1 = er.getPremises().get(1);
     assertThat(p1).isInstanceOf(PatternBasedPremise.class);
     PatternBasedPremise pp1 = (PatternBasedPremise) p1;
 
     SmtAstMatchResult r1 = matcher.perform(pp1.getPatternSelection(), _0_EQ_b_at_i_plus_1);
     assertThat(r1.matches()).isTrue();
-    assertThat(r1.getBoundVariables().size()).isEqualTo(2);
+    assertThat(r1.getBoundVariables().size()).isGreaterThan(1);
   }
 
   @Test
-  public void testPremise1a() throws SolverException, InterruptedException, IOException {
+  public void testPremise2a() throws SolverException, InterruptedException, IOException {
 
-    Premise p1 = er.getPremises().get(0);
+    Premise p1 = er.getPremises().get(1);
     assertThat(p1).isInstanceOf(PatternBasedPremise.class);
     PatternBasedPremise pp1 = (PatternBasedPremise) p1;
 
     SmtAstMatchResult r2 = matcher.perform(pp1.getPatternSelection(), _b_at_i_plus_1_EQ_0);
     assertThat(r2.matches()).isTrue();
 
-    assertThat(r2.getBoundVariables().size()).isEqualTo(2);
+    assertThat(r2.getBoundVariables().size()).isGreaterThan(1);
   }
 
   @Test
-  public void testPremise2() throws SolverException, InterruptedException {
+  public void testPremise1() throws SolverException, InterruptedException {
 
-    Premise p2 = er.getPremises().get(1);
+    Premise p2 = er.getPremises().get(0);
     assertThat(p2).isInstanceOf(PatternBasedPremise.class);
     PatternBasedPremise pp2 = (PatternBasedPremise) p2;
 
@@ -124,19 +120,60 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
   public void testConclusion1() throws SolverException, InterruptedException {
     Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
         Lists.newArrayList(
-            _b_at_i_plus_1_EQ_0,
-            _b_at_i_NOTEQ_0));
+            bfm.not(ifm.equal(afm.select(_b, _i), _0)),
+            ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)
+          ));
 
-    assertThat(result).isNotEmpty();
+    assertThat(result).contains(rangePredicate(false, _i,  ifm.add(_i, _1)));
+  }
+
+  @Test
+  public void testConclusion3() throws SolverException, InterruptedException {
+    Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            bfm.not(ifm.equal(afm.select(_b, _0), _0)),
+            ifm.equal(afm.select(_b, _0), _0)
+          ));
+
+    assertThat(result).isEmpty();;
+  }
+
+  @Test
+  public void testConclusion4() throws SolverException, InterruptedException {
+    // (= (select |copy::b@1| (+ 1 |copy::i@2|)) 0)
+    // (not (= (select |copy::b@1| |copy::i@2|) 0))
+
+    Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            bfm.not(ifm.equal(afm.select(_b, _i), _0)),
+            ifm.equal(afm.select(_b, ifm.add(_1, _i)), _0)
+          ));
+
+    assertThat(result).contains(rangePredicate(false, _i,  ifm.add(_1, _i)));
   }
 
   @Test
   public void testConclusion2() throws SolverException, InterruptedException {
+    // Important !!!
+
     Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
         Lists.newArrayList(
-            _b_at_i_EQ_0,
-            _b_at_i_plus_1_NOTEQ_0));
-    assertThat(result).isEmpty();
+            bfm.not(ifm.equal(afm.select(_b, _i), _0)),
+            ifm.equal(afm.select(_b, ifm.add(_1, _i)), _0)));
+
+    assertThat(result).contains(rangePredicate(false, _i,  ifm.add(_1, _i)));
+  }
+
+  @Test
+  public void testConclusion5() throws SolverException, InterruptedException {
+    // Important !!!
+
+    Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            bfm.not(ifm.equal(afm.select(_b, _0), _0)),
+            ifm.equal(_0, afm.select(_b, _1))));
+
+    assertThat(result).contains(rangePredicate(false, _0,  _1));
   }
 
 }

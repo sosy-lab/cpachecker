@@ -500,7 +500,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
       assert !atomic.isEmpty();
       Iterator<InvariantsFormula<CompoundInterval>> iterator = atomic.iterator();
-      InvariantsFormula<CompoundInterval> assumption = ifm.equal(variable, iterator.next());
+      InvariantsFormula<CompoundInterval> assumption = ifm.asConstant(CompoundInterval.logicalFalse());
       while (iterator.hasNext()) {
         InvariantsFormula<CompoundInterval> equation = ifm.equal(variable, iterator.next());
         if (isExclusion) {

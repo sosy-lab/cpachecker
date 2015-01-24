@@ -66,7 +66,7 @@
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
-    <target name="tests" depends="unit-tests, benchmark-tests" description="Run all tests"/>
+    <target name="tests" depends="unit-tests, python-unit-tests, benchmark-tests" description="Run all tests"/>
 
 
     <!-- Auxiliary targets -->
@@ -162,7 +162,7 @@
     <target name="zip" depends="jar">
         <property name="namez" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namez}.zip" whenempty="fail">
-            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/*.* lib/java/runtime/*" excludes="lib/ivy*" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
         </zip>
@@ -185,6 +185,15 @@
                 excludes="lib/native/source/** lib/native/*win*/**"
                 prefix="${namet}/"/>
         </tar>
+    </target>
+
+    <target name="python-unit-tests" description="Run unit tests of python scripts">
+        <!-- Tests are only executed if python is available, ignored otherwise. -->
+        <exec executable="python"
+            failonerror="true"
+            failifexecutionfails="false">
+            <arg line="-m unittest discover scripts"/>
+        </exec>
     </target>
 
     <target name="benchmark-tests" depends="build" description="Run CPAchecker on some simple test cases in various configurations">

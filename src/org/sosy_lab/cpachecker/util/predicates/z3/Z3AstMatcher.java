@@ -81,6 +81,7 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
 
   @Override
   protected SmtAstMatchResult internalPerform(
+      final Formula pParentFormula,
       final Formula pRootFormula,
       final Stack<String> pQuantifiedVariables,
       final SmtAstPattern pP, Optional<Multimap<String, Formula>> pBindingRestrictions) {
@@ -91,13 +92,16 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
     if (pP.getBindMatchTo().isPresent()) {
       final String bindMatchTo = pP.getBindMatchTo().get();
       result.putBoundVaribale(bindMatchTo, pRootFormula);
+      result.putBoundVaribale(bindMatchTo + ".parent" , pParentFormula);
 
-      if (pBindingRestrictions.isPresent()) {
-        Collection<Formula> variableAlreadyBoundTo = pBindingRestrictions.get().get(bindMatchTo);
-        assert variableAlreadyBoundTo.size() <= 1;
-        if (variableAlreadyBoundTo.size() > 0) {
-          if (!variableAlreadyBoundTo.contains(pRootFormula)) {
-            return newMatchFailedResult(String.format("Binding of variable %s does not match!", bindMatchTo));
+      if (!bindMatchTo.contains("?")) {
+        if (pBindingRestrictions.isPresent()) {
+          Collection<Formula> variableAlreadyBoundTo = pBindingRestrictions.get().get(bindMatchTo);
+          assert variableAlreadyBoundTo.size() <= 1;
+          if (variableAlreadyBoundTo.size() > 0) {
+            if (!variableAlreadyBoundTo.contains(pRootFormula)) {
+              return newMatchFailedResult(String.format("Binding of variable %s does not match!", bindMatchTo));
+            }
           }
         }
       }
@@ -170,6 +174,12 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
           ? QuantifierType.FORALL
           : QuantifierType.EXISTS;
 
+      if (qp.matchQuantificationWithType.isPresent()) {
+        if (!qp.matchQuantificationWithType.get().equals(quantifierType)) {
+          return newMatchFailedResult("Different quantifier!");
+        }
+      }
+
       BooleanFormula bodyFormula = (BooleanFormula) encapsulateAstAsFormula(get_quantifier_body(ctx, ast));
 
       ArrayList<QuantifiedVariable> boundVariables = getQuantifiedVariables(ast);
@@ -235,7 +245,7 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
       final BooleanFormula pBodyFormula,
       final Optional<Multimap<String, Formula>> bBindingRestrictions) {
 
-    final List<BooleanFormula> bodyConjuncts = extractConjuncts(pBodyFormula);
+    final List<BooleanFormula> bodyConjuncts = extractConjuncts(pBodyFormula, false);
 
     SmtAstMatchResult bodyMatchingResult = matchFormulaChildsInSequence(
         pRootFormula, pQuantifiedVariables,
@@ -256,7 +266,7 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
     }
   }
 
-  private List<BooleanFormula> extractConjuncts(BooleanFormula pFormula) {
+  private List<BooleanFormula> extractConjuncts(BooleanFormula pFormula, boolean pRecursive) {
     List<BooleanFormula> result = Lists.newArrayList();
 
     final long ast = fm.extractInfo(pFormula);
@@ -273,8 +283,12 @@ class Z3AstMatcher extends AbstractSmtAstMatcher {
           final long argAst = get_app_arg(ctx, ast, i);
           final BooleanFormula argFormula = (BooleanFormula) encapsulateAstAsFormula(argAst);
 
-          List<BooleanFormula> argFormulaChildConjuncts = extractConjuncts(argFormula);
-          result.addAll(argFormulaChildConjuncts);
+          if (pRecursive) {
+            List<BooleanFormula> argFormulaChildConjuncts = extractConjuncts(argFormula, pRecursive);
+            result.addAll(argFormulaChildConjuncts);
+          } else {
+            result.add(argFormula);
+          }
         }
       } else {
         result.add(pFormula);

@@ -1003,11 +1003,8 @@ public final class Z3NativeApi {
    *
    * @return status of SAT check
    **/
-  public static native int compute_interpolant(long c, long pat, long p, PointerToLong interp, PointerToLong model);
-
-  // The same method than above, but the corresponding C-Wrapper-method contains a bugfix for a pointer-dereference.
-  // TODO switch to method above, as soon as the C-Wrapper is fixed
-  public static native int compute_interpolantFixed(long c,
+  public static native int compute_interpolant(
+      long c,
       long pat,
       long p,
       PointerToLong interp,

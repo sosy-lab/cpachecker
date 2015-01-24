@@ -29,12 +29,9 @@ import javax.annotation.Nullable;
 
 import org.junit.After;
 import org.junit.Before;
-import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -97,7 +94,7 @@ public abstract class SolverBasedTest0 {
   protected FunctionFormulaManager fmgr;
   protected NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
   protected @Nullable NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
-  protected @Nullable QuantifiedFormulaManager qmgr;
+  protected @Nullable QuantifiedFormulaManager qfm;
   protected @Nullable ArrayFormulaManager amgr;
 
   /**
@@ -110,12 +107,8 @@ public abstract class SolverBasedTest0 {
   }
 
   protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
-    ConfigurationBuilder builder = new Builder();
-    builder.setOption("cpa.predicate.solver", solverToUse().toString());
-    // FileOption-Converter for correct output-paths, otherwise files are written in current working directory.
-    builder.addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()));
-
-    return builder;
+    return TestDataTools.configurationForTest()
+        .setOption("cpa.predicate.solver", solverToUse().toString());
   }
 
   @Before
@@ -140,9 +133,9 @@ public abstract class SolverBasedTest0 {
       rmgr = null;
     }
     try {
-      qmgr = mgr.getQuantifiedFormulaManager();
+      qfm = mgr.getQuantifiedFormulaManager();
     } catch (UnsupportedOperationException e) {
-      qmgr = null;
+      qfm = null;
     }
     try {
       amgr = mgr.getArrayFormulaManager();
@@ -171,7 +164,7 @@ public abstract class SolverBasedTest0 {
    */
   protected final void requireQuantifiers() {
     assume().withFailureMessage("Solver " + solverToUse() + " does not support quantifiers")
-            .that(qmgr).isNotNull();
+            .that(qfm).isNotNull();
   }
 
   /**
@@ -223,4 +216,5 @@ public abstract class SolverBasedTest0 {
           }
         };
   }
+
 }

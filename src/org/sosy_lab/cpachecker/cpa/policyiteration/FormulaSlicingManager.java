@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -26,7 +26,6 @@ public class FormulaSlicingManager {
   private final FormulaManagerView fmgr;
   private final UnsafeFormulaManager unsafeManager;
   private final BooleanFormulaManager bfmgr;
-  private final ShutdownNotifier shutdownNotifier;
 
   private static final String NOT_FUNC_NAME = "not";
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
@@ -34,13 +33,11 @@ public class FormulaSlicingManager {
   public FormulaSlicingManager(LogManager pLogger,
       FormulaManagerView pFmgr,
       UnsafeFormulaManager pUnsafeManager,
-      BooleanFormulaManager pBfmgr,
-      ShutdownNotifier pShutdownNotifier) {
+      BooleanFormulaManager pBfmgr) {
     logger = pLogger;
     fmgr = pFmgr;
     unsafeManager = pUnsafeManager;
     bfmgr = pBfmgr;
-    shutdownNotifier = pShutdownNotifier;
   }
 
   /**
@@ -49,6 +46,7 @@ public class FormulaSlicingManager {
    */
   BooleanFormula pointerFormulaSlice(BooleanFormula f) throws InterruptedException {
     Set<String> closure = findClosure(f, new Predicate<String>() {
+      @Override
       public boolean apply(String input) {
         return input.contains(POINTER_ADDR_VAR_NAME);
       }
@@ -96,8 +94,6 @@ public class FormulaSlicingManager {
       ImmutableSet<String> closure,
       boolean isInsideNot,
       Map<Formula, Formula> memoization) throws InterruptedException {
-    shutdownNotifier.shutdownIfNecessary();
-
     Formula out = memoization.get(f);
     if (out != null) {
       return out;
@@ -105,10 +101,26 @@ public class FormulaSlicingManager {
 
     if (unsafeManager.isAtom(f)) {
       Set<String> containedVariables = fmgr.extractVariableNames(f);
-      if (Sets.intersection(closure, containedVariables).isEmpty()) {
-        out = bfmgr.makeBoolean(!isInsideNot);
-      } else {
+      if (!Sets.intersection(closure, containedVariables).isEmpty()) {
         out = f;
+      } else {
+        // Hack to propagate call variables,
+        // TODO: remove.
+        if (containedVariables.size() == 2) {
+          Iterator<String> iterator = containedVariables.iterator();
+          String first = iterator.next();
+          String second = iterator.next();
+          if (first.contains("::") && second.contains("::") &&
+              !first.substring(0, first.indexOf("::")).equals(
+              second.substring(0, second.indexOf("::"))
+          )) {
+            out = f;
+          } else {
+            out = bfmgr.makeBoolean(!isInsideNot);
+          }
+        } else {
+          out = bfmgr.makeBoolean(!isInsideNot);
+        }
       }
     } else {
       int count = unsafeManager.getArity(f);

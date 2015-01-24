@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -32,15 +33,6 @@ import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.stator.policy")
 public class TemplateManager {
-  private final CFA cfa;
-  private final LogManager logger;
-  private final NumeralFormulaManagerView<
-        NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
-  private final NumeralFormulaManagerView<NumeralFormula.IntegerFormula,
-      NumeralFormula.IntegerFormula> ifmgr;
-  private final PathFormulaManager pfmgr;
-  private final FormulaManagerView fmgrv;
-
   @Option(secure=true,
       description="Generate templates for the lower bounds of each variable")
   private boolean generateLowerBound = true;
@@ -57,6 +49,22 @@ public class TemplateManager {
   @Option(secure=true,
       description="Ignore the template type and encode with a rational variable")
   private boolean encodeTemplatesAsRationals = false;
+
+  private final CFA cfa;
+  private final LogManager logger;
+  private final NumeralFormulaManagerView<
+      NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
+  private final NumeralFormulaManagerView<NumeralFormula.IntegerFormula,
+      NumeralFormula.IntegerFormula> ifmgr;
+  private final PathFormulaManager pfmgr;
+  private final FormulaManagerView fmgrv;
+
+  /**
+   * Dummy edge required by the interface to convert the {@code CIdExpression}
+   * into formula.
+   */
+  private final CFAEdge dummyEdge;
+
 
   // Temporary variables created by CPA checker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
@@ -76,6 +84,10 @@ public class TemplateManager {
     rfmgr = pFormulaManagerView.getRationalFormulaManager();
     ifmgr = pFormulaManagerView.getIntegerFormulaManager();
     fmgrv = pFormulaManagerView;
+
+    dummyEdge = new BlankEdge("",
+        FileLocation.DUMMY,
+        new CFANode("dummy-1"), new CFANode("dummy-2"), "Dummy Edge");
   }
 
   public ImmutableSet<Template> templatesForNode(CFANode node) {
@@ -138,15 +150,12 @@ public class TemplateManager {
     return out.build();
   }
 
-  public Formula toFormula(
-      Template template, PathFormula pPathFormula, CFAEdge edge
-  ) {
-    return toFormula(template, pPathFormula, "", edge);
+  public Formula toFormula(Template template, PathFormula pPathFormula) {
+    return toFormula(template, pPathFormula, "");
   }
 
   public Formula toFormula(
-      Template template, PathFormula pPathFormula, String customPrefix,
-      CFAEdge edge
+      Template template, PathFormula pPathFormula, String customPrefix
   ) {
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
@@ -158,7 +167,7 @@ public class TemplateManager {
       Formula item;
       try {
         item = pfmgr.expressionToFormula(
-            pPathFormula, declaration, edge);
+            pPathFormula, declaration, dummyEdge);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }

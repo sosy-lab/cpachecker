@@ -29,9 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern.SmtAstMatchFlag;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
@@ -95,22 +100,6 @@ public class SmtAstPatternBuilder {
         Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         pArgumentMatchers);
-  }
-
-  public static SmtAstPattern matchBind(String pBindMatchTo, SmtAstPattern... argumentMatchers) {
-    return new SmtFunctionApplicationPattern(
-        Optional.<Comparable<?>>absent(),
-        Optional.<SmtFormulaMatcher>absent(),
-        Optional.of(pBindMatchTo),
-        and(argumentMatchers));
-  }
-
-  public static SmtAstPattern matchBind(String pBindMatchTo, SmtAstPatternSelection pPatternSelection) {
-    return new SmtFunctionApplicationPattern(
-        Optional.<Comparable<?>>absent(),
-        Optional.<SmtFormulaMatcher>absent(),
-        Optional.of(pBindMatchTo),
-        pPatternSelection);
   }
 
   /**
@@ -232,6 +221,19 @@ public class SmtAstPatternBuilder {
         and());
   }
 
+  public static SmtAstPattern matchNumeralExpressionBind(String pBindMatchTo) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
+          @Override
+          public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
+            return pMgr.getFormulaType(pF) instanceof NumeralType;
+          }
+        }),
+        Optional.<String>of(pBindMatchTo),
+        dontcare());
+  }
+
   public static SmtAstPattern matchNumeralVariableBind(String pBindMatchTo) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
@@ -289,6 +291,36 @@ public class SmtAstPatternBuilder {
         and());
   }
 
+  public static SmtAstPattern matchNegativeNumber() {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
+          @Override
+          public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
+            if (!(pF instanceof NumeralFormula)) {
+              return false;
+            }
+
+            IntegerFormula minusOne = pMgr.getIntegerFormulaManager().makeNumber(-1);
+            if (pF.equals(minusOne)) {
+              return true;
+            }
+
+            try (ProverEnvironment prover = pMgr.newProverEnvironment(false, false)) {
+              BooleanFormula largerEqualZero = pMgr.getIntegerFormulaManager()
+                  .greaterOrEquals((IntegerFormula) pF, pMgr.getIntegerFormulaManager().makeNumber(0));
+              prover.push(largerEqualZero);
+              return prover.isUnsat();
+
+            } catch (SolverException | InterruptedException e) {
+              return false;
+            }
+          }
+        }),
+        Optional.<String>absent(),
+        and());
+  }
+
 
   public static SmtAstPatternSelection or(SmtAstPatternSelectionElement... pDisjuncts) {
     return new SmtAstPatternSelectionImpl(
@@ -330,6 +362,7 @@ public class SmtAstPatternBuilder {
   }
 
   public static SmtAstPatternSelection concat(SmtAstPatternSelection... pSelections) {
+
     Map<String,Formula> defaultBindings = Maps.newHashMap();
     List<SmtAstPatternSelectionElement> patterns = Lists.newArrayList();
 
@@ -342,7 +375,9 @@ public class SmtAstPatternBuilder {
 
       Verify.verify(logicRelation == sel.getRelationship(), "Logic relations must match!");
 
-      patterns.addAll(sel.getPatterns());
+      for (SmtAstPatternSelectionElement p: sel.getPatterns()) {
+        patterns.add(p);
+      }
       defaultBindings.putAll(sel.getDefaultBindings());
     }
 
@@ -359,10 +394,24 @@ public class SmtAstPatternBuilder {
         pBodyMatchers);
   }
 
+  public static SmtAstPattern matchExistsQuantBind(String pBindMatchTo, SmtAstPatternSelection pBodyMatchers) {
+    return new SmtQuantificationPattern(
+        Optional.of(QuantifierType.EXISTS),
+        Optional.<String>of(pBindMatchTo),
+        pBodyMatchers);
+  }
+
   public static SmtAstPattern matchForallQuant(SmtAstPatternSelection pBodyMatchers) {
     return new SmtQuantificationPattern(
         Optional.of(QuantifierType.FORALL),
         Optional.<String>absent(),
+        pBodyMatchers);
+  }
+
+  public static SmtAstPattern matchForallQuantBind(String pBindMatchTo, SmtAstPatternSelection pBodyMatchers) {
+    return new SmtQuantificationPattern(
+        Optional.of(QuantifierType.FORALL),
+        Optional.<String>of(pBindMatchTo),
         pBodyMatchers);
   }
 
@@ -401,6 +450,10 @@ public class SmtAstPatternBuilder {
 
   public static String quantified(String pVariableName) {
     return "." + pVariableName;
+  }
+
+  public static String parentOf(String pVariableName) {
+    return pVariableName + ".parent";
   }
 
 }

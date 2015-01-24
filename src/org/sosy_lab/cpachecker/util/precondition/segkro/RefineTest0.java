@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.*;
 import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 
 import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Mockito;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -37,14 +35,17 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -53,10 +54,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
@@ -64,10 +61,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
@@ -76,7 +69,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
-
+@SuppressWarnings("unused")
 public class RefineTest0 extends SolverBasedTest0 {
 
   private Refine refine;
@@ -94,6 +87,23 @@ public class RefineTest0 extends SolverBasedTest0 {
   private CFAEdge _stmt_al_assign_0;
   private CAssumeEdge _assume_not_b_at_i_neq_0;
   private CDeclarationEdge _stmt_declare_al;
+  private CFAEdge _stmt_a_at_i_assign_b_at_i;
+  private CFAEdge _stmt_i_assign_i_plus_1;
+
+  private CAssumeEdge _assume_p_neq_1;
+  private CAssumeEdge _assume_p_eq_1;
+  private CAssumeEdge _assume_x_leq_1000;
+  private CAssumeEdge _assume_x_gt_1000;
+  private CAssumeEdge _assume_x_gt_50;
+  private CAssumeEdge _assume_x_leq_50;
+  private CExpression _50;
+  private CAssumeEdge _assume_x_geq_al;
+
+  private CFANode _loc_1;
+  private CFANode _loc_2;
+  private CFANode _loc_3;
+  private CFANode _loc_err;
+  private CFANode _loc_end;
 
   @Override
   protected Solvers solverToUse() {
@@ -130,6 +140,8 @@ public class RefineTest0 extends SolverBasedTest0 {
     CArrayType unlimitedIntArrayType = new CArrayType(false, false, CNumericTypes.INT, null);
 
     Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _i_decl = makeDeclaration("i", CNumericTypes.INT, null);
+    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _x_decl = makeDeclaration("x", CNumericTypes.INT, null);
+    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _p_decl = makeDeclaration("p", CNumericTypes.INT, null);
     Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _al_decl = makeDeclaration("al", CNumericTypes.INT, INT_ZERO_INITIALIZER);
     Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _a = makeDeclaration("a", unlimitedIntArrayType, null);
     Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _b = makeDeclaration("b", unlimitedIntArrayType, null);
@@ -140,10 +152,16 @@ public class RefineTest0 extends SolverBasedTest0 {
             ));
 
     CIdExpression _i = _i_decl.getThird();
+    CIdExpression _p = _p_decl.getThird();
+    CIdExpression _x = _x_decl.getThird();
     CIdExpression _al = makeVariable("al", CNumericTypes.INT);
 
     CIntegerLiteralExpression _0 = CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT);
     CIntegerLiteralExpression _1 = CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT);
+    CIntegerLiteralExpression _50 = CIntegerLiteralExpression.createDummyLiteral(50, CNumericTypes.INT);
+    CIntegerLiteralExpression _1000 = CIntegerLiteralExpression.createDummyLiteral(1000, CNumericTypes.INT);
+
+    CBinaryExpression _i_plus_1 = expressionBuilder.buildBinaryExpression(_i, _1, BinaryOperator.PLUS);
 
     CArraySubscriptExpression _b_at_i = new CArraySubscriptExpression(
         FileLocation.DUMMY,
@@ -151,69 +169,221 @@ public class RefineTest0 extends SolverBasedTest0 {
         _b.getThird(),
         _i);
 
+    CArraySubscriptExpression _a_at_i = new CArraySubscriptExpression(
+        FileLocation.DUMMY,
+        unlimitedIntArrayType,
+        _a.getThird(),
+        _i);
+
+    _while = TestDataTools.makeBlankEdge("while");
+    _dummy = makeBlankEdge("dummy");
     _label_error = TestDataTools.makeBlankEdge("ERROR");
+
     _assume_i_geq_al = makeAssume(expressionBuilder.buildBinaryExpression(_i, _al, BinaryOperator.GREATER_EQUAL)).getFirst();
     _assume_b_at_i_neq_0 = makeAssume(expressionBuilder.buildBinaryExpression(_b_at_i, _0, BinaryOperator.NOT_EQUALS)).getFirst();
     _assume_not_b_at_i_neq_0 = makeNegatedAssume(expressionBuilder.buildBinaryExpression(_b_at_i, _0, BinaryOperator.NOT_EQUALS)).getFirst();
-    _while = TestDataTools.makeBlankEdge("while");
+
+    _loc_1 = new CFANode("1");
+    _loc_2 = new CFANode("2");
+    _loc_3 = new CFANode("3");
+    _loc_err = new CFANode("err");
+    _loc_end = new CFANode("end");
+
+    _assume_x_gt_1000 = makeAssume(expressionBuilder.buildBinaryExpression(_x, _1000, BinaryOperator.GREATER_THAN), _loc_2, _loc_err).getFirst();
+    _assume_x_leq_1000 = makeAssume(expressionBuilder.buildBinaryExpression(_x, _1000, BinaryOperator.LESS_EQUAL), _loc_2, _loc_end).getFirst();
+    _assume_x_gt_50 = makeAssume(expressionBuilder.buildBinaryExpression(_x, _50, BinaryOperator.GREATER_THAN), _loc_3, _loc_err).getFirst();
+    _assume_x_leq_50 = makeAssume(expressionBuilder.buildBinaryExpression(_x, _50, BinaryOperator.LESS_EQUAL), _loc_3, _loc_end).getFirst();
+    _assume_p_neq_1 = makeAssume(expressionBuilder.buildBinaryExpression(_p, _1, BinaryOperator.NOT_EQUALS), _loc_1, _loc_2).getFirst();
+    _assume_p_eq_1 = makeAssume(expressionBuilder.buildBinaryExpression(_p, _1, BinaryOperator.EQUALS), _loc_1, _loc_3).getFirst();
+    _assume_p_neq_1 = makeAssume(expressionBuilder.buildBinaryExpression(_p, _1, BinaryOperator.NOT_EQUALS), _loc_1, _loc_2).getFirst();
+    _assume_p_eq_1 = makeAssume(expressionBuilder.buildBinaryExpression(_p, _1, BinaryOperator.EQUALS), _loc_1, _loc_3).getFirst();
+
+    _stmt_a_at_i_assign_b_at_i = makeAssignment(_a_at_i, _b_at_i).getFirst();
     _stmt_i_assign_0 = makeAssignment(_i, _0).getFirst();
+    _stmt_i_assign_i_plus_1 = makeAssignment(_i, _i_plus_1).getFirst();
+    _stmt_al_assign_0 = makeAssignment(_al, _0).getFirst();
+
     _stmt_declare_i = _i_decl.getFirst();
     _stmt_declare_al = _al_decl.getFirst();
-    _dummy = makeBlankEdge("dummy");
     _function_declaration= _funct_decl.getFirst();
-    _stmt_al_assign_0 = makeAssignment(_al, _0).getFirst();
   }
 
-  @Test
-  public void testRefineCase1() throws CPATransferException, SolverException, InterruptedException {
-
-    ARGPath traceError = mock(ARGPath.class);
-    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
-        _label_error,
-        _assume_i_geq_al,
-        _assume_b_at_i_neq_0,
-        _while,
-        _stmt_i_assign_0,
-        _stmt_declare_i,
-        _stmt_declare_al
-        ));
-
-    ARGPath traceSafe = mock(ARGPath.class);
-    when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
-        _assume_not_b_at_i_neq_0,
-        _stmt_i_assign_0,
-        _stmt_declare_i,
-        _stmt_declare_al
-        ));
-
-    PredicatePrecision result = refine.refine(traceError, traceSafe, _stmt_declare_i.getPredecessor());
-
-    assertThat(result).isNotNull();
-    assertThat(result.getGlobalPredicates()).isNotEmpty();
-  }
-
-
-  @Test
-  public void testInterpolateCase1() throws SolverException, InterruptedException {
-
-    // (= (select |copy::b| 0) 0)
-    // (and (>= 0 al) (not (= (select |copy::b| 0) 0)))
-
-    ArrayFormula<IntegerFormula, IntegerFormula> _b
-      = amgr.makeArray("b", FormulaType.IntegerType, FormulaType.IntegerType);
-
-    BooleanFormula preconditionA = imgr.equal(
-        amgr.select(_b, imgr.makeNumber(0)), imgr.makeNumber(0));
-
-    BooleanFormula pPreconditionB = bmgr.and(Lists.newArrayList(
-        imgr.greaterOrEquals(imgr.makeNumber(0), imgr.makeVariable("al")),
-        bmgr.not(imgr.equal(amgr.select(_b, imgr.makeNumber(0)), imgr.makeNumber(0)))));
-
-    BooleanFormula result = refine.interpolate(preconditionA, pPreconditionB, TestDataTools.DUMMY_CFA_NODE);
-
-    assertThat(result.toString()).isEqualTo("");
-  }
-
-
+//  @Test
+//  public void testRefineCase1() throws CPATransferException, SolverException, InterruptedException {
+//
+//    ARGPath traceError = mock(ARGPath.class);
+//    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _label_error,
+//        _assume_i_geq_al,
+//        _assume_b_at_i_neq_0,
+//        _while,
+//        _stmt_i_assign_0,
+//        _stmt_declare_i,
+//        _stmt_declare_al
+//        ));
+//
+//    ARGPath traceSafe = mock(ARGPath.class);
+//    when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _assume_i_geq_al,
+//        _stmt_i_assign_0,
+//        _stmt_declare_i,
+//        _stmt_declare_al
+//        ));
+//
+//    PredicatePrecision result = refine.refine(
+//        traceError, traceSafe,
+//        traceSafe.getFirstPositionWith(_stmt_declare_i.getPredecessor()));
+//
+//    assertThat(result).isNotNull();
+//    assertThat(result.getGlobalPredicates()).isNotEmpty();
+//  }
+//
+//  @Test
+//  public void testRefineCase2() throws CPATransferException, SolverException, InterruptedException {
+//
+//    ARGPath traceError = mock(ARGPath.class);
+//    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _label_error,
+//        _assume_i_geq_al,
+//        _assume_b_at_i_neq_0,
+//        _stmt_i_assign_i_plus_1,
+//        _stmt_a_at_i_assign_b_at_i,
+//        _assume_i_geq_al,
+//        _assume_b_at_i_neq_0,
+//        _while,
+//        _stmt_i_assign_0,
+//        _stmt_declare_i,
+//        _stmt_declare_al
+//        ));
+//
+//    ARGPath traceSafe = mock(ARGPath.class);
+//    when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _assume_not_b_at_i_neq_0,
+//        _stmt_i_assign_i_plus_1,
+//        _stmt_a_at_i_assign_b_at_i,
+//        _assume_i_geq_al,
+//        _assume_b_at_i_neq_0,
+//        _stmt_i_assign_0,
+//        _stmt_declare_i,
+//        _stmt_declare_al
+//        ));
+//
+//    PredicatePrecision result = refine.refine(
+//        traceError, traceSafe,
+//        traceSafe.getFirstPositionWith(_stmt_declare_i.getPredecessor()));
+//
+//    assertThat(result).isNotNull();
+//    assertThat(result.getGlobalPredicates()).isNotEmpty();
+//  }
+//
+//  @Test
+//  public void testRefineCase3() throws CPATransferException, SolverException, InterruptedException {
+//
+//    ARGPath traceError = mock(ARGPath.class);
+//    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _stmt_i_assign_i_plus_1,
+//        _assume_b_at_i_neq_0,
+//        _stmt_declare_i
+//        ));
+//
+//    ARGPath traceSafe = mock(ARGPath.class);
+//    when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _stmt_i_assign_0,
+//        _assume_not_b_at_i_neq_0,
+//        _stmt_declare_i
+//        ));
+//
+//    PredicatePrecision result = refine.refine(
+//        traceError, traceSafe,
+//        traceSafe.getFirstPositionWith(_stmt_declare_i.getPredecessor()));
+//
+//    assertThat(result).isNotNull();
+//    assertThat(result.getGlobalPredicates()).isNotEmpty();
+//  }
+//
+//
+//  @Test
+//  public void testInterpolateCase1() throws SolverException, InterruptedException {
+//
+//    // (= (select |copy::b| 0) 0)
+//    // (and (>= 0 al) (not (= (select |copy::b| 0) 0)))
+//
+//    ArrayFormula<IntegerFormula, IntegerFormula> _b
+//      = amgr.makeArray("b", FormulaType.IntegerType, FormulaType.IntegerType);
+//
+//    BooleanFormula preconditionA = imgr.equal(
+//        amgr.select(_b, imgr.makeNumber(0)), imgr.makeNumber(0));
+//
+//    BooleanFormula pPreconditionB = bmgr.and(Lists.newArrayList(
+//        imgr.greaterOrEquals(imgr.makeNumber(0), imgr.makeVariable("al")),
+//        bmgr.not(imgr.equal(amgr.select(_b, imgr.makeNumber(0)), imgr.makeNumber(0)))));
+//
+//    BooleanFormula result = refine.interpolate(preconditionA, pPreconditionB, null);
+//
+//    assertThat(result.toString()).isEqualTo(preconditionA.toString());
+//  }
+//
+//  @Test
+//  public void testWpDebug2Pair_12() throws SolverException, InterruptedException, CPATransferException {
+//
+//    ARGPath traceError = mock(ARGPath.class);
+//    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _assume_x_gt_1000,
+//        _assume_p_neq_1
+//        ));
+//
+//    ARGPath traceSafe = mock(ARGPath.class);
+//    when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _assume_x_leq_1000,
+//        _assume_p_neq_1
+//        ));
+//
+//    PredicatePrecision result = refine.refine(traceError, traceSafe, traceSafe.getFirstPositionWith(_loc_1));
+//
+//    assertThat(result).isNotNull();
+//    assertThat(result.getGlobalPredicates()).isNotEmpty();
+//  }
+//
+//  @Test
+//  public void testWpDebug2Pair_23() throws SolverException, InterruptedException, CPATransferException {
+//
+//    ARGPath traceError = mock(ARGPath.class);
+//    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _assume_x_gt_50,
+//        _assume_p_eq_1
+//        ));
+//
+//    ARGPath traceSafe = mock(ARGPath.class);
+//    when(traceSafe.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _assume_x_leq_1000,
+//        _assume_p_neq_1
+//        ));
+//
+//    PredicatePrecision result = refine.refine(traceError, traceSafe, traceSafe.getFirstPositionWith(_loc_1));
+//
+//    assertThat(result).isNotNull();
+//    assertThat(result.getGlobalPredicates()).isNotEmpty();
+//  }
+//
+//  @Test
+//  public void testPathReversal() {
+//    ARGPath traceError = mock(ARGPath.class);
+//    when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _assume_x_gt_50,
+//        _assume_p_eq_1
+//        ));
+//
+//    List<ReversedEdge> result = refine.getReversedTrace(traceError);
+//
+//    assertThat(_assume_p_eq_1.getSuccessor()).isEqualTo(_assume_x_gt_50.getPredecessor());
+//    assertThat(_assume_x_gt_50.getSuccessor()).isEqualTo(_loc_err);
+//    assertThat(_assume_p_eq_1.getPredecessor()).isEqualTo(_loc_1);
+//
+//    assertThat(result).isNotNull();
+//    assertThat(result.get(0).getPredecessor()).isEqualTo(_assume_p_eq_1.getSuccessor());
+//    assertThat(result.get(0).getSuccessor()).isEqualTo(_assume_p_eq_1.getPredecessor());
+//    assertThat(result.get(1).getPredecessor()).isEqualTo(result.get(0).getSuccessor());
+//  }
+//
 
 }

@@ -54,7 +54,8 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 @Options(prefix="cpa.callstack")
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(secure=true, name="depth", description = "depth of recursion bound")
+  @Option(secure=true, name="depth",
+      description = "depth of recursion bound")
   protected int recursionBoundDepth = 0;
 
   @Option(secure=true, name="skipRecursion", description = "Skip recursion (this is unsound)." +
@@ -136,7 +137,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
             throw new UnsupportedCCodeException("recursion", pEdge);
           }
         } else {
-          // regular function call
+          // regular function call:
+          //    add the called function to the current stack
           return Collections.singleton(new CallstackState(e, calledFunction, callerNode));
         }
       }
@@ -149,17 +151,21 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
         assert calledFunction.equals(e.getCurrentFunction()) || e.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
 
-        if (!isWildcardState(e)) {
+        if (isWildcardState(e)) {
+          returnElement = e;
 
+        } else {
           if (!callNode.equals(e.getCallNode())) {
             // this is not the right return edge
             return Collections.emptySet();
           }
+
+          // we are in a function return:
+          //    remove the current function from the stack;
+          //    the new abstract state is the predecessor state in the stack
           returnElement = e.getPreviousState();
 
           assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
-        } else {
-          returnElement = e;
         }
 
         return Collections.singleton(returnElement);
@@ -206,11 +212,11 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
-  protected boolean hasRecursion(final CallstackState element, final String functionName) {
-    CallstackState e = element;
+  protected boolean hasRecursion(final CallstackState pCurrentState, final String pCalledFunction) {
+    CallstackState e = pCurrentState;
     int counter = 0;
     while (e != null) {
-      if (e.getCurrentFunction().equals(functionName)) {
+      if (e.getCurrentFunction().equals(pCalledFunction)) {
         counter++;
         if (counter > recursionBoundDepth) {
           return true;

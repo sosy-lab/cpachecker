@@ -26,17 +26,23 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 import java.io.IOException;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -76,7 +82,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     @Option(secure=true, description="Activate replayable logging in Z3."
         + " The log can be given as an input to the solver and replayed.")
-    boolean activateZ3Logging = false;
+    @FileOption(Type.OUTPUT_FILE)
+    Path log = null;
   }
 
   private Z3FormulaManager(
@@ -100,7 +107,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger,
-      Configuration config, @Nullable PathCounterTemplate solverLogfile)
+      Configuration config, ShutdownNotifier pShutdownNotifier,
+      @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
@@ -112,8 +120,16 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     NativeLibraries.loadLibrary("z3j");
 
-    if (extraOptions.activateZ3Logging) {
-      open_log("output/z3.log");
+    if (extraOptions.log != null) {
+      Path absolutePath = extraOptions.log.toAbsolutePath();
+      try {
+        // Z3 segfaults if it cannot write to the file, thus we write once first
+        Files.writeFile(absolutePath, "");
+
+        open_log(absolutePath.toString());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Cannot write Z3 log file");
+      }
     }
 
     long cfg = mk_config();
@@ -125,6 +141,14 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     // TODO add some other params, memory-limit?
     final long context = mk_context_rc(cfg);
+    pShutdownNotifier.register(
+        new ShutdownNotifier.ShutdownRequestListener() {
+          @Override
+          public void shutdownRequested(String reason) {
+            interrupt(context);
+          }
+        }
+    );
     del_config(cfg);
 
     long boolSort = mk_bool_sort(context);

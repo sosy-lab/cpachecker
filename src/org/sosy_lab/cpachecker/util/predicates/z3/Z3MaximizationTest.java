@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -50,6 +51,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Tests for the maximization using the Z3 opt branch.
  */
+@SuppressWarnings("unused")
+@SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
 public class Z3MaximizationTest {
 
   private Z3FormulaManager mgr;
@@ -62,13 +65,13 @@ public class Z3MaximizationTest {
     NativeLibraries.loadLibrary("z3j");
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = TestLogManager.getInstance();
-    mgr = Z3FormulaManager.create(logger, config, null);
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    mgr = Z3FormulaManager.create(logger, config, shutdownNotifier, null);
     rfmgr = (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
     ifmgr = (Z3IntegerFormulaManager) mgr.getIntegerFormulaManager();
     bfmgr = (Z3BooleanFormulaManager) mgr.getBooleanFormulaManager();
   }
 
-  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   @Test public void testUnbounded() throws Exception {
     try (OptEnvironment prover = new Z3OptProver(mgr)) {
       RationalFormula x, obj;
@@ -82,11 +85,10 @@ public class Z3MaximizationTest {
       int handle = prover.maximize(obj);
       @SuppressWarnings("unused")
       OptEnvironment.OptStatus response = prover.check();
-      Assert.assertTrue(!prover.upper(handle, 0).isPresent());
+      Assert.assertTrue(!prover.upper(handle, Rational.ZERO).isPresent());
     }
   }
 
-  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   @Test public void testUnfeasible() throws Exception {
     try (OptEnvironment prover = new Z3OptProver(mgr)) {
       RationalFormula x, y;
@@ -140,7 +142,7 @@ public class Z3MaximizationTest {
           model.toString());
 
       // Check the value.
-      Assert.assertEquals(Rational.ofString("19"), prover.upper(handle, 0).get());
+      Assert.assertEquals(Rational.ofString("19"), prover.upper(handle, Rational.ZERO).get());
     }
   }
 
@@ -188,7 +190,7 @@ public class Z3MaximizationTest {
       int handle = prover.maximize(obj);
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("19"));
+      assertThat(prover.upper(handle, Rational.ZERO).get()).isEqualTo(Rational.ofString("19"));
 
       prover.pop();
       prover.push();
@@ -196,7 +198,7 @@ public class Z3MaximizationTest {
       handle = prover.maximize(x);
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("10"));
+      assertThat(prover.upper(handle, Rational.ZERO).get()).isEqualTo(Rational.ofString("10"));
 
       prover.pop();
       prover.push();
@@ -204,7 +206,7 @@ public class Z3MaximizationTest {
       handle = prover.maximize(rfmgr.makeVariable("y"));
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("9"));
+      assertThat(prover.upper(handle, Rational.ZERO).get()).isEqualTo(Rational.ofString("9"));
 
       prover.pop();
     }

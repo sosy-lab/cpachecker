@@ -1083,6 +1083,15 @@ public class FormulaManagerView {
         myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, true));
   }
 
+  public Collection<BooleanFormula> extractAtoms(
+      BooleanFormula f,
+      boolean splitArithEqualities,
+      boolean conjunctionsOnly,
+      boolean uninstanciate) {
+    return unwrapFormulasOfList(
+        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, uninstanciate));
+  }
+
   public Collection<BooleanFormula> extractLiterals(
       BooleanFormula f,
       boolean splitArithEqualities,

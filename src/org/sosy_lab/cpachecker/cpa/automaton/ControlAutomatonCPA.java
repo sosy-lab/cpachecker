@@ -105,6 +105,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       + "given as cpa.automaton.breakOnTargetState is not yet reached")
   private int extraIterationsLimit = -1;
 
+  @Option(secure=true, description="Whether to treat automaton states with an internal error state as targets. This should be the standard use case.")
+  private boolean treatErrorsAsTargets = true;
+
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
@@ -198,7 +201,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       }
     }
 
-    GlobalInfo.getInstance().storeAutomaton(automaton);
+    GlobalInfo.getInstance().storeAutomaton(automaton, this);
   }
 
   Automaton getAutomaton() {
@@ -275,5 +278,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   LogManager getLogManager() {
     return logger;
+  }
+
+  boolean isTreatingErrorsAsTargets() {
+    return treatErrorsAsTargets;
   }
 }

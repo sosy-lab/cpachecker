@@ -39,9 +39,7 @@ import java_cup.runtime.Symbol;
 
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
@@ -54,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.io.CharStreams;
 import com.google.common.truth.FailureStrategy;
@@ -74,9 +73,7 @@ public class AutomatonInternalTest {
   private static final Path defaultSpec = Paths.get("test/config/automata/defaultSpecification.spc");
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
-    config = Configuration.builder()
-        .addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()))
-        .build();
+    config = TestDataTools.configurationForTest().build();
     logger = TestLogManager.getInstance();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();

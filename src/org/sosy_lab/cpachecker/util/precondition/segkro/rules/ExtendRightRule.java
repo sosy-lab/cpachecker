@@ -26,18 +26,20 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.GenericPatterns.PropositionType;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 
 public class ExtendRightRule extends PatternBasedRule {
@@ -52,26 +54,52 @@ public class ExtendRightRule extends PatternBasedRule {
 
     premises.add(new PatternBasedPremise(
         or(
-          matchExistsQuant(
-              and(
-                GenericPatterns.f_of_x_expression("f", quantified("x")),
-                match(">=",
-                    matchAnyWithAnyArgsBind(quantified("x")),
-                    matchAnyWithAnyArgsBind("i")),
-                match("<=",
-                    matchAnyWithAnyArgsBind(quantified("x")),
-                    matchAnyWithAnyArgsBind("j"))))
+          GenericPatterns.range_predicate_matcher("exists",
+              QuantifierType.EXISTS,
+              "f",
+              "i", "j",
+              GenericPatterns.array_at_index_matcher("f", quantified("var"), PropositionType.ALL)),
+
+          GenericPatterns.range_predicate_matcher("forall",
+              QuantifierType.FORALL,
+              "f",
+              "i", "j",
+              GenericPatterns.array_at_index_matcher("f", quantified("var"), PropositionType.ALL))
         )));
 
-    premises.add(new PatternBasedPremise(or(
-        match("<=",
-            matchAnyWithAnyArgsBind("j"),
-            matchAnyWithAnyArgsBind("k")))));
+    premises.add(new PatternBasedPremise(
+        or(
+            matchBind("<", "ext",
+                matchAnyWithAnyArgsBind("=j"),
+                matchAnyWithAnyArgsBind("k")),
+            matchBind("<=", "ext",
+                matchAnyWithAnyArgsBind("=j"),
+                matchAnyWithAnyArgsBind("k")),
+            matchBind("=", "ext",
+                matchAnyWithAnyArgsBind("=j"),
+                matchAnyWithAnyArgsBind("k"))
+
+    )));
   }
 
   @Override
   protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
-    return true;
+    final IntegerFormula j = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("j"));
+    final IntegerFormula k = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("k"));
+    final BooleanFormula ext = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("ext"));
+
+    // (exists ((x Int)) (and (= (select |copy::b@1| x) 0) (>= x 0) (<= x 1))),
+    // (> al@1 0)
+    //
+    // j <= k
+    // k: al
+    // j: 1
+    // ext: (> al@1 0)
+
+    // 1 <= al AND al@1 > 0 SAT
+    // k >= j AND ext SAT
+
+    return !solver.isUnsat(bfm.and(ifm.greaterOrEquals(k, j), ext));
   }
 
   @Override
@@ -80,19 +108,22 @@ public class ExtendRightRule extends PatternBasedRule {
     final IntegerFormula i = (IntegerFormula) pAssignment.get("i");
     final IntegerFormula k = (IntegerFormula) pAssignment.get("k");
 
-    final IntegerFormula xBound = (IntegerFormula) pAssignment.get(quantified("x"));
-
+    final IntegerFormula xBound = (IntegerFormula) pAssignment.get(quantified("var"));
+    final Formula xBoundParent = pAssignment.get(parentOf(quantified("var")));
     final IntegerFormula xNew = ifm.makeVariable("x");
+    final BooleanFormula fNew = (BooleanFormula) substituteInParent(xBoundParent, xBound, xNew, f);
 
-    HashMap<Formula, Formula> mapping = Maps.newHashMap();
-    mapping.put(xBound, xNew);
-    final BooleanFormula fNew = matcher.substitute(f, mapping);
+    if (pAssignment.containsKey("forall")) {
+      return ImmutableSet.of(qfm.forall(xNew, i, k, fNew));
+    } else {
+      return ImmutableSet.of(qfm.exists(xNew, i, k, fNew));
+    }
+  }
 
-    final BooleanFormula xConstraint =  bfm.and(
-        ifm.greaterOrEquals(xNew, i),
-        ifm.lessOrEquals(xNew, k));
+  @Override
+  protected boolean isValidConclusion(Collection<BooleanFormula> pConjunctiveInputPredicates,
+      Set<BooleanFormula> pResult) throws SolverException, InterruptedException {
 
-    return Lists.newArrayList(
-        qfm.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+    return true;
   }
 }

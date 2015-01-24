@@ -60,6 +60,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsSt
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Canonicalizer;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.DefaultCanonicalizer;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -86,6 +88,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -609,7 +612,7 @@ public class PredicateAbstractionManager {
         predicateBuilder.add(predicate);
 
       } else {
-        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);
+        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables.keySet());
       }
     }
 
@@ -627,33 +630,43 @@ public class PredicateAbstractionManager {
     return predicateBuilder.build();
   }
 
+  private Function<AbstractionPredicate, BooleanFormula> predicateToFormula = new Function<AbstractionPredicate, BooleanFormula>() {
+    @Override
+    public BooleanFormula apply(AbstractionPredicate pArg0) {
+      return pArg0.getSymbolicAtom();
+    }
+  };
+
+  private Function<BooleanFormula, AbstractionPredicate> formulaToPredicate = new Function<BooleanFormula, AbstractionPredicate>() {
+    @Override
+    public AbstractionPredicate apply(BooleanFormula pArg0) {
+      return createPredicateFor(pArg0);
+    }
+  };
+
   private Collection<AbstractionPredicate> deriveNewPredsWithoutVar(
       final Formula pDeadVar,
       final Collection<AbstractionPredicate> pReferencingPreds)
           throws SolverException, InterruptedException {
 
-    LinCombineRule linComb = new LinCombineRule(solver, solver.getSmtAstMatcher());
+    // TODO: We can use quantifier elimination instead of explicit inference-rules!
+
+    final LinCombineRule linComb = new LinCombineRule(solver, solver.getSmtAstMatcher());
+    final Canonicalizer canon = new DefaultCanonicalizer(solver, solver.getSmtAstMatcher());
 
     Multimap<String, Formula> ruleVarBinding = HashMultimap.create();
     ruleVarBinding.put("e", fmgr.uninstantiate(pDeadVar));
 
-    Collection<BooleanFormula> conjunctiveInputPredicates = Collections2.transform(
-        pReferencingPreds, new Function<AbstractionPredicate, BooleanFormula>() {
-      @Override
-      public BooleanFormula apply(AbstractionPredicate pArg0) {
-        return pArg0.getSymbolicAtom();
-      }
-    });
+    Collection<BooleanFormula> conjunctiveInputPredicates = Collections2.transform(pReferencingPreds, predicateToFormula);
+    Collection<BooleanFormula> canonicalized = Lists.newArrayListWithExpectedSize(conjunctiveInputPredicates.size());
+
+    for (BooleanFormula f: conjunctiveInputPredicates) {
+      canonicalized.add(canon.canonicalize(f));
+    }
 
     Set<BooleanFormula> inferred = linComb.apply(conjunctiveInputPredicates, ruleVarBinding);
 
-    return Collections2.transform(
-        inferred, new Function<BooleanFormula, AbstractionPredicate>() {
-      @Override
-      public AbstractionPredicate apply(BooleanFormula pArg0) {
-        return createPredicateFor(pArg0);
-      }
-    });
+    return Collections2.transform(inferred, formulaToPredicate);
   }
 
   /**

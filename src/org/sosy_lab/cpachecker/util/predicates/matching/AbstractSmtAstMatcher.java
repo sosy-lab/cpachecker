@@ -25,12 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
@@ -54,9 +55,6 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
     defineRotations(">=", "<="); // IMPORTANT: This should NOT define a NEGATION!
     defineRotations(">", "<");
-
-    defineOperatorImplications(">=", Sets.newHashSet("=", ">"));
-    defineOperatorImplications("<=", Sets.newHashSet("=", "<"));
 
     defineCommutative("=");
     defineCommutative("+");
@@ -89,18 +87,21 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
   @Override
   public SmtAstMatchResult perform(
       SmtAstPatternSelection pPatternSelection,
+      @Nullable Formula pParent,
       Formula pF,
       Optional<Multimap<String, Formula>> bBindingRestrictions) {
 
-    return matchSelectionOnOneFormula(pF, new Stack<String>(), pPatternSelection, bBindingRestrictions);
+    return matchSelectionOnOneFormula(pParent, pF, new Stack<String>(), pPatternSelection, bBindingRestrictions);
   }
 
   protected abstract SmtAstMatchResult internalPerform(
+      final Formula pParentFormula,
       final Formula pRootFormula,
       final Stack<String> pQuantifiedVariables,
       final SmtAstPattern pP, Optional<Multimap<String, Formula>> pBindingRestrictions);
 
   private SmtAstMatchResult matchSelectionOnOneFormula(
+      final Formula pParentFormula,
       final Formula pF,
       final Stack<String> pQuantifiedVariables,
       final SmtAstPatternSelection pPatternSelection,
@@ -114,9 +115,11 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
       final SmtAstMatchResult r;
       if (p instanceof SmtAstPattern) {
         SmtAstPattern asp = (SmtAstPattern) p;
-        r = internalPerform(pF, pQuantifiedVariables, asp, pBindingRestrictions);
+        r = internalPerform(pParentFormula, pF, pQuantifiedVariables, asp, pBindingRestrictions);
+      } else if (p instanceof SmtAstPatternSelection){
+        r = matchSelectionOnOneFormula(pParentFormula, pF, pQuantifiedVariables, (SmtAstPatternSelection) p, pBindingRestrictions);
       } else {
-        r = matchSelectionOnOneFormula(pF, pQuantifiedVariables, pPatternSelection, pBindingRestrictions);
+        throw new UnsupportedOperationException("Unknown Ast Pattern Type!");
       }
 
       matches = matches + (r.matches() ? 1 : 0);
@@ -248,12 +251,14 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
       if (argPattern instanceof SmtAstPattern) {
         functionArgumentResult = internalPerform(
+            pRootFormula,
             childFormula,
             pBoundQuantifiedVariables,
             (SmtAstPattern) argPattern,
             pBindingRestrictions);
       } else {
         functionArgumentResult = matchSelectionOnOneFormula(
+            pRootFormula,
             childFormula,
             pBoundQuantifiedVariables,
             (SmtAstPatternSelection) argPattern,
@@ -321,13 +326,6 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     return result;
   }
 
-  @Override
-  public void defineOperatorImplications(String pImpliedBy, HashSet<String> pImplies) {
-    for (String implied: pImplies) {
-      functionImpliedBy.put(implied, pImpliedBy);
-    }
-  }
-
   protected boolean isCommutative(final String pFunctionName) {
     return commutativeFunctions.contains(pFunctionName);
   }
@@ -350,7 +348,7 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
   @Override
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF) {
-    return perform(pPatternSelection, pF, Optional.<Multimap<String, Formula>>absent());
+    return perform(pPatternSelection, null, pF, Optional.<Multimap<String, Formula>>absent());
   }
 
 }

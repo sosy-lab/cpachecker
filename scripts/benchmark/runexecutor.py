@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import multiprocessing
@@ -45,7 +45,7 @@ CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'
 
-_WALLTIME_LIMIT_OVERHEAD = 30 # seconds
+_WALLTIME_LIMIT_DEFAULT_OVERHEAD = 30 # seconds more than cputime limit
 
 
 class RunExecutor():
@@ -74,16 +74,14 @@ class RunExecutor():
 
         initCgroup(self.cgroupsParents, MEMORY)
         if not self.cgroupsParents[MEMORY]:
-            logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
+            logging.warning('Cannot measure memory consumption without memory cgroup.')
 
         initCgroup(self.cgroupsParents, CPUSET)
 
+        self.cpus = None # to indicate that we cannot limit cores
+        self.memoryNodes = None # to indicate that we cannot limit cores
         cgroupCpuset = self.cgroupsParents[CPUSET]
-        if not cgroupCpuset:
-            self.cpus = None # to indicate that we cannot limit cores
-            self.memoryNodes = None # to indicate that we cannot limit cores
-            logging.warning("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
-        else:
+        if cgroupCpuset:
             # Read available cpus/memory nodes:
             cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
             try:
@@ -122,9 +120,6 @@ class RunExecutor():
 
         # Setup cpuset cgroup if necessary to limit the CPU cores/memory nodes to be used.
         if myCpus is not None:
-            if CPUSET not in cgroups:
-                sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
-
             cgroupCpuset = cgroups[CPUSET]
             myCpusStr = ','.join(map(str, myCpus))
             writeFile(myCpusStr, cgroupCpuset, 'cpuset.cpus')
@@ -132,9 +127,6 @@ class RunExecutor():
             logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpusStr))
 
         if memoryNodes is not None:
-            if CPUSET not in cgroups:
-                sys.exit("Cannot restrict the memory nodes because cgroups are not available.")
-
             cgroupCpuset = cgroups[CPUSET]
             writeFile(','.join(map(str, memoryNodes)), cgroupCpuset, 'cpuset.mems')
             memoryNodesStr = readFile(cgroupCpuset, 'cpuset.mems')
@@ -143,9 +135,6 @@ class RunExecutor():
 
         # Setup memory limit
         if memlimit is not None:
-            if not MEMORY in cgroups:
-                sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
-
             cgroupMemory = cgroups[MEMORY]
 
             limitFile = 'memory.limit_in_bytes'
@@ -173,7 +162,7 @@ class RunExecutor():
         return cgroups
 
 
-    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, workingDir):
+    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, walltimelimit, myCpuCount, memlimit, environments, workingDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -190,7 +179,7 @@ class RunExecutor():
 
             # put us into the cgroup(s)
             pid = os.getpid()
-            # On some systems, cgrulesngd would move our process into other cgroups.
+            # On some systems, cgrulesengd would move our process into other cgroups.
             # We disable this behavior via libcgroup if available.
             # Unfortunately, logging/printing does not seem to work here.
             from ctypes import cdll
@@ -254,7 +243,7 @@ class RunExecutor():
             if hardtimelimit is not None and CPUACCT in cgroups:
                 # Start a timer to periodically check timelimit with cgroup
                 # if the tool uses subprocesses and ulimit does not work.
-                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, p, myCpuCount, self._setTerminationReason)
+                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, walltimelimit, p, myCpuCount, self._setTerminationReason)
                 timelimitThread.start()
 
             if memlimit is not None:
@@ -273,7 +262,11 @@ class RunExecutor():
             except OSError as e:
                 returnvalue = 0
                 ru_child = None
-                logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
+                if self.PROCESS_KILLED:
+                    # OSError 4 (interrupted system call) seems always to happen if we killed the process ourselves after Ctrl+C was pressed
+                    logging.debug("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
+                else:
+                    logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
 
         finally:
             wallTimeAfter = time.time()
@@ -365,7 +358,8 @@ class RunExecutor():
 
 
     def executeRun(self, args, outputFileName,
-                   hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None, memoryNodes=None,
+                   hardtimelimit=None, softtimelimit=None, walltimelimit=None,
+                   cores=None, memlimit=None, memoryNodes=None,
                    environments={}, workingDir=None, maxLogfileSize=None):
         """
         This function executes a given command with resource limits,
@@ -374,7 +368,8 @@ class RunExecutor():
         @param outputFileName: the file where the output should be written to
         @param hardtimelimit: None or the CPU time in seconds after which the tool is forcefully killed.
         @param softtimelimit: None or the CPU time in seconds after which the tool is sent a kill signal.
-        @param myCpus: None or a list of the CPU cores to use
+        @param walltimelimit: None or the wall time in seconds after which the tool is forcefully killed (default: hardtimelimit + a few seconds)
+        @param cores: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
         @param memoryNodes: None or a list of memory nodes in a NUMA system to use
         @param environments: special environments for running the command
@@ -394,29 +389,40 @@ class RunExecutor():
             if softtimelimit > hardtimelimit:
                 sys.exit("Soft time limit cannot be larger than the hard time limit.")
 
-        if myCpus is not None:
+        if walltimelimit is None:
+            if hardtimelimit is not None:
+                walltimelimit = hardtimelimit + _WALLTIME_LIMIT_DEFAULT_OVERHEAD
+        else:
+            if walltimelimit <= 0:
+                sys.exit("Invalid wall time limit {0}.".format(walltimelimit))
+            if hardtimelimit is None:
+                sys.exit("Wall time limit without hard time limit is not implemented.")
+
+        if cores is not None:
             if self.cpus is None:
-                sys.exit("Cannot limit CPU cores without cpuset cgroup")
-            myCpuCount = len(myCpus)
-            if myCpuCount == 0:
-                sys.exit("Cannot execute run without any CPU core")
-            if not set(myCpus).issubset(self.cpus):
-                sys.exit("Cores {0} are not allowed to be used".format(list(set(myCpus).difference(self.cpus))))
+                sys.exit("Cannot limit CPU cores without cpuset cgroup.")
+            coreCount = len(cores)
+            if coreCount == 0:
+                sys.exit("Cannot execute run without any CPU core.")
+            if not set(cores).issubset(self.cpus):
+                sys.exit("Cores {0} are not allowed to be used".format(list(set(cores).difference(self.cpus))))
         else:
             try:
-                myCpuCount = multiprocessing.cpu_count()
+                coreCount = multiprocessing.cpu_count()
             except NotImplementedError:
-                myCpuCount = 1
+                coreCount = 1
 
         if memlimit is not None:
             if memlimit <= 0:
                 sys.exit("Invalid memory limit {0}.".format(memlimit))
+            if not self.cgroupsParents[MEMORY]:
+                sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
 
         if memoryNodes is not None:
             if self.memoryNodes is None:
-                sys.exit("Cannot restrict memory nodes without cpuset cgroup")
+                sys.exit("Cannot restrict memory nodes without cpuset cgroup.")
             if len(memoryNodes) == 0:
-                sys.exit("Cannot execute run without any memory node")
+                sys.exit("Cannot execute run without any memory node.")
             if not set(memoryNodes).issubset(self.memoryNodes):
                 sys.exit("Memory nodes {0} are not allowed to be used".format(list(set(memoryNodes).difference(self.memoryNodes))))
 
@@ -431,17 +437,18 @@ class RunExecutor():
         self._terminationReason = None
 
         logging.debug("executeRun: setting up Cgroups.")
-        cgroups = self._setupCGroups(args, myCpus, memlimit, None)
+        cgroups = self._setupCGroups(args, cores, memlimit, memoryNodes)
 
         try:
             logging.debug("executeRun: executing tool.")
-            (returnvalue, wallTime, cpuTime, energy) = \
+            (exitcode, wallTime, cpuTime, energy) = \
                 self._execute(args, outputFileName, cgroups,
-                              hardtimelimit, softtimelimit, myCpuCount, memlimit,
+                              hardtimelimit, softtimelimit, walltimelimit,
+                              coreCount, memlimit,
                               environments, workingDir)
 
             logging.debug("executeRun: getting exact measures.")
-            (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
+            (cpuTime, memUsage) = self._getExactMeasures(cgroups, exitcode, wallTime, cpuTime)
 
         finally: # always try to cleanup cgroups, even on sys.exit()
             logging.debug("executeRun: cleaning up CGroups.")
@@ -453,14 +460,24 @@ class RunExecutor():
 
         _reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
 
-        if returnvalue not in [0,1]:
+        if exitcode not in [0,1]:
             logging.debug("executeRun: analysing output for crash-info.")
             _getDebugOutputAfterCrash(outputFileName)
 
         logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
-                      .format(returnvalue, wallTime, cpuTime, memUsage, energy))
+                      .format(exitcode, wallTime, cpuTime, memUsage, energy))
 
-        return (wallTime, cpuTime, memUsage, returnvalue, self._terminationReason, energy)
+        result = {'walltime': wallTime,
+                  'cputime':  cpuTime,
+                  'exitcode': exitcode,
+                  }
+        if memUsage:
+            result['memory'] = memUsage
+        if self._terminationReason:
+            result['terminationReason'] = self._terminationReason
+        if energy:
+            result['energy'] = energy
+        return result
 
     def _setTerminationReason(self, reason):
         self._terminationReason = reason
@@ -567,14 +584,14 @@ class _TimelimitThread(threading.Thread):
     Thread that periodically checks whether the given process has already
     reached its timelimit. After this happens, the process is terminated.
     """
-    def __init__(self, cgroupCpuacct, hardtimelimit, softtimelimit, process, cpuCount=1,
+    def __init__(self, cgroupCpuacct, hardtimelimit, softtimelimit, walltimelimit, process, cpuCount=1,
                  callbackFn=lambda reason: None):
         super(_TimelimitThread, self).__init__()
         self.daemon = True
         self.cgroupCpuacct = cgroupCpuacct
         self.timelimit = hardtimelimit
         self.softtimelimit = softtimelimit or hardtimelimit
-        self.latestKillTime = time.time() + self.timelimit + _WALLTIME_LIMIT_OVERHEAD
+        self.latestKillTime = time.time() + walltimelimit
         self.cpuCount = cpuCount
         self.process = process
         self.callback = callbackFn

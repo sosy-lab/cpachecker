@@ -1,49 +1,52 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Objects;
 
 public class PolicyBound {
-  final MultiEdge trace;
 
-  // NOTE: might make more sense to use normal Rational, because we are no longer
-  // storing infinities or negative infinities.
+  final Location predecessor;
+  final PathFormula formula;
   final Rational bound;
 
-  PolicyBound(MultiEdge trace, Rational bound) {
-    this.trace = trace;
-    this.bound = bound;
+  private static final Map<Triple<Location, PathFormula, Location>, Integer> serializationMap = new HashMap<>();
+  private static int pathCounter = -1;
+
+  PolicyBound(PathFormula pFormula, Rational pBound, Location pPredecessor) {
+    formula = pFormula;
+    bound = pBound;
+    predecessor = pPredecessor;
   }
 
-  public static PolicyBound of(MultiEdge edge, Rational bound) {
-    return new PolicyBound(edge, bound);
+  public static PolicyBound of(PathFormula pFormula, Rational bound, Location pUpdatedFrom) {
+    return new PolicyBound(pFormula, bound, pUpdatedFrom);
   }
 
-  public String toPathString() {
-    // NOTE: in future might simplify by only adding
-    // paths with disjunctions.
-    StringBuilder b = new StringBuilder();
-    for (CFAEdge e : trace) {
-      if (b.length() == 0) {
-        b.append(e.getPredecessor().toString());
-      }
-      b.append(",").append(e.getSuccessor().toString());
-
+  public int serializePath(Location toLocation) {
+    Triple<Location, PathFormula, Location> p = Triple.of(
+        predecessor, formula, toLocation);
+    Integer serialization = serializationMap.get(p);
+    if (serialization == null) {
+      serialization = ++pathCounter;
+      serializationMap.put(p, serialization);
     }
-    return b.toString();
+    return serialization;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(bound, trace);
+    return Objects.hashCode(predecessor, bound, formula);
   }
 
   @Override
   public String toString() {
-    return String.format("%s (edge: %s)", bound, trace);
+    return String.format("%s (formula: %s)", bound, formula);
   }
 
   @Override
@@ -52,8 +55,6 @@ public class PolicyBound {
     if (other == null) return false;
     if (other.getClass() != this.getClass()) return false;
     PolicyBound o = (PolicyBound) other;
-    // Hm what about the cases where the constraints are equal, but
-    // the traces are not?..
-    return bound.equals(o.bound) && trace.equals(o.trace);
+    return predecessor.equals(o.predecessor) && bound.equals(o.bound) && formula.equals(o.formula);
   }
 }

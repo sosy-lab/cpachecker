@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
 
+import com.google.common.base.Preconditions;
+
 
 public class PatternBasedPremise implements Premise {
 
@@ -33,11 +35,17 @@ public class PatternBasedPremise implements Premise {
 
   public PatternBasedPremise(SmtAstPatternSelection pPatternSelection) {
     super();
-    patternSelection = pPatternSelection;
+
+    patternSelection = Preconditions.checkNotNull(pPatternSelection);
   }
 
   public SmtAstPatternSelection getPatternSelection() {
     return patternSelection;
+  }
+
+  @Override
+  public String toString() {
+    return patternSelection.toString();
   }
 
 }

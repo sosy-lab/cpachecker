@@ -77,14 +77,14 @@ public interface OptEnvironment extends AutoCloseable {
    * @return Upper approximation of the optimized value, or
    *  absent optional if the objective is unbounded.
    */
-  Optional<Rational> upper(int handle, int epsilon);
+  Optional<Rational> upper(int handle, Rational epsilon);
 
   /**
    * @param epsilon Value to substitute for the {@code epsilon}.
    * @return Lower approximation of the optimized value, or
    *  absent optional if the objective is unbounded.
    */
-  Optional<Rational> lower(int handle, int epsilon);
+  Optional<Rational> lower(int handle, Rational epsilon);
 
   Model getModel() throws SolverException;
 
