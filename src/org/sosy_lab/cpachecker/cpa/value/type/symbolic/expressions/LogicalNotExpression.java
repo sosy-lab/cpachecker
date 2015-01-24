@@ -48,11 +48,6 @@ public class LogicalNotExpression extends UnarySymbolicExpression implements Una
   }
 
   @Override
-  public LogicalNotExpression copyWithType(Type pExpressionType) {
-    return new LogicalNotExpression(getOperand(), pExpressionType);
-  }
-
-  @Override
   public String toString() {
     return "!" + getOperand();
   }

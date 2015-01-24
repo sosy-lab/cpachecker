@@ -71,6 +71,8 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
    * Default bitvector size to use (in byte).
    */
   private static final int DEFAULT_BITVECTOR_SIZE = 4;
+  private static final FormulaType<? extends Formula> DEFAULT_BITVECTOR =
+      FormulaType.getBitvectorTypeWithSize(DEFAULT_BITVECTOR_SIZE);
 
   private final FormulaManagerView formulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
@@ -209,7 +211,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(SymbolicIdentifier pValue) {
-    return formulaManager.makeVariable(getFormulaType(pValue.getType()), getName(pValue));
+    return formulaManager.makeVariable(DEFAULT_BITVECTOR, getName(pValue));
   }
 
   private String getName(SymbolicIdentifier pIdentifier) {

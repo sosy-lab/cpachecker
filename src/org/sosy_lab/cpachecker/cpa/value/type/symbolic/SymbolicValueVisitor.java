@@ -86,5 +86,4 @@ public interface SymbolicValueVisitor<T> {
   T visit(LogicalAndExpression pExpression);
 
   T visit(CastExpression pExpression);
-
 }

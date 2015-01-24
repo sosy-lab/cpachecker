@@ -42,11 +42,6 @@ public class ModuloExpression extends BinarySymbolicExpression {
   }
 
   @Override
-  public ModuloExpression copyWithType(Type pExpressionType) {
-    return new ModuloExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
-  @Override
   public String toString() {
     return "(" + getOperand1() + " % " + getOperand2() + ")";
   }

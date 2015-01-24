@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -31,14 +30,15 @@ import java.util.Map;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
@@ -108,17 +108,14 @@ public class ConstraintsStrengthenOperator {
         final ValueAnalysisState.MemoryLocation memLoc = valueEntry.getKey();
         final Type storageType = pValueState.getTypeForMemoryLocation(memLoc);
 
-        if (currentValue instanceof SymbolicValue) {
+        if (currentValue instanceof SymbolicIdentifier) {
+          newElement.assignConstant(memLoc, cast(newIdentifierValue, storageType), storageType);
+
+        } else if (currentValue instanceof SymbolicValue) {
           IdentifierReplacer replacer = new IdentifierReplacer(identifierToReplace, newIdentifierValue,
               machineModel, logger);
 
           Value valueAfterReplacingIdentifier = ((SymbolicValue) currentValue).accept(replacer);
-
-          // if the current variable can never obtain the only valid value, the path is infeasible
-          /*if (isValueOutOfTypeBounds(newIdentifierValue, storageType)) {
-            return Optional.absent();
-          }*/ // We can only do this if the memorylocation is exactly the variable/field represented
-              // by the ConstraintsCPA's constraint
 
           if (!valueAfterReplacingIdentifier.equals(currentValue)) {
             newElement.assignConstant(memLoc, valueAfterReplacingIdentifier, storageType);
@@ -136,68 +133,44 @@ public class ConstraintsStrengthenOperator {
     }
   }
 
-  private boolean isValueOutOfTypeBounds(Value pValue, Type pType) {
-    if (pType instanceof JSimpleType) {
-      return isValueOutOfJTypeBounds(pValue, (JSimpleType) pType);
+  private Value cast(Value pValue, Type pToType) {
+    if (pToType instanceof CType && pValue instanceof NumericValue) {
+      CType fromType = getNumericCFromType((NumericValue) pValue);
+
+      return AbstractExpressionValueVisitor.castCValue(pValue, fromType, (CType) pToType, machineModel, logger, null);
+
+    } else if (pToType instanceof JType && pValue instanceof NumericValue) {
+      JType fromType = getNumericJFromType((NumericValue) pValue);
+
+      return AbstractExpressionValueVisitor.castJValue(pValue, fromType, (JType)pToType, logger, null);
+    }
+
+    return pValue;
+  }
+
+  private CSimpleType getNumericCFromType(NumericValue pValue) {
+    final long longVal = pValue.longValue();
+    final double doubleVal = pValue.doubleValue();
+
+    if (doubleVal % 1 == doubleVal) {
+      return CNumericTypes.LONG_DOUBLE;
+
+    } else if (longVal < 0) {
+      return CNumericTypes.LONG_LONG_INT;
 
     } else {
-      assert pType instanceof CSimpleType;
-
-      return isValueOutOfCTypeBounds(pValue, (CSimpleType) pType);
+      assert longVal >= 0;
+      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
     }
   }
 
-  private boolean isValueOutOfJTypeBounds(Value pValue, JSimpleType pType) {
-    final JBasicType basicType = pType.getType();
+  private JSimpleType getNumericJFromType(NumericValue pValue) {
+    final double doubleVal = pValue.doubleValue();
 
-    if (basicType == JBasicType.BOOLEAN) {
-      assert pValue instanceof BooleanValue;
-      return false;
-
-    } else if (basicType.isFloatingPointType()) {
-      if (basicType == JBasicType.DOUBLE) {
-        return true;
-      } else {
-        final double concreteValue = ((NumericValue) pValue).doubleValue();
-        float castValue = (float) concreteValue;
-
-        return concreteValue == castValue;
-      }
+    if (doubleVal % 1 == doubleVal) {
+      return JSimpleType.getLong();
     } else {
-      assert basicType.isIntegerType();
-      final long concreteValue = pValue.asNumericValue().longValue();
-
-      switch (basicType) {
-        case BYTE:
-          return concreteValue == ((byte) concreteValue);
-        case SHORT:
-          return concreteValue == ((short) concreteValue);
-        case CHAR:
-          return concreteValue == ((char) concreteValue);
-        case INT:
-          return concreteValue == ((int) concreteValue);
-        case LONG:
-          return true;
-
-        default:
-          throw new AssertionError("Unexpected type " + pType.getType() + " for integer value");
-      }
-    }
-  }
-
-  private boolean isValueOutOfCTypeBounds(Value pValue, CSimpleType pType) {
-    final CBasicType basicType = pType.getType();
-
-    if (basicType.isFloatingPointType()) {
-      return false; // we can't handle this easily, as C float values can't be easily represented as bits
-    } else {
-      assert basicType.isIntegerType();
-
-      final BigInteger concreteValue = BigInteger.valueOf(pValue.asNumericValue().longValue());
-      final BigInteger maxValue = machineModel.getMaximalIntegerValue(pType);
-      final BigInteger minValue = machineModel.getMinimalIntegerValue(pType);
-
-      return concreteValue.compareTo(minValue) < 0 || maxValue.compareTo(concreteValue) < 0;
+      return JSimpleType.getDouble();
     }
   }
 }

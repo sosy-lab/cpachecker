@@ -42,11 +42,6 @@ public class ShiftLeftExpression extends BinarySymbolicExpression {
   }
 
   @Override
-  public ShiftLeftExpression copyWithType(Type pExpressionType) {
-    return new ShiftLeftExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
-  @Override
   public String toString() {
     return "(" + getOperand1() + " << " + getOperand2() + ")";
   }

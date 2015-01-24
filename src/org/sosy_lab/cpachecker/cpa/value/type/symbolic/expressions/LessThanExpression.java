@@ -49,11 +49,6 @@ public class LessThanExpression extends BinarySymbolicExpression implements Bina
   }
 
   @Override
-  public LessThanExpression copyWithType(Type pExpressionType) {
-    return new LessThanExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
-  @Override
   public String toString() {
     return "(" + getOperand1() + " < " + getOperand2() + ")";
   }

@@ -671,7 +671,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private Value getSymbolicIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.createIdentifier(pType, pLocation);
+    return factory.createIdentifier(pLocation);
   }
 
   @Override

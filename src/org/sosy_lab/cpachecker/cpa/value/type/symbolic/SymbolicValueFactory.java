@@ -67,9 +67,9 @@ public class SymbolicValueFactory {
     return INSTANCE;
   }
 
-  public SymbolicValue createIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  public SymbolicIdentifier createIdentifier(AAstNode pLocation) throws SymbolicBoundReachedException {
 
-    return SymbolicIdentifier.getNewIdentifier(pType);
+    return SymbolicIdentifier.getNewIdentifier();
   }
 
   public SymbolicValue createAddition(
@@ -517,7 +517,7 @@ public class SymbolicValueFactory {
     SymbolicExpression operand;
 
     if (!(pValue instanceof SymbolicExpression)) {
-      operand = getConstant(pValue, pValue.getType());
+      return getConstant(pValue, pTargetType);
     } else {
       operand = (SymbolicExpression) pValue;
     }

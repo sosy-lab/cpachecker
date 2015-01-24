@@ -42,11 +42,6 @@ public class MultiplicationExpression extends BinarySymbolicExpression {
   }
 
   @Override
-  public MultiplicationExpression copyWithType(Type pExpressionType) {
-    return new MultiplicationExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
-  @Override
   public String toString() {
     return "(" + getOperand1() + " * " + getOperand2() + ")";
   }

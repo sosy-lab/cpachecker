@@ -68,17 +68,6 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   }
 
   @Override
-  public ConstantSymbolicExpression copyWithType(Type pExpressionType) {
-    Value newValue = value;
-
-    if (value instanceof SymbolicIdentifier) {
-      newValue = ((SymbolicIdentifier) value).copyWithType(pExpressionType);
-    }
-
-    return new ConstantSymbolicExpression(newValue, pExpressionType);
-  }
-
-  @Override
   public String toString() {
     return "SymEx[" + value.toString() + "]";
   }

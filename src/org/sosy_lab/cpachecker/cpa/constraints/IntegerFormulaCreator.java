@@ -238,7 +238,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(SymbolicIdentifier pValue) {
-    return formulaManager.makeVariable(getFormulaType(pValue.getType()), getVariableName(pValue));
+    return formulaManager.makeVariable(FormulaType.IntegerType, getVariableName(pValue));
   }
 
   private String getVariableName(SymbolicIdentifier pValue) {

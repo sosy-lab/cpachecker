@@ -39,12 +39,6 @@ public class BinaryNotExpression extends UnarySymbolicExpression {
     return pVisitor.visit(this);
   }
 
-
-  @Override
-  public BinaryNotExpression copyWithType(Type pExpressionType) {
-    return new BinaryNotExpression(getOperand(), pExpressionType);
-  }
-
   @Override
   public String toString() {
     return "~" + getOperand();

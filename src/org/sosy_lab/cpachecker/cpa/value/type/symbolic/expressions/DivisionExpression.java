@@ -40,12 +40,6 @@ public class DivisionExpression extends BinarySymbolicExpression {
     return pVisitor.visit(this);
   }
 
-
-  @Override
-  public DivisionExpression copyWithType(Type pExpressionType) {
-    return new DivisionExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
   @Override
   public String toString() {
     return "(" + getOperand1() + " / " + getOperand2() + ")";

@@ -41,12 +41,6 @@ public class BinaryOrExpression extends BinarySymbolicExpression {
     return pVisitor.visit(this);
   }
 
-
-  @Override
-  public BinaryOrExpression copyWithType(Type pExpressionType) {
-    return new BinaryOrExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
   @Override
   public String toString() {
     return "(" + getOperand1() + " | " + getOperand2() + ")";

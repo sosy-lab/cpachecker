@@ -39,11 +39,6 @@ public class ShiftRightExpression extends BinarySymbolicExpression {
   }
 
   @Override
-  public ShiftRightExpression copyWithType(Type pExpressionType) {
-    return new ShiftRightExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
-  @Override
   public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }

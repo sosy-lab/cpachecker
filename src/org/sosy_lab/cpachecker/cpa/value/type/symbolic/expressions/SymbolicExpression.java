@@ -51,13 +51,6 @@ public abstract class SymbolicExpression implements SymbolicValue {
   public abstract Type getType();
 
   /**
-   * Returns a copy of this <code>SymbolicExpression</code> object with the given expression type.
-   *
-   * @param pType the expression type of the returned object
-   */
-  public abstract SymbolicExpression copyWithType(Type pType);
-
-  /**
    * Returns whether this <code>SymbolicExpression</code> is always true and does only contain explicit values.
    *
    * @return <code>true</code> if this <code>SymbolicExpression</code> is always true and does only contain explicit

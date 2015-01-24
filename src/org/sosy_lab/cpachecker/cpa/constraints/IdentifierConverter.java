@@ -76,7 +76,7 @@ public class IdentifierConverter {
    */
   public SymbolicIdentifier convert(String pIdentifierInformation) {
     final long id = Long.parseLong(pIdentifierInformation.substring(PREFIX.length()));
-    return new SymbolicIdentifier(id, DUMMY_TYPE);
+    return new SymbolicIdentifier(id);
   }
 
   /**

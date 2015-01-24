@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
@@ -35,18 +34,4 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 public interface SymbolicValue extends Value {
 
   <T> T accept(SymbolicValueVisitor<T> pVisitor);
-
-  /**
-   * Sets this <code>SymbolicValue</code>'s {@link Type}.
-   *
-   * @param pType the new type of this symbolic value
-   */
-  SymbolicValue copyWithType(Type pType);
-
-  /**
-   * Returns this object's {@link Type}.
-   *
-   * @return the type of the variable this symbolic value describes
-   */
-  Type getType();
 }

@@ -42,11 +42,6 @@ public class LogicalAndExpression extends BinarySymbolicExpression {
   }
 
   @Override
-  public LogicalAndExpression copyWithType(Type pExpressionType) {
-    return new LogicalAndExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
-  @Override
   public String toString() {
     return "(" + getOperand1() + " && " + getOperand2() + ")";
   }

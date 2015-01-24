@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 
@@ -55,11 +54,8 @@ public class SymbolicIdentifier implements SymbolicValue {
   // this objects unique id for identifying it
   private final long id;
 
-  private Type type;
-
-  public SymbolicIdentifier(long pId, Type pType) {
+  public SymbolicIdentifier(long pId) {
     id = pId;
-    type = pType;
   }
 
   /**
@@ -69,25 +65,13 @@ public class SymbolicIdentifier implements SymbolicValue {
    *
    * @return a new instance of a <code>SymbolicIdentifier</code>
    */
-  static SymbolicIdentifier getNewIdentifier(Type pType) {
-    return new SymbolicIdentifier(nextId++, pType);
+  static SymbolicIdentifier getNewIdentifier() {
+    return new SymbolicIdentifier(nextId++);
   }
 
   @Override
   public <T> T accept(SymbolicValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);
-  }
-
-  @Override
-  public SymbolicIdentifier copyWithType(Type pType) {
-
-    // we keep the same id but only change the type so we do not lose information
-    return new SymbolicIdentifier(id, pType);
-  }
-
-  @Override
-  public Type getType() {
-    return type;
   }
 
   public long getId() {
@@ -96,14 +80,12 @@ public class SymbolicIdentifier implements SymbolicValue {
 
   @Override
   public int hashCode() {
-    int result = (int) (id ^ (id >>> 32));
-    return result + type.hashCode();
+    return (int) (id ^ (id >>> 32));
   }
 
   @Override
   public boolean equals(Object pOther) {
-    return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id
-        && ((SymbolicIdentifier) pOther).type.equals(type);
+    return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id;
   }
 
   @Override

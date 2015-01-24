@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryAndExpression;
@@ -87,7 +88,7 @@ public class IdentifierReplacer implements SymbolicValueVisitor<Value> {
   public Value visit(SymbolicIdentifier pSymbolicValue) {
     long id = pSymbolicValue.getId();
 
-    return id == idToReplace ? cast(newValue, pSymbolicValue.getType()) : pSymbolicValue;
+    return id == idToReplace ? newValue : pSymbolicValue;
   }
 
   private Value cast(Value pValue, Type toType) {
@@ -151,6 +152,10 @@ public class IdentifierReplacer implements SymbolicValueVisitor<Value> {
 
     if (newValue instanceof SymbolicIdentifier) {
       newValue = ((SymbolicIdentifier) newValue).accept(this);
+
+      if (newValue instanceof NumericValue) {
+        newValue = cast(newValue, pExpression.getType());
+      }
     }
 
     return factory.asConstant(newValue, pExpression.getType());

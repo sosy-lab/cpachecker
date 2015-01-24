@@ -49,11 +49,6 @@ public class LessThanOrEqualExpression extends BinarySymbolicExpression implemen
   }
 
   @Override
-  public LessThanOrEqualExpression copyWithType(Type pExpressionType) {
-    return new LessThanOrEqualExpression(getOperand1(), getOperand2(), pExpressionType, getCalculationType());
-  }
-
-  @Override
   public String toString() {
     return "(" + getOperand1() + " <= " + getOperand2() + ")";
   }
