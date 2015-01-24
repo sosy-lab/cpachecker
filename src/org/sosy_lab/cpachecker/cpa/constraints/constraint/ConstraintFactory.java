@@ -153,7 +153,7 @@ public class ConstraintFactory {
         return null;
 
       default:
-        SymbolicExpression operandExpression = pExpression.accept(getCTransformer());
+        SymbolicExpression operandExpression = getCTransformer().transform(pExpression);
 
         if (operandExpression == null) {
           return null;
@@ -170,14 +170,14 @@ public class ConstraintFactory {
 
     final CExpressionTransformer transformer = getCTransformer();
 
-    SymbolicExpression leftOperand = pExpression.getOperand1().accept(transformer);
+    SymbolicExpression leftOperand = transformer.transform(pExpression.getOperand1());
 
     checkForMissingInfo(transformer);
     if (leftOperand == null) {
       return null;
     }
 
-    SymbolicExpression rightOperand = pExpression.getOperand2().accept(transformer);
+    SymbolicExpression rightOperand = transformer.transform(pExpression.getOperand2());
 
     checkForMissingInfo(transformer);
     if (rightOperand == null) {
@@ -216,7 +216,7 @@ public class ConstraintFactory {
     assert pExpression.getOperator() == JUnaryExpression.UnaryOperator.NOT;
 
     JExpression operand = pExpression.getOperand();
-    SymbolicExpression operandExpression = operand.accept(getJavaTransformer());
+    SymbolicExpression operandExpression = getJavaTransformer().transform(operand);
 
     if (operandExpression == null) {
       return null;
@@ -233,14 +233,14 @@ public class ConstraintFactory {
 
     final JExpressionTransformer transformer = getJavaTransformer();
 
-    SymbolicExpression leftOperand = pExpression.getOperand1().accept(transformer);
+    SymbolicExpression leftOperand = transformer.transform(pExpression.getOperand1());
 
     checkForMissingInfo(transformer);
     if (leftOperand == null) {
       return null;
     }
 
-    SymbolicExpression rightOperand = pExpression.getOperand2().accept(transformer);
+    SymbolicExpression rightOperand = transformer.transform(pExpression.getOperand2());
 
     checkForMissingInfo(transformer);
     if (rightOperand == null) {
