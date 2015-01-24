@@ -366,7 +366,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
 
       for (Constraint currConstraint : constraints) {
 
-        currFormula = currConstraint.accept(formulaCreator);
+        currFormula = formulaCreator.createFormula(currConstraint);
 
         if (completeFormula == null) {
           completeFormula = currFormula;

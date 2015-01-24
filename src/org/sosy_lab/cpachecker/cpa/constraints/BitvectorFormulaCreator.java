@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -428,6 +429,11 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     BitvectorFormula formula = pCreator.create(op1, op2, calculationType);
 
     return cast(formula, calculationType, expressionType);
+  }
+
+  @Override
+  public Formula createFormula(Constraint pConstraint) {
+    return null; // TODO
   }
 
   @Override

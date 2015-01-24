@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -76,6 +79,9 @@ import com.google.common.collect.Table;
  */
 public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
+  private static long auxiliaryVariableAmount = 0;
+  private static long floatVariableAmount = 0;
+
   private static final boolean SIGNED = true;
   private static final String B_AND_FUNC_NAME = "b_and";
   private static final String B_OR_FUNC_NAME = "b_or";
@@ -84,6 +90,8 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   private static final String SHIFT_RIGHT_FUNC_NAME = "sh_r";
   private static final String SHIFT_LEFT_FUNC_NAME = "sh_l";
   private static final String FLOAT_VAR_NAME = "float";
+  private static final String POINTER_EXP_FUNC_NAME = "pointer";
+  private static final String AUXILIARY_NAME = "auxVar";
 
 
   private final FormulaManagerView formulaManager;
@@ -93,22 +101,48 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   private final FunctionSet declaredFunctions = new FunctionSet();
 
-  private int counter = 0;
+  private final IntegerFormula oneFormula;
+  private final IntegerFormula zeroFormula;
+
+  private List<BooleanFormula> conditions = new ArrayList<>();
 
   public IntegerFormulaCreator(FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
     numeralFormulaManager = formulaManager.getIntegerFormulaManager();
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
     functionFormulaManager = formulaManager.getFunctionFormulaManager();
+
+    oneFormula = numeralFormulaManager.makeNumber(1);
+    zeroFormula = numeralFormulaManager.makeNumber(0);
   }
 
+  @Override
+  public Formula createFormula(Constraint pConstraint) {
+    Formula originalFormula = pConstraint.accept(this);
+
+    if (conditions.isEmpty()) {
+      return originalFormula;
+
+    } else {
+      BooleanFormula conditionsFormula = booleanFormulaManager.and(conditions);
+      return formulaManager.makeAnd(originalFormula, conditionsFormula);
+    }
+  }
 
   @Override
   public IntegerFormula visit(AdditionExpression pAdd) {
-    final IntegerFormula op1 = (IntegerFormula) pAdd.getOperand1().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pAdd.getOperand2().accept(this);
+    final Formula op1 = pAdd.getOperand1().accept(this);
+    final Formula op2 = pAdd.getOperand2().accept(this);
 
-    return numeralFormulaManager.add(op1, op2);
+    final BinaryCreator<IntegerFormula> creator = new BinaryCreator<IntegerFormula>() {
+
+      @Override
+      public IntegerFormula create(Formula pOp1, Formula pOp2) {
+        return numeralFormulaManager.add((IntegerFormula) pOp1, (IntegerFormula) pOp2);
+      }
+    };
+
+    return createFormulaWhileTransformingBooleanToInteger(op1, op2, creator);
   }
 
   @Override
@@ -117,28 +151,48 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   private Formula handleUnsupportedExpression(BinarySymbolicExpression pExp) {
-    final Formula leftOperand = pExp.getOperand1().accept(this);
-    final Formula rightOperand = pExp.getOperand2().accept(this);
+    Formula leftOperand = pExp.getOperand1().accept(this);
+    Formula rightOperand = pExp.getOperand2().accept(this);
 
     final FormulaType<?> expressionType = getFormulaType(pExp.getType());
     final FormulaType<?> calculationType = getFormulaType(pExp.getCalculationType());
+    final FunctionTypes functionTypes = new FunctionTypes(expressionType)
+                                                         .parameter(calculationType)
+                                                         .parameter(calculationType);
+
     final String functionName = getFunctionNameByExpression(pExp);
 
     UninterpretedFunctionDeclaration<?> functionDeclaration;
 
-    if (!declaredFunctions.contains(functionName, expressionType)) {
+    if (!declaredFunctions.contains(functionName, functionTypes)) {
 
       // we pass calculation type two times because we have two arguments
       functionDeclaration = functionFormulaManager.declareUninterpretedFunction(
           functionName, expressionType, calculationType, calculationType);
 
-      declaredFunctions.put(functionName, expressionType, functionDeclaration);
+      declaredFunctions.put(functionName, functionTypes, functionDeclaration);
 
     } else {
-      functionDeclaration = declaredFunctions.get(functionName, expressionType);
+      functionDeclaration = declaredFunctions.get(functionName, functionTypes);
     }
 
+    leftOperand = cast(leftOperand, calculationType);
+    rightOperand = cast(rightOperand, calculationType);
+
     return functionFormulaManager.callUninterpretedFunction(functionDeclaration, leftOperand, rightOperand);
+  }
+
+  private Formula cast(Formula pFormula, FormulaType<?> pToType) {
+
+    if (pFormula instanceof IntegerFormula && pToType.isBooleanType()) {
+      return castToBoolean((IntegerFormula) pFormula);
+
+    } else if (pFormula instanceof BooleanFormula && pToType.isIntegerType()) {
+      return castToInteger((BooleanFormula) pFormula);
+
+    } else {
+      return pFormula;
+    }
   }
 
   private String getFunctionNameByExpression(SymbolicExpression pExpression) {
@@ -166,6 +220,10 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
       return SHIFT_RIGHT_FUNC_NAME;
     }
 
+    if (pExpression instanceof PointerExpression) {
+      return POINTER_EXP_FUNC_NAME;
+    }
+
     throw new AssertionError("Unexpected expression " + pExpression);
   }
 
@@ -178,20 +236,22 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     final Formula operand = pExp.getOperand().accept(this);
 
     final FormulaType<?> expressionType = getFormulaType(pExp.getType());
+    final FunctionTypes functionTypes = new FunctionTypes(expressionType)
+                                                         .parameter(expressionType);
     final String functionName = getFunctionNameByExpression(pExp);
 
     UninterpretedFunctionDeclaration<?> functionDeclaration;
 
-    if (!declaredFunctions.contains(functionName, expressionType)) {
+    if (!declaredFunctions.contains(functionName, functionTypes)) {
 
       // we pass calculation type two times because we have two arguments
       functionDeclaration = functionFormulaManager.declareUninterpretedFunction(
           functionName, expressionType, expressionType);
 
-      declaredFunctions.put(functionName, expressionType, functionDeclaration);
+      declaredFunctions.put(functionName, functionTypes, functionDeclaration);
 
     } else {
-      functionDeclaration = declaredFunctions.get(functionName, expressionType);
+      functionDeclaration = declaredFunctions.get(functionName, functionTypes);
     }
 
     return functionFormulaManager.callUninterpretedFunction(functionDeclaration, operand);
@@ -234,7 +294,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   private Formula handleFloatValue(ConstantSymbolicExpression pExpression) {
     return formulaManager.makeVariable(getFormulaType(pExpression.getType()),
-                                       FLOAT_VAR_NAME + counter++);
+                                       FLOAT_VAR_NAME + floatVariableAmount++);
   }
 
   @Override
@@ -272,42 +332,169 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public IntegerFormula visit(DivisionExpression pDivide) {
-    final IntegerFormula op1 = (IntegerFormula) pDivide.getOperand1().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pDivide.getOperand2().accept(this);
+    final Formula op1 = pDivide.getOperand1().accept(this);
+    final Formula op2 = pDivide.getOperand2().accept(this);
 
-    return numeralFormulaManager.divide(op1, op2);
+    final BinaryCreator<IntegerFormula> creator = new BinaryCreator<IntegerFormula>() {
+
+      @Override
+      public IntegerFormula create(Formula pOp1, Formula pOp2) {
+        return numeralFormulaManager.divide((IntegerFormula)pOp1, (IntegerFormula)pOp2);
+      }
+    };
+
+    return createFormulaWhileTransformingBooleanToInteger(op1, op2, creator);
   }
 
   @Override
   public BooleanFormula visit(EqualsExpression pEqual) {
-    final IntegerFormula op1 = (IntegerFormula) pEqual.getOperand1().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pEqual.getOperand2().accept(this);
+    Formula op1 = pEqual.getOperand1().accept(this);
+    Formula op2 = pEqual.getOperand2().accept(this);
 
-    return numeralFormulaManager.equal(op1, op2);
+    BinaryCreator<BooleanFormula> creator = new BinaryCreator<BooleanFormula>() {
+
+      @Override
+      public BooleanFormula create(Formula pOp1, Formula pOp2) {
+        return formulaManager.makeEqual(pOp1, pOp2);
+      }
+    };
+
+    return createFormulaWhileTransformingToIntegerIfNecessary(op1, op2, creator);
+  }
+
+  private <T extends Formula> T createFormulaWhileTransformingToIntegerIfNecessary(
+      Formula pOp1, Formula pOp2, BinaryCreator<T> pCreator) {
+
+    if (pOp1 instanceof BooleanFormula == pOp2 instanceof BooleanFormula) {
+      return pCreator.create(pOp1, pOp2);
+
+    } else {
+      return createFormulaWhileTransformingBooleanToInteger(pOp1, pOp2, pCreator);
+    }
+  }
+
+  private <T extends Formula> T createFormulaWhileTransformingIntegerToBoolean(
+      Formula pOp1, Formula pOp2, BinaryCreator<T> pCreator) {
+
+    BooleanFormula op1;
+    BooleanFormula op2;
+
+    if (pOp1 instanceof IntegerFormula) {
+      IntegerFormula integerFormula = (IntegerFormula) pOp1;
+
+      op1 = castToBoolean(integerFormula);
+
+    } else {
+      assert pOp1 instanceof BooleanFormula;
+      op1 = (BooleanFormula) pOp1;
+    }
+
+    if (pOp2 instanceof IntegerFormula) {
+      IntegerFormula integerFormula = (IntegerFormula) pOp2;
+
+      op2 = castToBoolean(integerFormula);
+
+    } else {
+      assert pOp2 instanceof BooleanFormula;
+      op2 = (BooleanFormula) pOp2;
+    }
+
+    return pCreator.create(op1, op2);
+  }
+
+  private BooleanFormula castToBoolean(IntegerFormula pFormula) {
+    return numeralFormulaManager.greaterOrEquals(pFormula, oneFormula);
+  }
+
+  private <T extends Formula> T createFormulaWhileTransformingBooleanToInteger(
+      Formula pOp1, Formula pOp2, BinaryCreator<T> pCreator) {
+
+    IntegerFormula op1;
+    IntegerFormula op2;
+
+    if (pOp1 instanceof BooleanFormula) {
+      BooleanFormula booleanFormula = (BooleanFormula) pOp1;
+
+      op1 = castToInteger(booleanFormula);
+
+    } else {
+      assert pOp1 instanceof IntegerFormula;
+      op1 = (IntegerFormula) pOp1;
+    }
+
+    if (pOp2 instanceof BooleanFormula) {
+      BooleanFormula booleanFormula = (BooleanFormula) pOp2;
+
+      op2 = castToInteger(booleanFormula);
+
+    } else {
+      assert pOp2 instanceof IntegerFormula;
+      op2 = (IntegerFormula) pOp2;
+    }
+
+    return pCreator.create(op1, op2);
+  }
+
+  private IntegerFormula castToInteger(BooleanFormula pFormula) {
+    IntegerFormula variable = getAuxiliaryVariable(FormulaType.IntegerType);
+    final BooleanFormula trueAssignment = formulaManager.assignment(variable, oneFormula);
+    final BooleanFormula falseAssignment = formulaManager.assignment(variable, zeroFormula);
+
+    conditions.add(booleanFormulaManager.ifThenElse(pFormula, trueAssignment, falseAssignment));
+
+    return variable;
+  }
+
+  private <T extends Formula> T getAuxiliaryVariable(FormulaType<T> pType) {
+    return formulaManager.makeVariable(pType, getAuxiliaryVariableName());
   }
 
   @Override
   public Formula visit(LogicalOrExpression pExpression) {
-    final BooleanFormula op1 = (BooleanFormula) pExpression.getOperand1().accept(this);
-    final BooleanFormula op2 = (BooleanFormula) pExpression.getOperand2().accept(this);
+    final Formula op1 = pExpression.getOperand1().accept(this);
+    final Formula op2 = pExpression.getOperand2().accept(this);
 
-    return booleanFormulaManager.and(op1, op2);
+    final BinaryCreator<BooleanFormula> orCreator = new BinaryCreator<BooleanFormula>() {
+
+      @Override
+      public BooleanFormula create(Formula pOp1, Formula pOp2) {
+        return booleanFormulaManager.or((BooleanFormula)pOp1, (BooleanFormula)pOp2);
+      }
+    };
+
+    return createFormulaWhileTransformingIntegerToBoolean(op1, op2, orCreator);
   }
 
   @Override
   public BooleanFormula visit(LessThanExpression pLessThan) {
-    final IntegerFormula op1 = (IntegerFormula) pLessThan.getOperand1().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pLessThan.getOperand2().accept(this);
+    final Formula op1 = pLessThan.getOperand1().accept(this);
+    final Formula op2 = pLessThan.getOperand2().accept(this);
 
-    return numeralFormulaManager.lessThan(op1, op2);
+    BinaryCreator<BooleanFormula> creator = new BinaryCreator<BooleanFormula>() {
+
+      @Override
+      public BooleanFormula create(Formula pOp1, Formula pOp2) {
+        return formulaManager.makeLessThan(pOp1, pOp2, SIGNED);
+      }
+    };
+
+    return createFormulaWhileTransformingBooleanToInteger(op1, op2, creator);
   }
 
   @Override
   public BooleanFormula visit(LogicalAndExpression pAnd) {
-    final BooleanFormula op1 = (BooleanFormula) pAnd.getOperand1().accept(this);
-    final BooleanFormula op2 = (BooleanFormula) pAnd.getOperand2().accept(this);
+    final Formula op1 = pAnd.getOperand1().accept(this);
+    final Formula op2 = pAnd.getOperand2().accept(this);
 
-    return booleanFormulaManager.and(op1, op2);
+    final BinaryCreator<BooleanFormula> creator = new BinaryCreator<BooleanFormula>() {
+
+      @Override
+      public BooleanFormula create(Formula pOp1, Formula pOp2) {
+        return booleanFormulaManager.and((BooleanFormula)pOp1, (BooleanFormula)pOp2);
+      }
+    };
+
+    return createFormulaWhileTransformingIntegerToBoolean(op1, op2, creator);
   }
 
   @Override
@@ -323,33 +510,66 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public BooleanFormula visit(LogicalNotExpression pNot) {
-    final BooleanFormula op = (BooleanFormula) pNot.getOperand().accept(this);
+    Formula operandFormula = pNot.getOperand().accept(this);
+    BooleanFormula op;
+
+    if (operandFormula instanceof IntegerFormula) {
+      op = castToBoolean((IntegerFormula) operandFormula);
+
+    } else {
+      assert operandFormula instanceof BooleanFormula;
+      op = (BooleanFormula) operandFormula;
+    }
 
     return booleanFormulaManager.not(op);
   }
 
   @Override
-  public Formula visit(LessThanOrEqualExpression pExpression) {
+  public BooleanFormula visit(LessThanOrEqualExpression pExpression) {
     final Formula op1 = pExpression.getOperand1().accept(this);
     final Formula op2 = pExpression.getOperand2().accept(this);
 
-    return formulaManager.makeLessOrEqual(op1, op2, SIGNED);
+    BinaryCreator<BooleanFormula> creator = new BinaryCreator<BooleanFormula>() {
+
+      @Override
+      public BooleanFormula create(Formula pOp1, Formula pOp2) {
+        return formulaManager.makeLessOrEqual(pOp1, pOp2, SIGNED);
+      }
+    };
+
+    return createFormulaWhileTransformingBooleanToInteger(op1, op2, creator);
   }
 
   @Override
   public IntegerFormula visit(ModuloExpression pModulo) {
-    final IntegerFormula op1 = (IntegerFormula) pModulo.getOperand1().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pModulo.getOperand2().accept(this);
+    final Formula op1 = pModulo.getOperand1().accept(this);
+    final Formula op2 = pModulo.getOperand2().accept(this);
 
-    return numeralFormulaManager.modulo(op1, op2);
+    final BinaryCreator<IntegerFormula> creator = new BinaryCreator<IntegerFormula>() {
+
+      @Override
+      public IntegerFormula create(Formula pOp1, Formula pOp2) {
+        return numeralFormulaManager.modulo((IntegerFormula)pOp1, (IntegerFormula)pOp2);
+      }
+    };
+
+    return createFormulaWhileTransformingBooleanToInteger(op1, op2, creator);
   }
 
   @Override
   public IntegerFormula visit(MultiplicationExpression pMultiply) {
-    final IntegerFormula op1 = (IntegerFormula) pMultiply.getOperand1().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pMultiply.getOperand2().accept(this);
+    final Formula op1 = pMultiply.getOperand1().accept(this);
+    final Formula op2 = pMultiply.getOperand2().accept(this);
 
-    return numeralFormulaManager.multiply(op1, op2);
+    final BinaryCreator<IntegerFormula> creator = new BinaryCreator<IntegerFormula>() {
+
+      @Override
+      public IntegerFormula create(Formula pOp1, Formula pOp2) {
+        return numeralFormulaManager.multiply((IntegerFormula)pOp1, (IntegerFormula)pOp2);
+      }
+    };
+
+    return createFormulaWhileTransformingBooleanToInteger(op1, op2, creator);
   }
 
   @Override
@@ -410,15 +630,85 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     }
   }
 
-  private static class FunctionSet
-      extends ForwardingTable<String, FormulaType<?>, UninterpretedFunctionDeclaration<?>> {
+  public String getAuxiliaryVariableName() {
+    return AUXILIARY_NAME + auxiliaryVariableAmount++;
+  }
 
-    private Table<String, FormulaType<?>, UninterpretedFunctionDeclaration<?>> functionTable
+  private static class FunctionSet
+      extends ForwardingTable<String, FunctionTypes, UninterpretedFunctionDeclaration<?>> {
+
+    private Table<String, FunctionTypes, UninterpretedFunctionDeclaration<?>> functionTable
         = HashBasedTable.create();
 
     @Override
-    protected Table<String, FormulaType<?>, UninterpretedFunctionDeclaration<?>> delegate() {
+    protected Table<String, FunctionTypes, UninterpretedFunctionDeclaration<?>> delegate() {
       return functionTable;
     }
   }
+
+  private static class FunctionTypes {
+    private final FormulaType<?> returnType;
+    private final List<FormulaType<?>> parameterTypes = new ArrayList<>();
+
+    public FunctionTypes(FormulaType<?> pReturnType) {
+      returnType = pReturnType;
+    }
+
+    public FunctionTypes parameter(FormulaType<?> pParameterType) {
+      parameterTypes.add(pParameterType);
+      return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      FunctionTypes that = (FunctionTypes)o;
+
+      if (!parameterTypes.equals(that.parameterTypes)) {
+        return false;
+      }
+      if (!returnType.equals(that.returnType)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = returnType.hashCode();
+      result = 31 * result + parameterTypes.hashCode();
+      return result;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("FunctionTypes[ ReturnType: ");
+      sb.append(returnType.toString());
+
+      if (!parameterTypes.isEmpty()) {
+        sb.append(", ParameterType(s):");
+
+        for (FormulaType<?> t : parameterTypes) {
+          sb.append(t.toString());
+          sb.append(" ");
+        }
+      }
+
+      sb.append("]");
+
+      return sb.toString();
+    }
+  }
+
+  private interface BinaryCreator<T extends Formula> {
+    T create(Formula pOp1, Formula pOp2);
+  }
+
 }
