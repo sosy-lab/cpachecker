@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -231,8 +232,7 @@ public class CExpressionTransformer extends ExpressionTransformer
 
     } else {
       final ValueAnalysisState state = valueState.get();
-      ExpressionValueVisitor valueVisitor =
-          new ExpressionValueVisitor(state, functionName, machineModel, logger);
+      ExpressionValueVisitor valueVisitor = getValueVisitor(state);
 
       ValueAnalysisState.MemoryLocation memLoc = valueVisitor.evaluateMemoryLocation(pExpression);
 
@@ -249,9 +249,18 @@ public class CExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
-  public SymbolicExpression visit(CPointerExpression pointerExpression) throws UnrecognizedCodeException {
-    assert false;
-    return null;
+  public SymbolicExpression visit(CPointerExpression pPointerExpression) throws UnrecognizedCodeException {
+    SymbolicExpression operand = pPointerExpression.getOperand().accept(this);
+
+    if (operand == null) {
+      return null;
+    } else {
+      return new PointerExpression(operand, pPointerExpression.getExpressionType());
+    }
+  }
+
+  private ExpressionValueVisitor getValueVisitor(ValueAnalysisState pState) {
+    return new ExpressionValueVisitor(pState, functionName, machineModel, logger);
   }
 
 
