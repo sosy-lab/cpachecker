@@ -126,9 +126,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -251,7 +251,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   @Override
   protected ValueAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
       List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
-      String calledFunctionName) throws UnrecognizedCCodeException {
+      String calledFunctionName) throws UnrecognizedCCodeException, SymbolicBoundReachedException {
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     assert (parameters.size() == arguments.size())
@@ -278,10 +278,17 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
 
       if (value.isUnknown()) {
-        newElement.forget(formalParamName);
+        if (useSymbolicValues) {
+          value = getSymbolicIdentifier(parameters.get(i).getType(), exp);
+          newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
 
-        if (isMissingCExpressionInformation(visitor, exp)) {
-          addMissingInformation(formalParamName, exp);
+        } else {
+          newElement.forget(formalParamName);
+
+          if (isMissingCExpressionInformation(visitor, exp)) {
+            addMissingInformation(formalParamName, exp);
+
+          }
         }
       } else {
         newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
@@ -536,7 +543,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected ValueAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, ADeclaration declaration)
-    throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, SymbolicBoundReachedException {
 
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
@@ -589,11 +596,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (initialValue.isUnknown() && useSymbolicValues) {
-      try {
-        initialValue = getSymbolicIdentifier(declarationType, declaration);
-      } catch (SymbolicBoundReachedException e) {
-        initialValue = UnknownValue.getInstance();
-      }
+      initialValue = getSymbolicIdentifier(declarationType, declaration);
     }
 
     if (isTrackedField(decl, initialValue)) {
@@ -944,14 +947,22 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
   }
 
-  private void assignUnknownValueToIdentifier(JArraySubscriptExpression pArraySubscriptExpression) {
+  private void assignUnknownValueToIdentifier(JArraySubscriptExpression pArraySubscriptExpression)
+      throws SymbolicBoundReachedException {
     JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
     if (arrayExpression instanceof JIdExpression) {
       JIdExpression idExpression = (JIdExpression) arrayExpression;
       MemoryLocation memLoc = getMemoryLocation(idExpression);
+      Value unknownValue;
 
-      state.assignConstant(memLoc, Value.UnknownValue.getInstance(), JSimpleType.getUnspecified());
+      if (useSymbolicValues) {
+        unknownValue = getSymbolicIdentifier(idExpression.getExpressionType(), idExpression);
+      } else {
+        unknownValue = UnknownValue.getInstance();
+      }
+
+      state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
     } else {
       assignUnknownValueToIdentifier((JArraySubscriptExpression) arrayExpression);
     }

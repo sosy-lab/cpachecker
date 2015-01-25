@@ -53,7 +53,7 @@ public class SymbolicValueFactory {
 
   @Option(name = "maxSymbolicValues",
       description = "The maximum amount of symbolic values to create per ast node.")
-  private int maxValuesPerNode = 4000;
+  private int maxValuesPerNode = 100000;
 
   private final Map<AAstNode, Integer> valuesPerNodeMap = new HashMap<>();
 
