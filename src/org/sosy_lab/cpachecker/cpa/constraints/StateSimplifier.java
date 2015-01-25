@@ -60,8 +60,8 @@ public class StateSimplifier {
   public ConstraintsState simplify(ConstraintsState pState) {
     ConstraintsState newState;
 
-    newState = replaceSymbolicIdentifiersWithConcreteValues(pState);
-    newState = removeTrivialConstraints(newState);
+    //newState = replaceSymbolicIdentifiersWithConcreteValues(pState);
+    newState = removeTrivialConstraints(pState);
 
     return newState;
   }

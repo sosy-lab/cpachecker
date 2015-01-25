@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -81,7 +80,8 @@ public class ConstraintsStrengthenOperator {
   public Collection<ValueAnalysisState> strengthen(
       ValueAnalysisState pStateToStrengthen, ConstraintsState pStrengtheningState) {
 
-    Optional<ValueAnalysisState> newElement =
+    return null;
+    /*Optional<ValueAnalysisState> newElement =
         evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
 
     if (newElement == null) {
@@ -90,7 +90,7 @@ public class ConstraintsStrengthenOperator {
       return Collections.singleton(newElement.get());
     } else {
       return Collections.emptySet();
-    }
+    }*/
   }
 
   private Optional<ValueAnalysisState> evaluateAssignment(
