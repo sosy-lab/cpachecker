@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -317,7 +316,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
-          throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, SymbolicBoundReachedException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
     ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
@@ -338,20 +337,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       functionReturnVar = MemoryLocation.valueOf(functionEntryNode.getReturnVariable().get().getQualifiedName());
     }
 
-    try {
-      if (expression != null && functionReturnVar != null) {
+    if (expression != null && functionReturnVar != null) {
 
-        return handleAssignmentToVariable(functionReturnVar,
-            functionEntryNode.getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
-            expression,
-            evv);
-      } else {
-        return state;
-      }
-
-    } catch (SymbolicBoundReachedException e) {
-      logger.logUserException(Level.WARNING, e, null);
-      return null;
+      return handleAssignmentToVariable(functionReturnVar,
+          functionEntryNode.getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
+          expression,
+          evv);
+    } else {
+      return state;
     }
   }
 
