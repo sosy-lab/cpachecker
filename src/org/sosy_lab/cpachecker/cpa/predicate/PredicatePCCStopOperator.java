@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -44,9 +43,8 @@ public class PredicatePCCStopOperator implements StopOperator {
 
   private final AbstractionFormula trueAbs;
 
-  public PredicatePCCStopOperator(final PredicateCPA pCPA, final Configuration pConfig)
+  public PredicatePCCStopOperator(final PredicateCPA pCPA)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
     paMgr = pCPA.getPredicateManager();
     fMgr = GlobalInfo.getInstance().getFormulaManager();
 
