@@ -171,6 +171,10 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
+# handle states with a deeper callstack first?
+# This needs the CallstackPccCPA to have any effect.
+analysis.traversal.usePccCallstack = false
+
 # Use an implementation of postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
 # postorder id. The secondary strategy is selected with
@@ -1014,10 +1018,6 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
-# whether abstraction states are used to check coverage of non abstraction
-# states
-cpa.predicate.doAbstractionStatesCoverNonAbstractionStates = false
-
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
@@ -1537,11 +1537,13 @@ cpa.stator.policy.encodeTemplatesAsRationals = false
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = Rational.ONE
 
+# Generate templates from assert statements
+cpa.stator.policy.generateFromAsserts = true
+
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
 
-# Generate octagon templates for all combinations of variables. This can be
-# expensive.
+# Generate octagon templates for all combinations of variables. 
 cpa.stator.policy.generateOctagons = false
 
 # Generate templates for the upper bounds of each variable
