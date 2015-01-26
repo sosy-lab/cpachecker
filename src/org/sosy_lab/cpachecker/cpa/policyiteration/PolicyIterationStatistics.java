@@ -8,12 +8,16 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
+  private final CFA cfa;
+
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
   private final Timer checkSATTimer = new Timer();
@@ -51,15 +55,16 @@ public class PolicyIterationStatistics implements Statistics {
     valueDeterminationTimer.stop();
   }
 
-  public PolicyIterationStatistics(Configuration config)
+  public PolicyIterationStatistics(Configuration config, CFA pCfa)
       throws InvalidConfigurationException {
+    cfa = pCfa;
 
     config.inject(this, PolicyIterationStatistics.class);
   }
 
   @Override
-  public void printStatistics(PrintStream out, CPAcheckerResult.Result result,
-      ReachedSet reached) {
+  public void printStatistics(
+      PrintStream out, CPAcheckerResult.Result result, ReachedSet reached) {
 
     printTimer(out, valueDeterminationTimer, "value determination");
     printTimer(out, abstractionTimer, "abstraction");
@@ -72,6 +77,28 @@ public class PolicyIterationStatistics implements Statistics {
             checkSATTimer.getSumTime()
         ).formatAs(TimeUnit.SECONDS),
         optTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
+
+
+    out.printf("CFA size: %d%n", getCFASize());
+    out.printf("Number of relevant variables: %d%n", getNoVariables());
+  }
+
+  /**
+   * @return Number of edges in the CFA
+   */
+  private int getCFASize() {
+    int out = 0;
+    for (CFANode n : cfa.getAllNodes()) {
+      out += n.getNumEnteringEdges();
+    }
+    return out;
+  }
+
+  /**
+   * @return Number of all variables live in CFA.
+   */
+  private int getNoVariables() {
+    return cfa.getVarClassification().get().getRelevantVariables().size();
   }
 
   public void printTimer(PrintStream out, Timer t, String name) {
