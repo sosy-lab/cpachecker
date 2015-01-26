@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.stator.policy")
@@ -273,7 +273,7 @@ public class TemplateManager {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
         String statement = edge.getRawStatement();
 
-        Optional<Template> template = Optional.empty();
+        Optional<Template> template = Optional.absent();
         if (statement.contains("assert")) {
           if (statement.contains("__assert_fail")
               && edge instanceof CStatementEdge) {
@@ -348,7 +348,7 @@ public class TemplateManager {
             );
           }
         } else {
-          return Optional.empty();
+          return Optional.absent();
         }
       }
 
@@ -364,7 +364,7 @@ public class TemplateManager {
         }
         return Optional.of(t);
       } else {
-        return Optional.empty();
+        return Optional.absent();
       }
     } else if (expression instanceof CLiteralExpression
         && expression.getExpressionType() instanceof CSimpleType) {
@@ -382,7 +382,7 @@ public class TemplateManager {
           )
       );
     } else {
-      return Optional.empty();
+      return Optional.absent();
     }
   }
 }
