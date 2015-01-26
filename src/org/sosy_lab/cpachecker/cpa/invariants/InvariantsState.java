@@ -938,4 +938,12 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     return result;
   }
 
+  public InvariantsFormula<CompoundInterval> asFormula() {
+    InvariantsFormula<CompoundInterval> result = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalTrue());
+    for (InvariantsFormula<CompoundInterval> assumption : getEnvironmentAsAssumptions()) {
+      result = CompoundIntervalFormulaManager.INSTANCE.logicalAnd(result, assumption);
+    }
+    return result;
+  }
+
 }
