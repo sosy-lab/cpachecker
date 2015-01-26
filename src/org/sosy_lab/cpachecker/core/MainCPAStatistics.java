@@ -438,8 +438,16 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   private void printCfaStatistics(PrintStream out) {
     if (cfa != null) {
+      int edges = 0;
+      for (CFANode n : cfa.getAllNodes()) {
+        edges += n.getNumEnteringEdges();
+      }
 
       out.println("Number of program locations:     " + cfa.getAllNodes().size());
+      out.println("Number of CFA edges:             " + edges);
+      if (cfa.getVarClassification().isPresent()) {
+        out.println("Number of relevant variables:    " + cfa.getVarClassification().get().getRelevantVariables().size());
+      }
       out.println("Number of functions:             " + cfa.getNumberOfFunctions());
 
       if (cfa.getLoopStructure().isPresent()) {

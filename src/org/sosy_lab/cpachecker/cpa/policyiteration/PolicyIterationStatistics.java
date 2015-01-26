@@ -9,7 +9,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -77,28 +76,6 @@ public class PolicyIterationStatistics implements Statistics {
             checkSATTimer.getSumTime()
         ).formatAs(TimeUnit.SECONDS),
         optTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
-
-
-    out.printf("CFA size: %d%n", getCFASize());
-    out.printf("Number of relevant variables: %d%n", getNoVariables());
-  }
-
-  /**
-   * @return Number of edges in the CFA
-   */
-  private int getCFASize() {
-    int out = 0;
-    for (CFANode n : cfa.getAllNodes()) {
-      out += n.getNumEnteringEdges();
-    }
-    return out;
-  }
-
-  /**
-   * @return Number of all variables live in CFA.
-   */
-  private int getNoVariables() {
-    return cfa.getVarClassification().get().getRelevantVariables().size();
   }
 
   public void printTimer(PrintStream out, Timer t, String name) {
