@@ -28,9 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.ObjectStreamException;
 import java.io.Serializable;
-import java.io.StreamCorruptedException;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,7 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -268,7 +265,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     if (this instanceof AbstractionState) {
       // consistency check
       FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
-      Pair<String,Integer> splitName;
+      /*Pair<String,Integer> splitName;
       SSAMap ssa = pathFormula.getSsa();
 
       for (String var : mgr.extractFreeVariableMap(abstractionFormula.asInstantiatedFormula()).keySet()) {
@@ -284,7 +281,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
         if(splitName.getSecond()!=ssa.getIndex(splitName.getFirst())) {
           throw new StreamCorruptedException("Proof is corrupted, abort reading");
         }
-      }
+      }*/
 
       return new AbstractionState(mgr.getBooleanFormulaManager(), pathFormula,
           abstractionFormula, PathCopyingPersistentTreeMap.<CFANode, Integer> of());
