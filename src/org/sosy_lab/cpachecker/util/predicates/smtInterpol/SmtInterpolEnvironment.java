@@ -55,6 +55,7 @@ import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.Model;
 import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
+import de.uni_freiburg.informatik.ultimate.logic.ReasonUnknown;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
@@ -338,8 +339,21 @@ class SmtInterpolEnvironment {
         return true;
       case UNSAT:
         return false;
-      default:
+      case UNKNOWN:
         shutdownNotifier.shutdownIfNecessary();
+        Object reason = script.getInfo(":reason-unknown");
+        if (!(reason instanceof ReasonUnknown)) {
+          throw new SMTLIBException("checkSat returned UNKNOWN with unknown reason " + reason);
+        }
+        switch ((ReasonUnknown)reason) {
+        case MEMOUT:
+          // SMTInterpol catches OOM, but we want to have it thrown.
+          throw new OutOfMemoryError("Out of memory during SMTInterpol operation");
+        default:
+          throw new SMTLIBException("checkSat returned UNKNOWN with unexpected reason " + reason);
+        }
+
+      default:
         throw new SMTLIBException("checkSat returned " + result);
       }
     } catch (SMTLIBException e) {
