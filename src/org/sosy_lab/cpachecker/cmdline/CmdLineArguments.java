@@ -117,8 +117,7 @@ class CmdLineArguments {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-cbmc",    "analysis.checkCounterexamples", "true", arg, properties)
-          || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
+      if (   handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
           || handleArgument0("-java",    "language",         "JAVA",            arg, properties)
           || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
@@ -146,6 +145,10 @@ class CmdLineArguments {
         } else {
           throw new InvalidCmdlineArgumentException("-cpas argument missing.");
         }
+
+      } else if (arg.equals("-cbmc")) {
+        putIfNotExistent(properties, "analysis.checkCounterexamples", "true");
+        putIfNotExistent(properties, "counterexample.checker", "CBMC");
 
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
