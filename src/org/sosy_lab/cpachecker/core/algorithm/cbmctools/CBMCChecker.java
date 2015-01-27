@@ -150,9 +150,6 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       cbmcArgs.add("3");
       cbmcArgs.add("--partial-loops");
       cbmcArgs.add("--no-unwinding-assertions");
-      cbmcArgs.add("--no-assertions");
-      cbmcArgs.add("--error-label");
-      cbmcArgs.add("ERROR");
 
       cbmcArgs.add("--function");
       cbmcArgs.add(mainFunctionName + "_0");
