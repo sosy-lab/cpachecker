@@ -30,25 +30,25 @@ import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-
 public class CustomInstructionRequirementsWriter {
 
   private final String filePrefix;
   private int fileID;
   private final Class<?> requirementsState;
 
-  public CustomInstructionRequirementsWriter(final String pFilePrefix) {
+  public CustomInstructionRequirementsWriter(final String pFilePrefix, final Class<?> pClass) {
     filePrefix = pFilePrefix;
     fileID = 0;
-    requirementsState = null; // TODO ?!
+    requirementsState = pClass;
   }
 
+  // TODO to be continued
   public void writeCIRequirement(final ARGState pState, final Collection<ARGState> pSet,
       final AppliedCustomInstruction pACI) throws IOException{
 
     fileID++;
     try (BufferedWriter br = new BufferedWriter(new FileWriter(filePrefix+fileID+".smt"))) {
-      // TODO
+      // TODO to be continued
     }
 
   }
