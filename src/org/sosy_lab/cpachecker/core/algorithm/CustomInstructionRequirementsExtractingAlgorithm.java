@@ -112,7 +112,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
 
     CFANode locState = AbstractStates.extractLocation(cpa.getInitialState(cfa.getMainFunction(),                                                StateSpacePartition.getDefaultPartition()));
     if (locState == null) {
-      throw new InvalidConfigurationException(locState + " is not an abstract state.");
+      throw new InvalidConfigurationException("The initial state of cpa is not an abstract state.");
     }
 
     // TODO to be continued: CFA integration
