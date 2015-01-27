@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Queue;
@@ -64,7 +65,7 @@ public class AppliedCustomInstructionParser {
     Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
     CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
 
-    try (BufferedReader br = new BufferedReader(new FileReader(file.toFile()))) {
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile())))) {
 
       String line = "";
       CFANode firstNode;
