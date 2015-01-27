@@ -1543,7 +1543,7 @@ public class VariableClassificationBuilder {
     }
 
     @Override
-    public Void visit(CFunctionCallExpression e) throws RuntimeException {
+    public Void visit(CFunctionCallExpression e) {
       for (CExpression param : e.getParameterExpressions()) {
         param.accept(this);
       }

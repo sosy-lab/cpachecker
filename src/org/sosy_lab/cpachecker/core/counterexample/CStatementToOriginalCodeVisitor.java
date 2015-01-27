@@ -77,12 +77,12 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
   INSTANCE;
 
   @Override
-  public String visit(CExpressionStatement pIastExpressionStatement) throws RuntimeException {
+  public String visit(CExpressionStatement pIastExpressionStatement) {
     return pIastExpressionStatement.getExpression().accept(ExpressionToOrinalCodeVisitor.VISITOR_INSTANCE) + ";";
   }
 
   @Override
-  public String visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws RuntimeException {
+  public String visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
 
     ExpressionToOrinalCodeVisitor expressionToOrinalCodeVisitor = ExpressionToOrinalCodeVisitor.VISITOR_INSTANCE;
 
@@ -93,7 +93,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
   }
 
   @Override
-  public String visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws RuntimeException {
+  public String visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
 
     ExpressionToOrinalCodeVisitor expressionToOrinalCodeVisitor = ExpressionToOrinalCodeVisitor.VISITOR_INSTANCE;
 
@@ -108,7 +108,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
   }
 
   @Override
-  public String visit(CFunctionCallStatement pIastFunctionCallStatement) throws RuntimeException {
+  public String visit(CFunctionCallStatement pIastFunctionCallStatement) {
     return handleFunctionCallExpression(pIastFunctionCallStatement.getFunctionCallExpression()) + ";";
   }
 
@@ -117,7 +117,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     VISITOR_INSTANCE;
 
     @Override
-    public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
+    public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
       CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
       final String left;
       if (arrayExpression instanceof AArraySubscriptExpression) {
@@ -130,7 +130,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CFieldReference pIastFieldReference) throws RuntimeException {
+    public String visit(CFieldReference pIastFieldReference) {
       final String left;
       if (pIastFieldReference.getFieldOwner() instanceof CFieldReference) {
         left = pIastFieldReference.getFieldOwner().accept(this);
@@ -142,17 +142,17 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CIdExpression pIastIdExpression) throws RuntimeException {
+    public String visit(CIdExpression pIastIdExpression) {
       return pIastIdExpression.getDeclaration().getOrigName();
     }
 
     @Override
-    public String visit(CPointerExpression pPointerExpression) throws RuntimeException {
+    public String visit(CPointerExpression pPointerExpression) {
       return "*" + parenthesize(pPointerExpression.getOperand().accept(this));
     }
 
     @Override
-    public String visit(CComplexCastExpression pComplexCastExpression) throws RuntimeException {
+    public String visit(CComplexCastExpression pComplexCastExpression) {
       String operand = pComplexCastExpression.getOperand().accept(this);
       if (pComplexCastExpression.isRealCast()) {
         return "__real__ " + operand;
@@ -161,7 +161,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
+    public String visit(CBinaryExpression pIastBinaryExpression) {
       return parenthesize(pIastBinaryExpression.getOperand1())
           + " "
           + pIastBinaryExpression.getOperator().getOperator()
@@ -170,7 +170,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CCastExpression pIastCastExpression) throws RuntimeException {
+    public String visit(CCastExpression pIastCastExpression) {
       CType type = pIastCastExpression.getExpressionType();
       final String typeCode = type.toASTString("");
       return parenthesize(typeCode)
@@ -178,7 +178,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CCharLiteralExpression pIastCharLiteralExpression) throws RuntimeException {
+    public String visit(CCharLiteralExpression pIastCharLiteralExpression) {
       char c = pIastCharLiteralExpression.getCharacter();
       if (c >= ' ' && c < 128) {
         return "'" + c + "'";
@@ -187,12 +187,12 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws RuntimeException {
+    public String visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
       return pIastFloatLiteralExpression.getValue().toString();
     }
 
     @Override
-    public String visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws RuntimeException {
+    public String visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
       String suffix = "";
 
       CType cType = pIastIntegerLiteralExpression.getExpressionType();
@@ -212,19 +212,19 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CStringLiteralExpression pIastStringLiteralExpression) throws RuntimeException {
+    public String visit(CStringLiteralExpression pIastStringLiteralExpression) {
       // Includes quotation marks
       return pIastStringLiteralExpression.getValue();
     }
 
     @Override
-    public String visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
+    public String visit(CTypeIdExpression pIastTypeIdExpression) {
       return pIastTypeIdExpression.getOperator().getOperator()
           + parenthesize(pIastTypeIdExpression.getType().getCanonicalType().toASTString(""));
     }
 
     @Override
-    public String visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
+    public String visit(CUnaryExpression pIastUnaryExpression) {
       UnaryOperator operator = pIastUnaryExpression.getOperator();
       if (operator == UnaryOperator.SIZEOF) {
         return operator.getOperator() + parenthesize(pIastUnaryExpression.getOperand().accept(this));
@@ -233,12 +233,12 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CImaginaryLiteralExpression pIastLiteralExpression) throws RuntimeException {
+    public String visit(CImaginaryLiteralExpression pIastLiteralExpression) {
       return pIastLiteralExpression.getValue().toString() + "i";
     }
 
     @Override
-    public String visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws RuntimeException {
+    public String visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
       return pAddressOfLabelExpression.toASTString();
     }
   }
@@ -258,12 +258,12 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     };
 
     @Override
-    public String visit(CInitializerExpression pInitializerExpression) throws RuntimeException {
+    public String visit(CInitializerExpression pInitializerExpression) {
       return pInitializerExpression.getExpression().accept(ExpressionToOrinalCodeVisitor.VISITOR_INSTANCE);
     }
 
     @Override
-    public String visit(CInitializerList pInitializerList) throws RuntimeException {
+    public String visit(CInitializerList pInitializerList) {
       StringBuilder code = new StringBuilder();
 
       code.append("{ ");
@@ -274,7 +274,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CDesignatedInitializer pCStructInitializerPart) throws RuntimeException {
+    public String visit(CDesignatedInitializer pCStructInitializerPart) {
       return from(pCStructInitializerPart.getDesignators()).transform(DesignatorToOriginalCodeVisitor.TO_CODE).join(Joiner.on(""))
           + " = " + pCStructInitializerPart.getRightHandSide().accept(this);
     }
@@ -295,14 +295,14 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     };
 
     @Override
-    public String visit(CArrayDesignator pArrayDesignator) throws RuntimeException {
+    public String visit(CArrayDesignator pArrayDesignator) {
       return "["
           + pArrayDesignator.getSubscriptExpression().accept(ExpressionToOrinalCodeVisitor.VISITOR_INSTANCE)
           + "]";
     }
 
     @Override
-    public String visit(CArrayRangeDesignator pArrayRangeDesignator) throws RuntimeException {
+    public String visit(CArrayRangeDesignator pArrayRangeDesignator) {
       return "["
           + pArrayRangeDesignator.getFloorExpression().accept(ExpressionToOrinalCodeVisitor.VISITOR_INSTANCE)
           + " ... "
@@ -311,7 +311,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     }
 
     @Override
-    public String visit(CFieldDesignator pFieldDesignator) throws RuntimeException {
+    public String visit(CFieldDesignator pFieldDesignator) {
       return "."  + pFieldDesignator.getFieldName();
     }
 

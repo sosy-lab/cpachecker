@@ -741,7 +741,7 @@ class ASTConverter {
   private static class ContainsProblemTypeVisitor extends DefaultCTypeVisitor<Boolean, RuntimeException> {
 
     @Override
-    public Boolean visitDefault(CType pT) throws RuntimeException {
+    public Boolean visitDefault(CType pT) {
       return Boolean.FALSE;
     }
 
