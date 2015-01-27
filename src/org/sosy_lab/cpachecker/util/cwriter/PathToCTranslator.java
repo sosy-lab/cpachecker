@@ -77,7 +77,10 @@ public class PathToCTranslator {
   // list of functions
   private final List<FunctionBody> mFunctionBodies = new ArrayList<>();
 
-  private PathToCTranslator() { }
+  private PathToCTranslator() {
+    // add declaration of assert function to C code
+    mGlobalDefinitionsList.add("extern void assert(int);");
+  }
 
   /**
    * Transform a set of paths into C code.
@@ -340,7 +343,8 @@ public class PathToCTranslator {
     FunctionBody currentFunction = functionStack.peek();
 
     if (childElement.isTarget()) {
-      currentFunction.write("assert(0); // target state ");
+      // label ERROR is required by CBMCChecker
+      currentFunction.write("ERROR: assert(0); // target state ");
     }
 
     // handle the edge
