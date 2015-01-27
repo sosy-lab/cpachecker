@@ -101,6 +101,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -1167,6 +1168,17 @@ class ASTConverter {
 
       // if none of the special cases before fits the default unaryExpression is created
       return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.AMPER);
+
+    case IASTUnaryExpression.op_labelReference:
+      // L: void * addressOfLabel = && L;
+
+      if (!(operand instanceof CIdExpression)) {
+        throw new CFAGenerationRuntimeException("Invalid operand for address-of-label operator", e, niceFileNameFunction);
+      }
+      String labelName = ((CIdExpression)operand).getName();
+
+      // type given by CDT is problem type
+      return new CAddressOfLabelExpression(fileLoc, CPointerType.POINTER_TO_VOID, labelName);
 
     case IASTUnaryExpression.op_prefixIncr:
     case IASTUnaryExpression.op_prefixDecr:

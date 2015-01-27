@@ -50,6 +50,7 @@ public interface CAstNodeVisitor<R, X extends Exception> {
   R visit(CImaginaryLiteralExpression pNode) throws X;
   R visit(CIntegerLiteralExpression pNode) throws X;
   R visit(CStringLiteralExpression pNode) throws X;
+  R visit(CAddressOfLabelExpression pNode) throws X;
   R visit(CParameterDeclaration pNode) throws X;
   R visit(CFunctionDeclaration pNode) throws X;
   R visit(CComplexTypeDeclaration pNode) throws X;

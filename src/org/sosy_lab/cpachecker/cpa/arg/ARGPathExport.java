@@ -48,6 +48,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -748,7 +749,13 @@ public class ARGPathExport {
         @Override
         public Boolean visit(CImaginaryLiteralExpression pIastLiteralExpression) throws RuntimeException {
           return pIastLiteralExpression.getValue().accept(this);
-        }});
+        }
+
+        @Override
+        public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws RuntimeException {
+          return true;
+        }
+      });
     }
 
   }

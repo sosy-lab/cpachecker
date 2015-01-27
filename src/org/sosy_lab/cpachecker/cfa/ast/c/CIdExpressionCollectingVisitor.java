@@ -192,5 +192,8 @@ public class CIdExpressionCollectingVisitor implements
     return result;
   }
 
-
+  @Override
+  public Set<CIdExpression> visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws RuntimeException {
+    return Collections.emptySet();
+  }
 }

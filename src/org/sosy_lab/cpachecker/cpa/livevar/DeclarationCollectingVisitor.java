@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
@@ -85,6 +86,11 @@ public class DeclarationCollectingVisitor extends AExpressionVisitor<Set<ASimple
   @Override
   public Set<ASimpleDeclaration> visit(CComplexCastExpression exp) throws RuntimeException {
     return exp.getOperand().accept(this);
+  }
+
+  @Override
+  public Set<ASimpleDeclaration> visit(CAddressOfLabelExpression exp) throws RuntimeException {
+    return Collections.emptySet();
   }
 
   @Override

@@ -264,4 +264,8 @@ public class FileLocationCollectingVisitor implements CAstNodeVisitor<Set<FileLo
     return Collections.singleton(pNode.getFileLocation());
   }
 
+  @Override
+  public Set<FileLocation> visit(CAddressOfLabelExpression pNode) throws RuntimeException {
+    return Collections.singleton(pNode.getFileLocation());
+  }
 }

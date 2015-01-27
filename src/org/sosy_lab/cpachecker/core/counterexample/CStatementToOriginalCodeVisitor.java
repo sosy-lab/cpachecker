@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.transform;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -236,6 +237,10 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
       return pIastLiteralExpression.getValue().toString() + "i";
     }
 
+    @Override
+    public String visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws RuntimeException {
+      return pAddressOfLabelExpression.toASTString();
+    }
   }
 
   @SuppressWarnings("unused")

@@ -37,6 +37,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -692,6 +693,11 @@ public class BlockFormulaSlicer {
     @Override
     public Void visit(CPointerExpression exp) {
       exp.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CAddressOfLabelExpression exp) {
       return null;
     }
   }

@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -328,6 +329,11 @@ class AutomatonASTComparator {
     @Override
     public ASTMatcher visit(CPointerExpression exp) throws InvalidAutomatonException {
       return new PointerExpressionMatcher(exp, exp.getOperand().accept(this));
+    }
+
+    @Override
+    public ASTMatcher visit(CAddressOfLabelExpression exp) throws InvalidAutomatonException {
+      return new AddressOfLabelExpressionMatcher(exp);
     }
 
     @Override
@@ -758,6 +764,18 @@ class AutomatonASTComparator {
     @Override
     protected CType getFieldValueFrom(CTypeIdExpression pSource) {
       return pSource.getType();
+    }
+  }
+
+  private static class AddressOfLabelExpressionMatcher extends ExpressionWithFieldMatcher<CAddressOfLabelExpression, String> {
+
+    public AddressOfLabelExpressionMatcher(CAddressOfLabelExpression pPattern) {
+      super(CAddressOfLabelExpression.class, pPattern);
+    }
+
+    @Override
+    protected String getFieldValueFrom(CAddressOfLabelExpression pSource) {
+      return pSource.getLabelName();
     }
   }
 
