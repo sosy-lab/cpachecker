@@ -65,7 +65,7 @@ public class AppliedCustomInstructionParser {
     Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
     CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
 
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile())))) {
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
 
       String line = "";
       CFANode firstNode;
