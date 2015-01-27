@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -47,7 +48,7 @@ public class CustomInstructionRequirementsWriter {
       final AppliedCustomInstruction pACI) throws IOException{
 
     fileID++;
-    try (BufferedWriter br = new BufferedWriter(new FileWriter(filePrefix+fileID+".smt"))) {
+    try (BufferedWriter br = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePrefix+fileID+".smt"), "UTF-8"))) {
       // TODO to be continued
     }
 
