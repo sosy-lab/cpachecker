@@ -29,12 +29,17 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 
 
-public class CIdExpressionCollectingVisitor implements
-  CStatementVisitor<Set<CIdExpression>, RuntimeException>,
-  CRightHandSideVisitor<Set<CIdExpression>, RuntimeException>,
-  CInitializerVisitor<Set<CIdExpression>, RuntimeException>,
-  CDesignatorVisitor<Set<CIdExpression>, RuntimeException>,
-  CExpressionVisitor<Set<CIdExpression>, RuntimeException> {
+public class CIdExpressionCollectingVisitor
+    extends DefaultCExpressionVisitor<Set<CIdExpression>, RuntimeException>
+    implements CStatementVisitor<Set<CIdExpression>, RuntimeException>,
+               CRightHandSideVisitor<Set<CIdExpression>, RuntimeException>,
+               CInitializerVisitor<Set<CIdExpression>, RuntimeException>,
+               CDesignatorVisitor<Set<CIdExpression>, RuntimeException> {
+
+  @Override
+  protected Set<CIdExpression> visitDefault(CExpression pExp) throws RuntimeException {
+    return Collections.emptySet();
+  }
 
   @Override
   public Set<CIdExpression> visit(CArraySubscriptExpression pE) throws RuntimeException {
@@ -137,36 +142,6 @@ public class CIdExpressionCollectingVisitor implements
   }
 
   @Override
-  public Set<CIdExpression> visit(CCharLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CFloatLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CIntegerLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CStringLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CTypeIdExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CImaginaryLiteralExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
   public Set<CIdExpression> visit(CArrayDesignator pArrayDesignator) throws RuntimeException {
     return pArrayDesignator.getSubscriptExpression().accept(this);
   }
@@ -190,10 +165,5 @@ public class CIdExpressionCollectingVisitor implements
       Sets.union(result, e.accept(this));
     }
     return result;
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws RuntimeException {
-    return Collections.emptySet();
   }
 }
