@@ -7,7 +7,7 @@
 
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=true</option>
-  <option name="-heap">7500M</option>
+  <option name="-heap">7000M</option>
   <option name="-ldv"/>
 
   <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
