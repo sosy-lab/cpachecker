@@ -127,7 +127,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
             + "Furthermore, it needs Location CPA and Predicate CPA to work.");
     }
 
-    if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null) {
+    if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
       throw new InvalidConfigurationException("Currently only support forward analyses.");
     }
     if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof CompositeMergeAgreePredicatedAnalysisOperator)) { throw new InvalidConfigurationException(
