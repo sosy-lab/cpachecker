@@ -261,7 +261,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       // create fake states, one per fake edge, note that states are the same except for predicate state and location state
       if (locConstructor == null) {
         try {
-          locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class);
+          locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
           locConstructor.setAccessible(true);
         } catch (NoSuchMethodException | SecurityException e1) {
           throw new CPAException("Cannot prepare for refinement because cannot get constructor for location states.", e1);
@@ -290,8 +290,8 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
           pf = pfm.makeEmptyPathFormula(pf);
 
           PersistentMap<CFANode, Integer> abstractionLocations = errorPred.getAbstractionLocationsOnPath();
-          Integer newLocInstance = firstNonNull(abstractionLocations.get(node), 0) + 1;
-          abstractionLocations = abstractionLocations.putAndCopy(node, newLocInstance);
+          Integer newLocInstance = firstNonNull(abstractionLocations.get(assumeEdge.getSuccessor()), 0) + 1;
+          abstractionLocations = abstractionLocations.putAndCopy(assumeEdge.getSuccessor(), newLocInstance);
 
           // create fake abstraction predicate state
           fakePred = PredicateAbstractState.mkAbstractionState(fm.getBooleanFormulaManager(), pf, abf,
@@ -307,7 +307,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
           if (state != errorPred) {
             if (state instanceof LocationState) {
               try {
-                wrappedStates.add(locConstructor.newInstance(assumeEdge.getSuccessor()));
+                wrappedStates.add(locConstructor.newInstance(assumeEdge.getSuccessor(),true));
               } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
                   | InvocationTargetException e1) {
                 throw new CPAException("Cannot prepare for refinement, cannot build necessary fake states.", e1);
