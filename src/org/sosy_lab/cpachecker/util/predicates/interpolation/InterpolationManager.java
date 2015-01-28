@@ -154,17 +154,19 @@ public final class InterpolationManager {
 
   @Option(secure=true, description="Strategy how to interact with the intepolating prover. " +
           "The analysis must support the strategy, otherwise the result will be useless!" +
-          "\n- CPACHECKER_SEQ: We simply return each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n]. " +
+          "\n- SEQ_CPACHECKER: We simply return each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n]. " +
           "The result is similar to INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', " +
-          "i.e. the solver has to generate nice interpolants itself. " +
+          "i.e. the solver has to generate nice interpolants itself. Supported by all solvers!" +
           "\n- INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the partitions [1,...n]. " +
-          "\n- CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
+          "\n- TREE: use the tree-interpolation-feature of a solver to get interpolants" +
+          "\n- TREE_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
           "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme." +
-          "\n- NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
-          "\n- NESTED_TREE: similar to NESTED, but the algorithm is taken from 'Tree Interpolation in Vampire'." +
-          "\n- TREE: use the tree-interpolation-feature of a solver to get interpolants")
-  private InterpolationStrategy strategy = InterpolationStrategy.CPACHECKER_SEQ;
-  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, NESTED, TREE, NESTED_TREE};
+          "\n- TREE_NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
+          "\n- TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from 'Tree Interpolation in Vampire'.")
+  private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
+  private static enum InterpolationStrategy {
+    SEQ, SEQ_CPACHECKER,
+    TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER};
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -567,12 +569,12 @@ public final class InterpolationManager {
 
     // The counterexample is spurious. Get the interpolants.
 
-    checkState(strategy == InterpolationStrategy.CPACHECKER_SEQ
+    checkState(strategy == InterpolationStrategy.SEQ_CPACHECKER
             || direction == CexTraceAnalysisDirection.FORWARDS,
         "well-scoped or nested interpolants are based on function-scopes and need to traverse the error-trace in forward direction.");
 
     switch (strategy) {
-      case CPACHECKER_SEQ: {
+      case SEQ_CPACHECKER: {
         for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
           // last iteration is left out because B would be empty
           final int start_of_A = 0;
@@ -581,12 +583,12 @@ public final class InterpolationManager {
         break;
       }
 
-      case INDUCTIVE_SEQ: {
+      case SEQ: {
         interpolants = interpolator.itpProver.getSeqInterpolants(wrapAllInSets(itpGroupsIds));
         break;
       }
 
-      case CPACHECKER_WELLSCOPED: {
+      case TREE_WELLSCOPED: {
         final Pair<List<Pair<T, BooleanFormula>>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
         final List<BooleanFormula> itps = new ArrayList<>();
         for (int end_of_A = 0; end_of_A < p.getFirst().size() - 1; end_of_A++) {
@@ -601,7 +603,7 @@ public final class InterpolationManager {
         break;
       }
 
-      case NESTED: {
+      case TREE_NESTED: {
         BooleanFormula lastItp = bfmgr.makeBoolean(true); // PSI_0 = True
         final Deque<Triple<BooleanFormula,BooleanFormula,CFANode>> callstack = new ArrayDeque<>();
         for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
@@ -611,7 +613,7 @@ public final class InterpolationManager {
         break;
       }
 
-      case NESTED_TREE: {
+      case TREE_CPACHECKER: {
         final Pair<List<Pair<T, BooleanFormula>>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
         final List<BooleanFormula> itps = new ArrayList<>();
         final Deque<Pair<BooleanFormula, Integer>> itpStack = new ArrayDeque<>();
@@ -799,7 +801,8 @@ public final class InterpolationManager {
   /** This function implements the paper "Nested Interpolants" with a small modification:
    * instead of a return-edge, we use dummy-edges with simple pathformula "true".
    * Actually the implementation does not use "true", but omits it completely and
-   * returns the conjunction of the two interpolants (before and after the (non-existing) dummy edge). */
+   * returns the conjunction of the two interpolants (before and after the (non-existing) dummy edge).
+   * TODO simplify this algorithm, it is soo ugly! Maybe it is 'equal' with the normal tree-interpolation. */
   private <T> BooleanFormula getNestedInterpolant(
           final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,
           final List<BooleanFormula> interpolants,
@@ -1067,8 +1070,8 @@ public final class InterpolationManager {
 
       switch (strategy) {
 
-        case CPACHECKER_SEQ:
-        case INDUCTIVE_SEQ: {
+        case SEQ_CPACHECKER:
+        case SEQ: {
 
           // The following three properties need to be checked:
           // (A)                          true      & f_0 => itp_0
@@ -1130,8 +1133,9 @@ public final class InterpolationManager {
           break;
         }
 
-        case CPACHECKER_WELLSCOPED:
-        case NESTED:
+        case TREE_CPACHECKER:
+        case TREE_WELLSCOPED:
+        case TREE_NESTED:
         case TREE: {
 
           // The following four properties need to be checked:
