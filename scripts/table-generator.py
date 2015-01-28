@@ -729,7 +729,7 @@ def getStats(rows):
     stats = [getStatsOfRunSet(runResults) for runResults in rowsToColumns(rows)] # column-wise
     rowsForStats = list(map(Util.flatten, zip(*stats))) # row-wise
 
-    return [tempita.bunch(default=None, title='total files', content=rowsForStats[0]),
+    return [tempita.bunch(default=None, title='total tasks', content=rowsForStats[0]),
             tempita.bunch(default=None, title='correct results', description='(no bug exists + result is TRUE) OR (bug exists + result is FALSE)', content=rowsForStats[1]),
             tempita.bunch(default=None, title='false negatives', description='bug exists + result is TRUE', content=rowsForStats[2]),
             tempita.bunch(default=None, title='false positives', description='no bug exists + result is FALSE', content=rowsForStats[3]),
