@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -297,6 +299,7 @@ public class BAMTransferRelation implements TransferRelation {
       // update waitlist
       for (final ReachedSet reachedSet : argCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
+          logger.log(Level.ALL, "re-adding state", recursionUpdateState);
           reachedSet.reAddToWaitlist(recursionUpdateState);
         }
         // else if (pHeadOfMainFunctionState == recursionUpdateState) {
@@ -842,6 +845,19 @@ public class BAMTransferRelation implements TransferRelation {
             partitioning, wrappedReducer, argCache, pPathElementToReachedState,
             abstractStateToReachedSet, expandedToReducedCache, logger);
     return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
+  }
+
+  /** searches through all available reachedSet for a matching state and returns its precision */
+  Precision getPrecisionForState(final ARGState state, final UnmodifiableReachedSet mainReachedSet) {
+    if (mainReachedSet.contains(state)) {
+      return mainReachedSet.getPrecision(state);
+    }
+    for (UnmodifiableReachedSet rs : abstractStateToReachedSet.values()) {
+      if (rs.contains(state)) {
+        return rs.getPrecision(state);
+      }
+    }
+    throw new AssertionError("No reachedset found for state " + state + ". Where does this state come from?");
   }
 
   void clearCaches() {
