@@ -135,16 +135,6 @@ def _statusesOfPropertyFile(propertyFile):
 def _fileIsJava(filename):
   return JAVA_CHECK_SUBSTRING in filename
 
-# the functions fileIsFalse and fileIsTrue are only used tocount files,
-# not in any other logic. They should return complementary values.
-# TODO false or correct depends on the property! --> add property-check
-def fileIsFalse(filename):
-    return util.containsAny(filename, [key for (key,val) in SUBSTRINGS.items() if val[0] == STR_FALSE])
-
-def fileIsTrue(filename):
-    return util.containsAny(filename, [key for (key,val) in SUBSTRINGS.items() if val[0] == STR_TRUE])
-
-
 def getResultCategory(filename, status, propertyFile=None):
     '''
     This function return a string

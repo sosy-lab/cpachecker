@@ -722,10 +722,6 @@ def getTableHead(runSetResults, commonFileNamePrefix):
 
 
 def getStats(rows):
-    countFalse = len([row for row in rows if result.fileIsFalse(row.fileName)])
-    countTrue = len([row for row in rows if result.fileIsTrue(row.fileName)])
-    maxScore = result.SCORE_CORRECT_FALSE * countFalse + result.SCORE_CORRECT_TRUE * countTrue
-
     stats = [getStatsOfRunSet(runResults) for runResults in rowsToColumns(rows)] # column-wise
     rowsForStats = list(map(Util.flatten, zip(*stats))) # row-wise
 
@@ -734,7 +730,9 @@ def getStats(rows):
             tempita.bunch(default=None, title='false negatives', description='bug exists + result is TRUE', content=rowsForStats[2]),
             tempita.bunch(default=None, title='false positives', description='no bug exists + result is FALSE', content=rowsForStats[3]),
             tempita.bunch(default=None, title='false properties', description='bug exists + bug found, but not searched for it', content=rowsForStats[4]),
-            tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} true files, {1} false files'.format(countTrue, countFalse), content=rowsForStats[5])
+            #TODO re-enable "max score" when we have found a way to correctly calculate it
+            #tempita.bunch(default=None, title='score ({0} tasks, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} true files, {1} false files'.format(countTrue, countFalse), content=rowsForStats[5])
+            tempita.bunch(default=None, title='score ({0} tasks)'.format(len(rows)), id='score', content=rowsForStats[5])
             ]
 
 
