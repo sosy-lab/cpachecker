@@ -39,6 +39,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -191,7 +192,7 @@ public class ValueAnalysisFeasibilityChecker {
         if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           // rebuild states with info from previous state
           final ValueAnalysisState callState = callstack.removeLast();
-          next = next.rebuildStateAfterFunctionCall(callState);
+          next = next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)edge.getPredecessor());
         }
 
         Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
