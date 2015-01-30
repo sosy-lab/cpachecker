@@ -8,14 +8,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
-  private final CFA cfa;
 
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
@@ -54,10 +52,8 @@ public class PolicyIterationStatistics implements Statistics {
     valueDeterminationTimer.stop();
   }
 
-  public PolicyIterationStatistics(Configuration config, CFA pCfa)
+  public PolicyIterationStatistics(Configuration config)
       throws InvalidConfigurationException {
-    cfa = pCfa;
-
     config.inject(this, PolicyIterationStatistics.class);
   }
 

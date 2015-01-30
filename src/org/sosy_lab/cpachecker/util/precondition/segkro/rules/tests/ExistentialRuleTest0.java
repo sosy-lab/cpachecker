@@ -135,7 +135,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
             ifm.equal(afm.select(_b, _0), _0)
           ));
 
-    assertThat(result).isEmpty();;
+    assertThat(result).isEmpty();
   }
 
   @Test

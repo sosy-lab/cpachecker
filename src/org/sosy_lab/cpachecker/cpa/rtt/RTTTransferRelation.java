@@ -555,7 +555,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private class FunctionExitValueVisitor extends ExpressionValueVisitor {
+  private static class FunctionExitValueVisitor extends ExpressionValueVisitor {
 
     public FunctionExitValueVisitor(CFAEdge pEdge, RTTState pElement, String pFunctionName) {
       super(pEdge, pElement, pFunctionName);
@@ -571,10 +571,10 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
 
 
-  private class AssigningValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> {
+  private static class AssigningValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> {
 
-    final private boolean truthAssumption;
-    final private RTTState newState;
+    private final boolean truthAssumption;
+    private final RTTState newState;
     private final String methodName;
 
 
@@ -623,7 +623,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
 
 
-  private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
+  private static class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
 
     protected final CFAEdge edge;
     protected final RTTState state;

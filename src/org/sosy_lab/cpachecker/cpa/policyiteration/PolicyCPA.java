@@ -78,7 +78,7 @@ public class PolicyCPA
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
-    statistics = new PolicyIterationStatistics(config, cfa);
+    statistics = new PolicyIterationStatistics(config);
     TemplateManager templateManager = new TemplateManager(
         logger, config, cfa, formulaManager, pathFormulaManager);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
