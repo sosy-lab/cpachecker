@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -34,9 +33,6 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -45,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -59,7 +54,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 
 /**
@@ -116,13 +110,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   @Override
   protected final ARGPath computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
-
-    String prefix = "output/subgraphs/sub" + pLastElement.getStateId() + "/";
-    Path allArgsFile = Paths.get(prefix + "_ALL" + pLastElement.getStateId() + ".dot");
-    Path usedArgsFile = Paths.get(prefix + "_USED" + pLastElement.getStateId() + ".dot");
-    PathTemplate indexedArgFile = PathTemplate.ofFormatString(prefix + "ARG_%d.dot");
-    bamCpa.getStatistics().exportAllReachedSets(allArgsFile, indexedArgFile, pReachedSet.asReachedSet());
-    bamCpa.getStatistics().exportUsedReachedSets(usedArgsFile, pReachedSet.asReachedSet());
 
     subgraphStatesToReachedState.clear();
 
