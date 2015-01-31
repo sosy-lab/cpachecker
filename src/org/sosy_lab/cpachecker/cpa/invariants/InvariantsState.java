@@ -774,9 +774,20 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       if (oldFormula != null && (!currentFormula.equals(oldFormula)
           || currentFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > pPrecision.getMaximumFormulaDepth())) {
         InvariantsFormula<CompoundInterval> newValueFormula =
-        CompoundIntervalFormulaManager.INSTANCE.union(
+          CompoundIntervalFormulaManager.INSTANCE.union(
             currentFormula.accept(this.partialEvaluator, EVALUATION_VISITOR),
             oldFormula.accept(pOlderState.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR);
+
+        // Allow only (singleton) constants for formula depth 0
+        if (pPrecision.getMaximumFormulaDepth() == 0) {
+          CompoundInterval value = currentFormula.accept(EVALUATION_VISITOR, environment)
+              .unionWith(oldFormula.accept(EVALUATION_VISITOR, pOlderState.getEnvironment()));
+          if (!value.isSingleton()) {
+            value = CompoundInterval.top();
+          }
+          newValueFormula = CompoundIntervalFormulaManager.INSTANCE.asConstant(value);
+        }
+
         resultEnvironment = resultEnvironment.putAndCopy(varName, newValueFormula);
         toDo.put(varName, newValueFormula);
       }
