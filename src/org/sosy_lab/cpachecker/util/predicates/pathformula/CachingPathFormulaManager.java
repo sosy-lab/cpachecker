@@ -48,7 +48,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public final Timer pathFormulaComputationTimer = new Timer();
   public int pathFormulaCacheHits = 0;
 
-  private final PathFormulaManager delegate;
+  public final PathFormulaManager delegate;
 
   private final Map<Pair<CFAEdge, PathFormula>, Pair<PathFormula, ErrorConditions>> andFormulaWithConditionsCache
             = new HashMap<>();
@@ -172,6 +172,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException {
     return delegate.expressionToFormula(pFormula, expr, edge);
+  }
+
+  @Override
+  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException {
+    return delegate.buildImplicationTestAsUnsat(pF1, pF2);
   }
 
 }

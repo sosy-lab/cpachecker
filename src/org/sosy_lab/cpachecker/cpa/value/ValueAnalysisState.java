@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -62,8 +64,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
 
@@ -80,8 +80,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
 
-  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
-      justification="After de-serializing, we only read values from this class, and we don't need types for this.")
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
   public ValueAnalysisState() {
@@ -858,5 +856,14 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     return rebuildState;
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException {
+    try {
+      in.defaultReadObject();
+    } catch (ClassNotFoundException e) {
+      throw new IOException("",e);
+    }
+    memLocToType = PathCopyingPersistentTreeMap.of();
   }
 }

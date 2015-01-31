@@ -1230,7 +1230,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(JArrayLengthExpression pJArrayLengthExpression) throws RuntimeException {
+  public Value visit(JArrayLengthExpression pJArrayLengthExpression) {
     final JExpression arrayId = pJArrayLengthExpression.getQualifier();
 
     Value array = arrayId.accept(this);
@@ -1262,27 +1262,27 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(JMethodInvocationExpression pAFunctionCallExpression) throws RuntimeException {
+  public Value visit(JMethodInvocationExpression pAFunctionCallExpression) {
     return UnknownValue.getInstance();
   }
 
   @Override
-  public Value visit(JClassInstanceCreation pJClassInstanzeCreation) throws RuntimeException {
+  public Value visit(JClassInstanceCreation pJClassInstanzeCreation) {
     return UnknownValue.getInstance();
   }
 
   @Override
-  public Value visit(JStringLiteralExpression pPaStringLiteralExpression) throws RuntimeException {
+  public Value visit(JStringLiteralExpression pPaStringLiteralExpression) {
     return UnknownValue.getInstance();
   }
 
   @Override
-  public Value visit(JFloatLiteralExpression pJBooleanLiteralExpression) throws RuntimeException {
+  public Value visit(JFloatLiteralExpression pJBooleanLiteralExpression) {
     return new NumericValue(pJBooleanLiteralExpression.getValue());
   }
 
   @Override
-  public Value visit(JArrayCreationExpression pJArrayCreationExpression) throws RuntimeException {
+  public Value visit(JArrayCreationExpression pJArrayCreationExpression) {
     List<JExpression> arraySizeExpressions = new ArrayList<>(pJArrayCreationExpression.getLength());
     Value lastArrayValue;
     Value currentArrayValue = null;
@@ -1333,7 +1333,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(JArrayInitializer pJArrayInitializer) throws RuntimeException {
+  public Value visit(JArrayInitializer pJArrayInitializer) {
     final JArrayType arrayType = pJArrayInitializer.getExpressionType();
     final List<JExpression> initializerExpressions = pJArrayInitializer.getInitializerExpressions();
 
@@ -1348,22 +1348,22 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(JVariableRunTimeType pJThisRunTimeType) throws RuntimeException {
+  public Value visit(JVariableRunTimeType pJThisRunTimeType) {
     return UnknownValue.getInstance();
   }
 
   @Override
-  public Value visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws RuntimeException {
+  public Value visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) {
     return UnknownValue.getInstance();
   }
 
   @Override
-  public Value visit(JNullLiteralExpression pJNullLiteralExpression) throws RuntimeException {
+  public Value visit(JNullLiteralExpression pJNullLiteralExpression) {
     return NullValue.getInstance();
   }
 
   @Override
-  public Value visit(JThisExpression pThisExpression) throws RuntimeException {
+  public Value visit(JThisExpression pThisExpression) {
     return UnknownValue.getInstance();
   }
 

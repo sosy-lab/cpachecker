@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -47,9 +50,12 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options(prefix="cpa.sign")
-public class SignCPA implements ConfigurableProgramAnalysis {
+public class SignCPA implements ConfigurableProgramAnalysis, ProofChecker {
 
   private AbstractDomain domain;
 
@@ -123,6 +129,37 @@ public class SignCPA implements ConfigurableProgramAnalysis {
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+    try {
+      Collection<? extends AbstractState> computedSuccessors =
+          transfer.getAbstractSuccessorsForEdge(
+              pState, SingletonPrecision.getInstance(), pCfaEdge);
+      boolean found;
+      for (AbstractState comp:computedSuccessors) {
+        found = false;
+        for (AbstractState e:pSuccessors) {
+          if (isCoveredBy(comp, e)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          return false;
+        }
+      }
+    } catch (CPAException e) {
+      throw new CPATransferException("Cannot compare abstract successors", e);
+    }
+    return true;
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
+    return domain.isLessOrEqual(pState, pOtherState);
   }
 
 }

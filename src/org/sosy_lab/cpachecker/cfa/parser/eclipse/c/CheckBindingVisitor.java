@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -255,6 +256,11 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   @Override
   public Void visit(CFieldDesignator e) throws CFAGenerationRuntimeException {
+    return null;
+  }
+
+  @Override
+  public Void visit(CAddressOfLabelExpression e) throws CFAGenerationRuntimeException {
     return null;
   }
 }

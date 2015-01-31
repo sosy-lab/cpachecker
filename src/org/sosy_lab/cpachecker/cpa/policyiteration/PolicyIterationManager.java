@@ -531,15 +531,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final PathFormula p = state.getPathFormula();
     BooleanFormula transferRelation = p.getFormula();
 
-    ///// !!! Shit how this even works???
-    // This makes no sense.
-    // PROBLEM: we annotate/linearize the wrong function,
-    // not the one we pass to the generator for policy-bound. FUCK.
-
-    // PROBLEM : annotation annotates the "initial" choice as well,
-    // no way to tell it not to.
-
-
     // Linearize.
     BooleanFormula linearizedFormula = linearizationManager.linearize(
         transferRelation);

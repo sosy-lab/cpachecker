@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
+
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
   private final Timer checkSATTimer = new Timer();
@@ -53,13 +54,12 @@ public class PolicyIterationStatistics implements Statistics {
 
   public PolicyIterationStatistics(Configuration config)
       throws InvalidConfigurationException {
-
     config.inject(this, PolicyIterationStatistics.class);
   }
 
   @Override
-  public void printStatistics(PrintStream out, CPAcheckerResult.Result result,
-      ReachedSet reached) {
+  public void printStatistics(
+      PrintStream out, CPAcheckerResult.Result result, ReachedSet reached) {
 
     printTimer(out, valueDeterminationTimer, "value determination");
     printTimer(out, abstractionTimer, "abstraction");

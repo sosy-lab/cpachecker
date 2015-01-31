@@ -259,44 +259,44 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
 
     @Override
-    protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
+    protected Boolean visitDefault(CExpression pExp) {
       return true;
     }
 
     @Override
-    public Boolean visit(CArraySubscriptExpression pE) throws RuntimeException {
+    public Boolean visit(CArraySubscriptExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CBinaryExpression pE) throws RuntimeException {
+    public Boolean visit(CBinaryExpression pE) {
       return pE.getOperand1().accept(this)
           && pE.getOperand2().accept(this);
     }
 
     @Override
-    public Boolean visit(CCastExpression pE) throws RuntimeException {
+    public Boolean visit(CCastExpression pE) {
       return pE.getOperand().accept(this);
     }
 
     //TODO Complex Cast
     @Override
-    public Boolean visit(CFieldReference pE) throws RuntimeException {
+    public Boolean visit(CFieldReference pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CIdExpression pE) throws RuntimeException {
+    public Boolean visit(CIdExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CPointerExpression pE) throws RuntimeException {
+    public Boolean visit(CPointerExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CUnaryExpression pE) throws RuntimeException {
+    public Boolean visit(CUnaryExpression pE) {
       return pE.getOperand().accept(this);
     }
   }

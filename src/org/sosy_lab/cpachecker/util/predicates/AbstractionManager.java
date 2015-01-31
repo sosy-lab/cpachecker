@@ -328,7 +328,7 @@ public final class AbstractionManager {
 
           @Override
           public Region apply(BooleanFormula pInput) {
-            if (symbVarToPredicate.containsKey(pInput)) {
+            if (atomToPredicate.containsKey(pInput)) {
             return atomToPredicate.get(pInput).getAbstractVariable();
             }
             return makePredicate(pInput).getAbstractVariable();

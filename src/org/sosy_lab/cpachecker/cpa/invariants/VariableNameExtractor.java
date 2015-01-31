@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import java.util.Collections;
 import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -58,6 +59,11 @@ public class VariableNameExtractor {
   private final String functionName;
 
   private final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment;
+
+  public VariableNameExtractor(
+      final CFAEdge pEdge) {
+    this(pEdge, false, Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap());
+  }
 
   public VariableNameExtractor(
       final CFAEdge pEdge,

@@ -90,9 +90,9 @@ public class LinkRule extends PatternBasedRule {
     return ImmutableSet.of(qfm.forall(xNew, j, k, fNew));
 
 //    if (pAssignment.containsKey("forall")) {
-//      return Lists.newArrayList(qfm.forall(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+//      return Lists.newArrayList(qmgr.forall(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
 //    } else {
-//      return Lists.newArrayList(qfm.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
+//      return Lists.newArrayList(qmgr.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
 //    }
 
   }

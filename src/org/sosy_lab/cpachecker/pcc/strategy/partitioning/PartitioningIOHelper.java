@@ -179,6 +179,13 @@ public class PartitioningIOHelper {
     }
   }
 
+  public void readProof(final ObjectInputStream pIn, final PCStrategyStatistics pStats) throws IOException,
+      ClassNotFoundException {
+    readMetadata(pIn, true);
+    for (int i = 0; i < numPartitions; i++) {
+      readPartition(pIn, pStats);
+    }
+  }
 
   public void writeMetadata(final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
       throws IOException {

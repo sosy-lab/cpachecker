@@ -110,4 +110,9 @@ public abstract class AdaptingCExpressionVisitor<R, D, X extends Exception>
   public R visit(CPointerExpression e) throws X {
     return convert(delegate.visit(e), e);
   }
+
+  @Override
+  public R visit(CAddressOfLabelExpression e) throws X {
+    return convert(delegate.visit(e), e);
+  }
 }

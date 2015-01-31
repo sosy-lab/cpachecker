@@ -28,18 +28,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-
-import com.google.common.collect.Maps;
 
 public final class PathFormula implements Serializable {
 
@@ -119,7 +112,7 @@ public final class PathFormula implements Serializable {
       in.defaultReadObject();
 
       // check if formula agrees with SSA map
-      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
+     /* FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
       Pair<String,Integer> splitName;
       Map<String,Integer> highestIndexForVar = Maps.newHashMap();
       Integer highestIndex;
@@ -144,7 +137,7 @@ public final class PathFormula implements Serializable {
         if(ssa.getIndex(varIndex.getKey())!=varIndex.getValue()) {
           throw new IOException("Proof is corrupted, abort reading");
         }
-      }
+      }*/
 
     } catch (ClassNotFoundException e) {
       throw new IOException("", e);

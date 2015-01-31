@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -446,7 +447,13 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           }).filter(Predicates.notNull()));
         }
         return visit(RETURN_VARIABLE_BASE_NAME + declaration.getQualifiedName());
-      }});
+      }
+
+      @Override
+      public LocationSet visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws UnrecognizedCCodeException {
+        throw new UnrecognizedCCodeException("Address of labels not supported by pointer analysis", pAddressOfLabelExpression);
+      }
+    });
   }
 
   /**

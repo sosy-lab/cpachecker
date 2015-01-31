@@ -527,6 +527,41 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return lResult;
   }
 
+  private BooleanFormula addMergeAssumptions(final BooleanFormula pFormula, final SSAMap ssa1,
+      final PointerTargetSet pts1, final SSAMap ssa2) throws InterruptedException {
+    final Pair<SSAMap, List<Triple<String, Integer, Integer>>> ssaMergeResult = SSAMap.merge(ssa1, ssa2);
+  final SSAMap resultSSA = ssaMergeResult.getFirst();
+    final List<Triple<String, Integer, Integer>> symbolDifferences = ssaMergeResult.getSecond();
+
+    BooleanFormula mergeFormula1 = pFormula;
+
+    for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
+      shutdownNotifier.shutdownIfNecessary();
+      final String symbolName = symbolDifference.getFirst();
+      final CType symbolType = resultSSA.getType(symbolName);
+      final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
+      final int index2 = firstNonNull(symbolDifference.getThird(), 1);
+
+      assert symbolName != null;
+      if (index1 > index2 && index1 > 1) {
+        return bfmgr.makeBoolean(true);
+
+      } else if (index2 > 1) {
+        assert index1 < index2;
+        // i1:smaller, i2:bigger
+        // => need correction term for i1
+        BooleanFormula mergeFormula;
+
+        for(int i=index1;i<index2;i++) {
+          mergeFormula = makeSsaMerger(symbolName, symbolType, i, i+1, pts1);
+          mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
+        }
+      }
+    }
+
+    return mergeFormula1;
+  }
+
   @Override
   public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
     PathFormula pathFormula = makeEmptyPathFormula();
@@ -657,6 +692,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       CIdExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException {
     return converter.buildTermFromPathFormula(pFormula, expr, edge);
+  }
+
+  @Override
+  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException {
+    BooleanFormula bF = pF2.getFormula();
+    bF = bfmgr.not(bF);
+    bF = bfmgr.and(addMergeAssumptions(pF1.getFormula(), pF1.getSsa(), pF1.getPointerTargetSet(), pF2.getSsa()), bF);
+
+    return bF;
   }
 
 }

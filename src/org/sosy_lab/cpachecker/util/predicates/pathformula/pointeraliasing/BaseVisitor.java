@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -144,6 +145,11 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   @Override
   public Variable visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     return null;
+  }
+
+  @Override
+  public Variable visit(CAddressOfLabelExpression e) throws UnrecognizedCCodeException {
+    throw new UnrecognizedCCodeException("Addess of label in place of lvalue", cfaEdge, e);
   }
 
   public Variable getLastBase() {

@@ -77,7 +77,7 @@
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.6.0.201402142303" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.cdt" name="core" rev="5.8.0.201409172108" conf="runtime->default; contrib->sources"/>
         <dependency org="org.eclipse.jdt" name="core" rev="3.9.2.v20140114-1555" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->

@@ -32,7 +32,7 @@ public class FormulaLinearizationManager {
 
 
   // TODO: code duplication.
-  private final String INITIAL_CONDITION_FLAG = "__INITIAL_CONDITION_TRUE";
+  private static final String INITIAL_CONDITION_FLAG = "__INITIAL_CONDITION_TRUE";
 
   private int choiceVarCounter = -1;
 

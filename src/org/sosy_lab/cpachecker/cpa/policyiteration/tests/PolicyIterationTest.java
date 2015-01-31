@@ -96,6 +96,10 @@ public class PolicyIterationTest {
     check("test/programs/policyiteration/initial_true_assert.c");
   }
 
+  @Test public void template_generation_true_assert() throws Exception {
+    check("test/programs/policyiteration/template_generation_true_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }
@@ -130,7 +134,7 @@ public class PolicyIterationTest {
         .put("cpa.predicate.solver", "Z3")
         .put("log.consoleLevel", "FINE")
         .put("specification", "config/specification/default.spc")
-        .put("cpa.predicate.ignoreIrrelevantVariables", "false")
+        .put("cpa.predicate.ignoreIrrelevantVariables", "true")
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
 //        .put("cpa.conditions.path.assignments.hardThreshold", "1")

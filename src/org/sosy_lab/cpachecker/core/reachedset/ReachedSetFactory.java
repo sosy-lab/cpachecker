@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.CallstackPccSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
@@ -52,6 +53,11 @@ public class ReachedSetFactory {
       description = "handle states with a deeper callstack first?"
       + "\nThis needs the CallstackCPA to have any effect.")
   boolean useCallstack = false;
+
+  @Option(secure=true, name = "traversal.usePccCallstack",
+      description = "handle states with a deeper callstack first?"
+      + "\nThis needs the CallstackPccCPA to have any effect.")
+  boolean usePccCallstack = false;
 
   @Option(secure=true, name = "traversal.useReversePostorder",
       description = "Use an implementation of reverse postorder strategy that allows to select "
@@ -97,6 +103,9 @@ public class ReachedSetFactory {
     }
     if (usePostorder) {
       waitlistFactory = PostorderSortedWaitlist.factory(waitlistFactory);
+    }
+    if (usePccCallstack) {
+      waitlistFactory = CallstackPccSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);

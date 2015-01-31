@@ -627,13 +627,13 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visitDefault(CType pT) throws RuntimeException {
+    public Void visitDefault(CType pT) {
       collectedTypes.add(pT);
       return null;
     }
 
     @Override
-    public Void visit(CArrayType pArrayType) throws RuntimeException {
+    public Void visit(CArrayType pArrayType) {
       if (!collectedTypes.contains(pArrayType)) {
         collectedTypes.add(pArrayType);
         pArrayType.getType().accept(this);
@@ -645,7 +645,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CCompositeType pCompositeType) throws RuntimeException {
+    public Void visit(CCompositeType pCompositeType) {
       if (!collectedTypes.contains(pCompositeType)) {
         collectedTypes.add(pCompositeType);
         for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
@@ -656,7 +656,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CElaboratedType pElaboratedType) throws RuntimeException {
+    public Void visit(CElaboratedType pElaboratedType) {
       if (!collectedTypes.contains(pElaboratedType)) {
         collectedTypes.add(pElaboratedType);
         if (pElaboratedType.getRealType() != null) {
@@ -667,7 +667,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CFunctionType pFunctionType) throws RuntimeException {
+    public Void visit(CFunctionType pFunctionType) {
       if (!collectedTypes.contains(pFunctionType)) {
         collectedTypes.add(pFunctionType);
         for (CType parameterType : pFunctionType.getParameters()) {
@@ -678,7 +678,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CPointerType pPointerType) throws RuntimeException {
+    public Void visit(CPointerType pPointerType) {
       if (!collectedTypes.contains(pPointerType)) {
         collectedTypes.add(pPointerType);
         pPointerType.getType().accept(this);
@@ -687,7 +687,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CTypedefType pTypedefType) throws RuntimeException {
+    public Void visit(CTypedefType pTypedefType) {
       if (!collectedTypes.contains(pTypedefType)) {
         collectedTypes.add(pTypedefType);
         pTypedefType.getRealType().accept(this);

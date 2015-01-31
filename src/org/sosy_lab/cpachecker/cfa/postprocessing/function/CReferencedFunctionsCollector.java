@@ -204,13 +204,13 @@ class CReferencedFunctionsCollector {
     }
 
     @Override
-    public Void visit(CInitializerExpression pInitializerExpression) throws RuntimeException {
+    public Void visit(CInitializerExpression pInitializerExpression) {
       pInitializerExpression.getExpression().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(CInitializerList pInitializerList) throws RuntimeException {
+    public Void visit(CInitializerList pInitializerList) {
       for (CInitializer init : pInitializerList.getInitializers()) {
         init.accept(this);
       }
@@ -218,33 +218,33 @@ class CReferencedFunctionsCollector {
     }
 
     @Override
-    public Void visit(CDesignatedInitializer pCStructInitializerPart) throws RuntimeException {
+    public Void visit(CDesignatedInitializer pCStructInitializerPart) {
       pCStructInitializerPart.getRightHandSide().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(CExpressionStatement pIastExpressionStatement) throws RuntimeException {
+    public Void visit(CExpressionStatement pIastExpressionStatement) {
       pIastExpressionStatement.getExpression().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws RuntimeException {
+    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
       pIastExpressionAssignmentStatement.getLeftHandSide().accept(this);
       pIastExpressionAssignmentStatement.getRightHandSide().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws RuntimeException {
+    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
       pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(this);
       pIastFunctionCallAssignmentStatement.getRightHandSide().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(CFunctionCallStatement pIastFunctionCallStatement) throws RuntimeException {
+    public Void visit(CFunctionCallStatement pIastFunctionCallStatement) {
       pIastFunctionCallStatement.getFunctionCallExpression().accept(this);
       return null;
     }

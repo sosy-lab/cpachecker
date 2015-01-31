@@ -353,7 +353,7 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
             ifm.add(
                 ifm.add(_x, ifm.makeNumber(1)),
                 ifm.makeNumber(1))));
-    assertThat(solver.isUnsat(f)).isFalse();;
+    assertThat(solver.isUnsat(f)).isFalse();
   }
 
   @Test

@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
@@ -63,37 +64,42 @@ import com.google.common.collect.Sets;
 public class DeclarationCollectingVisitor extends AExpressionVisitor<Set<ASimpleDeclaration>, RuntimeException> {
 
   @Override
-  public Set<ASimpleDeclaration> visit(CTypeIdExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(CTypeIdExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(CImaginaryLiteralExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(CImaginaryLiteralExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(CFieldReference exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(CFieldReference exp) {
     return exp.getFieldOwner().accept(this);
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(CPointerExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(CPointerExpression exp) {
     return exp.getOperand().accept(this);
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(CComplexCastExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(CComplexCastExpression exp) {
     return exp.getOperand().accept(this);
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JBooleanLiteralExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(CAddressOfLabelExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JArrayCreationExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(JBooleanLiteralExpression exp) {
+    return Collections.emptySet();
+  }
+
+  @Override
+  public Set<ASimpleDeclaration> visit(JArrayCreationExpression exp) {
     if (exp.getInitializer() != null) {
       return exp.getInitializer().accept(this);
     } else {
@@ -102,7 +108,7 @@ public class DeclarationCollectingVisitor extends AExpressionVisitor<Set<ASimple
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JArrayInitializer exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(JArrayInitializer exp) {
     Set<ASimpleDeclaration> result = Collections.emptySet();
     for (JExpression innerExp : exp.getInitializerExpressions()) {
       result = Sets.union(result, innerExp.accept(this));
@@ -111,79 +117,79 @@ public class DeclarationCollectingVisitor extends AExpressionVisitor<Set<ASimple
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JArrayLengthExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(JArrayLengthExpression exp) {
     return exp.getQualifier().accept(this);
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JVariableRunTimeType exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(JVariableRunTimeType exp) {
     return exp.getReferencedVariable().accept(this);
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JRunTimeTypeEqualsType exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(JRunTimeTypeEqualsType exp) {
     return exp.getRunTimeTypeExpression().accept(this);
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JNullLiteralExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(JNullLiteralExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JEnumConstantExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(JEnumConstantExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(JThisExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(JThisExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(AArraySubscriptExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(AArraySubscriptExpression exp) {
     return Sets.union(accept0(exp.getArrayExpression()),
                       accept0(exp.getSubscriptExpression()));
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(AIdExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(AIdExpression exp) {
     return Collections.singleton(exp.getDeclaration());
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(ABinaryExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(ABinaryExpression exp) {
     return Sets.union(accept0(exp.getOperand1()),
                       accept0(exp.getOperand2()));
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(ACastExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(ACastExpression exp) {
     return accept0(exp.getOperand());
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(ACharLiteralExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(ACharLiteralExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(AFloatLiteralExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(AFloatLiteralExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(AIntegerLiteralExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(AIntegerLiteralExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(AStringLiteralExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(AStringLiteralExpression exp) {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<ASimpleDeclaration> visit(AUnaryExpression exp) throws RuntimeException {
+  public Set<ASimpleDeclaration> visit(AUnaryExpression exp) {
     return accept0(exp.getOperand());
   }
 

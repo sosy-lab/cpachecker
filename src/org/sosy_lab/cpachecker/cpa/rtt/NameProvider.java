@@ -72,11 +72,8 @@ public class NameProvider {
   private String getScopedFieldName(JFieldAccess pFieldAccess, String pMethodName, RTTState pRttState) {
     JIdExpression qualifier = pFieldAccess.getReferencedVariable();
 
-    String variableName;
-    String qualifierScope;
-
     JSimpleDeclaration declaration = qualifier.getDeclaration();
-    qualifierScope = getObjectScope(pRttState, pMethodName, qualifier);
+    String qualifierScope = getObjectScope(pRttState, pMethodName, qualifier);
 
     return getScopedVariableName(declaration, pMethodName, qualifierScope);
   }
