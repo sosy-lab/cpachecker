@@ -125,11 +125,6 @@ def main(argv=None):
                             + "This option can be specified several times.",
                       metavar="RUN_DEFINITION")
 
-    parser.add_argument("-t", "--test", dest="selectedRunDefinitions",
-                      action="append",
-                      help="Same as -r/--rundefinition (deprecated)",
-                      metavar="TEST")
-
     parser.add_argument("-s", "--sourcefiles", dest="selectedSourcefileSets",
                       action="append",
                       help="Run only the files from the sourcefiles tag with SOURCE as name. "
