@@ -165,7 +165,7 @@ def main(argv=None):
 
     parser.add_argument("--commit", dest="commit",
                       action="store_true",
-                      help="If the output path is a git repository without local changes,"
+                      help="If the output path is a git repository without local changes, "
                             + "add and commit the result files.")
 
     parser.add_argument("--message",
@@ -173,45 +173,46 @@ def main(argv=None):
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
 
-    parser.add_argument("--cloud",
+    vcloud = parser.add_argument_group('Options for using VerifierCloud')
+    vcloud.add_argument("--cloud",
                       dest="cloud",
                       action="store_true",
-                      help="Use cloud to execute benchmarks.")
+                      help="Use VerifierCloud to execute benchmarks.")
 
-    parser.add_argument("--cloudMaster",
+    vcloud.add_argument("--cloudMaster",
                       dest="cloudMaster",
                       metavar="HOST",
-                      help="Sets the master host of the cloud to be used.")
+                      help="Sets the master host of the VerifierCloud instance to be used. If this is a HTTP URL, the web interface is used.")
 
-    parser.add_argument("--cloudPriority",
+    vcloud.add_argument("--cloudPriority",
                       dest="cloudPriority",
                       metavar="PRIORITY",
-                      help="Sets the priority for this benchmark used in the cloud. Possible values are IDLE, LOW, HIGH, URGENT.")
+                      help="Sets the priority for this benchmark used in the VerifierCloud. Possible values are IDLE, LOW, HIGH, URGENT.")
 
-    parser.add_argument("--cloudCPUModel",
+    vcloud.add_argument("--cloudCPUModel",
                       dest="cloudCPUModel", type=str, default=None,
                       metavar="CPU_MODEL",
-                      help="Only execute runs on CPU models that contain the given string.")
+                      help="Only execute runs in the VerifierCloud on CPU models that contain the given string.")
    
-    parser.add_argument("--cloudUser",
+    vcloud.add_argument("--cloudUser",
                       dest="cloudUser",
                       metavar="USER:PWD",
-                      help="The user and password for the cloud.")
+                      help="The user and password for the VerifierCloud (if using the web interface).")
 
-    parser.add_argument("--revision",
+    vcloud.add_argument("--revision",
                       dest="revision",
                       metavar="BRANCH:REVISION",
-                      help="The svn revision used by the web client mode.")
+                      help="The svn revision of CPAchecker to use  (if using the web interface of the VerifierCloud).")
+
+    vcloud.add_argument("--justReprocessResults",
+                      dest="reprocessResults",
+                      action="store_true",
+                      help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored.")
     
     parser.add_argument("--maxLogfileSize",
                       dest="maxLogfileSize", type=int, default=20,
                       metavar="SIZE",
                       help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
-
-    parser.add_argument("--justReprocessResults",
-                      dest="reprocessResults",
-                      action="store_true",
-                      help="Do not run the benchmarks. Assume that the benchmarks were already executed and the log files are stored.")
 
     parser.add_argument("--benchmarkInstanceIdent",
                       dest="benchmarkInstanceIdent",
@@ -221,26 +222,27 @@ def main(argv=None):
                         + "With this option you can specify an explicit value for the ident. "
                         + "This is usefull for reprocessing stored benchmark results.")
     
-    parser.add_argument("--appengine",
+    appengine = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
+    appengine.add_argument("--appengine",
                       dest="appengine",
                       action="store_true",
                       help="Use Google App Engine to execute benchmarks.")
     
-    parser.add_argument("--appengineURI",
+    appengine.add_argument("--appengineURI",
                       dest="appengineURI",
                       metavar="URI",
                       default=DEFAULT_APPENGINE_URI,
                       type=str,
                       help="Sets the URI to use when submitting tasks to App Engine.")
     
-    parser.add_argument("--appenginePollInterval",
+    appengine.add_argument("--appenginePollInterval",
                       dest="appenginePollInterval",
                       metavar="INTERVAL",
                       default=DEFAULT_APPENGINE_POLLINTERVAL,
                       type=int,
                       help="Sets the interval in seconds after which App Engine is polled for results.")
     
-    parser.add_argument("--appengineKeep",
+    appengine.add_argument("--appengineKeep",
                         dest="appengineDeleteWhenDone",
                         action="store_false",
                         help="If set a task will NOT be deleted from App Engine after it has successfully been executed.")
