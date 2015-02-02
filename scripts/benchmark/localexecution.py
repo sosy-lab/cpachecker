@@ -53,6 +53,7 @@ STOPPED_BY_INTERRUPT = False
 
 _BYTE_FACTOR = 1000 # byte in kilobyte
 
+_TURBO_BOOST_FILE = "/sys/devices/system/cpu/cpufreq/boost"
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
 
@@ -77,6 +78,15 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
         memLimit = benchmark.rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
         _checkMemorySize(memLimit, benchmark.numOfThreads, memoryAssignment, cgroupsParents)
 
+    if benchmark.numOfThreads > 1 and os.path.exists(_TURBO_BOOST_FILE):
+        try:
+            boost_enabled = int(Util.readFile(_TURBO_BOOST_FILE))
+            if not (0 <= boost_enabled <= 1):
+                raise ValueError('Invalid value {} for turbo boost activation'.format(boost_enabled))
+            if boost_enabled != 0:
+                logging.warning("Turbo boost of CPU is enabled. Starting more than one benchmark in parallel affects the CPU frequency and thus makes the performance unreliable.")
+        except ValueError as e:
+            sys.exit("Could not read turbo-boost information from kernel: {0}".format(e))
 
     # iterate over run sets
     for runSet in benchmark.runSets:
