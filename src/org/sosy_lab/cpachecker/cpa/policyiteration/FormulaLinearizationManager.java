@@ -74,8 +74,7 @@ public class FormulaLinearizationManager {
 
       out = bfmgr.or(
           fmgr.makeGreaterThan(lhs, rhs, true),
-          fmgr.makeLessThan(lhs, rhs, true)
-      );
+          fmgr.makeLessThan(lhs, rhs, true));
     } else {
       List<Formula> newArgs = new ArrayList<>();
       for (int i=0; i<ufmgr.getArity(input); i++) {
@@ -149,6 +148,10 @@ public class FormulaLinearizationManager {
     return out;
   }
 
+  /**
+   * Removes disjunctions from the {@code input} formula, by replacing them
+   * with arguments which were used to generate the {@code model}.
+   */
   public BooleanFormula enforceChoice(
       BooleanFormula input,
       Iterable<Map.Entry<Model.AssignableTerm, Object>> model,
@@ -166,9 +169,6 @@ public class FormulaLinearizationManager {
       String termName = entry.getKey().getName();
 
       if (termName.contains(CHOICE_VAR_NAME)) {
-
-        // Can I cast it back to the Z3 object it is?
-        // I have to somehow modify the formula.
         BigInteger value = (BigInteger) entry.getValue();
         mapping.put(
             ifmgr.makeVariable(termName),

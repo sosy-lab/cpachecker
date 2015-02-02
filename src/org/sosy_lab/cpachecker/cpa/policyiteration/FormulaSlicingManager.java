@@ -104,8 +104,7 @@ public class FormulaSlicingManager {
       if (!Sets.intersection(closure, containedVariables).isEmpty()) {
         out = f;
       } else {
-        // Hack to propagate call variables,
-        // TODO: remove.
+        // Hack to propagate the call variables,
         if (containedVariables.size() == 2) {
           Iterator<String> iterator = containedVariables.iterator();
           String first = iterator.next();
