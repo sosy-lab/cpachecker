@@ -163,13 +163,6 @@ def main(argv=None):
                       help="Run n benchmarks in parallel",
                       metavar="n")
 
-    parser.add_argument("-x", "--moduloAndRest",
-                      dest="moduloAndRest", default=(1,0), nargs=2, type=int,
-                      help="Run only a subset of run definitions for which (i %% a == b) holds" +
-                            "with i being the index of the run definition in the benchmark definition file " +
-                            "(starting with 1).",
-                      metavar=("a","b"))
-
     parser.add_argument("-c", "--limitCores", dest="corelimit",
                       type=int, default=None,
                       metavar="N",

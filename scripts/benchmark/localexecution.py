@@ -93,10 +93,7 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
 
         if STOPPED_BY_INTERRUPT: break
 
-        (mod, rest) = benchmark.config.moduloAndRest
-
-        if not runSet.shouldBeExecuted() \
-                or (runSet.index % mod != rest):
+        if not runSet.shouldBeExecuted():
             outputHandler.outputForSkippingRunSet(runSet)
 
         elif not runSet.runs:
