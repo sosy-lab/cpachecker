@@ -66,7 +66,7 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
             logLevel =  "FINER"
         else:
             logLevel = "INFO"
-        heapSize = 100 + numberOfRuns//10 # 100 MB and 100 kB per run
+        heapSize = 500 + numberOfRuns//10 # 100 MB and 100 kB per run
         libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
         cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
         if benchmark.config.cloudMaster:
