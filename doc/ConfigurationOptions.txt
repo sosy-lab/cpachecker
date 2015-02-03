@@ -1610,6 +1610,9 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# whether or not to export the gource log
+cpa.value.refinement.exportGourceLog = false
+
 # when to export the interpolation tree
 # NEVER:   never export the interpolation tree
 # FINAL:   export the interpolation tree once after each refinement
@@ -1617,6 +1620,9 @@ cpa.value.precisionFile = no default value
 # multiple times per refinmenet
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
+
+# export exploration and refinement in custom log format for gource
+cpa.value.refinement.gourceExportFile = "gource.log"
 
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"

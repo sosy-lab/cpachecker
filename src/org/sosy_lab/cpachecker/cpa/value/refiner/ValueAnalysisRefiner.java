@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.collect.Iterables.transform;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -44,13 +47,17 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -74,8 +81,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
@@ -108,6 +118,13 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   @Option(secure = true, description = "export interpolation trees to this file template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
+
+  @Option(secure = true, description = "whether or not to export the gource log")
+  private boolean exportGourceLog = false;
+
+  @Option(secure = true, description = "export exploration and refinement in custom log format for gource")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path gourceExportFile = Paths.get("gource.log");
 
   private ValueAnalysisPathInterpolator pathInterpolator;
 
@@ -198,6 +215,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     refineUsingInterpolants(pReached, interpolationTree);
 
+    previousSnapshot = new HashSet<>(pReached.asReachedSet().asCollection());
+
     totalTime.stop();
     return true;
   }
@@ -225,6 +244,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       refinementInformation.put(root, precisions);
     }
 
+    if(exportGourceLog && gourceExportFile != null) {
+      dumpNewlyExploredStates(pReached.asReachedSet().asCollection());
+      dumpToBeRemovedStates(Iterables.getOnlyElement(interpolationTree.obtainRefinementRoots(restartStrategy)).getSubgraph());
+    }
+
     for (Map.Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
       List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
 
@@ -235,6 +259,91 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
+  }
+
+  private Set<AbstractState> previousSnapshot = new HashSet<>();
+  private int timer = 1280000000;
+
+  private void dumpNewlyExploredStates(Collection<AbstractState> reachedSet) {
+    Set<AbstractState> snapshot = new HashSet<>(reachedSet);
+    snapshot.removeAll(previousSnapshot);
+
+    List<ARGState> listOfStates = new ArrayList<>(Collections2.transform(snapshot, new Function<AbstractState, ARGState>() {
+      @Override
+      public ARGState apply(AbstractState state) {
+        return ((ARGState)state);
+      }
+    }));
+
+    Collections.sort(listOfStates);
+
+    StringBuilder string = new StringBuilder();
+    for(ARGState state : listOfStates) {
+      string.append(timer++);
+      string.append("|");
+      string.append("explorer");
+      string.append("|");
+      string.append("A");
+      string.append("|");
+      string.append(stateToURI(state));
+      string.append("|");
+      string.append("FF0000");
+      string.append(System.lineSeparator());
+    }
+
+    try {
+      Files.appendToFile(gourceExportFile, string);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e,
+              "Could not write explored states to file");
+    }
+  }
+
+  private void dumpToBeRemovedStates(Set<ARGState> removedStates) {
+    List<ARGState> listOfStates = new ArrayList<>(removedStates);
+
+    Collections.sort(listOfStates);
+
+    StringBuilder string = new StringBuilder();
+    timer += 86400 * 5; // advance 5 days before doing refinement
+    for(ARGState state : listOfStates) {
+      string.append(timer);
+      string.append("|");
+      string.append("refiner");
+      string.append(refinementCounter);
+      string.append("|");
+      string.append("D");
+      string.append("|");
+      string.append(stateToURI(state));
+      string.append("|");
+      string.append("FF0000");
+      string.append(System.lineSeparator());
+    }
+    timer += 86400 * 5; // advance 5 days after finishing refinement
+
+    try {
+      Files.appendToFile(gourceExportFile, string);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e,
+              "Could not write to-be-removed states to file");
+    }
+  }
+
+  private String stateToURI(ARGState added) {
+    return "N" + Joiner.on("/N").join(transform(getAscendantsQueue(added), new Function<ARGState, String>() {
+      @Override
+      public String apply(ARGState s) {
+        return String.valueOf(s.getStateId());
+      }}));
+  }
+
+  public static ArrayDeque<ARGState> getAscendantsQueue(ARGState child) {
+    ArrayDeque<ARGState> ascendants = new ArrayDeque<>(Collections.singleton(child));
+    while(!child.getParents().isEmpty()) {
+      ascendants.addFirst(child = Iterables.getOnlyElement(child.getParents()));
+    }
+
+    return ascendants;
   }
 
   private ValueAnalysisInterpolationTree obtainInterpolants(Collection<ARGState> targets) throws CPAException,
@@ -593,4 +702,3 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     COMMON
   }
 }
-
