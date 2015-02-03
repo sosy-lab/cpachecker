@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
@@ -113,6 +114,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   private static final InvariantsFormula<CompoundInterval> BOTTOM = CompoundIntervalFormulaManager.INSTANCE
       .asConstant(CompoundInterval.bottom());
+
+  private static final Predicate<? super String> IS_UNSUPPORTED_VARIABLE = new Predicate<String>() {
+
+      @Override
+      public boolean apply(String pArg0) {
+        return pArg0 == null || pArg0.contains("[");
+      }};
 
   private final Predicate<InvariantsFormula<CompoundInterval>> implies = new Predicate<InvariantsFormula<CompoundInterval>>() {
 
@@ -331,6 +339,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue) {
     Preconditions.checkNotNull(pValue);
+    // Only use information from supported variables
+    if (IS_UNSUPPORTED_VARIABLE.apply(pVarName)) {
+      return this;
+    }
+    if (FluentIterable.from(pValue.accept(new CollectVarsVisitor<CompoundInterval>())).anyMatch(IS_UNSUPPORTED_VARIABLE)) {
+      return this;
+    }
 
     // Check if the assigned variable is selected (newVariableSelection != null)
     VariableSelection<CompoundInterval> newVariableSelection = this.variableSelection.acceptAssignment(pVarName, pValue);
@@ -570,6 +585,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (assumptionParts.size() > 1) { return assumeInternal(assumptionParts, pEvaluationVisitor, pNewVariableSelection); }
     // If the assumption is top, it adds no value
     if (assumption.equals(TOP)) { return this; }
+
+    // Only use information from supported variables
+    if (FluentIterable.from(assumption.accept(new CollectVarsVisitor<CompoundInterval>())).anyMatch(IS_UNSUPPORTED_VARIABLE)) {
+      return this;
+    }
 
     if (assumption instanceof Constant<?>) {
       return !((Constant<CompoundInterval>) assumption).getValue().isDefinitelyFalse() ? this : null;
