@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="900" hardtimelimit="930" memlimit="15000" cpuCores="8">
+
+  <require cpuCores="8"/>
+  <resultfiles>**.*</resultfiles>
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <option name="-noout"/>
+  <option name="-heap">12000M</option>
+  
+  <Xoption name="-setprop">parser.transformTokensToLines=true</Xoption>
+  <Xoption name="-setprop">cpa.arg.errorPath.graphml=witness.graphml</Xoption>
+  
+    <sourcefiles name="simple">
+      <include>../programs/benchmarks/recursive-simple/*.c</include>
+    </sourcefiles>
+    
+    <sourcefiles name="sv">
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    </sourcefiles>
+
+
+  <rundefinition name="bamrec-value">
+    <option name="-valueAnalysis-bam-rec"/>
+  </rundefinition>
+
+
+  <rundefinition name="bamrec-pred-tree-SMTInterpol-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=SMTINTERPOL</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE</option>
+  </rundefinition>
+  
+  <rundefinition name="bamrec-pred-tree-Z3-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=Z3</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE</option>
+  </rundefinition>
+  
+  
+  <rundefinition name="bamrec-pred-wellscoped-SMTInterpol-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=SMTINTERPOL</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_WELLSCOPED</option>
+  </rundefinition>
+  
+  <rundefinition name="bamrec-pred-wellscoped-Z3-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=Z3</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_WELLSCOPED</option>
+  </rundefinition>
+  
+  <rundefinition name="bamrec-pred-wellscoped-MathSat5-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_WELLSCOPED</option>
+  </rundefinition>
+  
+  <rundefinition name="bamrec-pred-wellscoped-Princess-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_WELLSCOPED</option>
+  </rundefinition>
+  
+  
+  <rundefinition name="bamrec-pred-nested-Z3-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=Z3</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_NESTED</option>
+  </rundefinition>
+  
+  <rundefinition name="bamrec-pred-nested-MathSat5-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_NESTED</option>
+  </rundefinition>
+  
+  <rundefinition name="bamrec-pred-nested-Princess-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_NESTED</option>
+  </rundefinition>
+
+  
+  <rundefinition name="bamrec-pred-treeCPA-Z3-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=Z3</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_CPACHECKER</option>
+  </rundefinition>
+  
+  <rundefinition name="bamrec-pred-treeCPA-MathSat5-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=MATHSAT5</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_CPACHECKER</option>
+  </rundefinition>
+  
+  <rundefinition name="bamrec-pred-treeCPA-Princess-LBE">
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+    <option name="-setprop">cpa.predicate.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.refinement.strategy=TREE_CPACHECKER</option>
+  </rundefinition>
+  
+</benchmark>

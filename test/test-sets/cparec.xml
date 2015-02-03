@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cparec" timelimit="900" hardtimelimit="930" memlimit="15000" cpuCores="8">
+
+  <require cpuCores="8"/>
+  <resultfiles>**.*</resultfiles>
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <option name="-o">./output</option>
+
+    <sourcefiles name="simple">
+      <include>../programs/benchmarks/recursive-simple/*.c</include>
+    </sourcefiles>
+    
+    <sourcefiles name="sv">
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    </sourcefiles>
+
+    <rundefinition name="cparec-recursive"></rundefinition>
+
+</benchmark>
