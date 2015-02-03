@@ -176,19 +176,31 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final boolean isProgramConcurrent;
 
-  public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
+  private final Predicate<? super AbstractState> isTargetState;
+
+  public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
-                      ShutdownNotifier pShutdownNotifier, CFA pCfa)
+                      ShutdownNotifier pShutdownNotifier, CFA pCFA)
+                      throws InvalidConfigurationException, CPAException {
+    this(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownNotifier, pCFA, IS_TARGET_STATE);
+  }
+
+  public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
+                      Configuration pConfig, LogManager pLogger,
+                      ReachedSetFactory pReachedSetFactory,
+                      ShutdownNotifier pShutdownNotifier, CFA pCFA,
+                      Predicate<? super AbstractState> pIsTargetStatePredicate)
                       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     algorithm = pAlgorithm;
-    cpa = pCpa;
+    cpa = pCPA;
     config = pConfig;
     logger = pLogger;
     reachedSetFactory = pReachedSetFactory;
-    cfa = pCfa;
+    cfa = pCFA;
+    isTargetState = pIsTargetStatePredicate;
 
     if (induction && useInvariantsForInduction) {
       invariantGenerator = new CPAInvariantGenerator(pConfig, pLogger, reachedSetFactory, pShutdownNotifier, cfa);
@@ -243,7 +255,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
           if (induction) {
             if (targetLocations == null && !isProgramConcurrent) {
-              targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
+              targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction(), false);
             } else {
               targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
             }
@@ -365,7 +377,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * @return
    */
   private Set<CFAEdge> getRelevantAssumeEdges(ReachedSet pReachedSet, ImmutableSet<CFANode> pTargetLocations) {
-    FluentIterable<AbstractState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE);
+    FluentIterable<AbstractState> targetStates = from(pReachedSet).filter(isTargetState);
     final Set<CFAEdge> assumeEdges = new HashSet<>();
     Set<CFANode> targetLocations = from(Iterables.concat(pTargetLocations, targetStates.transform(EXTRACT_LOCATION))).toSet();
     Set<CFANode> visited = new HashSet<>(targetLocations);
@@ -429,7 +441,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Set<ARGState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
+      Set<ARGState> targetStates = from(pReachedSet).filter(isTargetState).filter(ARGState.class).toSet();
 
       final boolean shouldCheckBranching;
       if (targetStates.size() == 1) {
@@ -563,7 +575,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover)
       throws SolverException, InterruptedException {
     List<AbstractState> targetStates = from(pReachedSet)
-                                            .filter(IS_TARGET_STATE)
+                                            .filter(isTargetState)
                                             .toList();
 
     if (checkTargetStates) {
@@ -668,7 +680,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         isProgramConcurrent,
         targetLocationProvider,
         havocLoopTerminationConditionVariablesOnly,
-        bmcKAccessor) : null;
+        bmcKAccessor,
+        isTargetState) : null;
   }
 
   private static interface CounterexampleStorage {
