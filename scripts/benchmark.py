@@ -173,38 +173,38 @@ def main(argv=None):
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
 
-    vcloud = parser.add_argument_group('Options for using VerifierCloud')
-    vcloud.add_argument("--cloud",
+    vcloud_args = parser.add_argument_group('Options for using VerifierCloud')
+    vcloud_args.add_argument("--cloud",
                       dest="cloud",
                       action="store_true",
                       help="Use VerifierCloud to execute benchmarks.")
 
-    vcloud.add_argument("--cloudMaster",
+    vcloud_args.add_argument("--cloudMaster",
                       dest="cloudMaster",
                       metavar="HOST",
                       help="Sets the master host of the VerifierCloud instance to be used. If this is a HTTP URL, the web interface is used.")
 
-    vcloud.add_argument("--cloudPriority",
+    vcloud_args.add_argument("--cloudPriority",
                       dest="cloudPriority",
                       metavar="PRIORITY",
                       help="Sets the priority for this benchmark used in the VerifierCloud. Possible values are IDLE, LOW, HIGH, URGENT.")
 
-    vcloud.add_argument("--cloudCPUModel",
+    vcloud_args.add_argument("--cloudCPUModel",
                       dest="cloudCPUModel", type=str, default=None,
                       metavar="CPU_MODEL",
                       help="Only execute runs in the VerifierCloud on CPU models that contain the given string.")
    
-    vcloud.add_argument("--cloudUser",
+    vcloud_args.add_argument("--cloudUser",
                       dest="cloudUser",
                       metavar="USER:PWD",
                       help="The user and password for the VerifierCloud (if using the web interface).")
 
-    vcloud.add_argument("--revision",
+    vcloud_args.add_argument("--revision",
                       dest="revision",
                       metavar="BRANCH:REVISION",
                       help="The svn revision of CPAchecker to use  (if using the web interface of the VerifierCloud).")
 
-    vcloud.add_argument("--justReprocessResults",
+    vcloud_args.add_argument("--justReprocessResults",
                       dest="reprocessResults",
                       action="store_true",
                       help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored.")
@@ -222,27 +222,27 @@ def main(argv=None):
                         + "With this option you can specify an explicit value for the ident. "
                         + "This is usefull for reprocessing stored benchmark results.")
     
-    appengine = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
-    appengine.add_argument("--appengine",
+    appengine_args = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
+    appengine_args.add_argument("--appengine",
                       dest="appengine",
                       action="store_true",
                       help="Use Google App Engine to execute benchmarks.")
     
-    appengine.add_argument("--appengineURI",
+    appengine_args.add_argument("--appengineURI",
                       dest="appengineURI",
                       metavar="URI",
                       default=DEFAULT_APPENGINE_URI,
                       type=str,
                       help="Sets the URI to use when submitting tasks to App Engine.")
     
-    appengine.add_argument("--appenginePollInterval",
+    appengine_args.add_argument("--appenginePollInterval",
                       dest="appenginePollInterval",
                       metavar="INTERVAL",
                       default=DEFAULT_APPENGINE_POLLINTERVAL,
                       type=int,
                       help="Sets the interval in seconds after which App Engine is polled for results.")
     
-    appengine.add_argument("--appengineKeep",
+    appengine_args.add_argument("--appengineKeep",
                         dest="appengineDeleteWhenDone",
                         action="store_false",
                         help="If set a task will NOT be deleted from App Engine after it has successfully been executed.")
