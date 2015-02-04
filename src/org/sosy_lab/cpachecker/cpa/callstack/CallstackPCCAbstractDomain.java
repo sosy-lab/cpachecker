@@ -50,10 +50,7 @@ public class CallstackPCCAbstractDomain implements AbstractDomain {
     if (state1 == null || state2 == null) {
       return false;
     }
-    if (state1.getCallNode() == state2.getCallNode()
-        && state1.getDepth() == state2.getDepth()
-        && state1.getCurrentFunction().equals(state2.getCurrentFunction())
-        && isLessOrEqual(state1.getPreviousState(), state2.getPreviousState())) {
+    if (state1.sameStateInProofChecking(state2)) {
       return true;
     }
     return false;
