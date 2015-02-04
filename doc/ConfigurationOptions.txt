@@ -173,10 +173,6 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
-# handle states with a deeper callstack first?
-# This needs the CallstackPccCPA to have any effect.
-analysis.traversal.usePccCallstack = false
-
 # Use an implementation of postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
 # postorder id. The secondary strategy is selected with
@@ -660,13 +656,16 @@ cpa.bdd.merge = "join"
 # depth of recursion bound
 cpa.callstack.depth = 0
 
+# which abstract domain to use for callstack cpa, typically FLAT which is
+# faster since it uses only object equivalence
+cpa.callstack.domain = "FLAT"
+  allowed values: [FLAT, FLATPCC]
+
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
 cpa.callstack.skipFunctionPointerRecursion = false
 
-# Skip recursion. Treat function call as a statement (the same as for
-# functions without bodies)
 # Skip recursion (this is unsound). Treat function call as a statement (the
 # same as for functions without bodies)
 cpa.callstack.skipRecursion = false
