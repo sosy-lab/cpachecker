@@ -9,8 +9,6 @@
   <option>32bit</option>
   <option>precise</option>
     
-    <propertyfile>../programs/benchmarks/recursive-simple/ALL.prp</propertyfile>
-  
     <sourcefiles name="simple">
       <include>../programs/benchmarks/recursive-simple/*.c</include>
     </sourcefiles>
