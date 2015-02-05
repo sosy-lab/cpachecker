@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import apron.ApronException;
 
@@ -80,6 +81,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
     ApronDomain apronDomain = new ApronDomain(logger);
 
     apronManager = new ApronManager(config);
+    GlobalInfo.getInstance().storeApronManager(apronManager);
 
     this.transferRelation = new ApronTransferRelation(logger, cfa);
 
