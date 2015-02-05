@@ -41,7 +41,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
-class CandidateInvariant {
+public class CandidateInvariant {
 
   private final CFAEdge edge;
 
