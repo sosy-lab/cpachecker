@@ -123,7 +123,7 @@ public class CoreComponentsFactory {
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
-  @Option(secure=true, name="customInstruction", description="") // TODO
+  @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
 
   @Option(secure=true, name="refinePreconditions",

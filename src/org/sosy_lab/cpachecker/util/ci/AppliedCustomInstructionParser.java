@@ -35,6 +35,7 @@ import java.util.Set;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -145,23 +146,22 @@ public class AppliedCustomInstructionParser {
     queue.add(pNode);
     visitedNodes.add(pNode);
 
-    CFANode prec;
-    CFANode succ;
+    CFANode pred;
 
     while (!queue.isEmpty()) {
       notifier.shutdownIfNecessary();
-      prec = queue.poll();
+      pred = queue.poll();
 
       // If tmp is endNode and in pSet => save that tmp is in pSet.
       // At the end of the method we compare the given pSet and the set of endNodes we visited,
       // to decide if all nodes of pSet are contained in the graph of pNode.
-      if (pSet.contains(prec)) {
-        endNodes.add(prec);
+      if (pSet.contains(pred)) {
+        endNodes.add(pred);
+        continue;
       }
 
       // breadth-first-search
-      for (int i=0; i<prec.getNumLeavingEdges(); i++) {
-        succ = prec.getLeavingEdge(i).getSuccessor();
+      for (CFANode succ : CFAUtils.successorsOf(pred)) {
         if (!visitedNodes.contains(succ)){
           queue.add(succ);
           visitedNodes.add(succ);

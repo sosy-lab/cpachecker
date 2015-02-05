@@ -24,11 +24,12 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.Collection;
 
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class CustomInstructionRequirementsWriter {
@@ -45,12 +46,11 @@ public class CustomInstructionRequirementsWriter {
 
   // TODO to be continued
   public void writeCIRequirement(final ARGState pState, final Collection<ARGState> pSet,
-      final AppliedCustomInstruction pACI) throws IOException{
+      final AppliedCustomInstruction pACI) throws IOException {
 
     fileID++;
-    try (BufferedWriter br = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePrefix+fileID+".smt"), "UTF-8"))) {
+    try (Writer br = new BufferedWriter(Files.openOutputFile(Paths.get(filePrefix+fileID+".smt")))) {
       // TODO to be continued
     }
-
   }
 }
