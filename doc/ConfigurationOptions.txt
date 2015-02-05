@@ -1591,6 +1591,10 @@ cpa.value.blk.alwaysAtJoins = false
 # restrict abstractions to loop heads
 cpa.value.blk.alwaysAtLoops = false
 
+# restrict liveness abstractions to nodes with more than one entering and/or
+# leaving edge
+cpa.value.blk.onlyAtNonLinearCFA = false
+
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.value.initAssumptionVars = false
