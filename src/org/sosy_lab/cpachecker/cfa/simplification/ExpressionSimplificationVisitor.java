@@ -94,22 +94,17 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     NumericValue numericResult = value.asNumericValue();
     if (numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
       CSimpleType type = (CSimpleType) expr.getExpressionType();
-      switch (type.getType()) {
-        case INT:
-        case CHAR: {
-          return new CIntegerLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue()));
-        }
-        case FLOAT:
-        case DOUBLE: {
-          try {
-            return new CFloatLiteralExpression(expr.getFileLocation(),
-                expr.getExpressionType(), numericResult.bigDecimalValue());
-          } catch (NumberFormatException nfe) {
-            // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
-            logger.logf(Level.FINE, "Cannot simplify expression to numeric value %s, keeping original expression %s instead", numericResult, expr.toASTString());
-            return expr;
-          }
+      if (type.getType().isIntegerType()) {
+        return new CIntegerLiteralExpression(expr.getFileLocation(),
+                expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue()));
+      } else if (type.getType().isFloatingPointType()) {
+        try {
+          return new CFloatLiteralExpression(expr.getFileLocation(),
+              expr.getExpressionType(), numericResult.bigDecimalValue());
+        } catch (NumberFormatException nfe) {
+          // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
+          logger.logf(Level.FINE, "Cannot simplify expression to numeric value %s, keeping original expression %s instead", numericResult, expr.toASTString());
+          return expr;
         }
       }
     }
