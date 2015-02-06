@@ -906,13 +906,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       variableName = ((CFieldReference) left).getFieldOwner().toASTString();
     } else {
       variableName = ((CIdExpression) left).toASTString();
-
-      if (!isGlobal(left)) {
-        variableName = buildVarName(functionName, variableName);
-      }
     }
 
-    if (isGlobal(left)) {
+    if (!isGlobal(left)) {
       return MemoryLocation.valueOf(functionName, variableName, 0);
     } else {
       return MemoryLocation.valueOf(variableName);
