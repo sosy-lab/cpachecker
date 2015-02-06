@@ -147,17 +147,20 @@ class RunExecutor():
             # which is ok if there is actually no swap.
             if not os.path.exists(os.path.join(cgroupMemory, swapLimitFile)):
                 if _hasSwap():
-                    sys.exit('Kernel misses feature for accounting swap memory (memory.memsw.limit_in_bytes file does not exist in memory cgroup), but machine has swap.')
+                    sys.exit('Kernel misses feature for accounting swap memory, but machine has swap. Please set swapaccount=1 on your kernel command line or disable swap with "sudo swapoff -a".')
             else:
                 try:
                     writeFile(str(memlimit), cgroupMemory, swapLimitFile)
                 except IOError as e:
                     if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
-                        sys.exit("Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line.")
+                        sys.exit('Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line or disable swap with "sudo swapoff -a".')
                     raise e
 
             memlimit = readFile(cgroupMemory, limitFile)
             logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
+
+        if not os.path.exists(os.path.join(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')) and _hasSwap():
+            logging.warning('Kernel misses feature for accounting swap memory, but machine has swap. Memory usage may be measured inaccurately. Please set swapaccount=1 on your kernel command line or disable swap with "sudo swapoff -a".')
 
         return cgroups
 
