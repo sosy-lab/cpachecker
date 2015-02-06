@@ -98,13 +98,15 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
-analysis.customInstruction = false
-
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
 # entry function
 analysis.entryFunction = "main"
+
+# do analysis and then extract pre- and post conditions for custom
+# instruction from analysis result
+analysis.extractRequirements.customInstruction = false
 
 # create all potential function pointer call edges
 analysis.functionPointerCalls = true
@@ -488,6 +490,10 @@ cpa.apron.refiner.checkForRepeatedRefinements = true
 # Timelimit for the backup feasibility check with the apron analysis.(use
 # seconds or specify a unit; 0 for infinite)
 cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
+
+# split disequalities considering integer operands into two states or use
+# disequality provided by apron library 
+cpa.apron.splitDisequalities = true
 
 # inform merge operator in predicated analysis that it should delete the
 # subgraph of the merged nodewhich is required to get at most one successor
