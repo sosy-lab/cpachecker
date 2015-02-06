@@ -146,13 +146,42 @@ logger.log(Level.FINEST, "apron state: isEqual");
 
       if (integerToIndexMap.containsAll(state.integerToIndexMap)
           && realToIndexMap.containsAll(state.realToIndexMap)) {
-        Pair<ApronState, ApronState> checkStates = shrinkToFittingSize(state);
         logger.log(Level.FINEST, "apron state: isIncluded");
-        return checkStates.getFirst().apronState.isIncluded(apronManager.getManager(), checkStates.getSecond().apronState);
+        return forgetVars(state).isIncluded(apronManager.getManager(), state.apronState);
       } else {
         return false;
       }
     }
+  }
+
+  private Abstract0 forgetVars(ApronState pConsiderSubsetOfVars){
+    int amountInts = integerToIndexMap.size()-pConsiderSubsetOfVars.integerToIndexMap.size();
+    int[] removeDim = new int[amountInts+realToIndexMap.size()-pConsiderSubsetOfVars.realToIndexMap.size()];
+
+    int arrayPos = 0;
+
+    for (int indexThis = 0, indexParam = 0; indexThis < integerToIndexMap.size();) {
+      if (indexThis < pConsiderSubsetOfVars.integerToIndexMap.size()
+          && integerToIndexMap.get(indexThis).equals(pConsiderSubsetOfVars.integerToIndexMap.get(indexParam))) {
+        indexParam++;
+      } else {
+        removeDim[arrayPos] = indexThis;
+      }
+      indexThis++;
+    }
+
+    for(int indexThis=0, indexParam=0; indexThis<realToIndexMap.size();){
+      if(indexThis < pConsiderSubsetOfVars.realToIndexMap.size()
+          && realToIndexMap.get(indexThis).equals(pConsiderSubsetOfVars.realToIndexMap.get(indexParam))){
+        indexParam++;
+      } else {
+        removeDim[arrayPos] = indexThis;
+      }
+      indexThis++;
+    }
+
+    return apronState.removeDimensionsCopy(apronManager.getManager(),
+        new Dimchange(amountInts, removeDim.length-amountInts, removeDim));
   }
 
   /**
