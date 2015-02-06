@@ -169,4 +169,8 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
   public CFA getCFA() {
     return cfa;
   }
+
+  public boolean isSplitDisequalites() {
+    return splitDisequalities;
+  }
 }
