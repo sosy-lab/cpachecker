@@ -324,16 +324,27 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       CExpression pLeftHandSide,
       InvariantsFormula<CompoundInterval> pValue,
       InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+
+    InvariantsFormula<CompoundInterval> value = pValue;
+    if (pPrecision.getMaximumFormulaDepth() == 0) {
+      CompoundInterval v = evaluate(pValue, pElement.getEnvironment());
+      if (v.isSingleton()) {
+        value = CompoundIntervalFormulaManager.INSTANCE.asConstant(v);
+      } else {
+        value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      }
+    }
+
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     VariableNameExtractor variableNameExtractor = new VariableNameExtractor(pEdge, pElement.getEnvironment());
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
       String array = variableNameExtractor.getVarName(arraySubscriptExpression.getArrayExpression());
       InvariantsFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
-      return pElement.assignArray(array, subscript, pValue);
+      return pElement.assignArray(array, subscript, value);
     } else {
       String varName = variableNameExtractor.getVarName(pLeftHandSide);
-      return pElement.assign(varName, pValue);
+      return pElement.assign(varName, value);
     }
   }
 
