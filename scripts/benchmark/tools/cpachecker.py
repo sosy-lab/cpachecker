@@ -53,8 +53,6 @@ REQUIRED_PATHS = [
                   "config",
                   ]
 
-timeLimitWarningCounter = 10 # print the warning for 10 runs, then ignore silently.
-
 class Tool(benchmark.tools.template.BaseTool):
     """
     Tool wrapper for CPAchecker.
@@ -117,10 +115,7 @@ class Tool(benchmark.tools.template.BaseTool):
     def getCmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
         if SOFTTIMELIMIT in rlimits:
             if "-timelimit" in options:
-                global timeLimitWarningCounter
-                if timeLimitWarningCounter > 0: # print the warning for 10 runs, then ignore silently.
-                    timeLimitWarningCounter -= 1
-                    logging.warning('soft-time-limit already specified. ignoring benchmark-limit as tool-parameter.')
+                logging.warning('Time limit already specified in command-line options, not adding time limit from benchmark definition to the command line.')
             else:
                 options = options + ["-timelimit", str(rlimits[SOFTTIMELIMIT]) + "s"] # benchmark-xml uses seconds as unit
 
