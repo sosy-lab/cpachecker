@@ -230,14 +230,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     if (induction && useInvariantsForInduction) {
       invariantGenerator = new CPAInvariantGenerator(pConfig, pLogger, reachedSetFactory, pShutdownNotifier, cfa);
-      CPABuilder builder = new CPABuilder(pConfig, pLogger, pShutdownNotifier, pReachedSetFactory);
-      stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa);
-      stepCaseAlgorithm = CPAAlgorithm.create(stepCaseCPA, pLogger, pConfig, pShutdownNotifier);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
-      stepCaseCPA = cpa;
-      stepCaseAlgorithm = algorithm;
     }
+
+    CPABuilder builder = new CPABuilder(pConfig, pLogger, pShutdownNotifier, pReachedSetFactory);
+    stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa);
+    stepCaseAlgorithm = CPAAlgorithm.create(stepCaseCPA, pLogger, pConfig, pShutdownNotifier);
+
     stats.invariantGeneration = invariantGenerator.getTimeOfExecution();
 
     PredicateCPA predCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
