@@ -61,6 +61,10 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 
+  @Option(secure=true, name="splitDisequalities",
+      description="split disequalities considering integer operands into two states or use disequality provided by apron library ")
+  private boolean splitDisequalities = true;
+
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -83,7 +87,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
     apronManager = new ApronManager(config);
     GlobalInfo.getInstance().storeApronManager(apronManager);
 
-    this.transferRelation = new ApronTransferRelation(logger, cfa);
+    this.transferRelation = new ApronTransferRelation(logger, cfa, splitDisequalities);
 
     MergeOperator apronMergeOp = ApronMergeOperator.getInstance(apronDomain, config);
 
