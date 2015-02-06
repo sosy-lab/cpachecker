@@ -348,10 +348,23 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
                                                                                                    right,
                                                                                                    increasedLeft)))));
             } else {
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
+
+              if(splitDisequalities) {
+                // use same trick as in octagon analysis since disequality does not seem to work
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     left,
+                                                                                                     right)))));
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     right,
+                                                                                                     left)))));
+              } else {
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
                                                                 new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
                                                                                                    left,
                                                                                                    right)))));
+              }
             }
           }
           break;
