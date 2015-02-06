@@ -98,7 +98,7 @@ def executeBenchmark(benchmark, outputHandler):
     except KeyboardInterrupt:
         with open(timestampsFileName, 'a') as f:
             f.write('Interrupt: '+datetime.strftime(datetime.now(), formatString)+'\n')
-        killScriptAppEngine(benchmark.config)
+        kill()
     APPENGINE_POLLER_THREAD.join()
 
     _handleAppEngineResults(benchmark, outputHandler)

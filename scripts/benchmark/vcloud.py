@@ -84,7 +84,7 @@ def executeBenchmark(benchmark, outputHandler):
         try:
             (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
         except KeyboardInterrupt:
-            killScriptCloud()
+            kill()
         returnCode = cloud.wait()
 
         wallTimeAfter = time.time()

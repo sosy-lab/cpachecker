@@ -137,7 +137,7 @@ def executeBenchmark(benchmark, outputHandler):
                 try:
                     time.sleep(0.1) # sleep some time
                 except KeyboardInterrupt:
-                    killScriptLocal()
+                    kill()
 
             # get times after runSet
             wallTimeAfter = time.time()
