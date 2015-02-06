@@ -67,7 +67,7 @@ class BaseTool(object):
         pass
 
 
-    def getProgrammFiles(self, executable):
+    def getProgramFiles(self, executable):
         """
         OPTIONAL, this method is only necessary for "cloud-mode".
         Returns a list of files or directories, 

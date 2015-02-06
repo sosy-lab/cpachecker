@@ -37,7 +37,7 @@ import os.path
 import benchmark.tools.cpachecker
 cpachecker = benchmark.tools.cpachecker.Tool()
 executable = cpachecker.getExecutable()
-requiredFiles = cpachecker.getProgrammFiles(executable)
+requiredFiles = cpachecker.getProgramFiles(executable)
 
 # install cloud and dependencies
 ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])

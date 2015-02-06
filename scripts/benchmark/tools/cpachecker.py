@@ -75,7 +75,7 @@ class Tool(benchmark.tools.template.BaseTool):
             sys.exit('Failed to build CPAchecker, please fix the build first.')
 
 
-    def getProgrammFiles(self, executable):
+    def getProgramFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 

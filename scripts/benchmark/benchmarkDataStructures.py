@@ -244,7 +244,7 @@ class Benchmark:
 
 
     def requiredFiles(self):
-        return self._requiredFiles.union(self.tool.getProgrammFiles(self.executable))
+        return self._requiredFiles.union(self.tool.getProgramFiles(self.executable))
 
 
     def addRequiredFile(self, filename=None):
