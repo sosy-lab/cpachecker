@@ -126,7 +126,7 @@ def main(argv=None):
 
     def printOptionalResult(key):
         if key in result:
-            print(key + "_" + str(result[key]))
+            print(key + "=" + str(result[key]))
 
     # output results
     printOptionalResult('terminationreason')
