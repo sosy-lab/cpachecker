@@ -56,6 +56,13 @@ REQUIRED_PATHS = [
 timeLimitWarningCounter = 10 # print the warning for 10 runs, then ignore silently.
 
 class Tool(benchmark.tools.template.BaseTool):
+    """
+    Tool wrapper for CPAchecker.
+    It has additional features such as building CPAchecker before running it
+    if executed within a source checkout.
+    It also supports extracting data from the statistics output of CPAchecker
+    for adding it to the result tables.
+    """
 
     def getExecutable(self):
         executable = Util.findExecutable('cpa.sh', 'scripts/cpa.sh')

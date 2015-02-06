@@ -5,7 +5,11 @@ class BaseTool(object):
     This class serves both as a template for tool adaptor implementations,
     and as an abstract super class for them.
     For writing a new tool adaptor, inherit from this class and override
-    the necessary methods.
+    the necessary methods (usually only getExecutable(), getName(), and getStatus(),
+    maybe getVersion() and getCmdline(), too).
+    The classes for each specific tool need to be named "Tool"
+    and be located in a module named "benchmark.tools.<tool>",
+    where "<tool>" is the string specified by the user in the benchmark definition.
     """
 
     def getExecutable(self):
@@ -60,34 +64,35 @@ class BaseTool(object):
 
     def addColumnValues(self, output, columns):
         """
-        This method adds the values that the user requested to the column objects.
+        OPTIONAL, override this to add statistics data from the output of the tool
+        to the tables if requested by the user.
         If a value is not found, it should be set to '-'.
-        If not supported, this method does not need to get overridden.
         """
         pass
 
 
     def getProgramFiles(self, executable):
         """
-        OPTIONAL, this method is only necessary for "cloud-mode".
-        Returns a list of files or directories, 
-        that are necessary to run the tool in "cloud-mode".
+        OPTIONAL, this method is only necessary for situations when the benchmark environment
+        needs to know all files belonging to a tool
+        (to transport them to a cloud service, for example).
+        Returns a list of files or directories that are necessary to run the tool.
         """
         return []
 
 
     def getWorkingDirectory(self, executable):
         """
-        OPTIONAL, this method is only necessary for "cloud-mode".
-        Returns a working directory, that is used to run the tool in "cloud-mode".
+        OPTIONAL, this method is only necessary for situations
+        when the tool needs a separate working directory.
         """
         return "."
 
 
     def getEnvironments(self, executable):
         """
-        OPTIONAL, this method is only necessary for special tools.
-        It contains some info, how the environment has to be changed, so that the tool can run. 
+        OPTIONAL, this method is only necessary for tools
+        that needs special environment variable.
         Returns a map, that contains identifiers for several submaps.
         All keys and values have to be Strings!
         
