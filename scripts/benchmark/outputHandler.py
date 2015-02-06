@@ -564,10 +564,12 @@ class OutputHandler:
         self.statistics.printToTerminal()
 
         if self.XMLFileNames:
-            tableGeneratorPath = os.path.join(os.path.dirname(__file__), os.path.pardir, 'table-generator.py')
+            tableGeneratorName = 'table-generator.py'
+            tableGeneratorPath = os.path.relpath(os.path.join(os.path.dirname(__file__), os.path.pardir, tableGeneratorName))
+            if tableGeneratorPath == tableGeneratorName:
+                tableGeneratorPath = './' + tableGeneratorName
             Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
-                          .format(os.path.relpath(tableGeneratorPath, '.'),
-                                  "' '".join(self.XMLFileNames)))
+                          .format(tableGeneratorPath, "' '".join(self.XMLFileNames)))
 
         if isStoppedByInterrupt:
             Util.printOut("\nScript was interrupted by user, some runs may not be done.\n")
