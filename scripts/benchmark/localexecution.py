@@ -38,7 +38,9 @@ import itertools
 import logging
 import math
 import os
+import re
 import resource
+import subprocess
 import threading
 import time
 
@@ -56,7 +58,17 @@ _BYTE_FACTOR = 1000 # byte in kilobyte
 _TURBO_BOOST_FILE = "/sys/devices/system/cpu/cpufreq/boost"
 _TURBO_BOOST_FILE_PSTATE = "/sys/devices/system/cpu/intel_pstate/no_turbo"
 
-def executeBenchmarkLocaly(benchmark, outputHandler):
+def init(config, benchmark):
+    try:
+        processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
+        if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
+            logging.warn("Already running instance of this script detected. " + \
+                         "Please make sure to not interfere with somebody else's benchmarks.")
+    except OSError:
+        pass # this does not work on Windows
+
+
+def executeBenchmark(benchmark, outputHandler):
 
     runSetsExecuted = 0
 
@@ -142,7 +154,7 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
 
 
-def killScriptLocal():
+def kill():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
 

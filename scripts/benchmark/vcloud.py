@@ -46,9 +46,13 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 STOPPED_BY_INTERRUPT = False
 
+_justReprocessResults = False
 
-def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
-    if not justReprocessResults:
+def init(config, benchmark):
+    _justReprocessResults = config.reprocessResults
+
+def executeBenchmark(benchmark, outputHandler):
+    if not _justReprocessResults:
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
@@ -101,7 +105,7 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
     return returnCode
 
 
-def killScriptCloud():
+def kill():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
     # kill cloud-client, should be done automatically, when the subprocess is aborted

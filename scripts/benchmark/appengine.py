@@ -51,7 +51,8 @@ APPENGINE_SETTINGS = {} # these will be fetched from the server
 
 STOPPED_BY_INTERRUPT = False
 
-def setupBenchmarkForAppengine(benchmark):
+def init(config, benchmark):
+    # settings must be retrieved here to set the correct tool version
     uri = benchmark.config.appengineURI + '/settings'
     logging.debug('Setting up benchmark for App Engine...')
     logging.debug('Pulling settings from {0}.'.format(uri))
@@ -70,7 +71,7 @@ def setupBenchmarkForAppengine(benchmark):
         sys.exit('The settings could not be retrieved. {} is not available. Error: {}'.format(uri, e.reason))
 
 
-def executeBenchmarkInAppengine(benchmark, outputHandler):
+def executeBenchmark(benchmark, outputHandler):
     formatString = '%m-%d-%YT%H:%M:%S.%f'
     timestampsFileName = benchmark.outputBase+'.Timestamps_'+datetime.strftime(datetime.now(), formatString)+'.txt'
     with open(timestampsFileName, 'a') as f:
@@ -106,11 +107,11 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
         f.write('Finish: '+datetime.strftime(datetime.now(), formatString)+'\n')
 
 
-def killScriptAppEngine(config):
+def kill():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
 
-    Util.printOut("Killing subprocesses. May take up to %s seconds..."%config.appenginePollInterval)
+    Util.printOut("Killing subprocesses. May take some seconds...")
     if not APPENGINE_POLLER_THREAD == None:
         APPENGINE_POLLER_THREAD.join()
     if not APPENGINE_SUBMITTER_THREAD == None:

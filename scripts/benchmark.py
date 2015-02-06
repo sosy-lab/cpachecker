@@ -34,9 +34,7 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 import logging
 import argparse
 import os
-import re
 import signal
-import subprocess
 
 from benchmark.benchmarkDataStructures import Benchmark
 import benchmark.util as Util
@@ -71,30 +69,15 @@ Variables ending with "tag" contain references to XML tag objects created by the
 """
 
 
-def executeBenchmark(benchmarkFile):
+def executeBenchmark(benchmarkFile, executor):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
-    # settings must be retrieved here to set the correct tool version
-    if config.appengine:
-        appengine.setupBenchmarkForAppengine(benchmark)
-    elif config.cloud and config.cloudMaster and "http" in config.cloudMaster:
-        if config.revision:
-            benchmark.toolVersion = config.revision
-        else:
-            benchmark.toolVersion = "trunk:HEAD"
+    executor.init(config, benchmark)
     outputHandler = OutputHandler(benchmark)
     
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
             repr(benchmarkFile), len(benchmark.runSets)))
 
-    if config.cloud:
-        if config.cloudMaster and "http" in config.cloudMaster:
-            result = webclient.executeBenchmarkInCloud(benchmark, outputHandler)
-        else:
-            result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler, config.reprocessResults)        
-    elif config.appengine:
-        result = appengine.executeBenchmarkInAppengine(benchmark, outputHandler)
-    else:
-        result = localexecution.executeBenchmarkLocaly(benchmark, outputHandler)
+    result = executor.executeBenchmark(benchmark, outputHandler)
 
     if config.commit and not STOPPED_BY_INTERRUPT:
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
@@ -266,37 +249,24 @@ def main(argv=None):
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
-    if not config.cloud and not config.appengine:
-        try:
-            processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-            if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
-                logging.warn("Already running instance of this script detected. " + \
-                             "Please make sure to not interfere with somebody else's benchmarks.")
-        except OSError:
-            pass # this does not work on Windows
-
+    # Allow local execution of benchmarks to be easily replaced
+    # by a different module that delegates to some cloud service.
     if config.cloud:
         if config.cloudMaster and "http" in config.cloudMaster:
-            global webclient
-            import benchmark.webclient as webclient
+            import benchmark.webclient as executor
         else:
-            global vcloud
-            import benchmark.vcloud as vcloud
-            killScriptSpecific = vcloud.killScriptCloud        
+            import benchmark.vcloud as executor
     elif config.appengine:
-        global appengine
-        import benchmark.appengine as appengine
-        killScriptSpecific = (lambda: appengine.killScriptAppEngine(config))
+        import benchmark.appengine as executor
     else:
-        global localexecution
-        import benchmark.localexecution as localexecution
-        killScriptSpecific = localexecution.killScriptLocal
+        import benchmark.localexecution as executor
+    killScriptSpecific = executor.kill
 
     returnCode = 0
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        rc = executeBenchmark(arg)
+        rc = executeBenchmark(arg, executor)
         returnCode = returnCode or rc
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 

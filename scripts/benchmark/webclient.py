@@ -67,7 +67,14 @@ class WebClientError(Exception):
      def __str__(self):
          return repr(self.value)
 
-def executeBenchmarkInCloud(benchmark, outputHandler):
+def init(config, benchmark):
+    if config.cloudMaster:
+        if config.revision:
+            benchmark.toolVersion = config.revision
+        else:
+            benchmark.toolVersion = "trunk:HEAD"
+
+def executeBenchmark(benchmark, outputHandler):
 
     if (benchmark.toolName != 'CPAchecker'):
         logging.warn("The web client does only support the CPAchecker.")
@@ -105,6 +112,10 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
         raise e
     finally:
         outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
+
+def kill():
+    # TODO: cancel runs on server
+    pass
 
 def _submitRunsPrallel(runSet, webclient, benchmark):
     
