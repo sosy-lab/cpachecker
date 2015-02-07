@@ -60,13 +60,13 @@ public class StateSimplifier {
   public ConstraintsState simplify(ConstraintsState pState) {
     ConstraintsState newState;
 
-    //newState = replaceSymbolicIdentifiersWithConcreteValues(pState);
-    newState = removeTrivialConstraints(pState);
+    newState = replaceSymbolicIdentifiersWithConcreteValues(pState);
+    newState = removeTrivialConstraints(newState);
 
     return newState;
   }
 
-  private ConstraintsState replaceSymbolicIdentifiersWithConcreteValues(ConstraintsState pState) {
+  public ConstraintsState replaceSymbolicIdentifiersWithConcreteValues(ConstraintsState pState) {
     final IdentifierAssignment definiteAssignment = pState.getDefiniteAssignment();
 
     if (definiteAssignment.isEmpty()) {

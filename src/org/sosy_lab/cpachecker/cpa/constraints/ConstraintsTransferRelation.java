@@ -174,6 +174,7 @@ public class ConstraintsTransferRelation
 
       if (newConstraint.isPresent()) {
         newState.add(newConstraint.get());
+        newState = new StateSimplifier(machineModel, logger).replaceSymbolicIdentifiersWithConcreteValues(newState);
 
         if (newState.isUnsat()) {
           return null;
