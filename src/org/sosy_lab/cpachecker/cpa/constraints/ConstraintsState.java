@@ -273,6 +273,9 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really requested
           computeDefiniteAssignment();
+
+        } else {
+          definiteAssignment = null;
         }
 
         constraintsHaveChanged = false;
