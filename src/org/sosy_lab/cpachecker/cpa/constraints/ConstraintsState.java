@@ -83,7 +83,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     formulaManager = pState.formulaManager;
 
     constraintsHaveChanged = pState.constraintsHaveChanged;
-    definiteAssignment = pState.definiteAssignment;
+    definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
   }
 
   /**
