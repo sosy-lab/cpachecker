@@ -191,11 +191,11 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
 
   @Override
   public boolean remove(Object pObj) {
-    boolean setHasChagned = super.remove(pObj);
+    boolean setHasChanged = super.remove(pObj);
 
-    constraintsHaveChanged |= setHasChagned;
+    constraintsHaveChanged |= setHasChanged;
 
-    return setHasChagned;
+    return setHasChanged;
   }
 
   @Override
