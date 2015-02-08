@@ -294,7 +294,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
       if (doubleValue % 1 == 0 && longValue == doubleValue) {
         return numeralFormulaManager.makeNumber(valueAsNumeric.longValue());
       } else {
-        return handleFloatValue();
+        return createFloatVariable(doubleValue);
       }
 
     } else if (pValue instanceof BooleanValue) {
@@ -304,9 +304,21 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     return null; // if we can't handle it, 'abort'
   }
 
-  private Formula handleFloatValue() {
-    return formulaManager.makeVariable(FormulaType.IntegerType,
-                                       FLOAT_VAR_NAME + floatVariableAmount++);
+  private Formula createFloatVariable(double pFloatValue) {
+    Formula variable = formulaManager.makeVariable(FormulaType.IntegerType, FLOAT_VAR_NAME + floatVariableAmount++);
+
+    assert (long) Math.floor(pFloatValue) == Math.floor(pFloatValue);
+    Formula lowerBound = formulaManager.makeNumber(FormulaType.IntegerType, (long) Math.floor(pFloatValue));
+    BooleanFormula lowerBoundConstraint = formulaManager.makeGreaterOrEqual(variable, lowerBound, SIGNED);
+
+    assert (long) Math.ceil(pFloatValue) == Math.ceil(pFloatValue);
+    Formula upperBound = formulaManager.makeNumber(FormulaType.IntegerType, (long) Math.ceil(pFloatValue));
+    BooleanFormula upperBoundConstraint = formulaManager.makeLessOrEqual(variable, upperBound, SIGNED);
+
+    BooleanFormula fullBoundConstraint = booleanFormulaManager.and(lowerBoundConstraint, upperBoundConstraint);
+    conditions.add(fullBoundConstraint);
+
+    return variable;
   }
 
   @Override
