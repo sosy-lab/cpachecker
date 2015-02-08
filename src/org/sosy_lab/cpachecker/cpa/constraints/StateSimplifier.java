@@ -24,14 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.Iterator;
-import java.util.Map;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 /**
  * Simplifier for {@link ConstraintsState}s.
@@ -57,39 +55,15 @@ public class StateSimplifier {
    * @param pState the state to simplify
    * @return the simplified state
    */
-  public ConstraintsState simplify(ConstraintsState pState) {
+  public ConstraintsState simplify(ConstraintsState pState, ValueAnalysisState pValueState) {
     ConstraintsState newState;
 
-    newState = replaceSymbolicIdentifiersWithConcreteValues(pState);
-    newState = removeTrivialConstraints(newState);
+    newState = removeTrivialConstraints(pState, pValueState);
 
     return newState;
   }
 
-  public ConstraintsState replaceSymbolicIdentifiersWithConcreteValues(ConstraintsState pState) {
-    final IdentifierAssignment definiteAssignment = pState.getDefiniteAssignment();
-
-    if (definiteAssignment.isEmpty()) {
-      return pState;
-    }
-
-    ConstraintsState newState = pState.copyOf();
-    newState.clear();
-
-    for (Map.Entry<SymbolicIdentifier, Value> entry : definiteAssignment.entrySet()) {
-      final SymbolicIdentifier id = entry.getKey();
-      final Value newValue = entry.getValue();
-
-      ConstraintIdentifierReplacer replacer = new ConstraintIdentifierReplacer(id, newValue, machineModel, logger);
-      for (Constraint c : pState) {
-        newState.add(c.accept(replacer));
-      }
-    }
-
-    return newState;
-  }
-
-  private ConstraintsState removeTrivialConstraints(ConstraintsState pState) {
+  private ConstraintsState removeTrivialConstraints(ConstraintsState pState, ValueAnalysisState pValueState) {
     ConstraintsState newState = pState.copyOf();
 
     Iterator<Constraint> it = newState.iterator();
@@ -97,11 +71,17 @@ public class StateSimplifier {
     while (it.hasNext()) {
       Constraint currConstraint = it.next();
 
-      if (currConstraint.isTrivial()) {
+      if (isTrivial(currConstraint, pValueState)) {
         it.remove();
       }
     }
 
     return newState;
+  }
+
+  private boolean isTrivial(Constraint pConstraint, ValueAnalysisState pValueState) {
+    final ConstraintTrivialityChecker trivialityChecker = new ConstraintTrivialityChecker(pValueState);
+
+    return pConstraint.accept(trivialityChecker);
   }
 }

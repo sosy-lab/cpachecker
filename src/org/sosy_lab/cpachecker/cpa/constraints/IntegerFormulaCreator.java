@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -99,6 +100,8 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
 
+  private final ValueAnalysisState valueState;
+
   private final FunctionSet declaredFunctions = new FunctionSet();
 
   private final IntegerFormula oneFormula;
@@ -106,7 +109,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
   private List<BooleanFormula> conditions = new ArrayList<>();
 
-  public IntegerFormulaCreator(FormulaManagerView pFormulaManager) {
+  public IntegerFormulaCreator(FormulaManagerView pFormulaManager, ValueAnalysisState pValueState) {
     formulaManager = pFormulaManager;
     numeralFormulaManager = formulaManager.getIntegerFormulaManager();
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
@@ -114,6 +117,8 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
     oneFormula = numeralFormulaManager.makeNumber(1);
     zeroFormula = numeralFormulaManager.makeNumber(0);
+
+    valueState = pValueState;
   }
 
   @Override
@@ -271,35 +276,48 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   public Formula visit(ConstantSymbolicExpression pConstant) {
     Value value = pConstant.getValue();
 
-    if (value.isNumericValue()) {
-      NumericValue valueAsNumeric = (NumericValue) value;
+    if (value instanceof SymbolicValue) {
+      return ((SymbolicValue) value).accept(this);
+    } else {
+      return createFormulaFromConcreteValue(value);
+    }
+
+  }
+
+  private Formula createFormulaFromConcreteValue(Value pValue) {
+
+    if (pValue.isNumericValue()) {
+      NumericValue valueAsNumeric = (NumericValue)pValue;
       long longValue = valueAsNumeric.longValue();
       double doubleValue = valueAsNumeric.doubleValue();
 
       if (doubleValue % 1 == 0 && longValue == doubleValue) {
         return numeralFormulaManager.makeNumber(valueAsNumeric.longValue());
       } else {
-        return handleFloatValue(pConstant);
+        return handleFloatValue();
       }
 
-    } else if (value instanceof BooleanValue) {
-      return booleanFormulaManager.makeBoolean(((BooleanValue)value).isTrue());
-
-    } else if (value instanceof SymbolicValue) {
-      return ((SymbolicValue) value).accept(this);
+    } else if (pValue instanceof BooleanValue) {
+      return booleanFormulaManager.makeBoolean(((BooleanValue)pValue).isTrue());
     }
 
     return null; // if we can't handle it, 'abort'
   }
 
-  private Formula handleFloatValue(ConstantSymbolicExpression pExpression) {
-    return formulaManager.makeVariable(getFormulaType(pExpression.getType()),
+  private Formula handleFloatValue() {
+    return formulaManager.makeVariable(FormulaType.IntegerType,
                                        FLOAT_VAR_NAME + floatVariableAmount++);
   }
 
   @Override
   public Formula visit(SymbolicIdentifier pValue) {
-    return formulaManager.makeVariable(FormulaType.IntegerType, getVariableName(pValue));
+
+    if (valueState.hasKnownValue(pValue)) {
+      return createFormulaFromConcreteValue(valueState.getValueFor(pValue));
+
+    } else {
+      return formulaManager.makeVariable(FormulaType.IntegerType, getVariableName(pValue));
+    }
   }
 
   private String getVariableName(SymbolicIdentifier pValue) {

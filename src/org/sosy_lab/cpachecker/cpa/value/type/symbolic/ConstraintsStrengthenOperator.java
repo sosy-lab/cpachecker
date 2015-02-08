@@ -29,23 +29,16 @@ import java.util.Map;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
-import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 
 import com.google.common.base.Optional;
 
 /**
- * Strengthener for ValueAnalysis with ConstraintsCPA.
+ * Strengthener for ValueAnalysis with {@link ConstraintsCPA}.
  */
 public class ConstraintsStrengthenOperator {
 
@@ -103,26 +96,11 @@ public class ConstraintsStrengthenOperator {
       final SymbolicIdentifier identifierToReplace = onlyValidAssignment.getKey();
       final Value newIdentifierValue = onlyValidAssignment.getValue();
 
-      for (Map.Entry<ValueAnalysisState.MemoryLocation, Value> valueEntry : pValueState.getConstantsMapView().entrySet()) {
-        final Value currentValue = valueEntry.getValue();
-        final ValueAnalysisState.MemoryLocation memLoc = valueEntry.getKey();
-        final Type storageType = pValueState.getTypeForMemoryLocation(memLoc);
-
-        if (currentValue instanceof SymbolicIdentifier) {
-          newElement.assignConstant(memLoc, cast(newIdentifierValue, storageType), storageType);
-
-        } else if (currentValue instanceof SymbolicValue) {
-          IdentifierReplacer replacer = new IdentifierReplacer(identifierToReplace, newIdentifierValue,
-              machineModel, logger);
-
-          Value valueAfterReplacingIdentifier = ((SymbolicValue) currentValue).accept(replacer);
-
-          if (!valueAfterReplacingIdentifier.equals(currentValue)) {
-            newElement.assignConstant(memLoc, valueAfterReplacingIdentifier, storageType);
-            somethingChanged = true;
-          }
-        }
+      if (!newElement.hasKnownValue(identifierToReplace)) {
+        somethingChanged = true;
       }
+
+      newElement.assignConstant(identifierToReplace, newIdentifierValue);
     }
 
     if (somethingChanged) {
@@ -130,47 +108,6 @@ public class ConstraintsStrengthenOperator {
     } else {
       // null represents 'no change'
       return null;
-    }
-  }
-
-  private Value cast(Value pValue, Type pToType) {
-    if (pToType instanceof CType && pValue instanceof NumericValue) {
-      CType fromType = getNumericCFromType((NumericValue) pValue);
-
-      return AbstractExpressionValueVisitor.castCValue(pValue, fromType, (CType) pToType, machineModel, logger, null);
-
-    } else if (pToType instanceof JType && pValue instanceof NumericValue) {
-      JType fromType = getNumericJFromType((NumericValue) pValue);
-
-      return AbstractExpressionValueVisitor.castJValue(pValue, fromType, (JType)pToType, logger, null);
-    }
-
-    return pValue;
-  }
-
-  private CSimpleType getNumericCFromType(NumericValue pValue) {
-    final long longVal = pValue.longValue();
-    final double doubleVal = pValue.doubleValue();
-
-    if (doubleVal % 1 == doubleVal) {
-      return CNumericTypes.LONG_DOUBLE;
-
-    } else if (longVal < 0) {
-      return CNumericTypes.LONG_LONG_INT;
-
-    } else {
-      assert longVal >= 0;
-      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
-    }
-  }
-
-  private JSimpleType getNumericJFromType(NumericValue pValue) {
-    final double doubleVal = pValue.doubleValue();
-
-    if (doubleVal % 1 == doubleVal) {
-      return JSimpleType.getLong();
-    } else {
-      return JSimpleType.getDouble();
     }
   }
 }

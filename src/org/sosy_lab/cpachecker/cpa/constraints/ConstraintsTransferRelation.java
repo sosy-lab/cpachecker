@@ -160,13 +160,14 @@ public class ConstraintsTransferRelation
     return state;
   }
 
-  private ConstraintsState getNewState(ConstraintsState pOldState, AExpression pExpression, ConstraintFactory pFactory,
-      boolean pTruthAssumption, FileLocation pFileLocation) throws SolverException, InterruptedException {
+  private ConstraintsState getNewState(ConstraintsState pOldState, ValueAnalysisState pValueState, AExpression pExpression,
+      ConstraintFactory pFactory, boolean pTruthAssumption, FileLocation pFileLocation)
+        throws SolverException, InterruptedException {
 
     ConstraintsState newState = pOldState.copyOf();
 
     if (!newState.isInitialized()) {
-      newState.initialize(solver, formulaManager, getFormulaCreator());
+      newState.initialize(solver, formulaManager, getFormulaCreator(pValueState));
     }
 
     try {
@@ -174,13 +175,12 @@ public class ConstraintsTransferRelation
 
       if (newConstraint.isPresent()) {
         newState.add(newConstraint.get());
-        newState = new StateSimplifier(machineModel, logger).replaceSymbolicIdentifiersWithConcreteValues(newState);
 
         if (newState.isUnsat()) {
           return null;
 
         } else {
-          newState = simplify(newState);
+          newState = simplify(newState, pValueState);
 
           return newState;
         }
@@ -197,10 +197,10 @@ public class ConstraintsTransferRelation
     return newState;
   }
 
-  private FormulaCreator<? extends Formula> getFormulaCreator() {
+  private FormulaCreator<? extends Formula> getFormulaCreator(ValueAnalysisState pValueState) {
     switch (formulaNumberHandling) {
       case INTEGER:
-        return new IntegerFormulaCreator(formulaManager);
+        return new IntegerFormulaCreator(formulaManager, pValueState);
       case BITVECTOR:
         return new BitvectorFormulaCreator(formulaManager, machineModel);
       default:
@@ -297,10 +297,10 @@ public class ConstraintsTransferRelation
     return Optional.fromNullable(constraint);
   }
 
-  private ConstraintsState simplify(ConstraintsState pState) {
+  private ConstraintsState simplify(ConstraintsState pState, ValueAnalysisState pValueState) {
     StateSimplifier simplifier = new StateSimplifier(machineModel, logger);
 
-    return simplifier.simplify(pState);
+    return simplifier.simplify(pState, pValueState);
   }
 
   @Override
@@ -366,7 +366,7 @@ public class ConstraintsTransferRelation
     ConstraintsState newState = null;
     try {
       newState =
-          getNewState(pStateToStrengthen, missingInformationExpression, factory, missingInformationTruth, fileLocation);
+          getNewState(pStateToStrengthen, pStrengtheningState, missingInformationExpression, factory, missingInformationTruth, fileLocation);
 
     } catch (SolverException | InterruptedException e) {
       logger.logUserException(Level.WARNING, e, fileLocation.toString());
