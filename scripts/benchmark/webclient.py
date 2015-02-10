@@ -55,7 +55,7 @@ except:
 from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
 from . import util as Util
 
-RESULT_KEYS = ["cputime", "walltime", "energy" ]
+RESULT_KEYS = ["cputime", "walltime"]
 
 MAX_SUBMISSION_THREADS = 5
 
@@ -440,15 +440,12 @@ def _parseCloudResultFile(filePath):
     cpuTime = None
     memUsage = None
     returnValue = None
-    energy = None
     
     values = _parseFile(filePath)   
 
     returnValue = int(values["@vcloud-exitcode"])
     wallTime = float(values["walltime"].strip('s'))
     cpuTime = float(values["cputime"].strip('s'))
-    if "energy" in values:
-        values["energy"] = eval(values["energy"])
     values["memUsage"] = int(values["@vcloud-memory"].strip('B'))     
     
     return (wallTime, cpuTime, returnValue, values)
@@ -460,7 +457,7 @@ def _parseFile(filePath):
         for line in file:
             (key, value) = line.split("=", 1)
             value = value.strip()
-            if key in RESULT_KEYS:
+            if key in RESULT_KEYS or key.startswith("energy"):
                 values[key] = value
             else:
                 # "@" means value is hidden normally

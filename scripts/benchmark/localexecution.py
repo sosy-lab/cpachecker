@@ -487,12 +487,18 @@ class _Worker(threading.Thread):
                 workingDir=benchmark.workingDirectory(),
                 maxLogfileSize=maxLogfileSize)
 
-        run.wallTime = result['walltime']
-        run.cpuTime = result['cputime']
-        if 'memory' in result:
-            run.values['memUsage'] = result['memory']
-        if 'energy' in result:
-            run.values['energy'] = result['energy']
+        for key, value in result.items():
+            if key == 'walltime':
+                run.wallTime == value
+            elif key == 'cputime':
+                run.cpuTime = value
+            elif key == 'memory':
+                run.values['memUsage'] = result['memory']
+            elif key == 'energy':
+                for ekey, evalue in value.items():
+                    run.values['energy-'+ekey] = evalue
+            else:
+                run.values['@' + key] = value
 
         if self.runExecutor.PROCESS_KILLED:
             # If the run was interrupted, we ignore the result and cleanup.

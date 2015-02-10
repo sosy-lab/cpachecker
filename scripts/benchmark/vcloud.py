@@ -333,7 +333,7 @@ def parseCloudRunResultFile(filePath):
             elif key == 'exitcode':
                 returnValue = int(value)
                 values['@exitcode'] = value
-            elif key == "host":
+            elif key == "host" or key.startswith("energy-"):
                 values[key] = value
             else:
                 # "@" means value is hidden normally

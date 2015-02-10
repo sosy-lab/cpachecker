@@ -139,7 +139,9 @@ def main(argv=None):
     print("walltime=" + str(result['walltime']) + "s")
     print("cputime=" + str(result['cputime']) + "s")
     printOptionalResult('memory')
-    printOptionalResult('energy')
+    if 'energy' in result:
+        for key, value in result['energy'].items():
+            print("energy-{0}={1}".format(key, value))
 
 if __name__ == "__main__":
     sys.exit(main())
