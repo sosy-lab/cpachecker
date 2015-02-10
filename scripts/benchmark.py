@@ -42,9 +42,6 @@ import benchmark.util as Util
 from benchmark.outputHandler import OutputHandler
 
 
-DEFAULT_APPENGINE_URI = 'http://cpachecker.appspot.com'
-DEFAULT_APPENGINE_POLLINTERVAL = 60 # seconds
-
 # next lines are needed for stopping the script
 STOPPED_BY_INTERRUPT = False
 
@@ -152,6 +149,11 @@ def main(argv=None):
                       metavar="N",
                       help="Limit each run of the tool to N CPU cores (-1 to disable).")
 
+    parser.add_argument("--maxLogfileSize",
+                      dest="maxLogfileSize", type=int, default=20,
+                      metavar="MB",
+                      help="Shrink logfiles to given size in MB, if they are too big. (-1 to disable, default value: 20 MB).")
+
     parser.add_argument("--commit", dest="commit",
                       action="store_true",
                       help="If the output path is a git repository without local changes, "
@@ -186,7 +188,7 @@ def main(argv=None):
                       help="Sets the priority for this benchmark used in the VerifierCloud. Possible values are IDLE, LOW, HIGH, URGENT.")
 
     vcloud_args.add_argument("--cloudCPUModel",
-                      dest="cloudCPUModel", type=str, default=None,
+                      dest="cpuModel", type=str, default=None,
                       metavar="CPU_MODEL",
                       help="Only execute runs in the VerifierCloud on CPU models that contain the given string.")
    
@@ -204,11 +206,6 @@ def main(argv=None):
                       dest="reprocessResults",
                       action="store_true",
                       help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored (use --startTime to point the script to the results).")
-    
-    parser.add_argument("--maxLogfileSize",
-                      dest="maxLogfileSize", type=int, default=20,
-                      metavar="SIZE",
-                      help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
 
     appengine_args = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
     appengine_args.add_argument("--appengine",
@@ -219,14 +216,14 @@ def main(argv=None):
     appengine_args.add_argument("--appengineURI",
                       dest="appengineURI",
                       metavar="URI",
-                      default=DEFAULT_APPENGINE_URI,
+                      default='http://cpachecker.appspot.com',
                       type=str,
                       help="Sets the URI to use when submitting tasks to App Engine.")
     
     appengine_args.add_argument("--appenginePollInterval",
                       dest="appenginePollInterval",
-                      metavar="INTERVAL",
-                      default=DEFAULT_APPENGINE_POLLINTERVAL,
+                      metavar="SECONDS",
+                      default=60,
                       type=int,
                       help="Sets the interval in seconds after which App Engine is polled for results.")
     
