@@ -320,7 +320,13 @@ def _getMemoryBanksPerRun(coreAssignment, cgroupCpuset):
             result.append(allowedMems)
 
         assert len(result) == len(coreAssignment)
-        return result
+
+        if any(result) and os.path.isdir('/sys/devices/system/node/'):
+            return result
+        else:
+            # All runs get the empty list of memory regions
+            # because this system has no NUMA support
+            return None
     except ValueError as e:
         sys.exit("Could not read memory information from kernel: {0}".format(e))
 
@@ -353,6 +359,10 @@ def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
                 sys.exit("Cgroups allow only {} bytes of memory to be used, cannot execute runs with {} bytes of memory.".format(actualLimit, memLimit))
             elif actualLimit < memLimit * numOfThreads:
                 sys.exit("Cgroups allow only {} bytes of memory to be used, not enough for {} benchmarks with {} bytes each. Please reduce the number of threads".format(actualLimit, numOfThreads, memLimit))
+
+        if not os.path.isdir('/sys/devices/system/node/'):
+            logging.debug("System without NUMA support in Linux kernel, ignoring memory assignment.")
+            return
 
         cgroups.initCgroup(cgroupsParents, 'memory')
         cgroupMemory = cgroupsParents['memory']
