@@ -41,9 +41,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -63,7 +67,8 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
 
 
-  private String currentFunctionName = null;
+  private CFunctionDeclaration currentFunction = null;
+  private Optional<CVariableDeclaration> returnVariable = null;
 
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
@@ -95,9 +100,20 @@ class FunctionScope extends AbstractScope {
   }
 
   public void enterFunction(CFunctionDeclaration pFuncDef) {
-    checkState(currentFunctionName == null);
-    currentFunctionName = pFuncDef.getOrigName();
-    checkArgument(functions.containsKey(currentFunctionName));
+    checkState(currentFunction == null);
+    currentFunction = checkNotNull(pFuncDef);
+    checkArgument(functions.containsKey(getCurrentFunctionName()));
+
+    if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
+      returnVariable = Optional.absent();
+    } else {
+      @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
+      String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
+      returnVariable = Optional.of(
+          new CVariableDeclaration(currentFunction.getFileLocation(), false,
+            CStorageClass.AUTO, currentFunction.getType().getReturnType(),
+            name, name, createScopedNameOf(name), null));
+    }
   }
 
   public void enterBlock() {
@@ -193,7 +209,7 @@ class FunctionScope extends AbstractScope {
 
   @Override
   public String createScopedNameOf(String pName) {
-    return createQualifiedName(currentFunctionName, pName);
+    return createQualifiedName(getCurrentFunctionName(), pName);
   }
 
   /**
@@ -288,7 +304,13 @@ class FunctionScope extends AbstractScope {
   }
 
   public String getCurrentFunctionName() {
-    return currentFunctionName;
+    checkState(currentFunction != null);
+    return currentFunction.getOrigName();
+  }
+
+  public Optional<CVariableDeclaration> getReturnVariable() {
+    checkState(returnVariable != null);
+    return returnVariable;
   }
 
   @Override

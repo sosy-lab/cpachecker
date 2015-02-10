@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import static org.sosy_lab.cpachecker.util.VariableClassification.createFunctionReturnVariable;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -142,16 +139,19 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       = ImmutableMap.of("pthread_create", "threads");
 
   private final LogManager logger;
+  private final boolean splitDisequalities;
 
   private final Set<CFANode> loopHeads;
 
   /**
    * Class constructor.
+   * @param pSplitDisequalities
    * @throws InvalidCFAException
    * @throws InvalidConfigurationException
    */
-  public ApronTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
+  public ApronTransferRelation(LogManager log, CFA cfa, boolean pSplitDisequalities) throws InvalidCFAException {
     logger = log;
+    splitDisequalities = pSplitDisequalities;
 
     if (!cfa.getLoopStructure().isPresent()) {
       throw new InvalidCFAException("OctagonCPA does not work without loop information!");
@@ -183,7 +183,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     try {
       new ApronManager(Configuration.defaultConfiguration());
     } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
+      throw new AssertionError(e);
     }
     done = true;
     }
@@ -348,10 +348,23 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
                                                                                                    right,
                                                                                                    increasedLeft)))));
             } else {
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
+
+              if(splitDisequalities) {
+                // use same trick as in octagon analysis since disequality does not seem to work
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     left,
+                                                                                                     right)))));
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     right,
+                                                                                                     left)))));
+              } else {
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
                                                                 new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
                                                                                                    left,
                                                                                                    right)))));
+              }
             }
           }
           break;
@@ -459,10 +472,22 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
                                                                                                    right,
                                                                                                    increasedLeft)))));
             } else {
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
+              if(splitDisequalities) {
+                // use same trick as in octagon analysis since disequality does not seem to work
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     left,
+                                                                                                     right)))));
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     right,
+                                                                                                     left)))));
+              } else {
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
                                                                 new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
                                                                                                    left,
                                                                                                    right)))));
+              }
             }
           } else {
             possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ,
@@ -517,7 +542,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
           break;
         default:
-          throw new CFAGenerationRuntimeException("unhandled case in switch statement: " + binExp.getOperator());
+          throw new UnrecognizedCCodeException("unknown binary operator", edge, binExp);
         }
       }
     }
@@ -568,7 +593,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       result = (pLeftVal + pRightVal) != 0;
       break;
     default:
-      throw new CFAGenerationRuntimeException("unhandled switch case: " + pBinaryOperator);
+      throw new AssertionError("unhandled binary operator" + pBinaryOperator);
     }
     if ((truthAssumption && result)
         || (!truthAssumption && !result)) {
@@ -654,8 +679,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0),
-                                                      getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+    if (functionEntryNode.getReturnVariable().isPresent()) {
+      possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, functionEntryNode.getReturnVariable().get().getName(), 0),
+          getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+    } else {
+      possibleStates.add(state);
+    }
 
     // declare all parameters as variables
     for (int i = 0; i < parameters.size(); i++) {
@@ -715,7 +744,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
-      MemoryLocation returnVarName = MemoryLocation.valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0);
+      MemoryLocation returnVarName = MemoryLocation.valueOf(calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName(), 0);
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 
@@ -877,13 +906,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       variableName = ((CFieldReference) left).getFieldOwner().toASTString();
     } else {
       variableName = ((CIdExpression) left).toASTString();
-
-      if (!isGlobal(left)) {
-        variableName = buildVarName(functionName, variableName);
-      }
     }
 
-    if (isGlobal(left)) {
+    if (!isGlobal(left)) {
       return MemoryLocation.valueOf(functionName, variableName, 0);
     } else {
       return MemoryLocation.valueOf(variableName);
@@ -903,7 +928,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       return Collections.singleton(state);
     }
 
-    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), createFunctionReturnVariable(functionName), 0);
+    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getName(), 0);
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here

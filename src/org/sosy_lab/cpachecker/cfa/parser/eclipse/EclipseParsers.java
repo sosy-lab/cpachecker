@@ -95,6 +95,7 @@ public class EclipseParsers {
         @SuppressWarnings("unchecked")
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(C_PARSER_CLASS);
         parserConstructor = parserClass.getConstructor(new Class<?>[]{ Configuration.class, LogManager.class, Dialect.class, MachineModel.class });
+        parserConstructor.setAccessible(true);
         loadedCParser = new WeakReference<Constructor<? extends CParser>>(parserConstructor);
       }
 
@@ -115,6 +116,7 @@ public class EclipseParsers {
         @SuppressWarnings("unchecked")
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(JAVA_PARSER_CLASS);
         parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class, Configuration.class });
+        parserConstructor.setAccessible(true);
         loadedJavaParser = new WeakReference<Constructor<? extends Parser>>(parserConstructor);
       }
 

@@ -31,9 +31,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
@@ -51,13 +53,15 @@ public class ParallelPartitionReader implements Runnable {
   private final PartitioningIOHelper ioHelper;
 
   private final PCStrategyStatistics stats;
+  private final LogManager logger;
 
   private static final Lock lock = new ReentrantLock();
 
 
   public ParallelPartitionReader(final AtomicBoolean isSuccess, final Semaphore partitionsRead,
       final Semaphore pPartitionChecked, final AtomicInteger nextPartitionId, final AbstractStrategy proofReader,
-      final PartitioningIOHelper pIOHelper, final PCStrategyStatistics pStats) {
+      final PartitioningIOHelper pIOHelper, final PCStrategyStatistics pStats,
+      final LogManager pLogger) {
     success = isSuccess;
     waitRead = partitionsRead;
     partitionChecked = pPartitionChecked;
@@ -65,12 +69,14 @@ public class ParallelPartitionReader implements Runnable {
     strategy = proofReader;
     ioHelper = pIOHelper;
     stats = pStats;
+    logger = pLogger;
   }
 
   public ParallelPartitionReader(final AtomicBoolean isSuccess, final Semaphore partitionsRead,
       final AtomicInteger nextPartitionId, final AbstractStrategy proofReader,
-      final PartitioningIOHelper pIOHelper, final PCStrategyStatistics pStats) {
-    this(isSuccess, partitionsRead, null, nextPartitionId, proofReader, pIOHelper, pStats);
+      final PartitioningIOHelper pIOHelper, final PCStrategyStatistics pStats,
+      final LogManager pLogger) {
+    this(isSuccess, partitionsRead, null, nextPartitionId, proofReader, pIOHelper, pStats, pLogger);
   }
 
 
@@ -92,10 +98,10 @@ public class ParallelPartitionReader implements Runnable {
         ioHelper.readPartition(streams.getThird(), stats, lock);
         waitRead.release();
       } catch (IOException | ClassNotFoundException e) {
+        logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
         prepareAbortion();
       } catch (Exception e2) {
-        System.out.println("Unexptected failure");
-        e2.printStackTrace();
+        logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         prepareAbortion();
       } finally {
         if (streams != null) {

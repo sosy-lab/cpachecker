@@ -40,7 +40,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -97,15 +97,15 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all static field declarations
    * @return global declarations
    */
-  public List<Pair<IADeclaration, String>> getStaticFieldDeclarations() {
+  public List<Pair<ADeclaration, String>> getStaticFieldDeclarations() {
 
     Map<String, JFieldDeclaration> staticFieldDeclarations
                                   = scope.getStaticFieldDeclarations();
 
-    List<Pair<IADeclaration, String>> result = new ArrayList<> (staticFieldDeclarations.size());
+    List<Pair<ADeclaration, String>> result = new ArrayList<> (staticFieldDeclarations.size());
 
     for (Entry<String, JFieldDeclaration> entry : staticFieldDeclarations.entrySet()) {
-      IADeclaration declaration = entry.getValue();
+      ADeclaration declaration = entry.getValue();
       result.add(Pair.of(declaration, entry.getKey()));
     }
 

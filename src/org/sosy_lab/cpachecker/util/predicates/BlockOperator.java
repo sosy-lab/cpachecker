@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -33,10 +35,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 /**
  * This class implements the blk operator from the paper
@@ -113,10 +117,12 @@ public class BlockOperator {
   /**
    * Check whether an abstraction should be computed.
    *
-   * @param succLoc Successor CFA location.
-   * @param predLoc Predecessor CFA location.
+   * @param succLoc Successor CFA location (of the analysis).
+   * @param predLoc Predecessor CFA location (of the analysis).
+   *
+   *   ATTENTION: for the backwards analysis the successor/predecessor of the edge do not match succLoc/predLoc.
+   *
    * @param edge    The edge between succLoc and predLoc.
-   *    ATTENTION: for the backwards analysis the successor/predecessor of the edge do not match succLoc/predLoc.
    *
    * @return true if succLoc is an abstraction location. For now a location is
    * an abstraction location if it has an incoming loop-back edge, if it is
@@ -134,7 +140,7 @@ public class BlockOperator {
       return true;
     }
 
-    if (alwaysAtEntryFunctionHead && isFunctionHead(edge)) {
+    if (alwaysAtEntryFunctionHead && isFirstLocationInFunctionBody(succLoc)) {
       Preconditions.checkNotNull(cfa);
       if (cfa.getMainFunction().getFunctionName().equals(edge.getPredecessor().getFunctionName())) {
         numBlkEntryFunctionHeads++;
@@ -265,5 +271,20 @@ public class BlockOperator {
 
   private boolean isBeforeFunctionCall(CFANode succLoc) {
     return succLoc.getLeavingSummaryEdge() != null;
+  }
+
+  public static boolean isFirstLocationInFunctionBody(CFANode pLoc) {
+    Collection<CFAEdge> edges = Lists.newArrayList(CFAUtils.enteringEdges(pLoc));
+
+    for (CFAEdge edge: edges) {
+      if (edge instanceof CDeclarationEdge )  {
+        CDeclarationEdge e = (CDeclarationEdge) edge;
+        if (e.getDeclaration() instanceof CFunctionDeclaration) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 }

@@ -7,8 +7,8 @@
 <option name="-disable-java-assertions"/>
 <option name="-setprop">statistics.memory=false</option>
 
-<rundefinition name="ReachDef_ExplicitDF">
-	<option name="-reachingdef-explicit"/>
+<rundefinition name="ReachDef_ValueDF">
+	<option name="-reachingdef-value"/>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
@@ -19,8 +19,8 @@
 		</sourcefiles>
 </rundefinition>
 
-<rundefinition name="ReachDef_ExplicitJOINSEP">
-	<option name="-reachingdef-explicit"/>
+<rundefinition name="ReachDef_ValueJOINSEP">
+	<option name="-reachingdef-value"/>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
 			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
@@ -30,8 +30,8 @@
 		</sourcefiles>
 </rundefinition>
 
-<rundefinition name="ReachDef_ExplicitSEPJOIN">
-	<option name="-reachingdef-explicit"/>
+<rundefinition name="ReachDef_ValueSEPJOIN">
+	<option name="-reachingdef-value"/>
 	<option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.reachdef.ReachingDefCPA, cpa.value.ValueAnalysisCPA, cpa.conditions.global.GlobalConditionsCPA</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.reachdef.merge=SEP</option>
@@ -44,8 +44,8 @@
 		</sourcefiles>
 </rundefinition>
 
-<rundefinition name="ReachDef_ExplicitMC">
-	<option name="-reachingdef-explicit"/>
+<rundefinition name="ReachDef_ValueMC">
+	<option name="-reachingdef-value"/>
 	<option name="-setprop">cpa.reachdef.merge=SEP</option>
 		<sourcefiles name="DFS">
 			<option name="-setprop">analysis.traversal.order=DFS</option>
@@ -67,8 +67,8 @@
 		</sourcefiles>
 </rundefinition>
 
-<rundefinition name="ExplicitDF">
-	<option name="-explicitAnalysis-pcc-trac-all"/>
+<rundefinition name="ValueDF">
+	<option name="-valueAnalysis-pcc-trac-all"/>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>
@@ -80,7 +80,7 @@
 </rundefinition>
 
 <rundefinition name="StructureTest">
-	<option name="-reachingdef-explicit"/>
+	<option name="-reachingdef-value"/>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 		<sourcefiles name="BFS">
 			<option name="-setprop">analysis.traversal.order=BFS</option>

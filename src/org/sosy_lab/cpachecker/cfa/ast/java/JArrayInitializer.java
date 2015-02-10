@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.util.List;
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  * the array cell is initialized with from left to right.
  *
  */
-public class JArrayInitializer extends AExpression implements JAstNode, JInitializer, JExpression {
+public class JArrayInitializer extends AbstractExpression implements JAstNode, JInitializer, JExpression {
 
   private final List<JExpression> initializerExpressions;
 

@@ -50,7 +50,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public PrecisionAdjustmentResult prec(AbstractState pElement,
-      Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+      Precision oldPrecision, UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof ARGState);
     ARGState element = (ARGState)pElement;
@@ -66,7 +66,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     AbstractState oldElement = element.getWrappedState();
 
-    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements, fullState);
 
     // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple children
     if (unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {

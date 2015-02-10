@@ -23,15 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.util.Objects;
-
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CCastExpression extends AExpression implements CExpression {
-
-  private final CExpression operand;
+public final class CCastExpression extends ACastExpression implements CExpression {
 
   /**
    * @param pFileLocation where is this cast?
@@ -41,8 +37,7 @@ public final class CCastExpression extends AExpression implements CExpression {
   public CCastExpression(final FileLocation pFileLocation,
                             final CType pExpressionType,
                             final CExpression pOperand) {
-    super(pFileLocation, pExpressionType);
-    operand = pOperand;
+    super(pFileLocation, pExpressionType, pOperand);
   }
 
   /** returns the target-type of the cast-expression.
@@ -52,8 +47,14 @@ public final class CCastExpression extends AExpression implements CExpression {
     return (CType)super.getExpressionType();
   }
 
+  @Override
   public CExpression getOperand() {
-    return operand;
+    return (CExpression)super.getOperand();
+  }
+
+  @Override
+  public CType getCastType() {
+    return (CType) super.getCastType();
   }
 
   @Override
@@ -71,11 +72,6 @@ public final class CCastExpression extends AExpression implements CExpression {
     return pV.visit(this);
   }
 
-  @Override
-  public String toASTString() {
-    return "(" + getExpressionType().toASTString("") + ")" + operand.toParenthesizedASTString();
-  }
-
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */
@@ -83,7 +79,6 @@ public final class CCastExpression extends AExpression implements CExpression {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(operand);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -97,14 +92,11 @@ public final class CCastExpression extends AExpression implements CExpression {
       return true;
     }
 
-    if (!(obj instanceof CCastExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CCastExpression)) {
       return false;
     }
 
-    CCastExpression other = (CCastExpression) obj;
-
-    return Objects.equals(other.operand, operand);
+    return super.equals(obj);
   }
 
 }

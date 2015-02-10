@@ -32,6 +32,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Interface for the precision adjustment operator.
@@ -49,7 +50,7 @@ public interface PrecisionAdjustment {
   }
 
   /**
-   * Represents the result to a call to {@link PrecisionAdjustment#prec(AbstractState, Precision, UnmodifiableReachedSet)}.
+   * Represents the result to a call to {@link PrecisionAdjustment#prec(AbstractState, Precision, UnmodifiableReachedSet, AbstractState)}.
    * Contains the (possibly changed) abstract abstractState and precision,
    * and an {@link Action} instance (all are not null).
    */
@@ -132,13 +133,18 @@ public interface PrecisionAdjustment {
    * If this method doesn't change anything, it is strongly recommended to return
    * the identical objects for abstractState and precision. This makes it easier for
    * wrapper CPAs.
+   * @param state The current abstract state for this CPA.
+   * @param precision The current precision for this CPA.
+   * @param states The current reached set with the abstract states for this CPA.
+   * @param fullState The current abstract state, but for all CPAs
+   * (This can be used to access information stored in abstract states of other CPAs
+   * such as the current CFA location. Use methods from {@link AbstractStates}
+   * to access the individual states.).
    *
-   * @param abstractState The current abstract abstractState.
-   * @param precision The current precision.
-   * @param states The current reached set.
-   * @return The new abstractState, new precision and the action flag.
+   * @return The new abstract state, new precision and the action flag
+   * encapsulated in a {@link PrecisionAdjustmentResult} instance.
    */
   public PrecisionAdjustmentResult prec(
-      AbstractState state, Precision precision, UnmodifiableReachedSet states)
+      AbstractState state, Precision precision, UnmodifiableReachedSet states, AbstractState fullState)
       throws CPAException, InterruptedException;
 }

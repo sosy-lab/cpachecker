@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
@@ -66,7 +65,7 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
  * This class models the dynamic Bindings of Java in a CFA.
  *
  */
-public class DynamicBindingCreator {
+class DynamicBindingCreator {
 
 
   private final ASTConverter astCreator;

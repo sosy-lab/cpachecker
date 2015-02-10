@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import java.util.HashSet;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -58,7 +58,7 @@ public class TargetLocationProvider {
   private final Configuration config;
   private final CFA cfa;
 
-  final static String specificationPropertyName = "specification";
+  private final static String specificationPropertyName = "specification";
 
   public TargetLocationProvider(ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier,
       LogManager pLogManager, Configuration pConfig, CFA pCfa) {
@@ -71,30 +71,28 @@ public class TargetLocationProvider {
   }
 
   public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
-    String specification = config.getProperty(specificationPropertyName);
-    return tryGetAutomatonTargetLocations(pRootNode, specification);
+    return tryGetAutomatonTargetLocations(pRootNode, true);
   }
 
-  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode, @Nullable String specification) {
+  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode, boolean pSkipRecursion) {
     try {
-      // Create new configuration based on existing config but with default set of CPAs
-
-      ConfigurationBuilder configurationBuilder = extractOptionFrom(config, specificationPropertyName);
+      // Create new configuration with default set of CPAs
+      ConfigurationBuilder configurationBuilder = Configuration.builder();
+      if (config.hasProperty(specificationPropertyName)) {
+        configurationBuilder.copyOptionFrom(config, specificationPropertyName);
+      }
       configurationBuilder.setOption("output.disable", "true");
       configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
-      configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
-
-      if (specification == null) {
-        String defaultSpecification = "config/specification/default.spc";
-        configurationBuilder.setOption(specificationPropertyName, defaultSpecification);
-      }
+      configurationBuilder.setOption("cpa.callstack.skipRecursion", Boolean.toString(pSkipRecursion));
 
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
-      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAs(cfa);
+      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAWithSpecAutomatas(cfa);
 
       ReachedSet reached = reachedSetFactory.create();
-      reached.add(cpa.getInitialState(pRootNode), cpa.getInitialPrecision(pRootNode));
+      reached.add(
+          cpa.getInitialState(pRootNode, StateSpacePartition.getDefaultPartition()),
+          cpa.getInitialPrecision(pRootNode, StateSpacePartition.getDefaultPartition()));
       CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
 
       Set<CFANode> result = new HashSet<>();
@@ -110,7 +108,19 @@ public class TargetLocationProvider {
 
       return ImmutableSet.copyOf(result);
 
-    } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
+    } catch (CPAException e) {
+
+      if (!shutdownNotifier.shouldShutdown()) {
+        if ((pSkipRecursion || !pSkipRecursion && !e.toString().toLowerCase().contains("recursion"))) {
+          logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        } else {
+          logManager.logException(Level.FINEST, e, "Recursion detected. Defaulting to selecting all locations.");
+        }
+      }
+
+      return null;
+
+    } catch (InvalidConfigurationException | InterruptedException e) {
 
       if (!shutdownNotifier.shouldShutdown()) {
         logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
@@ -119,31 +129,4 @@ public class TargetLocationProvider {
       return null;
     }
   }
-
-  private ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
-    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
-
-    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
-      pairScanner.useDelimiter("\\s+");
-
-      while (pairScanner.hasNext()) {
-        String pair = pairScanner.next();
-
-        try (Scanner keyScanner = new Scanner(pair)) {
-          keyScanner.useDelimiter("\\s*=\\s*.*");
-
-          if (keyScanner.hasNext()) {
-            String key = keyScanner.next();
-
-            if (!key.equals(pKey)) {
-              builder.clearOption(key);
-            }
-          }
-        }
-      }
-    }
-
-    return builder;
-  }
-
 }

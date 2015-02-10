@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 
 /**
  * This interface represents all sorts of top-level declarations (i.e., declarations
@@ -31,6 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
  * This excludes for examples methods parameter declarations.
  * It includes variables, as well as methods.
  */
-public interface JDeclaration extends IADeclaration, JSimpleDeclaration {
+public interface JDeclaration extends ADeclaration, JSimpleDeclaration {
 
 }

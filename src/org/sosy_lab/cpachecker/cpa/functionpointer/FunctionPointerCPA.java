@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -101,12 +102,12 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return FunctionPointerState.createEmptyState();
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 
@@ -139,7 +140,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
           return false; }
       }
     } catch (CPAException e) {
-      e.printStackTrace();
+      throw new CPATransferException("Cannot compare abstract successors", e);
     }
     return true;
   }

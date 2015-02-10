@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
@@ -59,6 +60,9 @@ import com.google.common.io.Closer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CPAMain {
+
+  static final PrintStream ERROR_OUTPUT = System.err;
+  static final int ERROR_EXIT_CODE = 1;
 
   @SuppressWarnings("resource") // We don't close LogManager
   public static void main(String[] args) {
@@ -72,21 +76,22 @@ public class CPAMain {
         cpaConfig = p.getFirst();
         outputDirectory = p.getSecond();
       } catch (InvalidCmdlineArgumentException e) {
-        System.err.println("Could not process command line arguments: " + e.getMessage());
-        System.exit(1);
+        ERROR_OUTPUT.println("Could not process command line arguments: " + e.getMessage());
+        System.exit(ERROR_EXIT_CODE);
       } catch (IOException e) {
-        System.err.println("Could not read config file " + e.getMessage());
-        System.exit(1);
+        ERROR_OUTPUT.println("Could not read config file " + e.getMessage());
+        System.exit(ERROR_EXIT_CODE);
       }
 
       logManager = new BasicLogManager(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
-      System.err.println("Invalid configuration: " + e.getMessage());
-      System.exit(1);
+      ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
+      System.exit(ERROR_EXIT_CODE);
       return;
     }
     cpaConfig.enableLogging(logManager);
+    GlobalInfo.getInstance().storeLogManager(logManager);
 
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
@@ -110,7 +115,7 @@ public class CPAMain {
       }
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
-      System.exit(1);
+      System.exit(ERROR_EXIT_CODE);
       return;
     }
 

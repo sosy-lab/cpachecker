@@ -27,14 +27,11 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import com.google.common.primitives.Longs;
 
-class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long> {
+class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long, Long> {
 
   private final long mathsatEnv;
 
@@ -50,26 +47,16 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
   }
 
   @Override
-  public <TFormula extends Formula> Long createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType,
-      List<Long> pArgs) {
-    Mathsat5FunctionType<TFormula> mathsatType = (Mathsat5FunctionType<TFormula>) pFuncType;
-
+  protected Long createUninterpretedFunctionCallImpl(Long funcDecl, List<Long> pArgs) {
     long[] args = Longs.toArray(pArgs);
-    long funcDecl = mathsatType.getFuncDecl();
     return createUIFCallImpl(funcDecl, args);
   }
 
   @Override
-  public <T extends Formula> Mathsat5FunctionType<T> declareUninterpretedFunction(
-        String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
-    long[] types = new long[pArgs.size()];
-    for (int i = 0; i < types.length; i++) {
-      types[i] = toSolverType(pArgs.get(i));
-    }
-    long returnType = toSolverType(pReturnType);
-    long decl = createFunctionImpl(pName, returnType, types);
-
-    return new Mathsat5FunctionType<>(pReturnType, pArgs, decl);
+  protected Long declareUninterpretedFunctionImpl(
+        String pName, Long returnType, List<Long> pArgTypes) {
+    long[] types = Longs.toArray(pArgTypes);
+    return createFunctionImpl(pName, returnType, types);
   }
 
   public long createFunctionImpl(String pName, long returnType, long[] msatTypes) {

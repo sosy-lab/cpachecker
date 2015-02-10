@@ -85,25 +85,25 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
-    RepetitionsInPathConditionState element = (RepetitionsInPathConditionState)pElement;
+  public AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge) {
+    RepetitionsInPathConditionState current = (RepetitionsInPathConditionState)pState;
 
     if (!isInteresting(pEdge)) {
-      return element;
+      return current;
     }
 
-    if (element.thresholdReached) {
-      return element;
+    if (current.thresholdReached) {
+      return current;
     }
 
-    Integer repetitions = firstNonNull(element.frequencyMap.get(pEdge), 0);
+    Integer repetitions = firstNonNull(current.frequencyMap.get(pEdge), 0);
     repetitions++;
 
     boolean thresholdReached = (threshold >= 0) && (repetitions >= threshold);
 
     maxRepetitionsInPath = Math.max(repetitions, maxRepetitionsInPath);
 
-    Map<CFAEdge, Integer> newFrequencyMap = Maps.newHashMap(element.frequencyMap);
+    Map<CFAEdge, Integer> newFrequencyMap = Maps.newHashMap(current.frequencyMap);
     newFrequencyMap.put(pEdge, repetitions);
 
     return new RepetitionsInPathConditionState(newFrequencyMap, threshold, thresholdReached);

@@ -27,7 +27,6 @@ import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -37,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JLiteralExpression {
 
   public JIntegerLiteralExpression(FileLocation pFileLocation,  BigInteger pValue) {
-    super(pFileLocation, new JSimpleType(JBasicType.INT), pValue);
+    super(pFileLocation, JSimpleType.getInt(), pValue);
   }
 
   @Override

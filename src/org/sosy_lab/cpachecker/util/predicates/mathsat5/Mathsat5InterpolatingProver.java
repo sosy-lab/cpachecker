@@ -35,11 +35,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnv
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironment<Integer> {
+class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironment<Integer> {
 
   private final boolean useSharedEnv;
 
-  public Mathsat5InterpolatingProver(Mathsat5FormulaManager pMgr, boolean shared) {
+  Mathsat5InterpolatingProver(Mathsat5FormulaManager pMgr, boolean shared) {
     super(pMgr, createConfig(pMgr), shared, false);
     useSharedEnv = shared;
   }

@@ -218,8 +218,8 @@ class PrincessUtil {
 
   /** this function returns all variables in the terms.
    * Doubles are removed. */
-  public static Set<IExpression> getVars(Collection<IExpression> exprList) {
-    Set<IExpression> vars = new HashSet<>();
+  public static Set<IExpression> getVarsAndUIFs(Collection<IExpression> exprList) {
+    Set<IExpression> result = new HashSet<>();
     Set<IExpression> seen = new HashSet<>();
     Deque<IExpression> todo = new ArrayDeque<>(exprList);
 
@@ -229,8 +229,8 @@ class PrincessUtil {
         continue;
       }
 
-      if (isVariable(t)) {
-        vars.add(t);
+      if (isVariable(t) || isUIF(t)) {
+        result.add(t);
       } else if (t.length() > 0) {
         Iterator<IExpression> it = t.iterator();
         while (it.hasNext()) {
@@ -238,7 +238,7 @@ class PrincessUtil {
         }
       }
     }
-    return vars;
+    return result;
   }
 
   /** this function can be used to print a bigger term */

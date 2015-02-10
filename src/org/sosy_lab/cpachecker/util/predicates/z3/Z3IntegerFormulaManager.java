@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import java.math.BigDecimal;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
@@ -42,5 +44,15 @@ class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, In
   @Override
   protected long getNumeralType() {
     return getFormulaCreator().getIntegerType();
+  }
+
+  @Override
+  protected Long makeNumberImpl(double pNumber) {
+    return makeNumberImpl((long)pNumber);
+  }
+
+  @Override
+  protected Long makeNumberImpl(BigDecimal pNumber) {
+    return decimalAsInteger(pNumber);
   }
 }

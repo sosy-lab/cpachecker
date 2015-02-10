@@ -47,7 +47,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * variables along the path.
  *
  * An object of this class can be used to generate
- * a {@link CFAPathWithAssignments} path with concrete assignments.
+ * a {@link CFAPathWithAssumptions} path with concrete assignments.
  * In those paths, the right hand side expressions of the assigments
  * are resolved where possible for each assignment along the path.
  *

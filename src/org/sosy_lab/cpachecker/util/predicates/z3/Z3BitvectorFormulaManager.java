@@ -66,15 +66,9 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
 
   @Override
   protected Long makeBitvectorImpl(int pLength, BigInteger pI) {
-    return makeBitvectorImpl(pLength, pI.toString());
-  }
-
-  @Override
-  public Long makeBitvectorImpl(int pLength, String pI) {
     long sort = mk_bv_sort(z3context, pLength);
-    return mk_numeral(z3context, pI, sort);
+    return mk_numeral(z3context, pI.toString(), sort);
   }
-
 
   @Override
   public Long makeVariableImpl(int length, String varName) {

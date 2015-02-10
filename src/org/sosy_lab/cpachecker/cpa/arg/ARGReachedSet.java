@@ -83,7 +83,7 @@ public class ARGReachedSet {
    * This constructor may be used only during an refinement
    * which should be added to the refinement graph .dot file.
    */
-  ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
+  public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
     mReached = checkNotNull(pReached);
     mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
 

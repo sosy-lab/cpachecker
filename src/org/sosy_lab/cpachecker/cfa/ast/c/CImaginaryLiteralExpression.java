@@ -32,15 +32,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CImaginaryLiteralExpression extends ALiteralExpression implements CLiteralExpression {
 
   private final CLiteralExpression value;
-  private final String imaginary;
 
   public CImaginaryLiteralExpression(FileLocation pFileLocation,
                                     CType pType,
-                                    CLiteralExpression pValue,
-                                    String imaginary) {
+                                    CLiteralExpression pValue) {
     super(pFileLocation, pType);
     value = pValue;
-    this.imaginary = imaginary;
   }
 
   @Override
@@ -65,7 +62,7 @@ public final class CImaginaryLiteralExpression extends ALiteralExpression implem
 
   @Override
   public String toASTString() {
-    return getValue().toString() + imaginary;
+    return getValue().toString() + "i";
   }
 
   @Override
@@ -73,7 +70,6 @@ public final class CImaginaryLiteralExpression extends ALiteralExpression implem
     int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(value);
-    result = prime * result + Objects.hashCode(imaginary);
     return prime * result + super.hashCode();
   }
 
@@ -89,15 +85,11 @@ public final class CImaginaryLiteralExpression extends ALiteralExpression implem
 
     CImaginaryLiteralExpression other = (CImaginaryLiteralExpression) obj;
 
-    return Objects.equals(other.value, value) && Objects.equals(other.imaginary, imaginary);
+    return Objects.equals(other.value, value);
   }
 
   @Override
   public CLiteralExpression getValue() {
     return value;
-  }
-
-  public String getImaginaryString() {
-    return imaginary;
   }
 }

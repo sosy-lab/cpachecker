@@ -31,14 +31,14 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public abstract class AVariableDeclaration extends ADeclaration {
+public abstract class AVariableDeclaration extends AbstractDeclaration {
 
   private final String qualifiedName;
-  private IAInitializer initializer;
+  private AInitializer initializer;
 
   public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       Type pType, String pName, String pOrigName, String pQualifiedName,
-      IAInitializer pInitializer) {
+      AInitializer pInitializer) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName);
     qualifiedName = checkNotNull(pQualifiedName);
     initializer = pInitializer;
@@ -53,7 +53,7 @@ public abstract class AVariableDeclaration extends ADeclaration {
    * The initial value of the variable
    * (only if present, null otherwise).
    */
-  public IAInitializer getInitializer() {
+  public AInitializer getInitializer() {
     return initializer;
   }
 
@@ -73,7 +73,7 @@ public abstract class AVariableDeclaration extends ADeclaration {
     return lASTString.toString();
   }
 
-  protected void addInitializer(IAInitializer pCInitializer) {
+  protected void addInitializer(AInitializer pCInitializer) {
     checkState(getInitializer() == null);
     initializer = pCInitializer;
   }
@@ -86,6 +86,7 @@ public abstract class AVariableDeclaration extends ADeclaration {
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(initializer);
+    result = prime * result + qualifiedName.hashCode();
     result = prime * result + super.hashCode();
     return result;
   }
@@ -106,7 +107,8 @@ public abstract class AVariableDeclaration extends ADeclaration {
 
     AVariableDeclaration other = (AVariableDeclaration) obj;
 
-    return Objects.equals(other.initializer, initializer);
+    return Objects.equals(other.initializer, initializer)
+        && qualifiedName.equals(other.qualifiedName);
   }
 
 }

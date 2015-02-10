@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static org.sosy_lab.cpachecker.cmdline.CPAMain.*;
+
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -114,8 +117,7 @@ class CmdLineArguments {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-cbmc",    "analysis.checkCounterexamples", "true", arg, properties)
-          || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
+      if (   handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
           || handleArgument0("-java",    "language",         "JAVA",            arg, properties)
           || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
@@ -144,6 +146,10 @@ class CmdLineArguments {
           throw new InvalidCmdlineArgumentException("-cpas argument missing.");
         }
 
+      } else if (arg.equals("-cbmc")) {
+        putIfNotExistent(properties, "analysis.checkCounterexamples", "true");
+        putIfNotExistent(properties, "counterexample.checker", "CBMC");
+
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
         putIfNotExistent(properties, "log.consoleLevel", "off");
@@ -170,7 +176,8 @@ class CmdLineArguments {
           final String nextArg = argsIt.next();
           verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
         }
-        System.out.println(OptionCollector.getCollectedOptions(verbose));
+        PrintStream out = System.out;
+        out.println(OptionCollector.getCollectedOptions(verbose));
         System.exit(0);
 
       } else if ("-printUsedOptions".equals(arg)) {
@@ -181,11 +188,11 @@ class CmdLineArguments {
         properties.put("log.consoleLevel", "SEVERE");
 
       } else if (arg.equals("-help") || arg.equals("-h")) {
-        printHelp();
+        printHelp(System.out);
+        System.exit(0);
 
       } else if (arg.startsWith("-") && !(Paths.get(arg).exists())) {
         String argName = arg.substring(1); // remove "-"
-
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
           Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, argName);
 
@@ -194,20 +201,22 @@ class CmdLineArguments {
               Files.checkReadableFile(configFile);
               putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
             } catch (FileNotFoundException e) {
-              System.out.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
-              System.exit(0);
+              ERROR_OUTPUT.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
+              System.exit(ERROR_EXIT_CODE);
             }
           } else {
-            System.out.println("Invalid option " + arg);
-            System.out.println("If you meant to specify a configuration file, the file "
+            ERROR_OUTPUT.println("Invalid option " + arg);
+            ERROR_OUTPUT.println("If you meant to specify a configuration file, the file "
                 + String.format(DEFAULT_CONFIG_FILES_DIR, argName) + " does not exist.");
-            System.out.println("");
-            printHelp();
+            ERROR_OUTPUT.println("");
+            printHelp(ERROR_OUTPUT);
+            System.exit(ERROR_EXIT_CODE);
           }
         } else {
-          System.out.println("Invalid option " + arg);
-          System.out.println("");
-          printHelp();
+          ERROR_OUTPUT.println("Invalid option " + arg);
+          ERROR_OUTPUT.println("");
+          printHelp(ERROR_OUTPUT);
+          System.exit(ERROR_EXIT_CODE);
         }
 
       } else {
@@ -252,36 +261,35 @@ class CmdLineArguments {
     }
   }
 
-  private static void printHelp() {
-    System.out.println("CPAchecker " + CPAchecker.getVersion());
-    System.out.println();
-    System.out.println("OPTIONS:");
-    System.out.println(" -config");
-    System.out.println(" -cpas");
-    System.out.println(" -spec");
-    System.out.println(" -outputpath");
-    System.out.println(" -logfile");
-    System.out.println(" -entryfunction");
-    System.out.println(" -timelimit");
-    System.out.println(" -cbmc");
-    System.out.println(" -stats");
-    System.out.println(" -nolog");
-    System.out.println(" -noout");
-    System.out.println(" -java");
-    System.out.println(" -32");
-    System.out.println(" -64");
-    System.out.println(" -secureMode");
-    System.out.println(" -skipRecursion");
-    System.out.println(" -setprop");
-    System.out.println(" -printOptions [-v|-verbose]");
-    System.out.println(" -printUsedOptions");
-    System.out.println(" -help");
-    System.out.println();
-    System.out.println("You can also specify any of the configuration files in the directory config/");
-    System.out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
-    System.out.println();
-    System.out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
-    System.exit(0);
+  private static void printHelp(PrintStream out) {
+    out.println("CPAchecker " + CPAchecker.getVersion());
+    out.println();
+    out.println("OPTIONS:");
+    out.println(" -config");
+    out.println(" -cpas");
+    out.println(" -spec");
+    out.println(" -outputpath");
+    out.println(" -logfile");
+    out.println(" -entryfunction");
+    out.println(" -timelimit");
+    out.println(" -cbmc");
+    out.println(" -stats");
+    out.println(" -nolog");
+    out.println(" -noout");
+    out.println(" -java");
+    out.println(" -32");
+    out.println(" -64");
+    out.println(" -secureMode");
+    out.println(" -skipRecursion");
+    out.println(" -setprop");
+    out.println(" -printOptions [-v|-verbose]");
+    out.println(" -printUsedOptions");
+    out.println(" -help");
+    out.println();
+    out.println("You can also specify any of the configuration files in the directory config/");
+    out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
+    out.println();
+    out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
   }
 
   private static void putIfNotExistent(final Map<String, String> properties, final String key, final String value)
@@ -342,8 +350,8 @@ class CmdLineArguments {
             if (specFile != null) {
               newValue = specFile.toString();
             } else {
-              System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-              System.exit(0);
+              ERROR_OUTPUT.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+              System.exit(ERROR_EXIT_CODE);
             }
           }
 
@@ -377,13 +385,13 @@ class CmdLineArguments {
                 newValue = REACHABILITY_SPECIFICATION_FILE;
 
               } else {
-                System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
-                System.exit(0);
+                ERROR_OUTPUT.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
+                System.exit(ERROR_EXIT_CODE);
               }
 
             } else {
-              System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-              System.exit(0);
+              ERROR_OUTPUT.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+              System.exit(ERROR_EXIT_CODE);
             }
           }
         }

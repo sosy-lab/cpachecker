@@ -26,9 +26,13 @@ package org.sosy_lab.cpachecker.util.globalinfo;
 import java.io.Serializable;
 import java.util.ArrayList;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
@@ -42,6 +46,9 @@ public class GlobalInfo {
   private ConfigurableProgramAnalysis cpa;
   private FormulaManagerView formulaManager;
   private ArrayList<Serializable> helperStorages = new ArrayList<>();
+  private AbstractionManager absManager;
+  private ApronManager apronManager;
+  private LogManager logger;
 
   private GlobalInfo() {
 
@@ -62,8 +69,8 @@ public class GlobalInfo {
     return Optional.fromNullable(cfaInfo);
   }
 
-  public void storeAutomaton(Automaton automaton) {
-    automatonInfo.register(automaton);
+  public void storeAutomaton(Automaton automaton, ControlAutomatonCPA automatonCPA) {
+    automatonInfo.register(automaton, automatonCPA);
   }
 
   public AutomatonInfo getAutomatonInfo() {
@@ -83,9 +90,34 @@ public class GlobalInfo {
     this.formulaManager = formulaManager;
   }
 
+  public void storeAbstractionManager(AbstractionManager absManager) {
+    this.absManager = absManager;
+  }
+
+  public void storeApronManager(ApronManager pApronManager) {
+    apronManager = pApronManager;
+  }
+
+  public void storeLogManager(LogManager pLogManager) {
+    logger = pLogManager;
+  }
+
   public FormulaManagerView getFormulaManager() {
     Preconditions.checkState(formulaManager != null);
     return formulaManager;
+  }
+
+  public AbstractionManager getAbstractionManager() {
+    Preconditions.checkState(absManager != null);
+    return absManager;
+  }
+
+  public ApronManager getApronManager() {
+    return apronManager;
+  }
+
+  public LogManager getLogManager() {
+    return logger;
   }
 
   public int addHelperStorage(Serializable e) {
@@ -100,4 +132,5 @@ public class GlobalInfo {
   public int getNumberOfHelperStorages() {
     return helperStorages.size();
   }
+
 }

@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,11 +44,11 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -59,12 +60,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
@@ -82,14 +80,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
 
-  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
-      justification="After de-serializing, we only read values from this class, and we don't need types for this.")
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
-
-  /**
-   * the current delta of this state to the previous state
-   */
-  private Set<MemoryLocation> delta;
 
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
@@ -146,7 +137,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   /**
    * This method removes a memory location from the underlying map and returns the removed value.
    *
-   * @param variableName the name of the memory location to remove
+   * @param pMemoryLocation the name of the memory location to remove
    * @return the value of the removed memory location
    */
   public Pair<Value, Type> forget(MemoryLocation pMemoryLocation) {
@@ -220,7 +211,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @throws NullPointerException - if no type is present in this state for the given memory location
    * @return the type associated with the given memory location
    */
-  Type getTypeForMemoryLocation(MemoryLocation loc) {
+  public Type getTypeForMemoryLocation(MemoryLocation loc) {
     return memLocToType.get(loc);
   }
 
@@ -398,7 +389,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       String[] parts = pProperty.split("==");
       if (parts.length != 2) {
         Value value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
-        if (value.isExplicitlyKnown()) {
+        if (value != null && value.isExplicitlyKnown()) {
           return value;
         } else {
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \""
@@ -536,36 +527,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     return difference;
-  }
-
-  /**
-   * This method returns the current delta of this state.
-   *
-   * @return the current delta of this state
-   */
-  public Collection<MemoryLocation> getDelta() {
-    return ImmutableSet.copyOf(delta);
-  }
-
-  /**
-   * This method sets the delta of this state, in relation to the given other state.
-   *
-   * This is used for a more efficient abstraction computation, where only the delta of a state is considered.
-   *
-   * @param other the state to which to compute the delta
-   */
-  void addToDelta(ValueAnalysisState other) {
-    delta = other.getDifference(this);
-    if (other.delta != null) {
-      delta.addAll(other.delta);
-    }
-  }
-
-  /**
-   * This method resets the delta of this state.
-   */
-  void clearDelta() {
-    delta = new HashSet<>(0);
   }
 
   /**
@@ -884,7 +845,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
         rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
 
-      } else if (VariableClassification.FUNCTION_RETURN_VARIABLE.equals(trackedVar.getIdentifier())) {
+      } else if (VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE.equals(trackedVar.getIdentifier())) {
         // lets assume, that RETURN_VAR is only tracked along one edge, which is the ReturnEdge.
         // so that we can ignore the functionname for this condition.
         assert (!rebuildState.contains(trackedVar)) :
@@ -895,9 +856,15 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       }
     }
 
-    // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
-    // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
-    rebuildState.addToDelta(rebuildState);
     return rebuildState;
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException {
+    try {
+      in.defaultReadObject();
+    } catch (ClassNotFoundException e) {
+      throw new IOException("",e);
+    }
+    memLocToType = PathCopyingPersistentTreeMap.of();
   }
 }

@@ -23,38 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 
 /**
-*
-* Abstract class for side-effect free expressions.
-* This class is only SuperClass of all abstract Classes and their Subclasses.
-* The Interface {@link IAExpression} contains all language specific
-* AST Nodes as well.
-*/
-public abstract class AExpression extends ARightHandSide implements IAExpression {
+ * Abstract interface for side-effect free expressions.
+ */
+public interface AExpression extends ARightHandSide {
 
-  public AExpression(FileLocation pFileLocation, Type pType) {
-    super(pFileLocation, pType);
-  }
-
-  @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof AExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
-  }
+  /**
+   * Accept methods for visitors that works with expression of all languages.
+   * It requires a visitor that implements the respective visitor interfaces
+   * for all languages.
+   * If you can, do not call this method but one of the normal "accept" methods.
+   * @param v The visitor.
+   * @return Returns the object returned by the visit method.
+   */
+  <R,
+   R1 extends R,
+   R2 extends R,
+   X1 extends Exception,
+   X2 extends Exception,
+   V extends CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>>
+  R accept_(V v) throws X1, X2;
 }

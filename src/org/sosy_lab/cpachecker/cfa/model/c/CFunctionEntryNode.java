@@ -28,17 +28,22 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+
+import com.google.common.base.Optional;
 
 public class CFunctionEntryNode extends FunctionEntryNode {
 
   public CFunctionEntryNode(final FileLocation pFileLocation,
       final CFunctionDeclaration pFunctionDefinition,
       final FunctionExitNode pExitNode,
-      final List<String> pParameterNames) {
+      final List<String> pParameterNames,
+      final Optional<CVariableDeclaration> pReturnVariable) {
 
-    super(pFileLocation, pFunctionDefinition.getName(), pExitNode, pFunctionDefinition, pParameterNames);
+    super(pFileLocation, pFunctionDefinition.getName(), pExitNode,
+        pFunctionDefinition, pParameterNames, pReturnVariable);
   }
 
   @Override
@@ -46,10 +51,14 @@ public class CFunctionEntryNode extends FunctionEntryNode {
     return  (CFunctionDeclaration)super.getFunctionDefinition();
   }
 
-
-
   @Override
   public List<CParameterDeclaration> getFunctionParameters() {
     return getFunctionDefinition().getParameters();
+  }
+
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  @Override
+  public Optional<CVariableDeclaration> getReturnVariable() {
+    return (Optional<CVariableDeclaration>)super.getReturnVariable();
   }
 }

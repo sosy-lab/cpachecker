@@ -53,9 +53,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -399,8 +401,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       LogManager singleLogger) {
     singleLogger.log(Level.FINE, "Creating initial reached set");
 
-    AbstractState initialState = cpa.getInitialState(mainFunction);
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
+    AbstractState initialState = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
+    Precision initialPrecision = cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
 
     ReachedSet reached = pReachedSetFactory.create();
     reached.add(initialState, initialPrecision);
@@ -413,7 +415,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleLogger.log(Level.FINE, "Creating CPAs");
 
     CPABuilder builder = new CPABuilder(pConfig, singleLogger, singleShutdownNotifier, pReachedSetFactory);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs(cfa);
+    ConfigurableProgramAnalysis cpa = builder.buildCPAWithSpecAutomatas(cfa);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());

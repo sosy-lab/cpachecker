@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.*;
+
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -54,9 +55,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
-
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.RETURN_VARIABLE_NAME;
+import com.google.common.collect.Sets;
 
 
 public class BAMPredicateReducer implements Reducer {
@@ -298,7 +297,7 @@ public class BAMPredicateReducer implements Reducer {
     }
 
     @Override
-    public SetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
+    public ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
       computeView();
       return evaluatedPredicateMap;
     }
@@ -324,9 +323,8 @@ public class BAMPredicateReducer implements Reducer {
           result = evaluatedGlobalPredicates;
         }
         String functionName = context.getCallNode().getFunctionName();
-        result = new HashSet<>(result); //This is ImmutableSet
-        result.addAll(rootPredicatePrecision.getFunctionPredicates().get(functionName));
-        return result;
+        return Sets.union(result, rootPredicatePrecision.getFunctionPredicates().get(functionName))
+            .immutableCopy();
       } else {
         Set<AbstractionPredicate> result =
             relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(loc, locInstance));

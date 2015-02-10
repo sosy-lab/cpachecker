@@ -245,7 +245,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
   private final Map<AssignableTerm, Object> mModel;
 
-  private final CFAPathWithAssignments assignments;
+  private final CFAPathWithAssumptions assignments;
   private final Multimap<CFAEdge, AssignableTerm> assignableTermsPerCFAEdge;
 
   @Override
@@ -259,23 +259,23 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
   private Model() {
     mModel = ImmutableMap.of();
-    assignments = new CFAPathWithAssignments();
+    assignments = new CFAPathWithAssumptions();
     assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
   public Model(Map<AssignableTerm, Object> content) {
     mModel = ImmutableMap.copyOf(content);
-    assignments = new CFAPathWithAssignments();
+    assignments = new CFAPathWithAssumptions();
     assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
-  public Model(Map<AssignableTerm, Object> content, CFAPathWithAssignments pAssignments) {
+  public Model(Map<AssignableTerm, Object> content, CFAPathWithAssumptions pAssignments) {
     mModel = ImmutableMap.copyOf(content);
     assignments = pAssignments;
     assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
-  public Model(Map<AssignableTerm, Object> content, CFAPathWithAssignments pAssignments,
+  public Model(Map<AssignableTerm, Object> content, CFAPathWithAssumptions pAssignments,
       Multimap<CFAEdge, AssignableTerm> pAssignableTermsPerCFAEdge) {
     mModel = ImmutableMap.copyOf(content);
     assignments = pAssignments;
@@ -287,7 +287,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
    * but additionally has information about when each variable was assigned.
    * @see Model#getAssignedTermsPerEdge()
    */
-  public Model withAssignmentInformation(CFAPathWithAssignments pAssignments) {
+  public Model withAssignmentInformation(CFAPathWithAssumptions pAssignments) {
     checkState(assignments.isEmpty());
     return new Model(mModel, pAssignments);
   }
@@ -298,7 +298,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
    * and which
    * @see Model#getAssignedTermsPerEdge()
    */
-  public Model withAssignmentInformation(CFAPathWithAssignments pAssignments,
+  public Model withAssignmentInformation(CFAPathWithAssumptions pAssignments,
       Multimap<CFAEdge, AssignableTerm> pAssignableTermsPerCFAEdge) {
     checkState(assignments.isEmpty());
     return new Model(mModel, pAssignments);
@@ -309,7 +309,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
    * what edge. Note that not every value for every variable is available.
    */
   @Nullable
-  public CFAPathWithAssignments getCFAPathWithAssignments() {
+  public CFAPathWithAssumptions getCFAPathWithAssignments() {
     return assignments;
   }
 
@@ -335,7 +335,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   @Nullable
-  public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
+  public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
 
     if (assignments.isEmpty()) {
       return null;
@@ -345,7 +345,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   @Nullable
-  public CFAPathWithAssignments getExactVariableValuePath(List<CFAEdge> pPath) {
+  public CFAPathWithAssumptions getExactVariableValuePath(List<CFAEdge> pPath) {
 
     if (assignments.isEmpty()) {
       return null;

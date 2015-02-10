@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 
 /**
  * Interface for side-effect free expressions.
  */
-public interface  CExpression  extends CRightHandSide, IAExpression {
+public interface  CExpression  extends CRightHandSide, AExpression {
 
   public  <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 

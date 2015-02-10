@@ -28,27 +28,27 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public abstract class AArraySubscriptExpression extends ALeftHandSide {
+public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
 
 
-  private final IAExpression arrayExpression;
-  private final IAExpression subscriptExpression;
+  private final AExpression arrayExpression;
+  private final AExpression subscriptExpression;
 
   public AArraySubscriptExpression(FileLocation pFileLocation,
       Type pType,
-      final IAExpression pArrayExpression,
-      final IAExpression pSubscriptExpression) {
+      final AExpression pArrayExpression,
+      final AExpression pSubscriptExpression) {
     super(pFileLocation, pType);
     arrayExpression = pArrayExpression;
     subscriptExpression = pSubscriptExpression;
 
   }
 
-  public IAExpression getArrayExpression() {
+  public AExpression getArrayExpression() {
     return arrayExpression;
   }
 
-  public IAExpression getSubscriptExpression() {
+  public AExpression getSubscriptExpression() {
     return subscriptExpression;
   }
 

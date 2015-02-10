@@ -83,12 +83,6 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
-  public Long makeBitvectorImpl(int pLength, String pI) {
-    return msat_make_bv_number(mathsatEnv, pI, pLength, 10);
-  }
-
-
-  @Override
   public Long makeVariableImpl(int length, String var) {
     long bvType = getFormulaCreator().getBitvectorType(length);
     return getFormulaCreator().makeVariable(bvType, var);

@@ -138,4 +138,9 @@ class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
   protected FloatingPointFormula encapsulateFloatingPoint(Long pTerm) {
     return new Mathsat5FloatingPointFormula(pTerm);
   }
+
+  @Override
+  public Long getArrayType(Long pIndexType, Long pElementType) {
+    throw new IllegalArgumentException("MathSAT5.getArrayType(): Implement me!");
+  }
 }

@@ -53,7 +53,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -93,7 +93,7 @@ class CFABuilder extends ASTVisitor {
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations
-  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IADeclaration, String>> globalDeclarations = Lists.newArrayList();
+  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.ADeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   // Data structure for checking amount of initializations per global variable
   private final Set<String> globalInitializedVariables = Sets.newHashSet();
@@ -171,7 +171,7 @@ class CFABuilder extends ASTVisitor {
 
       fileScope.registerFunctionDeclaration(functionDefinition);
       if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
-        globalDeclarations.add(Pair.of((IADeclaration)functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
+        globalDeclarations.add(Pair.of((ADeclaration)functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
         eliminateableDuplicates.add(functionDefinition.toASTString());
       }
 
@@ -223,14 +223,14 @@ class CFABuilder extends ASTVisitor {
     for (CAstNode astNode : sideAssignmentStack.getAndResetPreSideAssignments()) {
       if (astNode instanceof CComplexTypeDeclaration) {
         // already registered
-        globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
+        globalDeclarations.add(Pair.of((ADeclaration)astNode, rawSignature));
       } else if (astNode instanceof CVariableDeclaration) {
         // If the initializer of a global struct contains a type-id expression,
         // a temporary variable is created and we need to support this.
         // We detect this case if the initializer of the temp variable is an initializer list.
         CInitializer initializer = ((CVariableDeclaration)astNode).getInitializer();
         if (initializer instanceof CInitializerList) {
-          globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
+          globalDeclarations.add(Pair.of((ADeclaration)astNode, rawSignature));
         } else {
           throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd, niceFileNameFunction);
         }
@@ -273,7 +273,7 @@ class CFABuilder extends ASTVisitor {
       }
 
       if (used && !eliminateableDuplicates.contains(newD.toASTString())) {
-        globalDeclarations.add(Pair.of((IADeclaration)newD, rawSignature));
+        globalDeclarations.add(Pair.of((ADeclaration)newD, rawSignature));
         eliminateableDuplicates.add(newD.toASTString());
       }
     }
@@ -293,7 +293,7 @@ class CFABuilder extends ASTVisitor {
 
   public ParseResult createCFA() throws CParserException {
     FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(globalScope);
-    for (IADeclaration decl : from(globalDeclarations).transform(Pair.<IADeclaration>getProjectionToFirst())) {
+    for (ADeclaration decl : from(globalDeclarations).transform(Pair.<ADeclaration>getProjectionToFirst())) {
       ((CDeclaration)decl).getType().accept(fillInAllBindingsVisitor);
     }
 

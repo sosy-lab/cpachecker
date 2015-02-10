@@ -171,7 +171,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     AtomicInteger nextPartitionId = new AtomicInteger(0);
     for (int i = 0; i < threads; i++) {
       pReadingExecutor.execute(new ParallelPartitionReader(pCheckResult, partitionsRead, nextPartitionId, this,
-          ioHelper, stats));
+          ioHelper, stats, logger));
     }
   }
 

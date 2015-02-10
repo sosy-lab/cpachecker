@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -34,8 +34,6 @@ import subprocess
 import time
 
 from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
-import cloudRunexecutor as CloudRunExecutor
-from . import filewriter as filewriter
 from . import util as Util
 
 
@@ -48,13 +46,17 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 STOPPED_BY_INTERRUPT = False
 
+_justReprocessResults = False
 
-def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
-    if not justReprocessResults:
+def init(config, benchmark):
+    _justReprocessResults = config.reprocessResults
+
+def executeBenchmark(benchmark, outputHandler):
+    if not _justReprocessResults:
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
-        filewriter.writeFile(cloudInput, cloudInputFile)
+        Util.writeFile(cloudInput, cloudInputFile)
         outputHandler.allCreatedFiles.append(cloudInputFile)
 
         # install cloud and dependencies
@@ -82,7 +84,7 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
         try:
             (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
         except KeyboardInterrupt:
-            killScriptCloud()
+            kill()
         returnCode = cloud.wait()
 
         wallTimeAfter = time.time()
@@ -103,7 +105,7 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
     return returnCode
 
 
-def killScriptCloud():
+def kill():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
     # kill cloud-client, should be done automatically, when the subprocess is aborted

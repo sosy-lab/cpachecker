@@ -9,6 +9,10 @@ import benchmark.tools.template
 import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
+    """
+    Tool wrapper for CBMC (http://www.cprover.org/cbmc/).
+    It always adds --xml-ui to the command-line arguments for easier parsing of the output.
+    """
 
     def getExecutable(self):
         fallback = "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \

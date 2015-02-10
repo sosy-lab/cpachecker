@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -37,7 +37,7 @@ public class UnrecognizedCCodeException extends UnrecognizedCodeException {
   private static final long serialVersionUID = -8319167530363457020L;
 
   protected UnrecognizedCCodeException(String msg1, @Nullable String msg2,
-      @Nullable CFAEdge edge, @Nullable IAstNode astNode) {
+      @Nullable CFAEdge edge, @Nullable AAstNode astNode) {
     super(msg1, msg2, edge, astNode);
   }
 

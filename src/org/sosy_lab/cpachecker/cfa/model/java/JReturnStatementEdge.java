@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.model.java;
 
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -47,6 +48,12 @@ public class JReturnStatementEdge extends AReturnStatementEdge {
   @Override
   public Optional<JExpression> getExpression() {
     return (Optional<JExpression>)rawAST.getReturnValue();
+  }
+
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  @Override
+  public Optional<JAssignment> asAssignment() {
+    return (Optional<JAssignment>)super.asAssignment();
   }
 
   @Override

@@ -29,12 +29,11 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -292,7 +291,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
    * If the assumption is not fulfilled, NULL should be returned. */
-  protected S handleAssumption(AssumeEdge cfaEdge, IAExpression expression, boolean truthAssumption)
+  protected S handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
     if (cfaEdge instanceof CAssumeEdge) {
       return handleAssumption((CAssumeEdge) cfaEdge, (CExpression) expression, truthAssumption);
@@ -319,7 +318,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   /** This function handles functioncalls like "f(x)", that calls "f(int a)". */
   @SuppressWarnings("unchecked")
   protected S handleFunctionCallEdge(FunctionCallEdge cfaEdge,
-      List<? extends IAExpression> arguments, List<? extends AParameterDeclaration> parameters,
+      List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
       String calledFunctionName) throws CPATransferException {
     if (cfaEdge instanceof CFunctionCallEdge) {
       return handleFunctionCallEdge((CFunctionCallEdge) cfaEdge,
@@ -380,7 +379,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
 
   /** This function handles declarations like "int a = 0;" and "int b = !a;". */
-  protected S handleDeclarationEdge(ADeclarationEdge cfaEdge, IADeclaration decl)
+  protected S handleDeclarationEdge(ADeclarationEdge cfaEdge, ADeclaration decl)
       throws CPATransferException {
     if (cfaEdge instanceof CDeclarationEdge) {
       return handleDeclarationEdge((CDeclarationEdge) cfaEdge, (CDeclaration) decl);
@@ -405,7 +404,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** This function handles statements like "a = 0;" and "b = !a;"
    * and calls of external functions. */
-  protected S handleStatementEdge(AStatementEdge cfaEdge, IAStatement statement)
+  protected S handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
       throws CPATransferException {
     if (cfaEdge instanceof CStatementEdge) {
       return handleStatementEdge((CStatementEdge) cfaEdge, (CStatement) statement);
@@ -481,7 +480,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  public static boolean isGlobal(final IAExpression exp) {
+  public static boolean isGlobal(final AExpression exp) {
     if (exp instanceof CExpression) {
       return isGlobal((CExpression) exp);
     } else if (exp instanceof JExpression) {

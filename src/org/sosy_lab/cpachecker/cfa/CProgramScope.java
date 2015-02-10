@@ -61,14 +61,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
@@ -613,7 +610,7 @@ public class CProgramScope implements Scope {
     return null;
   }
 
-  private static class TypeCollector implements CTypeVisitor<Void, RuntimeException> {
+  private static class TypeCollector extends DefaultCTypeVisitor<Void, RuntimeException> {
 
     private final Set<CType> collectedTypes;
 
@@ -630,7 +627,13 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CArrayType pArrayType) throws RuntimeException {
+    public Void visitDefault(CType pT) {
+      collectedTypes.add(pT);
+      return null;
+    }
+
+    @Override
+    public Void visit(CArrayType pArrayType) {
       if (!collectedTypes.contains(pArrayType)) {
         collectedTypes.add(pArrayType);
         pArrayType.getType().accept(this);
@@ -642,7 +645,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CCompositeType pCompositeType) throws RuntimeException {
+    public Void visit(CCompositeType pCompositeType) {
       if (!collectedTypes.contains(pCompositeType)) {
         collectedTypes.add(pCompositeType);
         for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
@@ -653,7 +656,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CElaboratedType pElaboratedType) throws RuntimeException {
+    public Void visit(CElaboratedType pElaboratedType) {
       if (!collectedTypes.contains(pElaboratedType)) {
         collectedTypes.add(pElaboratedType);
         if (pElaboratedType.getRealType() != null) {
@@ -664,15 +667,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CEnumType pEnumType) throws RuntimeException {
-      if (!collectedTypes.contains(pEnumType)) {
-        collectedTypes.add(pEnumType);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CFunctionType pFunctionType) throws RuntimeException {
+    public Void visit(CFunctionType pFunctionType) {
       if (!collectedTypes.contains(pFunctionType)) {
         collectedTypes.add(pFunctionType);
         for (CType parameterType : pFunctionType.getParameters()) {
@@ -683,7 +678,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CPointerType pPointerType) throws RuntimeException {
+    public Void visit(CPointerType pPointerType) {
       if (!collectedTypes.contains(pPointerType)) {
         collectedTypes.add(pPointerType);
         pPointerType.getType().accept(this);
@@ -692,30 +687,13 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CProblemType pProblemType) throws RuntimeException {
-      if (!collectedTypes.contains(pProblemType)) {
-        collectedTypes.add(pProblemType);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CSimpleType pSimpleType) throws RuntimeException {
-      if (!collectedTypes.contains(pSimpleType)) {
-        collectedTypes.add(pSimpleType);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CTypedefType pTypedefType) throws RuntimeException {
+    public Void visit(CTypedefType pTypedefType) {
       if (!collectedTypes.contains(pTypedefType)) {
         collectedTypes.add(pTypedefType);
         pTypedefType.getRealType().accept(this);
       }
       return null;
     }
-
   }
 
 }

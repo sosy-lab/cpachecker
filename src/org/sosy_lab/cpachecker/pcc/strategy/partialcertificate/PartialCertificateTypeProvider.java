@@ -52,11 +52,15 @@ public class PartialCertificateTypeProvider {
   }
 
   public PartialReachedConstructionAlgorithm getPartialCertificateConstructor() {
+    return getPartialCertificateConstructor(false);
+  }
+
+  private PartialReachedConstructionAlgorithm getPartialCertificateConstructor(boolean pKeepARGState) {
     switch (certificateType) {
     case ARG:
-      return new ARGBasedPartialReachedSetConstructionAlgorithm(false);
+      return new ARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
     case MONOTONESTOPARG:
-      return new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(false);
+      return new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
     default:// HEURISTIC
       return new HeuristicPartialReachedSetConstructionAlgorithm();
     }
@@ -66,7 +70,7 @@ public class PartialCertificateTypeProvider {
     if (certificateType == PartialCertificateTypes.ALL) {
       return new CompleteCertificateConstructionAlgorithm();
     }
-    return getPartialCertificateConstructor();
+    return getPartialCertificateConstructor(true);
   }
 
 }

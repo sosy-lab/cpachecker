@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -41,23 +39,18 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 public class CtoFormulaTypeHandler {
 
-  private final MachineModel machineModel;
+  protected final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
-
-  private final boolean useFloats;
 
   private final BaseSizeofVisitor sizeofVisitor;
 
   private final FormulaType<?> pointerType;
-
-  private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
 
   public CtoFormulaTypeHandler(LogManager pLogger,
       FormulaEncodingOptions pOptions,
       MachineModel pMachineModel, FormulaManagerView pFmgr) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    useFloats = pOptions.useFloatingPointArithmetic();
 
     sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
@@ -91,16 +84,7 @@ public class CtoFormulaTypeHandler {
   }
 
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    FormulaType<?> result = typeCache.get(type);
-    if (result == null) {
-      result = getFormulaTypeFromCType0(type);
-      typeCache.put(type, result);
-    }
-    return result;
-  }
-
-  private FormulaType<?> getFormulaTypeFromCType0(CType type) {
-    if (useFloats && type instanceof CSimpleType) {
+    if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType)type;
       switch (simpleType.getType()) {
       case FLOAT:

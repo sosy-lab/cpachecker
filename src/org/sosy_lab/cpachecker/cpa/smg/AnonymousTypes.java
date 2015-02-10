@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class AnonymousTypes {
   public static CType createTypeWithLength(long pSizeInBytes) {
-    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_LONG, BigInteger.valueOf(pSizeInBytes));
+    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_LONG_INT, BigInteger.valueOf(pSizeInBytes));
     return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
   }
 }

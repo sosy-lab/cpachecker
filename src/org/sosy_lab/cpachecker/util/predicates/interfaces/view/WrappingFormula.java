@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -90,4 +91,13 @@ final class WrappingFloatingPointFormula<TWrap extends Formula>
   WrappingFloatingPointFormula(FormulaType<FloatingPointFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
+}
+
+final class WrappingArrayFormula<TWrap extends Formula, TI extends Formula, TE extends Formula>
+extends WrappingFormula<TWrap, ArrayFormula<TI, TE>>
+implements ArrayFormula<TI, TE> {
+
+WrappingArrayFormula(FormulaType<ArrayFormula<TI, TE>> type, TWrap pToWrap) {
+  super(type, pToWrap);
+}
 }

@@ -47,7 +47,7 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
   private int extraIterations         = 0;
 
   /**
-   * the size of the reached set in the previous call to {@link #prec(AbstractState, Precision, UnmodifiableReachedSet)}.
+   * the size of the reached set in the previous call to {@link #prec(AbstractState, Precision, UnmodifiableReachedSet, AbstractState)}.
    */
   private int previousReachedSetSize  = 0;
 
@@ -81,7 +81,7 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public PrecisionAdjustmentResult prec(final AbstractState pState,
       final Precision pPrecision,
-      final UnmodifiableReachedSet pStates)
+      final UnmodifiableReachedSet pStates, final AbstractState fullState)
           throws CPAException {
 
     resetCountersIfNecessary(pStates);

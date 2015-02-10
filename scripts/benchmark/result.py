@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 from . import util
 import os
 
@@ -134,16 +134,6 @@ def _statusesOfPropertyFile(propertyFile):
 
 def _fileIsJava(filename):
   return JAVA_CHECK_SUBSTRING in filename
-
-# the functions fileIsFalse and fileIsTrue are only used tocount files,
-# not in any other logic. They should return complementary values.
-# TODO false or correct depends on the property! --> add property-check
-def fileIsFalse(filename):
-    return util.containsAny(filename, [key for (key,val) in SUBSTRINGS.items() if val[0] == STR_FALSE])
-
-def fileIsTrue(filename):
-    return util.containsAny(filename, [key for (key,val) in SUBSTRINGS.items() if val[0] == STR_TRUE])
-
 
 def getResultCategory(filename, status, propertyFile=None):
     '''

@@ -45,11 +45,13 @@ public interface JExpressionVisitor<R, X extends Exception> extends JLeftHandSid
 
   R visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws X;
 
-  R visit(JFloatLiteralExpression pJBooleanLiteralExpression) throws X;
+  R visit(JFloatLiteralExpression pJFloatLiteralExpression) throws X;
 
-  R visit(JArrayCreationExpression pJBooleanLiteralExpression) throws X;
+  R visit(JArrayCreationExpression pJArrayCreationExpression) throws X;
 
   R visit(JArrayInitializer pJArrayInitializer) throws X;
+
+  R visit(JArrayLengthExpression pJArrayLengthExpression) throws X;
 
   R visit(JVariableRunTimeType pJThisRunTimeType) throws X;
 

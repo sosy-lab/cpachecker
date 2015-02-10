@@ -5,16 +5,16 @@
        It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
        to be checked out at test/programs/ldv-benchmarks. -->
 
-  <option name="-setprop">cpa.predicate.solver.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=true</option>
-  <option name="-heap">7500M</option>
+  <option name="-heap">7000M</option>
   <option name="-ldv"/>
 
   <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
 
   <rundefinition>
     <sourcefiles>
+      <include>../programs/ldv-benchmarks/validator/*/*.c</include>
       <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
       <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-drivers--md--md-mod.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-fs--dlm--dlm.ko-ldv_main16_false-unreach-label.cil.out.c</exclude>

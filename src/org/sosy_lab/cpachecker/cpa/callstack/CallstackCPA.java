@@ -28,6 +28,8 @@ import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,11 +37,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -59,7 +64,7 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   }
 
   public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-    super("sep", "sep", new CallstackTransferRelation(config, pLogger));
+    super("sep", "sep", new DomainInitializer(config).initializeDomain() , new CallstackTransferRelation(config, pLogger));
     this.cfa = pCFA;
   }
 
@@ -69,7 +74,7 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (cfa.getLoopStructure().isPresent()) {
       LoopStructure loopStructure = cfa.getLoopStructure().get();
       Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
@@ -112,5 +117,28 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return (getAbstractDomain().isLessOrEqual(pElement, pOtherElement)) || ((CallstackState) pElement)
         .sameStateInProofChecking((CallstackState) pOtherElement);
+  }
+
+  @Options(prefix = "cpa.callstack")
+  private static class DomainInitializer {
+
+    @Option(secure = true, name = "domain", toUppercase = true, values = { "FLAT", "FLATPCC" },
+        description = "which abstract domain to use for callstack cpa, typically FLAT which is faster since it uses only object equivalence")
+    private String domainType = "FLAT";
+
+    public DomainInitializer(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+
+    public AbstractDomain initializeDomain() throws InvalidConfigurationException {
+      switch (domainType) {
+      case "FLAT":
+        return new FlatLatticeDomain();
+      case "FLATPCC":
+        return new CallstackPCCAbstractDomain();
+      default:
+        throw new InvalidConfigurationException("Unknown domain type for callstack cpa.");
+      }
+    }
   }
 }

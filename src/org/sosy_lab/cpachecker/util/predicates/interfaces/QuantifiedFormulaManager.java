@@ -26,17 +26,33 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 
 
 /**
  * This interface represents the a theory with quantifiers.
- *  TODO: Not every theory has the quantifier elimination property.
+ *
+ *    ATTENTION: Not every theory has the quantifier elimination property!
+ *
+ *    ATTENTION: Please consider the additional functions in {@link QuantifiedFormulaManagerView}}!
  */
 public interface QuantifiedFormulaManager {
 
-  public BooleanFormula exists (List<Formula> pVariables, BooleanFormula pBody);
+  /**<
+   * @return An existential quantified formula.
+   *
+   * @param pVariables  The variables that will get bound (variables) by the quantification.
+   * @param pBody       The {@link BooleanFormula}} within that the binding will be performed.
+   */
+  public BooleanFormula exists (List<? extends Formula> pVariables, BooleanFormula pBody);
 
-  public BooleanFormula forall (List<Formula> pVariables, BooleanFormula pBody);
+  /**
+   * @return An universal quantified formula.
+   *
+   * @param pVariables  The variables that will get bound (variables) by the quantification.
+   * @param pBody       The {@link BooleanFormula}} within that the binding will be performed.
+   */
+  public BooleanFormula forall (List<? extends Formula> pVariables, BooleanFormula pBody);
 
   /**
    * Eliminate the quantifiers for a given formula.

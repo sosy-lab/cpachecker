@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 /**
  * Refinement strategy similar based on the general idea of McMillan's Impact
@@ -81,7 +81,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
 
   private final Stats stats = new Stats();
 
-  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
   private final ImpactUtility impact;
 
@@ -91,15 +91,14 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   private AbstractionFormula lastAbstraction = null;
 
   protected ImpactRefinementStrategy(final Configuration config, final LogManager logger,
-      final FormulaManagerView pFmgr,
       final Solver pSolver,
       final PredicateAbstractionManager pPredAbsMgr)
           throws InvalidConfigurationException, CPAException {
-    super(pFmgr.getBooleanFormulaManager(), pSolver);
+    super(pSolver);
 
-    fmgr = pFmgr;
+    bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
-    impact = new ImpactUtility(config, pFmgr, pPredAbsMgr);
+    impact = new ImpactUtility(config, pSolver.getFormulaManager(), pPredAbsMgr);
   }
 
   @Override
@@ -117,8 +116,8 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   @Override
   protected boolean performRefinementForState(BooleanFormula itp,
       ARGState s) throws SolverException, InterruptedException {
-    checkArgument(!fmgr.getBooleanFormulaManager().isTrue(itp));
-    checkArgument(!fmgr.getBooleanFormulaManager().isFalse(itp));
+    checkArgument(!bfmgr.isTrue(itp));
+    checkArgument(!bfmgr.isFalse(itp));
 
     boolean stateChanged = impact.strengthenStateWithInterpolant(
                                                        itp, s, lastAbstraction);

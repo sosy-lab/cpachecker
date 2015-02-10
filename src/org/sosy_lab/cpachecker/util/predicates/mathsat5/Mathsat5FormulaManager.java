@@ -45,6 +45,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.TerminationTest;
 
@@ -59,7 +62,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
     @Option(secure=true, description = "List of further options which will be passed to Mathsat in addition to the default options. "
         + "Format is 'key1=value1,key2=value2'")
-    private String furtherOptions = "";
+    private String furtherOptions = "random_seed=42";
 
     private final @Nullable PathCounterTemplate logfile;
 
@@ -98,10 +101,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       Mathsat5RationalFormulaManager pRationalManager,
       Mathsat5BitvectorFormulaManager pBitpreciseManager,
       Mathsat5FloatingPointFormulaManager pFloatingPointmanager,
+      Mathsat5ArrayFormulaManager pArrayManager,
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {
     super(creator, unsafeManager, pFunctionManager, pBooleanManager,
-        pIntegerManager, pRationalManager, pBitpreciseManager, pFloatingPointmanager, null);
+        pIntegerManager, pRationalManager, pBitpreciseManager, pFloatingPointmanager, null, null);
 
     mathsatConfig = pMathsatConfig;
     settings = pSettings;
@@ -156,15 +160,31 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
     Mathsat5FloatingPointFormulaManager floatingPointTheory = new Mathsat5FloatingPointFormulaManager(creator, functionTheory);
+    Mathsat5ArrayFormulaManager arrayTheory = null; // new Mathsat5ArrayFormulaManager(creator);
 
     return new Mathsat5FormulaManager(logger, msatConf, creator,
         unsafeManager, functionTheory, booleanTheory,
-        integerTheory, rationalTheory, bitvectorTheory, floatingPointTheory,
+        integerTheory, rationalTheory, bitvectorTheory, floatingPointTheory, arrayTheory,
         settings, pShutdownNotifier);
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {
     return getFormulaCreator().encapsulateBoolean(t);
+  }
+
+  @Override
+  public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
+    return new Mathsat5TheoremProver(this, pGenerateModels, pGenerateUnsatCore);
+  }
+
+  @Override
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean pShared) {
+    return new Mathsat5InterpolatingProver(this, pShared);
+  }
+
+  @Override
+  public OptEnvironment newOptEnvironment() {
+    throw new UnsupportedOperationException("MathSAT5 does not support optimization");
   }
 
   @Override

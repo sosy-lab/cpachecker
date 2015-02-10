@@ -32,11 +32,11 @@ import java.util.List;
 public interface FunctionFormulaManager {
 
   /**
-   * Creates a functiontype
+   * Declares a uninterpreted function.
    */
-  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+  public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String name, FormulaType<T> returnType, List<FormulaType<?>> args);
-  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+  public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String name, FormulaType<T> returnType, FormulaType<?>... args);
 
   /**
@@ -46,5 +46,5 @@ public interface FunctionFormulaManager {
    * @return
    */
   public <T extends Formula> T callUninterpretedFunction(
-      FunctionFormulaType<T> funcType, List<? extends Formula> args);
+      UninterpretedFunctionDeclaration<T> funcType, List<? extends Formula> args);
 }

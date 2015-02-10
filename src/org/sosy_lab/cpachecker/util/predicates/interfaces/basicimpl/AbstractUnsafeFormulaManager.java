@@ -25,15 +25,34 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 
 public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> implements UnsafeFormulaManager {
+
+  protected static class QuantifiedVariable {
+    final FormulaType<?> variableType;
+    final String nameInFormula;
+    final int deBruijnIndex;
+
+    public QuantifiedVariable(FormulaType<?> pVariableType, String pNameInFormula, int pDeBruijnIndex) {
+      variableType = pVariableType;
+      nameInFormula = pNameInFormula;
+      deBruijnIndex = pDeBruijnIndex;
+    }
+
+    public String getDeBruijnName() {
+      return "?" + deBruijnIndex;
+    }
+  }
 
   protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo, TType, TEnv> creator) {
     super(creator);
@@ -69,8 +88,14 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     TFormulaInfo t = extractInfo(pF);
     return isAtom(t);
   }
-
   protected abstract boolean isAtom(TFormulaInfo pT) ;
+
+  @Override
+  public boolean isLiteral(Formula pF) {
+    TFormulaInfo t = extractInfo(pF);
+    return isLiteral(t);
+  }
+  protected abstract boolean isLiteral(TFormulaInfo pT) ;
 
   @Override
   public int getArity(Formula pF) {
@@ -98,10 +123,59 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   protected abstract boolean isVariable(TFormulaInfo pT);
 
   @Override
+  public boolean isFreeVariable(Formula pF) {
+    TFormulaInfo t = extractInfo(pF);
+    return isFreeVariable(t);
+  }
+
+  protected abstract boolean isFreeVariable(TFormulaInfo pT);
+
+  @Override
+  public boolean isBoundVariable(Formula pF) {
+    TFormulaInfo t = extractInfo(pF);
+    return isBoundVariable(t);
+  }
+
+  protected abstract boolean isBoundVariable(TFormulaInfo pT);
+
+  @Override
+  public boolean isQuantification(Formula pF) {
+    TFormulaInfo t = extractInfo(pF);
+    return isQuantification(t);
+  }
+
+  protected abstract boolean isQuantification(TFormulaInfo pT);
+
+  @Override
+  public BooleanFormula getQuantifiedBody(Formula pQuantifiedFormula) {
+    Preconditions.checkArgument(isQuantification(pQuantifiedFormula));
+
+    TFormulaInfo t = extractInfo(pQuantifiedFormula);
+    TFormulaInfo result = getQuantifiedBody(t);
+
+    return getFormulaCreator().encapsulateBoolean(result);
+  }
+
+  protected abstract TFormulaInfo getQuantifiedBody(TFormulaInfo pT);
+
+  @Override
   public boolean isNumber(Formula pF) {
     TFormulaInfo t = extractInfo(pF);
     return isNumber(t);
   }
+
+  @Override
+  public BooleanFormula replaceQuantifiedBody(BooleanFormula pF, BooleanFormula pNewBody) {
+    Preconditions.checkArgument(isQuantification(pF));
+
+    TFormulaInfo f = extractInfo(pF);
+    TFormulaInfo body = extractInfo(pNewBody);
+    TFormulaInfo result = replaceQuantifiedBody(f, body);
+
+    return getFormulaCreator().encapsulateBoolean(result);
+  }
+
+  protected abstract TFormulaInfo replaceQuantifiedBody(TFormulaInfo pF, TFormulaInfo pBody);
 
   protected abstract boolean isNumber(TFormulaInfo pT);
 
@@ -170,6 +244,14 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
       TFormulaInfo expr,
       List<TFormulaInfo> substituteFrom,
       List<TFormulaInfo> substituteTo);
+
+  @Override
+  public <T1 extends Formula, T2 extends Formula> T1 substitute(T1 pF, Map<T2, T2> pFromToMapping) {
+    List<T2> fromList = Lists.newArrayList(pFromToMapping.keySet());
+    List<T2> toList = Lists.newArrayList(pFromToMapping.values());
+
+    return substitute(pF, fromList, toList);
+  }
 
   @Override
   public <T extends Formula> T simplify(T f) {

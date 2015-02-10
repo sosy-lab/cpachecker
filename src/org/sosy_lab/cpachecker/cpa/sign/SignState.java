@@ -26,22 +26,28 @@ package org.sosy_lab.cpachecker.cpa.sign;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.util.List;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 
 
-public class SignState implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState {
+public class SignState implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
 
   private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
+
+  private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
   private PersistentMap<String, SIGN> signMap;
 
@@ -201,28 +207,28 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     // TODO Auto-generated method stub
-    String[] parts = pProperty.split("<=");
+    List<String> parts = propertySplitter.splitToList(pProperty);
 
-    if (parts.length == 2) {
+    if (parts.size() == 2) {
 
       // pProperty = value <= varName
-      if (CheckTypesOfStringsUtil.isSIGN(parts[0])) {
-        SIGN value = SIGN.valueOf(parts[0]);
-        SIGN varName = getSignForVariable(parts[1]);
+      if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
+        SIGN value = SIGN.valueOf(parts.get(0));
+        SIGN varName = getSignForVariable(parts.get(1));
         return (varName.covers(value));
       }
 
       // pProperty = varName <= value
-      else if (CheckTypesOfStringsUtil.isSIGN(parts[1])){
-        SIGN varName = getSignForVariable(parts[0]);
-        SIGN value = SIGN.valueOf(parts[1]);
+      else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))){
+        SIGN varName = getSignForVariable(parts.get(0));
+        SIGN value = SIGN.valueOf(parts.get(1));
         return (value.covers(varName));
       }
 
       // pProperty = varName1 <= varName2
       else {
-        SIGN varName1 = getSignForVariable(parts[0]);
-        SIGN varName2 = getSignForVariable(parts[1]);
+        SIGN varName1 = getSignForVariable(parts.get(0));
+        SIGN varName2 = getSignForVariable(parts.get(1));
         return (varName2.covers(varName1));
       }
     }
@@ -233,6 +239,22 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
     throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("{");
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, signMap);
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
 }

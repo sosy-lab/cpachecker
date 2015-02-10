@@ -25,14 +25,16 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
-public final class CCompositeType implements CComplexType {
+public final class CCompositeType implements CComplexType, Serializable {
 
+  private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind    kind;
   private List<CCompositeTypeMemberDeclaration> members;
   private final String                name;
@@ -122,10 +124,11 @@ public final class CCompositeType implements CComplexType {
    * This is the declaration of a member of a composite type.
    * It contains a type and an optional name.
    */
-  public static final class CCompositeTypeMemberDeclaration {
+  public static final class CCompositeTypeMemberDeclaration implements Serializable{
 
 
 
+    private static final long serialVersionUID = 8647666228796784933L;
     private final CType    type;
     private final String   name;
 

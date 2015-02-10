@@ -83,11 +83,12 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -122,6 +123,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -164,7 +166,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // There can be global declarations in a function
   // because we move some declarations to the global scope (e.g., static variables)
-  private final List<Pair<IADeclaration, String>> globalDeclarations = new ArrayList<>();
+  private final List<Pair<ADeclaration, String>> globalDeclarations = new ArrayList<>();
 
   private final FunctionScope scope;
   private final ASTConverter astCreator;
@@ -219,7 +221,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     return encounteredAsm;
   }
 
-  List<Pair<IADeclaration, String>> getGlobalDeclarations() {
+  List<Pair<ADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
@@ -377,7 +379,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       if (newD.isGlobal()) {
-        globalDeclarations.add(Pair.<IADeclaration, String>of(newD, rawSignature));
+        globalDeclarations.add(Pair.<ADeclaration, String>of(newD, rawSignature));
 
       } else {
         CFANode nextNode = newCFANode();
@@ -424,7 +426,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
 
     final FunctionEntryNode startNode = new CFunctionEntryNode(
-        fileloc, fdef, returnNode, parameterNames);
+        fileloc, fdef, returnNode, parameterNames, scope.getReturnVariable());
     returnNode.setEntryNode(startNode);
     cfa = startNode;
 
@@ -972,6 +974,18 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
   }
 
+  /**
+   * @category helper
+   */
+  private CBinaryExpression buildBinaryExpression(
+      CExpression operand1, CExpression operand2, BinaryOperator op) {
+    try {
+      return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
+    } catch (UnrecognizedCCodeException e) {
+      throw new CFAGenerationRuntimeException(e);
+    }
+  }
+
 
   /////////////////////////////////////////////////////////////////////////////
   // Conditions
@@ -1125,7 +1139,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else {
         // build new boolean expression: a==0 and switch branches
-        CExpression conv = binExprBuilder.buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+        CExpression conv = buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 
         addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen,
             loc);
@@ -1511,7 +1525,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // build condition, left part "a", right part "2" --> "a==2"
     final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(right);
-    final CBinaryExpression binExp = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression binExp = buildBinaryExpression(
               switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
 
     final CExpression exp = astCreator.simplifyExpressionOneStep(binExp);
@@ -1556,9 +1570,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     // 2 ... 4  -->  2<=x && x<=4
     final CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(range.getOperand1());
     final CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(range.getOperand2());
-    final CBinaryExpression firstPart = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression firstPart = buildBinaryExpression(
               smallEnd, switchExpr, CBinaryExpression.BinaryOperator.LESS_EQUAL);
-    final CBinaryExpression secondPart = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression secondPart = buildBinaryExpression(
               switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL);
 
     final CExpression firstExp = astCreator.simplifyExpressionOneStep(firstPart);

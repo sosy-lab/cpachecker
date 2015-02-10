@@ -29,10 +29,7 @@ import java.math.BigDecimal;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFloatingPointFormulaManager;
-
-import com.google.common.collect.ImmutableList;
 
 class Mathsat5FloatingPointFormulaManager
         extends AbstractFloatingPointFormulaManager<Long, Long, Long> {
@@ -63,7 +60,7 @@ class Mathsat5FloatingPointFormulaManager
   }
 
   @Override
-  public Long makeNumberImpl(String pN, FloatingPointType pType) {
+  protected Long makeNumberImpl(String pN, FloatingPointType pType) {
     return msat_make_fp_rat_number(mathsatEnv, pN,
         pType.getExponentSize(), pType.getMantissaSize(), roundingMode);
   }
@@ -130,10 +127,11 @@ class Mathsat5FloatingPointFormulaManager
   }
 
   private Long genericCast(Long pNumber, FormulaType<?> pTargetType) {
-    FormulaType<?> formulaType = getFormulaCreator().getFormulaType(pNumber);
-    FunctionFormulaType<?> castFuncType = ffmgr.declareUninterpretedFunction(
-        "__cast_" + formulaType + "_to_" + pTargetType, pTargetType, ImmutableList.<FormulaType<?>>of(formulaType));
-    return ffmgr.createUninterpretedFunctionCallImpl(castFuncType, ImmutableList.of(pNumber));
+    long argType = msat_term_get_type(pNumber);
+    long castFuncDecl = ffmgr.createFunctionImpl(
+        "__cast_" + argType + "_to_" + pTargetType,
+        toSolverType(pTargetType), new long[]{argType});
+    return ffmgr.createUIFCallImpl(castFuncDecl, new long[]{pNumber});
   }
 
   @Override

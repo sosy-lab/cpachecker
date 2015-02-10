@@ -284,7 +284,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.precisionTimer.start();
         PrecisionAdjustmentResult precAdjustmentResult;
         try {
-          precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet);
+          precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet, successor);
         } finally {
           stats.precisionTimer.stop();
         }

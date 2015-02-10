@@ -27,7 +27,7 @@ import java.util.Objects;
 
 
 
-public abstract class AFunctionCallStatement extends AStatement implements AFunctionCall {
+public abstract class AFunctionCallStatement extends AbstractStatement implements AFunctionCall {
 
   private final AFunctionCallExpression functionCall;
 

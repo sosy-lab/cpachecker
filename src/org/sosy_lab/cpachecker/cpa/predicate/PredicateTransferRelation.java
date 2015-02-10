@@ -55,16 +55,18 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+
+import com.google.common.base.Optional;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -101,7 +103,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final BlockOperator blk;
 
-  private final RelationStore relstore;
+  private final PredicateAssumeStore assumeStore;
 
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
@@ -111,17 +113,17 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   private final AnalysisDirection direction;
 
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
-      Configuration config, RelationStore pRelStore, AnalysisDirection pDirection) throws InvalidConfigurationException {
+      Configuration config, AnalysisDirection pDirection) throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
-    fmgr = pCpa.getFormulaManager();
+    fmgr = pCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    assumeStore = pCpa.getAssumesStore();
     blk = pBlk;
     direction = pDirection;
-    relstore = pRelStore;
   }
 
   @Override
@@ -144,8 +146,16 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
-      // After updating the SSAs... add the operation to the relation store...
-      relstore.addFact(edge, element.getPathFormula().getSsa());
+      // there might be runtime-assumes that we should add to the path formula
+      //  (used to make the program safe in case of missing preconditions in order to get valid loop invariants)
+      // TODO: Move this to a "better" place
+      Optional<BooleanFormula> optLocAssume = assumeStore.getAssumeOnLocation(loc);
+      if (optLocAssume.isPresent()) {
+        BooleanFormula locAssume = optLocAssume.get();
+        if (!bfmgr.isTrue(locAssume)) {
+          pathFormula = pathFormulaManager.makeAnd(pathFormula, locAssume);
+        }
+      }
 
       // check whether to do abstraction
       boolean doAbstraction = blk.isBlockEnd(loc, predloc, edge, pathFormula);
@@ -361,10 +371,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     PathFormula pf = pElement.getPathFormula();
 
-    // TODO how to get a pseudo variable for the current function with the correct type here?
-    // We would need to have access to the current function's declaration.
-    CIdExpression retVar = null;
-    for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(retVar, pNode.getFunctionName())) {
+    for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(pNode.getFunctionName())) {
       // assumptions do not contain compete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future

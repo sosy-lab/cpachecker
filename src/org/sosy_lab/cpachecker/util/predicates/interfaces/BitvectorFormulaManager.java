@@ -32,7 +32,6 @@ public interface BitvectorFormulaManager {
 
   public BitvectorFormula makeBitvector(int length, long pI);
   public BitvectorFormula makeBitvector(int length, BigInteger pI);
-  public BitvectorFormula makeBitvector(int length, String pI);
 
   public BitvectorFormula makeVariable(int length, String pVar);
 

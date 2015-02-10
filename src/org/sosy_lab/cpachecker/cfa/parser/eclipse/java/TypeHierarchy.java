@@ -47,7 +47,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 
-public final class TypeHierarchy {
+final class TypeHierarchy {
 
   private Map<String, JClassOrInterfaceType> types;
 

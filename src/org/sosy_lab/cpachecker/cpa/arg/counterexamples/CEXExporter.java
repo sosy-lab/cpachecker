@@ -49,9 +49,9 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExport;
@@ -281,7 +281,7 @@ public class CEXExporter {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        CFAPathWithAssignments exactValuePath = model.getExactVariableValuePath(edgePath);
+        CFAPathWithAssumptions exactValuePath = model.getExactVariableValuePath(edgePath);
 
         if (exactValuePath != null) {
           printPreciseValues(out, exactValuePath);
@@ -306,12 +306,12 @@ public class CEXExporter {
       }
 
       private void printPreciseValues(Appendable out,
-                                      CFAPathWithAssignments pExactValuePath) throws IOException {
+                                      CFAPathWithAssumptions pExactValuePath) throws IOException {
 
-        for (CFAEdgeWithAssignments edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
+        for (CFAEdgeWithAssumptions edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
 
-          if (edgeWithAssignments instanceof CFAMultiEdgeWithAssignments) {
-            for (CFAEdgeWithAssignments singleEdge : (CFAMultiEdgeWithAssignments) edgeWithAssignments) {
+          if (edgeWithAssignments instanceof CFAMultiEdgeWithAssumptions) {
+            for (CFAEdgeWithAssumptions singleEdge : (CFAMultiEdgeWithAssumptions) edgeWithAssignments) {
               printPreciseValues(out, singleEdge);
             }
           } else {
@@ -320,18 +320,18 @@ public class CEXExporter {
         }
       }
 
-      private void printPreciseValues(Appendable out, CFAEdgeWithAssignments edgeWithAssignments) throws IOException {
+      private void printPreciseValues(Appendable out, CFAEdgeWithAssumptions edgeWithAssignments) throws IOException {
         out.append(edgeWithAssignments.getCFAEdge().toString());
         out.append(System.lineSeparator());
 
         String cCode = edgeWithAssignments.prettyPrintCode(1);
-        if (cCode != null) {
+        if (!cCode.isEmpty()) {
           out.append(cCode);
         }
 
         String comment = edgeWithAssignments.getComment();
 
-        if (comment != null) {
+        if (!comment.isEmpty()) {
           out.append('\t');
           out.append(comment);
           out.append(System.lineSeparator());

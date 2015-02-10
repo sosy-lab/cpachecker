@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -53,7 +53,6 @@ except:
     pass
 
 from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
-from . import filewriter as filewriter
 from . import util as Util
 
 RESULT_KEYS = ["cputime", "walltime", "energy" ]
@@ -68,7 +67,14 @@ class WebClientError(Exception):
      def __str__(self):
          return repr(self.value)
 
-def executeBenchmarkInCloud(benchmark, outputHandler):
+def init(config, benchmark):
+    if config.cloudMaster:
+        if config.revision:
+            benchmark.toolVersion = config.revision
+        else:
+            benchmark.toolVersion = "trunk:HEAD"
+
+def executeBenchmark(benchmark, outputHandler):
 
     if (benchmark.toolName != 'CPAchecker'):
         logging.warn("The web client does only support the CPAchecker.")
@@ -97,14 +103,19 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
                 runIDs = _submitRunsPrallel(runSet, webclient, benchmark)
             except ImportError:
                 runIDs = _submitRuns(runSet, webclient, benchmark)
-        _getResults(runIDs, outputHandler, webclient, benchmark)
-        outputHandler.outputAfterRunSet(runSet)
+                
+            _getResults(runIDs, outputHandler, webclient, benchmark)
+            outputHandler.outputAfterRunSet(runSet)
 
     except KeyboardInterrupt as e:
         STOPPED_BY_INTERRUPT = True
         raise e
     finally:
         outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
+
+def kill():
+    # TODO: cancel runs on server
+    pass
 
 def _submitRunsPrallel(runSet, webclient, benchmark):
     
@@ -257,6 +268,9 @@ def _handleOptions(run, params):
                     options.append("analysis.entryFunction=" + next(i))
                 elif option == "-timelimit":
                      options.append("limits.time.cpu =" + next(i)) 
+                elif option == "-skipRecursion":
+                     options.append("cpa.callstack.skipRecursion=true")
+                     options.append("analysis.summaryEdges=true")
 
                 elif option == "-spec":
                      spec  = next(i)[-1].split('.')[0]
@@ -294,15 +308,16 @@ def _getResults(runIDs, outputHandler, webclient, benchmark):
         finishedRunIDs = []
         for runID in runIDs.keys():
             if _isFinished(runID, webclient, benchmark):
-                _getAndHandleResult(runID, runIDs[runID], outputHandler, webclient, benchmark)
-                finishedRunIDs.append(runID)
+                if(_getAndHandleResult(runID, runIDs[runID], outputHandler, webclient, benchmark)):
+                    finishedRunIDs.append(runID)
 
         for runID in finishedRunIDs:
              del runIDs[runID]
 
 def _isFinished(runID, webclient, benchmark):
 
-    resquest = urllib2.Request(webclient + "runs/" + runID + "/state")
+    headers = {"Accept": "text/plain"}
+    resquest = urllib2.Request(webclient + "runs/" + runID + "/state", headers=headers)
     try:
         response = urllib2.urlopen(resquest)
     except urllib2.HTTPError as e:
@@ -321,6 +336,12 @@ def _isFinished(runID, webclient, benchmark):
             logging.debug('Run {0} finished.'.format(runID))  
             return True
         
+        # UNKNOWN is returned for unknown runs. This happens, 
+        # when the webclient is restarted since the submission of the runs.
+        if state == "UNKNOWN":
+            logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(runID))  
+            return True
+        
         else:
             return False
         
@@ -335,7 +356,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
     # download result as zip file
     counter = 0
     sucess = False
-    while (not sucess and counter < 30):
+    while (not sucess and counter < 10):
         counter += 1
         resquest = urllib2.Request(webclient + "runs/" + runID + "/result")
         try:
@@ -344,7 +365,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
              logging.info('Could get result of run with id {0}: {1}'.format(run.identifier, e))
              _auth(webclient, benchmark)
              sleep(10)
-             continue        
+             return False        
 
         if response.getcode() == 200:
             with open(zipFilePath, 'w+b') as zipFile:
@@ -364,11 +385,11 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
        # move logfile and stderr
        with open(run.logFile, 'w') as logFile:
            logFile.write(" ".join(run.getCmdline()) + "\n\n\n\n\n------------------------------------------\n")
-           stdout = resultDir + "/stdout"
-           if os.path.isfile(stdout):
-               for line in open(stdout):
+           toolLog = resultDir + "/output.log"
+           if os.path.isfile(toolLog):
+               for line in open(toolLog):
                    logFile.write(line)
-               os.remove(stdout)
+               os.remove(toolLog)
        stderr = resultDir + "/stderr"
        if os.path.isfile(stderr):
            shutil.move(stderr, run.logFile + ".stdError")
@@ -387,8 +408,11 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
            os.rmdir(resultDir)        
 
        outputHandler.outputAfterRun(run)
+       return True
+       
     else:
-        logging.warning('Could not get run result: {0}'.format(runID))     
+        logging.warning('Could not get run result, run is not finished: {0}'.format(runID))
+        return False     
     
 def _parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
     try:
@@ -423,6 +447,8 @@ def _parseCloudResultFile(filePath):
     returnValue = int(values["@vcloud-exitcode"])
     wallTime = float(values["walltime"].strip('s'))
     cpuTime = float(values["cputime"].strip('s'))
+    if "energy" in values:
+        values["energy"] = eval(values["energy"])
     values["memUsage"] = int(values["@vcloud-memory"].strip('B'))     
     
     return (wallTime, cpuTime, returnValue, values)

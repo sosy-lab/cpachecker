@@ -59,7 +59,7 @@ abstract class AutomatonAction {
   //abstract void execute(AutomatonExpressionArguments pArgs);
 
   /**
-   * Prints a string to System.out when executed.
+   * Logs a String when executed.
    */
   static class Print extends AutomatonAction {
     private List<AutomatonExpression> toPrint;

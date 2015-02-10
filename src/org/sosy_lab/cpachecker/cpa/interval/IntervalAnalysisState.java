@@ -24,19 +24,26 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
+import com.google.common.base.Splitter;
+
 public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
-    AbstractQueryableState {
+    AbstractQueryableState, Graphable {
 
   private static final long serialVersionUID = -2030700797958100666L;
+
+  private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
   /**
    * the intervals of the element
@@ -313,37 +320,37 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    String[] parts = pProperty.split("<=");
+    List<String> parts = propertySplitter.splitToList(pProperty);
 
-    if (parts.length == 2) {
+    if (parts.size() == 2) {
 
       // pProperty = value <= varName
-      if (CheckTypesOfStringsUtil.isLong(parts[0])) {
-        long value = Long.parseLong(parts[0].trim());
-        Interval iv = getInterval(parts[1].trim());
+      if (CheckTypesOfStringsUtil.isLong(parts.get(0))) {
+        long value = Long.parseLong(parts.get(0));
+        Interval iv = getInterval(parts.get(1));
         return (value <= iv.getLow());
       }
 
       // pProperty = varName <= value
-      else if (CheckTypesOfStringsUtil.isLong(parts[1])){
-        long value = Long.parseLong(parts[1].trim());
-        Interval iv = getInterval(parts[0].trim());
+      else if (CheckTypesOfStringsUtil.isLong(parts.get(1))){
+        long value = Long.parseLong(parts.get(1));
+        Interval iv = getInterval(parts.get(0));
         return (iv.getHigh() <= value);
       }
 
       // pProperty = varName1 <= varName2
       else {
-        Interval iv1 = getInterval(parts[0].trim());
-        Interval iv2 = getInterval(parts[1].trim());
+        Interval iv1 = getInterval(parts.get(0));
+        Interval iv2 = getInterval(parts.get(1));
         return (iv1.contains(iv2));
       }
 
     // pProperty = value1 <= varName <= value2
-    } else if (parts.length == 3){
-      if ( CheckTypesOfStringsUtil.isLong(parts[0]) && CheckTypesOfStringsUtil.isLong(parts[2]) ) {
-        long value1 = Long.parseLong(parts[0].trim());
-        long value2 = Long.parseLong(parts[2].trim());
-        Interval iv = getInterval(parts[1].trim());
+    } else if (parts.size() == 3){
+      if ( CheckTypesOfStringsUtil.isLong(parts.get(0)) && CheckTypesOfStringsUtil.isLong(parts.get(2)) ) {
+        long value1 = Long.parseLong(parts.get(0));
+        long value2 = Long.parseLong(parts.get(2));
+        Interval iv = getInterval(parts.get(1));
         return (value1 <= iv.getLow() && iv.getHigh() <= value2);
       }
     }
@@ -359,5 +366,29 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
     throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("{");
+    // create a string like: x =  [low; high] (refCount)
+    for (Entry<String, Interval> entry : intervals.entrySet()) {
+      sb.append(entry.getKey());
+      sb.append(" = ");
+      sb.append(entry.getValue());
+      sb.append(" (");
+      sb.append(referenceCounts.get(entry.getKey()));
+      sb.append("), ");
+    }
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 }

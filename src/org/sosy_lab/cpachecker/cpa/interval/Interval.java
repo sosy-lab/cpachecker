@@ -565,7 +565,7 @@ public class Interval implements Serializable{
    */
   @Override
   public String toString() {
-    return "[" + low + "; " + high + "]";
+    return "[" + (low == null ? "" : low) + "; " + (high == null ? "" : high) + "]";
   }
 
   /**

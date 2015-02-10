@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 /**
@@ -114,7 +114,7 @@ class CProgramCounterValueAssumeEdge extends CAssumeEdge implements ProgramCount
   private static CExpression buildExpression(int pPCValue,
       CIdExpression pPCIdExpression,
       CBinaryExpressionBuilder pExpressionBuilder) {
-    return pExpressionBuilder.buildBinaryExpression(
+    return pExpressionBuilder.buildBinaryExpressionUnchecked(
         pPCIdExpression,
         new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pPCValue)),
         BinaryOperator.EQUALS);

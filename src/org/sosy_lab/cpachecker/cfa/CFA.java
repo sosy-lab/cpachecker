@@ -30,6 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -61,6 +62,8 @@ public interface CFA {
   Optional<ImmutableSet<CFANode>> getAllLoopHeads();
 
   Optional<VariableClassification> getVarClassification();
+
+  Optional<LiveVariables> getLiveVariables();
 
   Language getLanguage();
 }

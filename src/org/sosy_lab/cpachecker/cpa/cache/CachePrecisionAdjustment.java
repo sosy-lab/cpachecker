@@ -51,7 +51,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
     /*Map<Precision, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pElement);
 
     if (lCache == null) {
@@ -78,7 +78,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
     PrecisionAdjustmentResult lResult = lCache.get(pElement);
 
     if (lResult == null) {
-      lResult = mCachedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
+      lResult = mCachedPrecisionAdjustment.prec(pElement, pPrecision, pElements, fullState);
       lCache.put(pElement, lResult);
     }
 

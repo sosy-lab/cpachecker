@@ -67,4 +67,9 @@ class PrincessFormulaCreator extends FormulaCreator<IExpression, TermType, Princ
   public TermType getFloatingPointType(FormulaType.FloatingPointType type) {
     throw new UnsupportedOperationException("FloatingPoint theory is not supported by Princess");
   }
+
+  @Override
+  public TermType getArrayType(TermType pIndexType, TermType pElementType) {
+    throw new IllegalArgumentException("Princess.getArrayType(): Implement me!");
+  }
 }

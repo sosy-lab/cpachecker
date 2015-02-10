@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -33,12 +34,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 /**
  * Simplifies building a solver from the specific theories.
  * @param <TFormulaInfo> The solver specific type.
  */
 public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implements FormulaManager {
+
+  private final AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager;
 
   private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
@@ -50,7 +54,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   private final AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager;
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
+  private final AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager;
 
   private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
@@ -70,16 +74,20 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   protected AbstractFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator,
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
-      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
+      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
       AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager,
       AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager,
-      AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager) {
+      AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager,
+      AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager) {
+
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
+
+    this.arrayManager = arrayManager;
 
     this.quantifiedManager = quantifiedManager;
 
@@ -112,7 +120,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   }
 
-  protected final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
+  public final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
   }
 
@@ -156,7 +164,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   }
 
   @Override
-  public AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> getFunctionFormulaManager() {
+  public AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> getFunctionFormulaManager() {
     return functionManager;
   }
 
@@ -168,6 +176,11 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   @Override
   public AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> getQuantifiedFormulaManager() {
     return quantifiedManager;
+  }
+
+  @Override
+  public ArrayFormulaManager getArrayFormulaManager() {
+    return arrayManager;
   }
 
   public abstract Appender dumpFormula(TFormulaInfo t);
@@ -190,5 +203,10 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   public final TFormulaInfo extractInfo(Formula f) {
     return formulaCreator.extractInfo(f);
+  }
+
+  @Override
+  public SmtAstMatcher getSmtAstMatcher() {
+    throw new UnsupportedOperationException("There is not yet an implementation for formula-ast matching for this solver!");
   }
 }

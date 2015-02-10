@@ -67,7 +67,7 @@ public class ValidVarsState implements AbstractState, AbstractQueryableState, Gr
 
   @Override
   public String toDOTLabel() {
-    return validVariables.toString();
+    return validVariables.toStringInDOTFormat();
   }
 
   @Override

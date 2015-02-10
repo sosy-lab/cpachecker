@@ -51,10 +51,10 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   }
 
   @Override
-  public void push(BooleanFormula f) {
+  public Void push(BooleanFormula f) {
     logger.log(Level.FINE, "up to level " + level++);
     logger.log(Level.FINE, "formula pushed:", f);
-    wrapped.push(f);
+    return wrapped.push(f);
   }
 
   @Override

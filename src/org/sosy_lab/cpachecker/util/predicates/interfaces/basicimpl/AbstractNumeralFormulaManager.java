@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -60,15 +61,15 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   private static final String UF_DIVIDE_NAME = "_/_";
   private static final String UF_MODULO_NAME = "_%_";
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
+  private final AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager;
 
-  private final FunctionFormulaType<ResultFormulaType> multUfDecl;
-  private final FunctionFormulaType<ResultFormulaType> divUfDecl;
-  private final FunctionFormulaType<ResultFormulaType> modUfDecl;
+  private final UninterpretedFunctionDeclaration<ResultFormulaType> multUfDecl;
+  private final UninterpretedFunctionDeclaration<ResultFormulaType> divUfDecl;
+  private final UninterpretedFunctionDeclaration<ResultFormulaType> modUfDecl;
 
   protected AbstractNumeralFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
-      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> pFunctionManager) {
+      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> pFunctionManager) {
     super(pCreator);
     functionManager = pFunctionManager;
 
@@ -78,7 +79,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     modUfDecl = functionManager.declareUninterpretedFunction(resultType + "_" + UF_MODULO_NAME, resultType, resultType, resultType);
   }
 
-  private TFormulaInfo makeUf(FunctionFormulaType<?> decl, TFormulaInfo t1, TFormulaInfo t2) {
+  private TFormulaInfo makeUf(UninterpretedFunctionDeclaration<?> decl, TFormulaInfo t1, TFormulaInfo t2) {
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
@@ -103,6 +104,54 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(String i);
+
+  @Override
+  public ResultFormulaType makeNumber(double pNumber) {
+    return wrap(makeNumberImpl(pNumber));
+  }
+  protected abstract TFormulaInfo makeNumberImpl(double pNumber);
+
+  @Override
+  public ResultFormulaType makeNumber(BigDecimal pNumber) {
+    return wrap(makeNumberImpl(pNumber));
+  }
+  protected abstract TFormulaInfo makeNumberImpl(BigDecimal pNumber);
+
+  /**
+   * This method tries to represent a BigDecimal using only BigInteger.
+   * It can be used for implementing {@link #makeNumber(BigDecimal)}
+   * when the current theory supports only integers.
+   */
+  protected final TFormulaInfo decimalAsInteger(BigDecimal val) {
+    if (val.scale() <= 0) {
+      // actually an integral number
+      return makeNumberImpl(convertBigDecimalToBigInteger(val));
+
+    } else {
+      // represent x.y by xy / (10^z) where z is the number of digits in y
+      // (the "scale" of a BigDecimal)
+
+      BigDecimal n = val.movePointRight(val.scale()); // this is "xy"
+      BigInteger numerator = convertBigDecimalToBigInteger(n);
+
+      BigDecimal d = BigDecimal.ONE.scaleByPowerOfTen(val.scale()); // this is "10^z"
+      BigInteger denominator = convertBigDecimalToBigInteger(d);
+      assert denominator.signum() > 0;
+
+      return divide(makeNumberImpl(numerator), makeNumberImpl(denominator));
+    }
+  }
+
+  private static BigInteger convertBigDecimalToBigInteger(BigDecimal d)
+      throws NumberFormatException {
+    try {
+      return d.toBigIntegerExact();
+    } catch (ArithmeticException e) {
+      NumberFormatException nfe = new NumberFormatException("Cannot represent BigDecimal " + d + " as BigInteger");
+      nfe.initCause(e);
+      throw nfe;
+    }
+  }
 
   @Override
   public ResultFormulaType makeVariable(String pVar) {

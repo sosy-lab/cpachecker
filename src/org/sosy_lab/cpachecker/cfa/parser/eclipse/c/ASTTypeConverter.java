@@ -64,9 +64,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -75,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -236,10 +235,18 @@ class ASTTypeConverter {
     }
   }
 
-  private CSimpleType conv(final IBasicType t) {
+  private CType conv(final IBasicType t) {
       // The IBasicType has to be an ICBasicType or
       // an IBasicType of type "void" (then it is an ICPPBasicType)
-      if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
+      if (t.getKind() == org.eclipse.cdt.core.dom.ast.IBasicType.Kind.eVoid) {
+        if (t.isComplex() || t.isImaginary()
+            || t.isLong() || t.isLongLong() || t.isShort()
+            || t.isSigned() || t.isUnsigned()) {
+          throw new CFAGenerationRuntimeException("Void type with illegal modifier: " + t);
+        }
+        return CVoidType.VOID;
+
+      } else if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
         final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
             (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
 
@@ -264,12 +271,13 @@ class ASTTypeConverter {
           type = CBasicType.UNSPECIFIED;
           break;
         case eVoid:
-          type = CBasicType.VOID;
-          break;
+          throw new AssertionError();
         default:
           throw new CFAGenerationRuntimeException("Unknown basic type " + t.getKind());
         }
 
+        // the three values isComplex, isImaginary, isLongLong are initialized
+        // with FALSE, because we do not know about them
         if ((c.isShort() && c.isLong())
             || (c.isShort() && c.isLongLong())
             || (c.isLong() && c.isLongLong())
@@ -279,13 +287,6 @@ class ASTTypeConverter {
         // TODO why is there no isConst() and isVolatile() here?
         return new CSimpleType(false, false, type, c.isLong(), c.isShort(),
             c.isSigned(), c.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
-
-      } else if (t.getKind() == org.eclipse.cdt.core.dom.ast.IBasicType.Kind.eVoid) {
-
-        // the three values isComplex, isImaginary, isLongLong are initialized
-        // with FALSE, because we do not know about them
-        return new CSimpleType(false, false, CBasicType.VOID, t.isLong(), t.isShort(),
-            t.isSigned(), t.isUnsigned(), false, false, false);
 
       } else {
         throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
@@ -339,40 +340,16 @@ class ASTTypeConverter {
 
   private CType conv(final IQualifierType t) {
     CType i = convert(t.getType());
-    boolean isConst = t.isConst();
-    boolean isVolatile = t.isVolatile();
-
-    if (isConst == i.isConst() && isVolatile == i.isVolatile()) {
-      return i;
-    }
+    final boolean isConst = t.isConst();
+    final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    if (i instanceof CArrayType) {
-      return new CArrayType(isConst, isVolatile, ((CArrayType) i).getType(), ((CArrayType) i).getLength());
-    } else if (i instanceof CCompositeType) {
-      CCompositeType c = (CCompositeType) i;
-      return new CCompositeType(isConst, isVolatile, c.getKind(), c.getMembers(), c.getName());
-    } else if (i instanceof CElaboratedType) {
-      return new CElaboratedType(isConst, isVolatile, ((CElaboratedType) i).getKind(), ((CElaboratedType) i).getName(), ((CElaboratedType) i).getRealType());
-    } else if (i instanceof CEnumType) {
-      return new CEnumType(isConst, isVolatile, ((CEnumType) i).getEnumerators(), ((CEnumType) i).getName());
-    } else if (i instanceof CFunctionType) {
-      CFunctionType p = (CFunctionType) i;
-      return new CFunctionType(isConst, isVolatile, p.getReturnType(), p.getParameters(), p.takesVarArgs());
-    } else if (i instanceof CFunctionTypeWithNames) {
-      // TODO what does it mean that a function is qualified with const or volatile?
-      CFunctionTypeWithNames f = (CFunctionTypeWithNames) i;
-      return new CFunctionTypeWithNames(isConst, isVolatile, f.getReturnType(), f.getParameterDeclarations(), f.takesVarArgs());
-    } else if (i instanceof CPointerType) {
-      return new CPointerType(isConst, isVolatile, ((CPointerType) i).getType());
-    } else if (i instanceof CSimpleType) {
-      CSimpleType s = (CSimpleType)i;
-      return new CSimpleType(isConst, isVolatile, s.getType(), s.isLong(), s.isShort(), s.isSigned(), s.isUnsigned(), s.isComplex(), s.isImaginary(), s.isLongLong());
-    } else if (i instanceof CTypedefType) {
-      return new CTypedefType(isConst, isVolatile, ((CTypedefType) i).getName(), ((CTypedefType) i).getRealType());
-    } else {
-      throw new AssertionError();
-    }
+    i = isConst ? CTypes.withConst(i) : CTypes.withoutConst(i);
+    i = isVolatile ? CTypes.withVolatile(i) : CTypes.withoutVolatile(i);
+
+    assert i instanceof CProblemType
+        || (isConst == i.isConst() && isVolatile == i.isVolatile());
+    return i;
   }
 
   private CType conv(final IEnumeration e) {
@@ -408,8 +385,12 @@ class ASTTypeConverter {
       type = CBasicType.UNSPECIFIED;
       break;
     case IASTSimpleDeclSpecifier.t_void:
-      type = CBasicType.VOID;
-      break;
+      if (dd.isComplex() || dd.isImaginary()
+          || dd.isLong() || dd.isLongLong() || dd.isShort()
+          || dd.isSigned() || dd.isUnsigned()) {
+        throw new CFAGenerationRuntimeException("Void type with illegal modifier", dd, niceFileNameFunction);
+      }
+      return CVoidType.create(dd.isConst(), dd.isVolatile());
     case IASTSimpleDeclSpecifier.t_typeof:
       // TODO This might loose some information of dd or dd.getDeclTypeExpression()
       // (the latter should be of type IASTTypeIdExpression)

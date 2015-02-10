@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -49,7 +48,7 @@ public class ValueAnalysisTest {
       TestResults results = CPATestRunner.run(
           prop,
           "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      Assert.assertTrue(results.isUnsafe());
+      results.assertIsUnsafe();
   }
   @Test
   public void ignoreVariablesTest2() throws Exception {
@@ -64,6 +63,6 @@ public class ValueAnalysisTest {
       TestResults results = CPATestRunner.run(
           prop,
           "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      Assert.assertTrue(results.isSafe());
+      results.assertIsSafe();
   }
 }

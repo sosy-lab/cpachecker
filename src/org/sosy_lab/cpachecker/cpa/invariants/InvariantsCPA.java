@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -61,20 +62,26 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 
@@ -156,7 +163,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private boolean relevantVariableLimitReached = false;
 
-  private final Map<CFANode, InvariantsState> invariants = new HashMap<>();
+  private final Map<CFANode, InvariantsFormula<CompoundInterval>> invariants = new HashMap<>();
 
   private final ConditionAdjuster conditionAdjuster;
 
@@ -232,7 +239,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   @Override
-  public InvariantsState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Set<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
@@ -329,9 +336,10 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     initialPrecisionMap.put(pNode, precision);
 
-    InvariantsState invariant = invariants.get(pNode);
+    InvariantsFormula<CompoundInterval> invariant = invariants.get(pNode);
     if (invariant != null) {
-      return new InvariantsState(variableSelection, machineModel, invariant, options.abstractionStateFactory.getAbstractionState());
+      InvariantsState state = new InvariantsState(variableSelection, machineModel, options.abstractionStateFactory.getAbstractionState());
+      state = state.assume(invariant);
     }
 
     // Create the configured initial state
@@ -339,12 +347,12 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   @Override
-  public InvariantsPrecision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     InvariantsPrecision precision = initialPrecisionMap.get(pNode);
     if (precision != null) {
       return precision;
     }
-    getInitialState(pNode);
+    getInitialState(pNode, pPartition);
     precision = initialPrecisionMap.get(pNode);
 
     // If no precision was mapped to the state, use the empty precision
@@ -354,8 +362,21 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     return precision;
   }
 
-  public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {
-    this.invariants.put(pLocation, pInvariant);
+  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
+    if (pAssumption instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) pAssumption;
+      VariableNameExtractor vne = new VariableNameExtractor(pAssumption);
+      ExpressionToFormulaVisitor etfv = new ExpressionToFormulaVisitor(vne);
+      InvariantsFormula<CompoundInterval> assumption = assumeEdge.getExpression().accept(etfv);
+      if (!pAssumption.getTruthAssumption()) {
+        assumption = CompoundIntervalFormulaManager.INSTANCE.logicalNot(assumption);
+      }
+      injectInvariant(pLocation, assumption);
+    }
+  }
+
+  public void injectInvariant(CFANode pLocation, InvariantsFormula<CompoundInterval> pAssumption) {
+    invariants.put(pLocation, pAssumption);
   }
 
   public void addInterestingVariables(Iterable<String> pInterestingVariables) {

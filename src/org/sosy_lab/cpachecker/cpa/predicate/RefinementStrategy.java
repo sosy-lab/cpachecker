@@ -93,9 +93,9 @@ public abstract class RefinementStrategy {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
-  public RefinementStrategy(BooleanFormulaManagerView pBfmgr, Solver pSolver) {
-    bfmgr = pBfmgr;
+  public RefinementStrategy(Solver pSolver) {
     solver = pSolver;
+    bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
   }
 
   public boolean needsInterpolants() {
@@ -178,6 +178,7 @@ public abstract class RefinementStrategy {
           PredicateAbstractState s = getPredicateState(w);
           BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
           solver.addUnsatisfiableFormulaToCache(blockFormula);
+          // TODO: Move caching to InterpolationManager.buildCounterexampleTrace
         }
         break;
       }

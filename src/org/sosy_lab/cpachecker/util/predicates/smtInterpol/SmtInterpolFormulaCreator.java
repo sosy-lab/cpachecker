@@ -31,12 +31,8 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
-  SmtInterpolFormulaCreator(
-      SmtInterpolEnvironment pMathsatEnv,
-      Sort pBoolType,
-      Sort pIntegerType,
-      Sort pRealType) {
-    super(pMathsatEnv, pBoolType, pIntegerType, pRealType);
+  SmtInterpolFormulaCreator(SmtInterpolEnvironment env) {
+    super(env, env.getBooleanSort(), env.getIntegerSort(), env.getRealSort());
   }
 
   @Override
@@ -66,5 +62,10 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
   @Override
   public Sort getFloatingPointType(FormulaType.FloatingPointType type) {
     throw new UnsupportedOperationException("FloatingPoint theory is not supported by SmtInterpol");
+  }
+
+  @Override
+  public Sort getArrayType(Sort pIndexType, Sort pElementType) {
+    throw new IllegalArgumentException("SmtInterpol.getArrayType(): Implement me!");
   }
 }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
@@ -62,6 +63,16 @@ class PrincessIntegerFormulaManager extends org.sosy_lab.cpachecker.util.predica
   @Override
   protected ITerm makeNumberImpl(String pI) {
     return new IIntLit(IdealInt.apply(pI));
+  }
+
+  @Override
+  protected ITerm makeNumberImpl(double pNumber) {
+    return makeNumberImpl((long)pNumber);
+  }
+
+  @Override
+  protected IExpression makeNumberImpl(BigDecimal pNumber) {
+    return decimalAsInteger(pNumber);
   }
 
   @Override

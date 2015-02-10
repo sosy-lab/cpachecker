@@ -51,40 +51,29 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.AbstractPrecisionSynthesis;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.DefaultRelationStore;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.NullPrecisionSynthesis;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.NullRelationStore;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.PrecisionSynthesis;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-
-import com.google.common.base.Optional;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -110,15 +99,16 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
+  @Option(secure=true, name="stop", values={"SEP", "SEPPCC"}, toUppercase=true,
+      description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
+  private String stopType = "SEP";
+
   @Option(secure=true, name="refinement.performInitialStaticRefinement",
       description="use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
 
   @Option(secure=true, description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
-
-  @Option(secure=true, description="Dynamically synthesize additional precision elements during precision adjustment.")
-  private boolean synthesizePrecisionOnAbstraction = false;
 
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
@@ -133,9 +123,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
-  private final FormulaManager realFormulaManager; // use formulaManager instead!
-  private final FormulaManagerView formulaManager;
-  private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
@@ -145,12 +132,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
-
-  private final AbstractPrecisionSynthesis precisionSynthesis;
-
-  private final PreconditionWriter preconditions;
-  private final RelationStore relstore;
-  private final RelationView relview;
+  private final PredicateAssumeStore assumesStore;
+  private final AbstractionManager abstractionManager;
 
   protected PredicateCPA(Configuration config, LogManager logger,
       BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory,
@@ -168,10 +151,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     blk.setCFA(cfa);
 
-    formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
-
-    realFormulaManager = formulaManagerFactory.getFormulaManager();
-    formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
+    solver = Solver.create(config, logger, pShutdownNotifier);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     String libraries = formulaManager.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
@@ -179,16 +160,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
     pathFormulaManager = pfMgr;
-
-    solver = new Solver(formulaManager, formulaManagerFactory);
-
-    if (synthesizePrecisionOnAbstraction) {
-      DefaultRelationStore rsv = new DefaultRelationStore(config, logger, cfa, direction);
-      relview = rsv; relstore = rsv;
-    } else {
-      NullRelationStore rsv = new NullRelationStore();
-      relview = rsv; relstore = rsv;
-    }
 
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA")) {
@@ -200,10 +171,15 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
+    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
-    predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
-    transfer = new PredicateTransferRelation(this, blk, config, relstore, direction);
+    assumesStore = new PredicateAssumeStore(formulaManager);
+
+    predicateManager = new PredicateAbstractionManager(
+        abstractionManager, formulaManager, pathFormulaManager,
+        solver, config, logger, cfa.getLiveVariables());
+
+    transfer = new PredicateTransferRelation(this, blk, config, direction);
 
     topState = PredicateAbstractState.mkAbstractionState(
         formulaManager.getBooleanFormulaManager(),
@@ -238,25 +214,29 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    preconditions = new PreconditionWriter(cfa, config, logger, formulaManager);
-
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
-        cfa, preconditions, relstore, invariantGenerator.getTimeOfExecution(), config);
+        cfa, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
+    GlobalInfo.getInstance().storeAbstractionManager(abstractionManager);
 
     postProcessor = new PredicatePostProcessor(shutdownNotifier);
 
     machineModel = cfa.getMachineModel();
 
-    if (synthesizePrecisionOnAbstraction) {
-      precisionSynthesis = new PrecisionSynthesis(config, logger, formulaManager, Optional.<VariableClassification>absent(), realFormulaManager, abstractionManager, machineModel, pShutdownNotifier, cfa, relview, direction);
-    } else {
-      precisionSynthesis = new NullPrecisionSynthesis(config, logger, formulaManager, Optional.<VariableClassification>absent(), realFormulaManager, abstractionManager, machineModel, pShutdownNotifier, cfa, relview, direction);
-    }
+    prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
 
-    prec = new PredicatePrecisionAdjustment(this, invariantGenerator, precisionSynthesis);
-    stop = new PredicateStopOperator(domain);
+    if (stopType.equals("SEP")) {
+      stop = new PredicateStopOperator(domain);
+    } else if (stopType.equals("SEPPCC")) {
+      stop = new PredicatePCCStopOperator(this);
+    } else {
+      throw new InternalError("Update list of allowed stop operators");
+    }
+  }
+
+  public PredicateAssumeStore getAssumesStore() {
+    return assumesStore;
   }
 
   @Override
@@ -281,10 +261,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public PredicateAbstractionManager getPredicateManager() {
     return predicateManager;
-  }
-
-  public FormulaManagerView getFormulaManager() {
-    return formulaManager;
   }
 
   public PathFormulaManager getPathFormulaManager() {
@@ -312,18 +288,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return staticRefiner;
   }
 
-  public FormulaManagerFactory getFormulaManagerFactory() {
-    return formulaManagerFactory;
-  }
-
   @Override
-  public PredicateAbstractState getInitialState(CFANode node) {
+  public PredicateAbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     prec.setInitialLocation(node);
     return topState;
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return initialPrecision;
   }
 
@@ -340,9 +312,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public void close() throws Exception {
-    if (realFormulaManager instanceof AutoCloseable) {
-      ((AutoCloseable)realFormulaManager).close();
-    }
+    solver.close();
   }
 
   @Override
@@ -375,5 +345,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public MachineModel getMachineModel() {
     return machineModel;
+  }
+
+  public AbstractionManager getAbstractionManager() {
+    return abstractionManager;
   }
 }

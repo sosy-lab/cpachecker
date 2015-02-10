@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import com.google.common.collect.ImmutableList;
 
 
-public abstract class AFunctionDeclaration extends ADeclaration {
+public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
   private final List<AParameterDeclaration> parameters;
 

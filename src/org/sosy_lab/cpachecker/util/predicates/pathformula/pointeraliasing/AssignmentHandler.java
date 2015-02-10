@@ -119,6 +119,7 @@ class AssignmentHandler {
 
     // RHS handling
     final List<Pair<CCompositeType, String>> rhsUsedFields;
+    final List<Pair<CCompositeType, String>> rhsAddressedFields;
     final Map<String, CType> rhsUsedDeferredAllocationPointers;
     final Expression rhsExpression;
     // RHS is neither null nor a nondet() function call
@@ -126,7 +127,7 @@ class AssignmentHandler {
         (!(rhs instanceof CFunctionCallExpression) ||
          !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
          !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+      final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
 
       CRightHandSide r = rhs;
       if (r instanceof CExpression) {
@@ -136,15 +137,17 @@ class AssignmentHandler {
       rhsExpression = r.accept(rhsVisitor);
       pts.addEssentialFields(rhsVisitor.getInitializedFields());
       rhsUsedFields = rhsVisitor.getUsedFields();
+      rhsAddressedFields = rhsVisitor.getAddressedFields();
       rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
     } else { // RHS is nondet
       rhsExpression = Value.nondetValue();
       rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
+      rhsAddressedFields = ImmutableList.<Pair<CCompositeType,String>>of();
       rhsUsedDeferredAllocationPointers = ImmutableMap.<String, CType>of();
     }
 
     // LHS handling
-    CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
@@ -172,6 +175,9 @@ class AssignmentHandler {
 
     pts.addEssentialFields(lhsUsedFields);
     pts.addEssentialFields(rhsUsedFields);
+    for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
+      pts.addField(field.getFirst(), field.getSecond());
+    }
     return result;
   }
 
@@ -433,7 +439,7 @@ class AssignmentHandler {
     final BooleanFormula result;
 
     rvalueType = implicitCastToPointer(rvalueType);
-    final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, edge) : null;
+    final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, constraints, edge) : null;
     if (!lvalue.isAliased()) { // Unaliased LHS
       if (rhs != null) {
         result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);

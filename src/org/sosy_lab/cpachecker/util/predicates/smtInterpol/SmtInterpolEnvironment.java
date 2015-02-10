@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,15 +31,11 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -49,7 +45,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -58,7 +53,9 @@ import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
+import de.uni_freiburg.informatik.ultimate.logic.Model;
 import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
+import de.uni_freiburg.informatik.ultimate.logic.ReasonUnknown;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
@@ -95,12 +92,8 @@ class SmtInterpolEnvironment {
   private final Script script;
   private final Theory theory;
 
-  /** The stack contains a List of Declarations for each levels on the assertion-stack.
-   * It is used to declare functions again, if stacklevels are popped. */
-  private final List<Collection<Triple<String, Sort[], Sort>>> stack = new ArrayList<>();
-
-  /** This Collection is the toplevel of the stack. */
-  private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
+  /** The current depth of the stack in the solver. */
+  private int stackDepth = 0;
 
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
@@ -243,6 +236,8 @@ class SmtInterpolEnvironment {
   }
 
   SmtInterpolTheoremProver createProver(SmtInterpolFormulaManager mgr) {
+    checkState(stackDepth == 0,
+        "Not allowed to create a new prover environment while solver stack is still non-empty, parallel stacks are not supported.");
     return new SmtInterpolTheoremProver(mgr, shutdownNotifier);
   }
 
@@ -282,77 +277,43 @@ class SmtInterpolEnvironment {
    * The params for the functionSymbol also have sorts.
    * If you want to declare a new variable, i.e. "X", paramSorts is an empty array. */
   public void declareFun(String fun, Sort[] paramSorts, Sort resultSort) {
-    declareFun(fun, paramSorts, resultSort, true);
-  }
+    FunctionSymbol fsym = theory.getFunction(fun, paramSorts);
 
-  /** This function declares a function.
-   * It is possible to check, if the function was declared before.
-   * If both ('check' and 'declared before') are true, nothing is done. */
-  private void declareFun(String fun, Sort[] paramSorts, Sort resultSort, boolean check) {
-    if (check) {
-      FunctionSymbol fsym = theory.getFunction(fun, paramSorts);
-
-      if (fsym == null) {
-        declareFun(fun, paramSorts, resultSort, false);
-      } else {
-        if (!fsym.getReturnSort().equals(resultSort)) {
-          throw new SMTLIBException("Function " + fun + " is already declared with different definition");
-        }
-      }
-
-    } else {
+    if (fsym == null) {
       script.declareFun(fun, paramSorts, resultSort);
-      if (currentDeclarations != null) {
-        currentDeclarations.add(Triple.of(fun, paramSorts, resultSort));
+    } else {
+      if (!fsym.getReturnSort().equals(resultSort)) {
+        throw new SMTLIBException("Function " + fun + " is already declared with different definition");
       }
     }
   }
 
   public void push(int levels) {
+    checkArgument(levels > 0);
     try {
       script.push(levels);
+      stackDepth += levels;
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
-    }
-
-    for (int i = 0; i < levels; i++) {
-      currentDeclarations = new ArrayList<>();
-      stack.add(currentDeclarations);
     }
   }
 
   /** This function pops levels from the assertion-stack.
    * It also declares popped functions on the lower level. */
   public void pop(int levels) {
-    assert stack.size() >= levels : "not enough levels to remove";
+    checkArgument(levels >= 0);
+    checkState(stackDepth >= levels, "not enough levels to remove");
     try {
-     // for (int i=0;i<levels;i++) script.pop(1); // for old version of SmtInterpol
       script.pop(levels);
+      stackDepth -= levels;
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
-    }
-
-    if (stack.size() - levels > 0) {
-      currentDeclarations = stack.get(stack.size() - levels - 1);
-    } else {
-      currentDeclarations = null;
-    }
-
-    for (int i = 0; i < levels; i++) {
-      final Collection<Triple<String, Sort[], Sort>> topDecl = stack.remove(stack.size() - 1);
-
-      for (Triple<String, Sort[], Sort> function : topDecl) {
-        final String fun = function.getFirst();
-        final Sort[] paramSorts = function.getSecond();
-        final Sort resultSort = function.getThird();
-        declareFun(fun, paramSorts, resultSort, false);
-      }
     }
   }
 
   /** This function adds the term on top of the stack. */
   public void assertTerm(Term term) {
-    assert stack.size() > 0 : "assertions should be on higher levels";
+    checkState(stackDepth > 0, "assertions should be on higher levels");
     try {
       script.assertTerm(term);
     } catch (SMTLIBException e) {
@@ -364,6 +325,7 @@ class SmtInterpolEnvironment {
    * if their conjunction is SAT or UNSAT.
    */
   public boolean checkSat() throws InterruptedException {
+    checkState(stackDepth > 0, "checkSat should be on higher levels");
     try {
       // We actually terminate SmtInterpol during the analysis
       // by using a shutdown listener. However, SmtInterpol resets the
@@ -377,8 +339,21 @@ class SmtInterpolEnvironment {
         return true;
       case UNSAT:
         return false;
-      default:
+      case UNKNOWN:
         shutdownNotifier.shutdownIfNecessary();
+        Object reason = script.getInfo(":reason-unknown");
+        if (!(reason instanceof ReasonUnknown)) {
+          throw new SMTLIBException("checkSat returned UNKNOWN with unknown reason " + reason);
+        }
+        switch ((ReasonUnknown)reason) {
+        case MEMOUT:
+          // SMTInterpol catches OOM, but we want to have it thrown.
+          throw new OutOfMemoryError("Out of memory during SMTInterpol operation");
+        default:
+          throw new SMTLIBException("checkSat returned UNKNOWN with unexpected reason " + reason);
+        }
+
+      default:
         throw new SMTLIBException("checkSat returned " + result);
       }
     } catch (SMTLIBException e) {
@@ -402,30 +377,24 @@ class SmtInterpolEnvironment {
 
   /** This function returns a map,
    * that contains assignments term->term for all terms in terms. */
-  public Map<Term, Term> getValue(Term[] terms) {
-    try {
-      return script.getValue(terms);
-    } catch (SMTLIBException e) {
-      throw new AssertionError(e);
-    }
+  public Model getModel() {
+    return script.getModel();
   }
 
   public Object getInfo(String info) {
     return script.getInfo(info);
   }
 
-  /** This function returns the Sort for a Type. */
-  public Sort sort(Model.TermType type) {
-    switch (type) {
-      case Boolean:
-        return sort("Bool");
-      case Integer:
-        return sort("Int");
-      case Real:
-        return sort("Real");
-      default:
-        throw new AssertionError("SmtInterpol does not support this theory: " + type);
-    }
+  public Sort getBooleanSort() {
+    return theory.getBooleanSort();
+  }
+
+  public Sort getIntegerSort() {
+    return theory.getNumericSort();
+  }
+
+  public Sort getRealSort() {
+    return theory.getRealSort();
   }
 
   /** This function returns an n-ary sort with given parameters. */
@@ -440,6 +409,15 @@ class SmtInterpolEnvironment {
   public Term term(String funcname, Term... params) {
     try {
       return script.term(funcname, params);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term term(String funcname, BigInteger[] indices,
+      Sort returnSort, Term... params) {
+    try {
+      return script.term(funcname, indices, returnSort, params);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
@@ -533,7 +511,7 @@ class SmtInterpolEnvironment {
    * Each partition must be a named term or a conjunction of named terms.
    * There should be (n-1) interpolants for n partitions. */
   public Term[] getInterpolants(Term[] partition) {
-    assert stack.size() > 0 : "interpolants should be on higher levels";
+    checkState(stackDepth > 0, "interpolants should be on higher levels");
     try {
       return script.getInterpolants(partition);
     } catch (SMTLIBException e) {
@@ -542,7 +520,7 @@ class SmtInterpolEnvironment {
   }
 
   public Term[] getUnsatCore() {
-    assert stack.size() > 0 : "unsat core should be on higher levels";
+    checkState(stackDepth > 0, "unsat core should be on higher levels");
     try {
       return script.getUnsatCore();
     } catch (SMTLIBException e) {

@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
-import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 
 import com.google.common.base.Optional;
 
@@ -46,8 +47,15 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
     return CFAEdgeType.ReturnStatementEdge;
   }
 
-  public Optional<? extends IAExpression> getExpression() {
+  public Optional<? extends AExpression> getExpression() {
     return rawAST.getReturnValue();
+  }
+
+  /**
+   * @see AReturnStatement#asAssignment()
+   */
+  public Optional<? extends AAssignment> asAssignment() {
+    return rawAST.asAssignment();
   }
 
   @Override

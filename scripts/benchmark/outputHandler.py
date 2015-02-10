@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import threading
 import time
@@ -109,6 +109,10 @@ class OutputHandler:
 
 
     def storeSystemInfo(self, opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname):
+        for systemInfo in self.XMLHeader.findall("systeminfo"):
+                    if systemInfo.attrib["hostname"] == hostname:
+                        return
+
         osElem = ET.Element("os", {"name":opSystem})
         cpuElem = ET.Element("cpu", {"model":cpuModel, "cores":numberOfCores, "frequency":maxFrequency})
         ramElem = ET.Element("ram", {"size":memory})
@@ -116,7 +120,10 @@ class OutputHandler:
         systemInfo.append(osElem)
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
+            
         self.XMLHeader.append(systemInfo)
+        if self.runSet and self.runSet.xml:
+            self.runSet.xml.append(systemInfo)
 
 
     def setError(self, msg):
@@ -412,7 +419,7 @@ class OutputHandler:
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
                 blockFileName = self.getFileName(runSet.name, block.name + ".xml")
-                filewriter.writeFile(
+                Util.writeFile(
                     Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)),
                     blockFileName
                 )
@@ -557,10 +564,12 @@ class OutputHandler:
         self.statistics.printToTerminal()
 
         if self.XMLFileNames:
-            tableGeneratorPath = os.path.join(os.path.dirname(__file__), os.path.pardir, 'table-generator.py')
+            tableGeneratorName = 'table-generator.py'
+            tableGeneratorPath = os.path.relpath(os.path.join(os.path.dirname(__file__), os.path.pardir, tableGeneratorName))
+            if tableGeneratorPath == tableGeneratorName:
+                tableGeneratorPath = './' + tableGeneratorName
             Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
-                          .format(os.path.relpath(tableGeneratorPath, '.'),
-                                  "' '".join(self.XMLFileNames)))
+                          .format(tableGeneratorPath, "' '".join(self.XMLFileNames)))
 
         if isStoppedByInterrupt:
             Util.printOut("\nScript was interrupted by user, some runs may not be done.\n")

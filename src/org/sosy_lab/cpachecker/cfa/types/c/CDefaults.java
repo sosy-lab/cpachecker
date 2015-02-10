@@ -62,7 +62,6 @@ public class CDefaults {
       case UNSPECIFIED:
       case BOOL:
       case INT:
-      case VOID: // is this legitimate for "void"?
         return initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
 
       default:

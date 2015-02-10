@@ -874,7 +874,7 @@ final class NeqRelation {
 
   public void add_relation(Integer pOne, Integer pTwo) {
 
-    if(pOne == pTwo) {
+    if(pOne.intValue() == pTwo.intValue()) {
       return;
     }
 

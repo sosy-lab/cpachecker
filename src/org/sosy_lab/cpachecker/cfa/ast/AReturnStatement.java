@@ -23,63 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 import com.google.common.base.Optional;
 
-public abstract class AReturnStatement extends AstNode implements IAReturnStatement {
+/**
+ * Representation of a "return" statement,
+ * potentially including a return value.
+ */
+public interface AReturnStatement extends AAstNode {
 
-  private final Optional<? extends IAExpression> expression;
-
-  public AReturnStatement(final FileLocation pFileLocation,
-      final Optional<? extends IAExpression> pExpression) {
-    super(pFileLocation);
-    expression = checkNotNull(pExpression);
-  }
-
-  @Override
-  public String toASTString() {
-    return "return"
-        + (expression.isPresent() ? " " + expression.get().toASTString() : "")
-        + ";";
-  }
-
-  @Override
-  public Optional<? extends IAExpression> getReturnValue() {
-    return expression;
-  }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
+  /**
+   * The return value, if present
+   * (i.e., the "exp" in "return exp;").
    */
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(expression);
-    result = prime * result + super.hashCode();
-    return result;
-  }
+  public Optional<? extends AExpression> getReturnValue();
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
+  /**
+   * If this statement has a return value,
+   * this method creates a representation of this statement in form of an assignment
+   * of the return value to a special variable
+   * (i.e., something like "__retval__ = exp;").
+   * This special variable is the same as the one returned by
+   * {@link FunctionEntryNode#getReturnVariable()}.
    */
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof AReturnStatement)
-        || !super.equals(obj)) {
-      return false;
-    }
-
-    AReturnStatement other = (AReturnStatement) obj;
-
-    return Objects.equals(other.expression, expression);
-  }
-
+  public Optional<? extends AAssignment> asAssignment();
 }

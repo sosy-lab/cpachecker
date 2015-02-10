@@ -23,14 +23,13 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import os
 import signal
 import threading
 
-from . import filewriter
 from . import util
 
 _BYTE_FACTOR = 1000 # byte in kilobyte
@@ -57,15 +56,15 @@ class KillProcessOnOomThread(threading.Thread):
 
     @param cgroup: The memory cgroup the process is in
     @param process: The process instance to kill
-    @param memlimit: The memory limit in MB
+    @param callbackFn: A one-argument function that is called in case of OOM with a string for the reason as argument
     """
-    def __init__(self, cgroup, process, memlimit):
+    def __init__(self, cgroup, process, callbackFn=lambda reason: None):
         super(KillProcessOnOomThread, self).__init__()
-        daemon = True
+        self.daemon = True
         self._finished = threading.Event()
         self._process = process
-        self._memlimit = memlimit
         self._cgroup = cgroup
+        self._callback = callbackFn
 
         ofd = os.open(os.path.join(cgroup, 'memory.oom_control'), os.O_WRONLY)
         try:
@@ -78,7 +77,7 @@ class KillProcessOnOomThread(threading.Thread):
             self._efd = libc.eventfd(0, EFD_CLOEXEC)
 
             try:
-                filewriter.writeFile('{} {}'.format(self._efd, ofd),
+                util.writeFile('{} {}'.format(self._efd, ofd),
                                      cgroup, 'cgroup.event_control')
 
                 # If everything worked, disable Kernel-side process killing.
@@ -86,8 +85,8 @@ class KillProcessOnOomThread(threading.Thread):
                 # but we don't care.
                 try:
                     os.write(ofd, '1'.encode('ascii'))
-                except OSError:
-                    pass
+                except OSError as e:
+                    logging.debug("Failed to disable kernel-side OOM killer: error {0} ({1})".format(e.errno, e.strerror))
             except EnvironmentError as e:
                 os.close(self._efd)
                 raise e
@@ -101,6 +100,7 @@ class KillProcessOnOomThread(threading.Thread):
             # If read returned, this means the kernel sent us an event.
             # It does so either on OOM or if the cgroup is removed.
             if not self._finished.is_set():
+                self._callback('memory')
                 logging.debug('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
                 util.killProcess(self._process.pid)
                 # Also kill all children of subprocesses directly.
@@ -120,7 +120,7 @@ class KillProcessOnOomThread(threading.Thread):
         if os.path.exists(os.path.join(self._cgroup, limitFile)):
             try:
                 # Write a high value (1 PB) as the limit
-                filewriter.writeFile(str(1 * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR),
+                util.writeFile(str(1 * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR),
                                      self._cgroup, limitFile)
             except IOError as e:
                 logging.warning('Failed to increase {0} after OOM: error {1} ({2})'.format(limitFile, e.errno, e.strerror))

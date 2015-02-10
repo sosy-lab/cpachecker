@@ -25,7 +25,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import subprocess
@@ -53,9 +53,14 @@ REQUIRED_PATHS = [
                   "config",
                   ]
 
-timeLimitWarningCounter = 10 # print the warning for 10 runs, then ignore silently.
-
 class Tool(benchmark.tools.template.BaseTool):
+    """
+    Tool wrapper for CPAchecker.
+    It has additional features such as building CPAchecker before running it
+    if executed within a source checkout.
+    It also supports extracting data from the statistics output of CPAchecker
+    for adding it to the result tables.
+    """
 
     def getExecutable(self):
         executable = Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
@@ -75,7 +80,7 @@ class Tool(benchmark.tools.template.BaseTool):
             sys.exit('Failed to build CPAchecker, please fix the build first.')
 
 
-    def getProgrammFiles(self, executable):
+    def getProgramFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 
@@ -110,10 +115,7 @@ class Tool(benchmark.tools.template.BaseTool):
     def getCmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
         if SOFTTIMELIMIT in rlimits:
             if "-timelimit" in options:
-                global timeLimitWarningCounter
-                if timeLimitWarningCounter > 0: # print the warning for 10 runs, then ignore silently.
-                    timeLimitWarningCounter -= 1
-                    logging.warning('soft-time-limit already specified. ignoring benchmark-limit as tool-parameter.')
+                logging.warning('Time limit already specified in command-line options, not adding time limit from benchmark definition to the command line.')
             else:
                 options = options + ["-timelimit", str(rlimits[SOFTTIMELIMIT]) + "s"] # benchmark-xml uses seconds as unit
 

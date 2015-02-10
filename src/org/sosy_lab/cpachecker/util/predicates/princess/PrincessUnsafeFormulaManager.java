@@ -51,6 +51,11 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   }
 
   @Override
+  public boolean isLiteral(IExpression t) {
+    return PrincessUtil.isNot(t) || isAtom(t);
+  }
+
+  @Override
   public int getArity(IExpression pT) {
     return PrincessUtil.getArity(pT);
   }
@@ -126,6 +131,31 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
       f = BooleanCompactifier.apply((IFormula)f);
     }
     return PartialEvaluator.apply(f);
+  }
+
+  @Override
+  protected boolean isQuantification(IExpression pT) {
+    return false;
+  }
+
+  @Override
+  protected IExpression getQuantifiedBody(IExpression pT) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected IExpression replaceQuantifiedBody(IExpression pF, IExpression pBody) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected boolean isFreeVariable(IExpression pT) {
+    return isVariable(pT);
+  }
+
+  @Override
+  protected boolean isBoundVariable(IExpression pT) {
+    return false;
   }
 
 }

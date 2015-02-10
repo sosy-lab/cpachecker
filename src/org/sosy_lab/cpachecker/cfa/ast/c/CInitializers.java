@@ -275,7 +275,7 @@ public final class CInitializers {
         String fieldName = ((CFieldDesignator)designator).getFieldName();
         if (!(currentType instanceof CCompositeType)
             || ((CCompositeType)currentType).getKind() == ComplexTypeKind.ENUM) {
-          throw new UnrecognizedCCodeException("Designated field initializer for non-struct type", edge, designator);
+          throw new UnrecognizedCCodeException("Designated field initializer for non-struct type " + currentType, edge, designator);
         }
 
         successful = handleInitializerForCompositeType(currentSubobject, Optional.of(fieldName),
@@ -284,7 +284,7 @@ public final class CInitializers {
 
       } else if (designator instanceof CArrayDesignator) {
         if (!(currentType instanceof CArrayType)) {
-          throw new UnrecognizedCCodeException("Designated array initializer for non-array type", edge, designator);
+          throw new UnrecognizedCCodeException("Designated array initializer for non-array type " + currentType, edge, designator);
         }
 
         CArrayType arrayType = (CArrayType)currentType;
@@ -304,7 +304,7 @@ public final class CInitializers {
 
       } else if (designator instanceof CArrayRangeDesignator) {
         if (!(currentType instanceof CArrayType)) {
-          throw new UnrecognizedCCodeException("Designated array initializer for non-array type", edge, designator);
+          throw new UnrecognizedCCodeException("Designated array initializer for non-array type " + currentType, edge, designator);
         }
 
         CArrayType arrayType = (CArrayType)currentType;

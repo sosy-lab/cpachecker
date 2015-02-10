@@ -43,7 +43,7 @@ import com.google.common.collect.ImmutableList;
 
 
 public class CLangStackFrameTest {
-  static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG);
+  static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   static private final MachineModel usedMachineModel = MachineModel.LINUX64;
   private CLangStackFrame sf;
@@ -105,7 +105,7 @@ public class CLangStackFrameTest {
   @Test
   public void CLangFrameReturnValueTest() {
     SMGObject retval = sf.getReturnObject();
-    Assert.assertEquals(usedMachineModel.getSizeof(CNumericTypes.UNSIGNED_LONG), retval.getSize());
+    Assert.assertEquals(usedMachineModel.getSizeof(CNumericTypes.UNSIGNED_LONG_INT), retval.getSize());
   }
 
   @Test(expected=IllegalArgumentException.class)

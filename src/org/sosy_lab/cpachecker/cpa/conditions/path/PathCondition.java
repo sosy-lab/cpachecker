@@ -53,10 +53,10 @@ public interface PathCondition {
   AvoidanceReportingState getInitialState(CFANode pNode);
 
   /**
-   * Get the successor element for an edge.
+   * Get the successor state for an edge.
    * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#getAbstractSuccessors(AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, CFAEdge)
    */
-  AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge);
+  AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge);
 
   /**
    * Adjust the precision of this condition, i.e., by increasing a threshold value.

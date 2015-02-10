@@ -29,8 +29,6 @@ import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
@@ -60,9 +58,9 @@ public class CPATestRunner {
       String pSourceCodeFilePath,
       boolean writeLogToSTDOUT) throws Exception {
 
-    Configuration config = Configuration.builder()
-        .addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()))
-        .setOptions(pProperties).build();
+    Configuration config = TestDataTools.configurationForTest()
+        .setOptions(pProperties)
+        .build();
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
 

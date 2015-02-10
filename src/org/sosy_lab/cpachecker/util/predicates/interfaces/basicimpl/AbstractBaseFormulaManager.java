@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 import com.google.common.base.Function;
 
@@ -60,5 +61,30 @@ abstract class AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> {
 
   final BooleanFormula wrapBool(TFormulaInfo pTerm) {
     return getFormulaCreator().encapsulateBoolean(pTerm);
+  }
+
+  protected final TType toSolverType(FormulaType<?> formulaType) {
+    TType t;
+    if (formulaType.isBooleanType()) {
+      t = getFormulaCreator().getBoolType();
+    } else if (formulaType.isIntegerType()) {
+      t = getFormulaCreator().getIntegerType();
+    } else if (formulaType.isRationalType()) {
+      t = getFormulaCreator().getRationalType();
+    } else if (formulaType.isBitvectorType()) {
+      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
+      t = getFormulaCreator().getBitvectorType(bitPreciseType.getSize());
+    } else if (formulaType.isFloatingPointType()) {
+      FormulaType.FloatingPointType fpType = (FormulaType.FloatingPointType)formulaType;
+      t = getFormulaCreator().getFloatingPointType(fpType);
+    } else if (formulaType.isArrayType()) {
+      FormulaType.ArrayFormulaType<?, ?> arrType = (FormulaType.ArrayFormulaType<?, ?>)formulaType;
+      TType indexType = toSolverType(arrType.getIndexType());
+      TType elementType = toSolverType(arrType.getElementType());
+      t = getFormulaCreator().getArrayType(indexType, elementType);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+    return t;
   }
 }

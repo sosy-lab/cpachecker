@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -69,7 +71,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final BitvectorManager bvmgr;
   private final PredicateManager predmgr;
   private final AbstractDomain abstractDomain;
-  private final BDDPrecision precision;
+  private VariableTrackingPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final BDDTransferRelation transferRelation;
@@ -96,13 +98,17 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     abstractDomain    = DelegateAbstractDomain.<BDDState>getInstance();
     stopOperator      = new StopSepOperator(abstractDomain);
     mergeOperator     = (merge.equals("sep")) ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
-    precision         = new BDDPrecision(config, cfa.getVarClassification());
+    precision         = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     manager           = new NamedRegionManager(rmgr);
     bvmgr             = new BitvectorManager(config, rmgr);
     predmgr           = new PredicateManager(config, manager, cfa);
     transferRelation  = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
     reducer           = new BDDReducer(manager, predmgr);
+  }
+
+  public void injectRefinablePrecision() throws InvalidConfigurationException {
+      precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
   }
 
   public NamedRegionManager getManager() {
@@ -130,12 +136,12 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new BDDState(manager, bvmgr, manager.makeTrue());
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return precision;
   }
 

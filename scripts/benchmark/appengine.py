@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -42,7 +42,6 @@ import time
 import urllib2
 
 from . import util as Util
-from . import filewriter as filewriter
 
 
 APPENGINE_SUBMITTER_THREAD = None
@@ -52,7 +51,8 @@ APPENGINE_SETTINGS = {} # these will be fetched from the server
 
 STOPPED_BY_INTERRUPT = False
 
-def setupBenchmarkForAppengine(benchmark):
+def init(config, benchmark):
+    # settings must be retrieved here to set the correct tool version
     uri = benchmark.config.appengineURI + '/settings'
     logging.debug('Setting up benchmark for App Engine...')
     logging.debug('Pulling settings from {0}.'.format(uri))
@@ -71,7 +71,7 @@ def setupBenchmarkForAppengine(benchmark):
         sys.exit('The settings could not be retrieved. {} is not available. Error: {}'.format(uri, e.reason))
 
 
-def executeBenchmarkInAppengine(benchmark, outputHandler):
+def executeBenchmark(benchmark, outputHandler):
     formatString = '%m-%d-%YT%H:%M:%S.%f'
     timestampsFileName = benchmark.outputBase+'.Timestamps_'+datetime.strftime(datetime.now(), formatString)+'.txt'
     with open(timestampsFileName, 'a') as f:
@@ -98,7 +98,7 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
     except KeyboardInterrupt:
         with open(timestampsFileName, 'a') as f:
             f.write('Interrupt: '+datetime.strftime(datetime.now(), formatString)+'\n')
-        killScriptAppEngine(benchmark.config)
+        kill()
     APPENGINE_POLLER_THREAD.join()
 
     _handleAppEngineResults(benchmark, outputHandler)
@@ -107,11 +107,11 @@ def executeBenchmarkInAppengine(benchmark, outputHandler):
         f.write('Finish: '+datetime.strftime(datetime.now(), formatString)+'\n')
 
 
-def killScriptAppEngine(config):
+def kill():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
 
-    Util.printOut("Killing subprocesses. May take up to %s seconds..."%config.appenginePollInterval)
+    Util.printOut("Killing subprocesses. May take some seconds...")
     if not APPENGINE_POLLER_THREAD == None:
         APPENGINE_POLLER_THREAD.join()
     if not APPENGINE_SUBMITTER_THREAD == None:
@@ -390,7 +390,7 @@ class _AppEnginePoller(threading.Thread):
             fileNames.append(file['name'])
 
         try:
-            filewriter.writeFile(json.dumps(task), logFile+'.stdOut')
+            Util.writeFile(json.dumps(task), logFile+'.stdOut')
         except:
             logging.debug('Could not save task '+taskKey)
 
@@ -400,7 +400,7 @@ class _AppEnginePoller(threading.Thread):
                 uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
-                filewriter.writeFile(response, logFile)
+                Util.writeFile(response, logFile)
                 statisticsProcessed = True
             except:
                 statisticsProcessed = False
@@ -415,7 +415,7 @@ class _AppEnginePoller(threading.Thread):
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
                 response = 'Task Key: {}\n{}'.format(task['key'], response)
-                filewriter.writeFile(response, logFile+'.stdErr')
+                Util.writeFile(response, logFile+'.stdErr')
             except: pass
 
         headers = {'Content-type':'application/json', 'Accept':'application/json'}

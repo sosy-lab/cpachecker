@@ -32,7 +32,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
 import com.google.common.base.Function;
 
@@ -47,32 +47,51 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
     this.manager = pManager;
   }
 
-  private static class ReplaceFunctionFormulaType<T extends Formula> extends FunctionFormulaType<T> {
+  private static class ReplaceUninterpretedFunctionDeclaration<T extends Formula> extends UninterpretedFunctionDeclaration<T> {
 
-    private final FunctionFormulaType<?> wrapped;
+    private final UninterpretedFunctionDeclaration<?> wrapped;
 
-    ReplaceFunctionFormulaType(
-        FunctionFormulaType<?> wrapped,
+    ReplaceUninterpretedFunctionDeclaration(
+        UninterpretedFunctionDeclaration<?> wrapped,
         FormulaType<T> pReturnType,
         List<FormulaType<?>> pArgumentTypes) {
       super(pReturnType, pArgumentTypes);
       this.wrapped = checkNotNull(wrapped);
     }
+
+    @Override
+    public int hashCode() {
+      return 17 + wrapped.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof ReplaceUninterpretedFunctionDeclaration)) {
+        return false;
+      }
+      ReplaceUninterpretedFunctionDeclaration<?> other =
+          (ReplaceUninterpretedFunctionDeclaration<?>)obj;
+
+      return wrapped.equals(other.wrapped);
+    }
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+  public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
 
     List<FormulaType<?>> newArgs = unwrapType(pArgs);
     FormulaType<?> ret = unwrapType(pReturnType);
-    FunctionFormulaType<?> funcType = manager.declareUninterpretedFunction(pName, ret, newArgs);
+    UninterpretedFunctionDeclaration<?> func = manager.declareUninterpretedFunction(pName, ret, newArgs);
 
-    return new ReplaceFunctionFormulaType<>(funcType, pReturnType, pArgs);
+    return new ReplaceUninterpretedFunctionDeclaration<>(func, pReturnType, pArgs);
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+  public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
     return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
@@ -102,8 +121,8 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
             }}).toList();
 
 
-    FunctionFormulaType<T> funcType = declareUninterpretedFunction(name, pReturnType, argTypes);
-    return callUninterpretedFunction(funcType, pArgs);
+    UninterpretedFunctionDeclaration<T> func = declareUninterpretedFunction(name, pReturnType, argTypes);
+    return callUninterpretedFunction(func, pArgs);
   }
 
   public <T extends Formula> T declareAndCallUninterpretedFunction(
@@ -114,9 +133,9 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
 
   @Override
   public <T extends Formula> T callUninterpretedFunction(
-      FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
+      UninterpretedFunctionDeclaration<T> pFuncType, List<? extends Formula> pArgs) {
 
-    ReplaceFunctionFormulaType<T> rep = (ReplaceFunctionFormulaType<T>)pFuncType;
+    ReplaceUninterpretedFunctionDeclaration<T> rep = (ReplaceUninterpretedFunctionDeclaration<T>)pFuncType;
 
     Formula f = manager.callUninterpretedFunction(rep.wrapped, unwrap(pArgs));
 
@@ -124,7 +143,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
   }
 
   public <T extends Formula> T callUninterpretedFunction(
-      FunctionFormulaType<T> pFuncType, Formula... pArgs) {
+      UninterpretedFunctionDeclaration<T> pFuncType, Formula... pArgs) {
     return callUninterpretedFunction(pFuncType, Arrays.asList(pArgs));
   }
 }

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
  *
  *
  */
-public class JEnumConstantExpression extends AExpression implements JExpression {
+public class JEnumConstantExpression extends AbstractExpression implements JExpression {
 
   // TODO Change the representation of the constantName from String to JIdExpression
 

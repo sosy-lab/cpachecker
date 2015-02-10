@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="server" name="CPAchecker on Google App Engine" xmlns:ivy="antlib:org.apache.ivy.ant">
 
-  <!-- use this to set the SDK version -->
-  <property name="gae-sdk.name" value="appengine-java-sdk-1.9.14" />
+  <!-- use this to specifically set the SDK version, otherwise we will check online for the current API version -->
+  <!-- <property name="gae-sdk.version" value="1.9.17" /> -->
 
   <property name="specification.dir" value="${basedir}/config/specification" />
   <property name="configuration.dir" value="${basedir}/config" />
@@ -15,6 +15,19 @@
   <property name="class.dir" value="${war.dir}/WEB-INF/classes" />
   <mkdir dir="${class.dir}" />
 
+  <loadresource property="gae-sdk.version">
+    <url url="https://appengine.google.com/api/updatecheck"/>
+    <filterchain>
+      <linecontainsregexp>
+        <regexp pattern="^release: &quot;([0-9.]+)&quot;$"/>
+      </linecontainsregexp>
+      <replaceregex pattern="^release: &quot;([0-9.]+)&quot;$" replace="\1"/>
+      <deletecharacters chars="\r\n"/>
+    </filterchain>
+  </loadresource>
+  <echo message="Using Google AppEngine SDK ${gae-sdk.version}"/>
+
+  <property name="gae-sdk.name" value="appengine-java-sdk-${gae-sdk.version}" />
   <property name="gae-sdk.dir" location="${lib.dir}/${gae-sdk.name}" />
   <property name="gae-dev.port" value="8888" />
   <property name="gae-dev.host" value="localhost" />
@@ -57,10 +70,7 @@
     <ivy:retrieve sync="true" overwriteMode="different" pattern="${lib.dir.gae}/[conf]/[artifact](-[classifier]).[ext]"/>
   </target>
 
-  <available file="${lib.dir.gae}-contrib" property="ivy.contrib.present"/>
-  <target name="update-contrib" if="ivy.contrib.present">
-    <antcall target="install-contrib"/>
-  </target>
+  <target name="update-contrib" if="ivy.contrib.present" depends="install-contrib"/>
   <target name="install-contrib" depends="load-ivy" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
     <ivy:resolve file="lib/ivy-gae.xml" conf="contrib" log="download-only"/>
     <ivy:retrieve sync="true" pattern="${lib.dir.gae}-contrib/[artifact](-[classifier]).[ext]"/>
@@ -94,12 +104,9 @@
     <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
   </target>
 
-  <target name="getsdk" description="Downloads the Google App Engine SDK.">
-    <get dest="${lib.dir}" src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
-  </target>
-
   <available file="${lib.dir}/${gae-sdk.name}" property="gae-sdk.expanded"/>
-  <target name="unzipsdk" description="Unzips the Google App Engine SDK." depends="getsdk" unless="gae-sdk.expanded">
+  <target name="getsdk" description="Downloads the Google App Engine SDK." unless="gae-sdk.expanded">
+    <get dest="${lib.dir}" src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
     <unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}" />
   </target>
 
@@ -139,7 +146,7 @@
     </copy>
   </target>
 
-  <target name="build" depends="resolve-dependencies,getsdk,unzipsdk,copy-jars,copy-specifications,copy-configurations,create-version-file-exact,build-subprojects" description="Builds the project.">
+  <target name="build" depends="resolve-dependencies,getsdk,copy-jars,copy-specifications,copy-configurations,create-version-file-exact,build-subprojects" description="Builds the project.">
     <copy todir="${class.dir}">
       <fileset dir="${source.dir}">
         <exclude name="**/*.java" />

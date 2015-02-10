@@ -14,7 +14,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return Util.findExecutable('esbmc')
 
 
-    def getProgrammFiles(self, executable):
+    def getProgramFiles(self, executable):
         executableDir = os.path.dirname(executable)
         return [executableDir]
 

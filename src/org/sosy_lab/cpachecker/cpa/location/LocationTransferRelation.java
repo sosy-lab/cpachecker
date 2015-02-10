@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -54,6 +55,14 @@ public class LocationTransferRelation implements TransferRelation {
 
     if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
       return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+
+    } else if (node.getNumLeavingEdges() == 1
+        && node.getLeavingEdge(0) instanceof MultiEdge) {
+      // maybe we are "entering" a MultiEdge via it's first component edge
+      MultiEdge multiEdge = (MultiEdge)node.getLeavingEdge(0);
+      if (multiEdge.getEdges().get(0).equals(cfaEdge)) {
+        return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+      }
     }
 
     return Collections.emptySet();

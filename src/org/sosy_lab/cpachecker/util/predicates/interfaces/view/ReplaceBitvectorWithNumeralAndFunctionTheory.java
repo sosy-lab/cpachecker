@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
@@ -48,12 +48,12 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
   private final FunctionFormulaManager functionManager;
-  private final FunctionFormulaType<T> bitwiseAndUfDecl;
-  private final FunctionFormulaType<T> bitwiseOrUfDecl;
-  private final FunctionFormulaType<T> bitwiseXorUfDecl;
-  private final FunctionFormulaType<T> bitwiseNotUfDecl;
-  private final FunctionFormulaType<T> leftShiftUfDecl;
-  private final FunctionFormulaType<T> rightShiftUfDecl;
+  private final UninterpretedFunctionDeclaration<T> bitwiseAndUfDecl;
+  private final UninterpretedFunctionDeclaration<T> bitwiseOrUfDecl;
+  private final UninterpretedFunctionDeclaration<T> bitwiseXorUfDecl;
+  private final UninterpretedFunctionDeclaration<T> bitwiseNotUfDecl;
+  private final UninterpretedFunctionDeclaration<T> leftShiftUfDecl;
+  private final UninterpretedFunctionDeclaration<T> rightShiftUfDecl;
   private final FormulaType<T> formulaType;
   private final boolean ignoreExtractConcat;
 
@@ -82,25 +82,25 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return (T)super.unwrap(pNumber);
   }
 
-  private FunctionFormulaType<T> createUnaryFunction(String name) {
+  private UninterpretedFunctionDeclaration<T> createUnaryFunction(String name) {
     return functionManager.declareUninterpretedFunction(name, formulaType, formulaType);
   }
 
-  private FunctionFormulaType<T> createBinaryFunction(String name) {
+  private UninterpretedFunctionDeclaration<T> createBinaryFunction(String name) {
     return functionManager.declareUninterpretedFunction(name, formulaType, formulaType, formulaType);
   }
 
-  private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {
+  private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, UninterpretedFunctionDeclaration<T> decl, BitvectorFormula... t1) {
     List<Formula> args = unwrap(Arrays.<Formula>asList(t1));
 
     return wrap(realreturn, functionManager.callUninterpretedFunction(decl, args));
   }
 
-  private final Map<Integer[], FunctionFormulaType<T>> extractMethods = new HashMap<>();
+  private final Map<Integer[], UninterpretedFunctionDeclaration<T>> extractMethods = new HashMap<>();
 
-  private FunctionFormulaType<T> getExtractDecl(int pMsb, int pLsb) {
+  private UninterpretedFunctionDeclaration<T> getExtractDecl(int pMsb, int pLsb) {
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
-    FunctionFormulaType<T> value = extractMethods.get(hasKey);
+    UninterpretedFunctionDeclaration<T> value = extractMethods.get(hasKey);
     if (value == null) {
       value = createUnaryFunction("_extract("+ pMsb + "," + pLsb + ")_");
       extractMethods.put(hasKey, value);
@@ -108,11 +108,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return value;
   }
 
-  private Map<Integer[], FunctionFormulaType<T>> concatMethods = new HashMap<>();
+  private Map<Integer[], UninterpretedFunctionDeclaration<T>> concatMethods = new HashMap<>();
 
-  private FunctionFormulaType<T> getConcatDecl(int firstSize, int secoundSize) {
+  private UninterpretedFunctionDeclaration<T> getConcatDecl(int firstSize, int secoundSize) {
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};
-    FunctionFormulaType<T> value = concatMethods.get(hasKey);
+    UninterpretedFunctionDeclaration<T> value = concatMethods.get(hasKey);
     if (value == null) {
       value = createUnaryFunction("_concat("+ firstSize + "," + secoundSize + ")_");
       concatMethods.put(hasKey, value);
@@ -120,12 +120,12 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return value;
   }
 
-  private Map<Integer, FunctionFormulaType<T>> extendSignedMethods = new HashMap<>();
-  private Map<Integer, FunctionFormulaType<T>> extendUnsignedMethods = new HashMap<>();
+  private Map<Integer, UninterpretedFunctionDeclaration<T>> extendSignedMethods = new HashMap<>();
+  private Map<Integer, UninterpretedFunctionDeclaration<T>> extendUnsignedMethods = new HashMap<>();
 
-  private FunctionFormulaType<T> getExtendDecl(int extensionBits, boolean pSigned) {
+  private UninterpretedFunctionDeclaration<T> getExtendDecl(int extensionBits, boolean pSigned) {
     Integer hasKey = Integer.valueOf(extensionBits);
-    FunctionFormulaType<T> value;
+    UninterpretedFunctionDeclaration<T> value;
     if (pSigned) {
       value = extendSignedMethods.get(hasKey);
       if (value == null) {
@@ -150,12 +150,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
-    T number = numericFormulaManager.makeNumber(pI);
-    return wrap(getBitvectorTypeWithSize(pLength), number);
-  }
-
-  @Override
-  public BitvectorFormula makeBitvector(int pLength, String pI) {
     T number = numericFormulaManager.makeNumber(pI);
     return wrap(getBitvectorTypeWithSize(pLength), number);
   }
@@ -265,7 +259,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pSecound));
     }
-    FunctionFormulaType<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
+    UninterpretedFunctionDeclaration<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
     return makeUf(returnType, concatUfDecl, pFirst, pSecound);
   }
 
@@ -275,7 +269,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));
     }
-    FunctionFormulaType<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
+    UninterpretedFunctionDeclaration<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
     return makeUf(returnType, extractUfDecl, pFirst);
   }
 
@@ -285,7 +279,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }
-    FunctionFormulaType<T> extendUfDecl = getExtendDecl(pExtensionBits, pSigned);
+    UninterpretedFunctionDeclaration<T> extendUfDecl = getExtendDecl(pExtensionBits, pSigned);
     return makeUf(returnType, extendUfDecl, pNumber);
   }
 

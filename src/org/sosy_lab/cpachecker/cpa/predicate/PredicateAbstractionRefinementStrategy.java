@@ -31,8 +31,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -52,6 +54,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -59,6 +62,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -79,13 +83,15 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 
 /**
@@ -212,24 +218,23 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr,
       final PredicateStaticRefiner pStaticRefiner, final Solver pSolver)
           throws CPAException, InvalidConfigurationException {
-    super(pFormulaManager.getBooleanFormulaManager(), pSolver);
+    super(pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    fmgr = pFormulaManager;
-    bfmgr = pFormulaManager.getBooleanFormulaManager();
+    fmgr = pSolver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
     staticRefiner = pStaticRefiner;
-    formulaMeasuring = new FormulaMeasuring(pFormulaManager);
+    formulaMeasuring = new FormulaMeasuring(fmgr);
 
     if (dumpPredicates && dumpPredicatesFile != null) {
-      precisionWriter = new PredicateMapWriter(config, pFormulaManager);
+      precisionWriter = new PredicateMapWriter(config, fmgr);
     } else {
       precisionWriter = null;
     }
@@ -283,7 +288,17 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Override
   public void startRefinementOfPath() {
     checkState(newPredicates == null);
-    newPredicates = ArrayListMultimap.create();
+    // needs to be a fully deterministic data structure,
+    // thus a Multimap based on a LinkedHashMap
+    // (we iterate over the keys)
+    newPredicates = Multimaps.newListMultimap(
+        new LinkedHashMap<Pair<CFANode, Integer>, Collection<AbstractionPredicate>>(),
+          new Supplier<List<AbstractionPredicate>>() {
+            @Override
+            public List<AbstractionPredicate> get() {
+              return new ArrayList<>();
+            }
+          });
   }
 
   @Override
@@ -454,7 +469,18 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     argUpdate.start();
 
-    pReached.removeSubtree(refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
+    List<Precision> precisions = new ArrayList<>(2);
+    List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
+
+    precisions.add(newPrecision);
+    precisionTypes.add(Predicates.instanceOf(PredicatePrecision.class));
+
+    if(isValuePrecisionAvailable(pReached, refinementRoot)) {
+      precisions.add(mergeAllValuePrecisionsFromSubgraph(refinementRoot, reached));
+      precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+    }
+
+    pReached.removeSubtree(refinementRoot, precisions, precisionTypes);
 
     assert (refinementCount > 0) || reached.size() == 1;
 
@@ -531,6 +557,36 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       newPrecision = newPrecision.mergeWith(extractPredicatePrecision(prec));
     }
     return newPrecision;
+  }
+
+  private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
+    if(!pReached.asReachedSet().contains(root)) {
+      return false;
+    }
+    return Precisions.extractPrecisionByType(pReached.asReachedSet().getPrecision(root), VariableTrackingPrecision.class) != null;
+  }
+
+  private VariableTrackingPrecision mergeAllValuePrecisionsFromSubgraph(
+      ARGState refinementRoot, UnmodifiableReachedSet reached) {
+
+    VariableTrackingPrecision rootPrecision = Precisions.extractPrecisionByType(reached.getPrecision(refinementRoot),
+        VariableTrackingPrecision.class);
+
+    // find all distinct precisions to merge them
+    Set<Precision> precisions = Sets.newIdentityHashSet();
+    for (ARGState state : refinementRoot.getSubgraph()) {
+      if (!state.isCovered()) {
+        // covered states are not in reached set
+        precisions.add(reached.getPrecision(state));
+      }
+    }
+
+    for (Precision prec : precisions) {
+      rootPrecision = rootPrecision.join(Precisions.extractPrecisionByType(prec,
+          VariableTrackingPrecision.class));
+    }
+
+    return rootPrecision;
   }
 
   @Override

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -140,7 +140,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     if (!loopStructure.isPresent()) {
       return false;
     }
-    Collection<String> referenced = VariableClassification.getVariablesOfExpression((CExpression) e.getExpression());
+    Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
 
     for (String var: referenced) {
       if (loopStructure.get().getLoopExitConditionVariables().contains(var)) {
@@ -214,7 +214,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
       throws SolverException, CPATransferException, InterruptedException {
     buildDirectlyAffectingStatements();
 
-    Collection<String> referenced = VariableClassification.getVariablesOfExpression((CExpression) e.getExpression());
+    Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
     for (String varName: referenced) {
       Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
       for (AStatementEdge stmtEdge: affectedByStmts) {

@@ -94,7 +94,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       stats.readTimer.start();
       checkingStrategy.readProof();
     } catch (Throwable e) {
-      e.printStackTrace();
       throw new RuntimeException("Failed reading proof.", e);
     } finally {
       stats.readTimer.stop();

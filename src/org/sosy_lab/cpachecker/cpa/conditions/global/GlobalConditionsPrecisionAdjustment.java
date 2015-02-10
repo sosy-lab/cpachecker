@@ -50,7 +50,7 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public PrecisionAdjustmentResult prec(AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException {
 
     if (checkReachedSetSize(pElements)) {
       logger.log(Level.WARNING, "Reached set size threshold reached, terminating.");

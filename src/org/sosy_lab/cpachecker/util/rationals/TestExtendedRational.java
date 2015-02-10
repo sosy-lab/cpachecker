@@ -1,26 +1,3 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
 package org.sosy_lab.cpachecker.util.rationals;
 
 import java.util.Arrays;
@@ -38,44 +15,38 @@ public class TestExtendedRational {
   public void testTypes() {
     ExtendedRational x;
 
-    x = ExtendedRational.ofLongs(23, 7);
-    Assert.assertEquals(ExtendedRational.NumberType.RATIONAL, x.getType());
+    x = new ExtendedRational(Rational.ofLongs(23, 7));
+    Assert.assertEquals(true, x.isRational());
 
-    x = ExtendedRational.ofLongs(23, 0);
-    Assert.assertEquals(ExtendedRational.NumberType.INFTY, x.getType());
-
-    x = ExtendedRational.ofLongs(-100, 0);
-    Assert.assertEquals(ExtendedRational.NumberType.NEG_INFTY, x.getType());
-
-    x = ExtendedRational.ofLongs(0, 0);
-    Assert.assertEquals(ExtendedRational.NumberType.NaN, x.getType());
+    x = ExtendedRational.INFTY;
+    Assert.assertEquals(false, x.isRational());
   }
 
   @Test public void testInstantiation() {
     ExtendedRational x;
-    x = ExtendedRational.ofLongs(108, 96);
+    x = new ExtendedRational(Rational.ofLongs(108, 96));
     Assert.assertEquals("9/8", x.toString());
   }
 
   @Test public void testAddition() {
     ExtendedRational a, b;
-    a = ExtendedRational.ofLongs(12, 8);
-    b = ExtendedRational.ofLongs(-54, 12);
+    a = new ExtendedRational(Rational.ofLongs(12, 8));
+    b = new ExtendedRational(Rational.ofLongs(-54, 12));
     Assert.assertEquals("-3", a.plus(b).toString());
 
-    b = ExtendedRational.ofLongs(1, 0);
+    b = ExtendedRational.INFTY;
     Assert.assertEquals("Infinity", a.plus(b).toString());
 
-    b = ExtendedRational.ofString("NaN");
+    b = ExtendedRational.NaN;
     Assert.assertEquals("NaN", a.plus(b).toString());
 
-    a = ExtendedRational.ofString("Infinity");
-    b = ExtendedRational.ofString("-Infinity");
+    a = ExtendedRational.INFTY;
+    b = ExtendedRational.NEG_INFTY;
     Assert.assertEquals("NaN", a.plus(b).toString());
 
 
     a = ExtendedRational.ofString("2309820938409238490");
-    b = ExtendedRational.ofLongs(-1, 0);
+    b = ExtendedRational.NEG_INFTY;
     Assert.assertEquals("-Infinity", a.plus(b).toString());
   }
 
@@ -124,22 +95,22 @@ public class TestExtendedRational {
 
   @Test public void testComparison() {
     List<ExtendedRational> unsorted = Arrays.asList(
-       ExtendedRational.ofLongs(0, 0),
-       ExtendedRational.ofLongs(-1, 0),
-       ExtendedRational.ofLongs(-2, 4),
-       ExtendedRational.ofLongs(1, 3),
-       ExtendedRational.ofLongs(2, 3),
-       ExtendedRational.ofLongs(1, 0)
+       ExtendedRational.NaN,
+       ExtendedRational.NEG_INFTY,
+       ExtendedRational.ofString("-2/4"),
+       ExtendedRational.ofString("1/3"),
+       ExtendedRational.ofString("2/3"),
+       ExtendedRational.INFTY
     );
     Collections.shuffle(unsorted);
 
     List<ExtendedRational> sorted = Arrays.asList(
-        ExtendedRational.ofLongs(-1, 0),
-        ExtendedRational.ofLongs(-2, 4),
-        ExtendedRational.ofLongs(1, 3),
-        ExtendedRational.ofLongs(2, 3),
-        ExtendedRational.ofLongs(1, 0),
-        ExtendedRational.ofLongs(0, 0)
+        ExtendedRational.NEG_INFTY,
+        ExtendedRational.ofString("-2/4"),
+        ExtendedRational.ofString("1/3"),
+        ExtendedRational.ofString("2/3"),
+        ExtendedRational.INFTY,
+        ExtendedRational.NaN
     );
 
     Collections.sort(unsorted);
@@ -149,20 +120,17 @@ public class TestExtendedRational {
 
   @Test public void testOfString() {
     ExtendedRational a;
-    a = ExtendedRational.ofString("6/8");
-    Assert.assertEquals(ExtendedRational.ofLongs(3, 4), a);
-
     a = ExtendedRational.ofString("Infinity");
-    Assert.assertEquals(ExtendedRational.ofLongs(1, 0), a);
+    Assert.assertEquals(ExtendedRational.INFTY, a);
 
     a = ExtendedRational.ofString("-Infinity");
-    Assert.assertEquals(ExtendedRational.ofLongs(-1, 0), a);
+    Assert.assertEquals(ExtendedRational.NEG_INFTY, a);
 
     a = ExtendedRational.ofString("NaN");
-    Assert.assertEquals(ExtendedRational.ofLongs(0, 0), a);
+    Assert.assertEquals(ExtendedRational.NaN, a);
 
     a = ExtendedRational.ofString("-2");
-    Assert.assertEquals(ExtendedRational.ofLongs(-2, 1), a);
+    Assert.assertEquals(new ExtendedRational(Rational.ofLong(-2)), a);
   }
 
 }

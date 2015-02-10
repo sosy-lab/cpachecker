@@ -89,6 +89,11 @@ public abstract class DefaultJExpressionVisitor<R, X extends Exception> implemen
   }
 
   @Override
+  public R visit(JArrayLengthExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
   public R visit(JVariableRunTimeType e) throws X {
     return visitDefault(e);
   }

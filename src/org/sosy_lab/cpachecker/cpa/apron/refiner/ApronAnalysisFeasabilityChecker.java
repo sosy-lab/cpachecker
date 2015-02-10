@@ -70,7 +70,7 @@ public class ApronAnalysisFeasabilityChecker {
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new ApronTransferRelation(logger, cfa);
+    transfer  = new ApronTransferRelation(logger, cfa, cpa.isSplitDisequalites());
     checkedPath = path;
 
     // use a new configuration which only has a static precision

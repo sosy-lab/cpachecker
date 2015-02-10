@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,7 +32,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -96,7 +99,7 @@ public class PredicateManager {
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
   protected void initVars(CFA cfa) {
-    List<VariableClassification.Partition> partitions;
+    Collection<VariableClassification.Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
       partitions = d.getOrderedPartitions();
@@ -182,8 +185,8 @@ public class PredicateManager {
   /** This function returns regions containing bits of a variable.
    * returns regions for positions of a variable, s --> [s@2, s@1, s@0].
    * If the variable is not tracked by the the precision, Null is returned. */
-  protected Region[] createPredicate(final String varName, final int size, final BDDPrecision precision) {
-    if (precision != null && !precision.isTracking(varName)) {
+  protected Region[] createPredicate(final String varName, final CType varType, final CFANode location, final int size, final VariableTrackingPrecision precision) {
+    if (precision != null && !precision.isTracking(MemoryLocation.valueOf(varName), varType, location)) {
       return null;
     }
     return createPredicateWithoutPrecisionCheck(varName, size);

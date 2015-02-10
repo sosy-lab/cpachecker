@@ -32,12 +32,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
@@ -187,6 +187,9 @@ public class CFASecondPassBuilder {
         throw new CParserException("Method " + functionName + " takes "
             + declaredParameters + " parameter(s) but is called with "
             + actualParameters + " parameter(s)", edge);
+
+      default:
+        throw new AssertionError("Unhandled language " + language);
       }
     }
 
@@ -212,7 +215,8 @@ public class CFASecondPassBuilder {
       }
 
       calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
-          fileLocation, predecessorNode, successorNode, (CFunctionCall) functionCall);
+          fileLocation, predecessorNode, successorNode,
+          (CFunctionCall)functionCall, (CFunctionEntryNode)fDefNode);
 
       callEdge = new CFunctionCallEdge(edge.getRawStatement(),
           fileLocation, predecessorNode,
@@ -221,7 +225,8 @@ public class CFASecondPassBuilder {
 
     case JAVA:
       calltoReturnEdge = new JMethodSummaryEdge(edge.getRawStatement(),
-          fileLocation, predecessorNode, successorNode, (JMethodOrConstructorInvocation) functionCall);
+          fileLocation, predecessorNode, successorNode,
+          (JMethodOrConstructorInvocation)functionCall, (JMethodEntryNode)fDefNode);
 
       callEdge = new JMethodCallEdge(edge.getRawStatement(),
           fileLocation, predecessorNode,
@@ -268,7 +273,7 @@ public class CFASecondPassBuilder {
   private boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
       IAFunctionType functionType) {
     //get the parameter expression
-    List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();
+    List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // check if the number of function parameters are right
     int declaredParameters = functionType.getParameters().size();

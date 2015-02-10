@@ -4,11 +4,11 @@
 <!-- Rundefinitions execute for each program the verification with proof generation followed by certificate
      checking and collect the respective data.
      Programs are taken from SV-Comp Benchmark subcategory ControlFlowInteger (only true-unreach-call programs).
-     Programs for which verification timed out after 5 minutes for the coarsest analysis are completely excluded. 
+     Programs for which verification timed out after 5 minutes for the coarsest analysis are completely excluded.
      Programs for which verification timed out after 5 minutes for another analysis are excluded from the respective
      rundefinition of that analysis.
      The time limit used for evaluation was 5 minutes.
--->    
+-->
 <benchmark tool="cpachecker" timelimit="300" memlimit="3150">
 <option name="-heap">2500M</option>
 <option name="-noout"/>
@@ -1161,8 +1161,8 @@
 </sourcefiles>
 </rundefinition>
 
-<rundefinition name="ExplicitDF">
-	<option name="-explicitAnalysis-pcc-trac-all"/>
+<rundefinition name="valueDF">
+	<option name="-valueAnalysis-pcc-trac-all"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleValueChecker</option>
@@ -1788,8 +1788,8 @@
 </sourcefiles>
 </rundefinition>
 
-<rundefinition name="ReachDef_ExplicitDF">
-	<option name="-reachingdef-explicit"/>
+<rundefinition name="ReachDef_valueDF">
+	<option name="-reachingdef-value"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
@@ -2305,8 +2305,8 @@
 </sourcefiles>
 </rundefinition>
 
-<rundefinition name="ReachDef_ExplicitJOINSEP">
-	<option name="-reachingdef-explicit"/>
+<rundefinition name="ReachDef_valueJOINSEP">
+	<option name="-reachingdef-value"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
 <sourcefiles>

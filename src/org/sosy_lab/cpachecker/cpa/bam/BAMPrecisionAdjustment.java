@@ -55,7 +55,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public PrecisionAdjustmentResult prec(AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
     if (trans.breakAnalysis) {
       return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
     }
@@ -71,7 +71,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       validPrecision = pPrecision;
     }
 
-    PrecisionAdjustmentResult result = wrappedPrecisionAdjustment.prec(pElement, validPrecision, pElements);
+    PrecisionAdjustmentResult result = wrappedPrecisionAdjustment.prec(pElement, validPrecision, pElements, fullState);
 
     result = result.withAbstractState(trans.attachAdditionalInfoToCallNode(result.abstractState()));
 

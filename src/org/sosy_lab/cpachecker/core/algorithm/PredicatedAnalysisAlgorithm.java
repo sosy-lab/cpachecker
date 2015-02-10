@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -49,6 +51,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -63,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreePredicatedAnalys
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -77,9 +81,10 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
@@ -94,6 +99,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
+  private final PredicateCPA predCPA;
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -102,6 +108,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private ARGPath pathToFailure = null;
   private boolean repeatedFailure = false;
   private PredicatePrecision oldPrecision = null;
+  private Constructor<?extends AbstractState> locConstructor = null;
 
 
   public PredicatedAnalysisAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
@@ -111,12 +118,17 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     cfa = pCfa;
     this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
+    predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
 
     if (!(cpa instanceof ARGCPA)
         || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
         || CPAs.retrieveCPA(cpa, PredicateCPA.class) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
         "Predicated Analysis requires ARG as top CPA and Composite CPA as child. "
             + "Furthermore, it needs Location CPA and Predicate CPA to work.");
+    }
+
+    if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
+      throw new InvalidConfigurationException("Currently only support forward analyses.");
     }
     if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof CompositeMergeAgreePredicatedAnalysisOperator)) { throw new InvalidConfigurationException(
         "Composite CPA must be informed about predicated analysis. "
@@ -175,7 +187,6 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       logger.log(Level.FINEST, "Prepare for refinement by CEGAR algorithm");
 
       // get predicate state
-      PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
       PredicateAbstractState errorPred = AbstractStates.extractStateByType(predecessor, PredicateAbstractState.class);
       CompositeState comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
 
@@ -233,7 +244,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       try {
         for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
           if (s.isTarget()) {
-            for (AssumeEdge assume : s.getAsAssumeEdges(null, node.getFunctionName())) {
+            for (AssumeEdge assume : s.getAsAssumeEdges(node.getFunctionName())) {
               predNode = createFakeEdge(assume.getRawStatement(),  (CExpression) assume.getExpression(), predNode);
             }
           }
@@ -247,10 +258,19 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
       }
 
-      // create fake states, one per fake edge, note that location state will be incorrect
+      // create fake states, one per fake edge, note that states are the same except for predicate state and location state
+      if (locConstructor == null) {
+        try {
+          locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
+          locConstructor.setAccessible(true);
+        } catch (NoSuchMethodException | SecurityException e1) {
+          throw new CPAException("Cannot prepare for refinement because cannot get constructor for location states.", e1);
+        }
+      }
+
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
-      FormulaManagerView fm = predCPA.getFormulaManager();
+      FormulaManagerView fm = predCPA.getSolver().getFormulaManager();
       PathFormula pf;
       PredicateAbstractState fakePred = errorPred;
       int i=1;
@@ -265,14 +285,13 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         pf = pfm.makeAnd(pf, assumeEdge);
 
         // if last edge on faked path, build abstraction which is needed for refinement, set to true, we do not know better
-        if (i == fakeEdgesFromLastRun.size())
-        {
+        if (i == fakeEdgesFromLastRun.size()) {
           AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
           pf = pfm.makeEmptyPathFormula(pf);
 
           PersistentMap<CFANode, Integer> abstractionLocations = errorPred.getAbstractionLocationsOnPath();
-          Integer newLocInstance = firstNonNull(abstractionLocations.get(node), 0) + 1;
-          abstractionLocations = abstractionLocations.putAndCopy(node, newLocInstance);
+          Integer newLocInstance = firstNonNull(abstractionLocations.get(assumeEdge.getSuccessor()), 0) + 1;
+          abstractionLocations = abstractionLocations.putAndCopy(assumeEdge.getSuccessor(), newLocInstance);
 
           // create fake abstraction predicate state
           fakePred = PredicateAbstractState.mkAbstractionState(fm.getBooleanFormulaManager(), pf, abf,
@@ -286,7 +305,16 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
         for (AbstractState state : comp.getWrappedStates()) {
           if (state != errorPred) {
-            wrappedStates.add(state);
+            if (state instanceof LocationState) {
+              try {
+                wrappedStates.add(locConstructor.newInstance(assumeEdge.getSuccessor(),true));
+              } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+                  | InvocationTargetException e1) {
+                throw new CPAException("Cannot prepare for refinement, cannot build necessary fake states.", e1);
+              }
+            } else {
+              wrappedStates.add(state);
+            }
           } else {
             wrappedStates.add(fakePred);
           }
@@ -328,7 +356,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     // first build initial precision for current run
     logger.log(Level.FINEST, "Construct precision for current run");
     Precision precision =
-        buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction()));
+        buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
     oldPrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
 
     // clear reached set for current run
@@ -336,7 +364,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
     // initialize reached set
     if (initialWrappedState == null) {
-      initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction())).getWrappedState();
+      initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition())).getWrappedState();
     }
     pReachedSet.add(new ARGState(initialWrappedState, null), precision);
   }
@@ -395,10 +423,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   private boolean noNewPredicates(PredicatePrecision oldPrecision, PredicatePrecision newPrecision)
       throws SolverException, InterruptedException {
-    PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
 
     // check if global precision changed
-    if (isMorePrecise(oldPrecision.getGlobalPredicates(), newPrecision.getGlobalPredicates(), predCPA)) { return false; }
+    if (isMorePrecise(oldPrecision.getGlobalPredicates(), newPrecision.getGlobalPredicates())) { return false; }
     // get CFA nodes and function names on failure path
     HashSet<String> funNames = new HashSet<>();
     HashSet<CFANode> nodesOnPath = new HashSet<>();
@@ -412,20 +439,21 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     // check if precision for one of the functions on path changed
     for (String funName : funNames) {
       if (isMorePrecise(oldPrecision.getFunctionPredicates().get(funName),
-          newPrecision.getFunctionPredicates().get(funName), predCPA)) { return false; }
+          newPrecision.getFunctionPredicates().get(funName))) { return false; }
     }
 
     // check if precision for one of the CFA nodes on path changed
     for (CFANode node : nodesOnPath) {
       if (isMorePrecise(oldPrecision.getLocalPredicates().get(node),
-          newPrecision.getLocalPredicates().get(node), predCPA)) { return false; }
+          newPrecision.getLocalPredicates().get(node))) { return false; }
     }
 
     return true;
   }
 
-  private boolean isMorePrecise(Set<AbstractionPredicate> lessPrecise, Set<AbstractionPredicate> morePrecise,
-      PredicateCPA predCPA) throws SolverException, InterruptedException {
+  private boolean isMorePrecise(Set<AbstractionPredicate> lessPrecise,
+      Set<AbstractionPredicate> morePrecise)
+          throws SolverException, InterruptedException {
     if (lessPrecise != null && morePrecise != null) {
       if (lessPrecise.size() == morePrecise.size() && lessPrecise.equals(morePrecise)) { return false; }
 
@@ -434,22 +462,20 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       for (AbstractionPredicate abs : lessPrecise) {
         list.add(abs.getSymbolicAtom());
       }
-      BooleanFormula fLess = predCPA.getFormulaManager().getBooleanFormulaManager().and(list);
+      final Solver solver = predCPA.getSolver();
+      final BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+      BooleanFormula fLess = bfmgr.and(list);
 
       list.clear();
       for (AbstractionPredicate abs : lessPrecise) {
         list.add(abs.getSymbolicAtom());
       }
-      BooleanFormula fMore = predCPA.getFormulaManager().getBooleanFormulaManager().and(list);
-      fMore = predCPA.getFormulaManager().makeNot(fMore);
-      fMore = predCPA.getFormulaManager().makeAnd(fLess, fMore);
+      BooleanFormula fMore = bfmgr.and(list);
+      fMore = bfmgr.not(fMore);
+      fMore = bfmgr.and(fLess, fMore);
 
       // check if conjunction of less precise does not imply conjunction of more precise
-      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false, false);
-      prover.push(fMore);
-      boolean result = prover.isUnsat();
-      prover.close();
-      return result;
+      return solver.isUnsat(fMore);
     }
 
     return lessPrecise == null && morePrecise != null;

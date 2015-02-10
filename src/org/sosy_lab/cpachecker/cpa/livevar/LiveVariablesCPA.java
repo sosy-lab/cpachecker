@@ -23,12 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.livevar;
 
+import java.util.Collections;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -45,8 +53,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 
 @Options
 public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
@@ -60,19 +73,28 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   private String stopType = "SEP";
 
   private final AbstractDomain domain;
-  private final TransferRelation transfer;
+  private final LiveVariablesTransferRelation transfer;
   private final MergeOperator merge;
   private final StopOperator stop;
+  private final LogManager logger;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LiveVariablesCPA.class);
   }
 
-  private LiveVariablesCPA(final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  private LiveVariablesCPA(final Configuration pConfig,
+                           final LogManager pLogger,
+                           final ShutdownNotifier pShutdownNotifier,
+                           final CFA cfa) throws InvalidConfigurationException {
     pConfig.inject(this, LiveVariablesCPA.class);
+    logger = pLogger;
     domain = DelegateAbstractDomain.<LiveVariablesState>getInstance();
-    transfer = new LiveVariablesTransferRelation(pLogger, pShutdownNotifier);
+
+    if (!cfa.getVarClassification().isPresent() && cfa.getLanguage() == Language.C) {
+      throw new AssertionError("Without information of the variable classification"
+          + " the live variables analysis cannot be used.");
+    }
+    transfer = new LiveVariablesTransferRelation(cfa.getVarClassification(), pConfig, cfa.getLanguage());
 
     if (mergeType.equals("SEP")) {
       merge = MergeSepOperator.getInstance();
@@ -113,14 +135,39 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
-    return new LiveVariablesState();
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    if (pNode instanceof FunctionExitNode) {
+      FunctionExitNode eNode = (FunctionExitNode) pNode;
+      Optional<? extends AVariableDeclaration> returnVarName = eNode.getEntryNode().getReturnVariable();
+
+      // p.e. a function void foo();
+      if (!returnVarName.isPresent()) {
+        return new LiveVariablesState();
+
+      // all other function types
+      } else {
+        transfer.putInitialLiveVariables(pNode, Collections.singleton((ASimpleDeclaration)returnVarName.get()));
+        return new LiveVariablesState(ImmutableSet.of((ASimpleDeclaration)returnVarName.get()));
+      }
+
+    } else {
+      logger.log(Level.FINEST, "No FunctionExitNode given, thus creating initial state without having the return variable.");
+      return new LiveVariablesState();
+    }
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 
+  /**
+   * Returns the liveVariables that are currently computed. Calling this method
+   * makes only sense if the analysis was completed
+   * @return a Multimap containing the variables that are live at each location
+   */
+  public Multimap<CFANode, ASimpleDeclaration> getLiveVariables() {
+    return transfer.getLiveVariables();
+  }
 
 }

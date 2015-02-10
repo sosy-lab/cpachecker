@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
@@ -129,6 +130,16 @@ public class NumeralFormulaManagerView
   @Override
   public ResultFormulaType makeNumber(String pI) {
     return manager.makeNumber(pI);
+  }
+
+  @Override
+  public ResultFormulaType makeNumber(double pNumber) {
+    return manager.makeNumber(pNumber);
+  }
+
+  @Override
+  public ResultFormulaType makeNumber(BigDecimal pNumber) {
+    return manager.makeNumber(pNumber);
   }
 
   @Override

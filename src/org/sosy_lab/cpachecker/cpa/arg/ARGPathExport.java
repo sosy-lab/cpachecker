@@ -45,21 +45,22 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -74,8 +75,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -247,7 +248,7 @@ public class ARGPathExport {
     private final Multimap<String, AggregatedEdge> sourceToTargetMap = HashMultimap.create();
     private final Multimap<String, AggregatedEdge> targetToSourceMap = HashMultimap.create();
     private final Map<String, Element> delayedNodes = Maps.newHashMap();
-    private final Map<DelayedAssignmentsKey, CFAEdgeWithAssignments> delayedAssignments = Maps.newHashMap();
+    private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
     private final String defaultSourcefileName;
 
@@ -303,7 +304,7 @@ public class ARGPathExport {
 
     private void appendNewEdge(final GraphMlBuilder doc, String from,
         final String to, final CFAEdge edge, final ARGState fromState,
-        final Map<ARGState, CFAEdgeWithAssignments> valueMap) throws IOException {
+        final Map<ARGState, CFAEdgeWithAssumptions> valueMap) throws IOException {
 
       TransitionCondition desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
 
@@ -367,7 +368,7 @@ public class ARGPathExport {
     }
 
     private TransitionCondition constructTransitionCondition(String from, String to, final CFAEdge edge, ARGState fromState,
-        Map<ARGState, CFAEdgeWithAssignments> valueMap) {
+        Map<ARGState, CFAEdgeWithAssumptions> valueMap) {
       TransitionCondition desc = new TransitionCondition();
 
       //desc.put(KeyDef.CFAPREDECESSORNODE, edge.getPredecessor().toString());
@@ -386,43 +387,43 @@ public class ARGPathExport {
       if (exportAssumptions) {
         if (fromState != null) {
           DelayedAssignmentsKey key = new DelayedAssignmentsKey(from, edge, fromState);
-          CFAEdgeWithAssignments cfaEdgeWithAssignments = delayedAssignments.get(key);
+          CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
 
           if (valueMap != null && valueMap.containsKey(fromState)) {
-            CFAEdgeWithAssignments currentEdgeWithAssignments = valueMap.get(fromState);
+            CFAEdgeWithAssumptions currentEdgeWithAssignments = valueMap.get(fromState);
             if (cfaEdgeWithAssignments == null) {
               cfaEdgeWithAssignments = currentEdgeWithAssignments;
             } else {
-              List<IAssignment> delayedAssignments = cfaEdgeWithAssignments.getAssignments();
-              List<IAssignment> currentAssignments = currentEdgeWithAssignments.getAssignments();
-              List<IAssignment> allAssignments = new ArrayList<>(delayedAssignments.size() + currentAssignments.size());
+              List<AExpressionStatement> delayedAssignments = cfaEdgeWithAssignments.getExpStmts();
+              List<AExpressionStatement> currentAssignments = currentEdgeWithAssignments.getExpStmts();
+              List<AExpressionStatement> allAssignments = new ArrayList<>(delayedAssignments.size() + currentAssignments.size());
               allAssignments.addAll(delayedAssignments);
               allAssignments.addAll(currentAssignments);
-              cfaEdgeWithAssignments = new CFAEdgeWithAssignments(edge, allAssignments, currentEdgeWithAssignments.getComment());
+              cfaEdgeWithAssignments = new CFAEdgeWithAssumptions(edge, allAssignments, currentEdgeWithAssignments.getComment());
             }
           }
 
           if (cfaEdgeWithAssignments != null) {
-            List<IAssignment> assignments = cfaEdgeWithAssignments.getAssignments();
-            Predicate<IAssignment> assignsParameterOfOtherFunction = new AssignsParameterOfOtherFunction(edge);
-            List<IAssignment> functionValidAssignments = FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
+            List<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
+            Predicate<AExpressionStatement> assignsParameterOfOtherFunction = new AssignsParameterOfOtherFunction(edge);
+            List<AExpressionStatement> functionValidAssignments = FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
             if (functionValidAssignments.size() < assignments.size()) {
-              cfaEdgeWithAssignments = new CFAEdgeWithAssignments(edge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
+              cfaEdgeWithAssignments = new CFAEdgeWithAssumptions(edge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
               FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(edge.getSuccessor());
               if (nextEdges.size() == 1 && fromState.getChildren().size() == 1) {
                 String keyFrom = to;
                 CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
                 ARGState keyState = Iterables.getOnlyElement(fromState.getChildren());
-                List<IAssignment> valueAssignments = FluentIterable.from(assignments).filter(Predicates.not(assignsParameterOfOtherFunction)).toList();
-                CFAEdgeWithAssignments valueCFAEdgeWithAssignments =
-                    new CFAEdgeWithAssignments(keyEdge, valueAssignments, "");
+                List<AExpressionStatement> valueAssignments = FluentIterable.from(assignments).filter(Predicates.not(assignsParameterOfOtherFunction)).toList();
+                CFAEdgeWithAssumptions valueCFAEdgeWithAssignments =
+                    new CFAEdgeWithAssumptions(keyEdge, valueAssignments, "");
                 delayedAssignments.put(
                     new DelayedAssignmentsKey(keyFrom, keyEdge, keyState),
                     valueCFAEdgeWithAssignments);
               }
             }
             String code = cfaEdgeWithAssignments.getAsCode();
-            if (code != null) {
+            if (!code.isEmpty()) {
               desc.put(KeyDef.ASSUMPTION, code);
             }
           }
@@ -493,10 +494,10 @@ public class ARGPathExport {
         CounterexampleInfo pCounterExample)
         throws IOException {
 
-      Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
+      Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
       if (pCounterExample != null) {
         Model model = pCounterExample.getTargetPathModel();
-        CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
+        CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
         if (cfaPath != null) {
           ARGPath targetPath = pCounterExample.getTargetPath();
           valueMap = model.getExactVariableValues(targetPath);
@@ -653,7 +654,7 @@ public class ARGPathExport {
 
   }
 
-  private static class AssignsParameterOfOtherFunction implements Predicate<IAssignment> {
+  private static class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement> {
 
     private final CFAEdge edge;
 
@@ -666,27 +667,27 @@ public class ARGPathExport {
     }
 
     @Override
-    public boolean apply(IAssignment pArg0) {
-      IALeftHandSide leftHandSide = pArg0.getLeftHandSide();
-      if (!(leftHandSide instanceof CLeftHandSide)) {
+    public boolean apply(AExpressionStatement pArg0) {
+      AExpression exp = pArg0.getExpression();
+      if (!(exp instanceof CExpression)) {
         return false;
       }
-      CLeftHandSide cLeftHandSide = (CLeftHandSide) leftHandSide;
-      return cLeftHandSide.accept(new CExpressionVisitor<Boolean, RuntimeException>() {
+      CExpression cExp = (CExpression) exp;
+      return cExp.accept(new CExpressionVisitor<Boolean, RuntimeException>() {
 
         @Override
-        public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
+        public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
           return pIastArraySubscriptExpression.getArrayExpression().accept(this)
               && pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
         }
 
         @Override
-        public Boolean visit(CFieldReference pIastFieldReference) throws RuntimeException {
+        public Boolean visit(CFieldReference pIastFieldReference) {
           return pIastFieldReference.getFieldOwner().accept(this);
         }
 
         @Override
-        public Boolean visit(CIdExpression pIastIdExpression) throws RuntimeException {
+        public Boolean visit(CIdExpression pIastIdExpression) {
           CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
           if (declaration instanceof CParameterDeclaration && edge instanceof FunctionCallEdge) {
             return declaration.getQualifiedName().startsWith(qualifier);
@@ -695,60 +696,66 @@ public class ARGPathExport {
         }
 
         @Override
-        public Boolean visit(CPointerExpression pPointerExpression) throws RuntimeException {
+        public Boolean visit(CPointerExpression pPointerExpression) {
           return pPointerExpression.getOperand().accept(this);
         }
 
         @Override
-        public Boolean visit(CComplexCastExpression pComplexCastExpression) throws RuntimeException {
+        public Boolean visit(CComplexCastExpression pComplexCastExpression) {
           return pComplexCastExpression.getOperand().accept(this);
         }
 
         @Override
-        public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
+        public Boolean visit(CBinaryExpression pIastBinaryExpression) {
           return pIastBinaryExpression.getOperand1().accept(this)
               && pIastBinaryExpression.getOperand2().accept(this);
         }
 
         @Override
-        public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
+        public Boolean visit(CCastExpression pIastCastExpression) {
           return pIastCastExpression.getOperand().accept(this);
         }
 
         @Override
-        public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws RuntimeException {
+        public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) {
           return true;
         }
 
         @Override
-        public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws RuntimeException {
+        public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
           return true;
         }
 
         @Override
-        public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws RuntimeException {
+        public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
           return true;
         }
 
         @Override
-        public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws RuntimeException {
+        public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) {
           return true;
         }
 
         @Override
-        public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
+        public Boolean visit(CTypeIdExpression pIastTypeIdExpression) {
           return true;
         }
 
         @Override
-        public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
+        public Boolean visit(CUnaryExpression pIastUnaryExpression) {
           return pIastUnaryExpression.getOperand().accept(this);
         }
 
         @Override
-        public Boolean visit(CImaginaryLiteralExpression pIastLiteralExpression) throws RuntimeException {
+        public Boolean visit(CImaginaryLiteralExpression pIastLiteralExpression) {
           return pIastLiteralExpression.getValue().accept(this);
-        }});
+        }
+
+        @Override
+        public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
+          return true;
+        }
+      });
     }
 
   }

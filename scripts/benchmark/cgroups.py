@@ -23,7 +23,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import os
@@ -178,21 +178,22 @@ def killAllTasksInCgroupRecursively(cgroup):
 def killAllTasksInCgroup(cgroup):
     tasksFile = os.path.join(cgroup, 'tasks')
 
-    for i, sig in enumerate([signal.SIGINT, signal.SIGTERM, signal.SIGKILL]): # Do several tries of killing processes
-        with open(tasksFile, 'rt') as tasks:
-            task = None
-            for task in tasks:
-                logging.debug('Run has left-over process with pid {0}, sending signal {1} (try {2}).'.format(task, sig, i+1))
-                Util.killProcess(int(task), sig)
+    i = 0
+    while True:
+        i += 1
+        for sig in [signal.SIGINT, signal.SIGTERM, signal.SIGKILL]:
+            with open(tasksFile, 'rt') as tasks:
+                task = None
+                for task in tasks:
+                    task = task.strip()
+                    if i > 1:
+                        logging.warning('Run has left-over process with pid {0} in cgroup {1}, sending signal {2} (try {3}).'.format(task, cgroup, sig, i))
+                    Util.killProcess(int(task), sig)
 
-            if task is None:
-                return # No process was hanging, exit
+                if task is None:
+                    return # No process was hanging, exit
 
-            time.sleep(0.5) # wait for the process to exit, this might take some time
-
-    with open(tasksFile, 'rt') as tasks:
-        for task in tasks:
-            logging.warning('Run has left-over process with pid {0}, we could not kill it.'.format(task))
+                time.sleep(i * 0.5) # wait for the process to exit, this might take some time
 
 
 def removeCgroup(cgroup):

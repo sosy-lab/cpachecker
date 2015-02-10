@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 
 public class CArrayRangeDesignator extends CDesignator {
 
-  private final IAExpression rangeFloor;
-  private final IAExpression rangeCeiling;
+  private final AExpression rangeFloor;
+  private final AExpression rangeCeiling;
 
   public CArrayRangeDesignator(final FileLocation pFileLocation,
                           final CExpression pRangeFloor,

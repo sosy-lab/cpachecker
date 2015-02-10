@@ -62,6 +62,16 @@ class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager
   }
 
   @Override
+  protected Term makeNumberImpl(double pNumber) {
+    return getFormulaCreator().getEnv().decimal(BigDecimal.valueOf(pNumber));
+  }
+
+  @Override
+  protected Term makeNumberImpl(BigDecimal pNumber) {
+    return getFormulaCreator().getEnv().decimal(pNumber);
+  }
+
+  @Override
   protected Term makeVariableImpl(String varName) {
     Sort t = getFormulaCreator().getRationalType();
     return getFormulaCreator().makeVariable(t, varName);

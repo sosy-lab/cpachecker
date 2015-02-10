@@ -83,7 +83,7 @@ class CParserWithPreprocessor implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
-      programs.add(new FileContentToParse(p.getFileName(), programCode, p.getStaticVariablePrefix()));
+      programs.add(new FileContentToParse(p.getFileName(), programCode));
     }
     return realParser.parseString(programs, sourceOriginMapping);
   }

@@ -9,12 +9,14 @@
 
 <!ELEMENT requiredfiles (#PCDATA)>
 <!ELEMENT resultfiles (#PCDATA)>
-<!ELEMENT require>
+<!ELEMENT require (#PCDATA)>
 
 <!ELEMENT option (#PCDATA)>
 <!ELEMENT propertyfile (#PCDATA)>
 <!ELEMENT columns (column*)>
 <!ELEMENT column (#PCDATA)>
+
+<!ATTLIST rundefinition name>
 
 <!ATTLIST benchmark tool CDATA #REQUIRED>
 <!ATTLIST benchmark memlimit CDATA #IMPLIED>

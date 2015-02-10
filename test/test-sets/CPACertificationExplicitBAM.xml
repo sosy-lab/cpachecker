@@ -10,34 +10,34 @@
 <option name="-setprop">pcc.proofFile=arg.obj</option>
 <option name="-setprop">analysis.traversal.order=DFS</option>
 <option name="-setprop">limits.time.cpu=5min</option>
-<option name="-explicitAnalysis-bam"/>
+<option name="-valueAnalysis-bam"/>
 
 <rundefinition name="Analysis">
 	<sourcefiles>
 		<include>../programs/benchmarks/bitvector/s3_*_true.BV.c.cil.c</include>
 		<exclude>../programs/benchmarks/bitvector/s3_srvr_1_true.BV.c.cil.c</exclude>
 		<exclude>../programs/benchmarks/bitvector/s3_srvr_3_true.BV.c.cil.c</exclude>
-		<include>../programs/benchmarks/ldv-regression/nested_structure_noptr.c_true.cil.c</include> 
-		<include>../programs/benchmarks/ldv-regression/nested_structure_noptr_true.cil.c</include> 
-		<include>../programs/benchmarks/ldv-regression/oomInt.c_true.cil.c</include> 
-		<include>../programs/benchmarks/ldv-regression/oomInt.c_true_1.cil.c</include> 
+		<include>../programs/benchmarks/ldv-regression/nested_structure_noptr.c_true.cil.c</include>
+		<include>../programs/benchmarks/ldv-regression/nested_structure_noptr_true.cil.c</include>
+		<include>../programs/benchmarks/ldv-regression/oomInt.c_true.cil.c</include>
+		<include>../programs/benchmarks/ldv-regression/oomInt.c_true_1.cil.c</include>
 		<include>../programs/benchmarks/ldv-regression/rule60_list2.c_true.cil.c</include>
 		<include>../programs/benchmarks/ldv-regression/sizeofparameters_test.c_true.cil.c</include>
 		<include>../programs/benchmarks/ldv-regression/test_cut_trace.c_true.cil.c</include>
 		<include>../programs/benchmarks/ldv-regression/test_overflow.c_true.cil.c</include>
 		<include>../programs/benchmarks/ldv-regression/test_union.c_true.cil.c</include>
 		<include>../programs/benchmarks/ldv-regression/test_union_cast-1_true.cil.c</include>
-		<include>../programs/benchmarks/ldv-regression/test_union_cast.c_true_1.cil.c</include> 		
+		<include>../programs/benchmarks/ldv-regression/test_union_cast.c_true_1.cil.c</include>
 		<include>../programs/benchmarks/locks/*_true.c</include>
 		<exclude>../programs/benchmarks/locks/*11_true.c</exclude>
 		<exclude>../programs/benchmarks/locks/*12_true.c</exclude>
 		<exclude>../programs/benchmarks/locks/*13_true.c</exclude>
 		<exclude>../programs/benchmarks/locks/*14_true.c</exclude>
 		<exclude>../programs/benchmarks/locks/*15_true.c</exclude>
-		<include>../programs/benchmarks/ntdrivers/floppy2_true.i.cil.c</include>		
+		<include>../programs/benchmarks/ntdrivers/floppy2_true.i.cil.c</include>
 		<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true.cil.c</include>
 		<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_true.cil.c</include>
-		<include>../programs/benchmarks/ssh/*_true*.c</include>		
+		<include>../programs/benchmarks/ssh/*_true*.c</include>
 		<include>../programs/benchmarks/ssh-simplified/*_true*.c</include>
 		<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_3_true.cil.c</exclude>
 		<exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true.cil.c</exclude>
@@ -56,8 +56,8 @@
 		<exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-mtd-sm_ftl.ko_true.cil.out.i.pp.cil.c</exclude>
 		<exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-usb-serial-ir-usb.ko_true.cil.out.i.pp.cil.c</exclude>
 		<exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-usb-serial-whiteheat.ko_true.cil.out.i.pp.cil.c</exclude>
-		<exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-uwb-i1480-dfu-i1480-dfu-usb.ko_true.cil.out.i.pp.cil.c</exclude>	
-		
+		<exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-uwb-i1480-dfu-i1480-dfu-usb.ko_true.cil.out.i.pp.cil.c</exclude>
+
 		<include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--container.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--ec_sys.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 <include>../programs/benchmarks/ldv-linux-3.4/32_1_cilled_true_ok_nondet_linux-3.4-32_1-drivers--acpi--fan.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
@@ -285,7 +285,7 @@
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--matrox--i2c-matroxfb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--video--vfb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 <include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--w1--masters--ds2490.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
-<include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--w1--masters--matrox_w1.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>		
+<include>../programs/benchmarks/ldv-linux-3.4/43_1a_cilled_true_ok_nondet_linux-43_1a-drivers--w1--masters--matrox_w1.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</include>
 	</sourcefiles>
 </rundefinition>
 

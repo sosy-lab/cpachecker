@@ -25,7 +25,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -34,9 +34,7 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 import logging
 import argparse
 import os
-import re
 import signal
-import subprocess
 
 from benchmark.benchmarkDataStructures import Benchmark
 import benchmark.util as Util
@@ -71,30 +69,15 @@ Variables ending with "tag" contain references to XML tag objects created by the
 """
 
 
-def executeBenchmark(benchmarkFile):
+def executeBenchmark(benchmarkFile, executor):
     benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
-    # settings must be retrieved here to set the correct tool version
-    if config.appengine:
-        appengine.setupBenchmarkForAppengine(benchmark)
-    elif config.cloud and config.cloudMaster and "http" in config.cloudMaster:
-        if config.revision:
-            benchmark.toolVersion = config.revision
-        else:
-            benchmark.toolVersion = "trunk:HEAD"
+    executor.init(config, benchmark)
     outputHandler = OutputHandler(benchmark)
     
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
             repr(benchmarkFile), len(benchmark.runSets)))
 
-    if config.cloud:
-        if config.cloudMaster and "http" in config.cloudMaster:
-            result = webclient.executeBenchmarkInCloud(benchmark, outputHandler)
-        else:
-            result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler, config.reprocessResults)        
-    elif config.appengine:
-        result = appengine.executeBenchmarkInAppengine(benchmark, outputHandler)
-    else:
-        result = localexecution.executeBenchmarkLocaly(benchmark, outputHandler)
+    result = executor.executeBenchmark(benchmark, outputHandler)
 
     if config.commit and not STOPPED_BY_INTERRUPT:
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
@@ -124,11 +107,6 @@ def main(argv=None):
                       help="Run only the specified RUN_DEFINITION from the benchmark definition file. "
                             + "This option can be specified several times.",
                       metavar="RUN_DEFINITION")
-
-    parser.add_argument("-t", "--test", dest="selectedRunDefinitions",
-                      action="append",
-                      help="Same as -r/--rundefinition (deprecated)",
-                      metavar="TEST")
 
     parser.add_argument("-s", "--sourcefiles", dest="selectedSourcefileSets",
                       action="append",
@@ -163,13 +141,6 @@ def main(argv=None):
                       help="Run n benchmarks in parallel",
                       metavar="n")
 
-    parser.add_argument("-x", "--moduloAndRest",
-                      dest="moduloAndRest", default=(1,0), nargs=2, type=int,
-                      help="Run only a subset of run definitions for which (i %% a == b) holds" +
-                            "with i being the index of the run definition in the benchmark definition file " +
-                            "(starting with 1).",
-                      metavar=("a","b"))
-
     parser.add_argument("-c", "--limitCores", dest="corelimit",
                       type=int, default=None,
                       metavar="N",
@@ -177,7 +148,7 @@ def main(argv=None):
 
     parser.add_argument("--commit", dest="commit",
                       action="store_true",
-                      help="If the output path is a git repository without local changes,"
+                      help="If the output path is a git repository without local changes, "
                             + "add and commit the result files.")
 
     parser.add_argument("--message",
@@ -185,45 +156,46 @@ def main(argv=None):
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
 
-    parser.add_argument("--cloud",
+    vcloud_args = parser.add_argument_group('Options for using VerifierCloud')
+    vcloud_args.add_argument("--cloud",
                       dest="cloud",
                       action="store_true",
-                      help="Use cloud to execute benchmarks.")
+                      help="Use VerifierCloud to execute benchmarks.")
 
-    parser.add_argument("--cloudMaster",
+    vcloud_args.add_argument("--cloudMaster",
                       dest="cloudMaster",
                       metavar="HOST",
-                      help="Sets the master host of the cloud to be used.")
+                      help="Sets the master host of the VerifierCloud instance to be used. If this is a HTTP URL, the web interface is used.")
 
-    parser.add_argument("--cloudPriority",
+    vcloud_args.add_argument("--cloudPriority",
                       dest="cloudPriority",
                       metavar="PRIORITY",
-                      help="Sets the priority for this benchmark used in the cloud. Possible values are IDLE, LOW, HIGH, URGENT.")
+                      help="Sets the priority for this benchmark used in the VerifierCloud. Possible values are IDLE, LOW, HIGH, URGENT.")
 
-    parser.add_argument("--cloudCPUModel",
+    vcloud_args.add_argument("--cloudCPUModel",
                       dest="cloudCPUModel", type=str, default=None,
                       metavar="CPU_MODEL",
-                      help="Only execute runs on CPU models that contain the given string.")
+                      help="Only execute runs in the VerifierCloud on CPU models that contain the given string.")
    
-    parser.add_argument("--cloudUser",
+    vcloud_args.add_argument("--cloudUser",
                       dest="cloudUser",
                       metavar="USER:PWD",
-                      help="The user and password for the cloud.")
+                      help="The user and password for the VerifierCloud (if using the web interface).")
 
-    parser.add_argument("--revision",
+    vcloud_args.add_argument("--revision",
                       dest="revision",
                       metavar="BRANCH:REVISION",
-                      help="The svn revision used by the web client mode.")
+                      help="The svn revision of CPAchecker to use  (if using the web interface of the VerifierCloud).")
+
+    vcloud_args.add_argument("--justReprocessResults",
+                      dest="reprocessResults",
+                      action="store_true",
+                      help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored.")
     
     parser.add_argument("--maxLogfileSize",
                       dest="maxLogfileSize", type=int, default=20,
                       metavar="SIZE",
                       help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
-
-    parser.add_argument("--justReprocessResults",
-                      dest="reprocessResults",
-                      action="store_true",
-                      help="Do not run the benchmarks. Assume that the benchmarks were already executed and the log files are stored.")
 
     parser.add_argument("--benchmarkInstanceIdent",
                       dest="benchmarkInstanceIdent",
@@ -233,26 +205,27 @@ def main(argv=None):
                         + "With this option you can specify an explicit value for the ident. "
                         + "This is usefull for reprocessing stored benchmark results.")
     
-    parser.add_argument("--appengine",
+    appengine_args = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
+    appengine_args.add_argument("--appengine",
                       dest="appengine",
                       action="store_true",
                       help="Use Google App Engine to execute benchmarks.")
     
-    parser.add_argument("--appengineURI",
+    appengine_args.add_argument("--appengineURI",
                       dest="appengineURI",
                       metavar="URI",
                       default=DEFAULT_APPENGINE_URI,
                       type=str,
                       help="Sets the URI to use when submitting tasks to App Engine.")
     
-    parser.add_argument("--appenginePollInterval",
+    appengine_args.add_argument("--appenginePollInterval",
                       dest="appenginePollInterval",
                       metavar="INTERVAL",
                       default=DEFAULT_APPENGINE_POLLINTERVAL,
                       type=int,
                       help="Sets the interval in seconds after which App Engine is polled for results.")
     
-    parser.add_argument("--appengineKeep",
+    appengine_args.add_argument("--appengineKeep",
                         dest="appengineDeleteWhenDone",
                         action="store_false",
                         help="If set a task will NOT be deleted from App Engine after it has successfully been executed.")
@@ -276,37 +249,24 @@ def main(argv=None):
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
-    if not config.cloud and not config.appengine:
-        try:
-            processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-            if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
-                logging.warn("Already running instance of this script detected. " + \
-                             "Please make sure to not interfere with somebody else's benchmarks.")
-        except OSError:
-            pass # this does not work on Windows
-
+    # Allow local execution of benchmarks to be easily replaced
+    # by a different module that delegates to some cloud service.
     if config.cloud:
         if config.cloudMaster and "http" in config.cloudMaster:
-            global webclient
-            import benchmark.webclient as webclient
+            import benchmark.webclient as executor
         else:
-            global vcloud
-            import benchmark.vcloud as vcloud
-            killScriptSpecific = vcloud.killScriptCloud        
+            import benchmark.vcloud as executor
     elif config.appengine:
-        global appengine
-        import benchmark.appengine as appengine
-        killScriptSpecific = (lambda: appengine.killScriptAppEngine(config))
+        import benchmark.appengine as executor
     else:
-        global localexecution
-        import benchmark.localexecution as localexecution
-        killScriptSpecific = localexecution.killScriptLocal
+        import benchmark.localexecution as executor
+    killScriptSpecific = executor.kill
 
     returnCode = 0
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        rc = executeBenchmark(arg)
+        rc = executeBenchmark(arg, executor)
         returnCode = returnCode or rc
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 

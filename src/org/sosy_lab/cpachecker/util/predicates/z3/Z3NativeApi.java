@@ -32,7 +32,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * should not be incremented. The object will be destroyed after next usage.
  * If the user wants to use the object several times, he has to increment
  * the reference (only once!), so that the object remains valid. */
-final class Z3NativeApi {
+@SuppressWarnings("unused")
+public final class Z3NativeApi {
 
   // Helper Classes,
   // they are used during the native operations
@@ -58,13 +59,14 @@ final class Z3NativeApi {
   /** Start optimization - Nikolaj Bjorner branch. **/
 
   /**
-   * \brief Create a new optimize context.
+   * Create a new optimize context.
    *
-   * \conly \remark User must use #Z3_optimize_inc_ref
-   * and #Z3_optimize_dec_ref to manage optimize objects.
-   * \conly Even if the context was created using
-   * #Z3_mk_context instead of #Z3_mk_context_rc.
+   * User must use {@link #optimize_inc_ref}
+   * and {@link #optimize_dec_ref} to manage optimize objects.
+   * Even if the context was created using
+   * {@link #mk_context} instead of {@link #mk_context_rc}.
    *
+   * @param context Z3_context pointer
    * @return Z3_optimize pointer.
    */
   public static native long mk_optimize(long context);
@@ -89,23 +91,28 @@ final class Z3NativeApi {
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
    * @param ast Z3_ast arithmetical term to maximize.
+   * @return objective index
    */
   public static native int optimize_maximize(long context, long optimize, long ast);
 
   /**
-   * Add a minimazation constraint.
+   * Add a minimization constraint.
    *
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
    * @param ast Z3_ast arithmetical term to maximize.
+   * @return objective index
    */
   public static native int optimize_minimize(long context, long optimize, long ast);
 
 
   /**
    * Check consistency and produce optimal values.
+   *
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
+   * @return status as {@link Z3NativeApiConstants.Z3_LBOOL}:
+   *   false, undefined or true.
    */
   public static native int optimize_check(long context, long optimize);
 
@@ -121,9 +128,7 @@ final class Z3NativeApi {
   public static native long optimize_get_model(long context, long optimize);
 
   /**
-   * \brief Assert hard constraint to the optimization context.
-   *
-   * def_API('Z3_optimize_assert', VOID, (_in(CONTEXT), _in(OPTIMIZE), _in(AST)))
+   * Assert hard constraint to the optimization context.
    *
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
@@ -131,6 +136,87 @@ final class Z3NativeApi {
    */
   public static native void optimize_assert(
       long context, long optimize, long ast);
+
+  /**
+   * Create a backtracking point.
+   *
+   * The optimize solver contains a set of rules, added facts and assertions.
+   * The set of rules, facts and assertions are restored upon calling {#link #optimize_pop}
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native void optimize_push(long c, long d);
+
+  /**
+   * Backtrack one level.
+   * The number of calls to pop cannot exceed calls to push.
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native void optimize_pop(long c, long d);
+
+  /**
+   * Set parameters on optimization context.
+   *
+   * @param c Z3_context context
+   * @param o Z3_optimize optimization context
+   * @param p Z3_params parameters
+   */
+  public static native void optimize_set_params(long c, long o, long p);
+
+    /**
+     * Return the parameter description set for the given optimize object.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @return Z3_param_descrs
+     */
+    public static native long optimize_get_param_descrs(long c, long o);
+
+    /**
+     * Retrieve lower bound value or approximation for the i'th optimization objective.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @param idx index of optimization objective
+     *
+     * @return Z3_ast
+     */
+    public static native long optimize_get_lower(long c, long o, int idx);
+
+    /**
+     * Retrieve upper bound value or approximation for the i'th optimization objective.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @param idx index of optimization objective
+     *
+     * @return Z3_ast
+     */
+    public static native long optimize_get_upper(long c, long o, int idx);
+
+    /**
+     * @param c Z3_context context.
+     * @param o Z3_optimize optimization context.
+     * @return Current context as a string.
+     */
+    public static native String optimize_to_string(long c, long o);
+
+    /**
+     * @param c Z3_context
+     * @param t Z3_optimize
+     * @return Description of parameters accepted by optimize
+     */
+    public static native String optimize_get_help(long c, long t);
+
+    /**
+     * Retrieve statistics information from the last call to {@link #optimize_check}
+     *
+     * @return Z3_stats
+     */
+    public static native long optimize_get_statistics(long c, long d);
 
   /** -- end optimization -- **/
 
@@ -146,7 +232,7 @@ final class Z3NativeApi {
 
   // CREATE CONTEXT
   public static native long mk_context(long config);
-  public static native long mk_context_rc(long context);
+  public static native long mk_context_rc(long config);
   public static native void del_context(long context);
   public static native void inc_ref(long context, long ast);
   public static native void dec_ref(long context, long ast);
@@ -223,7 +309,6 @@ final class Z3NativeApi {
   public static native long mk_eq(long context, long a1, long a2);
   private static native long mk_distinct(long context, int len, long[] as);
   public static native long mk_not(long context, long a1);
-  public static native long mk_interp(long context, long a1);
   public static native long mk_ite(long context, long a1, long a2, long a3);
   public static native long mk_iff(long context, long a1, long a2);
   public static native long mk_implies(long context, long a1, long a2);
@@ -470,9 +555,44 @@ final class Z3NativeApi {
 
   // MODIFIERS
   public static native long update_term(long context, long a1, int a2, long[] a3);
-  public static native long substitute(long context, long a1, int a2, long[] a3, long[] a4);
-  public static native long substitute_vars(long context, long a1, int a2, long[] a3);
-  public static native long translate(long context, long a1, long a2);
+
+  /**
+   * Substitute every occurrence of <code>from[i]</code> in <code>a</code>
+   * with <code>to[i]</code>, for <code>i</code> smaller than
+   * <code>num_exprs</code>.
+   * The result is the new AST. The arrays <code>from</code> and <code>to</code>
+   * must have size <code>num_exprs</code>.
+   * For every <code>i</code> smaller than <code>num_exprs</code>, we must have
+   * that sort of <code>from[i]</code> must be equal to sort of
+   * <code>to[i]</code>.
+   *
+   * @param context Z3_context
+   * @param a Z3_ast Input formula
+   * @param num_exprs Number of expressions to substitute
+   * @param from Change from
+   * @param to Change to
+   * @return Formula with substitutions applied.
+   */
+  public static native long substitute(long context, long a, int num_exprs,
+        long[] from, long[] to);
+
+  /**
+   * Substitute the free variables in <code>a</code> with the expressions in
+   * <code>to</code>.
+   * For every <code>i</code> smaller than <code>num_exprs</code>, the variable
+   * with de-Bruijn
+   * index <code>i</code> is replaced with term <code>to[i]</code>.
+   *
+   * @param context Z3_context
+   * @param a Z3_ast Input formula
+   * @param num_exprs Number of expressions to substitute
+   * @param to Change to
+   * @return Formula with substitutions applied.
+   */
+  public static native long substitute_vars(long context, long a, int num_exprs,
+      long[] to);
+  public static native long translate(long contextSource, long a,
+      long contextTarget);
 
 
   // MODELS
@@ -555,9 +675,8 @@ final class Z3NativeApi {
 
     public static native String get_smtlib_error(long context);
 
+    public static native void setInternalErrorHandler(long ctx);
 
-    // ERROR HANDLING
-    // TODO set_error_handler()
     public static native int get_error_code(long context);
     public static native void set_error(long context, int error_code);
     public static native String get_error_msg(int error_code);
@@ -566,8 +685,19 @@ final class Z3NativeApi {
 
     // MISC
     public static native void get_version(PointerToInt major, PointerToInt minor, PointerToInt build, PointerToInt revision);
-    public static native void enable_trace(String context);
-    public static native void disable_trace(String context);
+
+
+   /**
+    * Enable tracing messages tagged as {@code tag}.
+    *
+    * NOTE: Works only if Z3 is compiled in DEBUG mode. No-op otherwise.
+    */
+    public static native void enable_trace(String tag);
+
+   /**
+    * Disable tracing messages tagged as {@code tag}.
+    */
+    public static native void disable_trace(String tag);
     public static native void reset_memory();
 
 
@@ -748,19 +878,134 @@ final class Z3NativeApi {
   public static native int stats_get_uint_value(long context, long stats, int i);
   public static native double stats_get_double_value(long context, long stats, int i);
 
-  // INTERPOLATION
-  public static native long mk_interpolation_context(long config);
-  private static native int interpolate(long context, int num, long[] cnsts, int[] parents, long options, long[] interps, PointerToLong model, PointerToLong labels, int incremental, int num_theory, long[] theory);
-  private static native int interpolateSeq(long context, int num, long[] cnsts, long[] interps, PointerToLong model, PointerToLong labels, int incremental, int num_theory, long[] theory);
-
   public static native String interpolation_profile(long context);
 
-  public static int interpolate(long context, long[] cnsts, int[] parents, long options, long[] interps, PointerToLong model, PointerToLong labels, int incremental, long[] theory) {
-    return interpolate(context, cnsts.length, cnsts, parents, options, interps, model, labels, incremental, theory.length, theory);
-  }
+  /**
+   * Interpolation API
+   */
 
-  public static int interpolateSeq(long context, long[] cnsts, long[] interps, PointerToLong model, PointerToLong labels, int incremental, long[] theory) {
-    return interpolateSeq(context, cnsts.length, cnsts, interps, model, labels, incremental, theory.length, theory);
-  }
+  /**
+   * Create an AST node marking a formula position for interpolation.
+   * The node {@code a} must have Boolean sort.
+   * @param c Z3_context
+   * @param a Z3_ast
+   * @return Z3_ast
+   */
+  public static native long mk_interpolant(long c, long a);
 
+  /**
+   * This function generates a Z3 context suitable for generation of
+   * interpolants. Formulas can be generated as abstract syntax trees in
+   * this context using the Z3 C API.
+   *
+   * Interpolants are also generated as AST's in this context.
+   *
+   * If cfg is non-null, it will be used as the base configuration
+   * for the Z3 context. This makes it possible to set Z3 options
+   * to be used during interpolation. This feature should be used
+   * with some caution however, as it may be that certain Z3 options
+   * are incompatible with interpolation.
+   *
+   * @param cfg Z3_config
+   * @return Z3_context
+   */
+  public static native long mk_interpolation_context(long cfg);
+
+  /** Compute an interpolant from a refutation. This takes a proof of
+   * "false" from a set of formulas C, and an interpolation
+   * pattern. The pattern {@code pat} is a formula combining the formulas in C
+   * using logical conjunction and the "interp" operator (see
+   * {@link #mk_interpolant}. This interp operator is logically the identity
+   * operator. It marks the sub-formulas of the pattern for which interpolants should
+   * be computed. The interpolant is a map sigma from marked subformulas to
+   * formulas, such that, for each marked subformula phi of pat (where phi sigma
+   * is phi with sigma(psi) substituted for each subformula psi of phi such that
+   * psi in dom(sigma)):
+   *
+   * 1) phi sigma implies sigma(phi), and
+   *
+   * 2) sigma(phi) is in the common uninterpreted vocabulary between
+   * the formulas of C occurring in phi and those not occurring in
+   * phi
+   *
+   * and moreover pat sigma implies false. In the simplest case
+   * an interpolant for the pattern "(and (interp A) B)" maps A
+   * to an interpolant for A /\ B.
+   *
+   * The return value is a vector of formulas representing sigma. The
+   * vector contains sigma(phi) for each marked subformula of pat, in
+   * pre-order traversal. This means that subformulas of phi occur before phi
+   * in the vector. Also, subformulas that occur multiply in pat will
+   * occur multiply in the result vector.
+   *
+   * In particular, calling this function on a pattern of the
+   * form (interp ... (interp (and (interp A_1) A_2)) ... A_N) will
+   * result in a sequence interpolant for A_1, A_2,... A_N.
+   *
+   * Neglecting interp markers, the pattern must be a conjunction of
+   * formulas in C, the set of premises of the proof. Otherwise an
+   * error is flagged.
+   *
+   * Any premises of the proof not present in the pattern are
+   * treated as "background theory". Predicate and function symbols
+   * occurring in the background theory are treated as interpreted and
+   * thus always allowed in the interpolant.
+   *
+   * Interpolant may not necessarily be computable from all
+   * proofs. To be sure an interpolant can be computed, the proof
+   * must be generated by an SMT solver for which interpolation is
+   * supported, and the premises must be expressed using only
+   * theories and operators for which interpolation is supported.
+   *
+   * Currently, the only SMT solver that is supported is the legacy
+   * SMT solver. Such a solver is available as the default solver in
+   * #Z3_context objects produced by {@link #mk_interpolation_context}.
+   * Currently, the theories supported are equality with
+   * uninterpreted functions, linear integer arithmetic, and the
+   * theory of arrays (in SMT-LIB terms, this is AUFLIA).
+   * Quantifiers are allowed. Use of any other operators (including
+   * "labels") may result in failure to compute an interpolant from a
+   * proof.
+   *
+   * @param c Z3_context logical context.
+   * @param pf Z3_ast a refutation from premises (assertions) C
+   * @param pat Z3_ast an interpolation pattern over C
+   * @param p Z3_params parameters
+   * @return Z3_ast_vector
+   */
+
+  public static native long get_interpolant(long c, long pf, long pat, long p);
+
+  /** Compute an interpolant for an unsatisfiable conjunction of formulas.
+   *
+   * This takes as an argument an interpolation pattern as in
+   * {@link #get_interpolant}. This is a conjunction, some subformulas of
+   * which are marked with the "interp" operator (see {@link #mk_interpolant}).
+   *
+   * The conjunction is first checked for unsatisfiability. The result
+   * of this check is returned in the out parameter "status". If the result
+   * is unsat, an interpolant is computed from the refutation as in #Z3_get_interpolant
+   * and returned as a vector of formulas. Otherwise the return value is
+   * an empty formula.
+   *
+   * See {@link #get_interpolant} for a discussion of supported theories.
+   *
+   * The advantage of this function over {@link #get_interpolant} is that
+   * it is not necessary to create a suitable SMT solver and generate
+   * a proof. The disadvantage is that it is not possible to use the
+   * solver incrementally.
+   *
+   * @param c Z3_context logical context.
+   * @param pat Z3_ast an interpolation pattern
+   * @param p Z3_params parameters for solver creation
+   * @param model returns model if satisfiable
+   *
+   * @return status of SAT check
+   **/
+  public static native int compute_interpolant(
+      long c,
+      long pat,
+      long p,
+      PointerToLong interp,
+      PointerToLong model);
 }

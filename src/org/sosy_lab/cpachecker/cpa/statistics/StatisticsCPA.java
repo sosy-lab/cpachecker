@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -215,7 +216,7 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
       factory.addProvider(SimpleIntProviderFactory.getAssumeCountProvider(defMerge));
     }
 
-    this.stats = new StatisticsCPAStatistics(config, this);
+    this.stats = new StatisticsCPAStatistics(config, pLogger, this);
 
     MergeOperator mergeOp = null;
     if (isAnalysis || mergeType.equals("sep")) {
@@ -239,7 +240,7 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return factory.createNew(pNode);
   }
 
@@ -255,7 +256,7 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 

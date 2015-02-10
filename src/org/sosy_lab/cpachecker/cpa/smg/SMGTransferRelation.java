@@ -51,7 +51,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -1928,9 +1928,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       isRequiered = false;
       missingExplicitInformation= false;
     }
-
-
-
   }
 
   @Override
@@ -1942,6 +1939,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     for (AbstractState ae : elements) {
       if (ae instanceof AutomatonState) {
         retVal = strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
+        if (retVal.size() == 0) {
+          break;
+        }
       }
     }
 
@@ -1955,7 +1955,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
       CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
+    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());
 
     if(assumptions.isEmpty()) {
       return Collections.singleton(pElement);
@@ -2365,7 +2365,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     public MissingInformation(boolean pTruthAssumption,
-        IARightHandSide pMissingCExpressionInformation) {
+        ARightHandSide pMissingCExpressionInformation) {
 
       missingCExpressionInformation = (CExpression) pMissingCExpressionInformation;
       missingCLeftMemoryLocation = null;

@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CComplexCastExpression extends AExpression implements CLeftHandSide {
+public final class CComplexCastExpression extends AbstractExpression implements CLeftHandSide {
 
   private final CExpression operand;
   private final CType     type;

@@ -42,10 +42,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -64,11 +65,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -109,20 +110,21 @@ public class CFunctionPointerResolver {
     EQ_PARAM_COUNT, //all functions with matching number of parameters considered
     EQ_PARAM_SIZES, //all functions with parameters with matching sizes
     EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered (implies EQ_PARAM_SIZES)
+    RETURN_VALUE,   //void functions are not considered for assignments
   }
 
   @Option(secure=true, name="analysis.functionPointerTargets",
       description="potential targets for call edges created for function pointer calls")
-  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES);
+  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE);
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
-  private final Predicate<Pair<CFunctionCallExpression, CFunctionType>> matchingFunctionCall;
+  private final Predicate<Pair<CFunctionCall, CFunctionType>> matchingFunctionCall;
 
   private final MutableCFA cfa;
   private final LogManager logger;
 
-  public CFunctionPointerResolver(MutableCFA pCfa, List<Pair<IADeclaration, String>> pGlobalVars,
+  public CFunctionPointerResolver(MutableCFA pCfa, List<Pair<ADeclaration, String>> pGlobalVars,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     cfa = pCfa;
     logger = pLogger;
@@ -138,7 +140,7 @@ public class CFunctionPointerResolver {
           varCollector.visitEdge(edge);
         }
       }
-      for (Pair<IADeclaration, String> decl : pGlobalVars) {
+      for (Pair<ADeclaration, String> decl : pGlobalVars) {
         if (decl.getFirst() instanceof CVariableDeclaration) {
           CVariableDeclaration varDecl = (CVariableDeclaration)decl.getFirst();
           varCollector.visitDeclaration(varDecl);
@@ -160,7 +162,7 @@ public class CFunctionPointerResolver {
 
   }
 
-  private Predicate<Pair<CFunctionCallExpression, CFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
+  private Predicate<Pair<CFunctionCall, CFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
     // note that this set is sorted according to the declaration order of the enum
     EnumSet<FunctionSet> functionSets = EnumSet.copyOf(pFunctionSets);
 
@@ -169,17 +171,17 @@ public class CFunctionPointerResolver {
       functionSets.add(FunctionSet.EQ_PARAM_COUNT); // TYPES and SIZES need COUNT checked first
     }
 
-    List<Predicate<Pair<CFunctionCallExpression, CFunctionType>>> predicates = new ArrayList<>();
+    List<Predicate<Pair<CFunctionCall, CFunctionType>>> predicates = new ArrayList<>();
     for (FunctionSet functionSet : functionSets) {
       switch (functionSet) {
       case ALL:
         // do nothing
         break;
       case EQ_PARAM_COUNT:
-        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
+        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
-            boolean result = checkParamSizes(pInput.getFirst(), pInput.getSecond());
+          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
+            boolean result = checkParamSizes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
             if (!result) {
               logger.log(Level.FINEST, "Function call", pInput.getFirst().toASTString(),
                   "does not match function", pInput.getSecond(), "because of number of parameters.");
@@ -189,18 +191,26 @@ public class CFunctionPointerResolver {
         });
         break;
       case EQ_PARAM_SIZES:
-        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
+        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
-            return checkReturnAndParamSizes(pInput.getFirst(), pInput.getSecond());
+          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
+            return checkReturnAndParamSizes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
           }
         });
         break;
       case EQ_PARAM_TYPES:
-        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
+        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
-            return checkReturnAndParamTypes(pInput.getFirst(), pInput.getSecond());
+          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
+            return checkReturnAndParamTypes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
+          }
+        });
+        break;
+      case RETURN_VALUE:
+        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
+          @Override
+          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
+            return checkReturnValue(pInput.getFirst(), pInput.getSecond());
           }
         });
         break;
@@ -244,7 +254,7 @@ public class CFunctionPointerResolver {
     public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
       if (pEdge instanceof CStatementEdge) {
         final CStatementEdge edge = (CStatementEdge) pEdge;
-        final IAStatement stmt = edge.getStatement();
+        final AStatement stmt = edge.getStatement();
         if (stmt instanceof CFunctionCall && isFunctionPointerCall((CFunctionCall)stmt)) {
           functionPointerCalls.add(edge);
         }
@@ -281,7 +291,7 @@ public class CFunctionPointerResolver {
     logger.log(Level.FINEST, "Function pointer call", fExp);
 
     CExpression nameExp = fExp.getFunctionNameExpression();
-    Collection<CFunctionEntryNode> funcs = getFunctionSet(fExp);
+    Collection<CFunctionEntryNode> funcs = getFunctionSet(functionCall);
 
     if (funcs.isEmpty()) {
       // no possible targets, we leave the CFA unchanged and print a warning
@@ -328,7 +338,8 @@ public class CFunctionPointerResolver {
           func.getExpressionType(), func, CUnaryExpression.UnaryOperator.AMPER);
 
       final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
-      CBinaryExpression condition = binExprBuilder.buildBinaryExpression(nameExp, amper, BinaryOperator.EQUALS);
+      CBinaryExpression condition = binExprBuilder.buildBinaryExpressionUnchecked(
+          nameExp, amper, BinaryOperator.EQUALS);
 
       addConditionEdges(condition, rootNode, thenNode, elseNode, fileLocation);
 
@@ -430,13 +441,13 @@ public class CFunctionPointerResolver {
     CFACreationUtils.addEdgeToCFA(falseEdge, logger);
   }
 
-  private List<CFunctionEntryNode> getFunctionSet(final CFunctionCallExpression call) {
+  private List<CFunctionEntryNode> getFunctionSet(final CFunctionCall call) {
     return from(candidateFunctions)
             .filter(CFunctionEntryNode.class)
             .filter(Predicates.compose(matchingFunctionCall,
-                      new Function<CFunctionEntryNode, Pair<CFunctionCallExpression, CFunctionType>>() {
+                      new Function<CFunctionEntryNode, Pair<CFunctionCall, CFunctionType>>() {
                         @Override
-                        public Pair<CFunctionCallExpression, CFunctionType> apply(CFunctionEntryNode f) {
+                        public Pair<CFunctionCall, CFunctionType> apply(CFunctionEntryNode f) {
                           return Pair.of(call, f.getFunctionDefinition().getType());
                         }
                       }))
@@ -504,6 +515,19 @@ public class CFunctionPointerResolver {
       }
     }
 
+    return true;
+  }
+
+  /**
+   * Exclude void functions if the return value of the function is used in an assignment.
+   */
+  private boolean checkReturnValue(CFunctionCall call, CFunctionType functionType) {
+    if (call instanceof CFunctionCallAssignmentStatement) {
+      CType returnType = functionType.getReturnType().getCanonicalType();
+      if (returnType instanceof CVoidType) {
+        return false;
+      }
+    }
     return true;
   }
 

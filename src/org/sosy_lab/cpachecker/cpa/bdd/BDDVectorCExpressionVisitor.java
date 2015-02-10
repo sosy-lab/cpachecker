@@ -42,12 +42,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -67,18 +69,21 @@ public class BDDVectorCExpressionVisitor
 
   private final MachineModel machineModel;
   private final PredicateManager predMgr;
-  private final BDDPrecision precision;
+  private final VariableTrackingPrecision precision;
   protected final BitvectorManager bvmgr;
+  private final CFANode location;
 
   /** This Visitor returns the numeral value for an expression.
    * @param pMachineModel where to get info about types, for casting and overflows
    */
-  protected BDDVectorCExpressionVisitor(final PredicateManager pPredMgr, final BDDPrecision pPrecision,
-                                     final BitvectorManager pBVmgr, final MachineModel pMachineModel) {
+  protected BDDVectorCExpressionVisitor(final PredicateManager pPredMgr, final VariableTrackingPrecision pPrecision,
+                                     final BitvectorManager pBVmgr, final MachineModel pMachineModel,
+                                     final CFANode pLocation) {
     this.predMgr = pPredMgr;
     this.precision = pPrecision;
     this.bvmgr = pBVmgr;
     this.machineModel = pMachineModel;
+    this.location = pLocation;
   }
 
   @Override
@@ -280,7 +285,7 @@ public class BDDVectorCExpressionVisitor
       }
     }
 
-    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), getSize(idExp.getExpressionType()), precision);
+    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), location, getSize(idExp.getExpressionType()), precision);
   }
 
   @Override

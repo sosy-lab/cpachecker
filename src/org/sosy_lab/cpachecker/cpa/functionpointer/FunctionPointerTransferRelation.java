@@ -94,8 +94,6 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
-  private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
-
   @Option(secure=true, description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
   private boolean trackInvalidFunctionPointers = false;
   private final FunctionPointerTarget invalidFunctionPointerTarget;
@@ -166,14 +164,13 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     if (cfaEdge.getEdgeType()==CFAEdgeType.AssumeEdge) {
       CAssumeEdge a = (CAssumeEdge)cfaEdge;
       CExpression exp = a.getExpression();
-      String functionName = cfaEdge.getPredecessor().getFunctionName();
       if (exp instanceof CBinaryExpression) {
         CBinaryExpression e = (CBinaryExpression)exp;
         BinaryOperator op = e.getOperator();
         if (op == BinaryOperator.EQUALS) {
           FunctionPointerState.Builder newState = oldState.createBuilder();
-          FunctionPointerTarget v1 = getValue(e.getOperand1(), newState, functionName);
-          FunctionPointerTarget v2 = getValue(e.getOperand2(), newState, functionName);
+          FunctionPointerTarget v1 = getValue(e.getOperand1(), newState);
+          FunctionPointerTarget v2 = getValue(e.getOperand2(), newState);
           logger.log(Level.ALL, "Operand1 value is", v1);
           logger.log(Level.ALL, "Operand2 value is", v2);
           if (v1 instanceof NamedFunctionTarget
@@ -246,7 +243,6 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     CFunctionCallExpression funcCall = ((CFunctionCall)statement).getFunctionCallExpression();
     CExpression nameExp = funcCall.getFunctionNameExpression();
-    String currentFunction = pCfaEdge.getPredecessor().getFunctionName();
 
     if (nameExp instanceof CIdExpression) {
       CIdExpression idExp = (CIdExpression)nameExp;
@@ -268,7 +264,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     if (nameExp instanceof CIdExpression) {
       // a = f(b) or a = (*f)(b)
-      return scopedIfNecessary((CIdExpression)nameExp, currentFunction);
+      return ((CIdExpression)nameExp).getDeclaration().getQualifiedName();
     } else if (nameExp instanceof CFieldReference) {
       // TODO This is a function pointer call "(s->f)()" or "(s.f)()"
       return null;
@@ -309,7 +305,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
       case ReturnStatementEdge: {
         CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)pCfaEdge;
-        handleReturnStatement(newState, returnStatementEdge.getExpression(), pCfaEdge);
+        handleReturnStatement(newState, returnStatementEdge.asAssignment(), pCfaEdge);
         break;
       }
 
@@ -350,8 +346,6 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
     CVariableDeclaration decl = (CVariableDeclaration)declEdge.getDeclaration();
 
-    String functionName = declEdge.getPredecessor().getFunctionName();
-
     // get name of declaration
     String name = decl.getQualifiedName();
 
@@ -361,7 +355,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     if (decl.getInitializer() != null) {
       CInitializer init = decl.getInitializer();
       if (init instanceof CInitializerExpression) {
-        initialValue = getValue(((CInitializerExpression) init).getExpression(), pNewState, functionName);
+        initialValue = getValue(((CInitializerExpression) init).getExpression(), pNewState);
       }
     }
 
@@ -374,15 +368,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
-      String functionName = pCfaEdge.getPredecessor().getFunctionName();
-
-      CAssignment assignment = (CAssignment)pStatement;
-      String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge, functionName);
-
-      if (varName != null) {
-        FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState, functionName);
-        pNewState.setTarget(varName, target);
-      }
+      handleAssignment(pNewState, (CAssignment)pStatement, pCfaEdge);
 
     } else if (pStatement instanceof CFunctionCallStatement) {
       // external function call without return value
@@ -395,10 +381,19 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
+  private void handleAssignment(FunctionPointerState.Builder pNewState, CAssignment assignment, CFAEdge pCfaEdge)
+      throws UnrecognizedCCodeException {
+    String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge);
+
+    if (varName != null) {
+      FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState);
+      pNewState.setTarget(varName, target);
+    }
+  }
+
   private void handleFunctionCall(FunctionPointerState.Builder pNewState, CFunctionCallEdge callEdge) throws UnrecognizedCCodeException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
-    String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
     List<CParameterDeclaration> formalParams = functionEntryNode.getFunctionParameters();
     List<CExpression> arguments = callEdge.getArguments();
@@ -417,7 +412,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // used to get value in caller context
-    ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, callerFunctionName, invalidFunctionPointerTarget);
+    ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, invalidFunctionPointerTarget);
 
     for (int i=0; i < formalParams.size(); i++) {
       String paramName = formalParams.get(i).getQualifiedName();
@@ -431,14 +426,11 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private void handleReturnStatement(FunctionPointerState.Builder pNewState,
-      Optional<CExpression> returnValue,
+      Optional<CAssignment> returnStatement,
       CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
 
-    if (returnValue.isPresent()) {
-      String functionName = pCfaEdge.getPredecessor().getFunctionName();
-      FunctionPointerTarget target = getValue(returnValue.get(), pNewState, functionName);
-
-      pNewState.setTarget(FUNCTION_RETURN_VARIABLE, target);
+    if (returnStatement.isPresent()) {
+      handleAssignment(pNewState, returnStatement.get(), pCfaEdge);
     }
   }
 
@@ -452,29 +444,29 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
       CExpression left = ((CFunctionCallAssignmentStatement)funcCall).getLeftHandSide();
 
-      String callerFunction = summaryEdge.getSuccessor().getFunctionName();
-      String varName = getLeftHandSide(left, summaryEdge, callerFunction);
+      String varName = getLeftHandSide(left, summaryEdge);
 
       if (varName != null) {
-
-        FunctionPointerTarget target = pNewState.getTarget(FUNCTION_RETURN_VARIABLE);
-        pNewState.setTarget(varName, target);
+        Optional<CVariableDeclaration> returnValue = pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
+        if (returnValue.isPresent()) {
+          FunctionPointerTarget target = pNewState.getTarget(returnValue.get().getQualifiedName());
+          pNewState.setTarget(varName, target);
+        } else {
+          pNewState.setTarget(varName, UnknownTarget.getInstance());
+        }
       }
     }
 
-    // clear special variable
-    pNewState.setTarget(FUNCTION_RETURN_VARIABLE, UnknownTarget.getInstance());
-
     // clear all local variables of inner function
     String calledFunction = pFunctionReturnEdge.getPredecessor().getFunctionName();
-    pNewState.clearVariablesWithPrefix(calledFunction + "::");
+    pNewState.clearVariablesForFunction(calledFunction);
   }
 
-  private String getLeftHandSide(CExpression lhsExpression, CFAEdge edge, String functionName) throws UnrecognizedCCodeException {
+  private String getLeftHandSide(CExpression lhsExpression, CFAEdge edge) throws UnrecognizedCCodeException {
 
     if (lhsExpression instanceof CIdExpression) {
       // a = ...
-      return scopedIfNecessary((CIdExpression)lhsExpression, functionName);
+      return ((CIdExpression)lhsExpression).getDeclaration().getQualifiedName();
 
     } else if (lhsExpression instanceof CPointerExpression) {
       // *a = ...
@@ -491,7 +483,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       CArraySubscriptExpression arrayExp = (CArraySubscriptExpression)lhsExpression;
       if (arrayExp.getArrayExpression() instanceof CIdExpression
           && arrayExp.getSubscriptExpression() instanceof CIntegerLiteralExpression) {
-        return arrayElementVariable(arrayExp, functionName);
+        return arrayElementVariable(arrayExp);
       }
 
     } else {
@@ -500,21 +492,18 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     return null;
   }
 
-  private FunctionPointerTarget getValue(CRightHandSide exp, FunctionPointerState.Builder element, String function) throws UnrecognizedCCodeException {
-    return exp.accept(new ExpressionValueVisitor(element, function, invalidFunctionPointerTarget));
+  private FunctionPointerTarget getValue(CRightHandSide exp, FunctionPointerState.Builder element) throws UnrecognizedCCodeException {
+    return exp.accept(new ExpressionValueVisitor(element, invalidFunctionPointerTarget));
   }
 
   private static class ExpressionValueVisitor extends DefaultCExpressionVisitor<FunctionPointerTarget, UnrecognizedCCodeException>
                                               implements CRightHandSideVisitor<FunctionPointerTarget, UnrecognizedCCodeException> {
 
     private final FunctionPointerState.Builder state;
-    private final String function;
     private final FunctionPointerTarget targetForInvalidPointers;
 
-    private ExpressionValueVisitor(FunctionPointerState.Builder pElement, String pFunction,
-                                   FunctionPointerTarget pTargetForInvalidPointers) {
+    private ExpressionValueVisitor(FunctionPointerState.Builder pElement, FunctionPointerTarget pTargetForInvalidPointers) {
       state = pElement;
-      function = pFunction;
       targetForInvalidPointers = pTargetForInvalidPointers;
     }
 
@@ -523,7 +512,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       if (pE.getSubscriptExpression() instanceof CIntegerLiteralExpression
           && pE.getArrayExpression() instanceof CIdExpression) {
 
-        return state.getTarget(arrayElementVariable(pE, function));
+        return state.getTarget(arrayElementVariable(pE));
       }
       return super.visit(pE);
     }
@@ -552,7 +541,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       if (operand.getExpressionType() instanceof CPointerType) {
         CPointerType t = (CPointerType)operand.getExpressionType();
         if (t.getType() instanceof CFunctionType) {
-          return state.getTarget(scopedIfNecessary(operand, function));
+          return state.getTarget(operand.getDeclaration().getQualifiedName());
         }
       }
       return visitDefault(operand);
@@ -565,7 +554,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
         return new NamedFunctionTarget(pE.getName());
       }
 
-      return state.getTarget(scopedIfNecessary(pE, function));
+      return state.getTarget(pE.getDeclaration().getQualifiedName());
     }
 
     @Override
@@ -615,14 +604,9 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  // looks up the variable in the current namespace
-  private static String scopedIfNecessary(CIdExpression var, String function) {
-    return var.getDeclaration().getQualifiedName();
-  }
-
-  private static String arrayElementVariable(CArraySubscriptExpression exp, String function) {
+  private static String arrayElementVariable(CArraySubscriptExpression exp) {
     assert exp.getSubscriptExpression() instanceof CIntegerLiteralExpression;
-    String name = scopedIfNecessary((CIdExpression)exp.getArrayExpression(), function);
+    String name = ((CIdExpression)exp.getArrayExpression()).getDeclaration().getQualifiedName();
     name += "[" + exp.getSubscriptExpression().toASTString() + "]";
     return name;
   }

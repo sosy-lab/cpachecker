@@ -222,4 +222,15 @@ public class ValidVars implements Serializable {
     sb.append(")");
     return sb.toString();
   }
+
+  public String toStringInDOTFormat(){
+    StringBuilder sb = new StringBuilder();
+    sb.append("(\\n");
+    sb.append("global:\\n");
+    sb.append(globalValidVars.toString());
+    sb.append("\\n");
+    Joiner.on("\\n").withKeyValueSeparator(":\\n").appendTo(sb, localValidVars);
+    sb.append(")");
+    return sb.toString();
+  }
 }

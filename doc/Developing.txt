@@ -3,7 +3,8 @@ CPAchecker Developing Instructions
 
 More details can be found in the other files in this directory.
 
-Please read and follow StyleGuide.txt!
+Please read and follow StyleGuide.txt,
+as well as Logging.txt, Test.txt, and VersionControl.txt.
 
 
 Getting the code

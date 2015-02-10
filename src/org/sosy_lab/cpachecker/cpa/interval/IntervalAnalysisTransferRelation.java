@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -747,7 +747,7 @@ public class IntervalAnalysisTransferRelation extends SingleEdgeTransferRelation
     return pCalledFunctionName + "::" + pVariableName;
   }
 
-  private String constructVariableName(IAExpression pVariableName, String pCalledFunctionName) {
+  private String constructVariableName(AExpression pVariableName, String pCalledFunctionName) {
     if (pVariableName instanceof CIdExpression) {
         CSimpleDeclaration decl = ((CIdExpression) pVariableName).getDeclaration();
         if (decl instanceof CDeclaration) {

@@ -49,27 +49,21 @@ public interface CParser extends Parser {
 
   public static class FileToParse {
     private final String fileName;
-    private final String staticVariablePrefix;
 
-    public FileToParse(String pFileName, String pStaticVariablePrefix) {
+    public FileToParse(String pFileName) {
       this.fileName = pFileName;
-      this.staticVariablePrefix = pStaticVariablePrefix;
     }
 
     public String getFileName() {
       return fileName;
-    }
-
-    public String getStaticVariablePrefix() {
-      return staticVariablePrefix;
     }
   }
 
   public static class FileContentToParse extends FileToParse {
     private final String fileContent;
 
-    public FileContentToParse(String pFileName, String pFileContent, String pStaticVariablePrefix) {
-      super(pFileName, pStaticVariablePrefix);
+    public FileContentToParse(String pFileName, String pFileContent) {
+      super(pFileName);
       this.fileContent = pFileContent;
     }
 
