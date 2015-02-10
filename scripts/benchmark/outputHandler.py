@@ -309,7 +309,7 @@ class OutputHandler:
                 " ".join(runSet.propertyFiles))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
-                            "wall time", "host", ["energy_" + t for t in Util.ENERGY_TYPES], self.benchmark.columns, True)
+                            "wall time", "host", self.benchmark.columns, True)
 
         runSet.simpleLine = "-" * (len(titleLine))
 
@@ -370,7 +370,6 @@ class OutputHandler:
         # store information in run
         run.resultline = self.createOutputLine(run.identifier, run.status,
                 cpuTimeStr, wallTimeStr, run.values.get('host'), 
-                [run.values.get('energy', {}).get(t, '-') for t in Util.ENERGY_TYPES],
                 run.columns)
         self.addValuesToRunXML(run)
 
@@ -444,7 +443,7 @@ class OutputHandler:
             cpuTimeStr  = "None" if cpuTime  is None else Util.formatNumber(cpuTime, TIME_PRECISION)
             wallTimeStr = "None" if wallTime is None else Util.formatNumber(wallTime, TIME_PRECISION)
             lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
-                             wallTimeStr, "-", [energy.get(t, '-') for t in Util.ENERGY_TYPES], []))
+                             wallTimeStr, "-", []))
 
         return "\n".join(lines) + "\n"
 
@@ -523,7 +522,7 @@ class OutputHandler:
         xml.append(ET.Element("column", attributes))
 
 
-    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, energies, columns, isFirstLine=False):
+    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, columns, isFirstLine=False):
         """
         @param sourcefile: title of a sourcefile
         @param status: status of programm
@@ -543,9 +542,6 @@ class OutputHandler:
                      cpuTimeDelta.rjust(lengthOfTime) + \
                      wallTimeDelta.rjust(lengthOfTime) + \
                      str(host).rjust(lengthOfTime)
-
-        for energy in energies:
-            outputLine += str(energy).rjust(lengthOfEnergy)
 
         for column in columns:
             columnLength = max(minLengthOfColumns, len(column.title)) + 2
