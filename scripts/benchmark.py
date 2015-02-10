@@ -69,8 +69,8 @@ Variables ending with "tag" contain references to XML tag objects created by the
 """
 
 
-def executeBenchmark(benchmarkFile, executor):
-    benchmark = Benchmark(benchmarkFile, config, OUTPUT_PATH)
+def executeBenchmark(benchmarkFile, executor, outputPath):
+    benchmark = Benchmark(benchmarkFile, config, outputPath)
     executor.init(config, benchmark)
     outputHandler = OutputHandler(benchmark)
     
@@ -80,7 +80,7 @@ def executeBenchmark(benchmarkFile, executor):
     result = executor.executeBenchmark(benchmark, outputHandler)
 
     if config.commit and not STOPPED_BY_INTERRUPT:
-        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+        Util.addFilesToGitRepository(outputPath, outputHandler.allCreatedFiles,
                                      config.commitMessage+'\n\n'+outputHandler.description)
     return result
 
@@ -230,12 +230,12 @@ def main(argv=None):
                         action="store_false",
                         help="If set a task will NOT be deleted from App Engine after it has successfully been executed.")
 
-    global config, OUTPUT_PATH
+    global config
     config = parser.parse_args(argv[1:])
     if os.path.isdir(config.output_path):
-        OUTPUT_PATH = os.path.normpath(config.output_path) + os.sep
+        outputPath = os.path.normpath(config.output_path) + os.sep
     else:
-        OUTPUT_PATH = config.output_path
+        outputPath = config.output_path
 
 
     if config.debug:
@@ -266,7 +266,7 @@ def main(argv=None):
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        rc = executeBenchmark(arg, executor)
+        rc = executeBenchmark(arg, executor, outputPath)
         returnCode = returnCode or rc
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 

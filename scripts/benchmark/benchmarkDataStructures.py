@@ -96,7 +96,7 @@ class Benchmark:
     This class represents the <benchmark> tag.
     """
 
-    def __init__(self, benchmarkFile, config, OUTPUT_PATH):
+    def __init__(self, benchmarkFile, config, outputPath):
         """
         The constructor of Benchmark reads the source files, options, columns and the tool
         from the XML in the benchmarkFile..
@@ -120,7 +120,7 @@ class Benchmark:
         if not config.benchmarkInstanceIdent is None:
             self.instance = config.benchmarkInstanceIdent
 
-        self.outputBase = OUTPUT_PATH + self.name + "." + self.instance
+        self.outputBase = outputPath + self.name + "." + self.instance
         self.logFolder = self.outputBase + ".logfiles" + os.path.sep
         if not config.reprocessResults and os.path.exists(self.logFolder):
             # we refuse to overwrite existing results
