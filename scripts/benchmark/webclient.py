@@ -316,7 +316,8 @@ def _getResults(runIDs, outputHandler, webclient, benchmark):
 
 def _isFinished(runID, webclient, benchmark):
 
-    resquest = urllib2.Request(webclient + "runs/" + runID + "/state")
+    headers = {"Accept": "text/plain"}
+    resquest = urllib2.Request(webclient + "runs/" + runID + "/state", headers=headers)
     try:
         response = urllib2.urlopen(resquest)
     except urllib2.HTTPError as e:
