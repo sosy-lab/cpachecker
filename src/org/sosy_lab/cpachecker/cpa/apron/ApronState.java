@@ -161,21 +161,23 @@ logger.log(Level.FINEST, "apron state: isEqual");
     int arrayPos = 0;
 
     for (int indexThis = 0, indexParam = 0; indexThis < integerToIndexMap.size();) {
-      if (indexThis < pConsiderSubsetOfVars.integerToIndexMap.size()
+      if (indexParam < pConsiderSubsetOfVars.integerToIndexMap.size()
           && integerToIndexMap.get(indexThis).equals(pConsiderSubsetOfVars.integerToIndexMap.get(indexParam))) {
         indexParam++;
       } else {
         removeDim[arrayPos] = indexThis;
+        arrayPos++;
       }
       indexThis++;
     }
 
     for(int indexThis=0, indexParam=0; indexThis<realToIndexMap.size();){
-      if(indexThis < pConsiderSubsetOfVars.realToIndexMap.size()
+      if(indexParam < pConsiderSubsetOfVars.realToIndexMap.size()
           && realToIndexMap.get(indexThis).equals(pConsiderSubsetOfVars.realToIndexMap.get(indexParam))){
         indexParam++;
       } else {
         removeDim[arrayPos] = indexThis;
+        arrayPos++;
       }
       indexThis++;
     }
