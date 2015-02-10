@@ -126,7 +126,8 @@ def main(argv=None):
 
     def printOptionalResult(key):
         if key in result:
-            print(key + "=" + str(result[key]))
+            # avoid unicode literals such that the string can be parsed by Python 3.2
+            print(key + "=" + str(result[key]).replace("'u", ''))
 
     # output results
     printOptionalResult('terminationreason')
