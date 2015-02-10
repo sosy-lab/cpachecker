@@ -101,6 +101,9 @@ class OutputHandler:
         if CORELIMIT in self.benchmark.rlimits:
             corelimit = str(self.benchmark.rlimits[CORELIMIT])
 
+        # create folder for file-specific log-files.
+        os.makedirs(benchmark.logFolder)
+
         self.storeHeaderInXML(version, memlimit, timelimit, corelimit, sysinfo)
         self.writeHeaderToLog(version, memlimit, timelimit, corelimit, sysinfo)
 

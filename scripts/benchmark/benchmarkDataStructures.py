@@ -116,9 +116,6 @@ class Benchmark:
 
         self.outputBase = outputPath + self.name + "." + self.instance
         self.logFolder = self.outputBase + ".logfiles" + os.path.sep
-        if not config.reprocessResults and os.path.exists(self.logFolder):
-            # we refuse to overwrite existing results
-            sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(self.logFolder))
 
         # parse XML
         rootTag = ET.ElementTree().parse(benchmarkFile)
@@ -183,9 +180,6 @@ class Benchmark:
         if self.numOfThreads < 1:
             logging.error("At least ONE thread must be given!")
             sys.exit()
-
-        # create folder for file-specific log-files.
-        os.makedirs(self.logFolder)
 
         # get global options and propertyFiles
         self.options = Util.getListFromXML(rootTag)

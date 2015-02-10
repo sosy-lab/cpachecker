@@ -73,6 +73,10 @@ Variables ending with "tag" contain references to XML tag objects created by the
 def executeBenchmark(benchmarkFile, executor, config, outputPath):
     benchmark = Benchmark(benchmarkFile, config, outputPath,
                           config.startTime or time.localtime())
+    if not config.reprocessResults and os.path.exists(benchmark.logFolder):
+        # we refuse to overwrite existing results
+        sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(benchmark.logFolder))
+
     executor.init(config, benchmark)
     outputHandler = OutputHandler(benchmark)
     
