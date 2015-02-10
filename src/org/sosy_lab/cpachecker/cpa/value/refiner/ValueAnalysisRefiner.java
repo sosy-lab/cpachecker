@@ -49,16 +49,6 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
@@ -178,67 +168,6 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     checker = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
 
     classifier = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
-
-    for(CFANode node : pCfa.getAllNodes()) {
-      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
-
-        if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-          processStatementEdge((CStatementEdge)edge, extendedCounterVariables);
-        }
-
-        else if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-          for(CFAEdge singleEdge : ((MultiEdge)edge).getEdges()) {
-            if(singleEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-              processStatementEdge((CStatementEdge)singleEdge, extendedCounterVariables);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  public static Set<String> extendedCounterVariables = new HashSet<>();
-
-  private Set<String> processStatementEdge(CStatementEdge stmtEdge, Set<String> incDecVars) {
-
-    if (stmtEdge.getStatement() instanceof CAssignment) {
-      CAssignment assign = (CAssignment) stmtEdge.getStatement();
-
-      if (assign.getLeftHandSide() instanceof CIdExpression) {
-        CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
-        String assignToVar = assignementToId.getDeclaration().getQualifiedName();
-
-        if (assign.getRightHandSide() instanceof CBinaryExpression) {
-          CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
-          BinaryOperator op = binExpr.getOperator();
-
-          if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
-
-            if (binExpr.getOperand1() instanceof CLiteralExpression
-                || binExpr.getOperand2() instanceof CLiteralExpression) {
-              CIdExpression operandId = null;
-
-              if (binExpr.getOperand1() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand1();
-              }
-              if (binExpr.getOperand2() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand2();
-              }
-
-              if (operandId != null) {
-                String operandVar = operandId.getDeclaration().getQualifiedName();
-                if (assignToVar.equals(operandVar)) {
-                  incDecVars.add(assignToVar);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return incDecVars;
   }
 
   private boolean madeProgress(ARGPath path) {
@@ -291,7 +220,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     for (ARGState root : refinementRoots) {
       root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
 
-      if (isSimilarRepeatedRefinement(interpolationTree.extractPrecisionIncrement(root).values())) {
+      if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(interpolationTree.extractPrecisionIncrement(root).values())) {
         root = relocateRepeatedRefinementRoot(root);
       }
 
