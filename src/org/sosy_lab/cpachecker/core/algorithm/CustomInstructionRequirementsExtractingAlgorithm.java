@@ -255,4 +255,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
 
     return list;
   }
+
+  @Override
+  public boolean reset() {
+    return true;
+  }
 }

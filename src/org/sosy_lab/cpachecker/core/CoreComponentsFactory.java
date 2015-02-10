@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ContinueOnCounterexampleAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.PostProcessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PredicatedAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PruneUnrefinedARGAlgorithm;

@@ -856,4 +856,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
+  @Override
+  public boolean reset() {
+    return true;
+  }
+
 }

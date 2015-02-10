@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -75,8 +76,8 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
   public boolean run(ReachedSet reachedOrig) throws CPAException, InterruptedException {
     ReachedSet reached = reachedSetFactory.create();
     FunctionEntryNode mainFunction = cfa.getMainFunction();
-    AbstractState initialElement = cpa.getInitialState(mainFunction);
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
+    AbstractState initialElement = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
+    Precision initialPrecision = cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
     reached.add(initialElement, initialPrecision);
 
     // compute explicit version of ART
@@ -108,22 +109,21 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
         ARGState artEle = (ARGState) e;
         LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
         if (artEle.isTarget()) {
-          System.out.print("Found target " + le.getLocationNode().describeFileLocation());
+          logger.log(Level.ALL, "Found target ", le.getLocationNode().describeFileLocation());
           if (artEle.isCovered()) {
-            System.out.print(" COV");
+            logger.log(Level.ALL," COV");
           }
           if (!locations.contains(le.getLocationNode())) {
             leaves.add(artEle);
             for (ARGState e2 : artEle.getCoveredByThis()) {
-              System.out
-                  .print(" (added "
+              logger.log(Level.ALL," (added "
                       + AbstractStates.extractStateByType(e2, LocationState.class).getLocationNode().describeFileLocation()
                       + " )");
               leaves.add(e2);
             }
-            System.out.println(" RM");
+            logger.log(Level.ALL," RM");
           } else {
-            System.out.println(" IGN");
+            logger.log(Level.ALL," IGN");
           }
         }
       }

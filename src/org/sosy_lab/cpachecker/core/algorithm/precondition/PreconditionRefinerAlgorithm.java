@@ -505,4 +505,9 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     pStatsCollection.add(stats);
   }
 
+  @Override
+  public boolean reset() {
+    return true;
+  }
+
 }
