@@ -41,6 +41,7 @@ import threading
 import time
 import urllib2
 
+from .systeminfo import SystemInfo
 from . import util as Util
 
 
@@ -71,6 +72,8 @@ def init(config, benchmark):
     except urllib2.URLError as e:
         sys.exit('The settings could not be retrieved. {} is not available. Error: {}'.format(uri, e.reason))
 
+def getSystemInfo():
+    return AppEngineSystemInfo(APPENGINE_SETTINGS['CPUSpeed'], APPENGINE_SETTINGS['RAM'])
 
 def executeBenchmark(benchmark, outputHandler):
     formatString = '%m-%d-%YT%H:%M:%S.%f'
@@ -81,7 +84,6 @@ def executeBenchmark(benchmark, outputHandler):
     tasksetKey = _getTasksetKeyForAppEngine(benchmark)
     logging.debug('Using taskset with key: '+tasksetKey)
 
-    outputHandler.storeSystemInfo('unknown', 'unknown', 'unknown', APPENGINE_SETTINGS['CPUSpeed'], APPENGINE_SETTINGS['RAM'], 'Google App Engine')
     (cpuModel, numberOfRuns, runQueue, sourceFiles, absWorkingDir) = _getBenchmarkDataForAppEngine(benchmark)
 
     logging.debug('Will execute {} runs.'.format(str(numberOfRuns)))
@@ -446,3 +448,13 @@ class _AppEnginePoller(threading.Thread):
                 urllib2.urlopen(request).read()
             except:
                 logging.warn('The task {} could not be deleted.'.format(taskKey))
+
+
+class AppEngineSystemInfo(object):
+    def __init__(self, maxFrequency, memory):
+        self.os = 'unknown'
+        self.cpuModel = 'unknown'
+        self.numberOfCores = 'unknown'
+        self.maxFrequency = maxFrequency
+        self.memory = memory
+        self.hostname = 'Google App Engine'

@@ -75,6 +75,9 @@ def init(config, benchmark):
             benchmark.toolVersion = "trunk:HEAD"
     benchmark.executable = ''
 
+def getSystemInfo():
+    return None
+
 def executeBenchmark(benchmark, outputHandler):
 
     if (benchmark.toolName != 'CPAchecker'):

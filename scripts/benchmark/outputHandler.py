@@ -72,7 +72,7 @@ class OutputHandler:
 
     printLock = threading.Lock()
 
-    def __init__(self, benchmark):
+    def __init__(self, benchmark, sysinfo):
         """
         The constructor of OutputHandler collects information about the benchmark and the computer.
         """
@@ -82,11 +82,6 @@ class OutputHandler:
         self.statistics = Statistics()
         self.runSet = None
 
-        # get information about computer
-        sysinfo = None
-        if not self.benchmark.config.cloud and not self.benchmark.config.appengine:
-            from .systeminfo import SystemInfo
-            sysinfo = SystemInfo()
         version = self.benchmark.toolVersion
 
         memlimit = None
@@ -104,11 +99,15 @@ class OutputHandler:
         # create folder for file-specific log-files.
         os.makedirs(benchmark.logFolder)
 
-        self.storeHeaderInXML(version, memlimit, timelimit, corelimit, sysinfo)
+        self.storeHeaderInXML(version, memlimit, timelimit, corelimit)
         self.writeHeaderToLog(version, memlimit, timelimit, corelimit, sysinfo)
 
+        if sysinfo:
+            # store systemInfo in XML
+            self.storeSystemInfo(sysinfo.os, sysinfo.cpuModel,
+                                 sysinfo.numberOfCores, sysinfo.maxFrequency,
+                                 sysinfo.memory, sysinfo.hostname)
         self.XMLFileNames = []
-
 
 
     def storeSystemInfo(self, opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname):
@@ -139,7 +138,7 @@ class OutputHandler:
             self.runSet.xml.set('error', msg if msg else 'unknown error')
 
 
-    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, sysinfo):
+    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit):
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("result",
@@ -150,12 +149,6 @@ class OutputHandler:
         self.XMLHeader.set(MEMLIMIT, memlimit if memlimit else '-')
         self.XMLHeader.set(TIMELIMIT, timelimit if timelimit else '-')
         self.XMLHeader.set(CORELIMIT, corelimit if corelimit else '-')
-
-        if sysinfo:
-            # store systemInfo in XML
-            self.storeSystemInfo(sysinfo.os, sysinfo.cpuModel,
-                                 sysinfo.numberOfCores, sysinfo.maxFrequency,
-                                 sysinfo.memory, sysinfo.hostname)
 
         # store columnTitles in XML, this are the default columns, that are shown in a default html-table from table-generator
         columntitlesElem = ET.Element("columns")

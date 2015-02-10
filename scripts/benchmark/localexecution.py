@@ -47,6 +47,7 @@ import time
 from .benchmarkDataStructures import CORELIMIT, MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
 from . import cgroups
 from .runexecutor import RunExecutor
+from .systeminfo import SystemInfo
 from . import util as Util
 
 
@@ -70,6 +71,8 @@ def init(config, benchmark):
     except OSError:
         pass # this does not work on Windows
 
+def getSystemInfo():
+    return SystemInfo()
 
 def executeBenchmark(benchmark, outputHandler):
 

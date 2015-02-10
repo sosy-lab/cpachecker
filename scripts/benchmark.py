@@ -78,7 +78,7 @@ def executeBenchmark(benchmarkFile, executor, config, outputPath):
         sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(benchmark.logFolder))
 
     executor.init(config, benchmark)
-    outputHandler = OutputHandler(benchmark)
+    outputHandler = OutputHandler(benchmark, executor.getSystemInfo())
     
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
             repr(benchmarkFile), len(benchmark.runSets)))
