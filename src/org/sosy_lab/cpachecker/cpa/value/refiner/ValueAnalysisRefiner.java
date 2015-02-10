@@ -396,8 +396,13 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     timesRepeatedRefinements++;
     int currentRootNumber = AbstractStates.extractLocation(currentRoot).getNodeNumber();
 
-    ARGPath path = ARGUtils.getOnePathTo(Iterables.getOnlyElement(currentRoot.getParents()));
+    ARGPath path = ARGUtils.getOnePathTo(currentRoot);
     for (ARGState currentState : path.asStatesList().reverse()) {
+      // skip identity, because a new root has to be found
+      if (currentState == currentRoot) {
+        continue;
+      }
+
       if (currentRootNumber == AbstractStates.extractLocation(currentState).getNodeNumber()) {
         return currentState;
       }
