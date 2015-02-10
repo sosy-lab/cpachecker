@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -48,6 +49,16 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
@@ -64,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -124,11 +136,17 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    */
   private final Set<ARGState> feasibleTargets = new HashSet<>();
 
+  /**
+   * keep log of previous refinements to identify repeated one
+   */
+  private final Set<Integer> previousRefinementIds = new HashSet<>();
+
   // statistics
   private int refinementCounter = 0;
   private int targetCounter = 0;
   private final Timer totalTime = new Timer();
   private int timesRootRelocated = 0;
+  private int timesRepeatedRefinements = 0;
 
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -160,6 +178,67 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     checker = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
 
     classifier = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
+
+    for(CFANode node : pCfa.getAllNodes()) {
+      for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+        CFAEdge edge = node.getLeavingEdge(i);
+
+        if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+          processStatementEdge((CStatementEdge)edge, extendedCounterVariables);
+        }
+
+        else if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+          for(CFAEdge singleEdge : ((MultiEdge)edge).getEdges()) {
+            if(singleEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+              processStatementEdge((CStatementEdge)singleEdge, extendedCounterVariables);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public static Set<String> extendedCounterVariables = new HashSet<>();
+
+  private Set<String> processStatementEdge(CStatementEdge stmtEdge, Set<String> incDecVars) {
+
+    if (stmtEdge.getStatement() instanceof CAssignment) {
+      CAssignment assign = (CAssignment) stmtEdge.getStatement();
+
+      if (assign.getLeftHandSide() instanceof CIdExpression) {
+        CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+        String assignToVar = assignementToId.getDeclaration().getQualifiedName();
+
+        if (assign.getRightHandSide() instanceof CBinaryExpression) {
+          CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+          BinaryOperator op = binExpr.getOperator();
+
+          if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
+
+            if (binExpr.getOperand1() instanceof CLiteralExpression
+                || binExpr.getOperand2() instanceof CLiteralExpression) {
+              CIdExpression operandId = null;
+
+              if (binExpr.getOperand1() instanceof CIdExpression) {
+                operandId = (CIdExpression) binExpr.getOperand1();
+              }
+              if (binExpr.getOperand2() instanceof CIdExpression) {
+                operandId = (CIdExpression) binExpr.getOperand2();
+              }
+
+              if (operandId != null) {
+                String operandVar = operandId.getDeclaration().getQualifiedName();
+                if (assignToVar.equals(operandVar)) {
+                  incDecVars.add(assignToVar);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return incDecVars;
   }
 
   private boolean madeProgress(ARGPath path) {
@@ -207,12 +286,16 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
 
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
+    Collection<ARGState> refinementRoots = interpolationTree.obtainRefinementRoots(restartStrategy);
 
-    for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
+    for (ARGState root : refinementRoots) {
       root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
 
-      List<Precision> precisions = new ArrayList<>(2);
+      if (isSimilarRepeatedRefinement(interpolationTree.extractPrecisionIncrement(root).values())) {
+        root = relocateRepeatedRefinementRoot(root);
+      }
 
+      List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
       precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
           .withIncrement(interpolationTree.extractPrecisionIncrement(root)));
@@ -361,6 +444,37 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       }
     }
     return subgraph;
+  }
+
+  /**
+   * A simple heuristic to detect similar repeated refinements.
+   */
+  private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
+    // a refinement is a similar, repeated refinement
+    // if the (sorted) precision increment was already added in a previous refinement
+    return !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
+  }
+
+  /**
+   * This method chooses a new refinement root, in a bottom-up fashion along the error path.
+   * It either picks the next state on the path sharing the same CFA location, or the (only)
+   * child of the ARG root, what ever comes first.
+   *
+   * @param currentRoot the current refinement root
+   * @return the relocated refinement root
+   */
+  private ARGState relocateRepeatedRefinementRoot(final ARGState currentRoot) {
+    timesRepeatedRefinements++;
+    int currentRootNumber = AbstractStates.extractLocation(currentRoot).getNodeNumber();
+
+    ARGPath path = ARGUtils.getOnePathTo(Iterables.getOnlyElement(currentRoot.getParents()));
+    for (ARGState currentState : path.asStatesList().reverse()) {
+      if (currentRootNumber == AbstractStates.extractLocation(currentState).getNodeNumber()) {
+        return currentState;
+      }
+    }
+
+    return Iterables.getOnlyElement(path.getFirstState().getChildren());
   }
 
   private ARGState relocateRefinementRoot(final ARGState pRefinementRoot,
@@ -573,6 +687,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       out.println("Time for completing refinement:       " + totalTime);
       pathInterpolator.printStatistics(out, pResult, pReached);
       out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));
+      out.println("Total number of similar, repeated refinements: " + String.format(Locale.US, "%9d", timesRepeatedRefinements));
+
     }
   }
 
