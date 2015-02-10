@@ -69,7 +69,7 @@ Variables ending with "tag" contain references to XML tag objects created by the
 """
 
 
-def executeBenchmark(benchmarkFile, executor, outputPath):
+def executeBenchmark(benchmarkFile, executor, config, outputPath):
     benchmark = Benchmark(benchmarkFile, config, outputPath)
     executor.init(config, benchmark)
     outputHandler = OutputHandler(benchmark)
@@ -230,7 +230,6 @@ def main(argv=None):
                         action="store_false",
                         help="If set a task will NOT be deleted from App Engine after it has successfully been executed.")
 
-    global config
     config = parser.parse_args(argv[1:])
     if os.path.isdir(config.output_path):
         outputPath = os.path.normpath(config.output_path) + os.sep
@@ -266,7 +265,7 @@ def main(argv=None):
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        rc = executeBenchmark(arg, executor, outputPath)
+        rc = executeBenchmark(arg, executor, config, outputPath)
         returnCode = returnCode or rc
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 
