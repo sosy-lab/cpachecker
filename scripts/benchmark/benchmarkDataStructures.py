@@ -56,8 +56,7 @@ def substituteVars(oldList, runSet, sourcefile=None):
 
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}',     benchmark.name),
-                    ('${benchmark_date}',     benchmark.date),
-                    ('${benchmark_instance}', benchmark.instance),
+                    ('${benchmark_date}',     benchmark.instance),
                     ('${benchmark_path}',     benchmark.baseDir or '.'),
                     ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
                     ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
@@ -96,7 +95,7 @@ class Benchmark:
     This class represents the <benchmark> tag.
     """
 
-    def __init__(self, benchmarkFile, config, outputPath):
+    def __init__(self, benchmarkFile, config, outputPath, startTime):
         """
         The constructor of Benchmark reads the source files, options, columns and the tool
         from the XML in the benchmarkFile..
@@ -112,13 +111,8 @@ class Benchmark:
         if config.name:
             self.name += "."+config.name
 
-        # get current date as String to avoid problems, if script runs over midnight
-        currentTime = time.localtime()
-        self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
-        self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
-        self.instance = self.date
-        if not config.benchmarkInstanceIdent is None:
-            self.instance = config.benchmarkInstanceIdent
+        self.startTime = startTime
+        self.instance = time.strftime("%y-%m-%d_%H%M", self.startTime)
 
         self.outputBase = outputPath + self.name + "." + self.instance
         self.logFolder = self.outputBase + ".logfiles" + os.path.sep

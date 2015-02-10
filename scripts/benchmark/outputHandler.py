@@ -140,7 +140,8 @@ class OutputHandler:
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("result",
-                    {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
+                    {"benchmarkname": self.benchmark.name,
+                     "date":  time.strftime("%y-%m-%d %H:%M", self.benchmark.startTime),
                      "tool": self.benchmark.toolName, "version": version})
 
         self.XMLHeader.set(MEMLIMIT, memlimit if memlimit else '-')
@@ -183,7 +184,7 @@ class OutputHandler:
 
         header = "   BENCHMARK INFORMATION\n"\
                 + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
-                + "date:".ljust(columnWidth) + self.benchmark.dateISO + "\n"\
+                + "date:".ljust(columnWidth) +  time.strftime("%a, %Y-%m-%d %H:%M:%S %Z", self.benchmark.startTime) + "\n"\
                 + "tool:".ljust(columnWidth) + self.benchmark.toolName\
                 + " " + version + "\n"
 

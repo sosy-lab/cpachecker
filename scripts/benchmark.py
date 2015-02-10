@@ -35,6 +35,7 @@ import logging
 import argparse
 import os
 import signal
+import time
 
 from benchmark.benchmarkDataStructures import Benchmark
 import benchmark.util as Util
@@ -70,7 +71,8 @@ Variables ending with "tag" contain references to XML tag objects created by the
 
 
 def executeBenchmark(benchmarkFile, executor, config, outputPath):
-    benchmark = Benchmark(benchmarkFile, config, outputPath)
+    benchmark = Benchmark(benchmarkFile, config, outputPath,
+                          config.startTime or time.localtime())
     executor.init(config, benchmark)
     outputHandler = OutputHandler(benchmark)
     
@@ -156,6 +158,13 @@ def main(argv=None):
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
 
+    parser.add_argument("--startTime",
+                      dest="startTime",
+                      type=parse_time_arg,
+                      default=None,
+                      metavar="'YYYY-MM-DD hh:mm'",
+                      help='Set the given date and time as the start time of the benchmark.')
+
     vcloud_args = parser.add_argument_group('Options for using VerifierCloud')
     vcloud_args.add_argument("--cloud",
                       dest="cloud",
@@ -190,21 +199,13 @@ def main(argv=None):
     vcloud_args.add_argument("--justReprocessResults",
                       dest="reprocessResults",
                       action="store_true",
-                      help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored.")
+                      help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored (use --startTime to point the script to the results).")
     
     parser.add_argument("--maxLogfileSize",
                       dest="maxLogfileSize", type=int, default=20,
                       metavar="SIZE",
                       help="Shrink logfiles to SIZE in MB, if they are too big. (-1 to disable, default value: 20 MB).")
 
-    parser.add_argument("--benchmarkInstanceIdent",
-                      dest="benchmarkInstanceIdent",
-                      type=str,
-                      default=None,
-                      help="Per default the current date and time is used to identify one run of the a benchmark. "
-                        + "With this option you can specify an explicit value for the ident. "
-                        + "This is usefull for reprocessing stored benchmark results.")
-    
     appengine_args = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
     appengine_args.add_argument("--appengine",
                       dest="appengine",
@@ -282,6 +283,13 @@ def killScript():
 
 def killScriptSpecific():
     pass
+
+
+def parse_time_arg(s):
+    try:
+        return time.strptime(s, "%Y-%m-%d %H:%M")
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(e)
 
 
 def signal_handler_ignore(signum, frame):
