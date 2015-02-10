@@ -73,6 +73,7 @@ def init(config, benchmark):
             benchmark.toolVersion = config.revision
         else:
             benchmark.toolVersion = "trunk:HEAD"
+    benchmark.executable = ''
 
 def executeBenchmark(benchmark, outputHandler):
 

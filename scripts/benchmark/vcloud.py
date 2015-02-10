@@ -50,6 +50,8 @@ _justReprocessResults = False
 
 def init(config, benchmark):
     _justReprocessResults = config.reprocessResults
+    benchmark.executable = benchmark.tool.getExecutable()
+    benchmark.toolVersion = benchmark.tool.getVersion(benchmark.executable)
 
 def executeBenchmark(benchmark, outputHandler):
     if not _justReprocessResults:

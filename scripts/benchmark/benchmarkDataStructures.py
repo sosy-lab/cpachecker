@@ -133,11 +133,9 @@ class Benchmark:
             sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
 
         self.toolName = self.tool.getName()
-        self.toolVersion = ''
-        self.executable = ''
-        if not (config.appengine or (config.cloud and config.cloudMaster and "http" in config.cloudMaster)):
-            self.executable = self.tool.getExecutable()
-            self.toolVersion = self.tool.getVersion(self.executable)
+        # will be set from the outside if necessary (may not be the case in SaaS environments)
+        self.toolVersion = None
+        self.executable = None
 
         logging.debug("The tool to be benchmarked is {0}.".format(str(self.toolName)))
 

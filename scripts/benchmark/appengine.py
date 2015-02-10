@@ -65,6 +65,7 @@ def init(config, benchmark):
         benchmark.toolVersion = response['cpacheckerVersion'] \
                                         .split('(')[0] \
                                         .strip()
+        benchmark.executable = ''
 
         logging.debug('Settings were successfully retrieved.')
     except urllib2.URLError as e:

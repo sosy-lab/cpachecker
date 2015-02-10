@@ -59,6 +59,9 @@ _TURBO_BOOST_FILE = "/sys/devices/system/cpu/cpufreq/boost"
 _TURBO_BOOST_FILE_PSTATE = "/sys/devices/system/cpu/intel_pstate/no_turbo"
 
 def init(config, benchmark):
+    benchmark.executable = benchmark.tool.getExecutable()
+    benchmark.toolVersion = benchmark.tool.getVersion(benchmark.executable)
+
     try:
         processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
         if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
