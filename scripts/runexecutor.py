@@ -35,6 +35,10 @@ import benchmark.runexecutor
 import signal
 from benchmark import util
 
+"""
+A simple command-line interface for the runexecutor module of BenchExec.
+"""
+
 _BYTE_FACTOR = 1000 # byte in kilobyte
 
 def main(argv=None):
@@ -71,7 +75,8 @@ def main(argv=None):
                            help="Show only warnings")
     options = parser.parse_args(argv[1:])
 
-    # for usage inside the verifier cloud, there is a special mode
+    # For integrating into some benchmarking frameworks,
+    # there is a DEPRECATED special mode
     # where the first and only command-line argument is a serialized dict
     # with additional options
     env = {}

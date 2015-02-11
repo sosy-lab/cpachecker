@@ -33,6 +33,11 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 import benchexec
 
 class Benchmark(benchexec.BenchExec):
+    """
+    An extension of BenchExec for use with CPAchecker
+    that supports executor modules for executing the benchmarks
+    in the VerifierCloud or in the Google App Engine.
+    """
 
     def createArgumentParser(self):
         parser = super(Benchmark, self).createArgumentParser()

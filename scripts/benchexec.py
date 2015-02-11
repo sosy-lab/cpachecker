@@ -43,17 +43,24 @@ from benchmark.outputHandler import OutputHandler
 
 
 """
-Naming conventions:
+Main script of BenchExec for executing a whole benchmark (suite).
 
-TOOL: a verifier program that should be executed
+This script can be called from the command line, or from within Python
+(by instantiating the BenchExec class
+and either calling "instance.start()" or "main(instance)").
+
+Naming conventions used within BenchExec:
+
+TOOL: a (verification) tool that should be executed
 EXECUTABLE: the executable file that should be called for running a TOOL
-SOURCEFILE: one file that contains code that should be verified
+SOURCEFILE: one input file for the TOOL
 RUN: one execution of a TOOL on one SOURCEFILE
 RUNSET: a set of RUNs of one TOOL with at most one RUN per SOURCEFILE
 RUNDEFINITION: a template for the creation of a RUNSET with RUNS from one or more SOURCEFILESETs
 BENCHMARK: a list of RUNDEFINITIONs and SOURCEFILESETs for one TOOL
 OPTION: a user-specified option to add to the command-line of the TOOL when it its run
 CONFIG: the configuration of this script consisting of the command-line arguments given by the user
+EXECUTOR: a module for executing a BENCHMARK
 
 "run" always denotes a job to do and is never used as a verb.
 "execute" is only used as a verb (this is what is done with a run).
@@ -64,11 +71,22 @@ Variables ending with "tag" contain references to XML tag objects created by the
 """
 
 class BenchExec(object):
+    """
+    The main class of BenchExec.
+    It is designed to be extended by inheritance, and for example
+    allows configuration options to be added and the executor to be replaced.
+    By default, it uses an executor that executes all runs on the local machine.
+    """
+
     def __init__(self):
         self.executor = None
         self.stopped_by_interrupt = False
 
     def start(self, argv):
+        """
+        Start BenchExec.
+        @param argv: command-line options for BenchExec
+        """
         parser = self.createArgumentParser()
         self.config = parser.parse_args(argv[1:])
 
@@ -96,8 +114,13 @@ class BenchExec(object):
 
 
     def createArgumentParser(self):
+        """
+        Create a parser for the command-line options.
+        May be overwritten for adding more configuration options.
+        @return: an argparse.ArgumentParser instance
+        """
         parser = argparse.ArgumentParser(description=
-            """Run benchmarks with a verification tool.
+            """Run benchmarks with a (verification) tool.
             Documented example files for the benchmark definitions
             can be found as 'doc/examples/benchmark*.xml'.
             Use the table-generator.py script to create nice tables
@@ -179,6 +202,9 @@ class BenchExec(object):
 
 
     def setupLogging(self):
+        """
+        Configure the logging framework.
+        """
         if self.config.debug:
             logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                                 level=logging.DEBUG)
@@ -188,13 +214,22 @@ class BenchExec(object):
 
 
     def loadExecutor(self):
-        # Allow local execution of benchmarks to be easily replaced
-        # by a different module that delegates to some cloud service.
+        """
+        Create and return the executor module that should be used for benchmarking.
+        May be overridden for replacing the executor,
+        for example with an implementation that delegates to some cloud service.
+        """
         import benchmark.localexecution as executor
         return executor
 
 
     def executeBenchmark(self, benchmarkFile):
+        """
+        Execute a single benchmark as defined in a file.
+        If called directly, ensure that config and executor attributes are set up.
+        @param benchmarkFile: the name of a benchmark-definition XML file
+        @return: a result value from the executor module
+        """
         benchmark = Benchmark(benchmarkFile, self.config,
                               self.config.startTime or time.localtime())
         self.checkExistingResults(benchmark)
@@ -214,12 +249,22 @@ class BenchExec(object):
 
 
     def checkExistingResults(self, benchmark):
+        """
+        Check and abort if the target directory for the benchmark results
+        already exists in order to avoid overwriting results.
+        """
         if os.path.exists(benchmark.logFolder):
             # we refuse to overwrite existing results
             sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(benchmark.logFolder))
 
 
     def stop(self):
+        """
+        Stop the execution of a benchmark.
+        This instance cannot be used anymore afterwards.
+        Timely termination is not guaranteed, and this method may return before
+        everything is terminated.
+        """
         self.stopped_by_interrupt = True
 
         if self.executor:
@@ -227,6 +272,9 @@ class BenchExec(object):
 
 
 def parse_time_arg(s):
+    """
+    Parse a time stamp in the "year-month-day hour-minute" format.
+    """
     try:
         return time.strptime(s, "%Y-%m-%d %H:%M")
     except ValueError as e:
@@ -234,9 +282,20 @@ def parse_time_arg(s):
 
 
 def signal_handler_ignore(signum, frame):
+    """
+    Log and ignore all signals.
+    """
     logging.warn('Received signal %d, ignoring it' % signum)
 
 def main(benchexec, argv=None):
+    """
+    The main method of BenchExec for use in a command-line script.
+    In addition to calling benchexec.start(argv),
+    it also handles signals and keyboard interrupts.
+    It does not return but calls sys.exit().
+    @param benchexec: An instance of BenchExec for executing benchmarks.
+    @param argv: optionally the list of command-line options to use
+    """
     # ignore SIGTERM
     signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
