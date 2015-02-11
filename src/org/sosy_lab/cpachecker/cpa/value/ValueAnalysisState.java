@@ -383,8 +383,18 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     // if any one constant's value of the other element differs from the constant's value in this element
     for (Map.Entry<MemoryLocation, Value> otherEntry : other.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
+      Value otherValue = otherEntry.getValue();
+      Value thisValue = constantsMap.get(key);
 
-      if (!otherEntry.getValue().equals(constantsMap.get(key))) {
+      if (thisValue instanceof SymbolicIdentifier && hasKnownValue((SymbolicIdentifier) thisValue)) {
+        thisValue = identifierMap.get(thisValue);
+      }
+
+      if (otherValue instanceof SymbolicIdentifier && other.hasKnownValue((SymbolicIdentifier) otherValue)) {
+        otherValue = identifierMap.get(otherValue);
+      }
+
+      if (!otherValue.equals(thisValue)) {
         return false;
       }
     }
