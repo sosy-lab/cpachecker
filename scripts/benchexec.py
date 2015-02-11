@@ -42,9 +42,6 @@ import benchmark.util as Util
 from benchmark.outputHandler import OutputHandler
 
 
-# next lines are needed for stopping the script
-STOPPED_BY_INTERRUPT = False
-
 """
 Naming conventions:
 
@@ -67,30 +64,30 @@ Variables ending with "tag" contain references to XML tag objects created by the
 """
 
 class BenchExec(object):
+    def __init__(self):
+        self.executor = None
+        self.stopped_by_interrupt = False
 
     def start(self, argv):
         parser = self.createArgumentParser()
-        config = parser.parse_args(argv[1:])
+        self.config = parser.parse_args(argv[1:])
 
-        for arg in config.files:
+        for arg in self.config.files:
             if not os.path.exists(arg) or not os.path.isfile(arg):
                 parser.error("File {0} does not exist.".format(repr(arg)))
 
-        self.setupLogging(config)
+        if os.path.isdir(self.config.output_path):
+            self.config.output_path = os.path.normpath(self.config.output_path) + os.sep
 
-        if os.path.isdir(config.output_path):
-            outputPath = os.path.normpath(config.output_path) + os.sep
-        else:
-            outputPath = config.output_path
+        self.setupLogging()
 
-        executor = self.loadExecutor(config)
-        stopExecutor = executor.kill
+        self.executor = self.loadExecutor()
 
         returnCode = 0
-        for arg in config.files:
-            if STOPPED_BY_INTERRUPT: break
+        for arg in self.config.files:
+            if self.stopped_by_interrupt: break
             logging.debug("Benchmark {0} is started.".format(repr(arg)))
-            rc = self.executeBenchmark(arg, executor, config, outputPath)
+            rc = self.executeBenchmark(arg)
             returnCode = returnCode or rc
             logging.debug("Benchmark {0} is done.".format(repr(arg)))
 
@@ -181,8 +178,8 @@ class BenchExec(object):
         return parser
 
 
-    def setupLogging(self, config):
-        if config.debug:
+    def setupLogging(self):
+        if self.config.debug:
             logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                                 level=logging.DEBUG)
         else:
@@ -190,29 +187,29 @@ class BenchExec(object):
                                 level=logging.INFO)
 
 
-    def loadExecutor(self, config):
+    def loadExecutor(self):
         # Allow local execution of benchmarks to be easily replaced
         # by a different module that delegates to some cloud service.
         import benchmark.localexecution as executor
         return executor
 
 
-    def executeBenchmark(self, benchmarkFile, executor, config, outputPath):
-        benchmark = Benchmark(benchmarkFile, config, outputPath,
-                              config.startTime or time.localtime())
+    def executeBenchmark(self, benchmarkFile):
+        benchmark = Benchmark(benchmarkFile, self.config,
+                              self.config.startTime or time.localtime())
         self.checkExistingResults(benchmark)
 
-        executor.init(config, benchmark)
-        outputHandler = OutputHandler(benchmark, executor.getSystemInfo())
+        self.executor.init(self.config, benchmark)
+        outputHandler = OutputHandler(benchmark, self.executor.getSystemInfo())
 
         logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
                 repr(benchmarkFile), len(benchmark.runSets)))
 
-        result = executor.executeBenchmark(benchmark, outputHandler)
+        result = self.executor.executeBenchmark(benchmark, outputHandler)
 
-        if config.commit and not STOPPED_BY_INTERRUPT:
-            Util.addFilesToGitRepository(outputPath, outputHandler.allCreatedFiles,
-                                         config.commitMessage+'\n\n'+outputHandler.description)
+        if self.config.commit and not self.stopped_by_interrupt:
+            Util.addFilesToGitRepository(self.config.output_path, outputHandler.allCreatedFiles,
+                                         self.config.commitMessage+'\n\n'+outputHandler.description)
         return result
 
 
@@ -223,15 +220,10 @@ class BenchExec(object):
 
 
     def stop(self):
-        # set global flag
-        global STOPPED_BY_INTERRUPT
-        STOPPED_BY_INTERRUPT = True
+        self.stopped_by_interrupt = True
 
-        stopExecutor()
-
-    @staticmethod
-    def stopExecutor():
-        pass
+        if self.executor:
+            self.executor.kill()
 
 
 def parse_time_arg(s):

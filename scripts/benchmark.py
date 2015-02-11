@@ -100,21 +100,21 @@ class Benchmark(benchexec.BenchExec):
         return parser
 
 
-    def loadExecutor(self, config):
-        if config.cloud:
-            if config.cloudMaster and "http" in config.cloudMaster:
+    def loadExecutor(self):
+        if self.config.cloud:
+            if self.config.cloudMaster and "http" in config.cloudMaster:
                 import benchmark.webclient as executor
             else:
                 import benchmark.vcloud as executor
-        elif config.appengine:
+        elif self.config.appengine:
             import benchmark.appengine as executor
         else:
-            executor = super(Benchmark, self).loadExecutor(config)
+            executor = super(Benchmark, self).loadExecutor()
         return executor
 
 
     def checkExistingResults(self, benchmark):
-        if not config.reprocessResults:
+        if not self.config.reprocessResults:
             super(Benchmark, self).checkExistingResults(benchmark)
 
 

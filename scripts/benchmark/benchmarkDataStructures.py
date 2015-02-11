@@ -95,7 +95,7 @@ class Benchmark:
     This class represents the <benchmark> tag.
     """
 
-    def __init__(self, benchmarkFile, config, outputPath, startTime):
+    def __init__(self, benchmarkFile, config, startTime):
         """
         The constructor of Benchmark reads the source files, options, columns and the tool
         from the XML in the benchmarkFile..
@@ -114,7 +114,7 @@ class Benchmark:
         self.startTime = startTime
         self.instance = time.strftime("%y-%m-%d_%H%M", self.startTime)
 
-        self.outputBase = outputPath + self.name + "." + self.instance
+        self.outputBase = config.output_path + self.name + "." + self.instance
         self.logFolder = self.outputBase + ".logfiles" + os.path.sep
 
         # parse XML
