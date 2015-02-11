@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
  * <code>a != b</code> can be evaluated as <code>false</code>.
  * </p>
  */
-public class SymbolicIdentifier implements SymbolicValue {
+public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIdentifier> {
 
   // stores the next usable id
   private static long nextId = 0;
@@ -116,5 +116,16 @@ public class SymbolicIdentifier implements SymbolicValue {
   @Override
   public Long asLong(CType type) {
     return null;
+  }
+
+  @Override
+  public int compareTo(SymbolicIdentifier o) {
+    if (getId() == o.getId()) {
+      return 0;
+    } else if (getId() > o.getId()) {
+      return 1;
+    } else {
+      return -1;
+    }
   }
 }
