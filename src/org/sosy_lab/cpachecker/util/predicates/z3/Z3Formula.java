@@ -44,8 +44,7 @@ abstract class Z3Formula implements Formula {
     this.z3expr = z3expr;
     this.z3context = z3context;
 
-    // TODO: find a way to decrease the references automatically.
-    // Why finalizers are bad again?
+    // NOTE: references are never removed, so eventually we run out of space.
     Z3NativeApi.inc_ref(z3context, z3expr);
   }
 
