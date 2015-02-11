@@ -70,6 +70,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
 
+  /**
+   * Singleton for {@link #identifierMap} if symbolic execution is not used.
+   */
+  private static final PersistentMap<SymbolicIdentifier, Value> IDENTIFIER_MAP_SINGLETON = PathCopyingPersistentTreeMap.of();
+
   private static final long serialVersionUID = -3152134511524554357L;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
@@ -93,7 +98,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * If symbolic execution is not in use, this map will remain empty.
    */
-  private Map<SymbolicIdentifier, Value> identifierMap = Collections.emptyMap();
+  private PersistentMap<SymbolicIdentifier, Value> identifierMap = IDENTIFIER_MAP_SINGLETON;
 
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
@@ -106,7 +111,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap,
                             PersistentMap<MemoryLocation, Type> pLocToTypeMap,
-                            Map<SymbolicIdentifier, Value> pIdentifierToValueMap) {
+                            PersistentMap<SymbolicIdentifier, Value> pIdentifierToValueMap) {
 
     constantsMap = pConstantsMap;
     memLocToType = pLocToTypeMap;
@@ -156,11 +161,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     // the value of an identifier will not change once it's known
     assert identifierMap.get(pSymbolicIdentifier) == null || identifierMap.get(pSymbolicIdentifier).equals(pValue);
 
-    if (identifierMap.isEmpty()) {
-      identifierMap = new HashMap<>();
-    }
-
-    identifierMap.put(pSymbolicIdentifier, pValue);
+    identifierMap = identifierMap.putAndCopy(pSymbolicIdentifier, pValue);
   }
 
   /**
