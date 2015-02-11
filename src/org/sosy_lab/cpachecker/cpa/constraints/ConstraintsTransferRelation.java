@@ -166,9 +166,7 @@ public class ConstraintsTransferRelation
 
     ConstraintsState newState = pOldState.copyOf();
 
-    if (!newState.isInitialized()) {
-      newState.initialize(solver, formulaManager, getFormulaCreator(pValueState));
-    }
+    newState.initialize(solver, formulaManager, getFormulaCreator(pValueState));
 
     try {
       Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
