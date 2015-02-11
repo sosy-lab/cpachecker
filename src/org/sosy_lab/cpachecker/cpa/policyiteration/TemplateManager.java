@@ -81,6 +81,7 @@ public class TemplateManager {
   // Temporary variables created by CPA checker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
   private static final String RET_VARIABLE = "__retval__";
+
   private static final String ASSERT_FUNC_NAME = "assert";
   private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
 
@@ -91,8 +92,9 @@ public class TemplateManager {
       FormulaManagerView pFormulaManagerView,
       PathFormulaManager pPfmgr
       ) throws InvalidConfigurationException{
-    pfmgr = pPfmgr;
     pConfig.inject(this, TemplateManager.class);
+
+    pfmgr = pPfmgr;
     cfa = pCfa;
     logger = pLogger;
     rfmgr = pFormulaManagerView.getRationalFormulaManager();
@@ -163,6 +165,7 @@ public class TemplateManager {
               idExpression2);
 
           out.add(new Template(expr1.add(expr2), type));
+          out.add(new Template(expr1.negate().sub(expr2), type));
           out.add(new Template(expr1.sub(expr2), type));
           out.add(new Template(expr2.sub(expr1), type));
         }
