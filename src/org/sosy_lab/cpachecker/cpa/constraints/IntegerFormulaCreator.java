@@ -634,6 +634,8 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
         throw new AssertionError("Unhandled assignment number " + termAssignment);
       }
 
+    } else if (termAssignment instanceof Boolean) {
+      rightFormula = booleanFormulaManager.makeBoolean((Boolean) termAssignment);
     } else {
       throw new AssertionError("Unhandled assignment object " + termAssignment);
     }
