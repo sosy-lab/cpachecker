@@ -118,8 +118,5 @@ class Benchmark(benchexec.BenchExec):
             super(Benchmark, self).checkExistingResults(benchmark)
 
 
-def main(argv=None):
-    benchexec.main2(Benchmark(), argv)
-
 if __name__ == "__main__":
-    main()
+    benchexec.main(Benchmark())

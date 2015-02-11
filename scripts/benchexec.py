@@ -240,10 +240,7 @@ def parse_time_arg(s):
 def signal_handler_ignore(signum, frame):
     logging.warn('Received signal %d, ignoring it' % signum)
 
-def main(argv=None):
-    main2(BenchExec(), argv)
-
-def main2(benchexec, argv=None):
+def main(benchexec, argv=None):
     # ignore SIGTERM
     signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
@@ -253,4 +250,4 @@ def main2(benchexec, argv=None):
         Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")
 
 if __name__ == "__main__":
-    main()
+    main(BenchExec())
