@@ -122,8 +122,8 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public Formula createFormula(Constraint pConstraint) {
-    Formula originalFormula = pConstraint.accept(this);
+  public BooleanFormula createFormula(Constraint pConstraint) {
+    BooleanFormula originalFormula = (BooleanFormula) pConstraint.accept(this);
 
     if (conditions.isEmpty()) {
       return originalFormula;
