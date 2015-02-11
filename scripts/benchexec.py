@@ -70,9 +70,7 @@ class BenchExec(object):
     def executeBenchmark(self, benchmarkFile, executor, config, outputPath):
         benchmark = Benchmark(benchmarkFile, config, outputPath,
                               config.startTime or time.localtime())
-        if not config.reprocessResults and os.path.exists(benchmark.logFolder):
-            # we refuse to overwrite existing results
-            sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(benchmark.logFolder))
+        self.checkExistingResults(benchmark)
 
         executor.init(config, benchmark)
         outputHandler = OutputHandler(benchmark, executor.getSystemInfo())
@@ -213,6 +211,11 @@ class BenchExec(object):
 
         logging.debug("I think my job is done. Have a nice day!")
         return returnCode
+
+    def checkExistingResults(self, benchmark):
+        if os.path.exists(benchmark.logFolder):
+            # we refuse to overwrite existing results
+            sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(benchmark.logFolder))
 
 
     def stop(self):

@@ -113,6 +113,11 @@ class Benchmark(benchexec.BenchExec):
         return executor
 
 
+    def checkExistingResults(self, benchmark):
+        if not config.reprocessResults:
+            super(Benchmark, self).checkExistingResults(benchmark)
+
+
 def main(argv=None):
     benchexec.main2(Benchmark(), argv)
 
