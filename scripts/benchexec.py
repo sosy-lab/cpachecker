@@ -67,23 +67,36 @@ Variables ending with "tag" contain references to XML tag objects created by the
 """
 
 class BenchExec(object):
-    def executeBenchmark(self, benchmarkFile, executor, config, outputPath):
-        benchmark = Benchmark(benchmarkFile, config, outputPath,
-                              config.startTime or time.localtime())
-        self.checkExistingResults(benchmark)
 
-        executor.init(config, benchmark)
-        outputHandler = OutputHandler(benchmark, executor.getSystemInfo())
+    def start(self, argv):
+        parser = self.createArgumentParser()
+        config = parser.parse_args(argv[1:])
 
-        logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
-                repr(benchmarkFile), len(benchmark.runSets)))
+        for arg in config.files:
+            if not os.path.exists(arg) or not os.path.isfile(arg):
+                parser.error("File {0} does not exist.".format(repr(arg)))
 
-        result = executor.executeBenchmark(benchmark, outputHandler)
+        self.setupLogging(config)
 
-        if config.commit and not STOPPED_BY_INTERRUPT:
-            Util.addFilesToGitRepository(outputPath, outputHandler.allCreatedFiles,
-                                         config.commitMessage+'\n\n'+outputHandler.description)
-        return result
+        if os.path.isdir(config.output_path):
+            outputPath = os.path.normpath(config.output_path) + os.sep
+        else:
+            outputPath = config.output_path
+
+        executor = self.loadExecutor(config)
+        stopExecutor = executor.kill
+
+        returnCode = 0
+        for arg in config.files:
+            if STOPPED_BY_INTERRUPT: break
+            logging.debug("Benchmark {0} is started.".format(repr(arg)))
+            rc = self.executeBenchmark(arg, executor, config, outputPath)
+            returnCode = returnCode or rc
+            logging.debug("Benchmark {0} is done.".format(repr(arg)))
+
+        logging.debug("I think my job is done. Have a nice day!")
+        return returnCode
+
 
     def createArgumentParser(self):
         parser = argparse.ArgumentParser(description=
@@ -183,34 +196,25 @@ class BenchExec(object):
         import benchmark.localexecution as executor
         return executor
 
-    def start(self, argv):
-        parser = self.createArgumentParser()
-        config = parser.parse_args(argv[1:])
 
-        for arg in config.files:
-            if not os.path.exists(arg) or not os.path.isfile(arg):
-                parser.error("File {0} does not exist.".format(repr(arg)))
+    def executeBenchmark(self, benchmarkFile, executor, config, outputPath):
+        benchmark = Benchmark(benchmarkFile, config, outputPath,
+                              config.startTime or time.localtime())
+        self.checkExistingResults(benchmark)
 
-        self.setupLogging(config)
+        executor.init(config, benchmark)
+        outputHandler = OutputHandler(benchmark, executor.getSystemInfo())
 
-        if os.path.isdir(config.output_path):
-            outputPath = os.path.normpath(config.output_path) + os.sep
-        else:
-            outputPath = config.output_path
+        logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
+                repr(benchmarkFile), len(benchmark.runSets)))
 
-        executor = self.loadExecutor(config)
-        stopExecutor = executor.kill
+        result = executor.executeBenchmark(benchmark, outputHandler)
 
-        returnCode = 0
-        for arg in config.files:
-            if STOPPED_BY_INTERRUPT: break
-            logging.debug("Benchmark {0} is started.".format(repr(arg)))
-            rc = self.executeBenchmark(arg, executor, config, outputPath)
-            returnCode = returnCode or rc
-            logging.debug("Benchmark {0} is done.".format(repr(arg)))
+        if config.commit and not STOPPED_BY_INTERRUPT:
+            Util.addFilesToGitRepository(outputPath, outputHandler.allCreatedFiles,
+                                         config.commitMessage+'\n\n'+outputHandler.description)
+        return result
 
-        logging.debug("I think my job is done. Have a nice day!")
-        return returnCode
 
     def checkExistingResults(self, benchmark):
         if os.path.exists(benchmark.logFolder):
