@@ -80,7 +80,7 @@ public class ValueDeterminationFormulaManager {
       final Map<Template, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
-    ImmutableMap.Builder<String, FormulaType<?>>types = ImmutableMap.builder();
+    Map<String, FormulaType<?>> types = new HashMap<>();
 
     for (Entry<Location, PolicyAbstractedState> entry : policy.entrySet()) {
       Location toLocation = entry.getKey();
@@ -173,7 +173,7 @@ public class ValueDeterminationFormulaManager {
         visited.add(prefix);
       }
     }
-    return Pair.of(types.build(), bfmgr.and(constraints));
+    return Pair.of(ImmutableMap.copyOf(types), bfmgr.and(constraints));
   }
 
   /**
