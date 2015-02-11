@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -19,6 +20,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -26,6 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 
 public class ValueDeterminationFormulaManager {
@@ -49,8 +52,7 @@ public class ValueDeterminationFormulaManager {
       LogManager logger,
       CFA cfa,
       FormulaManager rfmgr,
-      TemplateManager pTemplateManager
-  ) throws InvalidConfigurationException{
+      TemplateManager pTemplateManager) throws InvalidConfigurationException{
 
     this.fmgr = fmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
@@ -72,12 +74,13 @@ public class ValueDeterminationFormulaManager {
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  public List<BooleanFormula> valueDeterminationFormula(
+  public Pair<ImmutableMap<String, FormulaType<?>>, BooleanFormula> valueDeterminationFormula(
       Map<Location, PolicyAbstractedState> policy,
       final Location focusedLocation,
       final Map<Template, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
+    ImmutableMap.Builder<String, FormulaType<?>>types = ImmutableMap.builder();
 
     for (Entry<Location, PolicyAbstractedState> entry : policy.entrySet()) {
       Location toLocation = entry.getKey();
@@ -157,6 +160,7 @@ public class ValueDeterminationFormulaManager {
               template, prefixedPathFormula, prefix);
           final String abstractDomainElement = absDomainVarName(toLocation, template);
           BooleanFormula outConstraint;
+          types.put(abstractDomainElement, fmgr.getFormulaType(outExpr));
 
           outConstraint = fmgr.makeEqual(
               outExpr,
@@ -169,7 +173,7 @@ public class ValueDeterminationFormulaManager {
         visited.add(prefix);
       }
     }
-    return constraints;
+    return Pair.of(types.build(), bfmgr.and(constraints));
   }
 
   /**
@@ -278,18 +282,22 @@ public class ValueDeterminationFormulaManager {
   }
 
   private SSAMap deriveInitialSSAMap(PathFormula pFormula) {
+    // TODO (problem 1): does not work when assignment is a first test.
+    // TODO (problem 2): this is a hack. might not work for makeOR.
+    // Problem: might not work for makeOR (multiple input paths possible =/)
     Set<Triple<Formula, String, Integer>> allVars =
         fmgr.extractFreeVariables(pFormula.getFormula());
     Map<String, Integer> initialSSA = new HashMap<>();
     for (Triple<Formula, String, Integer> e : allVars) {
       String varName = e.getSecond();
       Integer newValue = e.getThird();
-      if (!initialSSA.containsKey(varName) && newValue != null) {
-        initialSSA.put(varName, newValue);
-      } else if (initialSSA.containsKey(varName) && newValue != null) {
-        initialSSA.put(
-            varName, Math.min(newValue, initialSSA.get(varName))
-        );
+      if (newValue != null) {
+        Integer oldValue = initialSSA.get(varName);
+        if (oldValue != null) {
+          initialSSA.put(varName, Math.min(newValue, oldValue));
+        } else {
+          initialSSA.put(varName, newValue);
+        }
       }
     }
 

@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -386,7 +388,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // Note: this formula contains no disjunctions, as the policy entails
       // the edge selection. Hence it can be used safely for the maximization.
-      List<BooleanFormula> constraints = vdfmgr.valueDeterminationFormula(
+      Pair<ImmutableMap<String, FormulaType<?>>, BooleanFormula>
+          constraints = vdfmgr.valueDeterminationFormula(
           related, stateWithUpdates.getLocation(), updated);
 
       PolicyAbstractedState out = valueDeterminationMaximization(
@@ -394,7 +397,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           allTemplates,
           updated,
           location,
-          constraints
+          constraints.getFirst(),
+          constraints.getSecond()
       );
       logger.log(Level.FINE, ">>> Value determination out state: ", out);
       return out;
@@ -406,7 +410,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Set<Template> templates,
       Map<Template, PolicyBound> updated,
       Location location,
-      List<BooleanFormula> pValueDeterminationConstraints
+      Map<String, FormulaType<?>> types,
+      BooleanFormula pValueDeterminationConstraints
   )
       throws InterruptedException, CPATransferException {
 
@@ -419,9 +424,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     try (OptEnvironment solver = this.solver.newOptEnvironment()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      for (BooleanFormula constraint : pValueDeterminationConstraints) {
-        solver.addConstraint(constraint);
-      }
+      solver.addConstraint(pValueDeterminationConstraints);
 
       Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
@@ -432,7 +435,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         if (templateManager.shouldUseRationals(template)) {
           objective = rfmgr.makeVariable(varName);
         } else {
-          objective = ifmgr.makeVariable(varName);
+          FormulaType<?> type = types.get(varName);
+          objective = (NumeralFormula) fmgr.makeVariable(type, varName);
         }
         int handle = solver.maximize(objective);
         objectiveHandles.put(template, handle);
