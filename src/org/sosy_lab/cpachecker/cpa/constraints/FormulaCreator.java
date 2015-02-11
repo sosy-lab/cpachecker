@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
 
 /**
@@ -36,7 +37,28 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * @param T concrete {@link Formula} type the implementation creates
  */
 public interface FormulaCreator<T extends Formula> extends ConstraintVisitor<T>, SymbolicValueVisitor<T> {
+
+  /**
+   * Creates a {@link BooleanFormula} representing the given {@link Constraint}.
+   *
+   * @param pConstraint the constraint to create a formula of
+   * @return a <code>Formula</code> representing the given constraint
+   */
   BooleanFormula createFormula(Constraint pConstraint);
 
+  /**
+   * Creates a {@link BooleanFormula} representing the given term-value assignment.
+   *
+   * <p>These assignments are usually returned by {@link ProverEnvironment#getModel()} after a
+   * successful SAT check.</p>
+   *
+   * <p>Example: Given variable <code>a</code> and <code>5</code>, this method
+   * returns the formula <code>a equals 5</code>
+   * </p>
+   *
+   * @param pTerm the term of the assignment
+   * @param termAssignment the value of the assignment
+   * @return a <code>BooleanFormula</code> representing the given assignment
+   */
   BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment);
 }

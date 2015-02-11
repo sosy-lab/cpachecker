@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 /**
  * Simplifier for {@link ConstraintsState}s.
  * Provides different methods for simplifying a <code>ConstraintsState</code>
- * through {@link #simplify(ConstraintsState)}.
+ * through {@link #simplify(ConstraintsState, ValueAnalysisState)}.
  */
 public class StateSimplifier {
 
@@ -77,6 +77,7 @@ public class StateSimplifier {
     }
 
     return newState;
+
   }
 
   private boolean isTrivial(Constraint pConstraint, ValueAnalysisState pValueState) {
