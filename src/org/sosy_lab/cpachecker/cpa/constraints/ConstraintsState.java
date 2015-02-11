@@ -364,8 +364,8 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   }
 
   private BooleanFormula getFullFormula() {
-      Formula completeFormula = null;
-      Formula currFormula;
+      BooleanFormula completeFormula = null;
+      BooleanFormula currFormula;
 
       for (Constraint currConstraint : constraints) {
 
@@ -385,7 +385,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
         completeFormula = manager.makeBoolean(true);
       }
 
-      return (BooleanFormula) completeFormula;
+      return completeFormula;
   }
 
   @Override

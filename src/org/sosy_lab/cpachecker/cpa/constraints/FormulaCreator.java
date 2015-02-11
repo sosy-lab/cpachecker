@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * @param T concrete {@link Formula} type the implementation creates
  */
 public interface FormulaCreator<T extends Formula> extends ConstraintVisitor<T>, SymbolicValueVisitor<T> {
-  Formula createFormula(Constraint pConstraint);
+  BooleanFormula createFormula(Constraint pConstraint);
 
   BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment);
 }

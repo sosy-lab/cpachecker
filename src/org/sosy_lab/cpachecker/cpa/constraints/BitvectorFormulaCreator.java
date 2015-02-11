@@ -432,7 +432,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public Formula createFormula(Constraint pConstraint) {
+  public BooleanFormula createFormula(Constraint pConstraint) {
     return null; // TODO
   }
 
