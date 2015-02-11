@@ -87,11 +87,7 @@ def executeBenchmark(benchmarkFile, executor, config, outputPath):
                                      config.commitMessage+'\n\n'+outputHandler.description)
     return result
 
-
-def main(argv=None):
-
-    if argv is None:
-        argv = sys.argv
+def createArgumentParser():
     parser = argparse.ArgumentParser(description=
         """Run benchmarks with a verification tool.
         Documented example files for the benchmark definitions
@@ -232,13 +228,16 @@ def main(argv=None):
                         action="store_false",
                         help="If set a task will NOT be deleted from App Engine after it has successfully been executed.")
 
-    config = parser.parse_args(argv[1:])
-    if os.path.isdir(config.output_path):
-        outputPath = os.path.normpath(config.output_path) + os.sep
-    else:
-        outputPath = config.output_path
+    return parser
+
+def parse_time_arg(s):
+    try:
+        return time.strptime(s, "%Y-%m-%d %H:%M")
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(e)
 
 
+def setupLogging(config):
     if config.debug:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.DEBUG)
@@ -246,10 +245,8 @@ def main(argv=None):
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.INFO)
 
-    for arg in config.files:
-        if not os.path.exists(arg) or not os.path.isfile(arg):
-            parser.error("File {0} does not exist.".format(repr(arg)))
 
+def loadExecutor(config):
     # Allow local execution of benchmarks to be easily replaced
     # by a different module that delegates to some cloud service.
     if config.cloud:
@@ -261,6 +258,35 @@ def main(argv=None):
         import benchmark.appengine as executor
     else:
         import benchmark.localexecution as executor
+    return executor
+
+
+def main(argv=None):
+    # ignore SIGTERM
+    signal.signal(signal.SIGTERM, signal_handler_ignore)
+    try:
+        sys.exit(start(argv or sys.argv))
+    except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
+        killScript()
+        Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")
+
+
+def start(argv):
+    parser = createArgumentParser()
+    config = parser.parse_args(argv[1:])
+    
+    for arg in config.files:
+        if not os.path.exists(arg) or not os.path.isfile(arg):
+            parser.error("File {0} does not exist.".format(repr(arg)))
+
+    setupLogging(config)
+    
+    if os.path.isdir(config.output_path):
+        outputPath = os.path.normpath(config.output_path) + os.sep
+    else:
+        outputPath = config.output_path
+
+    executor = loadExecutor(config)
     killScriptSpecific = executor.kill
 
     returnCode = 0
@@ -286,21 +312,8 @@ def killScriptSpecific():
     pass
 
 
-def parse_time_arg(s):
-    try:
-        return time.strptime(s, "%Y-%m-%d %H:%M")
-    except ValueError as e:
-        raise argparse.ArgumentTypeError(e)
-
-
 def signal_handler_ignore(signum, frame):
     logging.warn('Received signal %d, ignoring it' % signum)
 
 if __name__ == "__main__":
-    # ignore SIGTERM
-    signal.signal(signal.SIGTERM, signal_handler_ignore)
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
-        killScript()
-        Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")
+    main()
