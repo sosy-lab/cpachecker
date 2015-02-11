@@ -305,6 +305,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
         SymbolicIdentifier identifier = toSymbolicIdentifier(term.getName());
         Value concreteValue = convertToValue(termAssignment, term.getType());
 
+        assert !definiteAssignment.containsKey(identifier) || definiteAssignment.get(identifier).equals(termAssignment);
         if (!definiteAssignment.containsKey(identifier)
             && isOnlySatisfyingAssignment(term, termAssignment)) {
 
