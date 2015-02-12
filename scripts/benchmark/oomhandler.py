@@ -114,7 +114,10 @@ class KillProcessOnOomThread(threading.Thread):
                 self._resetMemoryLimit('memory.limit_in_bytes')
 
         finally:
-            os.close(self._efd)
+            try:
+                os.close(self._efd)
+            except AttributeError:
+                pass # when the Python process is shutting down, "os" is sometimes already missing
 
     def _resetMemoryLimit(self, limitFile):
         if os.path.exists(os.path.join(self._cgroup, limitFile)):
