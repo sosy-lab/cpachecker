@@ -229,7 +229,7 @@ class OutputHandler:
         sourcefiles = [run.identifier for run in runSet.runs]
 
         # common prefix of file names
-        self.commonPrefix = Util.commonBaseDir(sourcefiles) + os.path.sep
+        self.commonPrefix = Util.common_base_dir(sourcefiles) + os.path.sep
 
         # length of the first column in terminal
         self.maxLengthOfFileName = max(len(file) for file in sourcefiles) if sourcefiles else 20
@@ -264,7 +264,7 @@ class OutputHandler:
         self.TXTFile.append(self.runSetToTXT(runSet), False)
         XMLFileName = self.getFileName(runSet.name, "xml")
         self.XMLFile = filewriter.FileWriter(XMLFileName,
-                       Util.XMLtoString(runSet.xml))
+                       Util.xml_to_string(runSet.xml))
         self.XMLFile.lastModifiedTime = time.time()
         self.allCreatedFiles.append(XMLFileName)
         self.XMLFileNames.append(XMLFileName)
@@ -347,8 +347,8 @@ class OutputHandler:
         """
 
         # format times, type is changed from float to string!
-        cpuTimeStr = Util.formatNumber(run.cpuTime, TIME_PRECISION)
-        wallTimeStr = Util.formatNumber(run.wallTime, TIME_PRECISION)
+        cpuTimeStr = Util.format_number(run.cpuTime, TIME_PRECISION)
+        wallTimeStr = Util.format_number(run.wallTime, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
         for column in run.columns:
@@ -360,7 +360,7 @@ class OutputHandler:
 
                 try:
                     floatValue = float(column.value)
-                    column.value = Util.formatNumber(floatValue, column.numberOfDigits)
+                    column.value = Util.format_number(floatValue, column.numberOfDigits)
                 except ValueError: # if value is no float, don't format it
                     pass
 
@@ -394,7 +394,7 @@ class OutputHandler:
             # so we wait at least 10 seconds between two write-actions
             currentTime = time.time()
             if currentTime - self.XMLFile.lastModifiedTime > 10:
-                self.XMLFile.replace(Util.XMLtoString(run.runSet.xml))
+                self.XMLFile.replace(Util.xml_to_string(run.runSet.xml))
                 self.XMLFile.lastModifiedTime = currentTime
 
         finally:
@@ -410,13 +410,13 @@ class OutputHandler:
         self.addValuesToRunSetXML(runSet, cpuTime, wallTime, energy)
 
         # write results to files
-        self.XMLFile.replace(Util.XMLtoString(runSet.xml))
+        self.XMLFile.replace(Util.xml_to_string(runSet.xml))
 
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
                 blockFileName = self.getFileName(runSet.name, block.name + ".xml")
-                Util.writeFile(
-                    Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)),
+                Util.write_file(
+                    Util.xml_to_string(self.runsToXML(runSet, block.runs, block.name)),
                     blockFileName
                 )
                 self.allCreatedFiles.append(blockFileName)
@@ -437,8 +437,8 @@ class OutputHandler:
             endline = ("Run set {0}".format(runSet.index))
 
             # format time, type is changed from float to string!
-            cpuTimeStr  = "None" if cpuTime  is None else Util.formatNumber(cpuTime, TIME_PRECISION)
-            wallTimeStr = "None" if wallTime is None else Util.formatNumber(wallTime, TIME_PRECISION)
+            cpuTimeStr  = "None" if cpuTime  is None else Util.format_number(cpuTime, TIME_PRECISION)
+            wallTimeStr = "None" if wallTime is None else Util.format_number(wallTime, TIME_PRECISION)
             lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
                              wallTimeStr, "-", []))
 
@@ -449,7 +449,7 @@ class OutputHandler:
         This function creates the XML structure for a list of runs
         """
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
-        runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
+        runsElem = Util.copy_of_xml_element(self.XMLHeader)
         runsElem.set("options", " ".join(runSet.options))
         runsElem.set("propertyfiles", " ".join(runSet.propertyFiles))
         if blockname is not None:

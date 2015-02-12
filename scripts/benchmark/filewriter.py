@@ -44,7 +44,7 @@ class FileWriter:
         self.__content = content
 
         # Open file with "w" at least once so it will be overwritten.
-        util.writeFile(content, self.__filename)
+        util.write_file(content, self.__filename)
 
     def append(self, newContent, keep=True):
         """
@@ -63,7 +63,7 @@ class FileWriter:
             """
             tmpFilename = self.__filename + ".tmp"
 
-            util.writeFile(content, tmpFilename)
+            util.write_file(content, tmpFilename)
 
             os.rename(tmpFilename, self.__filename)
         else:

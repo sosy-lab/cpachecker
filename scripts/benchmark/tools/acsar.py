@@ -8,7 +8,7 @@ import benchmark.result as result
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
-        return Util.findExecutable('acsar')
+        return Util.find_executable('acsar')
 
 
     def getName(self):
@@ -32,7 +32,7 @@ class Tool(benchmark.tools.template.BaseTool):
             "ERROR:", "ERROR_LOCATION:").replace(
             "errorFn();", "goto ERROR_LOCATION; ERROR_LOCATION:;")
         newFilename = sourcefile + "_acsar.c"
-        Util.writeFile(newFilename, content)
+        Util.write_file(newFilename, content)
         return newFilename
 
 

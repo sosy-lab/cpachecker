@@ -11,7 +11,7 @@ class Tool(benchmark.tools.template.BaseTool):
     """
 
     def getExecutable(self):
-        return Util.findExecutable('threader.sh')
+        return Util.find_executable('threader.sh')
 
 
     def getProgramFiles(self, executable):

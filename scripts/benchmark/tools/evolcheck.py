@@ -15,7 +15,7 @@ class Tool(benchmark.tools.template.BaseTool):
     previousStatus = None
 
     def getExecutable(self):
-        return Util.findExecutable('evolcheck_wrapper')
+        return Util.find_executable('evolcheck_wrapper')
 
 
     def getVersion(self, executable):
@@ -26,7 +26,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'eVolCheck'
 
     def preprocessSourcefile(self, sourcefile):
-        gotoCcExecutable      = Util.findExecutable('goto-cc')
+        gotoCcExecutable      = Util.find_executable('goto-cc')
         # compile with goto-cc to same file, bith '.cc' appended
         self.preprocessedFile = sourcefile + ".cc"
 

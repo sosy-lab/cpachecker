@@ -65,7 +65,7 @@ def init(config, benchmark):
 
     try:
         processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-        if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
+        if len(re.findall("python.*benchmark\.py", Util.decode_to_string(processes))) > 1:
             logging.warn("Already running instance of this script detected. " + \
                          "Please make sure to not interfere with somebody else's benchmarks.")
     except OSError:
@@ -81,7 +81,7 @@ def execute_benchmark(benchmark, outputHandler):
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
 
     cgroupsParents = {}
-    cgroups.initCgroup(cgroupsParents, 'cpuset')
+    cgroups.init_cgroup(cgroupsParents, 'cpuset')
     cgroupCpuset = cgroupsParents['cpuset']
 
     coreAssignment = None # cores per run
@@ -116,7 +116,7 @@ def execute_benchmark(benchmark, outputHandler):
             # get times before runSet
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
-            energyBefore = Util.getEnergy()
+            energyBefore = Util.measure_energy()
 
             outputHandler.outputBeforeRunSet(runSet)
 
@@ -147,7 +147,7 @@ def execute_benchmark(benchmark, outputHandler):
 
             # get times after runSet
             wallTimeAfter = time.time()
-            energy = Util.getEnergy(energyBefore)
+            energy = Util.measure_energy(energyBefore)
             usedWallTime = wallTimeAfter - wallTimeBefore
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
             usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
@@ -206,11 +206,11 @@ def _getCpuCoresPerRun(coreLimit, numOfThreads, cgroupCpuset):
     """
     try:
         # read list of available CPU cores
-        allCpus = Util.parseIntList(Util.readFile(cgroupCpuset, 'cpuset.cpus'))
+        allCpus = Util.parse_int_list(Util.read_file(cgroupCpuset, 'cpuset.cpus'))
         logging.debug("List of available CPU cores is {0}.".format(allCpus))
 
         # read mapping of core to CPU ("physical package")
-        physical_packages = map(lambda core : int(Util.readFile('/sys/devices/system/cpu/cpu{0}/topology/physical_package_id'.format(core))), allCpus)
+        physical_packages = map(lambda core : int(Util.read_file('/sys/devices/system/cpu/cpu{0}/topology/physical_package_id'.format(core))), allCpus)
         cores_of_package = collections.defaultdict(list)
         for core, package in zip(allCpus, physical_packages):
             cores_of_package[package].append(core)
@@ -219,7 +219,7 @@ def _getCpuCoresPerRun(coreLimit, numOfThreads, cgroupCpuset):
         # read hyper-threading information (sibling cores sharing the same physical core)
         siblings_of_core = {}
         for core in allCpus:
-            siblings = Util.parseIntList(Util.readFile('/sys/devices/system/cpu/cpu{0}/topology/thread_siblings_list'.format(core)))
+            siblings = Util.parse_int_list(Util.read_file('/sys/devices/system/cpu/cpu{0}/topology/thread_siblings_list'.format(core)))
             siblings_of_core[core] = siblings
         logging.debug("Siblings of cores are {0}.".format(str(siblings_of_core)))
     except ValueError as e:
@@ -339,7 +339,7 @@ def _getMemoryBanksPerRun(coreAssignment, cgroupCpuset):
 
 def _getAllowedMemoryBanks(cgroupCpuset):
     """Get the list of all memory banks allowed by the given cgroup."""
-    return Util.parseIntList(Util.readFile(cgroupCpuset, 'cpuset.mems'))
+    return Util.parse_int_list(Util.read_file(cgroupCpuset, 'cpuset.mems'))
 
 def _getMemoryBanksListedInDir(dir):
     """Get all memory banks the kernel lists in a given directory.
@@ -370,7 +370,7 @@ def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
             logging.debug("System without NUMA support in Linux kernel, ignoring memory assignment.")
             return
 
-        cgroups.initCgroup(cgroupsParents, 'memory')
+        cgroups.init_cgroup(cgroupsParents, 'memory')
         cgroupMemory = cgroupsParents['memory']
         if cgroupMemory:
             # We use the entries hierarchical_*_limit in memory.stat and not memory.*limit_in_bytes
@@ -384,7 +384,7 @@ def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
 
         # Get list of all memory banks, either from memory assignment or from system.
         if not memoryAssignment:
-            cgroups.initCgroup(cgroupsParents, 'cpuset')
+            cgroups.init_cgroup(cgroupsParents, 'cpuset')
             cgroupCpuset = cgroupsParents['cpuset']
             if cgroupCpuset:
                 allMems = _getAllowedMemoryBanks(cgroupCpuset)
@@ -430,12 +430,12 @@ def _getMemoryBankSize(memBank):
 def _isTurboBoostEnabled():
     try:
         if os.path.exists(_TURBO_BOOST_FILE):
-            boost_enabled = int(Util.readFile(_TURBO_BOOST_FILE))
+            boost_enabled = int(Util.read_file(_TURBO_BOOST_FILE))
             if not (0 <= boost_enabled <= 1):
                 raise ValueError('Invalid value {} for turbo boost activation'.format(boost_enabled))
             return boost_enabled != 0
         if os.path.exists(_TURBO_BOOST_FILE_PSTATE):
-            boost_disabled = int(Util.readFile(_TURBO_BOOST_FILE_PSTATE))
+            boost_disabled = int(Util.read_file(_TURBO_BOOST_FILE_PSTATE))
             if not (0 <= boost_disabled <= 1):
                 raise ValueError('Invalid value {} for turbo boost activation'.format(boost_enabled))
             return boost_disabled != 1

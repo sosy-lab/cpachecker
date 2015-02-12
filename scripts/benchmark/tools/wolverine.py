@@ -7,7 +7,7 @@ import benchmark.result as result
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
-        return Util.findExecutable('wolverine')
+        return Util.find_executable('wolverine')
 
 
     def getVersion(self, executable):

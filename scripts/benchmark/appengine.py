@@ -393,7 +393,7 @@ class _AppEnginePoller(threading.Thread):
             fileNames.append(file['name'])
 
         try:
-            Util.writeFile(json.dumps(task), logFile+'.stdOut')
+            Util.write_file(json.dumps(task), logFile+'.stdOut')
         except:
             logging.debug('Could not save task '+taskKey)
 
@@ -403,7 +403,7 @@ class _AppEnginePoller(threading.Thread):
                 uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
-                Util.writeFile(response, logFile)
+                Util.write_file(response, logFile)
                 statisticsProcessed = True
             except:
                 statisticsProcessed = False
@@ -418,7 +418,7 @@ class _AppEnginePoller(threading.Thread):
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
                 response = 'Task Key: {}\n{}'.format(task['key'], response)
-                Util.writeFile(response, logFile+'.stdErr')
+                Util.write_file(response, logFile+'.stdErr')
             except: pass
 
         headers = {'Content-type':'application/json', 'Accept':'application/json'}

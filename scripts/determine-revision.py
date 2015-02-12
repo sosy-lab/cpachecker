@@ -43,7 +43,7 @@ def determineRevision(dir):
     try:
         svnProcess = subprocess.Popen(['svnversion', '--committed', dir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = svnProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
+        stdout = Util.decode_to_string(stdout).strip()
         stdout = stdout.split(':')[-1]
         if not (svnProcess.returncode or stderr or (stdout == 'exported') or (stdout == 'Unversioned directory')):
             return stdout
@@ -60,14 +60,14 @@ def determineRevision(dir):
 
         gitProcess = subprocess.Popen(['git', 'svn', 'find-rev', 'HEAD'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = gitProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
+        stdout = Util.decode_to_string(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
             return stdout + ('M' if _isGitRepositoryDirty(dir) else '')
 
         # Check for git repository
         gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = gitProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
+        stdout = Util.decode_to_string(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
             return stdout + ('+' if _isGitRepositoryDirty(dir) else '')
     except OSError:

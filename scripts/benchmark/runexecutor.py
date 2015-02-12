@@ -38,8 +38,8 @@ from . import util as Util
 from .cgroups import *
 from . import oomhandler
 
-readFile = Util.readFile
-writeFile = Util.writeFile
+read_file = Util.read_file
+write_file = Util.write_file
 
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
@@ -68,31 +68,31 @@ class RunExecutor():
         """
         self.cgroupsParents = {} # contains the roots of all cgroup-subsystems
 
-        initCgroup(self.cgroupsParents, CPUACCT)
+        init_cgroup(self.cgroupsParents, CPUACCT)
         if not self.cgroupsParents[CPUACCT]:
             logging.warning('Without cpuacct cgroups, cputime measurement and limit might not work correctly if subprocesses are started.')
 
-        initCgroup(self.cgroupsParents, MEMORY)
+        init_cgroup(self.cgroupsParents, MEMORY)
         if not self.cgroupsParents[MEMORY]:
             logging.warning('Cannot measure memory consumption without memory cgroup.')
 
-        initCgroup(self.cgroupsParents, CPUSET)
+        init_cgroup(self.cgroupsParents, CPUSET)
 
         self.cpus = None # to indicate that we cannot limit cores
         self.memoryNodes = None # to indicate that we cannot limit cores
         cgroupCpuset = self.cgroupsParents[CPUSET]
         if cgroupCpuset:
             # Read available cpus/memory nodes:
-            cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
+            cpuStr = read_file(cgroupCpuset, 'cpuset.cpus')
             try:
-                self.cpus = Util.parseIntList(cpuStr)
+                self.cpus = Util.parse_int_list(cpuStr)
             except ValueError as e:
                 logging.warning("Could not read available CPU cores from kernel: {0}".format(e.strerror))
             logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
-            memsStr = readFile(cgroupCpuset, 'cpuset.mems')
+            memsStr = read_file(cgroupCpuset, 'cpuset.mems')
             try:
-                self.memoryNodes = Util.parseIntList(memsStr)
+                self.memoryNodes = Util.parse_int_list(memsStr)
             except ValueError as e:
                 logging.warning("Could not read available memory nodes from kernel: {0}".format(e.strerror))
             logging.debug("List of available memory nodes is {0}.".format(self.memoryNodes))
@@ -109,12 +109,12 @@ class RunExecutor():
                          Please add the process of the following execution to all those cgroups!
         """
       
-        # Setup cgroups, need a single call to createCgroup() for all subsystems
+        # Setup cgroups, need a single call to create_cgroup() for all subsystems
         subsystems = [CPUACCT, MEMORY]
         if myCpus is not None:
             subsystems.append(CPUSET)
 
-        cgroups = createCgroup(self.cgroupsParents, *subsystems)
+        cgroups = create_cgroup(self.cgroupsParents, *subsystems)
 
         logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
@@ -122,14 +122,14 @@ class RunExecutor():
         if myCpus is not None:
             cgroupCpuset = cgroups[CPUSET]
             myCpusStr = ','.join(map(str, myCpus))
-            writeFile(myCpusStr, cgroupCpuset, 'cpuset.cpus')
-            myCpusStr = readFile(cgroupCpuset, 'cpuset.cpus')
+            write_file(myCpusStr, cgroupCpuset, 'cpuset.cpus')
+            myCpusStr = read_file(cgroupCpuset, 'cpuset.cpus')
             logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpusStr))
 
         if memoryNodes is not None:
             cgroupCpuset = cgroups[CPUSET]
-            writeFile(','.join(map(str, memoryNodes)), cgroupCpuset, 'cpuset.mems')
-            memoryNodesStr = readFile(cgroupCpuset, 'cpuset.mems')
+            write_file(','.join(map(str, memoryNodes)), cgroupCpuset, 'cpuset.mems')
+            memoryNodesStr = read_file(cgroupCpuset, 'cpuset.mems')
             logging.debug('Executing {0} with memory nodes [{1}].'.format(args, memoryNodesStr))
 
 
@@ -138,7 +138,7 @@ class RunExecutor():
             cgroupMemory = cgroups[MEMORY]
 
             limitFile = 'memory.limit_in_bytes'
-            writeFile(str(memlimit), cgroupMemory, limitFile)
+            write_file(str(memlimit), cgroupMemory, limitFile)
 
             swapLimitFile = 'memory.memsw.limit_in_bytes'
             # We need swap limit because otherwise the kernel just starts swapping
@@ -150,13 +150,13 @@ class RunExecutor():
                     sys.exit('Kernel misses feature for accounting swap memory, but machine has swap. Please set swapaccount=1 on your kernel command line or disable swap with "sudo swapoff -a".')
             else:
                 try:
-                    writeFile(str(memlimit), cgroupMemory, swapLimitFile)
+                    write_file(str(memlimit), cgroupMemory, swapLimitFile)
                 except IOError as e:
                     if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
                         sys.exit('Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line or disable swap with "sudo swapoff -a".')
                     raise e
 
-            memlimit = readFile(cgroupMemory, limitFile)
+            memlimit = read_file(cgroupMemory, limitFile)
             logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
 
         if not os.path.exists(os.path.join(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')) and _hasSwap():
@@ -203,7 +203,7 @@ class RunExecutor():
                 #print('libcgroup is not available: {}'.format(e.strerror))
 
             for cgroup in set(cgroups.values()):
-                addTaskToCgroup(cgroup, pid)
+                add_task_to_cgroup(cgroup, pid)
 
 
         # copy parent-environment and set needed values, either override or append
@@ -222,7 +222,7 @@ class RunExecutor():
 
         timelimitThread = None
         oomThread = None
-        energyBefore = Util.getEnergy()
+        energyBefore = Util.measure_energy()
         wallTimeBefore = time.time()
 
         p = None
@@ -290,9 +290,9 @@ class RunExecutor():
 
             # kill all remaining processes if some managed to survive
             for cgroup in set(cgroups.values()):
-                killAllTasksInCgroup(cgroup)
+                kill_all_tasks_in_cgroup(cgroup)
 
-        energy = Util.getEnergy(energyBefore)
+        energy = Util.measure_energy(energyBefore)
         wallTime = wallTimeAfter - wallTimeBefore
         cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
         return (returnvalue, wallTime, cpuTime, energy)
@@ -333,7 +333,7 @@ class RunExecutor():
                 logging.warning('Memory-usage is not available due to missing files.')
             else:
                 try:
-                    memUsage = readFile(cgroups[MEMORY], memUsageFile)
+                    memUsage = read_file(cgroups[MEMORY], memUsageFile)
                     memUsage = int(memUsage)
                 except IOError as e:
                     if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
@@ -457,7 +457,7 @@ class RunExecutor():
             logging.debug("executeRun: cleaning up CGroups.")
             for cgroup in set(cgroups.values()):
                 # Need the set here to delete each cgroup only once.
-                removeCgroup(cgroup)
+                remove_cgroup(cgroup)
 
         # if exception is thrown, skip the rest, otherwise perform normally
 
@@ -491,7 +491,7 @@ class RunExecutor():
         with self.SUB_PROCESSES_LOCK:
             for process in self.SUB_PROCESSES:
                 logging.warn('Killing process {0} forcefully.'.format(process.pid))
-                Util.killProcess(process.pid)
+                Util.kill_process(process.pid)
 
 
 def _reduceFileSizeIfNecessary(fileName, maxSize):
@@ -579,7 +579,7 @@ def _readCpuTime(cgroupCpuacct):
     if not os.path.exists(cputimeFile):
         logging.warning('Could not read cputime. File {0} does not exist.'.format(cputimeFile))
         return 0 # dummy value, if cputime is not available
-    return float(readFile(cputimeFile))/1000000000 # nano-seconds to seconds
+    return float(read_file(cputimeFile))/1000000000 # nano-seconds to seconds
 
 
 class _TimelimitThread(threading.Thread):
@@ -618,20 +618,20 @@ class _TimelimitThread(threading.Thread):
             if remainingCpuTime <= 0:
                 self.callback('cputime')
                 logging.debug('Killing process {0} due to CPU time timeout.'.format(self.process.pid))
-                Util.killProcess(self.process.pid)
+                Util.kill_process(self.process.pid)
                 self.finished.set()
                 return
             if remainingWallTime <= 0:
                 self.callback('walltime')
                 logging.warning('Killing process {0} due to wall time timeout.'.format(self.process.pid))
-                Util.killProcess(self.process.pid)
+                Util.kill_process(self.process.pid)
                 self.finished.set()
                 return
 
             if (self.softtimelimit - usedCpuTime) <= 0:
                 self.callback('cputime-soft')
                 # soft time limit violated, ask process to terminate
-                Util.killProcess(self.process.pid, signal.SIGTERM)
+                Util.kill_process(self.process.pid, signal.SIGTERM)
                 self.softtimelimit = self.timelimit
 
             remainingTime = min(remainingCpuTime/self.cpuCount, remainingWallTime)

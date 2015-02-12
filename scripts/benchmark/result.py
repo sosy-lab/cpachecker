@@ -105,7 +105,7 @@ SCORE_WRONG_FALSE = -6
 SCORE_WRONG_TRUE = -12
 
 
-def _statusesOfFile(filename):
+def _statuses_of_file(filename):
     """
     This function returns a list of all properties in the filename.
     """
@@ -116,7 +116,7 @@ def _statusesOfFile(filename):
     return statuses
 
 
-def _statusesOfPropertyFile(propertyFile):
+def _statuses_of_property_file(propertyFile):
     assert os.path.isfile(propertyFile)
 
     statuses = []
@@ -132,10 +132,10 @@ def _statusesOfPropertyFile(propertyFile):
         assert statuses, "Unkown property {0}".format(content)
     return statuses
 
-def _fileIsJava(filename):
+def _file_is_java(filename):
   return JAVA_CHECK_SUBSTRING in filename
 
-def getResultCategory(filename, status, propertyFile=None):
+def get_result_category(filename, status, propertyFile=None):
     '''
     This function return a string
     that shows the relation between status and file.
@@ -146,8 +146,8 @@ def getResultCategory(filename, status, propertyFile=None):
     elif status in STATUS_LIST:
         
         # Currently, no properties for checking Java programs exist, so we only check for PROP_REACH for these
-        if _fileIsJava(filename):
-          fileStatuses = _statusesOfFile(filename)
+        if _file_is_java(filename):
+          fileStatuses = _statuses_of_file(filename)
 
           if not fileStatuses:
             category = CATEGORY_MISSING
@@ -160,8 +160,8 @@ def getResultCategory(filename, status, propertyFile=None):
         elif propertyFile is None:
             category = CATEGORY_MISSING
         else:
-            fileStatuses = _statusesOfFile(filename)
-            propertiesToCheck = _statusesOfPropertyFile(propertyFile)
+            fileStatuses = _statuses_of_file(filename)
+            propertiesToCheck = _statuses_of_property_file(propertyFile)
 
             searchedProperties = []
             for (flag,prop) in fileStatuses:
@@ -189,7 +189,7 @@ def getResultCategory(filename, status, propertyFile=None):
     return category
 
 
-def calculateScore(category, status):
+def calculate_score(category, status):
     if category == CATEGORY_CORRECT:
         return SCORE_CORRECT_TRUE if status == STATUS_TRUE_PROP else SCORE_CORRECT_FALSE
     elif category == CATEGORY_WRONG:

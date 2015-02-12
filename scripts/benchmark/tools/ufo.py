@@ -4,7 +4,7 @@ import benchmark.tools.template
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
-        return Util.findExecutable('ufo.sh')
+        return Util.find_executable('ufo.sh')
 
 
     def getName(self):

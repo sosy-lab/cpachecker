@@ -7,7 +7,7 @@ import benchmark.result as result
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
-        return Util.findExecutable('satabs')
+        return Util.find_executable('satabs')
 
 
     def getVersion(self, executable):

@@ -11,7 +11,7 @@ class Tool(benchmark.tools.template.BaseTool):
     """
 
     def getExecutable(self):
-        return Util.findExecutable('lib/native/x86_64-linux/llbmc')
+        return Util.find_executable('lib/native/x86_64-linux/llbmc')
 
 
     def getVersion(self, executable):
@@ -33,7 +33,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def _prepareSourcefile(self, sourcefile):
-        clangExecutable = Util.findExecutable('clang')
+        clangExecutable = Util.find_executable('clang')
         newFilename     = sourcefile + ".o"
 
         subprocess.Popen([clangExecutable,

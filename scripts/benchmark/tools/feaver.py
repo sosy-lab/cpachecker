@@ -7,7 +7,7 @@ import benchmark.result as result
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
-        return Util.findExecutable('feaver_cmd')
+        return Util.find_executable('feaver_cmd')
 
 
     def getName(self):
@@ -28,7 +28,7 @@ class Tool(benchmark.tools.template.BaseTool):
         content = open(sourcefile, "r").read()
         content = content.replace("goto ERROR;", "assert(0);")
         newFilename = "tmp_benchmark_feaver.c"
-        Util.writeFile(newFilename, content)
+        Util.write_file(newFilename, content)
         return newFilename
 
 

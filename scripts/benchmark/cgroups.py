@@ -38,7 +38,7 @@ CGROUP_NAME_PREFIX='benchmark_'
 
 ALL_KNOWN_SUBSYSTEMS = set(['cpuacct', 'cpuset', 'freezer', 'memory'])
 
-def initCgroup(cgroupsParents, subsystem):
+def init_cgroup(cgroupsParents, subsystem):
     """
     Initialize a cgroup subsystem.
     Call this before calling any other methods from this module for this subsystem.
@@ -48,8 +48,8 @@ def initCgroup(cgroupsParents, subsystem):
     if not cgroupsParents:
         # first call to this method
         logging.debug('Analyzing /proc/mounts and /proc/self/cgroup for determining cgroups.')
-        mounts = _findCgroupMounts()
-        cgroups = _findOwnCgroups()
+        mounts = _find_cgroup_mounts()
+        cgroups = _find_own_cgroups()
 
         for mountedSubsystem, mount in mounts.items():
             cgroupsParents[mountedSubsystem] = os.path.join(mount, cgroups[mountedSubsystem])
@@ -67,8 +67,8 @@ Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
     logging.debug('My cgroup for subsystem {0} is {1}'.format(subsystem, cgroup))
 
     try: # only for testing?
-        testCgroup = createCgroup(cgroupsParents, subsystem)[subsystem]
-        removeCgroup(testCgroup)
+        testCgroup = create_cgroup(cgroupsParents, subsystem)[subsystem]
+        remove_cgroup(testCgroup)
     except OSError as e:
         logging.warning(
 '''Cannot use cgroup hierarchy mounted at {0}, reason: {1}
@@ -77,7 +77,7 @@ If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".'''
         cgroupsParents[subsystem] = None
 
 
-def _findCgroupMounts():
+def _find_cgroup_mounts():
     mounts = {}
     try:
         with open('/proc/mounts', 'rt') as mountsFile:
@@ -94,7 +94,7 @@ def _findCgroupMounts():
     return mounts
 
 
-def _findOwnCgroups():
+def _find_own_cgroups():
     """
     Given a cgroup subsystem,
     find the cgroup in which this process is in.
@@ -115,7 +115,7 @@ def _findOwnCgroups():
     return ownCgroups
 
 
-def createCgroup(cgroupsParents, *subsystems):
+def create_cgroup(cgroupsParents, *subsystems):
     """
     Try to create a cgroup for each of the given subsystems.
     If multiple subsystems are available in the same hierarchy,
@@ -127,7 +127,7 @@ def createCgroup(cgroupsParents, *subsystems):
     createdCgroupsPerParent = {}
     for subsystem in subsystems:
         if not subsystem in cgroupsParents:
-            initCgroup(cgroupsParents, subsystem)
+            init_cgroup(cgroupsParents, subsystem)
 
         parentCgroup = cgroupsParents.get(subsystem)
         if not parentCgroup:
@@ -153,13 +153,13 @@ def createCgroup(cgroupsParents, *subsystems):
 
     return createdCgroupsPerSubsystem
 
-def addTaskToCgroup(cgroup, pid):
+def add_task_to_cgroup(cgroup, pid):
     if cgroup:
         with open(os.path.join(cgroup, 'tasks'), 'w') as tasksFile:
             tasksFile.write(str(pid))
 
 
-def killAllTasksInCgroupRecursively(cgroup):
+def kill_all_tasks_in_cgroup_recursively(cgroup):
     """
     Iterate through a cgroup and all its children cgroups
     and kill all processes in any of these cgroups forcefully.
@@ -169,13 +169,13 @@ def killAllTasksInCgroupRecursively(cgroup):
     subdirs = filter(os.path.isdir, files)
 
     for subCgroup in subdirs:
-        _killAllTasksInCgroupRecursively(subCgroup)
-        removeCgroup(subCgroup)
+        _kill_all_tasks_in_cgroup_recursively(subCgroup)
+        remove_cgroup(subCgroup)
 
-    killAllTasksInCgroup(cgroup)
+    kill_all_tasks_in_cgroup(cgroup)
 
 
-def killAllTasksInCgroup(cgroup):
+def kill_all_tasks_in_cgroup(cgroup):
     tasksFile = os.path.join(cgroup, 'tasks')
 
     i = 0
@@ -188,7 +188,7 @@ def killAllTasksInCgroup(cgroup):
                     task = task.strip()
                     if i > 1:
                         logging.warning('Run has left-over process with pid {0} in cgroup {1}, sending signal {2} (try {3}).'.format(task, cgroup, sig, i))
-                    Util.killProcess(int(task), sig)
+                    Util.kill_process(int(task), sig)
 
                 if task is None:
                     return # No process was hanging, exit
@@ -196,7 +196,7 @@ def killAllTasksInCgroup(cgroup):
                 time.sleep(i * 0.5) # wait for the process to exit, this might take some time
 
 
-def removeCgroup(cgroup):
+def remove_cgroup(cgroup):
     if cgroup:
         if not os.path.exists(cgroup):
             logging.warning('Cannot remove CGroup {0}, because it does not exist.'.format(cgroup))

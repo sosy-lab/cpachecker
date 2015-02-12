@@ -61,11 +61,11 @@ def execute_benchmark(benchmark, outputHandler):
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
-        Util.writeFile(cloudInput, cloudInputFile)
+        Util.write_file(cloudInput, cloudInputFile)
         outputHandler.allCreatedFiles.append(cloudInputFile)
 
         # install cloud and dependencies
-        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.isWindows())
+        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.is_windows())
         ant.communicate()
         ant.wait()
 
@@ -85,7 +85,7 @@ def execute_benchmark(benchmark, outputHandler):
             
         wallTimeBefore = time.time()
             
-        cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.isWindows())
+        cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.is_windows())
         try:
             (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
         except KeyboardInterrupt:
@@ -132,7 +132,7 @@ def getCloudInput(benchmark):
     absScriptsPath = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
     absToolpaths = list(map(os.path.abspath, toolpaths))
     absSourceFiles = list(map(os.path.abspath, sourceFiles))
-    absBaseDir = Util.commonBaseDir(absSourceFiles + absToolpaths + [absScriptsPath])
+    absBaseDir = Util.common_base_dir(absSourceFiles + absToolpaths + [absScriptsPath])
 
     if absBaseDir == "": sys.exit("No common base dir found.")
 
@@ -187,7 +187,7 @@ def getBenchmarkDataForCloud(benchmark):
         # get runs
         for run in runSet.runs:
             cmdline = run.getCmdline()
-            cmdline = list(map(Util.forceLinuxPath, cmdline))
+            cmdline = list(map(Util.force_linux_path, cmdline))
 
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.

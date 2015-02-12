@@ -62,9 +62,9 @@ def main(argv=None):
                         help='"soft" CPU time limit in seconds')
     parser.add_argument("--walltimelimit", type=int, metavar="SECONDS",
                         help='wall time limit in seconds (default is CPU time plus a few seconds)')
-    parser.add_argument("--cores", type=util.parseIntList, metavar="N,M-K",
+    parser.add_argument("--cores", type=util.parse_int_list, metavar="N,M-K",
                         help="the list of CPU cores to use")
-    parser.add_argument("--memoryNodes", type=util.parseIntList, metavar="N,M-K",
+    parser.add_argument("--memoryNodes", type=util.parse_int_list, metavar="N,M-K",
                         help="the list of memory nodes to use")
     parser.add_argument("--dir", metavar="DIR",
                         help="working directory for executing the command (default is current directory)")

@@ -5,7 +5,7 @@ import benchmark.result as result
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
-        return Util.findExecutable('ecaverifier')
+        return Util.find_executable('ecaverifier')
 
 
     def getName(self):

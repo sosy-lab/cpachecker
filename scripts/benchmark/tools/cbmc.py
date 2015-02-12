@@ -17,7 +17,7 @@ class Tool(benchmark.tools.template.BaseTool):
     def getExecutable(self):
         fallback = "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
                    "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None
-        return Util.findExecutable('cbmc', fallback)
+        return Util.find_executable('cbmc', fallback)
 
 
     def getVersion(self, executable):

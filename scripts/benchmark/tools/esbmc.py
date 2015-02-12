@@ -11,7 +11,7 @@ class Tool(benchmark.tools.template.BaseTool):
     """
 
     def getExecutable(self):
-        return Util.findExecutable('esbmc')
+        return Util.find_executable('esbmc')
 
 
     def getProgramFiles(self, executable):

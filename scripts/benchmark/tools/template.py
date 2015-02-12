@@ -18,7 +18,7 @@ class BaseTool(object):
         This method always needs to be overridden,
         and most implementations will look similar to this one.
         """
-        return Util.findExecutable('tool')
+        return Util.find_executable('tool')
 
 
     def getVersion(self, executable):

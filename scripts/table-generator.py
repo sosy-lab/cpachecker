@@ -132,7 +132,7 @@ class Util:
         return suffix if prefix == '' else prefix
 
     @staticmethod
-    def formatNumber(s, numberOfDigits):
+    def format_number(s, numberOfDigits):
         """
         If the value is a number (or number plus one char),
         this function returns a string-representation of the number
@@ -164,7 +164,7 @@ class Util:
 
         if numberOfDigits is None:
             return value
-        return Util.formatNumber(value, numberOfDigits)
+        return Util.format_number(value, numberOfDigits)
 
 
     @staticmethod
@@ -566,9 +566,9 @@ class RunResult:
         if status == 'false(label)':
             status = 'false(reach)'
         if category == 'placeholderForUnknown':
-            category = result.getResultCategory(sourcefileTag.get('name'), status)
+            category = result.get_result_category(sourcefileTag.get('name'), status)
 
-        score = result.calculateScore(category, status)
+        score = result.calculate_score(category, status)
         logfileLines = None
 
         values = []
@@ -591,7 +591,7 @@ class RunResult:
                     value = getValueFromLogfile(logfileLines, column.pattern)
 
             if column.numberOfDigits is not None:
-                value = Util.formatNumber(value, column.numberOfDigits)
+                value = Util.format_number(value, column.numberOfDigits)
 
             values.append(value)
 

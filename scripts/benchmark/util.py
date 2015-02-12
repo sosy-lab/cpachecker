@@ -40,15 +40,15 @@ This module contains some useful functions for Strings, XML or Lists.
 
 ENERGY_TYPES = ['cpu', 'core', 'uncore', 'external']
 
-def isWindows():
+def is_windows():
     return os.name == 'nt'
 
-def forceLinuxPath(path):
-    if isWindows():
+def force_linux_path(path):
+    if is_windows():
         return path.replace('\\', '/')
     return path
 
-def killProcess(pid, sig=signal.SIGKILL):
+def kill_process(pid, sig=signal.SIGKILL):
     '''
     This function kills the process and the children in its process group.
     '''
@@ -68,23 +68,23 @@ def printOut(value, end='\n'):
     sys.stdout.write(end)
     sys.stdout.flush()
 
-def isCode(filename):
+def is_code(filename):
     """
     This function returns True, if  a line of the file contains bracket '{'.
     """
-    isCodeFile = False
+    is_code_file = False
     file = open(filename, "r")
     for line in file:
         # ignore comments and empty lines
-        if not isComment(line) \
+        if not is_comment(line) \
                 and '{' in line: # <-- simple indicator for code
             if '${' not in line: # <-- ${abc} variable to substitute
-                isCodeFile = True
+                is_code_file = True
     file.close()
-    return isCodeFile
+    return is_code_file
 
 
-def isComment(line):
+def is_comment(line):
     return not line or line.startswith("#") or line.startswith("//")
 
 
@@ -98,7 +98,7 @@ def containsAny(text, list):
     return False
 
 
-def removeAll(list, elemToRemove):
+def remove_all(list, elemToRemove):
     return [elem for elem in list if elem != elemToRemove]
 
 
@@ -106,14 +106,14 @@ def flatten(iterable, exclude=[]):
     return [value for sublist in iterable for value in sublist if not value in exclude]
 
 
-def getListFromXML(elem, tag="option", attributes=["name"]):
+def get_list_from_xml(elem, tag="option", attributes=["name"]):
     '''
     This function searches for all "option"-tags and returns a list with all attributes and texts.
     '''
     return flatten(([option.get(attr) for attr in attributes] + [option.text] for option in elem.findall(tag)), exclude=[None])
 
 
-def getCopyOfXMLElem(elem):
+def copy_of_xml_element(elem):
     """
     This method returns a shallow copy of a XML-Element.
     This method is for compatibility with Python 2.6 or earlier..
@@ -126,7 +126,7 @@ def getCopyOfXMLElem(elem):
     return copyElem
 
 
-def XMLtoString(elem):
+def xml_to_string(elem):
     """
     Return a pretty-printed XML string for the Element.
     """
@@ -136,7 +136,7 @@ def XMLtoString(elem):
     return reparsed.toprettyxml(indent="  ")
 
 
-def decodeToString(toDecode):
+def decode_to_string(toDecode):
     """
     This function is needed for Python 3,
     because a subprocess can return bytes instead of a string.
@@ -147,9 +147,9 @@ def decodeToString(toDecode):
         return toDecode
 
 
-def formatNumber(number, numberOfDigits):
+def format_number(number, numberOfDigits):
     """
-    The function formatNumber() return a string-representation of a number
+    The function format_number() return a string-representation of a number
     with a number of digits after the decimal separator.
     If the number has more digits, it is rounded.
     If the number has less digits, zeros are added.
@@ -162,7 +162,7 @@ def formatNumber(number, numberOfDigits):
     return "%.{0}f".format(numberOfDigits) % number
 
 
-def parseIntList(s):
+def parse_int_list(s):
     """
     Parse a comma-separated list of strings.
     The list may additionally contain ranges such as "1-5",
@@ -181,7 +181,7 @@ def parseIntList(s):
     return result
 
 
-def expandFileNamePattern(pattern, baseDir):
+def expand_filename_pattern(pattern, baseDir):
     """
     Expand a file name pattern containing wildcards, environment variables etc.
 
@@ -202,7 +202,7 @@ def expandFileNamePattern(pattern, baseDir):
     return fileList
 
 
-def getFiles(paths):
+def get_files(paths):
     changed = False
     result = []
     for path in paths:
@@ -219,8 +219,8 @@ def getFiles(paths):
     return result if changed else paths
 
 
-def findExecutable(program, fallback=None, exitOnError=True):
-    def isExecutable(programPath):
+def find_executable(program, fallback=None, exitOnError=True):
+    def is_executable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
 
     dirs = os.environ['PATH'].split(os.path.pathsep)
@@ -228,10 +228,10 @@ def findExecutable(program, fallback=None, exitOnError=True):
 
     for dir in dirs:
         name = os.path.join(dir, program)
-        if isExecutable(name):
+        if is_executable(name):
             return name
 
-    if fallback is not None and isExecutable(fallback):
+    if fallback is not None and is_executable(fallback):
         return fallback
 
     if exitOnError:
@@ -240,12 +240,12 @@ def findExecutable(program, fallback=None, exitOnError=True):
         return fallback
 
 
-def commonBaseDir(l):
+def common_base_dir(l):
     # os.path.commonprefix returns the common prefix, not the common directory
     return os.path.dirname(os.path.commonprefix(l))
 
 
-def writeFile(content, *path):
+def write_file(content, *path):
     """
     Simply write some content to a file, overriding the file if necessary.
     """
@@ -253,7 +253,7 @@ def writeFile(content, *path):
         return file.write(content)
 
 
-def readFile(*path):
+def read_file(*path):
     """
     Read the full content of a file.
     """
@@ -261,7 +261,7 @@ def readFile(*path):
         return f.read().strip()
 
 
-def addFilesToGitRepository(baseDir, files, description):
+def add_files_to_git_repository(baseDir, files, description):
     """
     Add and commit all files given in a list into a git repository in the
     baseDir directory. Nothing is done if the git repository has
@@ -282,7 +282,7 @@ def addFilesToGitRepository(baseDir, files, description):
     if gitRoot.returncode != 0:
         printOut('Cannot commit results to repository: git rev-parse failed, perhaps output path is not a git directory?')
         return
-    gitRootDir = decodeToString(stdout).splitlines()[0]
+    gitRootDir = decode_to_string(stdout).splitlines()[0]
 
     # check whether repository is clean
     gitStatus = subprocess.Popen(['git','status','--porcelain', '--untracked-files=no'],
@@ -290,7 +290,7 @@ def addFilesToGitRepository(baseDir, files, description):
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdout, stderr) = gitStatus.communicate()
     if gitStatus.returncode != 0:
-        printOut('Git status failed! Output was:\n' + decodeToString(stderr))
+        printOut('Git status failed! Output was:\n' + decode_to_string(stderr))
         return
 
     if stdout:
@@ -317,14 +317,14 @@ def addFilesToGitRepository(baseDir, files, description):
 
 
 
-def getEnergy(oldEnergy=None):
+def measure_energy(oldEnergy=None):
     '''
     returns a dictionary with the currently available values of energy consumptions (like a time-stamp).
     If oldEnergy is not None, the difference (currentValue - oldEnergy) is returned.
     '''
     newEnergy = {}
 
-    executable = findExecutable('read-energy.sh', exitOnError=False)
+    executable = find_executable('read-energy.sh', exitOnError=False)
     if executable is None: # not available on current system
         logging.debug('Energy measurement not available because read-energy.sh could not be found.')
         return newEnergy
@@ -346,10 +346,10 @@ def getEnergy(oldEnergy=None):
     if oldEnergy is None:
         return newEnergy
     else:
-        return _energyDiff(newEnergy, oldEnergy)
+        return _energy_difference(newEnergy, oldEnergy)
 
 
-def _energyDiff(newEnergy, oldEnergy):
+def _energy_difference(newEnergy, oldEnergy):
     '''
     returns a dict with (newEnergy - oldEnergy) for each type (=key) of energy,
     but only, if both values exist

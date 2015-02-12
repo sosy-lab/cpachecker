@@ -77,7 +77,7 @@ class KillProcessOnOomThread(threading.Thread):
             self._efd = libc.eventfd(0, EFD_CLOEXEC)
 
             try:
-                util.writeFile('{} {}'.format(self._efd, ofd),
+                util.write_file('{} {}'.format(self._efd, ofd),
                                      cgroup, 'cgroup.event_control')
 
                 # If everything worked, disable Kernel-side process killing.
@@ -102,16 +102,16 @@ class KillProcessOnOomThread(threading.Thread):
             if not self._finished.is_set():
                 self._callback('memory')
                 logging.debug('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
-                util.killProcess(self._process.pid)
+                util.kill_process(self._process.pid)
                 # Also kill all children of subprocesses directly.
                 with open(os.path.join(self._cgroup, 'tasks'), 'rt') as tasks:
                     for task in tasks:
-                        util.killProcess(int(task))
+                        util.kill_process(int(task))
 
                 # We now need to increase the memory limit of this cgroup
                 # to give the process a chance to terminate
-                self._resetMemoryLimit('memory.memsw.limit_in_bytes')
-                self._resetMemoryLimit('memory.limit_in_bytes')
+                self._reset_memory_limit('memory.memsw.limit_in_bytes')
+                self._reset_memory_limit('memory.limit_in_bytes')
 
         finally:
             try:
@@ -119,11 +119,11 @@ class KillProcessOnOomThread(threading.Thread):
             except AttributeError:
                 pass # when the Python process is shutting down, "os" is sometimes already missing
 
-    def _resetMemoryLimit(self, limitFile):
+    def _reset_memory_limit(self, limitFile):
         if os.path.exists(os.path.join(self._cgroup, limitFile)):
             try:
                 # Write a high value (1 PB) as the limit
-                util.writeFile(str(1 * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR),
+                util.write_file(str(1 * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR),
                                      self._cgroup, limitFile)
             except IOError as e:
                 logging.warning('Failed to increase {0} after OOM: error {1} ({2})'.format(limitFile, e.errno, e.strerror))

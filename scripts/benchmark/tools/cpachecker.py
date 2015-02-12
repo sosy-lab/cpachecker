@@ -63,7 +63,7 @@ class Tool(benchmark.tools.template.BaseTool):
     """
 
     def getExecutable(self):
-        executable = Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
+        executable = Util.find_executable('cpa.sh', 'scripts/cpa.sh')
         executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         if os.path.isdir(os.path.join(executableDir, 'src')):
             self._buildCPAchecker(executableDir)
@@ -74,7 +74,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def _buildCPAchecker(self, executableDir):
         logging.debug('Building CPAchecker in directory {0}.'.format(executableDir))
-        ant = subprocess.Popen(['ant', '-lib', 'lib/java/build', '-q', 'jar'], cwd=executableDir, shell=Util.isWindows())
+        ant = subprocess.Popen(['ant', '-lib', 'lib/java/build', '-q', 'jar'], cwd=executableDir, shell=Util.is_windows())
         (stdout, stderr) = ant.communicate()
         if ant.returncode:
             sys.exit('Failed to build CPAchecker, please fix the build first.')
@@ -82,7 +82,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getProgramFiles(self, executable):
         executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
-        return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
+        return Util.flatten(Util.expand_filename_pattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
     def getWorkingDirectory(self, executable):
@@ -97,12 +97,12 @@ class Tool(benchmark.tools.template.BaseTool):
             logging.warning('Cannot run CPAchecker to determine version: {0}'.format(e.strerror))
             return ''
         if stderr:
-            logging.warning('Cannot determine CPAchecker version, error output: {0}'.format(Util.decodeToString(stderr)))
+            logging.warning('Cannot determine CPAchecker version, error output: {0}'.format(Util.decode_to_string(stderr)))
             return ''
         if process.returncode:
             logging.warning('Cannot determine CPAchecker version, exit code {0}'.format(process.returncode))
             return ''
-        stdout = Util.decodeToString(stdout)
+        stdout = Util.decode_to_string(stdout)
         line = next(l for l in stdout.splitlines() if l.startswith('CPAchecker'))
         line = line.replace('CPAchecker' , '')
         line = line.split('(')[0]

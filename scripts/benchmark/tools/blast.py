@@ -8,7 +8,7 @@ import benchmark.result as result
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
-        return Util.findExecutable('pblast.opt')
+        return Util.find_executable('pblast.opt')
 
 
     def getProgramFiles(self, executable):
@@ -34,7 +34,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getCmdline(self, blastExe, options, sourcefiles, propertyfile, rlimits):
         workingDir = self.getWorkingDirectory(blastExe)
-        ocamlExe = Util.findExecutable('ocamltune')
+        ocamlExe = Util.find_executable('ocamltune')
         return [os.path.relpath(ocamlExe, start=workingDir), os.path.relpath(blastExe, start=workingDir)] + options + sourcefiles
 
 
