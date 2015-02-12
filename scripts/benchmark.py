@@ -58,7 +58,7 @@ class Benchmark(benchexec.BenchExec):
                           help="Sets the priority for this benchmark used in the VerifierCloud. Possible values are IDLE, LOW, HIGH, URGENT.")
 
         vcloud_args.add_argument("--cloudCPUModel",
-                          dest="cpuModel", type=str, default=None,
+                          dest="cpu_model", type=str, default=None,
                           metavar="CPU_MODEL",
                           help="Only execute runs in the VerifierCloud on CPU models that contain the given string.")
 

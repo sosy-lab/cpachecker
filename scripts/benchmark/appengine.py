@@ -84,7 +84,7 @@ def execute_benchmark(benchmark, output_handler):
     tasksetKey = _getTasksetKeyForAppEngine(benchmark)
     logging.debug('Using taskset with key: '+tasksetKey)
 
-    (cpuModel, numberOfRuns, runQueue, sourceFiles, absWorkingDir) = _getBenchmarkDataForAppEngine(benchmark)
+    (cpu_model, numberOfRuns, runQueue, sourceFiles, absWorkingDir) = _getBenchmarkDataForAppEngine(benchmark)
 
     logging.debug('Will execute {} runs.'.format(str(numberOfRuns)))
 
@@ -123,7 +123,7 @@ def kill():
 
 def _getBenchmarkDataForAppEngine(benchmark):
     # TODO default CPU model??
-    cpuModel = benchmark.requirements.cpuModel
+    cpu_model = benchmark.requirements.cpu_model
 
     numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets if runSet.should_be_executed())
 
@@ -159,7 +159,7 @@ def _getBenchmarkDataForAppEngine(benchmark):
 
     if not sourceFiles: sys.exit("Benchmark has nothing to run.")
 
-    return (cpuModel, numberOfRuns, runQueue, sourceFiles, absWorkingDir)
+    return (cpu_model, numberOfRuns, runQueue, sourceFiles, absWorkingDir)
 
 
 def _getTasksetKeyForAppEngine(benchmark):
@@ -451,10 +451,10 @@ class _AppEnginePoller(threading.Thread):
 
 
 class AppEngineSystemInfo(object):
-    def __init__(self, maxFrequency, memory):
+    def __init__(self, cpu_max_frequency, memory):
         self.os = 'unknown'
-        self.cpuModel = 'unknown'
-        self.numberOfCores = 'unknown'
-        self.maxFrequency = maxFrequency
+        self.cpu_model = 'unknown'
+        self.cpu_number_of_cores = 'unknown'
+        self.cpu_max_frequency = cpu_max_frequency
         self.memory = memory
         self.hostname = 'Google App Engine'

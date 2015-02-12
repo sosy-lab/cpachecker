@@ -104,19 +104,19 @@ class OutputHandler:
 
         if sysinfo:
             # store systemInfo in XML
-            self.store_system_info(sysinfo.os, sysinfo.cpuModel,
-                                 sysinfo.numberOfCores, sysinfo.maxFrequency,
+            self.store_system_info(sysinfo.os, sysinfo.cpu_model,
+                                 sysinfo.cpu_number_of_cores, sysinfo.cpu_max_frequency,
                                  sysinfo.memory, sysinfo.hostname)
         self.xml_file_names = []
 
 
-    def store_system_info(self, opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname):
+    def store_system_info(self, opSystem, cpu_model, cpu_number_of_cores, cpu_max_frequency, memory, hostname):
         for systemInfo in self.xml_header.findall("systeminfo"):
                     if systemInfo.attrib["hostname"] == hostname:
                         return
 
         osElem = ET.Element("os", {"name":opSystem})
-        cpuElem = ET.Element("cpu", {"model":cpuModel, "cores":numberOfCores, "frequency":maxFrequency})
+        cpuElem = ET.Element("cpu", {"model":cpu_model, "cores":cpu_number_of_cores, "frequency":cpu_max_frequency})
         ramElem = ET.Element("ram", {"size":memory})
         systemInfo = ET.Element("systeminfo", {"hostname":hostname})
         systemInfo.append(osElem)
@@ -196,9 +196,9 @@ class OutputHandler:
             header += "   SYSTEM INFORMATION\n"\
                     + "host:".ljust(columnWidth) + sysinfo.hostname + "\n"\
                     + "os:".ljust(columnWidth) + sysinfo.os + "\n"\
-                    + "cpu:".ljust(columnWidth) + sysinfo.cpuModel + "\n"\
-                    + "- cores:".ljust(columnWidth) + sysinfo.numberOfCores + "\n"\
-                    + "- max frequency:".ljust(columnWidth) + sysinfo.maxFrequency + "\n"\
+                    + "cpu:".ljust(columnWidth) + sysinfo.cpu_model + "\n"\
+                    + "- cores:".ljust(columnWidth) + sysinfo.cpu_number_of_cores + "\n"\
+                    + "- max frequency:".ljust(columnWidth) + sysinfo.cpu_max_frequency + "\n"\
                     + "ram:".ljust(columnWidth) + sysinfo.memory + "\n"\
                     + simpleLine
 

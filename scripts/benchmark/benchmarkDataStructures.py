@@ -645,19 +645,19 @@ class Requirements:
     This class wrappes the values for the requirements.
     It parses the tags from XML to get those values.
     If no values are found, at least the limits are used as requirements.
-    If the user gives a cpuModel in the config, it overrides the previous cpuModel.
+    If the user gives a cpu_model in the config, it overrides the previous cpu_model.
     '''
     def __init__(self, tags, rlimits, config):
         
-        self.cpuModel = None
+        self.cpu_model = None
         self.memory   = None
         self.cpuCores = None
         
         for requireTag in tags:
             
-            cpuModel = requireTag.get('cpuModel', None)
-            if self.cpuModel is None:
-                self.cpuModel = cpuModel
+            cpu_model = requireTag.get('cpuModel', None)
+            if self.cpu_model is None:
+                self.cpu_model = cpu_model
             else:
                 raise Exception('Double specification of required CPU model.')
 
@@ -681,9 +681,9 @@ class Requirements:
         if self.memory is None:
             self.memory = rlimits.get(MEMLIMIT, None)
 
-        if hasattr(config, 'cpuModel') and config.cpuModel is not None:
+        if hasattr(config, 'cpu_model') and config.cpu_model is not None:
             # user-given model -> override value
-            self.cpuModel = config.cpuModel
+            self.cpu_model = config.cpu_model
 
         if self.cpuCores is not None and self.cpuCores <= 0:
             raise Exception('Invalid value {} for required CPU cores.'.format(self.cpuCores))
@@ -694,8 +694,8 @@ class Requirements:
 
     def __str__(self):
         s = ""
-        if self.cpuModel:
-            s += " CPU='" + self.cpuModel + "'"
+        if self.cpu_model:
+            s += " CPU='" + self.cpu_model + "'"
         if self.cpuCores:
             s += " Cores=" + str(self.cpuCores)
         if self.memory:

@@ -38,9 +38,9 @@ class SystemInfo(object):
 
         # get info about CPU
         cpuInfo = dict()
-        self.maxFrequency = 'unknown'
+        self.cpu_max_frequency = 'unknown'
         cpuInfoFilename = '/proc/cpuinfo'
-        self.numberOfCores = 'unknown'
+        self.cpu_number_of_cores = 'unknown'
         if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
             cpuInfoFile = open(cpuInfoFilename, 'rt')
             cpuInfoLines = [tuple(line.split(':')) for line in
@@ -49,23 +49,23 @@ class SystemInfo(object):
                                        .strip('\n').split('\n')]
             cpuInfo = dict(cpuInfoLines)
             cpuInfoFile.close()
-            self.numberOfCores = str(len([line for line in cpuInfoLines if line[0] == 'processor']))
-        self.cpuModel = cpuInfo.get('model name', 'unknown') \
+            self.cpu_number_of_cores = str(len([line for line in cpuInfoLines if line[0] == 'processor']))
+        self.cpu_model = cpuInfo.get('model name', 'unknown') \
                                .strip() \
                                .replace("(R)", "") \
                                .replace("(TM)", "") \
                                .replace("(tm)", "")
         if 'cpu MHz' in cpuInfo:
-            self.maxFrequency = cpuInfo['cpu MHz'].split('.')[0].strip() + ' MHz'
+            self.cpu_max_frequency = cpuInfo['cpu MHz'].split('.')[0].strip() + ' MHz'
 
         # modern cpus may not work with full speed the whole day
-        # read the number from cpufreq and overwrite maxFrequency from above
+        # read the number from cpufreq and overwrite cpu_max_frequency from above
         freqInfoFilename = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq'
         if os.path.isfile(freqInfoFilename) and os.access(freqInfoFilename, os.R_OK):
             frequencyInfoFile = open(freqInfoFilename, 'rt')
-            maxFrequency = frequencyInfoFile.read().strip('\n')
+            cpu_max_frequency = frequencyInfoFile.read().strip('\n')
             frequencyInfoFile.close()
-            self.maxFrequency = str(int(maxFrequency) // 1000) + ' MHz'
+            self.cpu_max_frequency = str(int(cpu_max_frequency) // 1000) + ' MHz'
 
         # get info about memory
         memInfo = dict()

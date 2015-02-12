@@ -206,8 +206,8 @@ def _submitRun(run, webclient, benchmark, counter = 0):
     if CORELIMIT in limits:
         params.update({'coreLimitation':limits[CORELIMIT]})  
 
-    if benchmark.config.cloudCPUModel:
-        params.update({'cpuModel':benchmark.config.cloudCPUModel})                
+    if benchmark.config.cpu_model:
+        params.update({'cpuModel':benchmark.config.cpu_model})                
 
  
     invalidOption = _handleOptions(run, params)
