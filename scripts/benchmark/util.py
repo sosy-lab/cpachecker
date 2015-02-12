@@ -72,30 +72,17 @@ def is_code(filename):
     """
     This function returns True, if  a line of the file contains bracket '{'.
     """
-    is_code_file = False
-    file = open(filename, "r")
-    for line in file:
-        # ignore comments and empty lines
-        if not is_comment(line) \
-                and '{' in line: # <-- simple indicator for code
-            if '${' not in line: # <-- ${abc} variable to substitute
-                is_code_file = True
-    file.close()
-    return is_code_file
-
+    with open(filename, "r") as file:
+        for line in file:
+            # ignore comments and empty lines
+            if not is_comment(line) \
+                    and '{' in line: # <-- simple indicator for code
+                if '${' not in line: # <-- ${abc} variable to substitute
+                    return True
+    return False
 
 def is_comment(line):
     return not line or line.startswith("#") or line.startswith("//")
-
-
-def containsAny(text, list):
-    '''
-    This function returns True, iff any string in list is a substring of text.
-    '''
-    for elem in list:
-        if elem in text:
-            return True
-    return False
 
 
 def remove_all(list, elemToRemove):

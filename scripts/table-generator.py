@@ -98,17 +98,6 @@ class Util:
 
 
     @staticmethod
-    def containsAny(text, list):
-        """
-        This function returns True, iff any string in list is a substring of text.
-        """
-        for elem in list:
-            if elem in text:
-                return True
-        return False
-
-
-    @staticmethod
     def split_number_and_unit(s):
         """
         Split a string into two parts: a number prefix and an arbitrary suffix.
