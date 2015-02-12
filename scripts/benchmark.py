@@ -107,7 +107,7 @@ class Benchmark(benchexec.BenchExec):
 
     def loadExecutor(self):
         if self.config.cloud:
-            if self.config.cloudMaster and "http" in config.cloudMaster:
+            if self.config.cloudMaster and "http" in self.config.cloudMaster:
                 import benchmark.webclient as executor
             else:
                 import benchmark.vcloud as executor
