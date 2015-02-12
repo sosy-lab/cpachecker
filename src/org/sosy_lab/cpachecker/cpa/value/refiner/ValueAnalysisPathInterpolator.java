@@ -325,7 +325,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath);
 
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
       errorPath = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);

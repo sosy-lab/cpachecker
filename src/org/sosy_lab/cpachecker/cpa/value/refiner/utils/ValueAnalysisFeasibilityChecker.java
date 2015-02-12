@@ -48,11 +48,12 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.PrefixProvider;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-public class ValueAnalysisFeasibilityChecker {
+public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
 
   private final LogManager logger;
   private final ValueAnalysisTransferRelation transfer;
@@ -113,6 +114,23 @@ public class ValueAnalysisFeasibilityChecker {
   public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisState pInitial)
       throws CPAException, InterruptedException {
     return getInfeasilbePrefixes(path, pInitial).get(0);
+  }
+
+
+
+  /**
+   * This method obtains a list of prefixes of the path, that are infeasible by themselves. If the path is feasible, the whole path
+   * is returned as the only element of the list.
+   *
+   * @param path the path to check
+   * @return the list of prefix of the path that are feasible by themselves
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  @Override
+  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path)
+      throws CPAException, InterruptedException {
+    return getInfeasilbePrefixes(path, new ValueAnalysisState());
   }
 
   /**

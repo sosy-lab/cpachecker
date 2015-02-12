@@ -128,12 +128,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
-  private final MachineModel machineModel;
+  private final CFA cfa;
   private final PredicateAssumeStore assumesStore;
   private final AbstractionManager abstractionManager;
 
   protected PredicateCPA(Configuration config, LogManager logger,
-      BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory,
+      BlockOperator blk, CFA pCfa, ReachedSetFactory reachedSetFactory,
       ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
@@ -141,6 +141,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
+
+    cfa = pCfa;
 
     if (enableBlockreducer) {
       BlockComputer blockComputer = new BlockedCFAReducer(config, logger);
@@ -216,8 +218,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
     GlobalInfo.getInstance().storeAbstractionManager(abstractionManager);
-
-    machineModel = cfa.getMachineModel();
 
     prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
 
@@ -333,8 +333,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
   }
 
+  public CFA getCfa() {
+    return cfa;
+  }
+
   public MachineModel getMachineModel() {
-    return machineModel;
+    return cfa.getMachineModel();
   }
 
   public AbstractionManager getAbstractionManager() {

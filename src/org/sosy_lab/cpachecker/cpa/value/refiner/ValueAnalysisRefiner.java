@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
@@ -554,8 +553,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           ARGPath path2 = ARGUtils.getOnePathTo(target2);
 
           if(itpSortedTargets) {
-            List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1, new ValueAnalysisState());
-            List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2, new ValueAnalysisState());
+            List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1);
+            List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2);
 
             Long score1 = classifier.obtainScoreForPrefixes(prefixes1, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
             Long score2 = classifier.obtainScoreForPrefixes(prefixes2, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
