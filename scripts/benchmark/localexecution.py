@@ -105,11 +105,11 @@ def execute_benchmark(benchmark, outputHandler):
 
         if STOPPED_BY_INTERRUPT: break
 
-        if not runSet.shouldBeExecuted():
-            outputHandler.outputForSkippingRunSet(runSet)
+        if not runSet.should_be_executed():
+            outputHandler.output_for_skipping_run_set(runSet)
 
         elif not runSet.runs:
-            outputHandler.outputForSkippingRunSet(runSet, "because it has no files")
+            outputHandler.output_for_skipping_run_set(runSet, "because it has no files")
 
         else:
             runSetsExecuted += 1
@@ -118,7 +118,7 @@ def execute_benchmark(benchmark, outputHandler):
             wallTimeBefore = time.time()
             energyBefore = Util.measure_energy()
 
-            outputHandler.outputBeforeRunSet(runSet)
+            outputHandler.output_before_run_set(runSet)
 
             # put all runs into a queue
             for run in runSet.runs:
@@ -154,10 +154,10 @@ def execute_benchmark(benchmark, outputHandler):
                         - (ruBefore.ru_utime + ruBefore.ru_stime)
 
             if STOPPED_BY_INTERRUPT:
-                outputHandler.setError('interrupted')
-            outputHandler.outputAfterRunSet(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
+                outputHandler.set_error('interrupted')
+            outputHandler.output_after_run_set(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
 
-    outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
+    outputHandler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
 
 def kill():
@@ -478,7 +478,7 @@ class _Worker(threading.Thread):
         This function executes the tool with a sourcefile with options.
         It also calls functions for output before and after the run.
         """
-        self.outputHandler.outputBeforeRun(run)
+        self.outputHandler.output_before_run(run)
         benchmark = self.benchmark
 
         memlimit = None
@@ -500,7 +500,7 @@ class _Worker(threading.Thread):
                 memoryNodes=self.myMemNodes,
                 memlimit=memlimit,
                 environments=benchmark.environment(),
-                workingDir=benchmark.workingDirectory(),
+                workingDir=benchmark.working_directory(),
                 maxLogfileSize=maxLogfileSize)
 
         for key, value in result.items():
@@ -529,8 +529,8 @@ class _Worker(threading.Thread):
                 pass
             return
 
-        run.afterExecution(result['exitcode'])
-        self.outputHandler.outputAfterRun(run)
+        run.after_execution(result['exitcode'])
+        self.outputHandler.output_after_run(run)
 
 
     def stop(self):

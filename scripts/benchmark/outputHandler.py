@@ -70,14 +70,14 @@ class OutputHandler:
     The class OutputHandler manages all outputs to the terminal and to files.
     """
 
-    printLock = threading.Lock()
+    print_lock = threading.Lock()
 
     def __init__(self, benchmark, sysinfo):
         """
         The constructor of OutputHandler collects information about the benchmark and the computer.
         """
 
-        self.allCreatedFiles = []
+        self.all_created_files = []
         self.benchmark = benchmark
         self.statistics = Statistics()
         self.runSet = None
@@ -99,19 +99,19 @@ class OutputHandler:
         # create folder for file-specific log-files.
         os.makedirs(benchmark.logFolder)
 
-        self.storeHeaderInXML(version, memlimit, timelimit, corelimit)
-        self.writeHeaderToLog(version, memlimit, timelimit, corelimit, sysinfo)
+        self.store_header_in_xml(version, memlimit, timelimit, corelimit)
+        self.write_header_to_log(version, memlimit, timelimit, corelimit, sysinfo)
 
         if sysinfo:
             # store systemInfo in XML
-            self.storeSystemInfo(sysinfo.os, sysinfo.cpuModel,
+            self.store_system_info(sysinfo.os, sysinfo.cpuModel,
                                  sysinfo.numberOfCores, sysinfo.maxFrequency,
                                  sysinfo.memory, sysinfo.hostname)
-        self.XMLFileNames = []
+        self.xml_file_names = []
 
 
-    def storeSystemInfo(self, opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname):
-        for systemInfo in self.XMLHeader.findall("systeminfo"):
+    def store_system_info(self, opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname):
+        for systemInfo in self.xml_header.findall("systeminfo"):
                     if systemInfo.attrib["hostname"] == hostname:
                         return
 
@@ -123,32 +123,32 @@ class OutputHandler:
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
             
-        self.XMLHeader.append(systemInfo)
+        self.xml_header.append(systemInfo)
         if self.runSet and self.runSet.xml:
             self.runSet.xml.append(systemInfo)
 
 
-    def setError(self, msg):
+    def set_error(self, msg):
         """
         Mark the benchmark as erroneous, e.g., because the benchmarking tool crashed.
         The message is intended as explanation for the user.
         """
-        self.XMLHeader.set('error', msg if msg else 'unknown error')
+        self.xml_header.set('error', msg if msg else 'unknown error')
         if self.runSet:
             self.runSet.xml.set('error', msg if msg else 'unknown error')
 
 
-    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit):
+    def store_header_in_xml(self, version, memlimit, timelimit, corelimit):
 
         # store benchmarkInfo in XML
-        self.XMLHeader = ET.Element("result",
+        self.xml_header = ET.Element("result",
                     {"benchmarkname": self.benchmark.name,
                      "date":  time.strftime("%y-%m-%d %H:%M", self.benchmark.startTime),
                      "tool": self.benchmark.toolName, "version": version})
 
-        self.XMLHeader.set(MEMLIMIT, memlimit if memlimit else '-')
-        self.XMLHeader.set(TIMELIMIT, timelimit if timelimit else '-')
-        self.XMLHeader.set(CORELIMIT, corelimit if corelimit else '-')
+        self.xml_header.set(MEMLIMIT, memlimit if memlimit else '-')
+        self.xml_header.set(TIMELIMIT, timelimit if timelimit else '-')
+        self.xml_header.set(CORELIMIT, corelimit if corelimit else '-')
 
         # store columnTitles in XML, this are the default columns, that are shown in a default html-table from table-generator
         columntitlesElem = ET.Element("columns")
@@ -158,21 +158,21 @@ class OutputHandler:
         for column in self.benchmark.columns:
             columnElem = ET.Element("column", {"title": column.title})
             columntitlesElem.append(columnElem)
-        self.XMLHeader.append(columntitlesElem)
+        self.xml_header.append(columntitlesElem)
 
         # Build dummy entries for output, later replaced by the results,
         # The dummy XML elements are shared over all runs.
-        self.XMLDummyElems = [ET.Element("column", {"title": "status", "value": ""}),
+        self.xml_dummy_elements = [ET.Element("column", {"title": "status", "value": ""}),
                       ET.Element("column", {"title": "cputime", "value": ""}),
                       ET.Element("column", {"title": "walltime", "value": ""})]
         for column in self.benchmark.columns:
-            self.XMLDummyElems.append(ET.Element("column",
+            self.xml_dummy_elements.append(ET.Element("column",
                         {"title": column.title, "value": ""}))
 
 
-    def writeHeaderToLog(self, version, memlimit, timelimit, corelimit, sysinfo):
+    def write_header_to_log(self, version, memlimit, timelimit, corelimit, sysinfo):
         """
-        This method writes information about benchmark and system into TXTFile.
+        This method writes information about benchmark and system into txt_file.
         """
 
         columnWidth = 20
@@ -205,20 +205,20 @@ class OutputHandler:
         self.description = header
 
         runSetName = None
-        runSets = [runSet for runSet in self.benchmark.runSets if runSet.shouldBeExecuted()]
+        runSets = [runSet for runSet in self.benchmark.runSets if runSet.should_be_executed()]
         if len(runSets) == 1:
             # in case there is only a single run set to to execute, we can use its name
             runSetName = runSets[0].name
 
         # write to file
-        TXTFileName = self.getFileName(runSetName, "txt")
-        self.TXTFile = filewriter.FileWriter(TXTFileName, self.description)
-        self.allCreatedFiles.append(TXTFileName)
+        txt_file_name = self.get_filename(runSetName, "txt")
+        self.txt_file = filewriter.FileWriter(txt_file_name, self.description)
+        self.all_created_files.append(txt_file_name)
 
 
-    def outputBeforeRunSet(self, runSet):
+    def output_before_run_set(self, runSet):
         """
-        The method outputBeforeRunSet() calculates the length of the
+        The method output_before_run_set() calculates the length of the
         first column for the output in terminal and stores information
         about the runSet in XML.
         @param runSet: current run set
@@ -229,11 +229,11 @@ class OutputHandler:
         sourcefiles = [run.identifier for run in runSet.runs]
 
         # common prefix of file names
-        self.commonPrefix = Util.common_base_dir(sourcefiles) + os.path.sep
+        self.common_prefix = Util.common_base_dir(sourcefiles) + os.path.sep
 
         # length of the first column in terminal
-        self.maxLengthOfFileName = max(len(file) for file in sourcefiles) if sourcefiles else 20
-        self.maxLengthOfFileName = max(20, self.maxLengthOfFileName - len(self.commonPrefix))
+        self.max_length_of_filename = max(len(file) for file in sourcefiles) if sourcefiles else 20
+        self.max_length_of_filename = max(20, self.max_length_of_filename - len(self.common_prefix))
 
         # write run set name to terminal
         numberOfFiles = len(runSet.runs)
@@ -244,33 +244,33 @@ class OutputHandler:
             + numberOfFilesStr
             + (TERMINAL_TITLE.format(runSet.fullName) if USE_COLORS and sys.stdout.isatty() else ""))
 
-        # write information about the run set into TXTFile
+        # write information about the run set into txt_file
         self.writeRunSetInfoToLog(runSet)
 
         # prepare information for text output
         for run in runSet.runs:
-            run.resultline = self.formatSourceFileName(run.identifier)
+            run.resultline = self.format_sourcefile_name(run.identifier)
 
         # prepare XML structure for each run and runSet
             run.xml = ET.Element("sourcefile", 
                                  {"name": run.identifier, "files": "[" + ", ".join(run.sourcefiles) + "]"})
             if run.specificOptions:
                 run.xml.set("options", " ".join(run.specificOptions))
-            run.xml.extend(self.XMLDummyElems)
+            run.xml.extend(self.xml_dummy_elements)
 
-        runSet.xml = self.runsToXML(runSet, runSet.runs)
+        runSet.xml = self.runs_to_xml(runSet, runSet.runs)
 
-        # write (empty) results to TXTFile and XML
-        self.TXTFile.append(self.runSetToTXT(runSet), False)
-        XMLFileName = self.getFileName(runSet.name, "xml")
-        self.XMLFile = filewriter.FileWriter(XMLFileName,
+        # write (empty) results to txt_file and XML
+        self.txt_file.append(self.run_set_to_text(runSet), False)
+        xml_file_name = self.get_filename(runSet.name, "xml")
+        self.xml_file = filewriter.FileWriter(xml_file_name,
                        Util.xml_to_string(runSet.xml))
-        self.XMLFile.lastModifiedTime = time.time()
-        self.allCreatedFiles.append(XMLFileName)
-        self.XMLFileNames.append(XMLFileName)
+        self.xml_file.lastModifiedTime = time.time()
+        self.all_created_files.append(xml_file_name)
+        self.xml_file_names.append(xml_file_name)
 
 
-    def outputForSkippingRunSet(self, runSet, reason=None):
+    def output_for_skipping_run_set(self, runSet, reason=None):
         '''
         This function writes a simple message to terminal and logfile,
         when a run set is skipped.
@@ -283,18 +283,18 @@ class OutputHandler:
                (" " + reason if reason else "")
               )
 
-        # write into TXTFile
+        # write into txt_file
         runSetInfo = "\n\n"
         if runSet.name:
             runSetInfo += runSet.name + "\n"
         runSetInfo += "Run set {0} of {1}: skipped {2}\n".format(
                 runSet.index, len(self.benchmark.runSets), reason or "")
-        self.TXTFile.append(runSetInfo)
+        self.txt_file.append(runSetInfo)
 
 
     def writeRunSetInfoToLog(self, runSet):
         """
-        This method writes the information about a run set into the TXTFile.
+        This method writes the information about a run set into the txt_file.
         """
 
         runSetInfo = "\n\n"
@@ -305,44 +305,44 @@ class OutputHandler:
                 " ".join(runSet.options),
                 " ".join(runSet.propertyFiles))
 
-        titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
+        titleLine = self.create_output_line("sourcefile", "status", "cpu time",
                             "wall time", "host", self.benchmark.columns, True)
 
         runSet.simpleLine = "-" * (len(titleLine))
 
         runSetInfo += titleLine + "\n" + runSet.simpleLine + "\n"
 
-        # write into TXTFile
-        self.TXTFile.append(runSetInfo)
+        # write into txt_file
+        self.txt_file.append(runSetInfo)
 
 
-    def outputBeforeRun(self, run):
+    def output_before_run(self, run):
         """
-        The method outputBeforeRun() prints the name of a file to terminal.
+        The method output_before_run() prints the name of a file to terminal.
         It returns the name of the logfile.
         @param run: a Run object
         """
         # output in terminal
         try:
-            OutputHandler.printLock.acquire()
+            OutputHandler.print_lock.acquire()
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
             progressIndicator = " ({0}/{1})".format(self.runSet.runs.index(run), len(self.runSet.runs))
             terminalTitle = TERMINAL_TITLE.format(self.runSet.fullName + progressIndicator) if USE_COLORS and sys.stdout.isatty() else ""
             if self.benchmark.numOfThreads == 1:
-                Util.printOut(terminalTitle + timeStr + self.formatSourceFileName(run.identifier), '')
+                Util.printOut(terminalTitle + timeStr + self.format_sourcefile_name(run.identifier), '')
             else:
-                Util.printOut(terminalTitle + timeStr + "starting   " + self.formatSourceFileName(run.identifier))
+                Util.printOut(terminalTitle + timeStr + "starting   " + self.format_sourcefile_name(run.identifier))
         finally:
-            OutputHandler.printLock.release()
+            OutputHandler.print_lock.release()
 
         # get name of file-specific log-file
-        self.allCreatedFiles.append(run.logFile)
+        self.all_created_files.append(run.logFile)
 
 
-    def outputAfterRun(self, run):
+    def output_after_run(self, run):
         """
-        The method outputAfterRun() prints filename, result, time and status
+        The method output_after_run() prints filename, result, time and status
         of a run to terminal and stores all data in XML
         """
 
@@ -350,9 +350,9 @@ class OutputHandler:
         cpuTimeStr = Util.format_number(run.cpuTime, TIME_PRECISION)
         wallTimeStr = Util.format_number(run.wallTime, TIME_PRECISION)
 
-        # format numbers, numberOfDigits is optional, so it can be None
+        # format numbers, number_of_digits is optional, so it can be None
         for column in run.columns:
-            if column.numberOfDigits is not None:
+            if column.number_of_digits is not None:
 
                 # if the number ends with "s" or another letter, remove it
                 if (not column.value.isdigit()) and column.value[-2:-1].isdigit():
@@ -360,15 +360,15 @@ class OutputHandler:
 
                 try:
                     floatValue = float(column.value)
-                    column.value = Util.format_number(floatValue, column.numberOfDigits)
+                    column.value = Util.format_number(floatValue, column.number_of_digits)
                 except ValueError: # if value is no float, don't format it
                     pass
 
         # store information in run
-        run.resultline = self.createOutputLine(run.identifier, run.status,
+        run.resultline = self.create_output_line(run.identifier, run.status,
                 cpuTimeStr, wallTimeStr, run.values.get('host'), 
                 run.columns)
-        self.addValuesToRunXML(run)
+        self.add_values_to_run_xml(run)
 
         # output in terminal/console
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
@@ -377,54 +377,54 @@ class OutputHandler:
             statusStr = run.status.ljust(LEN_OF_STATUS)
 
         try:
-            OutputHandler.printLock.acquire()
+            OutputHandler.print_lock.acquire()
 
             valueStr = statusStr + cpuTimeStr.rjust(8) + wallTimeStr.rjust(8)
             if self.benchmark.numOfThreads == 1:
                 Util.printOut(valueStr)
             else:
                 timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                Util.printOut(timeStr + self.formatSourceFileName(run.identifier) + valueStr)
+                Util.printOut(timeStr + self.format_sourcefile_name(run.identifier) + valueStr)
 
-            # write result in TXTFile and XML
-            self.TXTFile.append(self.runSetToTXT(run.runSet), False)
-            self.statistics.addResult(run.category, run.status)
+            # write result in txt_file and XML
+            self.txt_file.append(self.run_set_to_text(run.runSet), False)
+            self.statistics.add_result(run.category, run.status)
 
             # we don't want to write this file to often, it can slow down the whole script,
             # so we wait at least 10 seconds between two write-actions
             currentTime = time.time()
-            if currentTime - self.XMLFile.lastModifiedTime > 10:
-                self.XMLFile.replace(Util.xml_to_string(run.runSet.xml))
-                self.XMLFile.lastModifiedTime = currentTime
+            if currentTime - self.xml_file.lastModifiedTime > 10:
+                self.xml_file.replace(Util.xml_to_string(run.runSet.xml))
+                self.xml_file.lastModifiedTime = currentTime
 
         finally:
-            OutputHandler.printLock.release()
+            OutputHandler.print_lock.release()
 
 
-    def outputAfterRunSet(self, runSet, cpuTime=None, wallTime=None, energy={}):
+    def output_after_run_set(self, runSet, cpuTime=None, wallTime=None, energy={}):
         """
-        The method outputAfterRunSet() stores the times of a run set in XML.
+        The method output_after_run_set() stores the times of a run set in XML.
         @params cpuTime, wallTime: accumulated times of the run set
         """
         
-        self.addValuesToRunSetXML(runSet, cpuTime, wallTime, energy)
+        self.add_values_to_run_set_xml(runSet, cpuTime, wallTime, energy)
 
         # write results to files
-        self.XMLFile.replace(Util.xml_to_string(runSet.xml))
+        self.xml_file.replace(Util.xml_to_string(runSet.xml))
 
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
-                blockFileName = self.getFileName(runSet.name, block.name + ".xml")
+                blockFileName = self.get_filename(runSet.name, block.name + ".xml")
                 Util.write_file(
-                    Util.xml_to_string(self.runsToXML(runSet, block.runs, block.name)),
+                    Util.xml_to_string(self.runs_to_xml(runSet, block.runs, block.name)),
                     blockFileName
                 )
-                self.allCreatedFiles.append(blockFileName)
+                self.all_created_files.append(blockFileName)
 
-        self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime, energy))
+        self.txt_file.append(self.run_set_to_text(runSet, True, cpuTime, wallTime, energy))
 
 
-    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0, energy={}):
+    def run_set_to_text(self, runSet, finished=False, cpuTime=0, wallTime=0, energy={}):
         lines = []
 
         # store values of each run
@@ -432,24 +432,24 @@ class OutputHandler:
 
         lines.append(runSet.simpleLine)
 
-        # write endline into TXTFile
+        # write endline into txt_file
         if finished:
             endline = ("Run set {0}".format(runSet.index))
 
             # format time, type is changed from float to string!
             cpuTimeStr  = "None" if cpuTime  is None else Util.format_number(cpuTime, TIME_PRECISION)
             wallTimeStr = "None" if wallTime is None else Util.format_number(wallTime, TIME_PRECISION)
-            lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
+            lines.append(self.create_output_line(endline, "done", cpuTimeStr,
                              wallTimeStr, "-", []))
 
         return "\n".join(lines) + "\n"
 
-    def runsToXML(self, runSet, runs, blockname=None):
+    def runs_to_xml(self, runSet, runs, blockname=None):
         """
         This function creates the XML structure for a list of runs
         """
-        # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
-        runsElem = Util.copy_of_xml_element(self.XMLHeader)
+        # copy benchmarkinfo, limits, columntitles, systeminfo from xml_header
+        runsElem = Util.copy_of_xml_element(self.xml_header)
         runsElem.set("options", " ".join(runSet.options))
         runsElem.set("propertyfiles", " ".join(runSet.propertyFiles))
         if blockname is not None:
@@ -464,45 +464,45 @@ class OutputHandler:
         return runsElem
 
 
-    def addValuesToRunXML(self, run):
+    def add_values_to_run_xml(self, run):
         """
         This function adds the result values to the XML representation of a run.
         """
         runElem = run.xml
         for elem in list(runElem):
             runElem.remove(elem)
-        self.addColumnToXML(runElem, 'status',    run.status)
+        self.add_column_to_xml(runElem, 'status',    run.status)
         if run.cpuTime is not None:
-            self.addColumnToXML(runElem, 'cputime',   str(run.cpuTime) + 's')
+            self.add_column_to_xml(runElem, 'cputime',   str(run.cpuTime) + 's')
         if run.wallTime is not None:
-            self.addColumnToXML(runElem, 'walltime',  str(run.wallTime) + 's')
-        self.addColumnToXML(runElem, '@category', run.category) # hidden
-        self.addColumnToXML(runElem, '',          run.values)
+            self.add_column_to_xml(runElem, 'walltime',  str(run.wallTime) + 's')
+        self.add_column_to_xml(runElem, '@category', run.category) # hidden
+        self.add_column_to_xml(runElem, '',          run.values)
 
         for column in run.columns:
-            self.addColumnToXML(runElem, column.title, column.value)
+            self.add_column_to_xml(runElem, column.title, column.value)
 
 
-    def addValuesToRunSetXML(self, runSet, cpuTime, wallTime, energy):
+    def add_values_to_run_set_xml(self, runSet, cpuTime, wallTime, energy):
         """
         This function adds the result values to the XML representation of a runSet.
         """
-        self.addColumnToXML(runSet.xml, 'cputime', cpuTime)
-        self.addColumnToXML(runSet.xml, 'walltime', wallTime)
-        self.addColumnToXML(runSet.xml, 'energy', energy)
+        self.add_column_to_xml(runSet.xml, 'cputime', cpuTime)
+        self.add_column_to_xml(runSet.xml, 'walltime', wallTime)
+        self.add_column_to_xml(runSet.xml, 'energy', energy)
 
 
-    def addColumnToXML(self, xml, title, value, prefix=""):
+    def add_column_to_xml(self, xml, title, value, prefix=""):
         if value is None:
             return
 
         if isinstance(value, dict):
             for key, value in value.items():
                 if prefix:
-                    commonPrefix = prefix + '_' + title
+                    common_prefix = prefix + '_' + title
                 else:
-                    commonPrefix = title
-                self.addColumnToXML(xml, key, value, prefix=commonPrefix)
+                    common_prefix = title
+                self.add_column_to_xml(xml, key, value, prefix=common_prefix)
             return
 
         # default case: add columns
@@ -519,7 +519,7 @@ class OutputHandler:
         xml.append(ET.Element("column", attributes))
 
 
-    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, columns, isFirstLine=False):
+    def create_output_line(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, columns, isFirstLine=False):
         """
         @param sourcefile: title of a sourcefile
         @param status: status of programm
@@ -534,7 +534,7 @@ class OutputHandler:
         lengthOfEnergy = 18
         minLengthOfColumns = 8
 
-        outputLine = self.formatSourceFileName(sourcefile) + \
+        outputLine = self.format_sourcefile_name(sourcefile) + \
                      status.ljust(LEN_OF_STATUS) + \
                      cpuTimeDelta.rjust(lengthOfTime) + \
                      wallTimeDelta.rjust(lengthOfTime) + \
@@ -553,22 +553,22 @@ class OutputHandler:
         return outputLine
 
 
-    def outputAfterBenchmark(self, isStoppedByInterrupt):
-        self.statistics.printToTerminal()
+    def output_after_benchmark(self, isStoppedByInterrupt):
+        self.statistics.print_to_terminal()
 
-        if self.XMLFileNames:
+        if self.xml_file_names:
             tableGeneratorName = 'table-generator.py'
             tableGeneratorPath = os.path.relpath(os.path.join(os.path.dirname(__file__), os.path.pardir, tableGeneratorName))
             if tableGeneratorPath == tableGeneratorName:
                 tableGeneratorPath = './' + tableGeneratorName
             Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
-                          .format(tableGeneratorPath, "' '".join(self.XMLFileNames)))
+                          .format(tableGeneratorPath, "' '".join(self.xml_file_names)))
 
         if isStoppedByInterrupt:
             Util.printOut("\nScript was interrupted by user, some runs may not be done.\n")
 
 
-    def getFileName(self, runSetName, fileExtension):
+    def get_filename(self, runSetName, fileExtension):
         '''
         This function returns the name of the file for a run set
         with an extension ("txt", "xml").
@@ -582,12 +582,12 @@ class OutputHandler:
         return fileName + fileExtension
 
 
-    def formatSourceFileName(self, fileName):
+    def format_sourcefile_name(self, fileName):
         '''
         Formats the file name of a program for printing on console.
         '''
-        fileName = fileName.replace(self.commonPrefix, '', 1)
-        return fileName.ljust(self.maxLengthOfFileName + 4)
+        fileName = fileName.replace(self.common_prefix, '', 1)
+        return fileName.ljust(self.max_length_of_filename + 4)
 
 
 class Statistics:
@@ -597,7 +597,7 @@ class Statistics:
         self.dic[(result.CATEGORY_WRONG, result.STATUS_TRUE_PROP)] = 0
         self.counter = 0
 
-    def addResult(self, category, status):
+    def add_result(self, category, status):
         self.counter += 1
         assert category in self.dic
         if category == result.CATEGORY_WRONG and status == result.STATUS_TRUE_PROP:
@@ -605,7 +605,7 @@ class Statistics:
         self.dic[category] += 1
 
 
-    def printToTerminal(self):
+    def print_to_terminal(self):
         Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic[result.CATEGORY_CORRECT]).rjust(4),
                  '    unknown:        ' + str(self.dic[result.CATEGORY_UNKNOWN] + self.dic[result.CATEGORY_ERROR]).rjust(4),

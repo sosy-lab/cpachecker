@@ -243,7 +243,7 @@ class BenchExec(object):
         result = self.executor.execute_benchmark(benchmark, outputHandler)
 
         if self.config.commit and not self.stopped_by_interrupt:
-            Util.add_files_to_git_repository(self.config.output_path, outputHandler.allCreatedFiles,
+            Util.add_files_to_git_repository(self.config.output_path, outputHandler.all_created_files,
                                          self.config.commitMessage+'\n\n'+outputHandler.description)
         return result
 

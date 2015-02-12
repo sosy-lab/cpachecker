@@ -37,7 +37,7 @@ import os.path
 import benchmark.tools.cpachecker
 cpachecker = benchmark.tools.cpachecker.Tool()
 executable = cpachecker.executable()
-requiredFiles = cpachecker.program_files(executable)
+required_files = cpachecker.program_files(executable)
 
 # install cloud and dependencies
 ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
@@ -59,7 +59,7 @@ lib_dir = os.path.abspath(os.path.join("lib", "java-benchmark"))
 cmd_line = ["java", "-jar", os.path.join(lib_dir, "vcloud.jar"), "cpachecker",
             "--loglevel", logLevel,
             "--input", in_file,
-            "--requiredFiles", ','.join(requiredFiles),
+            "--required_files", ','.join(required_files),
             "--cpachecker-dir", cpachecker_dir,
             "--", executable
             ]

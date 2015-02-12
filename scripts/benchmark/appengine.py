@@ -125,9 +125,9 @@ def _getBenchmarkDataForAppEngine(benchmark):
     # TODO default CPU model??
     cpuModel = benchmark.requirements.cpuModel
 
-    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets if runSet.shouldBeExecuted())
+    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets if runSet.should_be_executed())
 
-    workingDir = benchmark.workingDirectory()
+    workingDir = benchmark.working_directory()
     if not os.path.isdir(workingDir):
         sys.exit("Missing working directory {}, cannot run tool.".format(workingDir))
     absWorkingDir = os.path.abspath(workingDir)
@@ -135,7 +135,7 @@ def _getBenchmarkDataForAppEngine(benchmark):
     sourceFiles = []
     runQueue = Queue.Queue(maxsize=0)
     for runSet in benchmark.runSets:
-        if not runSet.shouldBeExecuted(): continue
+        if not runSet.should_be_executed(): continue
         if STOPPED_BY_INTERRUPT: break
 
         for run in runSet.runs:
@@ -181,15 +181,15 @@ def _handleAppEngineResults(benchmark, outputHandler):
     isOverQuota = False
 
     for runSet in benchmark.runSets:
-        if not runSet.shouldBeExecuted():
-            outputHandler.outputForSkippingRunSet(runSet)
+        if not runSet.should_be_executed():
+            outputHandler.output_for_skipping_run_set(runSet)
             continue
 
-        outputHandler.outputBeforeRunSet(runSet)
+        outputHandler.output_before_run_set(runSet)
 
         totalWallTime = 0
         for run in runSet.runs:
-            outputHandler.outputBeforeRun(run)
+            outputHandler.output_before_run(run)
 
             (returnValue, hasErr, hasTO, isNotSubmt, overQuota) = \
                 _parseAppEngineResult(run)
@@ -202,12 +202,12 @@ def _handleAppEngineResults(benchmark, outputHandler):
             if isNotSubmt: notSubmitted += 1
             isOverQuota = True if overQuota or isOverQuota else False
 
-            run.afterExecution(returnValue, hasTO)
-            outputHandler.outputAfterRun(run)
+            run.after_execution(returnValue, hasTO)
+            outputHandler.output_after_run(run)
 
-        outputHandler.outputAfterRunSet(runSet, wallTime=totalWallTime)
+        outputHandler.output_after_run_set(runSet, wallTime=totalWallTime)
 
-    outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
+    outputHandler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
     if notSubmitted > 0:
         logging.warning("{} runs were not submitted to App Engine!".format(notSubmitted))

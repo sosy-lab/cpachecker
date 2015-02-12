@@ -47,7 +47,7 @@ PROPERTY_TAG = "propertyfile"
 
 _BYTE_FACTOR = 1000 # byte in kilobyte
 
-def substituteVars(oldList, runSet, sourcefile=None):
+def substitute_vars(oldList, runSet, sourcefile=None):
     """
     This method replaces special substrings from a list of string
     and return a new list.
@@ -184,18 +184,18 @@ class Benchmark:
         self.propertyFiles = Util.get_list_from_xml(rootTag, tag=PROPERTY_TAG, attributes=[])
 
         # get columns
-        self.columns = Benchmark.loadColumns(rootTag.find("columns"))
+        self.columns = Benchmark.load_columns(rootTag.find("columns"))
 
         # get global source files, they are used in all run sets
         globalSourcefilesTags = rootTag.findall("sourcefiles")
 
         # get required files
-        self._requiredFiles = set()
-        for requiredFilesTag in rootTag.findall('requiredfiles'):
-            requiredFiles = Util.expand_filename_pattern(requiredFilesTag.text, self.baseDir)
-            if not requiredFiles:
-                logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
-            self._requiredFiles = self._requiredFiles.union(requiredFiles)
+        self._required_files = set()
+        for required_files_tag in rootTag.findall('requiredfiles'):
+            required_files = Util.expand_filename_pattern(required_files_tag.text, self.baseDir)
+            if not required_files:
+                logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
+            self._required_files = self._required_files.union(required_files)
 
         # get requirements
         self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config)
@@ -220,7 +220,7 @@ class Benchmark:
             else:
                 logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
 
-        if not any(runSet.shouldBeExecuted() for runSet in self.runSets):
+        if not any(runSet.should_be_executed() for runSet in self.runSets):
             logging.warning("No runSet selected, nothing will be executed.")
             if config.selectedRunDefinitions:
                 logging.warning("The selection {0} does not match any runSet of {1}".format(
@@ -229,16 +229,16 @@ class Benchmark:
                     ))
 
 
-    def requiredFiles(self):
-        return self._requiredFiles.union(self.tool.program_files(self.executable))
+    def required_files(self):
+        return self._required_files.union(self.tool.program_files(self.executable))
 
 
-    def addRequiredFile(self, filename=None):
+    def add_required_file(self, filename=None):
         if filename is not None:
-            self._requiredFiles.add(filename)
+            self._required_files.add(filename)
 
 
-    def workingDirectory(self):
+    def working_directory(self):
         return self.tool.working_directory(self.executable)
 
 
@@ -247,7 +247,7 @@ class Benchmark:
 
 
     @staticmethod
-    def loadColumns(columnsTag):
+    def load_columns(columnsTag):
         """
         @param columnsTag: the columnsTag from the XML file
         @return: a list of Columns()
@@ -259,8 +259,8 @@ class Benchmark:
             for columnTag in columnsTag.findall("column"):
                 pattern = columnTag.text
                 title = columnTag.get("title", pattern)
-                numberOfDigits = columnTag.get("numberOfDigits") # digits behind comma
-                column = Column(pattern, title, numberOfDigits)
+                number_of_digits = columnTag.get("numberOfDigits") # digits behind comma
+                column = Column(pattern, title, number_of_digits)
                 columns.append(column)
                 logging.debug('Column "{0}" with title "{1}" loaded from XML file.'
                           .format(column.text, column.title))
@@ -297,16 +297,16 @@ class RunSet:
         self.propertyFiles = benchmark.propertyFiles + Util.get_list_from_xml(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
 
         # get run-set specific required files
-        requiredFiles = set()
-        for requiredFilesTag in rundefinitionTag.findall('requiredfiles'):
-            thisRequiredFiles = Util.expand_filename_pattern(requiredFilesTag.text, benchmark.baseDir)
+        required_files = set()
+        for required_files_tag in rundefinitionTag.findall('requiredfiles'):
+            thisRequiredFiles = Util.expand_filename_pattern(required_files_tag.text, benchmark.baseDir)
             if not thisRequiredFiles:
-                logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
-            requiredFiles = requiredFiles.union(thisRequiredFiles)
+                logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
+            required_files = required_files.union(thisRequiredFiles)
 
         # get all runs, a run contains one sourcefile with options
-        self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"),
-                                              requiredFiles)
+        self.blocks = self.extract_runs_from_xml(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"),
+                                              required_files)
         self.runs = [run for block in self.blocks for run in block.runs]
 
         names = [self.realName]
@@ -322,7 +322,7 @@ class RunSet:
         # so the result is correct, only the logfile is gone.
         # For 'cloud-mode' the logfile is overridden before reading it,
         # so the result will be wrong and every measured value will be missing.
-        if self.shouldBeExecuted():
+        if self.should_be_executed():
             sourcefilesSet = set()
             for run in self.runs:
                 base = os.path.basename(run.identifier)
@@ -334,12 +334,12 @@ class RunSet:
             del sourcefilesSet
 
 
-    def shouldBeExecuted(self):
+    def should_be_executed(self):
         return not self.benchmark.config.selectedRunDefinitions \
             or self.realName in self.benchmark.config.selectedRunDefinitions
 
 
-    def extractRunsFromXML(self, sourcefilesTagList, globalRequiredFiles):
+    def extract_runs_from_xml(self, sourcefilesTagList, globalRequiredFiles):
         '''
         This function builds a list of SourcefileSets (containing filename with options).
         The files and their options are taken from the list of sourcefilesTags.
@@ -354,15 +354,15 @@ class RunSet:
                 and matchName not in self.benchmark.config.selectedSourcefileSets:
                     continue
 
-            requiredFiles = set()
-            for requiredFilesTag in sourcefilesTag.findall('requiredfiles'):
-                thisRequiredFiles = Util.expand_filename_pattern(requiredFilesTag.text, self.benchmark.baseDir)
+            required_files = set()
+            for required_files_tag in sourcefilesTag.findall('requiredfiles'):
+                thisRequiredFiles = Util.expand_filename_pattern(required_files_tag.text, self.benchmark.baseDir)
                 if not thisRequiredFiles:
-                    logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
-                requiredFiles = requiredFiles.union(thisRequiredFiles)
+                    logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
+                required_files = required_files.union(thisRequiredFiles)
 
             # get lists of filenames
-            sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, self.benchmark.baseDir)
+            sourcefiles = self.get_sourcefiles_from_xml(sourcefilesTag, self.benchmark.baseDir)
 
             # get file-specific options for filenames
             fileOptions = Util.get_list_from_xml(sourcefilesTag)
@@ -371,13 +371,13 @@ class RunSet:
             currentRuns = []
             for sourcefile in sourcefiles:
                 currentRuns.append(Run(sourcefile, fileOptions, self, propertyFiles,
-                                       list(globalRequiredFiles.union(requiredFiles))))
+                                       list(globalRequiredFiles.union(required_files))))
 
             blocks.append(SourcefileSet(sourcefileSetName, index, currentRuns))
         return blocks
 
 
-    def getSourcefilesFromXML(self, sourcefilesTag, baseDir):
+    def get_sourcefiles_from_xml(self, sourcefilesTag, baseDir):
         sourcefiles = []
 
         # get included sourcefiles
@@ -460,8 +460,8 @@ class RunSet:
         shortFileFallback = pattern
 
         # replace vars like ${benchmark_path},
-        # with converting to list and back, we can use the function 'substituteVars()'
-        expandedPattern = substituteVars([pattern], self, sourcefile)
+        # with converting to list and back, we can use the function 'substitute_vars()'
+        expandedPattern = substitute_vars([pattern], self, sourcefile)
         assert len(expandedPattern) == 1
         expandedPattern = expandedPattern[0]
 
@@ -491,7 +491,7 @@ class SourcefileSet():
         self.runs = runs
 
 
-loggedMissingPropertyFiles = set()
+_logged_missing_property_files = set()
 
 
 class Run():
@@ -499,7 +499,7 @@ class Run():
     A Run contains some sourcefile, some options, propertyfiles and some other stuff, that is needed for the Run.
     """
 
-    def __init__(self, sourcefiles, fileOptions, runSet, propertyFiles=[], requiredFiles=[]):
+    def __init__(self, sourcefiles, fileOptions, runSet, propertyFiles=[], required_files=[]):
         assert sourcefiles
         self.identifier = sourcefiles[0] # used for name of logfile, substitution, result-category
         self.sourcefiles = Util.get_files(sourcefiles) # expand directories to get their sub-files
@@ -507,11 +507,11 @@ class Run():
         self.runSet = runSet
         self.specificOptions = fileOptions # options that are specific for this run
         self.logFile = runSet.logFolder + os.path.basename(self.identifier) + ".log"
-        self.requiredFiles = requiredFiles
+        self.required_files = required_files
 
         # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
         self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run
-        substitutedOptions = substituteVars(self.options, runSet, self.identifier)
+        substitutedOptions = substitute_vars(self.options, runSet, self.identifier)
         if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
 
         # get propertyfile for Run: if available, use the last one
@@ -524,14 +524,14 @@ class Run():
 
         # replace run-specific stuff in the propertyfile and add it to the set of required files
         if self.propertyfile is None:
-            if not self.propertyfile in loggedMissingPropertyFiles:
-                loggedMissingPropertyFiles.add(self.propertyfile)
+            if not self.propertyfile in _logged_missing_property_files:
+                _logged_missing_property_files.add(self.propertyfile)
                 logging.warning('No propertyfile specified. Results for C programs will be handled as UNKNOWN.')
         else:
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
             expandedPropertyFiles = Util.expand_filename_pattern(self.propertyfile, self.runSet.benchmark.baseDir)
-            substitutedPropertyfiles = substituteVars([self.propertyfile], runSet, self.identifier)
+            substitutedPropertyfiles = substitute_vars([self.propertyfile], runSet, self.identifier)
             assert len(substitutedPropertyfiles) == 1
             
             if expandedPropertyFiles:
@@ -539,17 +539,17 @@ class Run():
             elif substitutedPropertyfiles and os.path.isfile(substitutedPropertyfiles[0]):
                 self.propertyfile = substitutedPropertyfiles[0]
             else:
-                if not self.propertyfile in loggedMissingPropertyFiles:
-                    loggedMissingPropertyFiles.add(self.propertyfile)
+                if not self.propertyfile in _logged_missing_property_files:
+                    _logged_missing_property_files.add(self.propertyfile)
                     logging.warning('Pattern {0} for sourcefile {1} in propertyfile tag did not match any file. It will be ignored.'
                         .format(self.propertyfile, self.identifier))
                 self.propertyfile = None
 
-            self.runSet.benchmark.addRequiredFile(self.propertyfile)
+            self.runSet.benchmark.add_required_file(self.propertyfile)
 
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
-        self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
+        self.columns = [Column(c.text, c.title, c.number_of_digits) for c in self.runSet.benchmark.columns]
 
         # here we store the optional result values, e.g. memory usage, energy, host name
         # keys need to be strings, if first character is "@" the value is marked as hidden (e.g., debug info)
@@ -571,10 +571,10 @@ class Run():
         return args;
 
 
-    def afterExecution(self, returnvalue, forceTimeout=False):
+    def after_execution(self, returnvalue, forceTimeout=False):
 
         rlimits = self.runSet.benchmark.rlimits
-        isTimeout = forceTimeout or self._isTimeout()
+        isTimeout = forceTimeout or self._is_timeout()
 
         # read output
         try:
@@ -615,7 +615,7 @@ class Run():
             self.category = result.CATEGORY_ERROR
 
 
-    def _isTimeout(self):
+    def _is_timeout(self):
         ''' try to find out whether the tool terminated because of a timeout '''
         rlimits = self.runSet.benchmark.rlimits
         if SOFTTIMELIMIT in rlimits:
@@ -630,13 +630,13 @@ class Run():
 
 class Column:
     """
-    The class Column contains text, title and numberOfDigits of a column.
+    The class Column contains text, title and number_of_digits of a column.
     """
 
     def __init__(self, text, title, numOfDigits):
         self.text = text
         self.title = title
-        self.numberOfDigits = numOfDigits
+        self.number_of_digits = numOfDigits
         self.value = ""
 
 

@@ -95,11 +95,11 @@ def execute_benchmark(benchmark, outputHandler):
     STOPPED_BY_INTERRUPT = False
     try:
         for runSet in benchmark.runSets:
-            if not runSet.shouldBeExecuted():
-                outputHandler.outputForSkippingRunSet(runSet)
+            if not runSet.should_be_executed():
+                outputHandler.output_for_skipping_run_set(runSet)
                 continue
 
-            outputHandler.outputBeforeRunSet(runSet)
+            outputHandler.output_before_run_set(runSet)
 
             try:
                 # python 3.2
@@ -109,13 +109,13 @@ def execute_benchmark(benchmark, outputHandler):
                 runIDs = _submitRuns(runSet, webclient, benchmark)
                 
             _getResults(runIDs, outputHandler, webclient, benchmark)
-            outputHandler.outputAfterRunSet(runSet)
+            outputHandler.output_after_run_set(runSet)
 
     except KeyboardInterrupt as e:
         STOPPED_BY_INTERRUPT = True
         raise e
     finally:
-        outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)
+        outputHandler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
 def kill():
     # TODO: cancel runs on server
@@ -381,7 +381,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
     if sucess:
        # unzip result
        resultDir = run.logFile + ".output"
-       outputHandler.outputBeforeRun(run)
+       outputHandler.output_before_run(run)
        with ZipFile(zipFilePath) as resultZipFile:
            resultZipFile.extractall(resultDir)
        os.remove(zipFilePath)
@@ -403,7 +403,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
        run.values.update(values)
        values = _parseAndSetCloudWorkerHostInformation(resultDir + "/hostInformation.txt", outputHandler)
        run.values.update(values)
-       run.afterExecution(returnValue)
+       run.after_execution(returnValue)
 
        # remove no longer needed files
        os.remove(resultDir + "/hostInformation.txt")
@@ -411,7 +411,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
        if os.listdir(resultDir) == []: 
            os.rmdir(resultDir)        
 
-       outputHandler.outputAfterRun(run)
+       outputHandler.output_after_run(run)
        return True
        
     else:
@@ -420,7 +420,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
     
 def _parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
     try:
-        outputHandler.allCreatedFiles.append(filePath)
+        outputHandler.all_created_files.append(filePath)
         values = _parseFile(filePath)
 
         values["host"] = values.get("@vcloud-name", "-")
@@ -430,7 +430,7 @@ def _parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
         cpuName = values.get("@vcloud-cpuModel", "-")
         frequency = values.get("@vcloud-frequency", "-")
         cores = values.get("@vcloud-cores", "-")
-        outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
+        outputHandler.store_system_info(osName, cpuName, cores, frequency, memory, name)
 
     except IOError:
         logging.warning("Host information file not found: " + filePath)

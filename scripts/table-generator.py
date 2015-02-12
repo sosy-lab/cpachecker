@@ -132,7 +132,7 @@ class Util:
         return suffix if prefix == '' else prefix
 
     @staticmethod
-    def format_number(s, numberOfDigits):
+    def format_number(s, number_of_digits):
         """
         If the value is a number (or number plus one char),
         this function returns a string-representation of the number
@@ -145,7 +145,7 @@ class Util:
         value, suffix = Util.splitNumberAndUnit((str(s) or '').strip())
         try:
             floatValue = float(value)
-            return "{value:.{width}f}{suffix}".format(width=numberOfDigits, value=floatValue, suffix=suffix)
+            return "{value:.{width}f}{suffix}".format(width=number_of_digits, value=floatValue, suffix=suffix)
         except ValueError: # if value is no float, don't format it
             return s
 
@@ -158,13 +158,13 @@ class Util:
         if not value:
             return '-'
 
-        numberOfDigits = column.numberOfDigits
-        if numberOfDigits is None and column.title.lower().endswith('time'):
-            numberOfDigits = DEFAULT_TIME_PRECISION
+        number_of_digits = column.number_of_digits
+        if number_of_digits is None and column.title.lower().endswith('time'):
+            number_of_digits = DEFAULT_TIME_PRECISION
 
-        if numberOfDigits is None:
+        if number_of_digits is None:
             return value
-        return Util.format_number(value, numberOfDigits)
+        return Util.format_number(value, number_of_digits)
 
 
     @staticmethod
@@ -243,7 +243,7 @@ def parseTableDefinitionFile(file, allColumns):
         """
         Extract all columns mentioned in the result tag of a table definition file.
         """
-        return [Column(c.get("title"), c.text, c.get("numberOfDigits"))
+        return [Column(c.get("title"), c.text, c.get("number_of_digits"))
                 for c in xmltag.findall('column')]
 
     runSetResults = []
@@ -292,13 +292,13 @@ def parseTableDefinitionFile(file, allColumns):
 class Column:
     """
     The class Column contains title, pattern (to identify a line in logFile),
-    and numberOfDigits of a column.
+    and number_of_digits of a column.
     It does NOT contain the value of a column.
     """
     def __init__(self, title, pattern, numOfDigits):
         self.title = title
         self.pattern = pattern
-        self.numberOfDigits = numOfDigits
+        self.number_of_digits = numOfDigits
 
 
 class RunSetResult():
@@ -590,8 +590,8 @@ class RunResult:
 
                     value = getValueFromLogfile(logfileLines, column.pattern)
 
-            if column.numberOfDigits is not None:
-                value = Util.format_number(value, column.numberOfDigits)
+            if column.number_of_digits is not None:
+                value = Util.format_number(value, column.number_of_digits)
 
             values.append(value)
 
@@ -610,7 +610,7 @@ class Row:
     def addRunResult(self, runresult):
         self.results.append(runresult)
 
-    def setRelativePath(self, commonPrefix, baseDir):
+    def setRelativePath(self, common_prefix, baseDir):
         """
         generate output representation of rows
         """
@@ -618,7 +618,7 @@ class Row:
         self.filePath = self.fileName if os.path.isabs(self.fileName) \
                                  else os.path.relpath(self.fileName, baseDir)
 
-        self.shortFileName = self.fileName.replace(commonPrefix, '', 1)
+        self.shortFileName = self.fileName.replace(common_prefix, '', 1)
 
 def rowsToColumns(rows):
     """
@@ -964,11 +964,11 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
     '''
 
     # get common folder of sourcefiles
-    commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
-    commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
-    list(map(lambda row: Row.setRelativePath(row, commonPrefix, outputPath), rows))
+    common_prefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+    common_prefix = common_prefix[: common_prefix.rfind('/') + 1] # only foldername
+    list(map(lambda row: Row.setRelativePath(row, common_prefix, outputPath), rows))
 
-    head = getTableHead(runSetResults, commonPrefix)
+    head = getTableHead(runSetResults, common_prefix)
     runSetsData = [runSetResult.attributes for runSetResult in runSetResults]
     runSetsColumns = [[column for column in runSet.columns] for runSet in runSetResults]
     runSetsColumnTitles = [[column.title for column in runSet.columns] for runSet in runSetResults]

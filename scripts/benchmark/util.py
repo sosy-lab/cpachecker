@@ -147,7 +147,7 @@ def decode_to_string(toDecode):
         return toDecode
 
 
-def format_number(number, numberOfDigits):
+def format_number(number, number_of_digits):
     """
     The function format_number() return a string-representation of a number
     with a number of digits after the decimal separator.
@@ -159,7 +159,7 @@ def format_number(number, numberOfDigits):
     """
     if number is None:
         return ""
-    return "%.{0}f".format(numberOfDigits) % number
+    return "%.{0}f".format(number_of_digits) % number
 
 
 def parse_int_list(s):
