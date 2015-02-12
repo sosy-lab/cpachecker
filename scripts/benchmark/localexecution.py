@@ -385,7 +385,7 @@ def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
         # Get list of all memory banks, either from memory assignment or from system.
         if not memoryAssignment:
             cgroups.initCgroup(cgroupsParents, 'cpuset')
-            cgroupCpuset = cgroupParents['cpuset']
+            cgroupCpuset = cgroupsParents['cpuset']
             if cgroupCpuset:
                 allMems = _getAllowedMemoryBanks(cgroupCpuset)
             else:
