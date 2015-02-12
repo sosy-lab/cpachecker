@@ -24,8 +24,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import static com.google.common.collect.Iterables.skip;
-
 import java.util.Collection;
 import java.util.Set;
 
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -51,7 +48,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 public class ValueAnalysisEdgeInterpolator {
   /**
@@ -148,9 +144,7 @@ public class ValueAnalysisEdgeInterpolator {
       initialSuccessor.retainAll(useDefRelation);
     }
 
-    MutableARGPath remainingErrorPathM = new MutableARGPath();
-    remainingErrorPathM.addAll(Lists.newArrayList(skip(ErrorPathClassifier.pathToList(pErrorPath), pOffset + 1)));
-    ARGPath remainingErrorPath = remainingErrorPathM.immutableCopy();
+    ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
 
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
     if (initialSuccessor.getSize() > 1 && isSuffixContradicting(remainingErrorPath)) {

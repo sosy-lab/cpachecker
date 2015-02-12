@@ -98,25 +98,8 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
   public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial)
       throws CPAException, InterruptedException {
 
-    return path.size() == getInfeasilbePrefix(path, pInitial).size();
+    return path.size() == getInfeasilbePrefixes(path, pInitial).get(0).size();
   }
-
-  /**
-   * This method obtains the shortest prefix of the path, that is infeasible by itself. If the path is feasible, the whole path
-   * is returned.
-   *
-   * @param path the path to check
-   * @param pInitial the initial state
-   * @return the shortest prefix of the path that is feasible by itself
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisState pInitial)
-      throws CPAException, InterruptedException {
-    return getInfeasilbePrefixes(path, pInitial).get(0);
-  }
-
-
 
   /**
    * This method obtains a list of prefixes of the path, that are infeasible by themselves. If the path is feasible, the whole path

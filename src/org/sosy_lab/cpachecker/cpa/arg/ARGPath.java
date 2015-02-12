@@ -49,6 +49,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -119,6 +120,18 @@ public class ARGPath implements Appender {
 
   public List<CFAEdge> asEdgesList() {
     return edges;
+  }
+
+  /**
+   * This method obtains the suffix from the path, starting after the given offset.
+   *
+   * @param pOffset the offset
+   * @return the suffix
+   */
+  public ARGPath obtainSuffix(int pOffset) {
+    checkArgument(states.size() > pOffset, "offset is out of bounds");
+    return new ARGPath(Lists.newArrayList(Iterables.skip(states, pOffset)),
+        Lists.newArrayList(Iterables.skip(edges, pOffset)));
   }
 
   /**

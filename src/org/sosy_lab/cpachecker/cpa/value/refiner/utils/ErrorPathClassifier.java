@@ -391,7 +391,7 @@ public class ErrorPathClassifier {
     return new ArrayList<>(newList);
   }
 
-  public static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
+  private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
     return Pair.zipList(path.asStatesList(), path.asEdgesList());
   }
 
