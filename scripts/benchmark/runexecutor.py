@@ -533,12 +533,12 @@ def _reduce_file_size_if_necessary(fileName, maxSize):
             inputFile.readline() # jump to end of current line so that we truncate at line boundaries
 
             # Copy C over B
-            _copyAllLinesFromTo(inputFile, outputFile)
+            _copy_all_lines_from_to(inputFile, outputFile)
 
             outputFile.truncate()
 
 
-def _copyAllLinesFromTo(inputFile, outputFile):
+def _copy_all_lines_from_to(inputFile, outputFile):
     """
     Copy all lines from an input file object to an output file object.
     """
@@ -564,7 +564,7 @@ def _get_debug_output_after_crash(output_filename):
                     dumpFileName = line.strip(' #\n')
                     outputFile.seek(0, os.SEEK_END) # jump to end of log file
                     with open(dumpFileName, 'r') as dumpFile:
-                        _copyAllLinesFromTo(dumpFile, outputFile)
+                        _copy_all_lines_from_to(dumpFile, outputFile)
                     os.remove(dumpFileName)
                 except IOError as e:
                     logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
