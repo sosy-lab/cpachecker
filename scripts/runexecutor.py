@@ -129,13 +129,13 @@ def main(argv=None):
     returnValue = exitCode // 256
     exitSignal = exitCode % 128
 
-    def printOptionalResult(key):
+    def print_optional_result(key):
         if key in result:
             # avoid unicode literals such that the string can be parsed by Python 3.2
             print(key + "=" + str(result[key]).replace("'u", ''))
 
     # output results
-    printOptionalResult('terminationreason')
+    print_optional_result('terminationreason')
     print("exitcode=" + str(exitCode))
     if (exitSignal == 0) or (returnValue != 0):
         print("returnvalue=" + str(returnValue))
@@ -143,7 +143,7 @@ def main(argv=None):
         print("exitsignal=" + str(exitSignal))
     print("walltime=" + str(result['walltime']) + "s")
     print("cputime=" + str(result['cputime']) + "s")
-    printOptionalResult('memory')
+    print_optional_result('memory')
     if 'energy' in result:
         for key, value in result['energy'].items():
             print("energy-{0}={1}".format(key, value))

@@ -39,8 +39,8 @@ class Benchmark(benchexec.BenchExec):
     in the VerifierCloud or in the Google App Engine.
     """
 
-    def createArgumentParser(self):
-        parser = super(Benchmark, self).createArgumentParser()
+    def create_argument_parser(self):
+        parser = super(Benchmark, self).create_argument_parser()
         vcloud_args = parser.add_argument_group('Options for using VerifierCloud')
         vcloud_args.add_argument("--cloud",
                           dest="cloud",
@@ -105,7 +105,7 @@ class Benchmark(benchexec.BenchExec):
         return parser
 
 
-    def loadExecutor(self):
+    def load_executor(self):
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
                 import benchmark.webclient as executor
@@ -114,13 +114,13 @@ class Benchmark(benchexec.BenchExec):
         elif self.config.appengine:
             import benchmark.appengine as executor
         else:
-            executor = super(Benchmark, self).loadExecutor()
+            executor = super(Benchmark, self).load_executor()
         return executor
 
 
-    def checkExistingResults(self, benchmark):
+    def check_existing_results(self, benchmark):
         if not self.config.reprocessResults:
-            super(Benchmark, self).checkExistingResults(benchmark)
+            super(Benchmark, self).check_existing_results(benchmark)
 
 
 if __name__ == "__main__":

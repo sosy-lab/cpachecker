@@ -53,10 +53,10 @@ def init(config, benchmark):
     benchmark.executable = benchmark.tool.getExecutable()
     benchmark.toolVersion = benchmark.tool.getVersion(benchmark.executable)
 
-def getSystemInfo():
+def get_system_info():
     return None
 
-def executeBenchmark(benchmark, outputHandler):
+def execute_benchmark(benchmark, outputHandler):
     if not _justReprocessResults:
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)

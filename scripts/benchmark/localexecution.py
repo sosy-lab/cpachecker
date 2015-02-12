@@ -71,10 +71,10 @@ def init(config, benchmark):
     except OSError:
         pass # this does not work on Windows
 
-def getSystemInfo():
+def get_system_info():
     return SystemInfo()
 
-def executeBenchmark(benchmark, outputHandler):
+def execute_benchmark(benchmark, outputHandler):
 
     runSetsExecuted = 0
 

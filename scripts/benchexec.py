@@ -87,7 +87,7 @@ class BenchExec(object):
         Start BenchExec.
         @param argv: command-line options for BenchExec
         """
-        parser = self.createArgumentParser()
+        parser = self.create_argument_parser()
         self.config = parser.parse_args(argv[1:])
 
         for arg in self.config.files:
@@ -97,15 +97,15 @@ class BenchExec(object):
         if os.path.isdir(self.config.output_path):
             self.config.output_path = os.path.normpath(self.config.output_path) + os.sep
 
-        self.setupLogging()
+        self.setup_logging()
 
-        self.executor = self.loadExecutor()
+        self.executor = self.load_executor()
 
         returnCode = 0
         for arg in self.config.files:
             if self.stopped_by_interrupt: break
             logging.debug("Benchmark {0} is started.".format(repr(arg)))
-            rc = self.executeBenchmark(arg)
+            rc = self.execute_benchmark(arg)
             returnCode = returnCode or rc
             logging.debug("Benchmark {0} is done.".format(repr(arg)))
 
@@ -113,7 +113,7 @@ class BenchExec(object):
         return returnCode
 
 
-    def createArgumentParser(self):
+    def create_argument_parser(self):
         """
         Create a parser for the command-line options.
         May be overwritten for adding more configuration options.
@@ -201,7 +201,7 @@ class BenchExec(object):
         return parser
 
 
-    def setupLogging(self):
+    def setup_logging(self):
         """
         Configure the logging framework.
         """
@@ -213,7 +213,7 @@ class BenchExec(object):
                                 level=logging.INFO)
 
 
-    def loadExecutor(self):
+    def load_executor(self):
         """
         Create and return the executor module that should be used for benchmarking.
         May be overridden for replacing the executor,
@@ -223,7 +223,7 @@ class BenchExec(object):
         return executor
 
 
-    def executeBenchmark(self, benchmarkFile):
+    def execute_benchmark(self, benchmarkFile):
         """
         Execute a single benchmark as defined in a file.
         If called directly, ensure that config and executor attributes are set up.
@@ -232,15 +232,15 @@ class BenchExec(object):
         """
         benchmark = Benchmark(benchmarkFile, self.config,
                               self.config.startTime or time.localtime())
-        self.checkExistingResults(benchmark)
+        self.check_existing_results(benchmark)
 
         self.executor.init(self.config, benchmark)
-        outputHandler = OutputHandler(benchmark, self.executor.getSystemInfo())
+        outputHandler = OutputHandler(benchmark, self.executor.get_system_info())
 
         logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
                 repr(benchmarkFile), len(benchmark.runSets)))
 
-        result = self.executor.executeBenchmark(benchmark, outputHandler)
+        result = self.executor.execute_benchmark(benchmark, outputHandler)
 
         if self.config.commit and not self.stopped_by_interrupt:
             Util.addFilesToGitRepository(self.config.output_path, outputHandler.allCreatedFiles,
@@ -248,7 +248,7 @@ class BenchExec(object):
         return result
 
 
-    def checkExistingResults(self, benchmark):
+    def check_existing_results(self, benchmark):
         """
         Check and abort if the target directory for the benchmark results
         already exists in order to avoid overwriting results.

@@ -75,10 +75,10 @@ def init(config, benchmark):
             benchmark.toolVersion = "trunk:HEAD"
     benchmark.executable = ''
 
-def getSystemInfo():
+def get_system_info():
     return None
 
-def executeBenchmark(benchmark, outputHandler):
+def execute_benchmark(benchmark, outputHandler):
 
     if (benchmark.toolName != 'CPAchecker'):
         logging.warn("The web client does only support the CPAchecker.")

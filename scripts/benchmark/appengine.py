@@ -72,10 +72,10 @@ def init(config, benchmark):
     except urllib2.URLError as e:
         sys.exit('The settings could not be retrieved. {} is not available. Error: {}'.format(uri, e.reason))
 
-def getSystemInfo():
+def get_system_info():
     return AppEngineSystemInfo(APPENGINE_SETTINGS['CPUSpeed'], APPENGINE_SETTINGS['RAM'])
 
-def executeBenchmark(benchmark, outputHandler):
+def execute_benchmark(benchmark, outputHandler):
     formatString = '%m-%d-%YT%H:%M:%S.%f'
     timestampsFileName = benchmark.outputBase+'.Timestamps_'+datetime.strftime(datetime.now(), formatString)+'.txt'
     with open(timestampsFileName, 'a') as f:
