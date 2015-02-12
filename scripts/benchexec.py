@@ -132,13 +132,13 @@ class BenchExec(object):
                           action="store_true",
                           help="Enable debug output")
 
-        parser.add_argument("-r", "--rundefinition", dest="selectedRunDefinitions",
+        parser.add_argument("-r", "--rundefinition", dest="selected_run_definitions",
                           action="append",
                           help="Run only the specified RUN_DEFINITION from the benchmark definition file. "
                                 + "This option can be specified several times.",
                           metavar="RUN_DEFINITION")
 
-        parser.add_argument("-s", "--sourcefiles", dest="selectedSourcefileSets",
+        parser.add_argument("-s", "--sourcefiles", dest="selected_sourcefile_sets",
                           action="append",
                           help="Run only the files from the sourcefiles tag with SOURCE as name. "
                                 + "This option can be specified several times.",
@@ -167,7 +167,7 @@ class BenchExec(object):
                           metavar="MB")
 
         parser.add_argument("-N", "--numOfThreads",
-                          dest="numOfThreads", default=None, type=int,
+                          dest="num_of_threads", default=None, type=int,
                           help="Run n benchmarks in parallel",
                           metavar="n")
 
@@ -187,12 +187,12 @@ class BenchExec(object):
                                 + "add and commit the result files.")
 
         parser.add_argument("--message",
-                          dest="commitMessage", type=str,
+                          dest="commit_message", type=str,
                           default="Results for benchmark run",
                           help="Commit message if --commit is used.")
 
         parser.add_argument("--startTime",
-                          dest="startTime",
+                          dest="start_time",
                           type=parse_time_arg,
                           default=None,
                           metavar="'YYYY-MM-DD hh:mm'",
@@ -223,28 +223,28 @@ class BenchExec(object):
         return executor
 
 
-    def execute_benchmark(self, benchmarkFile):
+    def execute_benchmark(self, benchmark_file):
         """
         Execute a single benchmark as defined in a file.
         If called directly, ensure that config and executor attributes are set up.
-        @param benchmarkFile: the name of a benchmark-definition XML file
+        @param benchmark_file: the name of a benchmark-definition XML file
         @return: a result value from the executor module
         """
-        benchmark = Benchmark(benchmarkFile, self.config,
-                              self.config.startTime or time.localtime())
+        benchmark = Benchmark(benchmark_file, self.config,
+                              self.config.start_time or time.localtime())
         self.check_existing_results(benchmark)
 
         self.executor.init(self.config, benchmark)
         output_handler = OutputHandler(benchmark, self.executor.get_system_info())
 
         logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
-                repr(benchmarkFile), len(benchmark.runSets)))
+                repr(benchmark_file), len(benchmark.run_sets)))
 
         result = self.executor.execute_benchmark(benchmark, output_handler)
 
         if self.config.commit and not self.stopped_by_interrupt:
             Util.add_files_to_git_repository(self.config.output_path, output_handler.all_created_files,
-                                         self.config.commitMessage+'\n\n'+output_handler.description)
+                                         self.config.commit_message+'\n\n'+output_handler.description)
         return result
 
 
@@ -253,9 +253,9 @@ class BenchExec(object):
         Check and abort if the target directory for the benchmark results
         already exists in order to avoid overwriting results.
         """
-        if os.path.exists(benchmark.logFolder):
+        if os.path.exists(benchmark.log_folder):
             # we refuse to overwrite existing results
-            sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(benchmark.logFolder))
+            sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(benchmark.log_folder))
 
 
     def stop(self):

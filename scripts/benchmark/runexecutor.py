@@ -54,7 +54,7 @@ class RunExecutor():
         self.PROCESS_KILLED = False
         self.SUB_PROCESSES_LOCK = threading.Lock() # needed, because we kill the process asynchronous
         self.SUB_PROCESSES = set()
-        self._terminationReason = None
+        self._termination_reason = None
 
         self._init_cgroups()
 
@@ -165,7 +165,7 @@ class RunExecutor():
         return cgroups
 
 
-    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, walltimelimit, myCpuCount, memlimit, environments, workingDir):
+    def _execute(self, args, output_filename, cgroups, hardtimelimit, softtimelimit, walltimelimit, myCpuCount, memlimit, environments, workingDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -216,14 +216,14 @@ class RunExecutor():
         logging.debug("Using additional environment {0}.".format(str(environments)))
 
         # write command line into outputFile
-        outputFile = open(outputFileName, 'w') # override existing file
+        outputFile = open(output_filename, 'w') # override existing file
         outputFile.write(' '.join(args) + '\n\n\n' + '-' * 80 + '\n\n\n')
         outputFile.flush()
 
         timelimitThread = None
         oomThread = None
         energyBefore = Util.measure_energy()
-        wallTimeBefore = time.time()
+        walltime_before = time.time()
 
         p = None
         try:
@@ -272,7 +272,7 @@ class RunExecutor():
                     logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
 
         finally:
-            wallTimeAfter = time.time()
+            walltime_after = time.time()
             
 
             with self.SUB_PROCESSES_LOCK:
@@ -286,25 +286,25 @@ class RunExecutor():
 
             outputFile.close() # normally subprocess closes file, we do this again
 
-            logging.debug("size of logfile '{0}': {1}".format(outputFileName, str(os.path.getsize(outputFileName))))
+            logging.debug("size of logfile '{0}': {1}".format(output_filename, str(os.path.getsize(output_filename))))
 
             # kill all remaining processes if some managed to survive
             for cgroup in set(cgroups.values()):
                 kill_all_tasks_in_cgroup(cgroup)
 
         energy = Util.measure_energy(energyBefore)
-        wallTime = wallTimeAfter - wallTimeBefore
-        cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
-        return (returnvalue, wallTime, cpuTime, energy)
+        walltime = walltime_after - walltime_before
+        cputime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
+        return (returnvalue, walltime, cputime, energy)
 
 
 
-    def _get_exact_measures(self, cgroups, returnvalue, wallTime, cpuTime):
+    def _get_exact_measures(self, cgroups, returnvalue, walltime, cputime):
         """
         This method tries to extract better measures from cgroups.
         """
     
-        cpuTime2 = None
+        cputime2 = None
         if CPUACCT in cgroups:
             # We want to read the value from the cgroup.
             # The documentation warns about outdated values.
@@ -313,13 +313,13 @@ class RunExecutor():
             # This has never happened except when interrupting the script with Ctrl+C,
             # but just try to be on the safe side here.
             cgroupCpuacct = cgroups[CPUACCT]
-            tmp = _read_cpu_time(cgroupCpuacct)
+            tmp = _read_cputime(cgroupCpuacct)
             tmp2 = None
             while tmp != tmp2:
                 time.sleep(0.1)
                 tmp2 = tmp
-                tmp = _read_cpu_time(cgroupCpuacct)
-            cpuTime2 = tmp
+                tmp = _read_cputime(cgroupCpuacct)
+            cputime2 = tmp
 
         memUsage = None
         if MEMORY in cgroups:
@@ -343,24 +343,24 @@ class RunExecutor():
                         raise e
 
         logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}, memory={4}'
-                      .format(returnvalue, wallTime, cpuTime, cpuTime2, memUsage))
+                      .format(returnvalue, walltime, cputime, cputime2, memUsage))
 
-        # Usually cpuTime2 seems to be 0.01s greater than cpuTime.
-        # Furthermore, cpuTime might miss some subprocesses,
-        # therefore we expect cpuTime2 to be always greater (and more correct).
-        # However, sometimes cpuTime is a little bit bigger than cpuTime2.
+        # Usually cputime2 seems to be 0.01s greater than cputime.
+        # Furthermore, cputime might miss some subprocesses,
+        # therefore we expect cputime2 to be always greater (and more correct).
+        # However, sometimes cputime is a little bit bigger than cputime2.
         # This may indicate a problem with cgroups, for example another process
         # moving our benchmarked process between cgroups.
-        if cpuTime2 is not None:
-            if (cpuTime * 0.9) > cpuTime2:
-                logging.warning('Cputime measured by wait was {0}, cputime measured by cgroup was only {1}, perhaps measurement is flawed.'.format(cpuTime, cpuTime2))
+        if cputime2 is not None:
+            if (cputime * 0.9) > cputime2:
+                logging.warning('Cputime measured by wait was {0}, cputime measured by cgroup was only {1}, perhaps measurement is flawed.'.format(cputime, cputime2))
             else:
-                cpuTime = cpuTime2
+                cputime = cputime2
 
-        return (cpuTime, memUsage)
+        return (cputime, memUsage)
 
 
-    def execute_run(self, args, outputFileName,
+    def execute_run(self, args, output_filename,
                    hardtimelimit=None, softtimelimit=None, walltimelimit=None,
                    cores=None, memlimit=None, memory_nodes=None,
                    environments={}, workingDir=None, maxLogfileSize=None):
@@ -368,7 +368,7 @@ class RunExecutor():
         This function executes a given command with resource limits,
         and writes the output to a file.
         @param args: the command line to run
-        @param outputFileName: the file where the output should be written to
+        @param output_filename: the file where the output should be written to
         @param hardtimelimit: None or the CPU time in seconds after which the tool is forcefully killed.
         @param softtimelimit: None or the CPU time in seconds after which the tool is sent a kill signal.
         @param walltimelimit: None or the wall time in seconds after which the tool is forcefully killed (default: hardtimelimit + a few seconds)
@@ -378,7 +378,7 @@ class RunExecutor():
         @param environments: special environments for running the command
         @param workingDir: None or a directory which the execution should use as working directory
         @param maxLogfileSize: None or a number of bytes to which the output of the tool should be truncated approximately if there is too much output.
-        @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
+        @return: a tuple with walltime in seconds, cputime in seconds, memory usage in bytes, returnvalue, and process output
         """
 
         if hardtimelimit is not None:
@@ -437,21 +437,21 @@ class RunExecutor():
             if not os.access(workingDir, os.X_OK):
                 sys.exit("Permission denied for working directory {0}.".format(workingDir))
 
-        self._terminationReason = None
+        self._termination_reason = None
 
         logging.debug("execute_run: setting up Cgroups.")
         cgroups = self._setup_cgroups(args, cores, memlimit, memory_nodes)
 
         try:
             logging.debug("execute_run: executing tool.")
-            (exitcode, wallTime, cpuTime, energy) = \
-                self._execute(args, outputFileName, cgroups,
+            (exitcode, walltime, cputime, energy) = \
+                self._execute(args, output_filename, cgroups,
                               hardtimelimit, softtimelimit, walltimelimit,
                               coreCount, memlimit,
                               environments, workingDir)
 
             logging.debug("execute_run: getting exact measures.")
-            (cpuTime, memUsage) = self._get_exact_measures(cgroups, exitcode, wallTime, cpuTime)
+            (cputime, memUsage) = self._get_exact_measures(cgroups, exitcode, walltime, cputime)
 
         finally: # always try to cleanup cgroups, even on sys.exit()
             logging.debug("execute_run: cleaning up CGroups.")
@@ -461,29 +461,29 @@ class RunExecutor():
 
         # if exception is thrown, skip the rest, otherwise perform normally
 
-        _reduce_file_size_if_necessary(outputFileName, maxLogfileSize)
+        _reduce_file_size_if_necessary(output_filename, maxLogfileSize)
 
         if exitcode not in [0,1]:
             logging.debug("execute_run: analysing output for crash-info.")
-            _get_debug_output_after_crash(outputFileName)
+            _get_debug_output_after_crash(output_filename)
 
         logging.debug("execute_run: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
-                      .format(exitcode, wallTime, cpuTime, memUsage, energy))
+                      .format(exitcode, walltime, cputime, memUsage, energy))
 
-        result = {'walltime': wallTime,
-                  'cputime':  cpuTime,
+        result = {'walltime': walltime,
+                  'cputime':  cputime,
                   'exitcode': exitcode,
                   }
         if memUsage:
             result['memory'] = memUsage
-        if self._terminationReason:
-            result['terminationReason'] = self._terminationReason
+        if self._termination_reason:
+            result['terminationreason'] = self._termination_reason
         if energy:
             result['energy'] = energy
         return result
 
     def _set_termination_reason(self, reason):
-        self._terminationReason = reason
+        self._termination_reason = reason
 
     def kill(self):
         self._set_termination_reason('killed')
@@ -548,7 +548,7 @@ def _copyAllLinesFromTo(inputFile, outputFile):
         currentLine = inputFile.readline()
 
 
-def _get_debug_output_after_crash(outputFileName):
+def _get_debug_output_after_crash(output_filename):
     """
     Segmentation faults and some memory failures reference a file 
     with more information (hs_err_pid_*). We append this file to the log.
@@ -557,7 +557,7 @@ def _get_debug_output_after_crash(outputFileName):
     and the file name of the dump file on the next line.
     """
     foundDumpFile = False
-    with open(outputFileName, 'r+') as outputFile:
+    with open(output_filename, 'r+') as outputFile:
         for line in outputFile:
             if foundDumpFile:
                 try:
@@ -574,7 +574,7 @@ def _get_debug_output_after_crash(outputFileName):
                 foundDumpFile = True
 
 
-def _read_cpu_time(cgroupCpuacct):
+def _read_cputime(cgroupCpuacct):
     cputimeFile = os.path.join(cgroupCpuacct, 'cpuacct.usage')
     if not os.path.exists(cputimeFile):
         logging.warning('Could not read cputime. File {0} does not exist.'.format(cputimeFile))
@@ -605,7 +605,7 @@ class _TimelimitThread(threading.Thread):
             read = False
             while not read:
                 try:
-                    usedCpuTime = _read_cpu_time(self.cgroupCpuacct)
+                    usedCpuTime = _read_cputime(self.cgroupCpuacct)
                     read = True
                 except ValueError:
                     # Sometimes the kernel produces strange values with linebreaks in them

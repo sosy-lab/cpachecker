@@ -57,14 +57,14 @@ def substitute_vars(oldList, runSet, sourcefile=None):
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}',     benchmark.name),
                     ('${benchmark_date}',     benchmark.instance),
-                    ('${benchmark_path}',     benchmark.baseDir or '.'),
-                    ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
-                    ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
-                    ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${logfile_path}',       os.path.dirname(runSet.logFolder) or '.'),
-                    ('${logfile_path_abs}',   os.path.abspath(runSet.logFolder)),
-                    ('${rundefinition_name}', runSet.realName if runSet.realName else ''),
-                    ('${test_name}',          runSet.realName if runSet.realName else '')]
+                    ('${benchmark_path}',     benchmark.base_dir or '.'),
+                    ('${benchmark_path_abs}', os.path.abspath(benchmark.base_dir)),
+                    ('${benchmark_file}',     os.path.basename(benchmark.benchmark_file)),
+                    ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmark_file))),
+                    ('${logfile_path}',       os.path.dirname(runSet.log_folder) or '.'),
+                    ('${logfile_path_abs}',   os.path.abspath(runSet.log_folder)),
+                    ('${rundefinition_name}', runSet.real_name if runSet.real_name else ''),
+                    ('${test_name}',          runSet.real_name if runSet.real_name else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
@@ -91,53 +91,53 @@ def substitute_vars(oldList, runSet, sourcefile=None):
 class Benchmark:
     """
     The class Benchmark manages the import of source files, options, columns and
-    the tool from a benchmarkFile.
+    the tool from a benchmark_file.
     This class represents the <benchmark> tag.
     """
 
-    def __init__(self, benchmarkFile, config, startTime):
+    def __init__(self, benchmark_file, config, start_time):
         """
         The constructor of Benchmark reads the source files, options, columns and the tool
-        from the XML in the benchmarkFile..
+        from the XML in the benchmark_file..
         """
-        logging.debug("I'm loading the benchmark {0}.".format(benchmarkFile))
+        logging.debug("I'm loading the benchmark {0}.".format(benchmark_file))
 
         self.config = config
-        self.benchmarkFile = benchmarkFile
-        self.baseDir = os.path.dirname(self.benchmarkFile)
+        self.benchmark_file = benchmark_file
+        self.base_dir = os.path.dirname(self.benchmark_file)
 
         # get benchmark-name
-        self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
+        self.name = os.path.basename(benchmark_file)[:-4] # remove ending ".xml"
         if config.name:
             self.name += "."+config.name
 
-        self.startTime = startTime
-        self.instance = time.strftime("%y-%m-%d_%H%M", self.startTime)
+        self.start_time = start_time
+        self.instance = time.strftime("%y-%m-%d_%H%M", self.start_time)
 
-        self.outputBase = config.output_path + self.name + "." + self.instance
-        self.logFolder = self.outputBase + ".logfiles" + os.path.sep
+        self.output_base_name = config.output_path + self.name + "." + self.instance
+        self.log_folder = self.output_base_name + ".logfiles" + os.path.sep
 
         # parse XML
-        rootTag = ET.ElementTree().parse(benchmarkFile)
+        rootTag = ET.ElementTree().parse(benchmark_file)
 
         # get tool
-        toolName = rootTag.get('tool')
-        if not toolName:
+        tool_name = rootTag.get('tool')
+        if not tool_name:
             sys.exit('A tool needs to be specified in the benchmark definition file.')
-        toolModule = "benchmark.tools." + toolName
+        toolModule = "benchmark.tools." + tool_name
         try:
             self.tool = __import__(toolModule, fromlist=['Tool']).Tool()
         except ImportError as ie:
-            sys.exit('Unsupported tool "{0}" specified. ImportError: {1}'.format(toolName, ie))
+            sys.exit('Unsupported tool "{0}" specified. ImportError: {1}'.format(tool_name, ie))
         except AttributeError:
-            sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
+            sys.exit('The module for "{0}" does not define the necessary class.'.format(tool_name))
 
-        self.toolName = self.tool.name()
+        self.tool_name = self.tool.name()
         # will be set from the outside if necessary (may not be the case in SaaS environments)
-        self.toolVersion = None
+        self.tool_version = None
         self.executable = None
 
-        logging.debug("The tool to be benchmarked is {0}.".format(str(self.toolName)))
+        logging.debug("The tool to be benchmarked is {0}.".format(str(self.tool_name)))
 
         self.rlimits = {}
         keys = list(rootTag.keys())
@@ -146,7 +146,7 @@ class Benchmark:
                 self.rlimits[limit] = int(rootTag.get(limit))
 
         # override limits from XML with values from command line
-        def overrideLimit(configVal, limit):
+        def override_limit(configVal, limit):
             if configVal != None:
                 val = int(configVal)
                 if val == -1: # infinity
@@ -155,9 +155,9 @@ class Benchmark:
                 else:
                     self.rlimits[limit] = val
 
-        overrideLimit(config.memorylimit, MEMLIMIT)
-        overrideLimit(config.timelimit, TIMELIMIT)
-        overrideLimit(config.corelimit, CORELIMIT)
+        override_limit(config.memorylimit, MEMLIMIT)
+        override_limit(config.timelimit, TIMELIMIT)
+        override_limit(config.corelimit, CORELIMIT)
 
         if HARDTIMELIMIT in keys:
             hardtimelimit = int(rootTag.get(HARDTIMELIMIT))
@@ -172,16 +172,16 @@ class Benchmark:
                 self.rlimits[TIMELIMIT] = hardtimelimit
 
         # get number of threads, default value is 1
-        self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
-        if config.numOfThreads != None:
-            self.numOfThreads = config.numOfThreads
-        if self.numOfThreads < 1:
+        self.num_of_threads = int(rootTag.get("threads")) if ("threads" in keys) else 1
+        if config.num_of_threads != None:
+            self.num_of_threads = config.num_of_threads
+        if self.num_of_threads < 1:
             logging.error("At least ONE thread must be given!")
             sys.exit()
 
-        # get global options and propertyFiles
+        # get global options and property_files
         self.options = Util.get_list_from_xml(rootTag)
-        self.propertyFiles = Util.get_list_from_xml(rootTag, tag=PROPERTY_TAG, attributes=[])
+        self.property_files = Util.get_list_from_xml(rootTag, tag=PROPERTY_TAG, attributes=[])
 
         # get columns
         self.columns = Benchmark.load_columns(rootTag.find("columns"))
@@ -192,7 +192,7 @@ class Benchmark:
         # get required files
         self._required_files = set()
         for required_files_tag in rootTag.findall('requiredfiles'):
-            required_files = Util.expand_filename_pattern(required_files_tag.text, self.baseDir)
+            required_files = Util.expand_filename_pattern(required_files_tag.text, self.base_dir)
             if not required_files:
                 logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
             self._required_files = self._required_files.union(required_files)
@@ -200,32 +200,32 @@ class Benchmark:
         # get requirements
         self.requirements = Requirements(rootTag.findall("require"), self.rlimits, config)
 
-        self.resultFilesPattern = None
+        self.result_files_pattern = None
         resultFilesTags = rootTag.findall("resultfiles")
         if resultFilesTags:
             if len(resultFilesTags) > 1:
                 logger.warning("Benchmark file {0} has multiple <resultfiles> tags, ignoring all but the first.")
-            self.resultFilesPattern = resultFilesTags[0].text
+            self.result_files_pattern = resultFilesTags[0].text
 
         # get benchmarks
-        self.runSets = []
+        self.run_sets = []
         for (i, rundefinitionTag) in enumerate(rootTag.findall("rundefinition")):
-            self.runSets.append(RunSet(rundefinitionTag, self, i+1, globalSourcefilesTags))
+            self.run_sets.append(RunSet(rundefinitionTag, self, i+1, globalSourcefilesTags))
 
-        if not self.runSets:
+        if not self.run_sets:
             for (i, rundefinitionTag) in enumerate(rootTag.findall("test")):
-                self.runSets.append(RunSet(rundefinitionTag, self, i+1, globalSourcefilesTags))
-            if self.runSets:
-                logging.warning("Benchmark file {0} uses deprecated <test> tags. Please rename them to <rundefinition>.".format(benchmarkFile))
+                self.run_sets.append(RunSet(rundefinitionTag, self, i+1, globalSourcefilesTags))
+            if self.run_sets:
+                logging.warning("Benchmark file {0} uses deprecated <test> tags. Please rename them to <rundefinition>.".format(benchmark_file))
             else:
-                logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
+                logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmark_file))
 
-        if not any(runSet.should_be_executed() for runSet in self.runSets):
+        if not any(runSet.should_be_executed() for runSet in self.run_sets):
             logging.warning("No runSet selected, nothing will be executed.")
-            if config.selectedRunDefinitions:
+            if config.selected_run_definitions:
                 logging.warning("The selection {0} does not match any runSet of {1}".format(
-                    str(config.selectedRunDefinitions),
-                    str([runSet.realName for runSet in self.runSets])
+                    str(config.selected_run_definitions),
+                    str([runSet.real_name for runSet in self.run_sets])
                     ))
 
 
@@ -283,23 +283,23 @@ class RunSet:
         self.benchmark = benchmark
 
         # get name of run set, name is optional, the result can be "None"
-        self.realName = rundefinitionTag.get("name")
+        self.real_name = rundefinitionTag.get("name")
 
         # index is the number of the run set
         self.index = index
 
-        self.logFolder = benchmark.logFolder
-        if self.realName:
-            self.logFolder += self.realName + "."
+        self.log_folder = benchmark.log_folder
+        if self.real_name:
+            self.log_folder += self.real_name + "."
 
         # get all run-set-specific options from rundefinitionTag
         self.options = benchmark.options + Util.get_list_from_xml(rundefinitionTag)
-        self.propertyFiles = benchmark.propertyFiles + Util.get_list_from_xml(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
+        self.property_files = benchmark.property_files + Util.get_list_from_xml(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
 
         # get run-set specific required files
         required_files = set()
         for required_files_tag in rundefinitionTag.findall('requiredfiles'):
-            thisRequiredFiles = Util.expand_filename_pattern(required_files_tag.text, benchmark.baseDir)
+            thisRequiredFiles = Util.expand_filename_pattern(required_files_tag.text, benchmark.base_dir)
             if not thisRequiredFiles:
                 logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
             required_files = required_files.union(thisRequiredFiles)
@@ -309,12 +309,12 @@ class RunSet:
                                               required_files)
         self.runs = [run for block in self.blocks for run in block.runs]
 
-        names = [self.realName]
+        names = [self.real_name]
         if len(self.blocks) == 1:
             # there is exactly one source-file set to run, append its name to run-set name
-            names.append(self.blocks[0].realName)
+            names.append(self.blocks[0].real_name)
         self.name = '.'.join(filter(None, names))
-        self.fullName = self.benchmark.name + (("." + self.name) if self.name else "")
+        self.full_name = self.benchmark.name + (("." + self.name) if self.name else "")
 
         # Currently we store logfiles as "basename.log",
         # so we cannot distinguish sourcefiles in different folder with same basename.
@@ -335,8 +335,8 @@ class RunSet:
 
 
     def should_be_executed(self):
-        return not self.benchmark.config.selectedRunDefinitions \
-            or self.realName in self.benchmark.config.selectedRunDefinitions
+        return not self.benchmark.config.selected_run_definitions \
+            or self.real_name in self.benchmark.config.selected_run_definitions
 
 
     def extract_runs_from_xml(self, sourcefilesTagList, globalRequiredFiles):
@@ -350,44 +350,44 @@ class RunSet:
         for index, sourcefilesTag in enumerate(sourcefilesTagList):
             sourcefileSetName = sourcefilesTag.get("name")
             matchName = sourcefileSetName or str(index)
-            if self.benchmark.config.selectedSourcefileSets \
-                and matchName not in self.benchmark.config.selectedSourcefileSets:
+            if self.benchmark.config.selected_sourcefile_sets \
+                and matchName not in self.benchmark.config.selected_sourcefile_sets:
                     continue
 
             required_files = set()
             for required_files_tag in sourcefilesTag.findall('requiredfiles'):
-                thisRequiredFiles = Util.expand_filename_pattern(required_files_tag.text, self.benchmark.baseDir)
+                thisRequiredFiles = Util.expand_filename_pattern(required_files_tag.text, self.benchmark.base_dir)
                 if not thisRequiredFiles:
                     logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
                 required_files = required_files.union(thisRequiredFiles)
 
             # get lists of filenames
-            sourcefiles = self.get_sourcefiles_from_xml(sourcefilesTag, self.benchmark.baseDir)
+            sourcefiles = self.get_sourcefiles_from_xml(sourcefilesTag, self.benchmark.base_dir)
 
             # get file-specific options for filenames
             fileOptions = Util.get_list_from_xml(sourcefilesTag)
-            propertyFiles = Util.get_list_from_xml(sourcefilesTag, tag=PROPERTY_TAG, attributes=[])
+            property_files = Util.get_list_from_xml(sourcefilesTag, tag=PROPERTY_TAG, attributes=[])
 
             currentRuns = []
             for sourcefile in sourcefiles:
-                currentRuns.append(Run(sourcefile, fileOptions, self, propertyFiles,
+                currentRuns.append(Run(sourcefile, fileOptions, self, property_files,
                                        list(globalRequiredFiles.union(required_files))))
 
             blocks.append(SourcefileSet(sourcefileSetName, index, currentRuns))
         return blocks
 
 
-    def get_sourcefiles_from_xml(self, sourcefilesTag, baseDir):
+    def get_sourcefiles_from_xml(self, sourcefilesTag, base_dir):
         sourcefiles = []
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            sourcefiles += self.expand_filename_pattern(includedFiles.text, baseDir)
+            sourcefiles += self.expand_filename_pattern(includedFiles.text, base_dir)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in self.expand_filename_pattern(includesFilesFile.text, baseDir):
+            for file in self.expand_filename_pattern(includesFilesFile.text, base_dir):
 
                 # check for code (if somebody confuses 'include' and 'includesfile')
                 if Util.is_code(file):
@@ -410,12 +410,12 @@ class RunSet:
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = self.expand_filename_pattern(excludedFiles.text, baseDir)
+            excludedFilesList = self.expand_filename_pattern(excludedFiles.text, base_dir)
             for excludedFile in excludedFilesList:
                 sourcefiles = Util.remove_all(sourcefiles, excludedFile)
 
         for excludesFilesFile in sourcefilesTag.findall("excludesfile"):
-            for file in self.expand_filename_pattern(excludesFilesFile.text, baseDir):
+            for file in self.expand_filename_pattern(excludesFilesFile.text, base_dir):
                 # read files from list
                 fileWithList = open(file, 'rt')
                 for line in fileWithList:
@@ -443,17 +443,17 @@ class RunSet:
         for sourcefile in sourcefiles:
             files = [sourcefile]
             for appendFile in appendFileTags:
-                files.extend(self.expand_filename_pattern(appendFile.text, baseDir, sourcefile=sourcefile))
+                files.extend(self.expand_filename_pattern(appendFile.text, base_dir, sourcefile=sourcefile))
             sourcefilesLists.append(files)
         
         return sourcefilesLists
 
 
-    def expand_filename_pattern(self, pattern, baseDir, sourcefile=None):
+    def expand_filename_pattern(self, pattern, base_dir, sourcefile=None):
         """
         The function expand_filename_pattern expands a filename pattern to a sorted list
         of filenames. The pattern can contain variables and wildcards.
-        If baseDir is given and pattern is not absolute, baseDir and pattern are joined.
+        If base_dir is given and pattern is not absolute, base_dir and pattern are joined.
         """
 
         # store pattern for fallback
@@ -469,7 +469,7 @@ class RunSet:
             logging.debug("Expanded variables in expression {0} to {1}."
                 .format(repr(pattern), repr(expandedPattern)))
 
-        fileList = Util.expand_filename_pattern(expandedPattern, baseDir)
+        fileList = Util.expand_filename_pattern(expandedPattern, base_dir)
 
         # sort alphabetical,
         fileList.sort()
@@ -486,7 +486,7 @@ class SourcefileSet():
     A SourcefileSet contains a list of runs and a name.
     """
     def __init__(self, name, index, runs):
-        self.realName = name # this name is optional
+        self.real_name = name # this name is optional
         self.name = name or str(index) # this name is always non-empty
         self.runs = runs
 
@@ -499,14 +499,14 @@ class Run():
     A Run contains some sourcefile, some options, propertyfiles and some other stuff, that is needed for the Run.
     """
 
-    def __init__(self, sourcefiles, fileOptions, runSet, propertyFiles=[], required_files=[]):
+    def __init__(self, sourcefiles, fileOptions, runSet, property_files=[], required_files=[]):
         assert sourcefiles
         self.identifier = sourcefiles[0] # used for name of logfile, substitution, result-category
         self.sourcefiles = Util.get_files(sourcefiles) # expand directories to get their sub-files
         logging.debug("Creating Run with identifier '{0}' and files {1}".format(self.identifier, self.sourcefiles))
         self.runSet = runSet
-        self.specificOptions = fileOptions # options that are specific for this run
-        self.logFile = runSet.logFolder + os.path.basename(self.identifier) + ".log"
+        self.specific_options = fileOptions # options that are specific for this run
+        self.log_file = runSet.log_folder + os.path.basename(self.identifier) + ".log"
         self.required_files = required_files
 
         # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
@@ -515,10 +515,10 @@ class Run():
         if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
 
         # get propertyfile for Run: if available, use the last one
-        if propertyFiles:
-            self.propertyfile = propertyFiles[-1]
-        elif runSet.propertyFiles:
-            self.propertyfile = runSet.propertyFiles[-1]
+        if property_files:
+            self.propertyfile = property_files[-1]
+        elif runSet.property_files:
+            self.propertyfile = runSet.property_files[-1]
         else:
             self.propertyfile = None
 
@@ -530,7 +530,7 @@ class Run():
         else:
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
-            expandedPropertyFiles = Util.expand_filename_pattern(self.propertyfile, self.runSet.benchmark.baseDir)
+            expandedPropertyFiles = Util.expand_filename_pattern(self.propertyfile, self.runSet.benchmark.base_dir)
             substitutedPropertyfiles = substitute_vars([self.propertyfile], runSet, self.identifier)
             assert len(substitutedPropertyfiles) == 1
             
@@ -557,8 +557,8 @@ class Run():
 
         # dummy values, for output in case of interrupt
         self.status = ""
-        self.cpuTime = None
-        self.wallTime = None
+        self.cputime = None
+        self.walltime = None
         self.category = result.CATEGORY_UNKNOWN
 
 
@@ -578,7 +578,7 @@ class Run():
 
         # read output
         try:
-            with open(self.logFile, 'rt') as outputFile:
+            with open(self.log_file, 'rt') as outputFile:
                 output = outputFile.readlines()
                 # first 6 lines are for logging, rest is output of subprocess, see runexecutor.py for details
                 output = output[6:]
@@ -625,7 +625,7 @@ class Run():
         else:
             limit = float('inf')
 
-        return self.cpuTime > limit*0.99
+        return self.cputime > limit*0.99
 
 
 class Column:
@@ -651,7 +651,7 @@ class Requirements:
         
         self.cpu_model = None
         self.memory   = None
-        self.cpuCores = None
+        self.cpu_cores = None
         
         for requireTag in tags:
             
@@ -661,9 +661,9 @@ class Requirements:
             else:
                 raise Exception('Double specification of required CPU model.')
 
-            cpuCores = requireTag.get('cpuCores', None)
-            if self.cpuCores is None:
-                if cpuCores is not None: self.cpuCores = int(cpuCores)
+            cpu_cores = requireTag.get('cpuCores', None)
+            if self.cpu_cores is None:
+                if cpu_cores is not None: self.cpu_cores = int(cpu_cores)
             else:
                 raise Exception('Double specification of required CPU cores.')
 
@@ -675,8 +675,8 @@ class Requirements:
 
         # TODO check, if we have enough requirements to reach the limits        
         # TODO is this really enough? we need some overhead!
-        if self.cpuCores is None:
-            self.cpuCores = rlimits.get(CORELIMIT, None)
+        if self.cpu_cores is None:
+            self.cpu_cores = rlimits.get(CORELIMIT, None)
 
         if self.memory is None:
             self.memory = rlimits.get(MEMLIMIT, None)
@@ -685,8 +685,8 @@ class Requirements:
             # user-given model -> override value
             self.cpu_model = config.cpu_model
 
-        if self.cpuCores is not None and self.cpuCores <= 0:
-            raise Exception('Invalid value {} for required CPU cores.'.format(self.cpuCores))
+        if self.cpu_cores is not None and self.cpu_cores <= 0:
+            raise Exception('Invalid value {} for required CPU cores.'.format(self.cpu_cores))
 
         if self.memory is not None and self.memory <= 0:
             raise Exception('Invalid value {} for required memory.'.format(self.memory))
@@ -696,8 +696,8 @@ class Requirements:
         s = ""
         if self.cpu_model:
             s += " CPU='" + self.cpu_model + "'"
-        if self.cpuCores:
-            s += " Cores=" + str(self.cpuCores)
+        if self.cpu_cores:
+            s += " Cores=" + str(self.cpu_cores)
         if self.memory:
             s += " Memory=" + str(self.memory) + "MB"
 

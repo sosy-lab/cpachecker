@@ -61,16 +61,16 @@
 <script type="text/javascript">
 
 // All the data from the table head in nice JS data structures.
-var runSets = {{runSets|json}};   // list with the attributes of all run sets
+var run_sets = {{run_sets|json}};   // list with the attributes of all run sets
 var columns = {{columnTitles|json}}; // nested list with all the columns headings
 var columnsToRunset = [];         // for each column of the table the runSet it belongs to (first column is 0)
 
 for (var i = 0; i < columns.length; i++) {
-  runSets[i].columns = columns[i];
+  run_sets[i].columns = columns[i];
 }
-for (var i = 0; i < runSets.length; i++) {
-  for (var j = 0; j < runSets[i].columns.length; j++) {
-    columnsToRunset.push(runSets[i]);
+for (var i = 0; i < run_sets.length; i++) {
+  for (var j = 0; j < run_sets[i].columns.length; j++) {
+    columnsToRunset.push(run_sets[i]);
   }
 }
 
@@ -301,8 +301,8 @@ function toggleCells(indices) {
 // @returns number of columns, equal to "sum(len(c) for c in columns)"
 function getColumns(columnTitles, titlesToColumns) {
     var columnIndex = 1; // column 1 is the first data-column
-    for (var i = 0; i < runSets.length; i++) {
-        var runSet = runSets[i];
+    for (var i = 0; i < run_sets.length; i++) {
+        var runSet = run_sets[i];
         runSet.indexToColumn = {} // from runSet-column-index to table-index
         runSet.indices = [] // equal to values from runSet.indexToColumn
 
@@ -365,9 +365,9 @@ function createColumnToggleView() {
 
     // create body for table
     var tableBody = $('<tbody>').appendTo(tableHTML);
-    for (var i = 0; i < runSets.length; i++) {
+    for (var i = 0; i < run_sets.length; i++) {
         rowHTML = $('<tr>').appendTo(tableBody);
-        var runSet = runSets[i];
+        var runSet = run_sets[i];
         
         // get indices of row and create rowTitle-cell
         var rowTitle = runSet.tool + ' ' + (runSet.date ? runSet.date + ' ' : '') + runSet.name;
@@ -439,9 +439,9 @@ function createStatsView(statistics, currentIndex) {
 
     // create body for table
     var tableBody = $('<tbody>').appendTo(tableHTML);
-    for (var i = 0; i < runSets.length; i++) {
+    for (var i = 0; i < run_sets.length; i++) {
         rowHTML = $('<tr>').appendTo(tableBody);
-        var runSet = runSets[i];
+        var runSet = run_sets[i];
         
         // get indices of row and create rowTitle-cell
         var rowTitle = runSet.tool + ' ' + (runSet.date ? runSet.date + ' ' : '') + runSet.name;
@@ -502,8 +502,8 @@ function createRowFilterButtons() {
   var buttonList = $('<form>', {id:'rowFilterButtons', onsubmit:'return false'})
         .appendTo($("#contentPane"));
   var columnIndex = 1; // columns start with 1
-  for (var i = 0; i < runSets.length; i++) {
-    var runSet = runSets[i];
+  for (var i = 0; i < run_sets.length; i++) {
+    var runSet = run_sets[i];
     var sublist = $('<ul>').text(getNameOfTest(columnIndex)).appendTo(buttonList);
 
     for (var j = 0; j < runSet.columns.length; j++, columnIndex++) {
@@ -708,7 +708,7 @@ function getColumnIndicesForTarget(target) {
     for (i = 1; i < cells.length; i++) { // skip first cell
       if ($(cells[i]).is(":visible")) {
         if ("status" != cells[i].textContent
-            && runSets[index-1] === columnsToRunset[i-1]) {
+            && run_sets[index-1] === columnsToRunset[i-1]) {
           columnIndizes.push(i);
         }
       }
@@ -1008,8 +1008,8 @@ function addButtons(target, callback, showQuantileButton) {
 function getSelectorForScatter(identifier) {
     var select = $('<select>', {class:'scatterplot-selector'});
     var columnIndex = 1; // columns start with 1
-    for (var i = 0; i < runSets.length; i++) {
-        var runSet = runSets[i];
+    for (var i = 0; i < run_sets.length; i++) {
+        var runSet = run_sets[i];
         var group = $('<optgroup>', {label:getNameOfTestDirect(runSet)})
                 .appendTo(select);
         for (var j = 0; j < runSet.columns.length; j++, columnIndex++) {
@@ -1265,8 +1265,8 @@ def formatOptions(str):
   {{for runResult in line.results}}
   {{for column, value in zip(runResult.columns, runResult.values)}}
   {{if column.title == 'status'}}
-    {{if runResult.logFile}}
-    <td class="status {{runResult.category}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{(value or '-').lower()}}</a></td>
+    {{if runResult.log_file}}
+    <td class="status {{runResult.category}}" title="Click here to show output of tool"><a href="{{relpath(runResult.log_file, base_dir)|url}}">{{(value or '-').lower()}}</a></td>
     {{else}}
     <td class="status {{runResult.category}}">{{(value or '-').lower()}}</td>
     {{endif}}

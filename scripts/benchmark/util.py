@@ -181,17 +181,17 @@ def parse_int_list(s):
     return result
 
 
-def expand_filename_pattern(pattern, baseDir):
+def expand_filename_pattern(pattern, base_dir):
     """
     Expand a file name pattern containing wildcards, environment variables etc.
 
     @param pattern: The pattern string to expand.
-    @param baseDir: The directory where relative paths are based on.
+    @param base_dir: The directory where relative paths are based on.
     @return: A list of file names (possibly empty).
     """
-    # 'join' ignores baseDir, if expandedPattern is absolute.
+    # 'join' ignores base_dir, if expandedPattern is absolute.
     # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
-    pattern = os.path.normpath(os.path.join(baseDir, pattern))
+    pattern = os.path.normpath(os.path.join(base_dir, pattern))
 
     # expand tilde and variables
     pattern = os.path.expandvars(os.path.expanduser(pattern))
@@ -261,22 +261,22 @@ def read_file(*path):
         return f.read().strip()
 
 
-def add_files_to_git_repository(baseDir, files, description):
+def add_files_to_git_repository(base_dir, files, description):
     """
     Add and commit all files given in a list into a git repository in the
-    baseDir directory. Nothing is done if the git repository has
+    base_dir directory. Nothing is done if the git repository has
     local changes.
 
     @param files: the files to commit
     @param description: the commit message
     """
-    if not os.path.isdir(baseDir):
+    if not os.path.isdir(base_dir):
         printOut('Output path is not a directory, cannot add files to git repository.')
         return
 
     # find out root directory of repository
     gitRoot = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
-                               cwd=baseDir,
+                               cwd=base_dir,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout = gitRoot.communicate()[0]
     if gitRoot.returncode != 0:

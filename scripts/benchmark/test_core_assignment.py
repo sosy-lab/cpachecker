@@ -42,13 +42,13 @@ class TestCpuCoresPerRun(unittest.TestCase):
         cls.longMessage = True
         logging.disable(logging.CRITICAL)
 
-    def assertValid(self, coreLimit, numOfThreads, expectedResult=None):
-        result = _get_cpu_cores_per_run0(coreLimit, numOfThreads, *self.machine())
+    def assertValid(self, coreLimit, num_of_threads, expectedResult=None):
+        result = _get_cpu_cores_per_run0(coreLimit, num_of_threads, *self.machine())
         if expectedResult:
-            self.assertEqual(expectedResult, result, "Incorrect result for {} cores and {} threads.".format(coreLimit, numOfThreads))
+            self.assertEqual(expectedResult, result, "Incorrect result for {} cores and {} threads.".format(coreLimit, num_of_threads))
 
-    def assertInvalid(self, coreLimit, numOfThreads):
-        self.assertRaises(SystemExit, _get_cpu_cores_per_run0, coreLimit, numOfThreads, *self.machine())
+    def assertInvalid(self, coreLimit, num_of_threads):
+        self.assertRaises(SystemExit, _get_cpu_cores_per_run0, coreLimit, num_of_threads, *self.machine())
 
     def machine(self):
         """Create the necessary parameters of _get_cpu_cores_per_run0 for a specific machine."""
@@ -99,8 +99,8 @@ class TestCpuCoresPerRun(unittest.TestCase):
         self.assertInvalid(1, maxThreads + 1)
         if not self.oneCore_assignment:
             self.skipTest("Need result specified")
-        for numOfThreads in xrange(1, maxThreads + 1):
-            self.assertValid(1, numOfThreads, self.oneCore_assignment[:numOfThreads])
+        for num_of_threads in xrange(1, maxThreads + 1):
+            self.assertValid(1, num_of_threads, self.oneCore_assignment[:num_of_threads])
 
     def test_twoCoresPerRun(self):
         # test all possible numOfThread values for runs with two cores
@@ -108,8 +108,8 @@ class TestCpuCoresPerRun(unittest.TestCase):
         self.assertInvalid(2, maxThreads + 1)
         if not self.twoCore_assignment:
             self.skipTest("Need result specified")
-        for numOfThreads in xrange(1, maxThreads + 1):
-            self.assertValid(2, numOfThreads, self.twoCore_assignment[:numOfThreads])
+        for num_of_threads in xrange(1, maxThreads + 1):
+            self.assertValid(2, num_of_threads, self.twoCore_assignment[:num_of_threads])
 
     def test_threeCoresPerRun(self):
         # test all possible numOfThread values for runs with three cores
@@ -117,8 +117,8 @@ class TestCpuCoresPerRun(unittest.TestCase):
         self.assertInvalid(3, maxThreads + 1)
         if not self.threeCore_assignment:
             self.skipTest("Need result specified")
-        for numOfThreads in xrange(1, maxThreads + 1):
-            self.assertValid(3, numOfThreads, self.threeCore_assignment[:numOfThreads])
+        for num_of_threads in xrange(1, maxThreads + 1):
+            self.assertValid(3, num_of_threads, self.threeCore_assignment[:num_of_threads])
 
     def test_fourCoresPerRun(self):
         # test all possible numOfThread values for runs with four cores
@@ -126,8 +126,8 @@ class TestCpuCoresPerRun(unittest.TestCase):
         self.assertInvalid(4, maxThreads + 1)
         if not self.fourCore_assignment:
             self.skipTest("Need result specified")
-        for numOfThreads in xrange(1, maxThreads + 1):
-            self.assertValid(4, numOfThreads, self.fourCore_assignment[:numOfThreads])
+        for num_of_threads in xrange(1, maxThreads + 1):
+            self.assertValid(4, num_of_threads, self.fourCore_assignment[:num_of_threads])
 
     def test_eightCoresPerRun(self):
         # test all possible numOfThread values for runs with eight cores
@@ -137,8 +137,8 @@ class TestCpuCoresPerRun(unittest.TestCase):
         self.assertInvalid(8, maxThreads + 1)
         if not self.eightCore_assignment:
             self.skipTest("Need result specified")
-        for numOfThreads in xrange(1, maxThreads + 1):
-            self.assertValid(8, numOfThreads, self.eightCore_assignment[:numOfThreads])
+        for num_of_threads in xrange(1, maxThreads + 1):
+            self.assertValid(8, num_of_threads, self.eightCore_assignment[:num_of_threads])
 
 
 class TestCpuCoresPerRun_singleCPU(TestCpuCoresPerRun):

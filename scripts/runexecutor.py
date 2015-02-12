@@ -111,7 +111,7 @@ def main(argv=None):
     # actual run execution
     result = \
         executor.execute_run(args=options.args,
-                            outputFileName=options.output,
+                            output_filename=options.output,
                             hardtimelimit=options.timelimit,
                             softtimelimit=options.softtimelimit,
                             walltimelimit=options.walltimelimit,
@@ -122,12 +122,12 @@ def main(argv=None):
                             workingDir=options.dir,
                             maxLogfileSize=options.maxOutputSize)
 
-    # exitCode is a special number:
+    # exit_code is a special number:
     # It is a 16bit int of which the lowest 7 bit are the signal number,
     # and the high byte is the real exit code of the process (here 0).
-    exitCode = result['exitcode']
-    returnValue = exitCode // 256
-    exitSignal = exitCode % 128
+    exit_code = result['exitcode']
+    return_value = exit_code // 256
+    exitSignal = exit_code % 128
 
     def print_optional_result(key):
         if key in result:
@@ -136,9 +136,9 @@ def main(argv=None):
 
     # output results
     print_optional_result('terminationreason')
-    print("exitcode=" + str(exitCode))
-    if (exitSignal == 0) or (returnValue != 0):
-        print("returnvalue=" + str(returnValue))
+    print("exitcode=" + str(exit_code))
+    if (exitSignal == 0) or (return_value != 0):
+        print("returnvalue=" + str(return_value))
     if exitSignal != 0 :
         print("exitsignal=" + str(exitSignal))
     print("walltime=" + str(result['walltime']) + "s")

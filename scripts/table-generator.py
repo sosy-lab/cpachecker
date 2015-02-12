@@ -256,7 +256,7 @@ def parseTableDefinitionFile(file, allColumns):
 
     defaultColumnsToShow = extractColumnsFromTableDefinitionFile(tableGenFile)
 
-    baseDir = os.path.dirname(file)
+    base_dir = os.path.dirname(file)
 
     def getResultTags(rootTag):
         tags = rootTag.findall('result')
@@ -268,7 +268,7 @@ def parseTableDefinitionFile(file, allColumns):
 
     for resultTag in getResultTags(tableGenFile):
         columnsToShow = extractColumnsFromTableDefinitionFile(resultTag) or defaultColumnsToShow
-        filelist = Util.getFileList(os.path.join(baseDir, resultTag.get('filename'))) # expand wildcards
+        filelist = Util.getFileList(os.path.join(base_dir, resultTag.get('filename'))) # expand wildcards
         runSetResults += [RunSetResult.createFromXML(resultsFile, parseResultsFile(resultsFile), columnsToShow, allColumns) for resultsFile in filelist]
 
     for unionTag in tableGenFile.findall('union'):
@@ -276,7 +276,7 @@ def parseTableDefinitionFile(file, allColumns):
         result = RunSetResult([], collections.defaultdict(list), columnsToShow)
 
         for resultTag in getResultTags(unionTag):
-            filelist = Util.getFileList(os.path.join(baseDir, resultTag.get('filename'))) # expand wildcards
+            filelist = Util.getFileList(os.path.join(base_dir, resultTag.get('filename'))) # expand wildcards
             for resultsFile in filelist:
                 result.append(resultsFile, parseResultsFile(resultsFile), allColumns)
 
@@ -291,7 +291,7 @@ def parseTableDefinitionFile(file, allColumns):
 
 class Column:
     """
-    The class Column contains title, pattern (to identify a line in logFile),
+    The class Column contains title, pattern (to identify a line in log_file),
     and number_of_digits of a column.
     It does NOT contain the value of a column.
     """
@@ -425,31 +425,31 @@ def insertLogFileNames(resultFile, resultElem):
 
     # get folder of logfiles
     date = resultElem.get('date').replace(':','').replace(' ','_') # from ISO-format to filename-format
-    logFolder = resultElem.get('benchmarkname') + '.' + date + '.logfiles/'
+    log_folder = resultElem.get('benchmarkname') + '.' + date + '.logfiles/'
     if len(parts) > 1:
-        logFolder = parts[0] + '#' + logFolder
-    logFolder = os.path.join(os.path.dirname(resultFile), resultElem.get('baseDir', ''), logFolder)
+        log_folder = parts[0] + '#' + log_folder
+    log_folder = os.path.join(os.path.dirname(resultFile), resultElem.get('baseDir', ''), log_folder)
 
     # append begin of filename
     runSetName = resultElem.get('name')
     if runSetName is not None:
         blockname = resultElem.get('block')
         if blockname is None:
-            logFolder += runSetName + "."
+            log_folder += runSetName + "."
         elif blockname == runSetName:
             pass # real runSetName is empty
         else:
             assert runSetName.endswith("." + blockname)
             runSetName = runSetName[:-(1 + len(blockname))] # remove last chars
-            logFolder += runSetName + "."
+            log_folder += runSetName + "."
 
-    # for each file: append original filename and insert logFileName into sourcefileElement
+    # for each file: append original filename and insert log_file_name into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
-        logFileName = os.path.basename(sourcefile.get('name')) + ".log"
-        sourcefile.set('logfile', logFolder + logFileName)
+        log_file_name = os.path.basename(sourcefile.get('name')) + ".log"
+        sourcefile.set('logfile', log_folder + log_file_name)
 
 def getDefaultLogFolder(resultElem):
-    return logFolder
+    return log_folder
 
 
 def mergeSourceFiles(runSetResults):
@@ -520,10 +520,10 @@ class RunResult:
     """
     The class RunResult contains the results of a single verification run.
     """
-    def __init__(self, status, category, logFile, columns, values):
+    def __init__(self, status, category, log_file, columns, values):
         assert(len(columns) == len(values))
         self.status = status
-        self.logFile = logFile
+        self.log_file = log_file
         self.columns = columns
         self.values = values
         self.category = category
@@ -610,13 +610,13 @@ class Row:
     def addRunResult(self, runresult):
         self.results.append(runresult)
 
-    def setRelativePath(self, common_prefix, baseDir):
+    def setRelativePath(self, common_prefix, base_dir):
         """
         generate output representation of rows
         """
         # make path relative to directory of output file if necessary
         self.filePath = self.fileName if os.path.isabs(self.fileName) \
-                                 else os.path.relpath(self.fileName, baseDir)
+                                 else os.path.relpath(self.fileName, base_dir)
 
         self.shortFileName = self.fileName.replace(common_prefix, '', 1)
 
@@ -709,7 +709,7 @@ def getTableHead(runSetResults, commonFileNamePrefix):
                                 content=list(zip(titles, runSetWidths1)))
 
     return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
-            'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}, CPU core limit: {cpuCores}', collapse=True),
+            'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}, CPU core limit: {cpu_cores}', collapse=True),
             'host':    getRow('Host', '{host}', collapse=True, onlyIf='host'),
             'os':      getRow('OS', '{os}', collapse=True, onlyIf='os'),
             'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True, onlyIf='cpu'),
@@ -969,9 +969,9 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
     list(map(lambda row: Row.setRelativePath(row, common_prefix, outputPath), rows))
 
     head = getTableHead(runSetResults, common_prefix)
-    runSetsData = [runSetResult.attributes for runSetResult in runSetResults]
-    runSetsColumns = [[column for column in runSet.columns] for runSet in runSetResults]
-    runSetsColumnTitles = [[column.title for column in runSet.columns] for runSet in runSetResults]
+    run_sets_data = [runSetResult.attributes for runSetResult in runSetResults]
+    run_sets_columns = [[column for column in runSet.columns] for runSet in runSetResults]
+    run_sets_column_titles = [[column.title for column in runSet.columns] for runSet in runSetResults]
 
     templateNamespace={'flatten': Util.flatten,
                        'json': Util.json,
@@ -1005,11 +1005,11 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
                         head=head,
                         body=rows,
                         foot=stats,
-                        runSets=runSetsData,
-                        columns=runSetsColumns,
-                        columnTitles=runSetsColumnTitles,
+                        run_sets=run_sets_data,
+                        columns=run_sets_columns,
+                        columnTitles=run_sets_column_titles,
                         lib_url=options.libUrl,
-                        baseDir=outputPath,
+                        base_dir=outputPath,
                         ))
 
             if options.showTable and format == 'html':

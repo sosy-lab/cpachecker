@@ -61,7 +61,7 @@ _TURBO_BOOST_FILE_PSTATE = "/sys/devices/system/cpu/intel_pstate/no_turbo"
 
 def init(config, benchmark):
     benchmark.executable = benchmark.tool.executable()
-    benchmark.toolVersion = benchmark.tool.version(benchmark.executable)
+    benchmark.tool_version = benchmark.tool.version(benchmark.executable)
 
     try:
         processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
@@ -76,9 +76,9 @@ def get_system_info():
 
 def execute_benchmark(benchmark, output_handler):
 
-    runSetsExecuted = 0
+    run_sets_executed = 0
 
-    logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
+    logging.debug("I will use {0} threads.".format(benchmark.num_of_threads))
 
     cgroupsParents = {}
     cgroups.init_cgroup(cgroupsParents, 'cpuset')
@@ -89,19 +89,19 @@ def execute_benchmark(benchmark, output_handler):
     if CORELIMIT in benchmark.rlimits:
         if not cgroupCpuset:
             sys.exit("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
-        coreAssignment = _get_cpu_cores_per_run(benchmark.rlimits[CORELIMIT], benchmark.numOfThreads, cgroupCpuset)
+        coreAssignment = _get_cpu_cores_per_run(benchmark.rlimits[CORELIMIT], benchmark.num_of_threads, cgroupCpuset)
         memoryAssignment = _get_memory_banks_per_run(coreAssignment, cgroupCpuset)
 
     if MEMLIMIT in benchmark.rlimits:
         # check whether we have enough memory in the used memory banks for all runs
         memLimit = benchmark.rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
-        _check_memory_size(memLimit, benchmark.numOfThreads, memoryAssignment, cgroupsParents)
+        _check_memory_size(memLimit, benchmark.num_of_threads, memoryAssignment, cgroupsParents)
 
-    if benchmark.numOfThreads > 1 and _is_turbo_boost_enabled():
+    if benchmark.num_of_threads > 1 and _is_turbo_boost_enabled():
         logging.warning("Turbo boost of CPU is enabled. Starting more than one benchmark in parallel affects the CPU frequency and thus makes the performance unreliable.")
 
     # iterate over run sets
-    for runSet in benchmark.runSets:
+    for runSet in benchmark.run_sets:
 
         if STOPPED_BY_INTERRUPT: break
 
@@ -112,10 +112,10 @@ def execute_benchmark(benchmark, output_handler):
             output_handler.output_for_skipping_run_set(runSet, "because it has no files")
 
         else:
-            runSetsExecuted += 1
+            run_sets_executed += 1
             # get times before runSet
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
-            wallTimeBefore = time.time()
+            walltime_before = time.time()
             energyBefore = Util.measure_energy()
 
             output_handler.output_before_run_set(runSet)
@@ -125,7 +125,7 @@ def execute_benchmark(benchmark, output_handler):
                 _Worker.working_queue.put(run)
 
             # create some workers
-            for i in range(benchmark.numOfThreads):
+            for i in range(benchmark.num_of_threads):
                 cores = coreAssignment[i] if coreAssignment else None
                 memBanks = memoryAssignment[i] if memoryAssignment else None
                 WORKER_THREADS.append(_Worker(benchmark, cores, memBanks, output_handler))
@@ -146,16 +146,16 @@ def execute_benchmark(benchmark, output_handler):
                     kill()
 
             # get times after runSet
-            wallTimeAfter = time.time()
+            walltime_after = time.time()
             energy = Util.measure_energy(energyBefore)
-            usedWallTime = wallTimeAfter - wallTimeBefore
+            usedWallTime = walltime_after - walltime_before
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
             usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
                         - (ruBefore.ru_utime + ruBefore.ru_stime)
 
             if STOPPED_BY_INTERRUPT:
                 output_handler.set_error('interrupted')
-            output_handler.output_after_run_set(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
+            output_handler.output_after_run_set(runSet, cputime=usedCpuTime, walltime=usedWallTime, energy=energy)
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
@@ -174,7 +174,7 @@ def kill():
         worker.join()
 
 
-def _get_cpu_cores_per_run(coreLimit, numOfThreads, cgroupCpuset):
+def _get_cpu_cores_per_run(coreLimit, num_of_threads, cgroupCpuset):
     """
     Calculate an assignment of the available CPU cores to a number
     of parallel benchmark executions such that each run gets its own cores
@@ -201,7 +201,7 @@ def _get_cpu_cores_per_run(coreLimit, numOfThreads, cgroupCpuset):
     e.g. 3 cores on one CPU and 5 on another.
 
     @param coreLimit: the number of cores for each run
-    @param numOfThreads: the number of parallel benchmark executions
+    @param num_of_threads: the number of parallel benchmark executions
     @return a list of lists, where each inner list contains the cores for one run
     """
     try:
@@ -225,9 +225,9 @@ def _get_cpu_cores_per_run(coreLimit, numOfThreads, cgroupCpuset):
     except ValueError as e:
         sys.exit("Could not read CPU information from kernel: {0}".format(e))
 
-    return _get_cpu_cores_per_run0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core)
+    return _get_cpu_cores_per_run0(coreLimit, num_of_threads, allCpus, cores_of_package, siblings_of_core)
 
-def _get_cpu_cores_per_run0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core):
+def _get_cpu_cores_per_run0(coreLimit, num_of_threads, allCpus, cores_of_package, siblings_of_core):
     """This method does the actual work of _get_cpu_cores_per_run
     without reading the machine architecture from the filesystem
     in order to be testable. For description, c.f. above.
@@ -240,8 +240,8 @@ def _get_cpu_cores_per_run0(coreLimit, numOfThreads, allCpus, cores_of_package, 
     # First, do some checks whether this algorithm has a chance to work.
     if coreLimit > len(allCpus):
         sys.exit("Cannot run benchmarks with {0} CPU cores, only {1} CPU cores available.".format(coreLimit, len(allCpus)))
-    if coreLimit * numOfThreads > len(allCpus):
-        sys.exit("Cannot run {0} benchmarks in parallel with {1} CPU cores each, only {2} CPU cores available. Please reduce the number of threads to {3}.".format(numOfThreads, coreLimit, len(allCpus), len(allCpus) // coreLimit))
+    if coreLimit * num_of_threads > len(allCpus):
+        sys.exit("Cannot run {0} benchmarks in parallel with {1} CPU cores each, only {2} CPU cores available. Please reduce the number of threads to {3}.".format(num_of_threads, coreLimit, len(allCpus), len(allCpus) // coreLimit))
 
     package_size = None # Number of cores per package
     for package, cores in cores_of_package.items():
@@ -263,24 +263,24 @@ def _get_cpu_cores_per_run0(coreLimit, numOfThreads, allCpus, cores_of_package, 
     coreLimit_rounded_up = int(math.ceil(coreLimit / core_size) * core_size)
     assert coreLimit <= coreLimit_rounded_up < (coreLimit + core_size)
     #assert coreLimit_rounded_up <= package_size
-    if coreLimit_rounded_up * numOfThreads > len(allCpus):
+    if coreLimit_rounded_up * num_of_threads > len(allCpus):
         logging.warning("The number of threads is too high and hyper-threading sibling cores need to be split among different runs, which makes benchmarking unreliable. Please reduce the number of threads to {0}.".format(len(allCpus) // coreLimit_rounded_up))
 
     packages_per_run = int(math.ceil(coreLimit_rounded_up / package_size))
-    if packages_per_run > 1 and packages_per_run * numOfThreads > package_count:
+    if packages_per_run > 1 and packages_per_run * num_of_threads > package_count:
         sys.exit("Cannot split runs over multiple CPUs and at the same time assign multiple runs to the same CPU. Please reduce the number of threads to {0}.".format(package_count // packages_per_run))
 
-    runs_per_package = int(math.ceil(numOfThreads / package_count))
+    runs_per_package = int(math.ceil(num_of_threads / package_count))
     assert packages_per_run == 1 or runs_per_package == 1
     if packages_per_run == 1 and runs_per_package * coreLimit > package_size:
-        sys.exit("Cannot run {} benchmarks with {} cores on {} CPUs with {} cores, because runs would need to be split across multiple CPUs. Please reduce the number of threads.".format(numOfThreads, coreLimit, package_count, package_size))
+        sys.exit("Cannot run {} benchmarks with {} cores on {} CPUs with {} cores, because runs would need to be split across multiple CPUs. Please reduce the number of threads.".format(num_of_threads, coreLimit, package_count, package_size))
 
     logging.debug("Going to assign at most {0} runs per package, each one using {1} cores and blocking {2} cores on {3} packages.".format(runs_per_package, coreLimit, coreLimit_rounded_up, packages_per_run))
 
     # Third, do the actual core assignment.
     result = []
     used_cores = set()
-    for run in range(numOfThreads):
+    for run in range(num_of_threads):
         # this calculation ensures that runs are split evenly across packages
         start_package = (run * packages_per_run) % package_count
         cores = []
@@ -298,9 +298,9 @@ def _get_cpu_cores_per_run0(coreLimit, numOfThreads, allCpus, cores_of_package, 
         used_cores.update(cores)
         result.append(sorted(cores))
 
-    assert len(result) == numOfThreads
+    assert len(result) == num_of_threads
     assert all(len(cores) == coreLimit for cores in result)
-    assert len(set(itertools.chain(*result))) == numOfThreads * coreLimit, "Cores are not uniquely assigned to runs: " + result
+    assert len(set(itertools.chain(*result))) == num_of_threads * coreLimit, "Cores are not uniquely assigned to runs: " + result
 
     logging.debug("Final core assignment: {0}.".format(str(result)))
     return result
@@ -349,13 +349,13 @@ def _get_memory_banks_listed_in_dir(dir):
     return [int(entry[4:]) for entry in os.listdir(dir) if entry.startswith('node')]
 
 
-def _check_memory_size(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
+def _check_memory_size(memLimit, num_of_threads, memoryAssignment, cgroupsParents):
     """Check whether the desired amount of parallel benchmarks fits in the memory.
     Implemented are checks for memory limits via cgroup controller "memory" and
     memory bank restrictions via cgroup controller "cpuset",
     as well as whether the system actually has enough memory installed.
     @param memLimit: the memory limit in bytes per run
-    @param numOfThreads: the number of parallel benchmark executions
+    @param num_of_threads: the number of parallel benchmark executions
     @param memoryAssignment: the allocation of memory banks to runs (if not present, all banks are assigned to all runs)
     """
     try:
@@ -363,8 +363,8 @@ def _check_memory_size(memLimit, numOfThreads, memoryAssignment, cgroupsParents)
         def check_limit(actualLimit):
             if actualLimit < memLimit:
                 sys.exit("Cgroups allow only {} bytes of memory to be used, cannot execute runs with {} bytes of memory.".format(actualLimit, memLimit))
-            elif actualLimit < memLimit * numOfThreads:
-                sys.exit("Cgroups allow only {} bytes of memory to be used, not enough for {} benchmarks with {} bytes each. Please reduce the number of threads".format(actualLimit, numOfThreads, memLimit))
+            elif actualLimit < memLimit * num_of_threads:
+                sys.exit("Cgroups allow only {} bytes of memory to be used, not enough for {} benchmarks with {} bytes each. Please reduce the number of threads".format(actualLimit, num_of_threads, memLimit))
 
         if not os.path.isdir('/sys/devices/system/node/'):
             logging.debug("System without NUMA support in Linux kernel, ignoring memory assignment.")
@@ -390,7 +390,7 @@ def _check_memory_size(memLimit, numOfThreads, memoryAssignment, cgroupsParents)
                 allMems = _get_allowed_memory_banks(cgroupCpuset)
             else:
                 allMems = _get_memory_banks_listed_in_dir('/sys/devices/system/node/')
-            memoryAssignment = [allMems] * numOfThreads # "fake" memory assignment: all threads on all banks
+            memoryAssignment = [allMems] * num_of_threads # "fake" memory assignment: all threads on all banks
         else:
             allMems = set(itertools.chain(*memoryAssignment))
 
@@ -493,7 +493,7 @@ class _Worker(threading.Thread):
 
         result = \
             self.run_executor.execute_run(
-                run.cmdline(), run.logFile,
+                run.cmdline(), run.log_file,
                 hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
                 softtimelimit=benchmark.rlimits.get(SOFTTIMELIMIT),
                 cores=self.my_cpus,
@@ -505,9 +505,9 @@ class _Worker(threading.Thread):
 
         for key, value in result.items():
             if key == 'walltime':
-                run.wallTime == value
+                run.walltime == value
             elif key == 'cputime':
-                run.cpuTime = value
+                run.cputime = value
             elif key == 'memory':
                 run.values['memUsage'] = result['memory']
             elif key == 'energy':
@@ -518,13 +518,13 @@ class _Worker(threading.Thread):
 
         if self.run_executor.PROCESS_KILLED:
             # If the run was interrupted, we ignore the result and cleanup.
-            run.wallTime = 0
-            run.cpuTime = 0
+            run.walltime = 0
+            run.cputime = 0
             try:
                 if benchmark.config.debug:
-                   os.rename(run.logFile, run.logFile + ".killed")
+                   os.rename(run.log_file, run.log_file + ".killed")
                 else:
-                   os.remove(run.logFile)
+                   os.remove(run.log_file)
             except OSError:
                 pass
             return

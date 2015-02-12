@@ -70,9 +70,9 @@ class WebClientError(Exception):
 def init(config, benchmark):
     if config.cloudMaster:
         if config.revision:
-            benchmark.toolVersion = config.revision
+            benchmark.tool_version = config.revision
         else:
-            benchmark.toolVersion = "trunk:HEAD"
+            benchmark.tool_version = "trunk:HEAD"
     benchmark.executable = ''
 
 def get_system_info():
@@ -80,7 +80,7 @@ def get_system_info():
 
 def execute_benchmark(benchmark, output_handler):
 
-    if (benchmark.toolName != 'CPAchecker'):
+    if (benchmark.tool_name != 'CPAchecker'):
         logging.warn("The web client does only support the CPAchecker.")
         return
 
@@ -94,7 +94,7 @@ def execute_benchmark(benchmark, output_handler):
     
     STOPPED_BY_INTERRUPT = False
     try:
-        for runSet in benchmark.runSets:
+        for runSet in benchmark.run_sets:
             if not runSet.should_be_executed():
                 output_handler.output_for_skipping_run_set(runSet)
                 continue
@@ -355,7 +355,7 @@ def _isFinished(runID, webclient, benchmark):
         return False
 
 def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
-    zipFilePath = run.logFile + ".zip"    
+    zipFilePath = run.log_file + ".zip"    
 
     # download result as zip file
     counter = 0
@@ -380,30 +380,30 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
                 
     if sucess:
        # unzip result
-       resultDir = run.logFile + ".output"
+       resultDir = run.log_file + ".output"
        output_handler.output_before_run(run)
        with ZipFile(zipFilePath) as resultZipFile:
            resultZipFile.extractall(resultDir)
        os.remove(zipFilePath)
        
        # move logfile and stderr
-       with open(run.logFile, 'w') as logFile:
-           logFile.write(" ".join(run.cmdline()) + "\n\n\n\n\n------------------------------------------\n")
+       with open(run.log_file, 'w') as log_file:
+           log_file.write(" ".join(run.cmdline()) + "\n\n\n\n\n------------------------------------------\n")
            toolLog = resultDir + "/output.log"
            if os.path.isfile(toolLog):
                for line in open(toolLog):
-                   logFile.write(line)
+                   log_file.write(line)
                os.remove(toolLog)
        stderr = resultDir + "/stderr"
        if os.path.isfile(stderr):
-           shutil.move(stderr, run.logFile + ".stdError")
+           shutil.move(stderr, run.log_file + ".stdError")
 
        # extract values
-       (run.wallTime, run.cpuTime, returnValue, values) = _parseCloudResultFile(resultDir + "/runInformation.txt")
+       (run.walltime, run.cputime, return_value, values) = _parseCloudResultFile(resultDir + "/runInformation.txt")
        run.values.update(values)
        values = _parseAndSetCloudWorkerHostInformation(resultDir + "/hostInformation.txt", output_handler)
        run.values.update(values)
-       run.after_execution(returnValue)
+       run.after_execution(return_value)
 
        # remove no longer needed files
        os.remove(resultDir + "/hostInformation.txt")
@@ -440,19 +440,19 @@ def _parseAndSetCloudWorkerHostInformation(filePath, output_handler):
 
 def _parseCloudResultFile(filePath):
 
-    wallTime = None
-    cpuTime = None
+    walltime = None
+    cputime = None
     memUsage = None
-    returnValue = None
+    return_value = None
     
     values = _parseFile(filePath)   
 
-    returnValue = int(values["@vcloud-exitcode"])
-    wallTime = float(values["walltime"].strip('s'))
-    cpuTime = float(values["cputime"].strip('s'))
+    return_value = int(values["@vcloud-exitcode"])
+    walltime = float(values["walltime"].strip('s'))
+    cputime = float(values["cputime"].strip('s'))
     values["memUsage"] = int(values["@vcloud-memory"].strip('B'))     
     
-    return (wallTime, cpuTime, returnValue, values)
+    return (walltime, cputime, return_value, values)
 
 def _parseFile(filePath):
     values = {}

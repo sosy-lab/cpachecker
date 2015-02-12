@@ -63,7 +63,7 @@ def init(config, benchmark):
         response = json.loads(urllib2.urlopen(request).read())
         global APPENGINE_SETTINGS
         APPENGINE_SETTINGS = response
-        benchmark.toolVersion = response['cpacheckerVersion'] \
+        benchmark.tool_version = response['cpacheckerVersion'] \
                                         .split('(')[0] \
                                         .strip()
         benchmark.executable = ''
@@ -77,7 +77,7 @@ def get_system_info():
 
 def execute_benchmark(benchmark, output_handler):
     formatString = '%m-%d-%YT%H:%M:%S.%f'
-    timestampsFileName = benchmark.outputBase+'.Timestamps_'+datetime.strftime(datetime.now(), formatString)+'.txt'
+    timestampsFileName = benchmark.output_base_name+'.Timestamps_'+datetime.strftime(datetime.now(), formatString)+'.txt'
     with open(timestampsFileName, 'a') as f:
         f.write('Start: '+datetime.strftime(datetime.now(), formatString)+'\n')
 
@@ -125,7 +125,7 @@ def _getBenchmarkDataForAppEngine(benchmark):
     # TODO default CPU model??
     cpu_model = benchmark.requirements.cpu_model
 
-    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets if runSet.should_be_executed())
+    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.run_sets if runSet.should_be_executed())
 
     workingDir = benchmark.working_directory()
     if not os.path.isdir(workingDir):
@@ -134,7 +134,7 @@ def _getBenchmarkDataForAppEngine(benchmark):
 
     sourceFiles = []
     runQueue = Queue.Queue(maxsize=0)
-    for runSet in benchmark.runSets:
+    for runSet in benchmark.run_sets:
         if not runSet.should_be_executed(): continue
         if STOPPED_BY_INTERRUPT: break
 
@@ -152,7 +152,7 @@ def _getBenchmarkDataForAppEngine(benchmark):
             except:
                 sys.exit("Cannot read program file {}.".format(run.identifier))
             runQueue.put({'payload':args,
-                          'logFile':os.path.abspath(run.logFile),
+                          'logFile':os.path.abspath(run.log_file),
                           'debug':benchmark.config.debug,
                           'maxLogfileSize':benchmark.config.maxLogfileSize})
             sourceFiles.append(run.identifier)
@@ -180,7 +180,7 @@ def _handleAppEngineResults(benchmark, output_handler):
     notSubmitted = 0
     isOverQuota = False
 
-    for runSet in benchmark.runSets:
+    for runSet in benchmark.run_sets:
         if not runSet.should_be_executed():
             output_handler.output_for_skipping_run_set(runSet)
             continue
@@ -191,21 +191,21 @@ def _handleAppEngineResults(benchmark, output_handler):
         for run in runSet.runs:
             output_handler.output_before_run(run)
 
-            (returnValue, hasErr, hasTO, isNotSubmt, overQuota) = \
+            (return_value, hasErr, hasTO, isNotSubmt, overQuota) = \
                 _parseAppEngineResult(run)
 
-            if run.wallTime:
-                totalWallTime += run.wallTime
+            if run.walltime:
+                totalWallTime += run.walltime
 
             if hasErr: withError += 1
             if hasTO: withTimeout += 1
             if isNotSubmt: notSubmitted += 1
             isOverQuota = True if overQuota or isOverQuota else False
 
-            run.after_execution(returnValue, hasTO)
+            run.after_execution(return_value, hasTO)
             output_handler.output_after_run(run)
 
-        output_handler.output_after_run_set(runSet, wallTime=totalWallTime)
+        output_handler.output_after_run_set(runSet, walltime=totalWallTime)
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
@@ -213,7 +213,7 @@ def _handleAppEngineResults(benchmark, output_handler):
         logging.warning("{} runs were not submitted to App Engine!".format(notSubmitted))
     if withError > 0:
         logging.warning("{} runs produced unexpected errors, please check the {} files!"
-                        .format(withError, os.path.join(benchmark.logFolder, '*.stdErr')))
+                        .format(withError, os.path.join(benchmark.log_folder, '*.stdErr')))
     if withTimeout > 0:
         logging.warning("{} runs timed out!".format(withTimeout))
     if isOverQuota:
@@ -224,52 +224,52 @@ def _parseAppEngineResult(run):
     error = False
     timeout = False
     notSubmitted = False
-    returnValue = 0
+    return_value = 0
     overQuota = False
 
-    hasStdOutFile = (os.path.exists(run.logFile+'.stdOut') and os.path.isfile(run.logFile+'.stdOut'))
-    hasErrOutFile = (os.path.exists(run.logFile+'.stdErr') and os.path.isfile(run.logFile+'.stdErr'))
+    hasStdOutFile = (os.path.exists(run.log_file+'.stdOut') and os.path.isfile(run.log_file+'.stdOut'))
+    hasErrOutFile = (os.path.exists(run.log_file+'.stdErr') and os.path.isfile(run.log_file+'.stdErr'))
 
     if hasStdOutFile:
         try:
-            with open(run.logFile+'.stdOut', 'rt') as file:
+            with open(run.log_file+'.stdOut', 'rt') as file:
                 lines = file.read()
                 result = json.loads(lines)
                 if result['status'] == 'ERROR':
-                    returnValue = 256 # error; returncode != 0
+                    return_value = 256 # error; returncode != 0
                     error = True
                 if result['status'] == 'TIMEOUT':
-                    returnValue = 9 # timeout
+                    return_value = 9 # timeout
                     timeout = True
                 if result['status'] == 'OVER_QUOTA':
-                    returnValue = 6 # aborted
+                    return_value = 6 # aborted
                     overQuota = True
 
-                run.wallTime = timedelta(microseconds=result['statistic']['latency']).total_seconds()
-                run.cpuTime = result['statistic']['CPUTime']
+                run.walltime = timedelta(microseconds=result['statistic']['latency']).total_seconds()
+                run.cputime = result['statistic']['CPUTime']
                 run.values['host'] = result['statistic']['host']
         except:
             pass # can't read std out file
 
     if hasErrOutFile:
         try:
-            with open(run.logFile+'.stdErr', 'rt') as errFile:
+            with open(run.log_file+'.stdErr', 'rt') as errFile:
                 lines = errFile.read()
                 if 'NOT SUBMITTED' in lines:
-                    returnValue = 6 # aborted
+                    return_value = 6 # aborted
                     notSubmitted = True
                 else:
                     result = json.loads(lines)
                     if result['status'] == 'ERROR':
-                        returnValue = 256 # error; returncode != 0
+                        return_value = 256 # error; returncode != 0
                         error = True
                     elif result['status'] == 'TIMEOUT':
-                        returnValue = 9 # timeout
+                        return_value = 9 # timeout
                         timeout = True
         except:
             pass # can't read err file
 
-    return (returnValue, error, timeout, notSubmitted, overQuota)
+    return (return_value, error, timeout, notSubmitted, overQuota)
 
 
 class _AppEngineSubmitter(threading.Thread):
@@ -325,7 +325,7 @@ class _AppEngineSubmitter(threading.Thread):
                     APPENGINE_TASKS[key] = runs[int(taskIDs[key])]
                     self.submittedTasks += 1
                     try:
-                        with open(self.benchmark.outputBase+'.Submitted_Tasks.txt', 'a') as f:
+                        with open(self.benchmark.output_base_name+'.Submitted_Tasks.txt', 'a') as f:
                             f.write(key+'\n')
                     except:
                         pass
@@ -385,7 +385,7 @@ class _AppEnginePoller(threading.Thread):
 
     def saveResult(self, run, task):
         taskKey = task['key']
-        logFile = run['logFile']
+        log_file = run['logFile']
         headers = {'Accept':'text/plain'}
 
         fileNames = []
@@ -393,7 +393,7 @@ class _AppEnginePoller(threading.Thread):
             fileNames.append(file['name'])
 
         try:
-            Util.write_file(json.dumps(task), logFile+'.stdOut')
+            Util.write_file(json.dumps(task), log_file+'.stdOut')
         except:
             logging.debug('Could not save task '+taskKey)
 
@@ -403,7 +403,7 @@ class _AppEnginePoller(threading.Thread):
                 uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
-                Util.write_file(response, logFile)
+                Util.write_file(response, log_file)
                 statisticsProcessed = True
             except:
                 statisticsProcessed = False
@@ -418,7 +418,7 @@ class _AppEnginePoller(threading.Thread):
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
                 response = 'Task Key: {}\n{}'.format(task['key'], response)
-                Util.write_file(response, logFile+'.stdErr')
+                Util.write_file(response, log_file+'.stdErr')
             except: pass
 
         headers = {'Content-type':'application/json', 'Accept':'application/json'}
@@ -431,9 +431,9 @@ class _AppEnginePoller(threading.Thread):
                 urllib2.urlopen(request)
                 self.finishedTasks += 1
                 markedAsProcessed = True
-                logging.info('Stored result of task {0} in file {1}'.format(taskKey, logFile))
+                logging.info('Stored result of task {0} in file {1}'.format(taskKey, log_file))
                 try:
-                    with open(self.benchmark.outputBase+'.Processed_Tasks.txt', 'a') as f:
+                    with open(self.benchmark.output_base_name+'.Processed_Tasks.txt', 'a') as f:
                         f.write(taskKey+'\n')
                 except: pass
                 logging.debug('Task {} finished. Status: {}'.format(taskKey, task['status']))
