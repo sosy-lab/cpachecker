@@ -235,16 +235,16 @@ class BenchExec(object):
         self.check_existing_results(benchmark)
 
         self.executor.init(self.config, benchmark)
-        outputHandler = OutputHandler(benchmark, self.executor.get_system_info())
+        output_handler = OutputHandler(benchmark, self.executor.get_system_info())
 
         logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
                 repr(benchmarkFile), len(benchmark.runSets)))
 
-        result = self.executor.execute_benchmark(benchmark, outputHandler)
+        result = self.executor.execute_benchmark(benchmark, output_handler)
 
         if self.config.commit and not self.stopped_by_interrupt:
-            Util.add_files_to_git_repository(self.config.output_path, outputHandler.all_created_files,
-                                         self.config.commitMessage+'\n\n'+outputHandler.description)
+            Util.add_files_to_git_repository(self.config.output_path, output_handler.all_created_files,
+                                         self.config.commitMessage+'\n\n'+output_handler.description)
         return result
 
 

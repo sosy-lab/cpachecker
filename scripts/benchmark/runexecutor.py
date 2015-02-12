@@ -56,13 +56,13 @@ class RunExecutor():
         self.SUB_PROCESSES = set()
         self._terminationReason = None
 
-        self._initCGroups()
+        self._init_cgroups()
 
 
-    def _initCGroups(self):
+    def _init_cgroups(self):
         """
         This function initializes the cgroups for the limitations.
-        Please call it before any calls to executeRun(),
+        Please call it before any calls to execute_run(),
         if you want to separate initialization from actual run execution
         (e.g., for better error message handling).
         """
@@ -79,7 +79,7 @@ class RunExecutor():
         init_cgroup(self.cgroupsParents, CPUSET)
 
         self.cpus = None # to indicate that we cannot limit cores
-        self.memoryNodes = None # to indicate that we cannot limit cores
+        self.memory_nodes = None # to indicate that we cannot limit cores
         cgroupCpuset = self.cgroupsParents[CPUSET]
         if cgroupCpuset:
             # Read available cpus/memory nodes:
@@ -92,26 +92,26 @@ class RunExecutor():
 
             memsStr = read_file(cgroupCpuset, 'cpuset.mems')
             try:
-                self.memoryNodes = Util.parse_int_list(memsStr)
+                self.memory_nodes = Util.parse_int_list(memsStr)
             except ValueError as e:
                 logging.warning("Could not read available memory nodes from kernel: {0}".format(e.strerror))
-            logging.debug("List of available memory nodes is {0}.".format(self.memoryNodes))
+            logging.debug("List of available memory nodes is {0}.".format(self.memory_nodes))
 
 
-    def _setupCGroups(self, args, myCpus, memlimit, memoryNodes):
+    def _setup_cgroups(self, args, my_cpus, memlimit, memory_nodes):
         """
         This method creates the CGroups for the following execution.
         @param args: the command line to run, used only for logging
-        @param myCpus: None or a list of the CPU cores to use
+        @param my_cpus: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
-        @param memoryNodes: None or a list of memory nodes of a NUMA system to use
+        @param memory_nodes: None or a list of memory nodes of a NUMA system to use
         @return cgroups: a map of all the necessary cgroups for the following execution.
                          Please add the process of the following execution to all those cgroups!
         """
       
         # Setup cgroups, need a single call to create_cgroup() for all subsystems
         subsystems = [CPUACCT, MEMORY]
-        if myCpus is not None:
+        if my_cpus is not None:
             subsystems.append(CPUSET)
 
         cgroups = create_cgroup(self.cgroupsParents, *subsystems)
@@ -119,18 +119,18 @@ class RunExecutor():
         logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
         # Setup cpuset cgroup if necessary to limit the CPU cores/memory nodes to be used.
-        if myCpus is not None:
+        if my_cpus is not None:
             cgroupCpuset = cgroups[CPUSET]
-            myCpusStr = ','.join(map(str, myCpus))
-            write_file(myCpusStr, cgroupCpuset, 'cpuset.cpus')
-            myCpusStr = read_file(cgroupCpuset, 'cpuset.cpus')
-            logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpusStr))
+            my_cpus_str = ','.join(map(str, my_cpus))
+            write_file(my_cpus_str, cgroupCpuset, 'cpuset.cpus')
+            my_cpus_str = read_file(cgroupCpuset, 'cpuset.cpus')
+            logging.debug('Executing {0} with cpu cores [{1}].'.format(args, my_cpus_str))
 
-        if memoryNodes is not None:
+        if memory_nodes is not None:
             cgroupCpuset = cgroups[CPUSET]
-            write_file(','.join(map(str, memoryNodes)), cgroupCpuset, 'cpuset.mems')
-            memoryNodesStr = read_file(cgroupCpuset, 'cpuset.mems')
-            logging.debug('Executing {0} with memory nodes [{1}].'.format(args, memoryNodesStr))
+            write_file(','.join(map(str, memory_nodes)), cgroupCpuset, 'cpuset.mems')
+            memory_nodesStr = read_file(cgroupCpuset, 'cpuset.mems')
+            logging.debug('Executing {0} with memory nodes [{1}].'.format(args, memory_nodesStr))
 
 
         # Setup memory limit
@@ -146,7 +146,7 @@ class RunExecutor():
             # Some kernels might not have this feature,
             # which is ok if there is actually no swap.
             if not os.path.exists(os.path.join(cgroupMemory, swapLimitFile)):
-                if _hasSwap():
+                if _has_swap():
                     sys.exit('Kernel misses feature for accounting swap memory, but machine has swap. Please set swapaccount=1 on your kernel command line or disable swap with "sudo swapoff -a".')
             else:
                 try:
@@ -159,7 +159,7 @@ class RunExecutor():
             memlimit = read_file(cgroupMemory, limitFile)
             logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
 
-        if not os.path.exists(os.path.join(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')) and _hasSwap():
+        if not os.path.exists(os.path.join(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')) and _has_swap():
             logging.warning('Kernel misses feature for accounting swap memory, but machine has swap. Memory usage may be measured inaccurately. Please set swapaccount=1 on your kernel command line or disable swap with "sudo swapoff -a".')
 
         return cgroups
@@ -246,13 +246,13 @@ class RunExecutor():
             if hardtimelimit is not None and CPUACCT in cgroups:
                 # Start a timer to periodically check timelimit with cgroup
                 # if the tool uses subprocesses and ulimit does not work.
-                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, walltimelimit, p, myCpuCount, self._setTerminationReason)
+                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, walltimelimit, p, myCpuCount, self._set_termination_reason)
                 timelimitThread.start()
 
             if memlimit is not None:
                 try:
                     oomThread = oomhandler.KillProcessOnOomThread(cgroups[MEMORY], p,
-                                                                  self._setTerminationReason)
+                                                                  self._set_termination_reason)
                     oomThread.start()
                 except OSError as e:
                     logging.critical("OSError {0} during setup of OomEventListenerThread: {1}.".format(e.errno, e.strerror))
@@ -299,7 +299,7 @@ class RunExecutor():
 
 
 
-    def _getExactMeasures(self, cgroups, returnvalue, wallTime, cpuTime):
+    def _get_exact_measures(self, cgroups, returnvalue, wallTime, cpuTime):
         """
         This method tries to extract better measures from cgroups.
         """
@@ -313,12 +313,12 @@ class RunExecutor():
             # This has never happened except when interrupting the script with Ctrl+C,
             # but just try to be on the safe side here.
             cgroupCpuacct = cgroups[CPUACCT]
-            tmp = _readCpuTime(cgroupCpuacct)
+            tmp = _read_cpu_time(cgroupCpuacct)
             tmp2 = None
             while tmp != tmp2:
                 time.sleep(0.1)
                 tmp2 = tmp
-                tmp = _readCpuTime(cgroupCpuacct)
+                tmp = _read_cpu_time(cgroupCpuacct)
             cpuTime2 = tmp
 
         memUsage = None
@@ -360,9 +360,9 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-    def executeRun(self, args, outputFileName,
+    def execute_run(self, args, outputFileName,
                    hardtimelimit=None, softtimelimit=None, walltimelimit=None,
-                   cores=None, memlimit=None, memoryNodes=None,
+                   cores=None, memlimit=None, memory_nodes=None,
                    environments={}, workingDir=None, maxLogfileSize=None):
         """
         This function executes a given command with resource limits,
@@ -374,7 +374,7 @@ class RunExecutor():
         @param walltimelimit: None or the wall time in seconds after which the tool is forcefully killed (default: hardtimelimit + a few seconds)
         @param cores: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
-        @param memoryNodes: None or a list of memory nodes in a NUMA system to use
+        @param memory_nodes: None or a list of memory nodes in a NUMA system to use
         @param environments: special environments for running the command
         @param workingDir: None or a directory which the execution should use as working directory
         @param maxLogfileSize: None or a number of bytes to which the output of the tool should be truncated approximately if there is too much output.
@@ -421,13 +421,13 @@ class RunExecutor():
             if not self.cgroupsParents[MEMORY]:
                 sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
 
-        if memoryNodes is not None:
-            if self.memoryNodes is None:
+        if memory_nodes is not None:
+            if self.memory_nodes is None:
                 sys.exit("Cannot restrict memory nodes without cpuset cgroup.")
-            if len(memoryNodes) == 0:
+            if len(memory_nodes) == 0:
                 sys.exit("Cannot execute run without any memory node.")
-            if not set(memoryNodes).issubset(self.memoryNodes):
-                sys.exit("Memory nodes {0} are not allowed to be used".format(list(set(memoryNodes).difference(self.memoryNodes))))
+            if not set(memory_nodes).issubset(self.memory_nodes):
+                sys.exit("Memory nodes {0} are not allowed to be used".format(list(set(memory_nodes).difference(self.memory_nodes))))
 
         if workingDir:
             if not os.path.exists(workingDir):
@@ -439,35 +439,35 @@ class RunExecutor():
 
         self._terminationReason = None
 
-        logging.debug("executeRun: setting up Cgroups.")
-        cgroups = self._setupCGroups(args, cores, memlimit, memoryNodes)
+        logging.debug("execute_run: setting up Cgroups.")
+        cgroups = self._setup_cgroups(args, cores, memlimit, memory_nodes)
 
         try:
-            logging.debug("executeRun: executing tool.")
+            logging.debug("execute_run: executing tool.")
             (exitcode, wallTime, cpuTime, energy) = \
                 self._execute(args, outputFileName, cgroups,
                               hardtimelimit, softtimelimit, walltimelimit,
                               coreCount, memlimit,
                               environments, workingDir)
 
-            logging.debug("executeRun: getting exact measures.")
-            (cpuTime, memUsage) = self._getExactMeasures(cgroups, exitcode, wallTime, cpuTime)
+            logging.debug("execute_run: getting exact measures.")
+            (cpuTime, memUsage) = self._get_exact_measures(cgroups, exitcode, wallTime, cpuTime)
 
         finally: # always try to cleanup cgroups, even on sys.exit()
-            logging.debug("executeRun: cleaning up CGroups.")
+            logging.debug("execute_run: cleaning up CGroups.")
             for cgroup in set(cgroups.values()):
                 # Need the set here to delete each cgroup only once.
                 remove_cgroup(cgroup)
 
         # if exception is thrown, skip the rest, otherwise perform normally
 
-        _reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
+        _reduce_file_size_if_necessary(outputFileName, maxLogfileSize)
 
         if exitcode not in [0,1]:
-            logging.debug("executeRun: analysing output for crash-info.")
-            _getDebugOutputAfterCrash(outputFileName)
+            logging.debug("execute_run: analysing output for crash-info.")
+            _get_debug_output_after_crash(outputFileName)
 
-        logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
+        logging.debug("execute_run: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
                       .format(exitcode, wallTime, cpuTime, memUsage, energy))
 
         result = {'walltime': wallTime,
@@ -482,11 +482,11 @@ class RunExecutor():
             result['energy'] = energy
         return result
 
-    def _setTerminationReason(self, reason):
+    def _set_termination_reason(self, reason):
         self._terminationReason = reason
 
     def kill(self):
-        self._setTerminationReason('killed')
+        self._set_termination_reason('killed')
         self.PROCESS_KILLED = True
         with self.SUB_PROCESSES_LOCK:
             for process in self.SUB_PROCESSES:
@@ -494,7 +494,7 @@ class RunExecutor():
                 Util.kill_process(process.pid)
 
 
-def _reduceFileSizeIfNecessary(fileName, maxSize):
+def _reduce_file_size_if_necessary(fileName, maxSize):
     """
     This function shrinks a file.
     We remove only the middle part of a file,
@@ -548,7 +548,7 @@ def _copyAllLinesFromTo(inputFile, outputFile):
         currentLine = inputFile.readline()
 
 
-def _getDebugOutputAfterCrash(outputFileName):
+def _get_debug_output_after_crash(outputFileName):
     """
     Segmentation faults and some memory failures reference a file 
     with more information (hs_err_pid_*). We append this file to the log.
@@ -574,7 +574,7 @@ def _getDebugOutputAfterCrash(outputFileName):
                 foundDumpFile = True
 
 
-def _readCpuTime(cgroupCpuacct):
+def _read_cpu_time(cgroupCpuacct):
     cputimeFile = os.path.join(cgroupCpuacct, 'cpuacct.usage')
     if not os.path.exists(cputimeFile):
         logging.warning('Could not read cputime. File {0} does not exist.'.format(cputimeFile))
@@ -605,7 +605,7 @@ class _TimelimitThread(threading.Thread):
             read = False
             while not read:
                 try:
-                    usedCpuTime = _readCpuTime(self.cgroupCpuacct)
+                    usedCpuTime = _read_cpu_time(self.cgroupCpuacct)
                     read = True
                 except ValueError:
                     # Sometimes the kernel produces strange values with linebreaks in them
@@ -641,7 +641,7 @@ class _TimelimitThread(threading.Thread):
         self.finished.set()
 
 
-def _hasSwap():
+def _has_swap():
     with open('/proc/meminfo', 'r') as meminfo:
         for line in meminfo:
             if line.startswith('SwapTotal:'):

@@ -110,14 +110,14 @@ def main(argv=None):
 
     # actual run execution
     result = \
-        executor.executeRun(args=options.args,
+        executor.execute_run(args=options.args,
                             outputFileName=options.output,
                             hardtimelimit=options.timelimit,
                             softtimelimit=options.softtimelimit,
                             walltimelimit=options.walltimelimit,
                             cores=options.cores,
                             memlimit=options.memlimit,
-                            memoryNodes=options.memoryNodes,
+                            memory_nodes=options.memoryNodes,
                             environments=env,
                             workingDir=options.dir,
                             maxLogfileSize=options.maxOutputSize)

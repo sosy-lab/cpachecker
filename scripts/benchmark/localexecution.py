@@ -74,7 +74,7 @@ def init(config, benchmark):
 def get_system_info():
     return SystemInfo()
 
-def execute_benchmark(benchmark, outputHandler):
+def execute_benchmark(benchmark, output_handler):
 
     runSetsExecuted = 0
 
@@ -89,15 +89,15 @@ def execute_benchmark(benchmark, outputHandler):
     if CORELIMIT in benchmark.rlimits:
         if not cgroupCpuset:
             sys.exit("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
-        coreAssignment = _getCpuCoresPerRun(benchmark.rlimits[CORELIMIT], benchmark.numOfThreads, cgroupCpuset)
-        memoryAssignment = _getMemoryBanksPerRun(coreAssignment, cgroupCpuset)
+        coreAssignment = _get_cpu_cores_per_run(benchmark.rlimits[CORELIMIT], benchmark.numOfThreads, cgroupCpuset)
+        memoryAssignment = _get_memory_banks_per_run(coreAssignment, cgroupCpuset)
 
     if MEMLIMIT in benchmark.rlimits:
         # check whether we have enough memory in the used memory banks for all runs
         memLimit = benchmark.rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
-        _checkMemorySize(memLimit, benchmark.numOfThreads, memoryAssignment, cgroupsParents)
+        _check_memory_size(memLimit, benchmark.numOfThreads, memoryAssignment, cgroupsParents)
 
-    if benchmark.numOfThreads > 1 and _isTurboBoostEnabled():
+    if benchmark.numOfThreads > 1 and _is_turbo_boost_enabled():
         logging.warning("Turbo boost of CPU is enabled. Starting more than one benchmark in parallel affects the CPU frequency and thus makes the performance unreliable.")
 
     # iterate over run sets
@@ -106,10 +106,10 @@ def execute_benchmark(benchmark, outputHandler):
         if STOPPED_BY_INTERRUPT: break
 
         if not runSet.should_be_executed():
-            outputHandler.output_for_skipping_run_set(runSet)
+            output_handler.output_for_skipping_run_set(runSet)
 
         elif not runSet.runs:
-            outputHandler.output_for_skipping_run_set(runSet, "because it has no files")
+            output_handler.output_for_skipping_run_set(runSet, "because it has no files")
 
         else:
             runSetsExecuted += 1
@@ -118,27 +118,27 @@ def execute_benchmark(benchmark, outputHandler):
             wallTimeBefore = time.time()
             energyBefore = Util.measure_energy()
 
-            outputHandler.output_before_run_set(runSet)
+            output_handler.output_before_run_set(runSet)
 
             # put all runs into a queue
             for run in runSet.runs:
-                _Worker.workingQueue.put(run)
+                _Worker.working_queue.put(run)
 
             # create some workers
             for i in range(benchmark.numOfThreads):
                 cores = coreAssignment[i] if coreAssignment else None
                 memBanks = memoryAssignment[i] if memoryAssignment else None
-                WORKER_THREADS.append(_Worker(benchmark, cores, memBanks, outputHandler))
+                WORKER_THREADS.append(_Worker(benchmark, cores, memBanks, output_handler))
 
             # wait until all tasks are done,
             # instead of queue.join(), we use a loop and sleep(1) to handle KeyboardInterrupt
             finished = False
             while not finished and not STOPPED_BY_INTERRUPT:
                 try:
-                    _Worker.workingQueue.all_tasks_done.acquire()
-                    finished = (_Worker.workingQueue.unfinished_tasks == 0)
+                    _Worker.working_queue.all_tasks_done.acquire()
+                    finished = (_Worker.working_queue.unfinished_tasks == 0)
                 finally:
-                    _Worker.workingQueue.all_tasks_done.release()
+                    _Worker.working_queue.all_tasks_done.release()
 
                 try:
                     time.sleep(0.1) # sleep some time
@@ -154,10 +154,10 @@ def execute_benchmark(benchmark, outputHandler):
                         - (ruBefore.ru_utime + ruBefore.ru_stime)
 
             if STOPPED_BY_INTERRUPT:
-                outputHandler.set_error('interrupted')
-            outputHandler.output_after_run_set(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
+                output_handler.set_error('interrupted')
+            output_handler.output_after_run_set(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
 
-    outputHandler.output_after_benchmark(STOPPED_BY_INTERRUPT)
+    output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
 
 def kill():
@@ -174,7 +174,7 @@ def kill():
         worker.join()
 
 
-def _getCpuCoresPerRun(coreLimit, numOfThreads, cgroupCpuset):
+def _get_cpu_cores_per_run(coreLimit, numOfThreads, cgroupCpuset):
     """
     Calculate an assignment of the available CPU cores to a number
     of parallel benchmark executions such that each run gets its own cores
@@ -225,10 +225,10 @@ def _getCpuCoresPerRun(coreLimit, numOfThreads, cgroupCpuset):
     except ValueError as e:
         sys.exit("Could not read CPU information from kernel: {0}".format(e))
 
-    return _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core)
+    return _get_cpu_cores_per_run0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core)
 
-def _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core):
-    """This method does the actual work of _getCpuCoresPerRun
+def _get_cpu_cores_per_run0(coreLimit, numOfThreads, allCpus, cores_of_package, siblings_of_core):
+    """This method does the actual work of _get_cpu_cores_per_run
     without reading the machine architecture from the filesystem
     in order to be testable. For description, c.f. above.
     Note that this method might change the input parameters!
@@ -306,20 +306,20 @@ def _getCpuCoresPerRun0(coreLimit, numOfThreads, allCpus, cores_of_package, sibl
     return result
 
 
-def _getMemoryBanksPerRun(coreAssignment, cgroupCpuset):
+def _get_memory_banks_per_run(coreAssignment, cgroupCpuset):
     """Get an assignment of memory banks to runs that fits to the given coreAssignment,
     i.e., no run is allowed to use memory that is not local (on the same NUMA node)
     to one of its CPU cores."""
     try:
         # read list of available memory banks
-        allMems = set(_getAllowedMemoryBanks(cgroupCpuset))
+        allMems = set(_get_allowed_memory_banks(cgroupCpuset))
 
         result = []
         for cores in coreAssignment:
             mems = set()
             for core in cores:
                 coreDir = '/sys/devices/system/cpu/cpu{0}/'.format(core)
-                mems.update(_getMemoryBanksListedInDir(coreDir))
+                mems.update(_get_memory_banks_listed_in_dir(coreDir))
             allowedMems = sorted(mems.intersection(allMems))
             logging.debug("Memory banks for cores {} are {}, of which we can use {}.".format(core, list(mems), allowedMems))
 
@@ -337,11 +337,11 @@ def _getMemoryBanksPerRun(coreAssignment, cgroupCpuset):
         sys.exit("Could not read memory information from kernel: {0}".format(e))
 
 
-def _getAllowedMemoryBanks(cgroupCpuset):
+def _get_allowed_memory_banks(cgroupCpuset):
     """Get the list of all memory banks allowed by the given cgroup."""
     return Util.parse_int_list(Util.read_file(cgroupCpuset, 'cpuset.mems'))
 
-def _getMemoryBanksListedInDir(dir):
+def _get_memory_banks_listed_in_dir(dir):
     """Get all memory banks the kernel lists in a given directory.
     Such a directory can be /sys/devices/system/node/ (contains all memory banks)
     or /sys/devices/system/cpu/cpu*/ (contains all memory banks on the same NUMA node as that core)."""
@@ -349,7 +349,7 @@ def _getMemoryBanksListedInDir(dir):
     return [int(entry[4:]) for entry in os.listdir(dir) if entry.startswith('node')]
 
 
-def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
+def _check_memory_size(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
     """Check whether the desired amount of parallel benchmarks fits in the memory.
     Implemented are checks for memory limits via cgroup controller "memory" and
     memory bank restrictions via cgroup controller "cpuset",
@@ -360,7 +360,7 @@ def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
     """
     try:
         # Check amount of memory allowed via cgroups.
-        def checkLimit(actualLimit):
+        def check_limit(actualLimit):
             if actualLimit < memLimit:
                 sys.exit("Cgroups allow only {} bytes of memory to be used, cannot execute runs with {} bytes of memory.".format(actualLimit, memLimit))
             elif actualLimit < memLimit * numOfThreads:
@@ -378,23 +378,23 @@ def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
             with open(os.path.join(cgroupMemory, 'memory.stat')) as f:
                 for line in f:
                     if line.startswith('hierarchical_memory_limit'):
-                        checkLimit(int(line.split()[1]))
+                        check_limit(int(line.split()[1]))
                     elif line.startswith('hierarchical_memsw_limit'):
-                        checkLimit(int(line.split()[1]))
+                        check_limit(int(line.split()[1]))
 
         # Get list of all memory banks, either from memory assignment or from system.
         if not memoryAssignment:
             cgroups.init_cgroup(cgroupsParents, 'cpuset')
             cgroupCpuset = cgroupsParents['cpuset']
             if cgroupCpuset:
-                allMems = _getAllowedMemoryBanks(cgroupCpuset)
+                allMems = _get_allowed_memory_banks(cgroupCpuset)
             else:
-                allMems = _getMemoryBanksListedInDir('/sys/devices/system/node/')
+                allMems = _get_memory_banks_listed_in_dir('/sys/devices/system/node/')
             memoryAssignment = [allMems] * numOfThreads # "fake" memory assignment: all threads on all banks
         else:
             allMems = set(itertools.chain(*memoryAssignment))
 
-        memSizes = dict((mem, _getMemoryBankSize(mem)) for mem in allMems)
+        memSizes = dict((mem, _get_memory_bank_size(mem)) for mem in allMems)
     except ValueError as e:
         sys.exit("Could not read memory information from kernel: {0}".format(e))
 
@@ -411,7 +411,7 @@ def _checkMemorySize(memLimit, numOfThreads, memoryAssignment, cgroupsParents):
         if usedMem[tuple(mems_of_run)] > totalSize:
             sys.exit("Memory banks {} do not have enough memory for all runs, only {} bytes available. Please reduce the number of threads.".format(mems_of_run, totalSize))
 
-def _getMemoryBankSize(memBank):
+def _get_memory_bank_size(memBank):
     """Get the size of a memory bank in bytes."""
     fileName = '/sys/devices/system/node/node{0}/meminfo'.format(memBank)
     size = None
@@ -427,7 +427,7 @@ def _getMemoryBankSize(memBank):
     raise ValueError('Failed to read total memory from {}.'.format(fileName))
 
 
-def _isTurboBoostEnabled():
+def _is_turbo_boost_enabled():
     try:
         if os.path.exists(_TURBO_BOOST_FILE):
             boost_enabled = int(Util.read_file(_TURBO_BOOST_FILE))
@@ -445,32 +445,32 @@ def _isTurboBoostEnabled():
 
 class _Worker(threading.Thread):
     """
-    A Worker is a deamonic thread, that takes jobs from the workingQueue and runs them.
+    A Worker is a deamonic thread, that takes jobs from the working_queue and runs them.
     """
-    workingQueue = Queue.Queue()
+    working_queue = Queue.Queue()
 
-    def __init__(self, benchmark, myCpus, myMemNodes, outputHandler):
+    def __init__(self, benchmark, my_cpus, my_memory_nodes, output_handler):
         threading.Thread.__init__(self) # constuctor of superclass
         self.benchmark = benchmark
-        self.myCpus = myCpus
-        self.myMemNodes = myMemNodes
-        self.outputHandler = outputHandler
-        self.runExecutor = RunExecutor()
+        self.my_cpus = my_cpus
+        self.my_memory_nodes = my_memory_nodes
+        self.output_handler = output_handler
+        self.run_executor = RunExecutor()
         self.setDaemon(True)
 
         self.start()
 
 
     def run(self):
-        while not _Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
-            currentRun = _Worker.workingQueue.get_nowait()
+        while not _Worker.working_queue.empty() and not STOPPED_BY_INTERRUPT:
+            currentRun = _Worker.working_queue.get_nowait()
             try:
                 self.execute(currentRun)
             except SystemExit as e:
                 logging.critical(e)
             except BaseException as e:
                 logging.exception('Exception during run execution')
-            _Worker.workingQueue.task_done()
+            _Worker.working_queue.task_done()
 
 
     def execute(self, run):
@@ -478,7 +478,7 @@ class _Worker(threading.Thread):
         This function executes the tool with a sourcefile with options.
         It also calls functions for output before and after the run.
         """
-        self.outputHandler.output_before_run(run)
+        self.output_handler.output_before_run(run)
         benchmark = self.benchmark
 
         memlimit = None
@@ -492,12 +492,12 @@ class _Worker(threading.Thread):
             maxLogfileSize = None
 
         result = \
-            self.runExecutor.executeRun(
+            self.run_executor.execute_run(
                 run.cmdline(), run.logFile,
                 hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
                 softtimelimit=benchmark.rlimits.get(SOFTTIMELIMIT),
-                cores=self.myCpus,
-                memoryNodes=self.myMemNodes,
+                cores=self.my_cpus,
+                memory_nodes=self.my_memory_nodes,
                 memlimit=memlimit,
                 environments=benchmark.environment(),
                 workingDir=benchmark.working_directory(),
@@ -516,7 +516,7 @@ class _Worker(threading.Thread):
             else:
                 run.values['@' + key] = value
 
-        if self.runExecutor.PROCESS_KILLED:
+        if self.run_executor.PROCESS_KILLED:
             # If the run was interrupted, we ignore the result and cleanup.
             run.wallTime = 0
             run.cpuTime = 0
@@ -530,10 +530,10 @@ class _Worker(threading.Thread):
             return
 
         run.after_execution(result['exitcode'])
-        self.outputHandler.output_after_run(run)
+        self.output_handler.output_after_run(run)
 
 
     def stop(self):
         # asynchronous call to runexecutor,
         # the worker will stop asap, but not within this method.
-        self.runExecutor.kill()
+        self.run_executor.kill()

@@ -78,7 +78,7 @@ def init(config, benchmark):
 def get_system_info():
     return None
 
-def execute_benchmark(benchmark, outputHandler):
+def execute_benchmark(benchmark, output_handler):
 
     if (benchmark.toolName != 'CPAchecker'):
         logging.warn("The web client does only support the CPAchecker.")
@@ -96,10 +96,10 @@ def execute_benchmark(benchmark, outputHandler):
     try:
         for runSet in benchmark.runSets:
             if not runSet.should_be_executed():
-                outputHandler.output_for_skipping_run_set(runSet)
+                output_handler.output_for_skipping_run_set(runSet)
                 continue
 
-            outputHandler.output_before_run_set(runSet)
+            output_handler.output_before_run_set(runSet)
 
             try:
                 # python 3.2
@@ -108,14 +108,14 @@ def execute_benchmark(benchmark, outputHandler):
             except ImportError:
                 runIDs = _submitRuns(runSet, webclient, benchmark)
                 
-            _getResults(runIDs, outputHandler, webclient, benchmark)
-            outputHandler.output_after_run_set(runSet)
+            _getResults(runIDs, output_handler, webclient, benchmark)
+            output_handler.output_after_run_set(runSet)
 
     except KeyboardInterrupt as e:
         STOPPED_BY_INTERRUPT = True
         raise e
     finally:
-        outputHandler.output_after_benchmark(STOPPED_BY_INTERRUPT)
+        output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
 def kill():
     # TODO: cancel runs on server
@@ -307,12 +307,12 @@ def _handleOptions(run, params):
     params.update({'option':options})
     return False   
 
-def _getResults(runIDs, outputHandler, webclient, benchmark):
+def _getResults(runIDs, output_handler, webclient, benchmark):
     while len(runIDs) > 0 :
         finishedRunIDs = []
         for runID in runIDs.keys():
             if _isFinished(runID, webclient, benchmark):
-                if(_getAndHandleResult(runID, runIDs[runID], outputHandler, webclient, benchmark)):
+                if(_getAndHandleResult(runID, runIDs[runID], output_handler, webclient, benchmark)):
                     finishedRunIDs.append(runID)
 
         for runID in finishedRunIDs:
@@ -354,7 +354,7 @@ def _isFinished(runID, webclient, benchmark):
         
         return False
 
-def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
+def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
     zipFilePath = run.logFile + ".zip"    
 
     # download result as zip file
@@ -381,7 +381,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
     if sucess:
        # unzip result
        resultDir = run.logFile + ".output"
-       outputHandler.output_before_run(run)
+       output_handler.output_before_run(run)
        with ZipFile(zipFilePath) as resultZipFile:
            resultZipFile.extractall(resultDir)
        os.remove(zipFilePath)
@@ -401,7 +401,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
        # extract values
        (run.wallTime, run.cpuTime, returnValue, values) = _parseCloudResultFile(resultDir + "/runInformation.txt")
        run.values.update(values)
-       values = _parseAndSetCloudWorkerHostInformation(resultDir + "/hostInformation.txt", outputHandler)
+       values = _parseAndSetCloudWorkerHostInformation(resultDir + "/hostInformation.txt", output_handler)
        run.values.update(values)
        run.after_execution(returnValue)
 
@@ -411,16 +411,16 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
        if os.listdir(resultDir) == []: 
            os.rmdir(resultDir)        
 
-       outputHandler.output_after_run(run)
+       output_handler.output_after_run(run)
        return True
        
     else:
         logging.warning('Could not get run result, run is not finished: {0}'.format(runID))
         return False     
     
-def _parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
+def _parseAndSetCloudWorkerHostInformation(filePath, output_handler):
     try:
-        outputHandler.all_created_files.append(filePath)
+        output_handler.all_created_files.append(filePath)
         values = _parseFile(filePath)
 
         values["host"] = values.get("@vcloud-name", "-")
@@ -430,7 +430,7 @@ def _parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
         cpuName = values.get("@vcloud-cpuModel", "-")
         frequency = values.get("@vcloud-frequency", "-")
         cores = values.get("@vcloud-cores", "-")
-        outputHandler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+        output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
 
     except IOError:
         logging.warning("Host information file not found: " + filePath)

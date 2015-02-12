@@ -75,7 +75,7 @@ def init(config, benchmark):
 def get_system_info():
     return AppEngineSystemInfo(APPENGINE_SETTINGS['CPUSpeed'], APPENGINE_SETTINGS['RAM'])
 
-def execute_benchmark(benchmark, outputHandler):
+def execute_benchmark(benchmark, output_handler):
     formatString = '%m-%d-%YT%H:%M:%S.%f'
     timestampsFileName = benchmark.outputBase+'.Timestamps_'+datetime.strftime(datetime.now(), formatString)+'.txt'
     with open(timestampsFileName, 'a') as f:
@@ -104,7 +104,7 @@ def execute_benchmark(benchmark, outputHandler):
         kill()
     APPENGINE_POLLER_THREAD.join()
 
-    _handleAppEngineResults(benchmark, outputHandler)
+    _handleAppEngineResults(benchmark, output_handler)
 
     with open(timestampsFileName, 'a') as f:
         f.write('Finish: '+datetime.strftime(datetime.now(), formatString)+'\n')
@@ -174,7 +174,7 @@ def _getTasksetKeyForAppEngine(benchmark):
             sys.exit('Error while submitting tasks. {}'.format(sys.exc_info()[0]))
 
 
-def _handleAppEngineResults(benchmark, outputHandler):
+def _handleAppEngineResults(benchmark, output_handler):
     withError = 0
     withTimeout = 0
     notSubmitted = 0
@@ -182,14 +182,14 @@ def _handleAppEngineResults(benchmark, outputHandler):
 
     for runSet in benchmark.runSets:
         if not runSet.should_be_executed():
-            outputHandler.output_for_skipping_run_set(runSet)
+            output_handler.output_for_skipping_run_set(runSet)
             continue
 
-        outputHandler.output_before_run_set(runSet)
+        output_handler.output_before_run_set(runSet)
 
         totalWallTime = 0
         for run in runSet.runs:
-            outputHandler.output_before_run(run)
+            output_handler.output_before_run(run)
 
             (returnValue, hasErr, hasTO, isNotSubmt, overQuota) = \
                 _parseAppEngineResult(run)
@@ -203,11 +203,11 @@ def _handleAppEngineResults(benchmark, outputHandler):
             isOverQuota = True if overQuota or isOverQuota else False
 
             run.after_execution(returnValue, hasTO)
-            outputHandler.output_after_run(run)
+            output_handler.output_after_run(run)
 
-        outputHandler.output_after_run_set(runSet, wallTime=totalWallTime)
+        output_handler.output_after_run_set(runSet, wallTime=totalWallTime)
 
-    outputHandler.output_after_benchmark(STOPPED_BY_INTERRUPT)
+    output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
     if notSubmitted > 0:
         logging.warning("{} runs were not submitted to App Engine!".format(notSubmitted))

@@ -32,7 +32,7 @@ import itertools
 import logging
 import unittest
 
-from .localexecution import _getCpuCoresPerRun0
+from .localexecution import _get_cpu_cores_per_run0
 
 
 class TestCpuCoresPerRun(unittest.TestCase):
@@ -43,15 +43,15 @@ class TestCpuCoresPerRun(unittest.TestCase):
         logging.disable(logging.CRITICAL)
 
     def assertValid(self, coreLimit, numOfThreads, expectedResult=None):
-        result = _getCpuCoresPerRun0(coreLimit, numOfThreads, *self.machine())
+        result = _get_cpu_cores_per_run0(coreLimit, numOfThreads, *self.machine())
         if expectedResult:
             self.assertEqual(expectedResult, result, "Incorrect result for {} cores and {} threads.".format(coreLimit, numOfThreads))
 
     def assertInvalid(self, coreLimit, numOfThreads):
-        self.assertRaises(SystemExit, _getCpuCoresPerRun0, coreLimit, numOfThreads, *self.machine())
+        self.assertRaises(SystemExit, _get_cpu_cores_per_run0, coreLimit, numOfThreads, *self.machine())
 
     def machine(self):
-        """Create the necessary parameters of _getCpuCoresPerRun0 for a specific machine."""
+        """Create the necessary parameters of _get_cpu_cores_per_run0 for a specific machine."""
         core_count = self.cpus * self.cores
         allCpus = range(core_count)
         cores_of_package = {}
@@ -86,7 +86,7 @@ class TestCpuCoresPerRun(unittest.TestCase):
 
     # expected order in which cores are used for runs with coreLimit==1/2/3/4/8, used by the following tests
     # these fields should be filled in by subclasses to activate the corresponding tests
-    # (same format as the expected return value by _getCpuCoresPerRun)
+    # (same format as the expected return value by _get_cpu_cores_per_run)
     oneCore_assignment = None
     twoCore_assignment = None
     threeCore_assignment = None

@@ -56,13 +56,13 @@ def init(config, benchmark):
 def get_system_info():
     return None
 
-def execute_benchmark(benchmark, outputHandler):
+def execute_benchmark(benchmark, output_handler):
     if not _justReprocessResults:
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
         Util.write_file(cloudInput, cloudInputFile)
-        outputHandler.all_created_files.append(cloudInputFile)
+        output_handler.all_created_files.append(cloudInputFile)
 
         # install cloud and dependencies
         ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.is_windows())
@@ -97,15 +97,15 @@ def execute_benchmark(benchmark, outputHandler):
 
         if returnCode:
             if STOPPED_BY_INTERRUPT:
-                outputHandler.set_error('interrupted')
+                output_handler.set_error('interrupted')
             else:
                 errorMsg = "Cloud return code: {0}".format(returnCode)
                 logging.warn(errorMsg)
-                outputHandler.set_error(errorMsg)
+                output_handler.set_error(errorMsg)
     else:
         returnCode = 0    
 
-    handleCloudResults(benchmark, outputHandler, usedWallTime)
+    handleCloudResults(benchmark, output_handler, usedWallTime)
 
     return returnCode
 
@@ -225,7 +225,7 @@ def getToolDataForCloud(benchmark):
     return (workingDir, toolpaths)
 
 
-def handleCloudResults(benchmark, outputHandler, usedWallTime):
+def handleCloudResults(benchmark, output_handler, usedWallTime):
 
     outputDir = benchmark.logFolder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
@@ -234,17 +234,17 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
 
     # Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
-    parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
+    parseAndSetCloudWorkerHostInformation(filePath, output_handler)
 
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
     runsProducedErrorOutput = False
     for runSet in benchmark.runSets:
         if not runSet.should_be_executed():
-            outputHandler.output_for_skipping_run_set(runSet)
+            output_handler.output_for_skipping_run_set(runSet)
             continue
 
-        outputHandler.output_before_run_set(runSet)
+        output_handler.output_before_run_set(runSet)
 
         for run in runSet.runs:
             dataFile = run.logFile + ".data"
@@ -257,26 +257,26 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
                         os.remove(dataFile)
                 except IOError as e:
                     logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
-                                    outputHandler.format_sourcefile_name(run.identifier), e))
-                    outputHandler.all_created_files.append(dataFile)
+                                    output_handler.format_sourcefile_name(run.identifier), e))
+                    output_handler.all_created_files.append(dataFile)
                     executedAllRuns = False
                     returnValue = None
             else:
-                logging.warning("No results exist for file {0}.".format(outputHandler.format_sourcefile_name(run.identifier)))
+                logging.warning("No results exist for file {0}.".format(output_handler.format_sourcefile_name(run.identifier)))
                 executedAllRuns = False
                 returnValue = None
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
 
-            outputHandler.output_before_run(run)
+            output_handler.output_before_run(run)
 
             run.after_execution(returnValue)
-            outputHandler.output_after_run(run)
+            output_handler.output_after_run(run)
 
-        outputHandler.output_after_run_set(runSet, wallTime=usedWallTime)
+        output_handler.output_after_run_set(runSet, wallTime=usedWallTime)
 
-    outputHandler.output_after_benchmark(STOPPED_BY_INTERRUPT)
+    output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
     if not executedAllRuns:
         logging.warning("Some expected result files could not be found!")
@@ -285,10 +285,10 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
                         .format(os.path.join(outputDir, '*.stdError')))
 
 
-def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
+def parseAndSetCloudWorkerHostInformation(filePath, output_handler):
     try:
         with open(filePath, 'rt') as file:
-            outputHandler.all_created_files.append(filePath)
+            output_handler.all_created_files.append(filePath)
 
             # Parse first part of information about hosts until first blank line
             while True:
@@ -301,7 +301,7 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
                 cpuName = file.readline().split("=")[-1].strip()
                 frequency = file.readline().split("=")[-1].strip()
                 cores = file.readline().split("=")[-1].strip()
-                outputHandler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+                output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
 
             # Ignore second part of information about runs
             # (we read the run-to-host mapping from the .data file for each run).
