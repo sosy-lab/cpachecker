@@ -7,42 +7,42 @@ import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
-    def getExecutable(self):
+    def executable(self):
         return Util.find_executable('pblast.opt')
 
 
-    def getProgramFiles(self, executable):
+    def program_files(self, executable):
         executableDir = os.path.dirname(executable)
         return [executableDir]
 
 
-    def getWorkingDirectory(self, executable):
+    def working_directory(self, executable):
         return os.curdir
 
 
-    def getEnvironments(self, executable):
+    def environment(self, executable):
         executableDir = os.path.dirname(executable)
-        workingDir = self.getWorkingDirectory(executable)
+        workingDir = self.working_directory(executable)
         return {"additionalEnv" : {'PATH' :  ':' + (os.path.relpath(executableDir, start=workingDir))}}
 
 
-    def getVersion(self, executable):
+    def version(self, executable):
         return subprocess.Popen([executable],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT).communicate()[0][6:11]
 
 
-    def getCmdline(self, blastExe, options, sourcefiles, propertyfile, rlimits):
-        workingDir = self.getWorkingDirectory(blastExe)
+    def cmdline(self, blastExe, options, sourcefiles, propertyfile, rlimits):
+        workingDir = self.working_directory(blastExe)
         ocamlExe = Util.find_executable('ocamltune')
         return [os.path.relpath(ocamlExe, start=workingDir), os.path.relpath(blastExe, start=workingDir)] + options + sourcefiles
 
 
-    def getName(self):
+    def name(self):
         return 'BLAST'
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         status = result.STATUS_UNKNOWN
         for line in output:
             if line.startswith('Error found! The system is unsafe :-('):

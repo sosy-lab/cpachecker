@@ -3,15 +3,15 @@ import benchmark.tools.template
 
 class Tool(benchmark.tools.template.BaseTool):
 
-    def getExecutable(self):
+    def executable(self):
         return Util.find_executable('ufo.sh')
 
 
-    def getName(self):
+    def name(self):
         return 'Ufo'
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         output = '\n'.join(output)
         if returnsignal == 9 or returnsignal == (128+9):
             if isTimeout:

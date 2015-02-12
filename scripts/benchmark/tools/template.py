@@ -5,14 +5,14 @@ class BaseTool(object):
     This class serves both as a template for tool adaptor implementations,
     and as an abstract super class for them.
     For writing a new tool adaptor, inherit from this class and override
-    the necessary methods (usually only getExecutable(), getName(), and getStatus(),
-    maybe getVersion() and getCmdline(), too).
+    the necessary methods (usually only executable(), name(), and determine_result(),
+    maybe version() and cmdline(), too).
     The classes for each specific tool need to be named "Tool"
     and be located in a module named "benchmark.tools.<tool>",
     where "<tool>" is the string specified by the user in the benchmark definition.
     """
 
-    def getExecutable(self):
+    def executable(self):
         """
         Find the path to the executable file that will get executed.
         This method always needs to be overridden,
@@ -21,28 +21,28 @@ class BaseTool(object):
         return Util.find_executable('tool')
 
 
-    def getVersion(self, executable):
+    def version(self, executable):
         """
         Determine a version string for this tool, if available.
         """
         return ''
 
 
-    def getName(self):
+    def name(self):
         """
         Return the name of the tool, formatted for humans.
         """
         return 'UNKOWN'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
+    def cmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
         """
         Compose the command line to execute from the name of the executable,
         the user-specified options, and the sourcefile to analyze.
         This method can get overridden, if, for example, some options should
         be enabled or if the order of arguments must be changed.
 
-        @param executable: the path to the executable of the tool, the result of getExecutable()
+        @param executable: the path to the executable of the tool, the result of executable()
         @param options: a list of options, in the same order as given in the XML-file.
         @param sourcefiles: a list of sourcefiles, that should be analysed with the tool in one run.
                             In most cases we we have only _one_ sourcefile.
@@ -54,7 +54,7 @@ class BaseTool(object):
         return [executable] + options + sourcefiles
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         """
         Parse the output of the tool and extract the verification result.
         This method always needs to be overridden.
@@ -62,7 +62,7 @@ class BaseTool(object):
         return 'UNKNOWN'
 
 
-    def addColumnValues(self, output, columns):
+    def add_column_values(self, output, columns):
         """
         OPTIONAL, override this to add statistics data from the output of the tool
         to the tables if requested by the user.
@@ -71,7 +71,7 @@ class BaseTool(object):
         pass
 
 
-    def getProgramFiles(self, executable):
+    def program_files(self, executable):
         """
         OPTIONAL, this method is only necessary for situations when the benchmark environment
         needs to know all files belonging to a tool
@@ -81,7 +81,7 @@ class BaseTool(object):
         return []
 
 
-    def getWorkingDirectory(self, executable):
+    def working_directory(self, executable):
         """
         OPTIONAL, this method is only necessary for situations
         when the tool needs a separate working directory.
@@ -89,7 +89,7 @@ class BaseTool(object):
         return "."
 
 
-    def getEnvironments(self, executable):
+    def environment(self, executable):
         """
         OPTIONAL, this method is only necessary for tools
         that needs special environment variable.

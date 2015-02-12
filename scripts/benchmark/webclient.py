@@ -388,7 +388,7 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
        
        # move logfile and stderr
        with open(run.logFile, 'w') as logFile:
-           logFile.write(" ".join(run.getCmdline()) + "\n\n\n\n\n------------------------------------------\n")
+           logFile.write(" ".join(run.cmdline()) + "\n\n\n\n\n------------------------------------------\n")
            toolLog = resultDir + "/output.log"
            if os.path.isfile(toolLog):
                for line in open(toolLog):

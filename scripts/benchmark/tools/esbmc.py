@@ -10,42 +10,42 @@ class Tool(benchmark.tools.template.BaseTool):
     This class serves as tool adaptor for ESBMC (http://www.esbmc.org/)
     """
 
-    def getExecutable(self):
+    def executable(self):
         return Util.find_executable('esbmc')
 
 
-    def getProgramFiles(self, executable):
+    def program_files(self, executable):
         executableDir = os.path.dirname(executable)
         return [executableDir]
 
 
-    def getWorkingDirectory(self, executable):
+    def working_directory(self, executable):
         executableDir = os.path.dirname(executable)
         return executableDir
 
 
-    def getEnvironments(self, executable):
+    def environment(self, executable):
         return {"additionalEnv" : {'PATH' :  ':.'}}
 
 
-    def getVersion(self, executable):
+    def version(self, executable):
         return subprocess.Popen([executable, '--version'],
                                 stdout=subprocess.PIPE).communicate()[0].strip()
 
 
-    def getName(self):
+    def name(self):
         return 'ESBMC'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+    def cmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         assert len(sourcefiles) == 1, "only one sourcefile supported"
         sourcefile = sourcefiles[0]
-        workingDir = self.getWorkingDirectory(executable)
+        workingDir = self.working_directory(executable)
         return [os.path.relpath(executable, start=workingDir)] + options + [os.path.relpath(sourcefile, start=workingDir)]
 
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         output = '\n'.join(output)
         status = result.STATUS_UNKNOWN
 
@@ -90,7 +90,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return status
 
 
-    def addColumnValues(self, output, columns):
+    def add_column_values(self, output, columns):
         """
         This method adds the values that the user requested to the column objects.
         If a value is not found, it should be set to '-'.

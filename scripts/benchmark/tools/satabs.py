@@ -6,20 +6,20 @@ import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
-    def getExecutable(self):
+    def executable(self):
         return Util.find_executable('satabs')
 
 
-    def getVersion(self, executable):
+    def version(self, executable):
         return subprocess.Popen([executable, '--version'],
                                 stdout=subprocess.PIPE).communicate()[0].strip()
 
 
-    def getName(self):
+    def name(self):
         return 'SatAbs'
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         output = '\n'.join(output)
         if "VERIFICATION SUCCESSFUL" in output:
             assert returncode == 0

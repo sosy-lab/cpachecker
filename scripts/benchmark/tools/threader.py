@@ -10,42 +10,42 @@ class Tool(benchmark.tools.template.BaseTool):
     This class serves as tool adaptor for Threader (http://www.esbmc.org/)
     """
 
-    def getExecutable(self):
+    def executable(self):
         return Util.find_executable('threader.sh')
 
 
-    def getProgramFiles(self, executable):
+    def program_files(self, executable):
         executableDir = os.path.dirname(executable)
         return [executableDir]
 
 
-    def getWorkingDirectory(self, executable):
+    def working_directory(self, executable):
         executableDir = os.path.dirname(executable)
         return executableDir
 
 
-    def getEnvironments(self, executable):
+    def environment(self, executable):
         return {"additionalEnv" : {'PATH' :  ':.'}}
 
 
-    def getVersion(self, executable):
+    def version(self, executable):
         exe = 'cream'
         return subprocess.Popen([exe, '--help'], stdout=subprocess.PIPE)\
                               .communicate()[0].splitlines()[2][34:42]
 
 
-    def getName(self):
+    def name(self):
         return 'Threader'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+    def cmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         assert len(sourcefiles) == 1, "only one sourcefile supported"
         sourcefile = sourcefiles[0]
-        workingDir = self.getWorkingDirectory(executable)
+        workingDir = self.working_directory(executable)
         return [os.path.relpath(executable, start=workingDir)] + options + [os.path.relpath(sourcefile, start=workingDir)]
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         output = '\n'.join(output)
         if 'SSSAFE' in output:
             status = result.STATUS_TRUE_PROP

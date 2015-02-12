@@ -62,7 +62,7 @@ class Tool(benchmark.tools.template.BaseTool):
     for adding it to the result tables.
     """
 
-    def getExecutable(self):
+    def executable(self):
         executable = Util.find_executable('cpa.sh', 'scripts/cpa.sh')
         executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         if os.path.isdir(os.path.join(executableDir, 'src')):
@@ -80,16 +80,16 @@ class Tool(benchmark.tools.template.BaseTool):
             sys.exit('Failed to build CPAchecker, please fix the build first.')
 
 
-    def getProgramFiles(self, executable):
+    def program_files(self, executable):
         executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         return Util.flatten(Util.expand_filename_pattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
-    def getWorkingDirectory(self, executable):
+    def working_directory(self, executable):
         return os.curdir
 
 
-    def getVersion(self, executable):
+    def version(self, executable):
         try:
             process = subprocess.Popen([executable, '-help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (stdout, stderr) = process.communicate()
@@ -108,11 +108,11 @@ class Tool(benchmark.tools.template.BaseTool):
         line = line.split('(')[0]
         return line.strip()
 
-    def getName(self):
+    def name(self):
         return 'CPAchecker'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
+    def cmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
         if SOFTTIMELIMIT in rlimits:
             if "-timelimit" in options:
                 logging.warning('Time limit already specified in command-line options, not adding time limit from benchmark definition to the command line.')
@@ -131,7 +131,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return [executable] + options + spec + sourcefiles
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         """
         @param returncode: code returned by CPAchecker
         @param returnsignal: signal, which terminated CPAchecker
@@ -217,7 +217,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return status
 
 
-    def addColumnValues(self, output, columns):
+    def add_column_values(self, output, columns):
         for column in columns:
 
             # search for the text in output and get its value,
@@ -236,6 +236,6 @@ class Tool(benchmark.tools.template.BaseTool):
 
 if __name__ == "__main__":
     tool = Tool()
-    executable = tool.getExecutable()
+    executable = tool.executable()
     print('Executable: {0}'.format(os.path.abspath(executable)))
-    print('Version: {0}'.format(tool.getVersion(executable)))
+    print('Version: {0}'.format(tool.version(executable)))

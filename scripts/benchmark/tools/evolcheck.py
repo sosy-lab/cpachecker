@@ -14,15 +14,15 @@ class Tool(benchmark.tools.template.BaseTool):
 
     previousStatus = None
 
-    def getExecutable(self):
+    def executable(self):
         return Util.find_executable('evolcheck_wrapper')
 
 
-    def getVersion(self, executable):
+    def version(self, executable):
         return subprocess.Popen([executable, '--version'],
                                 stdout=subprocess.PIPE).communicate()[0].strip()
 
-    def getName(self):
+    def name(self):
         return 'eVolCheck'
 
     def preprocessSourcefile(self, sourcefile):
@@ -39,7 +39,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return self.preprocessedFile
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+    def cmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         assert len(sourcefiles) == 1, "only one sourcefile supported"
         sourcefile = sourcefiles[0]
         sourcefile = self.preprocessSourcefile(sourcefile)
@@ -50,7 +50,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
         return [executable] + [sourcefile] + options
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         if not os.path.isfile(self.preprocessedFile):
             return 'ERROR (goto-cc)'
 

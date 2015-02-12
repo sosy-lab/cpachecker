@@ -132,7 +132,7 @@ class Benchmark:
         except AttributeError:
             sys.exit('The module for "{0}" does not define the necessary class.'.format(toolName))
 
-        self.toolName = self.tool.getName()
+        self.toolName = self.tool.name()
         # will be set from the outside if necessary (may not be the case in SaaS environments)
         self.toolVersion = None
         self.executable = None
@@ -230,7 +230,7 @@ class Benchmark:
 
 
     def requiredFiles(self):
-        return self._requiredFiles.union(self.tool.getProgramFiles(self.executable))
+        return self._requiredFiles.union(self.tool.program_files(self.executable))
 
 
     def addRequiredFile(self, filename=None):
@@ -239,11 +239,11 @@ class Benchmark:
 
 
     def workingDirectory(self):
-        return self.tool.getWorkingDirectory(self.executable)
+        return self.tool.working_directory(self.executable)
 
 
-    def getEnvironments(self):
-        return self.tool.getEnvironments(self.executable)
+    def environment(self):
+        return self.tool.environment(self.executable)
 
 
     @staticmethod
@@ -562,8 +562,8 @@ class Run():
         self.category = result.CATEGORY_UNKNOWN
 
 
-    def getCmdline(self):
-        args = self.runSet.benchmark.tool.getCmdline(
+    def cmdline(self):
+        args = self.runSet.benchmark.tool.cmdline(
             self.runSet.benchmark.executable, self.options, self.sourcefiles, 
             self.propertyfile, self.runSet.benchmark.rlimits)
         args = [os.path.expandvars(arg) for arg in args]
@@ -592,9 +592,9 @@ class Run():
             returnsignal = returnvalue & 0x7F
             returncode = returnvalue >> 8
             logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-            self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+            self.status = self.runSet.benchmark.tool.determine_result(returncode, returnsignal, output, isTimeout)
         self.category = result.get_result_category(self.identifier, self.status, self.propertyfile)
-        self.runSet.benchmark.tool.addColumnValues(output, self.columns)
+        self.runSet.benchmark.tool.add_column_values(output, self.columns)
 
         
         # Tools sometimes produce a result even after a timeout.

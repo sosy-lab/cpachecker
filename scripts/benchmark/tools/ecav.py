@@ -4,15 +4,15 @@ import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
-    def getExecutable(self):
+    def executable(self):
         return Util.find_executable('ecaverifier')
 
 
-    def getName(self):
+    def name(self):
         return 'EcaVerifier'
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         status = result.STATUS_UNKNOWN
         for line in output:
             if line.startswith('0 safe, 1 unsafe'):

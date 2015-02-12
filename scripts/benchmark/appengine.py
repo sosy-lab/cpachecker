@@ -140,7 +140,7 @@ def _getBenchmarkDataForAppEngine(benchmark):
 
         for run in runSet.runs:
             if STOPPED_BY_INTERRUPT: break
-            args = {'commandline':' '.join(run.getCmdline()), 'programName':run.identifier}
+            args = {'commandline':' '.join(run.cmdline()), 'programName':run.identifier}
             try:
                 with open(run.propertyfile, 'r') as f:
                     args['properties'] = f.read()

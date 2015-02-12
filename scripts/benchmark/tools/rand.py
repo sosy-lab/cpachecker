@@ -9,14 +9,14 @@ class Tool(benchmark.tools.template.BaseTool):
     with the tool and sourcefiles, however options are ignored.
     """
 
-    def getExecutable(self):
+    def executable(self):
         return '/bin/true'
 
-    def getName(self):
+    def name(self):
         return 'Random'
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+    def cmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         return [executable] + sourcefiles
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         return result.STATUS_TRUE_PROP if random() < 0.5 else result.STATUS_FALSE_REACH

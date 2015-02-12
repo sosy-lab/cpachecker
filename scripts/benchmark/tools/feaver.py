@@ -6,15 +6,15 @@ import benchmark.result as result
 
 class Tool(benchmark.tools.template.BaseTool):
 
-    def getExecutable(self):
+    def executable(self):
         return Util.find_executable('feaver_cmd')
 
 
-    def getName(self):
+    def name(self):
         return 'Feaver'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+    def cmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         assert len(sourcefiles) == 1, "only one sourcefile supported"
         sourcefile = sourcefiles[0]
         
@@ -32,7 +32,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return newFilename
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         output = '\n'.join(output)
         if "collect2: ld returned 1 exit status" in output:
             status = "COMPILE ERROR"

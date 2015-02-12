@@ -14,22 +14,22 @@ class Tool(benchmark.tools.template.BaseTool):
     It always adds --xml-ui to the command-line arguments for easier parsing of the output.
     """
 
-    def getExecutable(self):
+    def executable(self):
         fallback = "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
                    "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None
         return Util.find_executable('cbmc', fallback)
 
 
-    def getVersion(self, executable):
+    def version(self, executable):
         return subprocess.Popen([executable, '--version'],
                                 stdout=subprocess.PIPE).communicate()[0].strip()
 
 
-    def getName(self):
+    def name(self):
         return 'CBMC'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+    def cmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         if ("--xml-ui" not in options):
             options = options + ["--xml-ui"]
 
@@ -38,7 +38,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return [executable] + options + sourcefiles
 
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         output = '\n'.join(output)
         #an empty tag cannot be parsed into a tree
         output = output.replace("<>", "<emptyTag>")

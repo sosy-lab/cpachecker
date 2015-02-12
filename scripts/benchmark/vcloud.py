@@ -50,8 +50,8 @@ _justReprocessResults = False
 
 def init(config, benchmark):
     _justReprocessResults = config.reprocessResults
-    benchmark.executable = benchmark.tool.getExecutable()
-    benchmark.toolVersion = benchmark.tool.getVersion(benchmark.executable)
+    benchmark.executable = benchmark.tool.executable()
+    benchmark.toolVersion = benchmark.tool.version(benchmark.executable)
 
 def get_system_info():
     return None
@@ -175,7 +175,7 @@ def getBenchmarkDataForCloud(benchmark):
     if coreLimit is not None: limitsAndNumRuns.append(coreLimit)
 
     # get tool-specific environment
-    env = benchmark.getEnvironments()
+    env = benchmark.environment()
 
     # get Runs with args and sourcefiles
     sourceFiles = []
@@ -186,7 +186,7 @@ def getBenchmarkDataForCloud(benchmark):
 
         # get runs
         for run in runSet.runs:
-            cmdline = run.getCmdline()
+            cmdline = run.cmdline()
             cmdline = list(map(Util.force_linux_path, cmdline))
 
             # we assume, that VCloud-client only splits its input at tabs,

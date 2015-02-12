@@ -60,8 +60,8 @@ _TURBO_BOOST_FILE = "/sys/devices/system/cpu/cpufreq/boost"
 _TURBO_BOOST_FILE_PSTATE = "/sys/devices/system/cpu/intel_pstate/no_turbo"
 
 def init(config, benchmark):
-    benchmark.executable = benchmark.tool.getExecutable()
-    benchmark.toolVersion = benchmark.tool.getVersion(benchmark.executable)
+    benchmark.executable = benchmark.tool.executable()
+    benchmark.toolVersion = benchmark.tool.version(benchmark.executable)
 
     try:
         processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
@@ -493,13 +493,13 @@ class _Worker(threading.Thread):
 
         result = \
             self.runExecutor.executeRun(
-                run.getCmdline(), run.logFile,
+                run.cmdline(), run.logFile,
                 hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
                 softtimelimit=benchmark.rlimits.get(SOFTTIMELIMIT),
                 cores=self.myCpus,
                 memoryNodes=self.myMemNodes,
                 memlimit=memlimit,
-                environments=benchmark.getEnvironments(),
+                environments=benchmark.environment(),
                 workingDir=benchmark.workingDirectory(),
                 maxLogfileSize=maxLogfileSize)
 

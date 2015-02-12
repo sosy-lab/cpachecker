@@ -19,7 +19,7 @@ import benchmark.tools.cpachecker
 
 class Tool(benchmark.tools.cpachecker.Tool):
 
-    def getStatus(self, returncode, returnsignal, output, isTimeout):
+    def determine_result(self, returncode, returnsignal, output, isTimeout):
         """
         @param returncode: code returned by CPAchecker
         @param returnsignal: signal, which terminated CPAchecker
@@ -122,6 +122,6 @@ class Tool(benchmark.tools.cpachecker.Tool):
 
 if __name__ == "__main__":
     tool = Tool()
-    executable = tool.getExecutable()
+    executable = tool.executable()
     print('Executable: {0}'.format(os.path.abspath(executable)))
-    print('Version: {0}'.format(tool.getVersion(executable)))
+    print('Version: {0}'.format(tool.version(executable)))
