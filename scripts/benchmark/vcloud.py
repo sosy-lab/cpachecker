@@ -34,7 +34,7 @@ import subprocess
 import time
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
-import benchexec.util as Util
+import benchexec.util as util
 
 
 DEFAULT_CLOUD_TIMELIMIT = 300 # s
@@ -61,11 +61,11 @@ def execute_benchmark(benchmark, output_handler):
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.log_folder, 'cloudInput.txt')
-        Util.write_file(cloudInput, cloudInputFile)
+        util.write_file(cloudInput, cloudInputFile)
         output_handler.all_created_files.append(cloudInputFile)
 
         # install cloud and dependencies
-        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=Util.is_windows())
+        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=util.is_windows())
         ant.communicate()
         ant.wait()
 
@@ -85,7 +85,7 @@ def execute_benchmark(benchmark, output_handler):
             
         walltime_before = time.time()
             
-        cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=Util.is_windows())
+        cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=util.is_windows())
         try:
             (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
         except KeyboardInterrupt:
@@ -132,7 +132,7 @@ def getCloudInput(benchmark):
     absScriptsPath = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
     absToolpaths = list(map(os.path.abspath, toolpaths))
     absSourceFiles = list(map(os.path.abspath, sourceFiles))
-    absBaseDir = Util.common_base_dir(absSourceFiles + absToolpaths + [absScriptsPath])
+    absBaseDir = util.common_base_dir(absSourceFiles + absToolpaths + [absScriptsPath])
 
     if absBaseDir == "": sys.exit("No common base dir found.")
 
@@ -187,7 +187,7 @@ def getBenchmarkDataForCloud(benchmark):
         # get runs
         for run in runSet.runs:
             cmdline = run.cmdline()
-            cmdline = list(map(Util.force_linux_path, cmdline))
+            cmdline = list(map(util.force_linux_path, cmdline))
 
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.

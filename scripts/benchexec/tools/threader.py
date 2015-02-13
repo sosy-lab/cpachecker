@@ -1,7 +1,7 @@
 
 import subprocess
 import os
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
@@ -11,7 +11,7 @@ class Tool(benchexec.tools.template.BaseTool):
     """
 
     def executable(self):
-        return Util.find_executable('threader.sh')
+        return util.find_executable('threader.sh')
 
 
     def program_files(self, executable):

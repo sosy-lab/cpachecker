@@ -1,14 +1,14 @@
 import os
 import subprocess
 
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
 class Tool(benchexec.tools.template.BaseTool):
 
     def executable(self):
-        return Util.find_executable('acsar')
+        return util.find_executable('acsar')
 
 
     def name(self):
@@ -32,7 +32,7 @@ class Tool(benchexec.tools.template.BaseTool):
             "ERROR:", "ERROR_LOCATION:").replace(
             "errorFn();", "goto ERROR_LOCATION; ERROR_LOCATION:;")
         newFilename = sourcefile + "_acsar.c"
-        Util.write_file(newFilename, content)
+        util.write_file(newFilename, content)
         return newFilename
 
 

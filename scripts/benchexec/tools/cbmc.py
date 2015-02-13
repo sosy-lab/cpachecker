@@ -4,7 +4,7 @@ import platform
 import subprocess
 import xml.etree.ElementTree as ET
 
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
@@ -17,7 +17,7 @@ class Tool(benchexec.tools.template.BaseTool):
     def executable(self):
         fallback = "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
                    "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None
-        return Util.find_executable('cbmc', fallback)
+        return util.find_executable('cbmc', fallback)
 
 
     def version(self, executable):

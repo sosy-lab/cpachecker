@@ -1,13 +1,13 @@
 import subprocess
 
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
 class Tool(benchexec.tools.template.BaseTool):
 
     def executable(self):
-        return Util.find_executable('satabs')
+        return util.find_executable('satabs')
 
 
     def version(self, executable):

@@ -34,7 +34,7 @@ import xml.etree.ElementTree as ET
 from .model import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT, CORELIMIT
 from . import filewriter
 from . import result
-from . import util as Util
+from . import util as util
 
 # colors for column status in terminal
 USE_COLORS = True
@@ -229,7 +229,7 @@ class OutputHandler:
         sourcefiles = [run.identifier for run in runSet.runs]
 
         # common prefix of file names
-        self.common_prefix = Util.common_base_dir(sourcefiles) + os.path.sep
+        self.common_prefix = util.common_base_dir(sourcefiles) + os.path.sep
 
         # length of the first column in terminal
         self.max_length_of_filename = max(len(file) for file in sourcefiles) if sourcefiles else 20
@@ -239,7 +239,7 @@ class OutputHandler:
         numberOfFiles = len(runSet.runs)
         numberOfFilesStr = ("     (1 file)" if numberOfFiles == 1
                         else "     ({0} files)".format(numberOfFiles))
-        Util.printOut("\nexecuting run set"
+        util.printOut("\nexecuting run set"
             + (" '" + runSet.name + "'" if runSet.name else "")
             + numberOfFilesStr
             + (TERMINAL_TITLE.format(runSet.full_name) if USE_COLORS and sys.stdout.isatty() else ""))
@@ -264,7 +264,7 @@ class OutputHandler:
         self.txt_file.append(self.run_set_to_text(runSet), False)
         xml_file_name = self.get_filename(runSet.name, "xml")
         self.xml_file = filewriter.FileWriter(xml_file_name,
-                       Util.xml_to_string(runSet.xml))
+                       util.xml_to_string(runSet.xml))
         self.xml_file.lastModifiedTime = time.time()
         self.all_created_files.append(xml_file_name)
         self.xml_file_names.append(xml_file_name)
@@ -278,7 +278,7 @@ class OutputHandler:
         '''
 
         # print to terminal
-        Util.printOut("\nSkipping run set" +
+        util.printOut("\nSkipping run set" +
                (" '" + runSet.name + "'" if runSet.name else "") +
                (" " + reason if reason else "")
               )
@@ -330,9 +330,9 @@ class OutputHandler:
             progressIndicator = " ({0}/{1})".format(self.runSet.runs.index(run), len(self.runSet.runs))
             terminalTitle = TERMINAL_TITLE.format(self.runSet.full_name + progressIndicator) if USE_COLORS and sys.stdout.isatty() else ""
             if self.benchmark.num_of_threads == 1:
-                Util.printOut(terminalTitle + timeStr + self.format_sourcefile_name(run.identifier), '')
+                util.printOut(terminalTitle + timeStr + self.format_sourcefile_name(run.identifier), '')
             else:
-                Util.printOut(terminalTitle + timeStr + "starting   " + self.format_sourcefile_name(run.identifier))
+                util.printOut(terminalTitle + timeStr + "starting   " + self.format_sourcefile_name(run.identifier))
         finally:
             OutputHandler.print_lock.release()
 
@@ -347,8 +347,8 @@ class OutputHandler:
         """
 
         # format times, type is changed from float to string!
-        cputime_str = Util.format_number(run.cputime, TIME_PRECISION)
-        walltime_str = Util.format_number(run.walltime, TIME_PRECISION)
+        cputime_str = util.format_number(run.cputime, TIME_PRECISION)
+        walltime_str = util.format_number(run.walltime, TIME_PRECISION)
 
         # format numbers, number_of_digits is optional, so it can be None
         for column in run.columns:
@@ -360,7 +360,7 @@ class OutputHandler:
 
                 try:
                     floatValue = float(column.value)
-                    column.value = Util.format_number(floatValue, column.number_of_digits)
+                    column.value = util.format_number(floatValue, column.number_of_digits)
                 except ValueError: # if value is no float, don't format it
                     pass
 
@@ -381,10 +381,10 @@ class OutputHandler:
 
             valueStr = statusStr + cputime_str.rjust(8) + walltime_str.rjust(8)
             if self.benchmark.num_of_threads == 1:
-                Util.printOut(valueStr)
+                util.printOut(valueStr)
             else:
                 timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                Util.printOut(timeStr + self.format_sourcefile_name(run.identifier) + valueStr)
+                util.printOut(timeStr + self.format_sourcefile_name(run.identifier) + valueStr)
 
             # write result in txt_file and XML
             self.txt_file.append(self.run_set_to_text(run.runSet), False)
@@ -394,7 +394,7 @@ class OutputHandler:
             # so we wait at least 10 seconds between two write-actions
             currentTime = time.time()
             if currentTime - self.xml_file.lastModifiedTime > 10:
-                self.xml_file.replace(Util.xml_to_string(run.runSet.xml))
+                self.xml_file.replace(util.xml_to_string(run.runSet.xml))
                 self.xml_file.lastModifiedTime = currentTime
 
         finally:
@@ -410,13 +410,13 @@ class OutputHandler:
         self.add_values_to_run_set_xml(runSet, cputime, walltime, energy)
 
         # write results to files
-        self.xml_file.replace(Util.xml_to_string(runSet.xml))
+        self.xml_file.replace(util.xml_to_string(runSet.xml))
 
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
                 blockFileName = self.get_filename(runSet.name, block.name + ".xml")
-                Util.write_file(
-                    Util.xml_to_string(self.runs_to_xml(runSet, block.runs, block.name)),
+                util.write_file(
+                    util.xml_to_string(self.runs_to_xml(runSet, block.runs, block.name)),
                     blockFileName
                 )
                 self.all_created_files.append(blockFileName)
@@ -437,8 +437,8 @@ class OutputHandler:
             endline = ("Run set {0}".format(runSet.index))
 
             # format time, type is changed from float to string!
-            cputime_str  = "None" if cputime  is None else Util.format_number(cputime, TIME_PRECISION)
-            walltime_str = "None" if walltime is None else Util.format_number(walltime, TIME_PRECISION)
+            cputime_str  = "None" if cputime  is None else util.format_number(cputime, TIME_PRECISION)
+            walltime_str = "None" if walltime is None else util.format_number(walltime, TIME_PRECISION)
             lines.append(self.create_output_line(endline, "done", cputime_str,
                              walltime_str, "-", []))
 
@@ -449,7 +449,7 @@ class OutputHandler:
         This function creates the XML structure for a list of runs
         """
         # copy benchmarkinfo, limits, columntitles, systeminfo from xml_header
-        runsElem = Util.copy_of_xml_element(self.xml_header)
+        runsElem = util.copy_of_xml_element(self.xml_header)
         runsElem.set("options", " ".join(runSet.options))
         runsElem.set("propertyfiles", " ".join(runSet.property_files))
         if blockname is not None:
@@ -561,11 +561,11 @@ class OutputHandler:
             tableGeneratorPath = os.path.relpath(os.path.join(os.path.dirname(__file__), os.path.pardir, tableGeneratorName))
             if tableGeneratorPath == tableGeneratorName:
                 tableGeneratorPath = './' + tableGeneratorName
-            Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
+            util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
                           .format(tableGeneratorPath, "' '".join(self.xml_file_names)))
 
         if isStoppedByInterrupt:
-            Util.printOut("\nScript was interrupted by user, some runs may not be done.\n")
+            util.printOut("\nScript was interrupted by user, some runs may not be done.\n")
 
 
     def get_filename(self, runSetName, fileExtension):
@@ -606,7 +606,7 @@ class Statistics:
 
 
     def print_to_terminal(self):
-        Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
+        util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic[result.CATEGORY_CORRECT]).rjust(4),
                  '    unknown:        ' + str(self.dic[result.CATEGORY_UNKNOWN] + self.dic[result.CATEGORY_ERROR]).rjust(4),
                  '    false positives:' + str(self.dic[result.CATEGORY_WRONG] - self.dic[(result.CATEGORY_WRONG, result.STATUS_TRUE_PROP)]).rjust(4) + \

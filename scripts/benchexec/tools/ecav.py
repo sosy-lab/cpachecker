@@ -1,11 +1,11 @@
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
 class Tool(benchexec.tools.template.BaseTool):
 
     def executable(self):
-        return Util.find_executable('ecaverifier')
+        return util.find_executable('ecaverifier')
 
 
     def name(self):

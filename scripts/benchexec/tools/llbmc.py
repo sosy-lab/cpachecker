@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
@@ -11,7 +11,7 @@ class Tool(benchexec.tools.template.BaseTool):
     """
 
     def executable(self):
-        return Util.find_executable('lib/native/x86_64-linux/llbmc')
+        return util.find_executable('lib/native/x86_64-linux/llbmc')
 
 
     def version(self, executable):
@@ -33,7 +33,7 @@ class Tool(benchexec.tools.template.BaseTool):
 
 
     def _prepareSourcefile(self, sourcefile):
-        clangExecutable = Util.find_executable('clang')
+        clangExecutable = util.find_executable('clang')
         newFilename     = sourcefile + ".o"
 
         subprocess.Popen([clangExecutable,

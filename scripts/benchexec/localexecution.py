@@ -48,7 +48,7 @@ from .model import CORELIMIT, MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
 from . import cgroups
 from .runexecutor import RunExecutor
 from .systeminfo import SystemInfo
-from . import util as Util
+from . import util as util
 
 
 WORKER_THREADS = []
@@ -65,7 +65,7 @@ def init(config, benchmark):
 
     try:
         processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-        if len(re.findall("python.*benchmark\.py", Util.decode_to_string(processes))) > 1:
+        if len(re.findall("python.*benchmark\.py", util.decode_to_string(processes))) > 1:
             logging.warn("Already running instance of this script detected. " + \
                          "Please make sure to not interfere with somebody else's benchmarks.")
     except OSError:
@@ -116,7 +116,7 @@ def execute_benchmark(benchmark, output_handler):
             # get times before runSet
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             walltime_before = time.time()
-            energyBefore = Util.measure_energy()
+            energyBefore = util.measure_energy()
 
             output_handler.output_before_run_set(runSet)
 
@@ -147,7 +147,7 @@ def execute_benchmark(benchmark, output_handler):
 
             # get times after runSet
             walltime_after = time.time()
-            energy = Util.measure_energy(energyBefore)
+            energy = util.measure_energy(energyBefore)
             usedWallTime = walltime_after - walltime_before
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
             usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
@@ -165,7 +165,7 @@ def kill():
     STOPPED_BY_INTERRUPT = True
 
     # kill running jobs
-    Util.printOut("killing subprocesses...")
+    util.printOut("killing subprocesses...")
     for worker in WORKER_THREADS:
         worker.stop()
 
@@ -206,11 +206,11 @@ def _get_cpu_cores_per_run(coreLimit, num_of_threads, cgroupCpuset):
     """
     try:
         # read list of available CPU cores
-        allCpus = Util.parse_int_list(Util.read_file(cgroupCpuset, 'cpuset.cpus'))
+        allCpus = util.parse_int_list(util.read_file(cgroupCpuset, 'cpuset.cpus'))
         logging.debug("List of available CPU cores is {0}.".format(allCpus))
 
         # read mapping of core to CPU ("physical package")
-        physical_packages = map(lambda core : int(Util.read_file('/sys/devices/system/cpu/cpu{0}/topology/physical_package_id'.format(core))), allCpus)
+        physical_packages = map(lambda core : int(util.read_file('/sys/devices/system/cpu/cpu{0}/topology/physical_package_id'.format(core))), allCpus)
         cores_of_package = collections.defaultdict(list)
         for core, package in zip(allCpus, physical_packages):
             cores_of_package[package].append(core)
@@ -219,7 +219,7 @@ def _get_cpu_cores_per_run(coreLimit, num_of_threads, cgroupCpuset):
         # read hyper-threading information (sibling cores sharing the same physical core)
         siblings_of_core = {}
         for core in allCpus:
-            siblings = Util.parse_int_list(Util.read_file('/sys/devices/system/cpu/cpu{0}/topology/thread_siblings_list'.format(core)))
+            siblings = util.parse_int_list(util.read_file('/sys/devices/system/cpu/cpu{0}/topology/thread_siblings_list'.format(core)))
             siblings_of_core[core] = siblings
         logging.debug("Siblings of cores are {0}.".format(str(siblings_of_core)))
     except ValueError as e:
@@ -339,7 +339,7 @@ def _get_memory_banks_per_run(coreAssignment, cgroupCpuset):
 
 def _get_allowed_memory_banks(cgroupCpuset):
     """Get the list of all memory banks allowed by the given cgroup."""
-    return Util.parse_int_list(Util.read_file(cgroupCpuset, 'cpuset.mems'))
+    return util.parse_int_list(util.read_file(cgroupCpuset, 'cpuset.mems'))
 
 def _get_memory_banks_listed_in_dir(dir):
     """Get all memory banks the kernel lists in a given directory.
@@ -430,12 +430,12 @@ def _get_memory_bank_size(memBank):
 def _is_turbo_boost_enabled():
     try:
         if os.path.exists(_TURBO_BOOST_FILE):
-            boost_enabled = int(Util.read_file(_TURBO_BOOST_FILE))
+            boost_enabled = int(util.read_file(_TURBO_BOOST_FILE))
             if not (0 <= boost_enabled <= 1):
                 raise ValueError('Invalid value {} for turbo boost activation'.format(boost_enabled))
             return boost_enabled != 0
         if os.path.exists(_TURBO_BOOST_FILE_PSTATE):
-            boost_disabled = int(Util.read_file(_TURBO_BOOST_FILE_PSTATE))
+            boost_disabled = int(util.read_file(_TURBO_BOOST_FILE_PSTATE))
             if not (0 <= boost_disabled <= 1):
                 raise ValueError('Invalid value {} for turbo boost activation'.format(boost_enabled))
             return boost_disabled != 1

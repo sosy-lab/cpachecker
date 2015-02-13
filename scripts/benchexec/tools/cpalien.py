@@ -14,7 +14,7 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 if __name__ == "__main__":
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.cpachecker
 
 class Tool(benchmark.tools.cpachecker.Tool):

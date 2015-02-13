@@ -34,12 +34,12 @@ import sys
 import threading
 import time
 
-from . import util as Util
+from . import util as util
 from .cgroups import *
 from . import oomhandler
 
-read_file = Util.read_file
-write_file = Util.write_file
+read_file = util.read_file
+write_file = util.write_file
 
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
@@ -85,14 +85,14 @@ class RunExecutor():
             # Read available cpus/memory nodes:
             cpuStr = read_file(cgroupCpuset, 'cpuset.cpus')
             try:
-                self.cpus = Util.parse_int_list(cpuStr)
+                self.cpus = util.parse_int_list(cpuStr)
             except ValueError as e:
                 logging.warning("Could not read available CPU cores from kernel: {0}".format(e.strerror))
             logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
             memsStr = read_file(cgroupCpuset, 'cpuset.mems')
             try:
-                self.memory_nodes = Util.parse_int_list(memsStr)
+                self.memory_nodes = util.parse_int_list(memsStr)
             except ValueError as e:
                 logging.warning("Could not read available memory nodes from kernel: {0}".format(e.strerror))
             logging.debug("List of available memory nodes is {0}.".format(self.memory_nodes))
@@ -222,7 +222,7 @@ class RunExecutor():
 
         timelimitThread = None
         oomThread = None
-        energyBefore = Util.measure_energy()
+        energyBefore = util.measure_energy()
         walltime_before = time.time()
 
         p = None
@@ -292,7 +292,7 @@ class RunExecutor():
             for cgroup in set(cgroups.values()):
                 kill_all_tasks_in_cgroup(cgroup)
 
-        energy = Util.measure_energy(energyBefore)
+        energy = util.measure_energy(energyBefore)
         walltime = walltime_after - walltime_before
         cputime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
         return (returnvalue, walltime, cputime, energy)
@@ -491,7 +491,7 @@ class RunExecutor():
         with self.SUB_PROCESSES_LOCK:
             for process in self.SUB_PROCESSES:
                 logging.warn('Killing process {0} forcefully.'.format(process.pid))
-                Util.kill_process(process.pid)
+                util.kill_process(process.pid)
 
 
 def _reduce_file_size_if_necessary(fileName, maxSize):
@@ -618,20 +618,20 @@ class _TimelimitThread(threading.Thread):
             if remainingCpuTime <= 0:
                 self.callback('cputime')
                 logging.debug('Killing process {0} due to CPU time timeout.'.format(self.process.pid))
-                Util.kill_process(self.process.pid)
+                util.kill_process(self.process.pid)
                 self.finished.set()
                 return
             if remainingWallTime <= 0:
                 self.callback('walltime')
                 logging.warning('Killing process {0} due to wall time timeout.'.format(self.process.pid))
-                Util.kill_process(self.process.pid)
+                util.kill_process(self.process.pid)
                 self.finished.set()
                 return
 
             if (self.softtimelimit - usedCpuTime) <= 0:
                 self.callback('cputime-soft')
                 # soft time limit violated, ask process to terminate
-                Util.kill_process(self.process.pid, signal.SIGTERM)
+                util.kill_process(self.process.pid, signal.SIGTERM)
                 self.softtimelimit = self.timelimit
 
             remainingTime = min(remainingCpuTime/self.cpuCount, remainingWallTime)

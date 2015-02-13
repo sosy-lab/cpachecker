@@ -1,13 +1,13 @@
 import os
 
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
 class Tool(benchexec.tools.template.BaseTool):
 
     def executable(self):
-        return Util.find_executable('feaver_cmd')
+        return util.find_executable('feaver_cmd')
 
 
     def name(self):
@@ -28,7 +28,7 @@ class Tool(benchexec.tools.template.BaseTool):
         content = open(sourcefile, "r").read()
         content = content.replace("goto ERROR;", "assert(0);")
         newFilename = "tmp_benchmark_feaver.c"
-        Util.write_file(newFilename, content)
+        util.write_file(newFilename, content)
         return newFilename
 
 

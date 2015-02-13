@@ -1,14 +1,14 @@
 import subprocess
 import os
 
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
 class Tool(benchexec.tools.template.BaseTool):
 
     def executable(self):
-        return Util.find_executable('pblast.opt')
+        return util.find_executable('pblast.opt')
 
 
     def program_files(self, executable):
@@ -34,7 +34,7 @@ class Tool(benchexec.tools.template.BaseTool):
 
     def cmdline(self, blastExe, options, sourcefiles, propertyfile, rlimits):
         workingDir = self.working_directory(blastExe)
-        ocamlExe = Util.find_executable('ocamltune')
+        ocamlExe = util.find_executable('ocamltune')
         return [os.path.relpath(ocamlExe, start=workingDir), os.path.relpath(blastExe, start=workingDir)] + options + sourcefiles
 
 

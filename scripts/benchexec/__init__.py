@@ -33,7 +33,7 @@ import sys
 import time
 
 from .model import Benchmark
-from . import util as Util
+from . import util as util
 from .outputhandler import OutputHandler
 
 
@@ -236,7 +236,7 @@ class BenchExec(object):
         result = self.executor.execute_benchmark(benchmark, output_handler)
 
         if self.config.commit and not self.stopped_by_interrupt:
-            Util.add_files_to_git_repository(self.config.output_path, output_handler.all_created_files,
+            util.add_files_to_git_repository(self.config.output_path, output_handler.all_created_files,
                                          self.config.commit_message+'\n\n'+output_handler.description)
         return result
 
@@ -295,4 +295,4 @@ def main(benchexec, argv=None):
         sys.exit(benchexec.start(argv or sys.argv))
     except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
         benchexec.stop()
-        Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")
+        util.printOut("\n\nScript was interrupted by user, some runs may not be done.")

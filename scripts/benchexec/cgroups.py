@@ -32,7 +32,7 @@ import signal
 import tempfile
 import time
 
-from . import util as Util
+from . import util as util
 
 CGROUP_NAME_PREFIX='benchmark_'
 
@@ -188,7 +188,7 @@ def kill_all_tasks_in_cgroup(cgroup):
                     task = task.strip()
                     if i > 1:
                         logging.warning('Run has left-over process with pid {0} in cgroup {1}, sending signal {2} (try {3}).'.format(task, cgroup, sig, i))
-                    Util.kill_process(int(task), sig)
+                    util.kill_process(int(task), sig)
 
                 if task is None:
                     return # No process was hanging, exit

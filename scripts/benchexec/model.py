@@ -34,7 +34,7 @@ import sys
 from datetime import date
 
 from . import result
-from . import util as Util
+from . import util as util
 
 MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
@@ -180,8 +180,8 @@ class Benchmark:
             sys.exit()
 
         # get global options and property_files
-        self.options = Util.get_list_from_xml(rootTag)
-        self.property_files = Util.get_list_from_xml(rootTag, tag=PROPERTY_TAG, attributes=[])
+        self.options = util.get_list_from_xml(rootTag)
+        self.property_files = util.get_list_from_xml(rootTag, tag=PROPERTY_TAG, attributes=[])
 
         # get columns
         self.columns = Benchmark.load_columns(rootTag.find("columns"))
@@ -192,7 +192,7 @@ class Benchmark:
         # get required files
         self._required_files = set()
         for required_files_tag in rootTag.findall('requiredfiles'):
-            required_files = Util.expand_filename_pattern(required_files_tag.text, self.base_dir)
+            required_files = util.expand_filename_pattern(required_files_tag.text, self.base_dir)
             if not required_files:
                 logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
             self._required_files = self._required_files.union(required_files)
@@ -293,13 +293,13 @@ class RunSet:
             self.log_folder += self.real_name + "."
 
         # get all run-set-specific options from rundefinitionTag
-        self.options = benchmark.options + Util.get_list_from_xml(rundefinitionTag)
-        self.property_files = benchmark.property_files + Util.get_list_from_xml(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
+        self.options = benchmark.options + util.get_list_from_xml(rundefinitionTag)
+        self.property_files = benchmark.property_files + util.get_list_from_xml(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
 
         # get run-set specific required files
         required_files = set()
         for required_files_tag in rundefinitionTag.findall('requiredfiles'):
-            thisRequiredFiles = Util.expand_filename_pattern(required_files_tag.text, benchmark.base_dir)
+            thisRequiredFiles = util.expand_filename_pattern(required_files_tag.text, benchmark.base_dir)
             if not thisRequiredFiles:
                 logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
             required_files = required_files.union(thisRequiredFiles)
@@ -356,7 +356,7 @@ class RunSet:
 
             required_files = set()
             for required_files_tag in sourcefilesTag.findall('requiredfiles'):
-                thisRequiredFiles = Util.expand_filename_pattern(required_files_tag.text, self.benchmark.base_dir)
+                thisRequiredFiles = util.expand_filename_pattern(required_files_tag.text, self.benchmark.base_dir)
                 if not thisRequiredFiles:
                     logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(required_files_tag.text))
                 required_files = required_files.union(thisRequiredFiles)
@@ -365,8 +365,8 @@ class RunSet:
             sourcefiles = self.get_sourcefiles_from_xml(sourcefilesTag, self.benchmark.base_dir)
 
             # get file-specific options for filenames
-            fileOptions = Util.get_list_from_xml(sourcefilesTag)
-            property_files = Util.get_list_from_xml(sourcefilesTag, tag=PROPERTY_TAG, attributes=[])
+            fileOptions = util.get_list_from_xml(sourcefilesTag)
+            property_files = util.get_list_from_xml(sourcefilesTag, tag=PROPERTY_TAG, attributes=[])
 
             currentRuns = []
             for sourcefile in sourcefiles:
@@ -390,7 +390,7 @@ class RunSet:
             for file in self.expand_filename_pattern(includesFilesFile.text, base_dir):
 
                 # check for code (if somebody confuses 'include' and 'includesfile')
-                if Util.is_code(file):
+                if util.is_code(file):
                     logging.error("'" + file + "' seems to contain code instead of a set of source file names.\n" + \
                         "Please check your benchmark definition file or remove bracket '{' from this file.")
                     sys.exit()
@@ -403,7 +403,7 @@ class RunSet:
                     line = line.strip()
 
                     # ignore comments and empty lines
-                    if not Util.is_comment(line):
+                    if not util.is_comment(line):
                         sourcefiles += self.expand_filename_pattern(line, os.path.dirname(file))
 
                 fileWithList.close()
@@ -412,7 +412,7 @@ class RunSet:
         for excludedFiles in sourcefilesTag.findall("exclude"):
             excludedFilesList = self.expand_filename_pattern(excludedFiles.text, base_dir)
             for excludedFile in excludedFilesList:
-                sourcefiles = Util.remove_all(sourcefiles, excludedFile)
+                sourcefiles = util.remove_all(sourcefiles, excludedFile)
 
         for excludesFilesFile in sourcefilesTag.findall("excludesfile"):
             for file in self.expand_filename_pattern(excludesFilesFile.text, base_dir):
@@ -424,10 +424,10 @@ class RunSet:
                     line = line.strip()
 
                     # ignore comments and empty lines
-                    if not Util.is_comment(line):
+                    if not util.is_comment(line):
                         excludedFilesList = self.expand_filename_pattern(line, os.path.dirname(file))
                         for excludedFile in excludedFilesList:
-                            sourcefiles = Util.remove_all(sourcefiles, excludedFile)
+                            sourcefiles = util.remove_all(sourcefiles, excludedFile)
 
                 fileWithList.close()
 
@@ -469,7 +469,7 @@ class RunSet:
             logging.debug("Expanded variables in expression {0} to {1}."
                 .format(repr(pattern), repr(expandedPattern)))
 
-        fileList = Util.expand_filename_pattern(expandedPattern, base_dir)
+        fileList = util.expand_filename_pattern(expandedPattern, base_dir)
 
         # sort alphabetical,
         fileList.sort()
@@ -502,7 +502,7 @@ class Run():
     def __init__(self, sourcefiles, fileOptions, runSet, property_files=[], required_files=[]):
         assert sourcefiles
         self.identifier = sourcefiles[0] # used for name of logfile, substitution, result-category
-        self.sourcefiles = Util.get_files(sourcefiles) # expand directories to get their sub-files
+        self.sourcefiles = util.get_files(sourcefiles) # expand directories to get their sub-files
         logging.debug("Creating Run with identifier '{0}' and files {1}".format(self.identifier, self.sourcefiles))
         self.runSet = runSet
         self.specific_options = fileOptions # options that are specific for this run
@@ -530,7 +530,7 @@ class Run():
         else:
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
-            expandedPropertyFiles = Util.expand_filename_pattern(self.propertyfile, self.runSet.benchmark.base_dir)
+            expandedPropertyFiles = util.expand_filename_pattern(self.propertyfile, self.runSet.benchmark.base_dir)
             substitutedPropertyfiles = substitute_vars([self.propertyfile], runSet, self.identifier)
             assert len(substitutedPropertyfiles) == 1
             

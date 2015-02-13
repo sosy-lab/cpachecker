@@ -42,7 +42,7 @@ import time
 import urllib2
 
 from benchexec.systeminfo import SystemInfo
-import benchexec.util as Util
+import benchexec.util as util
 
 
 APPENGINE_SUBMITTER_THREAD = None
@@ -114,7 +114,7 @@ def kill():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
 
-    Util.printOut("Killing subprocesses. May take some seconds...")
+    util.printOut("Killing subprocesses. May take some seconds...")
     if not APPENGINE_POLLER_THREAD == None:
         APPENGINE_POLLER_THREAD.join()
     if not APPENGINE_SUBMITTER_THREAD == None:
@@ -393,7 +393,7 @@ class _AppEnginePoller(threading.Thread):
             fileNames.append(file['name'])
 
         try:
-            Util.write_file(json.dumps(task), log_file+'.stdOut')
+            util.write_file(json.dumps(task), log_file+'.stdOut')
         except:
             logging.debug('Could not save task '+taskKey)
 
@@ -403,7 +403,7 @@ class _AppEnginePoller(threading.Thread):
                 uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
-                Util.write_file(response, log_file)
+                util.write_file(response, log_file)
                 statisticsProcessed = True
             except:
                 statisticsProcessed = False
@@ -418,7 +418,7 @@ class _AppEnginePoller(threading.Thread):
                 request = urllib2.Request(uri, headers=headers)
                 response = urllib2.urlopen(request).read()
                 response = 'Task Key: {}\n{}'.format(task['key'], response)
-                Util.write_file(response, log_file+'.stdErr')
+                util.write_file(response, log_file+'.stdErr')
             except: pass
 
         headers = {'Content-type':'application/json', 'Accept':'application/json'}

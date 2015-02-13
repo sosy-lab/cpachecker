@@ -1,7 +1,7 @@
 
 import subprocess
 import os
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
@@ -11,7 +11,7 @@ class Tool(benchexec.tools.template.BaseTool):
     """
 
     def executable(self):
-        return Util.find_executable('esbmc')
+        return util.find_executable('esbmc')
 
 
     def program_files(self, executable):

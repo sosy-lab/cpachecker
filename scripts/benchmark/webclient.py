@@ -53,7 +53,7 @@ except:
     pass
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
-import benchexec.util as Util
+import benchexec.util as util
 
 RESULT_KEYS = ["cputime", "walltime"]
 

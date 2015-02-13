@@ -1,10 +1,10 @@
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 
 class Tool(benchexec.tools.template.BaseTool):
 
     def executable(self):
-        return Util.find_executable('ufo.sh')
+        return util.find_executable('ufo.sh')
 
 
     def name(self):

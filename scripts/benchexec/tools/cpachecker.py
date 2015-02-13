@@ -40,7 +40,7 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
 import benchexec.result as result
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 from benchexec.model import SOFTTIMELIMIT
 
@@ -63,7 +63,7 @@ class Tool(benchexec.tools.template.BaseTool):
     """
 
     def executable(self):
-        executable = Util.find_executable('cpa.sh', 'scripts/cpa.sh')
+        executable = util.find_executable('cpa.sh', 'scripts/cpa.sh')
         executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         if os.path.isdir(os.path.join(executableDir, 'src')):
             self._buildCPAchecker(executableDir)
@@ -74,7 +74,7 @@ class Tool(benchexec.tools.template.BaseTool):
 
     def _buildCPAchecker(self, executableDir):
         logging.debug('Building CPAchecker in directory {0}.'.format(executableDir))
-        ant = subprocess.Popen(['ant', '-lib', 'lib/java/build', '-q', 'jar'], cwd=executableDir, shell=Util.is_windows())
+        ant = subprocess.Popen(['ant', '-lib', 'lib/java/build', '-q', 'jar'], cwd=executableDir, shell=util.is_windows())
         (stdout, stderr) = ant.communicate()
         if ant.returncode:
             sys.exit('Failed to build CPAchecker, please fix the build first.')
@@ -82,7 +82,7 @@ class Tool(benchexec.tools.template.BaseTool):
 
     def program_files(self, executable):
         executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
-        return Util.flatten(Util.expand_filename_pattern(path, executableDir) for path in REQUIRED_PATHS)
+        return util.flatten(util.expand_filename_pattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
     def working_directory(self, executable):
@@ -97,12 +97,12 @@ class Tool(benchexec.tools.template.BaseTool):
             logging.warning('Cannot run CPAchecker to determine version: {0}'.format(e.strerror))
             return ''
         if stderr:
-            logging.warning('Cannot determine CPAchecker version, error output: {0}'.format(Util.decode_to_string(stderr)))
+            logging.warning('Cannot determine CPAchecker version, error output: {0}'.format(util.decode_to_string(stderr)))
             return ''
         if process.returncode:
             logging.warning('Cannot determine CPAchecker version, exit code {0}'.format(process.returncode))
             return ''
-        stdout = Util.decode_to_string(stdout)
+        stdout = util.decode_to_string(stdout)
         line = next(l for l in stdout.splitlines() if l.startswith('CPAchecker'))
         line = line.replace('CPAchecker' , '')
         line = line.split('(')[0]

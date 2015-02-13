@@ -1,4 +1,4 @@
-import benchexec.util as Util
+import benchexec.util as util
 
 class BaseTool(object):
     """
@@ -18,7 +18,7 @@ class BaseTool(object):
         This method always needs to be overridden,
         and most implementations will look similar to this one.
         """
-        return Util.find_executable('tool')
+        return util.find_executable('tool')
 
 
     def version(self, executable):

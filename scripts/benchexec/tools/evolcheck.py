@@ -6,7 +6,7 @@ import subprocess
 import hashlib
 import xml.etree.ElementTree as ET
 
-import benchexec.util as Util
+import benchexec.util as util
 import benchexec.tools.template
 import benchexec.result as result
 
@@ -15,7 +15,7 @@ class Tool(benchexec.tools.template.BaseTool):
     previousStatus = None
 
     def executable(self):
-        return Util.find_executable('evolcheck_wrapper')
+        return util.find_executable('evolcheck_wrapper')
 
 
     def version(self, executable):
@@ -26,7 +26,7 @@ class Tool(benchexec.tools.template.BaseTool):
         return 'eVolCheck'
 
     def preprocessSourcefile(self, sourcefile):
-        gotoCcExecutable      = Util.find_executable('goto-cc')
+        gotoCcExecutable      = util.find_executable('goto-cc')
         # compile with goto-cc to same file, bith '.cc' appended
         self.preprocessedFile = sourcefile + ".cc"
 
