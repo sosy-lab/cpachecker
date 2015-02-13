@@ -306,9 +306,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Set<CandidateInvariant> candidateInvariants = getCandidateInvariants();
 
     try {
-      logger.log(Level.INFO, "Creating formula for program");
-      boolean soundInner;
 
+      if (candidateInvariants.isEmpty()) {
+        for (AbstractState state : from(reachedSet.getWaitlist()).toList()) {
+          reachedSet.removeOnlyFromWaitlist(state);
+        }
+        return true;
+      }
+
+      boolean soundInner;
 
       try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration();
           @SuppressWarnings("resource")
@@ -336,6 +342,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         do {
           shutdownNotifier.shutdownIfNecessary();
 
+          logger.log(Level.INFO, "Creating formula for program");
           soundInner = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
           if (from(reachedSet)
               .skip(1) // first state of reached is always an abstraction state, so skip it
@@ -408,11 +415,22 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    */
   private Set<CandidateInvariant> getCandidateInvariants() {
     Set<CandidateInvariant> result = Sets.newHashSet();
+
+    final Collection<CFANode> targetLocations;
+    if (isProgramConcurrent) {
+      targetLocations = cfa.getAllNodes();
+    } else {
+      boolean skipRecursion = Boolean.parseBoolean(config.getProperty("cpa.callstack.skipRecursion"));
+      targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction(), skipRecursion);
+    }
+
     if (!isInvariantGenerator) {
-      result.add(TargetLocationCandidateInvariant.INSTANCE);
+      if (!targetLocations.isEmpty()) {
+        result.add(TargetLocationCandidateInvariant.INSTANCE);
+      }
     } else if (cfa.getLoopStructure().isPresent()) {
       LoopStructure loopStructure = cfa.getLoopStructure().get();
-      for (CFAEdge assumeEdge : getRelevantAssumeEdges()) {
+      for (CFAEdge assumeEdge : getRelevantAssumeEdges(targetLocations)) {
         result.add(new EdgeFormulaNegation(loopStructure.getAllLoopHeads(), assumeEdge));
       }
     }
@@ -422,13 +440,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * Gets the relevant assume edges.
    *
+   * @param pTargetLocations the predetermined target locations.
+   *
    * @return the relevant assume edges.
    */
-  private Set<CFAEdge> getRelevantAssumeEdges() {
+  private Set<CFAEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
     final Set<CFAEdge> assumeEdges = new HashSet<>();
-    Set<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction(), false);
-    Set<CFANode> visited = new HashSet<>(targetLocations);
-    Queue<CFANode> waitlist = new ArrayDeque<>(targetLocations);
+    Set<CFANode> visited = new HashSet<>(pTargetLocations);
+    Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
