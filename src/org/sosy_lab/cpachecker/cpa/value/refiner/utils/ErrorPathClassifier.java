@@ -222,6 +222,7 @@ public class ErrorPathClassifier {
       Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
       Long score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
+
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
@@ -315,12 +316,12 @@ public class ErrorPathClassifier {
 
       if (loopStructure.isPresent()
           && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-        currentScore = currentScore + Integer.MAX_VALUE;
+        return Long.MAX_VALUE;
       }
 
       // check for overflow
       if(currentScore < previousScore) {
-        return Long.MAX_VALUE;
+        return Long.MAX_VALUE - 1;
       }
       previousScore = currentScore;
     }
