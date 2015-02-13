@@ -56,4 +56,15 @@ public class DoNothingInvariantGenerator implements InvariantGenerator {
   public Timer getTimeOfExecution() {
     return timer;
   }
+
+  @Override
+  public void addUpdateListener(UpdateListener pUpdateListener) {
+    // There will never be an update anyway
+  }
+
+  @Override
+  public void removeUpdateListener(UpdateListener pUpdateListener) {
+    // There will never be an update anyway
+
+  }
 }

@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 /**
@@ -102,6 +104,8 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
   private volatile boolean cancelled = false;
+
+  private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
 
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
@@ -192,6 +196,24 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   @Override
   public Timer getTimeOfExecution() {
     return invariantGeneration;
+  }
+
+  @Override
+  public void addUpdateListener(UpdateListener pUpdateListener) {
+    Preconditions.checkNotNull(pUpdateListener);
+    updateListeners.add(pUpdateListener);
+  }
+
+  @Override
+  public void removeUpdateListener(UpdateListener pUpdateListener) {
+    Preconditions.checkNotNull(pUpdateListener);
+    updateListeners.remove(pUpdateListener);
+  }
+
+  private void notifyUpdateListeners() {
+    for (UpdateListener updateListener : updateListeners) {
+      updateListener.updated();
+    }
   }
 
   private class InvariantGenerationTask implements Callable<UnmodifiableReachedSet> {
@@ -299,6 +321,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
           // wrapping this call itself, so this function must not be called
           // before ref is set to the wrapping future
           currentFuture.set(ref.get());
+          notifyUpdateListeners();
           if (adjustConditions() && !shutdownNotifier.shouldShutdown()) {
             scheduleTask(pReachedSetFactory, pInitialLocation);
           } else {

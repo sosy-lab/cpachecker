@@ -23,72 +23,72 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.base.Predicates.*;
+import java.util.Set;
 
-import java.util.Collections;
-
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 
-public class CandidateInvariant {
+public interface CandidateInvariant {
 
-  private final CFAEdge edge;
+  /**
+   * Creates an assertion of the invariant over the given reached set, using
+   * the given formula managers.
+   *
+   * @param pReachedSet the reached set to assert the invariant over.
+   * @param pFMGR the formula manager.
+   * @param pPFMGR the path formula manager.
+   *
+   * @return the assertion.
+   *
+   * @throws CPATransferException if a CPA transfer required to produce the
+   * assertion failed.
+   * @throws InterruptedException if the formula creation was interrupted.
+   */
+  BooleanFormula getAssertion(ReachedSet pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException;
 
-  public CandidateInvariant(CFAEdge pEdge) throws CPATransferException, InterruptedException {
-    Preconditions.checkNotNull(pEdge);
-    this.edge = pEdge;
-  }
+  /**
+   * Check if a violation of this formula indicates an error in the analyzed
+   * program.
+   *
+   * @return {@code true} if a violation indicates an error, {@code false}
+   * otherwise.
+   */
+  boolean violationIndicatesError();
 
-  public Optional<AssumeEdge> getAssumeEdge() {
-    if (edge instanceof AssumeEdge) {
-      AssumeEdge assumeEdge = (AssumeEdge) edge;
-      CFANode predecessor = assumeEdge.getPredecessor();
-      AssumeEdge otherEdge = CFAUtils.leavingEdges(predecessor).filter(not(equalTo(edge))).filter(AssumeEdge.class).iterator().next();
-      return Optional.of(otherEdge);
-    }
-    return Optional.absent();
-  }
+  /**
+   * Assume that the invariant holds and remove states from the given reached
+   * set that must therefore be unreachable.
+   *
+   * @param pReachedSet the reached set to remove unreachable states from.
+   */
+  void assumeTruth(ReachedSet pReachedSet);
 
-  public BooleanFormula getCandidate(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    PathFormula invariantPathFormula = pPFMGR.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
-    return pFMGR.getBooleanFormulaManager().not(pFMGR.uninstantiate(invariantPathFormula.getFormula()));
-  }
+  /**
+   * Gets the set of locations this invariant holds at.
+   *
+   * @param the control flow automaton.
+   *
+   * @return the set of locations this invariant holds at.
+   */
+  Set<CFANode> getLocations(CFA pCFA);
 
-  @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
-      return true;
-    }
-    if (pO instanceof CandidateInvariant) {
-      CandidateInvariant other = (CandidateInvariant) pO;
-      return edge.equals(other.edge);
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hashCode(getAssumeEdge());
-  }
-
-  @Override
-  public String toString() {
-    Optional<AssumeEdge> assumeEdge = getAssumeEdge();
-    if (assumeEdge.isPresent()) {
-      return assumeEdge.get().toString();
-    }
-    return String.format("not (%s)", edge);
-  }
+  /**
+   * Try to inject the invariant into an invariant generator in order to
+   * improve its results.
+   *
+   * @param pInvariantGenerator the invariant generator to inject the invariant
+   * into.
+   * @throws UnrecognizedCodeException if a problem occurred during the
+   * injection.
+   */
+  void attemptInjection(InvariantGenerator pInvariantGenerator) throws UnrecognizedCodeException;
 
 }

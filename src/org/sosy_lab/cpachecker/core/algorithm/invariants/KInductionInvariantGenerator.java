@@ -25,12 +25,14 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.Pair;
@@ -44,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -62,7 +63,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -89,19 +89,21 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
-  private final CFANode loopHead;
-
   private final Timer invariantGeneration = new Timer();
+
+  private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
 
   private final CFA cfa;
 
   private final PathFormulaManager clientPFM;
 
-  private ReachedSet currentResults = null;
+  private ReachedSet currentResults;
 
   private final ExecutorService executorService = Executors.newSingleThreadExecutor(Threads.threadFactory());
 
   private final ShutdownRequestListener shutdownListener;
+
+  private final AtomicBoolean areNewInvariantsAvailable = new AtomicBoolean(true);
 
   public KInductionInvariantGenerator(
       BMCAlgorithm pBMCAlgorithm,
@@ -110,7 +112,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCFA,
-      CFANode singleLoopHead,
       PathFormulaManager pClientPFM,
       boolean pAsync) throws InvalidConfigurationException {
     Preconditions.checkNotNull(pBMCAlgorithm);
@@ -126,9 +127,9 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
     reachedSetFactory = pReachedSetFactory;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    loopHead = singleLoopHead;
     cfa = pCFA;
     clientPFM = pClientPFM;
+    currentResults = reachedSetFactory.create();
 
     shutdownListener = new ShutdownRequestListener() {
 
@@ -137,6 +138,14 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
         executorService.shutdownNow();
       }
     };
+
+    bmcAlgorithm.addUpdateListener(new UpdateListener() {
+
+      @Override
+      public void updated() {
+        areNewInvariantsAvailable.set(true);
+      }
+    });
   }
 
   @Override
@@ -179,10 +188,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
   }
 
   private UnmodifiableReachedSet getResults() throws CPATransferException, InterruptedException {
-    if (currentResults == null) {
-      currentResults = reachedSetFactory.create();
-    }
-    if (bmcAlgorithm.areNewInvariantsAvailable()) {
+    if (areNewInvariantsAvailable.getAndSet(false)) {
       ReachedSet currentResults = reachedSetFactory.create();
       currentResults.addAll(FluentIterable.from(cfa.getAllNodes()).transform(new Function<CFANode, Pair<AbstractState, Precision>>() {
 
@@ -219,6 +225,18 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
     return invariantGeneration;
   }
 
+  @Override
+  public void addUpdateListener(UpdateListener pUpdateListener) {
+    Preconditions.checkNotNull(pUpdateListener);
+    updateListeners.add(pUpdateListener);
+  }
+
+  @Override
+  public void removeUpdateListener(UpdateListener pUpdateListener) {
+    Preconditions.checkNotNull(pUpdateListener);
+    updateListeners.remove(pUpdateListener);
+  }
+
   private class ResultState implements FormulaReportingState, AbstractStateWithLocation, Partitionable {
 
     private final CFANode location;
@@ -239,21 +257,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
 
     @Override
     public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
-      BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
-      BooleanFormula result = bfmgr.makeBoolean(true);
-      if (location == loopHead) {
-        for (CandidateInvariant ci : bmcAlgorithm.getCurrentLoopHeadInvariants()) {
-          try {
-            result = bfmgr.and(result, ci.getCandidate(pManager, clientPFM));
-          } catch (CPATransferException e) {
-            logger.logDebugException(e, "Could not create invariants formula.");
-          } catch (InterruptedException e) {
-            logger.logException(Level.FINEST, e, "Interrupted during invariants formula creation.");
-          }
-        }
-      }
-      result = bfmgr.and(result, bmcAlgorithm.getCurrentLocationInvariants(loopHead, pManager));
-      return result;
+      return bmcAlgorithm.getCurrentLocationInvariants(location, pManager, clientPFM);
     }
 
     @Override
