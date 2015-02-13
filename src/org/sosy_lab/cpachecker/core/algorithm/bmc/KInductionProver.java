@@ -552,6 +552,7 @@ class KInductionProver implements AutoCloseable {
     // Attempt the induction proofs
     ProverEnvironment prover = getProver();
     int numberOfSuccessfulProofs = 0;
+    stats.inductionPreparation.stop();
     for (CandidateInvariant candidateInvariant : candidateInvariants) {
 
       // Obtain the predecessor assertion created earlier
@@ -562,7 +563,6 @@ class KInductionProver implements AutoCloseable {
       // assertion in a future induction attempt
       violationFormulas.put(candidateInvariant, successorViolation);
 
-      stats.inductionPreparation.stop();
 
       logger.log(Level.INFO, "Starting induction check...");
 
