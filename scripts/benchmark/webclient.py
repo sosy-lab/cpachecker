@@ -52,8 +52,8 @@ try:
 except:
     pass
 
-from .model import MEMLIMIT, TIMELIMIT, CORELIMIT
-from . import util as Util
+from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
+import benchexec.util as Util
 
 RESULT_KEYS = ["cputime", "walltime"]
 

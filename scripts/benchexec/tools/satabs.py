@@ -1,22 +1,22 @@
 import subprocess
 
-import benchmark.util as Util
-import benchmark.tools.template
-import benchmark.result as result
+import benchexec.util as Util
+import benchexec.tools.template
+import benchexec.result as result
 
-class Tool(benchmark.tools.template.BaseTool):
+class Tool(benchexec.tools.template.BaseTool):
 
     def executable(self):
-        return Util.find_executable('wolverine')
+        return Util.find_executable('satabs')
 
 
     def version(self, executable):
         return subprocess.Popen([executable, '--version'],
-                                stdout=subprocess.PIPE).communicate()[0].split()[1].strip()
+                                stdout=subprocess.PIPE).communicate()[0].strip()
 
 
     def name(self):
-        return 'Wolverine'
+        return 'SatAbs'
 
 
     def determine_result(self, returncode, returnsignal, output, isTimeout):
@@ -29,9 +29,12 @@ class Tool(benchmark.tools.template.BaseTool):
             status = result.STATUS_FALSE_REACH
         elif returnsignal == 9:
             status = "TIMEOUT"
-        elif returnsignal == 6 or (returncode == 6 and "Out of memory" in output):
-            status = "OUT OF MEMORY"
-        elif returncode == 6 and "PARSING ERROR" in output:
+        elif returnsignal == 6:
+            if "Assertion `!counterexample.steps.empty()' failed" in output:
+                status = 'COUNTEREXAMPLE FAILED' # TODO: other status?
+            else:
+                status = "OUT OF MEMORY"
+        elif returncode == 1 and "PARSING ERROR" in output:
             status = "PARSING ERROR"
         else:
             status = "FAILURE"

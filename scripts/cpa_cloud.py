@@ -34,8 +34,8 @@ import subprocess
 import logging
 import os.path
 
-import benchmark.tools.cpachecker
-cpachecker = benchmark.tools.cpachecker.Tool()
+import benchexec.tools.cpachecker
+cpachecker = benchexec.tools.cpachecker.Tool()
 executable = cpachecker.executable()
 required_files = cpachecker.program_files(executable)
 

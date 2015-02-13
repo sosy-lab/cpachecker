@@ -43,7 +43,7 @@ import tempita
 
 from decimal import *
 
-import benchmark.result as result
+import benchexec.result as result
 
 NAME_START = "results" # first part of filename of table
 

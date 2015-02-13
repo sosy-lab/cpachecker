@@ -1,8 +1,8 @@
 from random import random
-import benchmark.tools.template
-import benchmark.result as result
+import benchexec.tools.template
+import benchexec.result as result
 
-class Tool(benchmark.tools.template.BaseTool):
+class Tool(benchexec.tools.template.BaseTool):
     """
     This tool is an imaginary tool that randomly returns SAFE and UNSAFE.
     To use it you need a normal benchmark-xml-file

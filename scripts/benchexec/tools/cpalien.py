@@ -7,15 +7,15 @@ import sys
 import string
 import os
 import re
-import benchmark.result as result
+import benchexec.result as result
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 if __name__ == "__main__":
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
-import benchmark.util as Util
-import benchmark.tools.cpachecker
+import benchexec.util as Util
+import benchexec.tools.cpachecker
 
 class Tool(benchmark.tools.cpachecker.Tool):
 

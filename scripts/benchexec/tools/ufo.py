@@ -1,7 +1,7 @@
-import benchmark.util as Util
-import benchmark.tools.template
+import benchexec.util as Util
+import benchexec.tools.template
 
-class Tool(benchmark.tools.template.BaseTool):
+class Tool(benchexec.tools.template.BaseTool):
 
     def executable(self):
         return Util.find_executable('ufo.sh')

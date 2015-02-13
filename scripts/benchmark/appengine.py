@@ -41,8 +41,8 @@ import threading
 import time
 import urllib2
 
-from .systeminfo import SystemInfo
-from . import util as Util
+from benchexec.systeminfo import SystemInfo
+import benchexec.util as Util
 
 
 APPENGINE_SUBMITTER_THREAD = None

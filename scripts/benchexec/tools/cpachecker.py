@@ -39,10 +39,10 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 if __name__ == "__main__":
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
-import benchmark.result as result
-import benchmark.util as Util
-import benchmark.tools.template
-from benchmark.model import SOFTTIMELIMIT
+import benchexec.result as result
+import benchexec.util as Util
+import benchexec.tools.template
+from benchexec.model import SOFTTIMELIMIT
 
 REQUIRED_PATHS = [
                   "lib/java/runtime",
@@ -53,7 +53,7 @@ REQUIRED_PATHS = [
                   "config",
                   ]
 
-class Tool(benchmark.tools.template.BaseTool):
+class Tool(benchexec.tools.template.BaseTool):
     """
     Tool wrapper for CPAchecker.
     It has additional features such as building CPAchecker before running it

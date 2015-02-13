@@ -31,9 +31,9 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import argparse
 import logging
-import benchmark.runexecutor
 import signal
-from benchmark import util
+from benchexec import util
+from benchexec.runexecutor import RunExecutor
 
 """
 A simple command-line interface for the runexecutor module of BenchExec.
@@ -97,7 +97,7 @@ def main(argv=None):
     logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                         level=logLevel)
 
-    executor = benchmark.runexecutor.RunExecutor()
+    executor = RunExecutor()
 
     # ensure that process gets killed on interrupt/kill signal
     def signal_handler_kill(signum, frame):

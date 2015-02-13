@@ -33,7 +33,7 @@ import os
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-import benchmark.util as Util
+import benchexec.util as Util
 
 def determineRevision(dir):
     """

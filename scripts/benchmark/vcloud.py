@@ -33,8 +33,8 @@ import os
 import subprocess
 import time
 
-from .model import MEMLIMIT, TIMELIMIT, CORELIMIT
-from . import util as Util
+from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
+import benchexec.util as Util
 
 
 DEFAULT_CLOUD_TIMELIMIT = 300 # s

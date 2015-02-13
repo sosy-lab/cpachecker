@@ -1,11 +1,11 @@
 import os
 import subprocess
 
-import benchmark.util as Util
-import benchmark.tools.template
-import benchmark.result as result
+import benchexec.util as Util
+import benchexec.tools.template
+import benchexec.result as result
 
-class Tool(benchmark.tools.template.BaseTool):
+class Tool(benchexec.tools.template.BaseTool):
     """
     This class serves as tool adaptor for LLBMC
     """

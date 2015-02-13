@@ -1,4 +1,4 @@
-import benchmark.util as Util
+import benchexec.util as Util
 
 class BaseTool(object):
     """

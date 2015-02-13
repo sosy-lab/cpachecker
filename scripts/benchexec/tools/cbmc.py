@@ -4,11 +4,11 @@ import platform
 import subprocess
 import xml.etree.ElementTree as ET
 
-import benchmark.util as Util
-import benchmark.tools.template
-import benchmark.result as result
+import benchexec.util as Util
+import benchexec.tools.template
+import benchexec.result as result
 
-class Tool(benchmark.tools.template.BaseTool):
+class Tool(benchexec.tools.template.BaseTool):
     """
     Tool wrapper for CBMC (http://www.cprover.org/cbmc/).
     It always adds --xml-ui to the command-line arguments for easier parsing of the output.
