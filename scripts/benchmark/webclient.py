@@ -52,7 +52,7 @@ try:
 except:
     pass
 
-from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
+from .model import MEMLIMIT, TIMELIMIT, CORELIMIT
 from . import util as Util
 
 RESULT_KEYS = ["cputime", "walltime"]

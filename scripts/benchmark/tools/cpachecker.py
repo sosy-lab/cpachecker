@@ -42,7 +42,7 @@ if __name__ == "__main__":
 import benchmark.result as result
 import benchmark.util as Util
 import benchmark.tools.template
-from benchmark.benchmarkDataStructures import SOFTTIMELIMIT
+from benchmark.model import SOFTTIMELIMIT
 
 REQUIRED_PATHS = [
                   "lib/java/runtime",

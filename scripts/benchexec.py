@@ -37,9 +37,9 @@ import os
 import signal
 import time
 
-from benchmark.benchmarkDataStructures import Benchmark
+from benchmark.model import Benchmark
 import benchmark.util as Util
-from benchmark.outputHandler import OutputHandler
+from benchmark.outputhandler import OutputHandler
 
 
 """

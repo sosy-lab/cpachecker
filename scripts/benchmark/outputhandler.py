@@ -31,7 +31,7 @@ import sys
 import os
 import xml.etree.ElementTree as ET
 
-from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT, CORELIMIT
+from .model import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT, CORELIMIT
 from . import filewriter
 from . import result
 from . import util as Util

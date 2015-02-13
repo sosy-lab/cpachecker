@@ -33,7 +33,7 @@ import os
 import subprocess
 import time
 
-from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
+from .model import MEMLIMIT, TIMELIMIT, CORELIMIT
 from . import util as Util
 
 

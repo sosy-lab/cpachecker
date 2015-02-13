@@ -44,7 +44,7 @@ import subprocess
 import threading
 import time
 
-from .benchmarkDataStructures import CORELIMIT, MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
+from .model import CORELIMIT, MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
 from . import cgroups
 from .runexecutor import RunExecutor
 from .systeminfo import SystemInfo
