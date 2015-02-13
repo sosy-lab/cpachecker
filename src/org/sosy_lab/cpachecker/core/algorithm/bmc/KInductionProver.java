@@ -168,7 +168,6 @@ class KInductionProver implements AutoCloseable {
       InvariantGenerator pInvariantGenerator,
       BMCStatistics pStats,
       ReachedSetFactory pReachedSetFactory,
-      boolean pIsProgramConcurrent,
       TargetLocationProvider pTargetLocationProvider,
       boolean pHavocLoopTerminationConditionVariablesOnly,
       Supplier<Integer> pBMCKAccessor,

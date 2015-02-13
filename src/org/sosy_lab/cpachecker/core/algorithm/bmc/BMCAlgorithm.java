@@ -723,7 +723,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         invariantGenerator,
         stats,
         reachedSetFactory,
-        isProgramConcurrent,
         targetLocationProvider,
         havocLoopTerminationConditionVariablesOnly,
         bmcKAccessor,
