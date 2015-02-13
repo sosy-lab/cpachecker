@@ -92,7 +92,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final TemplateManager templateManager;
   private final ValueDeterminationFormulaManager vdfmgr;
   private final PolicyIterationStatistics statistics;
-  private final FormulaSlicingManager formulaSlicingManager;
+  private final SlicingFormulaManager formulaSlicingManager;
   private final FormulaLinearizationManager linearizationManager;
 
   public PolicyIterationManager(
@@ -106,7 +106,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       TemplateManager pTemplateManager,
       ValueDeterminationFormulaManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics,
-      FormulaSlicingManager pFormulaSlicingManager,
+      SlicingFormulaManager pFormulaSlicingManager,
       FormulaLinearizationManager pLinearizationManager)
       throws InvalidConfigurationException {
     config.inject(this, PolicyIterationManager.class);
@@ -660,7 +660,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * {@link PolicyIntermediateState}.
    */
   private PolicyIntermediateState abstractStateToIntermediate(
-      PolicyAbstractedState abstractState) throws InterruptedException {
+      PolicyAbstractedState abstractState)
+      throws InterruptedException, CPATransferException {
 
     SSAMap ssa = abstractState.getPathFormula().getSsa();
     List<BooleanFormula> constraints = new ArrayList<>();
@@ -689,12 +690,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         )
     );
 
-    // TODO: check that it is correct, that is,
-    // pointer information stays invariant under the loop.
     if (propagateFormulasPastAbstraction) {
-      BooleanFormula extraBit = abstractState.getPathFormula().getFormula();
       BooleanFormula pointerData = formulaSlicingManager.pointerFormulaSlice(
-          extraBit);
+          abstractState.getLocation(),
+          abstractState.getPathFormula());
 
       initialConstraint = bfmgr.and(initialConstraint, pointerData);
     }

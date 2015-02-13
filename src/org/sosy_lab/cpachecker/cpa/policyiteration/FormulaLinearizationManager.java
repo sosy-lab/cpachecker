@@ -167,13 +167,9 @@ public class FormulaLinearizationManager {
     mapping = new HashMap<>();
     for (Map.Entry<Model.AssignableTerm, Object> entry : model) {
       String termName = entry.getKey().getName();
-
       if (termName.contains(CHOICE_VAR_NAME)) {
         BigInteger value = (BigInteger) entry.getValue();
-        mapping.put(
-            ifmgr.makeVariable(termName),
-            ifmgr.makeNumber(value)
-        );
+        mapping.put(ifmgr.makeVariable(termName), ifmgr.makeNumber(value));
       }
     }
     BooleanFormula pathSelected = ufmgr.substitute(initialSelected, mapping);
