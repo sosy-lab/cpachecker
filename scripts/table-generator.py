@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 CPAchecker is a tool for configurable software verification.
@@ -27,10 +27,12 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import glob
 import os
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, 'BenchExec'))
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
+    sys.path.insert(0, egg)
 
 import benchexec.tablegenerator
 
