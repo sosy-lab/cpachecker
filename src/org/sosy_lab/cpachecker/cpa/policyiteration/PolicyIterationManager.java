@@ -220,7 +220,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         outPath,
 
         // Redundant variable for path identification.
-        trace);
+        trace,
+        iOldState.getStartSSA());
 
     // NOTE: the abstraction computation and the global update is delayed
     // until the {@code strengthen} call.
@@ -325,17 +326,33 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     PathFormula newPath = newState.getPathFormula();
     PathFormula oldPath = oldState.getPathFormula();
-    Multimap<Location, Location> trace = HashMultimap.create();
 
+    // Join trace.
+    Multimap<Location, Location> trace = HashMultimap.create();
     trace.putAll(newState.getTrace());
     trace.putAll(oldState.getTrace());
+
+    // Join startSSA: first SSAMap for the beginning of the trace.
+    Map<Location, SSAMap> newStartSSA = new HashMap<>();
+    for (Location loc : Sets.union(newState.getStartSSA().keySet(),
+        oldState.getStartSSA().keySet())) {
+      if (newState.getStartSSA().get(loc) == null) {
+        newStartSSA.put(loc, oldState.getStartSSA().get(loc));
+      } else if (oldState.getStartSSA().get(loc) == null) {
+        newStartSSA.put(loc, newState.getStartSSA().get(loc));
+      } else {
+        Preconditions.checkState(newState.getStartSSA().get(loc).equals(
+            oldState.getStartSSA().get(loc)));
+        newStartSSA.put(loc, newState.getStartSSA().get(loc));
+      }
+    }
 
     // No value determination, no abstraction, simply join incoming edges
     // and the tracked templates.
     return PolicyIntermediateState.of(
         location, allTemplates,
         pfmgr.makeOr(newPath, oldPath),
-        trace
+        trace, newStartSSA
     );
   }
 
@@ -432,6 +449,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         NumeralFormula objective;
         String varName = vdfmgr.absDomainVarName(location, template);
+        logger.log(Level.FINE, "Var name: ", varName);
         if (templateManager.shouldUseRationals(template)) {
           objective = rfmgr.makeVariable(varName);
         } else {
@@ -466,9 +484,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         if (value.isPresent()) {
           builder.put(template, PolicyBound.of(
-              policyFormula,
-              value.get(),
-              bound.predecessor
+              policyFormula, value.get(), bound.predecessor, bound.startSSA
           ));
         } else {
           unbounded.add(template);
@@ -562,10 +578,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         = ImmutableMap.builder();
 
     BooleanFormula formulaWithInitial = linearizationManager.enforceChoice(
-        annotatedFormula,
-        Collections.<Entry<Model.AssignableTerm, Object>>emptySet(),
-        true
-    );
+        annotatedFormula, Collections.<Entry<Model.AssignableTerm, Object>>emptySet(), true);
 
     try (OptEnvironment solver = this.solver.newOptEnvironment()) {
       solver.addConstraint(formulaWithInitial);
@@ -598,26 +611,26 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         switch (status) {
           case OPT:
             Optional<Rational> bound = solver.upper(handle, EPSILON);
-            if (bound.isPresent()) {
-              Model model = solver.getModel();
-              Rational boundValue = bound.get();
-              if (template.type.isUnsigned() && template.isLowerBound()) {
-                boundValue = Rational.max(boundValue, Rational.ZERO);
+            Model model = solver.getModel();
+
+            // Lower bound on unsigned variables is at least zero.
+            boolean unsignedAndLower = template.type.isUnsigned() &&
+                template.isLowerBound();
+            if (bound.isPresent() || unsignedAndLower) {
+              Rational boundValue;
+              if (bound.isPresent() && unsignedAndLower) {
+                boundValue = Rational.max(bound.get(), Rational.ZERO);
+              } else if (bound.isPresent()){
+                boundValue = bound.get();
+              } else {
+                boundValue = Rational.ZERO;
               }
 
               // NOTE: it is important to use the formula which does not include
               // the initial condition.
               PolicyBound policyBound = policyBoundFromModel(
-                  p, annotatedFormula, model, boundValue);
-
+                  state, p, annotatedFormula, model, boundValue);
               abstraction.put(template, policyBound);
-            } else {
-              if (template.type.isUnsigned() && template.isLowerBound()) {
-                Model model = solver.getModel();
-                abstraction.put(
-                    template, policyBoundFromModel(
-                        p, transferRelation, model, Rational.ZERO));
-              }
             }
             logger.log(Level.FINE, "Got bound: ", bound);
             break;
@@ -659,9 +672,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           templateManager.toFormula(template, abstractState.getPathFormula());
 
       BooleanFormula constraint = fmgr.makeLessOrEqual(
-          t,
-          fmgr.makeNumber(t, bound.bound),
-          true
+          t, fmgr.makeNumber(t, bound.bound), true
       );
       constraints.add(constraint);
     }
@@ -691,14 +702,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PathFormula path = new PathFormula(
         initialConstraint, ssa,
         abstractState.getPathFormula().getPointerTargetSet(),
-        0
-    );
+        0);
 
     return PolicyIntermediateState.of(
         abstractState.getLocation(),
         abstractState.getTemplates(),
         path,
-        HashMultimap.<Location, Location>create()
+        HashMultimap.<Location, Location>create(),
+        ImmutableMap.of(abstractState.getLocation(), ssa)
     );
   }
 
@@ -710,12 +721,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Reconstructed trace
    */
   private PolicyBound policyBoundFromModel(
+      PolicyIntermediateState inputState,
       PathFormula inputPathFormula,
       BooleanFormula transferRelation,
       Model model,
       Rational bound) {
-
-
     BooleanFormula policyFormula = linearizationManager.enforceChoice(
         transferRelation, model.entrySet(), false
     );
@@ -724,9 +734,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer));
     int locationID = Ints.checkedCast(prevLocationID.longValue());
     Location prevLocation = Location.ofID(locationID);
+    SSAMap startSSA = inputState.getStartSSA().get(prevLocation);
 
     return PolicyBound.of(
-        inputPathFormula.updateFormula(policyFormula), bound, prevLocation);
+        inputPathFormula.updateFormula(policyFormula), bound, prevLocation,
+        startSSA);
   }
 
   /**

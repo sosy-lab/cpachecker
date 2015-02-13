@@ -70,7 +70,9 @@ public class ValueDeterminationFormulaManager {
    * The abstract state associated with the <code>focusedNode</code>
    * is the <b>new</b> state, with <code>updated</code> applied.
    *
-   * @return Global constraint for value determination.
+   * @return Global constraint for value determination and types of the abstract
+   * domain elements.
+   *
    * @throws CPATransferException
    * @throws InterruptedException
    */
@@ -92,7 +94,7 @@ public class ValueDeterminationFormulaManager {
         Template template = incoming.getKey();
         PolicyBound bound = incoming.getValue();
 
-        String prefix = String.format(VISIT_PREFIX,
+        final String prefix = String.format(VISIT_PREFIX,
             bound.serializePath(toLocation));
 
         if (toLocation == focusedLocation && !updated.containsKey(template)) {
@@ -100,13 +102,8 @@ public class ValueDeterminationFormulaManager {
           // Insert the invariant from the previous constraint.
           Formula templateFormula = templateManager.toFormula(
               template,
-              new PathFormula(
-                  bfmgr.makeBoolean(true),
-                  SSAMap.emptySSAMap(),
-                  PointerTargetSet.emptyPointerTargetSet(),
-                  0
-              ),
-              prefix);
+              new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(),
+                  PointerTargetSet.emptyPointerTargetSet(), 0), prefix);
           BooleanFormula constraint = fmgr.makeLessOrEqual(
               templateFormula,
               fmgr.makeNumber(templateFormula, bound.bound), true
@@ -114,9 +111,10 @@ public class ValueDeterminationFormulaManager {
 
           constraints.add(constraint);
         } else {
-          PathFormula formula = incoming.getValue().formula;
+          PathFormula formula = bound.formula;
+          Location fromLocation = bound.predecessor;
+          SSAMap startSSA = bound.startSSA;
 
-          Location fromLocation = incoming.getValue().predecessor;
           int toLocationNo = toLocation.toID();
           int toLocationPrimeNo = toPrime(toLocationNo);
 
@@ -130,8 +128,10 @@ public class ValueDeterminationFormulaManager {
           PolicyAbstractedState incomingState = policy.get(fromLocation);
           for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
             Template incomingTemplate = incomingConstraint.getKey();
+
+
             Formula templateFormula = templateWithInitialMap(
-                incomingTemplate, formula,  prefix);
+                startSSA, incomingTemplate, formula,  prefix);
             String prevAbstractDomainElement = absDomainVarName(fromLocation,
                 incomingTemplate);
             Formula absDomainElementFormula = fmgr.makeVariable(
@@ -139,8 +139,7 @@ public class ValueDeterminationFormulaManager {
             );
 
             BooleanFormula constraint = fmgr.makeLessOrEqual(
-                templateFormula, absDomainElementFormula, true
-            );
+                templateFormula, absDomainElementFormula, true);
             constraints.add(constraint);
           }
 
@@ -269,9 +268,8 @@ public class ValueDeterminationFormulaManager {
     return String.format(BOUND_VAR_NAME, pLocation.toID(), template);
   }
 
-  private Formula templateWithInitialMap(Template template,
+  private Formula templateWithInitialMap(SSAMap initialMap, Template template,
       PathFormula p, String prefix) {
-    SSAMap initialMap = deriveInitialSSAMap(p);
     PathFormula initialFormula = new PathFormula(
         p.getFormula(), initialMap, p.getPointerTargetSet(),
         p.getLength()
@@ -279,39 +277,5 @@ public class ValueDeterminationFormulaManager {
     return templateManager.toFormula(
         template, initialFormula, prefix
     );
-  }
-
-  private SSAMap deriveInitialSSAMap(PathFormula pFormula) {
-    // TODO (problem 1): does not work when assignment is a first test.
-    // TODO (problem 2): this is a hack. might not work for makeOR.
-    // Problem: might not work for makeOR (multiple input paths possible =/)
-    Set<Triple<Formula, String, Integer>> allVars =
-        fmgr.extractFreeVariables(pFormula.getFormula());
-    Map<String, Integer> initialSSA = new HashMap<>();
-    for (Triple<Formula, String, Integer> e : allVars) {
-      String varName = e.getSecond();
-      Integer newValue = e.getThird();
-      if (newValue != null) {
-        Integer oldValue = initialSSA.get(varName);
-        if (oldValue != null) {
-          initialSSA.put(varName, Math.min(newValue, oldValue));
-        } else {
-          initialSSA.put(varName, newValue);
-        }
-      }
-    }
-
-    SSAMap.SSAMapBuilder b = SSAMap.emptySSAMap().builder();
-    for (Entry<String, Integer> e : initialSSA.entrySet()) {
-      String varName = e.getKey();
-      int newIdx = e.getValue();
-      CType type = pFormula.getSsa().getType(varName);
-      if (type == null) {
-        type = CNumericTypes.DOUBLE;
-      }
-      b = b.setIndex(varName, type , newIdx);
-    }
-
-    return b.build();
   }
 }
