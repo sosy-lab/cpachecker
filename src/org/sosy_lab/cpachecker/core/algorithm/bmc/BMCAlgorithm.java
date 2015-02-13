@@ -145,7 +145,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private boolean induction = false;
 
   @Option(secure=true, description="Generate invariants and add them to the induction hypothesis.")
-  private boolean useInvariantsForInduction = false;
+  private boolean addInvariantsByAI = false;
 
   @Option(secure=true, description="Generate additional invariants by induction and add them to the induction hypothesis.")
   private boolean addInvariantsByInduction = true;
@@ -258,7 +258,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           notifyUpdateListeners();
         }
       });
-    } else if (induction && useInvariantsForInduction) {
+    } else if (induction && addInvariantsByAI) {
       invariantGenerator = new CPAInvariantGenerator(pConfig, pLogger, reachedSetFactory, pShutdownNotifier, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
