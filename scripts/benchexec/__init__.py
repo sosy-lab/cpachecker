@@ -261,7 +261,7 @@ class BenchExec(object):
         self.stopped_by_interrupt = True
 
         if self.executor:
-            self.executor.kill()
+            self.executor.stop()
 
 
 def parse_time_arg(s):

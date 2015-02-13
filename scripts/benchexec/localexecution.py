@@ -143,7 +143,7 @@ def execute_benchmark(benchmark, output_handler):
                 try:
                     time.sleep(0.1) # sleep some time
                 except KeyboardInterrupt:
-                    kill()
+                    stop()
 
             # get times after runSet
             walltime_after = time.time()
@@ -160,7 +160,7 @@ def execute_benchmark(benchmark, output_handler):
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
 
-def kill():
+def stop():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
 
@@ -536,4 +536,4 @@ class _Worker(threading.Thread):
     def stop(self):
         # asynchronous call to runexecutor,
         # the worker will stop asap, but not within this method.
-        self.run_executor.kill()
+        self.run_executor.stop()

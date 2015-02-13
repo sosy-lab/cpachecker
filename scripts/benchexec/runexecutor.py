@@ -485,7 +485,7 @@ class RunExecutor():
     def _set_termination_reason(self, reason):
         self._termination_reason = reason
 
-    def kill(self):
+    def stop(self):
         self._set_termination_reason('killed')
         self.PROCESS_KILLED = True
         with self.SUB_PROCESSES_LOCK:

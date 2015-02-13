@@ -101,7 +101,7 @@ def main(argv=None):
 
     # ensure that process gets killed on interrupt/kill signal
     def signal_handler_kill(signum, frame):
-        executor.kill()
+        executor.stop()
     signal.signal(signal.SIGTERM, signal_handler_kill)
     signal.signal(signal.SIGINT,  signal_handler_kill)
 

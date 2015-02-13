@@ -117,7 +117,7 @@ def execute_benchmark(benchmark, output_handler):
     finally:
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
-def kill():
+def stop():
     # TODO: cancel runs on server
     pass
 

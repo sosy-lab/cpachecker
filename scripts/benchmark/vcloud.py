@@ -89,7 +89,7 @@ def execute_benchmark(benchmark, output_handler):
         try:
             (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
         except KeyboardInterrupt:
-            kill()
+            stop()
         returnCode = cloud.wait()
 
         walltime_after = time.time()
@@ -110,7 +110,7 @@ def execute_benchmark(benchmark, output_handler):
     return returnCode
 
 
-def kill():
+def stop():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
     # kill cloud-client, should be done automatically, when the subprocess is aborted

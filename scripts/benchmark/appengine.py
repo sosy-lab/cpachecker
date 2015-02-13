@@ -101,7 +101,7 @@ def execute_benchmark(benchmark, output_handler):
     except KeyboardInterrupt:
         with open(timestampsFileName, 'a') as f:
             f.write('Interrupt: '+datetime.strftime(datetime.now(), formatString)+'\n')
-        kill()
+        stop()
     APPENGINE_POLLER_THREAD.join()
 
     _handleAppEngineResults(benchmark, output_handler)
@@ -110,7 +110,7 @@ def execute_benchmark(benchmark, output_handler):
         f.write('Finish: '+datetime.strftime(datetime.now(), formatString)+'\n')
 
 
-def kill():
+def stop():
     global STOPPED_BY_INTERRUPT
     STOPPED_BY_INTERRUPT = True
 
