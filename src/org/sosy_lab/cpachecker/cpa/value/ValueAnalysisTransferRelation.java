@@ -909,28 +909,26 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     } else {
       final JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) arrayExpression;
-      ArrayValue arrayValue = getInnerMostArray(arraySubscriptExpression);
+      // the array enclosing the array specified in the given array subscript expression
+      ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
 
-      // check if we are not yet at the innermost array
-      if (arrayValue != null && arrayValue.getArrayType().getDimensions() > 1) {
-        final ExpressionValueVisitor evv = getVisitor();
-        final Value indexValue = arraySubscriptExpression.getSubscriptExpression().accept(evv);
+      // an array enclosing another array can not be one dimensional
+      assert enclosingArray.getArrayType().getDimensions() > 1;
 
+      final ExpressionValueVisitor evv = getVisitor();
+      final Value indexValue = arraySubscriptExpression.getSubscriptExpression().accept(evv);
 
-        if (indexValue.isUnknown()) {
-          return null;
-        }
-
-        long index = ((NumericValue) indexValue).longValue();
-
-        if (index >= arrayValue.getArraySize() || index < 0) {
-          return null;
-        }
-
-        arrayValue = (ArrayValue) arrayValue.getValueAt((int) index);
+      if (indexValue.isUnknown()) {
+        return null;
       }
 
-      return arrayValue;
+      long index = ((NumericValue) indexValue).longValue();
+
+      if (index >= enclosingArray.getArraySize() || index < 0) {
+        return null;
+      }
+
+      return (ArrayValue) enclosingArray.getValueAt((int) index);
     }
   }
 
