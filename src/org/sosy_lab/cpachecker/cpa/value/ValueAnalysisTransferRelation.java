@@ -417,6 +417,17 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         && !((JFieldDeclaration) declaration).isStatic();
   }
 
+  private Optional<Integer> getIndex(JArraySubscriptExpression pExpression) {
+    final ExpressionValueVisitor evv = getVisitor();
+    final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
+
+    if (indexValue.isUnknown()) {
+      return Optional.absent();
+    } else {
+      return Optional.of((int) ((NumericValue) indexValue).longValue());
+    }
+  }
+
   @Override
   protected ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
     ValueAnalysisState newState = ValueAnalysisState.copyOf(state);
@@ -921,23 +932,25 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // the array enclosing the array specified in the given array subscript expression
       ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
 
-      // an array enclosing another array can not be one dimensional
-      assert enclosingArray.getArrayType().getDimensions() > 1;
+      Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
+      int index;
 
-      final ExpressionValueVisitor evv = getVisitor();
-      final Value indexValue = arraySubscriptExpression.getSubscriptExpression().accept(evv);
+      if (maybeIndex.isPresent() && enclosingArray != null) {
 
-      if (indexValue.isUnknown()) {
+        // an array enclosing another array can not be one dimensional
+        assert enclosingArray.getArrayType().getDimensions() > 1;
+
+        index = maybeIndex.get();
+
+      } else {
         return null;
       }
-
-      long index = ((NumericValue) indexValue).longValue();
 
       if (index >= enclosingArray.getArraySize() || index < 0) {
         return null;
       }
 
-      return (ArrayValue) enclosingArray.getValueAt((int) index);
+      return (ArrayValue) enclosingArray.getValueAt(index);
     }
   }
 
