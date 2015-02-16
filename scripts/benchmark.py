@@ -29,6 +29,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import glob
 import os
+import platform
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
@@ -130,4 +131,11 @@ class Benchmark(benchexec.BenchExec):
 
 
 if __name__ == "__main__":
+    # Add directory with binaries to path.
+    bin_dir = "lib/native/x86_64-linux" if platform.machine() == "x86_64" else \
+              "lib/native/x86-linux"    if platform.machine() == "i386" else None
+    if bin_dir:
+        bin_dir = os.path.join(os.path.dirname(__file__), os.pardir, bin_dir)
+        os.environ['PATH'] += os.pathsep + bin_dir
+
     benchexec.main(Benchmark())
