@@ -49,7 +49,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -129,9 +128,9 @@ public class ARGPath implements Appender {
    * @return the suffix
    */
   public ARGPath obtainSuffix(int pOffset) {
-    checkArgument(states.size() > pOffset, "offset is out of bounds");
-    return new ARGPath(Lists.newArrayList(Iterables.skip(states, pOffset)),
-        Lists.newArrayList(Iterables.skip(edges, pOffset)));
+    checkElementIndex(pOffset, states.size());
+    return new ARGPath(states.subList(pOffset, states.size()),
+                       edges.subList(pOffset, edges.size()));
   }
 
   /**
