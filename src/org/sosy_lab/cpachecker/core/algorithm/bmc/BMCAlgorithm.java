@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -416,12 +417,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private Set<CandidateInvariant> getCandidateInvariants() {
     Set<CandidateInvariant> result = Sets.newHashSet();
 
-    final Collection<CFANode> targetLocations;
+    Collection<CFANode> targetLocations;
     if (isProgramConcurrent) {
       targetLocations = cfa.getAllNodes();
     } else {
       boolean skipRecursion = Boolean.parseBoolean(config.getProperty("cpa.callstack.skipRecursion"));
       targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction(), skipRecursion);
+      if (targetLocations == null) {
+        targetLocations = cfa.getAllNodes();
+      }
     }
 
     if (!isInvariantGenerator) {
