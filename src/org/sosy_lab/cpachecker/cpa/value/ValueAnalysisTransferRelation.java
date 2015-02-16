@@ -897,6 +897,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   }
 
+  /**
+   * Returns the {@link ArrayValue} object that represents the innermost array of the given
+   * {@link JArraySubscriptExpression}.
+   *
+   * @param pArraySubscriptExpression the subscript expression to get the inner most array of
+   * @return <code>null</code> if the complete array or a part significant for the given array
+   *    subscript expression is unknown, the <code>ArrayValue</code> representing the innermost
+   *    array, otherwise
+   */
   private @Nullable ArrayValue getInnerMostArray(JArraySubscriptExpression pArraySubscriptExpression) {
     JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
