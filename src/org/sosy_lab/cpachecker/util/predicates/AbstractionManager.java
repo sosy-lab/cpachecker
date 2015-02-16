@@ -224,7 +224,7 @@ public final class AbstractionManager {
         Region var = parts.getFirst();
 
         AbstractionPredicate pred = absVarToPredicate.get(var);
-        assert pred != null;
+        assert pred != null : var;
         BooleanFormula atom = pred.getSymbolicAtom();
 
         if (bfmgr.isTrue(m1)) {

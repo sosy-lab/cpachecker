@@ -151,7 +151,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
     final FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, fmgr, pRmgr);
-    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, fmgr);
+    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), fmgr);
 
     if (exportPredmap && predmapFile != null) {
       precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), fmgr);
