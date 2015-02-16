@@ -36,6 +36,8 @@ for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', '
 
 import benchexec.tablegenerator
 
+benchexec.tablegenerator.DEFAULT_OUTPUT_PATH = 'test/results/'
+
 try:
     sys.exit(benchexec.tablegenerator.main())
 except KeyboardInterrupt:

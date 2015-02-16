@@ -43,6 +43,8 @@ class Benchmark(benchexec.BenchExec):
     in the VerifierCloud or in the Google App Engine.
     """
 
+    DEFAULT_OUTPUT_PATH = "test/results/"
+
     def create_argument_parser(self):
         parser = super(Benchmark, self).create_argument_parser()
         vcloud_args = parser.add_argument_group('Options for using VerifierCloud')
