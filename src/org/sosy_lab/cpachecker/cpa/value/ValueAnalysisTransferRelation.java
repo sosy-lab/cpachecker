@@ -772,22 +772,22 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         JArraySubscriptExpression arrayExpression = (JArraySubscriptExpression) op1;
         ExpressionValueVisitor evv = getVisitor();
 
-        ArrayValue arrayValue = getInnerMostArray(arrayExpression);
-        Value subscriptValue = arrayExpression.getSubscriptExpression().accept(evv);
-        long index;
+        ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
+        Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
 
-        if (arrayValue == null || subscriptValue.isUnknown()) {
-          assignUnknownValueToIdentifier((JArraySubscriptExpression) op1);
+        if (arrayToChange == null || maybeIndex.isUnknown()) {
+          assignUnknownValueToIdentifierOfArray(arrayExpression);
 
         } else {
-          index = ((NumericValue) subscriptValue).longValue();
+          long concreteIndex = ((NumericValue) maybeIndex).longValue();
 
-          if (index < 0 || index >= arrayValue.getArraySize()) {
-            throw new UnrecognizedCodeException("Invalid index " + index + " for array " + arrayValue, cfaEdge);
+          if (concreteIndex < 0 || concreteIndex >= arrayToChange.getArraySize()) {
+            throw new UnrecognizedCodeException("Invalid index " + concreteIndex + " for array "
+                + arrayToChange, cfaEdge);
           }
 
           // changes array value in old state
-          handleAssignmentToArray(arrayValue, (int) index, op2);
+          handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
           return ValueAnalysisState.copyOf(state);
         }
       }
@@ -799,11 +799,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   private boolean isTrackedType(Type pType) {
-    if (pType instanceof JType) {
-      return trackJavaArrayValues || !(pType instanceof JArrayType);
-    } else {
-      return true;
-    }
+    return !(pType instanceof JType) || trackJavaArrayValues || !(pType instanceof JArrayType);
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
@@ -915,7 +911,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       final JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) arrayExpression;
       ArrayValue arrayValue = getInnerMostArray(arraySubscriptExpression);
 
-      // check if we already are at the outermost array
+      // check if we are not yet at the innermost array
       if (arrayValue != null && arrayValue.getArrayType().getDimensions() > 1) {
         final ExpressionValueVisitor evv = getVisitor();
         final Value indexValue = arraySubscriptExpression.getSubscriptExpression().accept(evv);
@@ -944,7 +940,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
   }
 
-  private void assignUnknownValueToIdentifier(JArraySubscriptExpression pArraySubscriptExpression) {
+  private void assignUnknownValueToIdentifierOfArray(JArraySubscriptExpression pArraySubscriptExpression) {
     JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
     if (arrayExpression instanceof JIdExpression) {
@@ -953,7 +949,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       state.assignConstant(memLoc, Value.UnknownValue.getInstance(), JSimpleType.getUnspecified());
     } else {
-      assignUnknownValueToIdentifier((JArraySubscriptExpression) arrayExpression);
+      assignUnknownValueToIdentifierOfArray((JArraySubscriptExpression) arrayExpression);
     }
   }
 
@@ -991,10 +987,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     @Override
     public Value visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
       BinaryOperator binaryOperator = pE.getOperator();
-      CExpression lVarInBinaryExp   = pE.getOperand1();
+      CExpression lVarInBinaryExp   = (CExpression) unwrap(pE.getOperand1());
       CExpression rVarInBinaryExp   = pE.getOperand2();
-
-      lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
 
       Value leftValue   = lVarInBinaryExp.accept(this);
       Value rightValue  = rVarInBinaryExp.accept(this);
@@ -1059,11 +1053,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
 
         if (leftValueV.isUnknown() && rightValueV.isExplicitlyKnown()
-            && isAssignable(lVarInBinaryExp)) {
+            && isAssignableVariable(lVarInBinaryExp)) {
           assignValueToState((AIdExpression) lVarInBinaryExp, rightValueV);
 
         } else if (rightValueV.isUnknown() && leftValueV.isExplicitlyKnown()
-            && isAssignable(rVarInBinaryExp)) {
+            && isAssignableVariable(rVarInBinaryExp)) {
           assignValueToState((AIdExpression) rVarInBinaryExp, leftValueV);
         }
       }
@@ -1075,7 +1069,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
             || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
 
           if (leftValueV.isUnknown() && rightValueV.isExplicitlyKnown()
-              && isAssignable(lVarInBinaryExp)) {
+              && isAssignableVariable(lVarInBinaryExp)) {
 
             // we only want BooleanValue objects for boolean values in the future
             assert rightValueV instanceof BooleanValue;
@@ -1086,7 +1080,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
             }
 
           } else if (rightValueV.isUnknown() && leftValueV.isExplicitlyKnown()
-              && isAssignable(rVarInBinaryExp)) {
+              && isAssignableVariable(rVarInBinaryExp)) {
 
             // we only want BooleanValue objects for boolean values in the future
             assert leftValueV instanceof BooleanValue;
@@ -1120,7 +1114,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return checkNotNull(v.evaluateMemoryLocation(pLValue));
     }
 
-    protected boolean isAssignable(JExpression expression) {
+    protected boolean isAssignableVariable(JExpression expression) {
 
       boolean result = false;
 
