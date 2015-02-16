@@ -28,18 +28,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-try:
-  import Queue
-except ImportError: # Queue was renamed to queue in Python 3
-  import queue as Queue
-
 from datetime import datetime, timedelta
 import json
 import logging
 import os
+import queue
 import threading
 import time
-import urllib2
+import urllib.request as urllib2
 
 from benchexec.systeminfo import SystemInfo
 import benchexec.util as util
@@ -60,7 +56,7 @@ def init(config, benchmark):
     try:
         headers = {'Accept':'application/json'}
         request = urllib2.Request(uri, headers=headers)
-        response = json.loads(urllib2.urlopen(request).read())
+        response = json.loads(urllib2.urlopen(request).read().decode())
         global APPENGINE_SETTINGS
         APPENGINE_SETTINGS = response
         benchmark.tool_version = response['cpacheckerVersion'] \
@@ -133,7 +129,7 @@ def _getBenchmarkDataForAppEngine(benchmark):
     absWorkingDir = os.path.abspath(workingDir)
 
     sourceFiles = []
-    runQueue = Queue.Queue(maxsize=0)
+    runQueue = queue.Queue(maxsize=0)
     for runSet in benchmark.run_sets:
         if not runSet.should_be_executed(): continue
         if STOPPED_BY_INTERRUPT: break
@@ -166,8 +162,8 @@ def _getTasksetKeyForAppEngine(benchmark):
         uri = benchmark.config.appengineURI+'/tasksets'
         headers = {'Content-type':'application/json', 'Accept':'application/json'}
         try:
-            request = urllib2.Request(uri, '', headers)
-            return urllib2.urlopen(request).read()
+            request = urllib2.Request(uri, b'', headers)
+            return urllib2.urlopen(request).read().decode()
         except urllib2.HTTPError as e:
             sys.exit('Taskset could not be created. HTTP Error: {}: {}, Message: {}'.format(e.code, e.reason, e.msg))
         except:
@@ -316,9 +312,9 @@ class _AppEngineSubmitter(threading.Thread):
             uri = self.benchmark.config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks'
             headers = {'Content-type':'application/json', 'Accept':'application/json'}
             try:
-                data = json.dumps(payload)
+                data = json.dumps(payload).encode()
                 request = urllib2.Request(uri, data, headers)
-                response = urllib2.urlopen(request).read()
+                response = urllib2.urlopen(request).read().decode()
                 taskIDs = json.loads(response)
                 for key in taskIDs:
                     logging.debug('Task created: '+key)
@@ -358,12 +354,12 @@ class _AppEnginePoller(threading.Thread):
                 uri = self.benchmark.config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks?finished=true&limit=50'
                 headers = {'Accept':'application/json'}
                 request = urllib2.Request(uri, headers=headers)
-                tasks = json.loads(urllib2.urlopen(request).read())
+                tasks = json.loads(urllib2.urlopen(request).read().decode())
                 for task in tasks:
                     if not task['key'] in APPENGINE_TASKS:
                         try:
                             uri = self.benchmark.config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks'
-                            request = urllib2.Request(uri, json.dumps(task['key']), headers=headers)
+                            request = urllib2.Request(uri, json.dumps(task['key']).encode(), headers=headers)
                             request.get_method = lambda: 'PUT'
                             urllib2.urlopen(request)
                         except: pass
@@ -402,7 +398,7 @@ class _AppEnginePoller(threading.Thread):
             try:
                 uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['statisticsFileName']
                 request = urllib2.Request(uri, headers=headers)
-                response = urllib2.urlopen(request).read()
+                response = urllib2.urlopen(request).read().decode()
                 util.write_file(response, log_file)
                 statisticsProcessed = True
             except:
@@ -416,7 +412,7 @@ class _AppEnginePoller(threading.Thread):
             try:
                 uri = self.benchmark.config.appengineURI+'/tasks/'+taskKey+'/files/' + APPENGINE_SETTINGS['errorFileName']
                 request = urllib2.Request(uri, headers=headers)
-                response = urllib2.urlopen(request).read()
+                response = urllib2.urlopen(request).read().decode()
                 response = 'Task Key: {}\n{}'.format(task['key'], response)
                 util.write_file(response, log_file+'.stdErr')
             except: pass
@@ -426,7 +422,7 @@ class _AppEnginePoller(threading.Thread):
         if statisticsProcessed:
             try:
                 uri = self.benchmark.config.appengineURI+'/tasksets/'+self.tasksetKey+'/tasks'
-                request = urllib2.Request(uri, json.dumps([taskKey]), headers=headers)
+                request = urllib2.Request(uri, json.dumps([taskKey]).encode(), headers=headers)
                 request.get_method = lambda: 'PUT'
                 urllib2.urlopen(request)
                 self.finishedTasks += 1
