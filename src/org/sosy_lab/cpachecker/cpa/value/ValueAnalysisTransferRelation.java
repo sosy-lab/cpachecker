@@ -787,7 +787,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
 
         if (arrayToChange == null || maybeIndex.isUnknown()) {
-          assignUnknownValueToIdentifierOfArray(arrayExpression);
+          assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
 
         } else {
           long concreteIndex = ((NumericValue) maybeIndex).longValue();
@@ -960,16 +960,29 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
   }
 
-  private void assignUnknownValueToIdentifierOfArray(JArraySubscriptExpression pArraySubscriptExpression) {
-    JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
+  private void assignUnknownValueToEnclosingInstanceOfArray(JArraySubscriptExpression pArraySubscriptExpression) {
+    JExpression enclosingExpression = pArraySubscriptExpression.getArrayExpression();
 
-    if (arrayExpression instanceof JIdExpression) {
-      JIdExpression idExpression = (JIdExpression) arrayExpression;
+    if (enclosingExpression instanceof JIdExpression) {
+      JIdExpression idExpression = (JIdExpression) enclosingExpression;
       MemoryLocation memLoc = getMemoryLocation(idExpression);
 
       state.assignConstant(memLoc, Value.UnknownValue.getInstance(), JSimpleType.getUnspecified());
+
     } else {
-      assignUnknownValueToIdentifierOfArray((JArraySubscriptExpression) arrayExpression);
+      JArraySubscriptExpression enclosingSubscriptExpression = (JArraySubscriptExpression) enclosingExpression;
+      ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
+      Optional<Integer> maybeIndex = getIndex(enclosingSubscriptExpression);
+
+      if (maybeIndex.isPresent() && enclosingArray != null) {
+        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.get());
+
+      }
+      // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's
+      // position in the enclosing array
+      else {
+        assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
+      }
     }
   }
 
