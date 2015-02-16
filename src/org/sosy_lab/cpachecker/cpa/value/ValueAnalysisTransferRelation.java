@@ -398,6 +398,25 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
       else if (op1 instanceof APointerExpression) {
+
+      } else if (op1 instanceof JArraySubscriptExpression) {
+        Value newValue = UnknownValue.getInstance();
+        JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
+
+        if (state.contains(functionReturnVar)) {
+          newValue = state.getValueFor(functionReturnVar);
+        }
+
+        ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
+        Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
+
+        if (maybeIndex.isPresent() && assignedArray != null) {
+          assignedArray.setValue(newValue, maybeIndex.get());
+
+        } else {
+          assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
+        }
+
       } else {
         throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
       }
@@ -921,12 +940,17 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
     if (arrayExpression instanceof JIdExpression) {
-      Value idValue = getVisitor().evaluateJIdExpression((JIdExpression) arrayExpression);
-      if (!idValue.isUnknown()) {
-        return (ArrayValue) idValue;
-      } else {
-        return null;
+      JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
+
+      if (arrayDeclaration != null) {
+        String idName = arrayDeclaration.getQualifiedName();
+        Value idValue = state.getValueFor(idName);
+        if (idValue.isExplicitlyKnown()) {
+          return (ArrayValue) idValue;
+        }
       }
+
+      return null;
     } else {
       final JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) arrayExpression;
       // the array enclosing the array specified in the given array subscript expression
