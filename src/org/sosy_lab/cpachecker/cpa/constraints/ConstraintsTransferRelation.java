@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -90,10 +91,6 @@ public class ConstraintsTransferRelation
 
 
   private final LogManagerWithoutDuplicates logger;
-
-  private boolean missingInformation = false;
-  private AExpression missingInformationExpression = null;
-  private boolean missingInformationTruth;
 
   private MachineModel machineModel;
 
@@ -153,10 +150,6 @@ public class ConstraintsTransferRelation
 
   @Override
   protected ConstraintsState handleAssumption(AssumeEdge pCfaEdge, AExpression pExpression, boolean pTruthAssumption) {
-    missingInformationExpression = pExpression;
-    missingInformationTruth = pTruthAssumption;
-    missingInformation = true;
-
     return state;
   }
 
@@ -198,7 +191,7 @@ public class ConstraintsTransferRelation
   private FormulaCreator<? extends Formula> getFormulaCreator(ValueAnalysisState pValueState) {
     switch (formulaNumberHandling) {
       case INTEGER:
-        return new IntegerFormulaCreator(formulaManager, pValueState);
+        return new IntegerFormulaCreator(formulaManager, pValueState, machineModel);
       case BITVECTOR:
         return new BitvectorFormulaCreator(formulaManager, machineModel);
       default:
@@ -309,15 +302,14 @@ public class ConstraintsTransferRelation
     List<ConstraintsState> newStates = new ArrayList<>();
     boolean nothingChanged = true;
 
-    if (!missingInformation) {
-      assert !missingInformationTruth && missingInformationExpression == null;
+    if (pCfaEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return null;
     }
 
     for (AbstractState currState : pStrengtheningStates) {
       if (currState instanceof ValueAnalysisState) {
         Optional<Collection<ConstraintsState>> newValueStrengthenedStates =
-            strengthen((ConstraintsState)pStateToStrengthen, (ValueAnalysisState)currState, pCfaEdge);
+            strengthen((ConstraintsState) pStateToStrengthen, (ValueAnalysisState) currState, (AssumeEdge) pCfaEdge);
 
         if (newValueStrengthenedStates.isPresent()) {
           nothingChanged = false;
@@ -325,8 +317,6 @@ public class ConstraintsTransferRelation
         }
       }
     }
-
-    resetMissingInformationStatus();
 
     if (nothingChanged) {
       return null;
@@ -353,7 +343,7 @@ public class ConstraintsTransferRelation
    *    otherwise
    */
   private Optional<Collection<ConstraintsState>> strengthen(ConstraintsState pStateToStrengthen,
-      ValueAnalysisState pStrengtheningState, CFAEdge pCfaEdge) {
+      ValueAnalysisState pStrengtheningState, AssumeEdge pCfaEdge) {
 
     Collection<ConstraintsState> newStates = new ArrayList<>();
     final String functionName = pCfaEdge.getPredecessor().getFunctionName();
@@ -363,8 +353,12 @@ public class ConstraintsTransferRelation
 
     ConstraintsState newState = null;
     try {
-      newState =
-          getNewState(pStateToStrengthen, pStrengtheningState, missingInformationExpression, factory, missingInformationTruth, fileLocation);
+      newState = getNewState(pStateToStrengthen,
+                             pStrengtheningState,
+                             pCfaEdge.getExpression(),
+                             factory,
+                             pCfaEdge.getTruthAssumption(),
+                             fileLocation);
 
     } catch (SolverException | InterruptedException e) {
       logger.logUserException(Level.WARNING, e, fileLocation.toString());
@@ -375,17 +369,9 @@ public class ConstraintsTransferRelation
       newStates.add(newState);
 
       if (newState.size() == pStateToStrengthen.size()) {
-        resetMissingInformationStatus();
         return Optional.absent();
       }
     }
     return Optional.of(newStates);
-  }
-
-
-  private void resetMissingInformationStatus() {
-    missingInformation = false;
-    missingInformationExpression = null;
-    missingInformationTruth = false;
   }
 }
