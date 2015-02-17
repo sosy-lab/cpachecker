@@ -76,6 +76,7 @@ public class AutomatonGraphmlCommon {
     TOKENS("tokens", "edge", "tokenSet", "string"),
     ORIGINTOKENS("origintokens", "edge", "originTokenSet", "string"),
     ORIGINLINE("originline", "edge", "lineNumberInOrigin", "int"),
+    ORIGINOFFSET("offset", "edge", "offset", "int"),
     ORIGINFILE("originfile", "edge", "originFileName", "string"),
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
     TOKENSNEGATED("negated", "edge", "negativeCase", "string"),

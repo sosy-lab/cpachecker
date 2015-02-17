@@ -126,6 +126,9 @@ public class ARGPathExport {
   @Option(secure=true, description="Verification witness: Include the sourcecode of the operations?")
   boolean exportSourcecode = true;
 
+  @Option(secure=true, description="Verification witness: Include the offset within the file?")
+  boolean exportOffset = true;
+
   public ARGPathExport(Configuration config) throws InvalidConfigurationException {
     Preconditions.checkNotNull(config);
     config.inject(this);
@@ -453,6 +456,17 @@ public class ARGPathExport {
               desc.put(KeyDef.ORIGINFILE, l.getFileName());
             }
             desc.put(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+          }
+        }
+
+        if (exportOffset) {
+          Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(edge);
+          if (locations.size() > 0) {
+            FileLocation l = locations.iterator().next();
+            if (!l.getFileName().equals(defaultSourcefileName)) {
+              desc.put(KeyDef.ORIGINFILE, l.getFileName());
+            }
+            desc.put(KeyDef.ORIGINOFFSET, Integer.toString(l.getNodeOffset()));
           }
         }
 
