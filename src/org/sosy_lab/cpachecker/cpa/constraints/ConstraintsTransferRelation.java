@@ -191,7 +191,7 @@ public class ConstraintsTransferRelation
   private FormulaCreator<? extends Formula> getFormulaCreator(ValueAnalysisState pValueState) {
     switch (formulaNumberHandling) {
       case INTEGER:
-        return new IntegerFormulaCreator(formulaManager, pValueState, machineModel);
+        return new IntegerFormulaCreator(formulaManager, pValueState);
       case BITVECTOR:
         return new BitvectorFormulaCreator(formulaManager, machineModel);
       default:
