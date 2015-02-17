@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -61,8 +65,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 
 /**
  * Creator for {@link Formula}s using bitvectors.
@@ -70,16 +77,20 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   /**
-   * Default bitvector size to use (in byte).
+   * Default bitvector size to use (in bit).
    */
-  private static final int DEFAULT_BITVECTOR_SIZE = 4;
+  private static final int DEFAULT_BITVECTOR_SIZE = 128;
   private static final FormulaType<? extends Formula> DEFAULT_BITVECTOR =
       FormulaType.getBitvectorTypeWithSize(DEFAULT_BITVECTOR_SIZE);
+  private static final String POINTER_EXP_FUNC_NAME = "pointer";
 
   private final FormulaManagerView formulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
 
   private final MachineModel machineModel;
+
+  private Map<FormulaType<BitvectorFormula>, UninterpretedFunctionDeclaration<?>> pointerFunctions
+      = new HashMap<>();
 
   public BitvectorFormulaCreator(FormulaManagerView pFormulaManager, MachineModel pMachineModel) {
     formulaManager = pFormulaManager;
@@ -87,24 +98,21 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     machineModel = pMachineModel;
   }
 
+  @Override
+  public BooleanFormula createFormula(Constraint pConstraint) {
+    return (BooleanFormula) pConstraint.accept(this);
+  }
 
   @Override
   public BitvectorFormula visit(AdditionExpression pExpression) {
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.add(pOp1, pOp2);
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
-  }
-
-  private BitvectorFormula getFormula(SymbolicExpression pExpression, Type pToType) {
-    BitvectorFormula op1 = (BitvectorFormula) pExpression.accept(this);
-    final Type fromType = pExpression.getType();
-
-    return cast(op1, fromType, pToType);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   private BitvectorFormula cast(BitvectorFormula pFormula, Type pFromType, Type pToType) {
@@ -128,6 +136,25 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     }
   }
 
+  private BitvectorFormula transformToBitvectorIfNecessary(Formula pFormula) {
+    if (pFormula instanceof BitvectorFormula) {
+      return (BitvectorFormula) pFormula;
+
+    } else {
+      return getBitvectorRepresentation((BooleanFormula) pFormula);
+    }
+  }
+
+  private BitvectorFormula getBitvectorRepresentation(BooleanFormula pFormula) {
+      final int integerSize = machineModel.getSizeofInt() * machineModel.getSizeofCharInBits();
+      final FormulaType<BitvectorFormula> integerType = FormulaType.getBitvectorTypeWithSize(integerSize);
+      final BooleanFormulaManagerView booleanManager= formulaManager.getBooleanFormulaManager();
+      final BitvectorFormula one = bitvectorFormulaManager.makeBitvector(integerType, 1L);
+      final BitvectorFormula zero = bitvectorFormulaManager.makeBitvector(integerType, 0L);
+
+      return booleanManager.ifThenElse(pFormula, one, zero);
+  }
+
   private boolean isSigned(Type pType) {
     if (pType instanceof JSimpleType) {
       JBasicType basicType = ((JSimpleType)pType).getType();
@@ -144,20 +171,26 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
           return false;
       }
     } else {
-      return pType instanceof CSimpleType && ((CSimpleType)pType).isSigned();
+      if (pType instanceof CSimpleType) {
+        CSimpleType canonicalType = ((CSimpleType) pType).getCanonicalType();
+        return canonicalType.isSigned();
+
+      } else {
+        return false;
+      }
     }
   }
 
   @Override
   public BitvectorFormula visit(BinaryAndExpression pExpression) {
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.and(pOp1, pOp2);
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   @Override
@@ -169,26 +202,26 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public BitvectorFormula visit(BinaryOrExpression pExpression) {
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.or(pOp1, pOp2);
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   @Override
   public BitvectorFormula visit(BinaryXorExpression pExpression) {
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.xor(pOp1, pOp2);
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   @Override
@@ -196,12 +229,16 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     Value constantValue = pConstant.getValue();
 
     if (constantValue.isNumericValue()) {
-      return bitvectorFormulaManager
-          .makeBitvector((FormulaType<BitvectorFormula>)getFormulaType(pConstant.getType()),
-              ((NumericValue)constantValue).longValue());
+      FormulaType<BitvectorFormula> type = (FormulaType<BitvectorFormula>) getFormulaType(pConstant.getType());
+      return bitvectorFormulaManager.makeBitvector(type, ((NumericValue)constantValue).longValue());
 
     } else if (constantValue instanceof BooleanValue) {
       return formulaManager.getBooleanFormulaManager().makeBoolean(((BooleanValue)constantValue).isTrue());
+
+    } else if (constantValue instanceof SymbolicIdentifier) {
+      FormulaType<BitvectorFormula> type = (FormulaType<BitvectorFormula>) getFormulaType(pConstant.getType());
+      // SymbolicIdentifiers are handled here because they don't have an own type
+      return formulaManager.makeVariable(type, getName((SymbolicIdentifier) constantValue));
 
     } else if (constantValue instanceof SymbolicValue) {
       return ((SymbolicValue)constantValue).accept(this);
@@ -213,7 +250,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(SymbolicIdentifier pValue) {
-    return formulaManager.makeVariable(DEFAULT_BITVECTOR, getName(pValue));
+    throw new UnsupportedOperationException("Symbolic Identifiers are handled by ConstantSymbolicExpression handling");
   }
 
   private String getName(SymbolicIdentifier pIdentifier) {
@@ -245,6 +282,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
           sizeInByte = 8;
           break;
         case UNSPECIFIED:
+          assert false : "Unspecified type occurred";
           sizeInByte = DEFAULT_BITVECTOR_SIZE;
           break;
         default:
@@ -265,11 +303,14 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public BitvectorFormula visit(DivisionExpression pExpression) {
-    final Type calculationType = pExpression.getCalculationType();
-    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), calculationType);
-    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), calculationType);
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
+      @Override
+      public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
+        return bitvectorFormulaManager.divide(pOp1, pOp2, isSigned(pType));
+      }
+    };
 
-    return bitvectorFormulaManager.divide(op1, op2, isSigned(calculationType));
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   @Override
@@ -277,20 +318,18 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     final Type calculationType = pExpression.getCalculationType();
     final SymbolicExpression op1 = pExpression.getOperand1();
     final SymbolicExpression op2 = pExpression.getOperand2();
-    final Type op1Type = pExpression.getOperand1().getType();
-    final Type op2Type = pExpression.getOperand2().getType();
 
-    final BitvectorFormula op1Formula = getFormula(op1, calculationType);
-    final BitvectorFormula op2Formula = getFormula(op2, calculationType);
+    final BitvectorFormula op1Formula = getBitvectorFormulaWithType(op1, calculationType);
+    final BitvectorFormula op2Formula = getBitvectorFormulaWithType(op2, calculationType);
 
-    BooleanFormula formula = formulaManager.makeEqual(op1Formula, op2Formula);
+    return formulaManager.makeEqual(op1Formula, op2Formula);
+  }
 
-    if (isSigned(op1Type) != isSigned(op2Type)) {
-      BooleanFormula msbIsZeroFormula = getMsbIsZeroFormula(op1Formula, op2Formula);
-      formula = formulaManager.makeAnd(formula, msbIsZeroFormula);
-    }
+  private BitvectorFormula getBitvectorFormulaWithType(SymbolicExpression pExpression, Type pToType) {
+    BitvectorFormula op1 = transformToBitvectorIfNecessary(pExpression.accept(this));
+    final Type fromType = pExpression.getType();
 
-    return formula;
+    return cast(op1, fromType, pToType);
   }
 
   // Returns a formula that requires that the most significant bit of both given formulas is 0.
@@ -310,29 +349,29 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   @Override
   public BooleanFormula visit(LessThanExpression pExpression) {
     final Type calculationType = pExpression.getCalculationType();
-    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), calculationType);
-    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), calculationType);
+    final BitvectorFormula op1 = getBitvectorFormulaWithType(pExpression.getOperand1(), calculationType);
+    final BitvectorFormula op2 = getBitvectorFormulaWithType(pExpression.getOperand2(), calculationType);
 
     return bitvectorFormulaManager.lessThan(op1, op2, isSigned(calculationType));
   }
 
   @Override
   public BitvectorFormula visit(LogicalOrExpression pExpression) {
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.or(pOp1, pOp2);
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   @Override
   public BooleanFormula visit(LogicalAndExpression pExpression) {
     final Type calculationType = pExpression.getCalculationType();
-    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), calculationType);
-    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), calculationType);
+    final BitvectorFormula op1 = getBitvectorFormulaWithType(pExpression.getOperand1(), calculationType);
+    final BitvectorFormula op2 = getBitvectorFormulaWithType(pExpression.getOperand2(), calculationType);
 
     return (BooleanFormula) formulaManager.makeAnd(op1, op2);
   }
@@ -348,12 +387,34 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
 
   @Override
   public Formula visit(PointerExpression pExpression) {
-    return null; // TODO
+    FunctionFormulaManagerView functionManager = formulaManager.getFunctionFormulaManager();
+
+    FormulaType<BitvectorFormula> returnType = (FormulaType<BitvectorFormula>) getFormulaType(pExpression.getType());
+    UninterpretedFunctionDeclaration<?> function = pointerFunctions.get(returnType);
+
+    if (function == null) {
+      function = createPointerFunction(returnType);
+
+      pointerFunctions.put(returnType, function);
+    }
+
+    Formula operand = getBitvectorFormulaWithType(pExpression.getOperand(), pExpression.getOperand().getType());
+
+    return functionManager.callUninterpretedFunction(pointerFunctions.get(returnType), operand);
+  }
+
+  private UninterpretedFunctionDeclaration<?> createPointerFunction(FormulaType<BitvectorFormula> pReturnType) {
+    FunctionFormulaManagerView functionManager = formulaManager.getFunctionFormulaManager();
+
+    int pointerBitSize = machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits();
+    FormulaType<BitvectorFormula> pointerType = FormulaType.getBitvectorTypeWithSize(pointerBitSize);
+
+    return functionManager.declareUninterpretedFunction(POINTER_EXP_FUNC_NAME, pReturnType, pointerType);
   }
 
   @Override
   public BooleanFormula visit(LogicalNotExpression pExpression) {
-    final BooleanFormula op = (BooleanFormula)pExpression.getOperand().accept(this);
+    final BooleanFormula op = (BooleanFormula) pExpression.getOperand().accept(this);
 
     return formulaManager.getBooleanFormulaManager().not(op);
   }
@@ -361,68 +422,68 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   @Override
   public BooleanFormula visit(LessThanOrEqualExpression pExpression) {
     final Type toType = pExpression.getCalculationType();
-    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), toType);
-    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), toType);
+    final BitvectorFormula op1 = getBitvectorFormulaWithType(pExpression.getOperand1(), toType);
+    final BitvectorFormula op2 = getBitvectorFormulaWithType(pExpression.getOperand2(), toType);
 
     return formulaManager.makeLessOrEqual(op1, op2, isSigned(toType));
   }
 
   @Override
   public BitvectorFormula visit(ModuloExpression pExpression) {
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.modulo(pOp1, pOp2, isSigned(pType));
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   @Override
   public BitvectorFormula visit(MultiplicationExpression pExpression) {
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.multiply(pOp1, pOp2);
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   @Override
   public BitvectorFormula visit(ShiftLeftExpression pExpression) {
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.shiftLeft(pOp1, pOp2);
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
   @Override
   public BitvectorFormula visit(ShiftRightExpression pExpression) {
     final Type leftOperandType = pExpression.getOperand1().getType();
 
-    final BinaryCreator creator = new BinaryCreator() {
+    final BinaryBitvectorCreator creator = new BinaryBitvectorCreator() {
       @Override
       public BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType) {
         return bitvectorFormulaManager.shiftRight(pOp1, pOp2, isSigned(leftOperandType));
       }
     };
 
-    return getCastFormulaFromBinaryExp(creator, pExpression);
+    return createFormulaWhileTransformingToBitvectorIfNecessary(creator, pExpression);
   }
 
-  private BitvectorFormula getCastFormulaFromBinaryExp(BinaryCreator pCreator,
+  private BitvectorFormula createFormulaWhileTransformingToBitvectorIfNecessary(BinaryBitvectorCreator pCreator,
       BinarySymbolicExpression pExpression) {
 
     final Type calculationType = pExpression.getCalculationType();
-    final BitvectorFormula op1 = getFormula(pExpression.getOperand1(), calculationType);
-    final BitvectorFormula op2 = getFormula(pExpression.getOperand2(), calculationType);
+    final BitvectorFormula op1 = getBitvectorFormulaWithType(pExpression.getOperand1(), calculationType);
+    final BitvectorFormula op2 = getBitvectorFormulaWithType(pExpression.getOperand2(), calculationType);
 
     final Type expressionType = pExpression.getType();
 
@@ -432,30 +493,22 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
   }
 
   @Override
-  public BooleanFormula createFormula(Constraint pConstraint) {
-    return null; // TODO
-  }
-
-  @Override
   public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment) {
-    return null;
-    /*
     Formula variable = createVariable(pTerm);
 
     final FormulaType<?> type = getFormulaType(pTerm.getType());
     Formula rightFormula = null;
 
     if (termAssignment instanceof Number) {
-      assert type.isIntegerType();
+      assert type.isBitvectorType();
+
+      final FormulaType<BitvectorFormula> bitvectorType = (FormulaType<BitvectorFormula>) type;
 
       if (termAssignment instanceof Long) {
-        rightFormula = bitvectorFormulaManager.makeNumber((Long) termAssignment);
-      } else if (termAssignment instanceof Double) {
-        rightFormula = bitvectorFormulaManager.makeNumber((Double) termAssignment);
+        rightFormula = bitvectorFormulaManager.makeBitvector(bitvectorType, (long) termAssignment);
       } else if (termAssignment instanceof BigInteger) {
-        rightFormula = bitvectorFormulaManager.makeNumber((BigInteger) termAssignment);
-      } else if (termAssignment instanceof BigDecimal) {
-        rightFormula = bitvectorFormulaManager.makeNumber((BigDecimal) termAssignment);
+        rightFormula = bitvectorFormulaManager.makeBitvector(bitvectorType, (BigInteger) termAssignment);
+
       } else {
         throw new AssertionError("Unhandled assignment number " + termAssignment);
       }
@@ -464,7 +517,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
       throw new AssertionError("Unhandled assignment object " + termAssignment);
     }
 
-    return formulaManager.makeEqual(variable, rightFormula); */
+    return formulaManager.makeEqual(variable, rightFormula);
   }
 
   private Formula createVariable(Model.AssignableTerm pTerm) {
@@ -486,7 +539,11 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
     }
   }
 
-  private static interface BinaryCreator {
+  private static interface BinaryBitvectorCreator {
     BitvectorFormula create(BitvectorFormula pOp1, BitvectorFormula pOp2, Type pType);
+  }
+
+  private static interface BinaryBooleanCreator {
+    BooleanFormula create(Formula pOp1, Formula pOp2);
   }
 }
