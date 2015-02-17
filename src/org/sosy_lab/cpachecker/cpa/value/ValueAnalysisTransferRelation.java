@@ -127,6 +127,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -665,7 +666,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         || pType instanceof JArrayType;
   }
 
-  private Value getSymbolicIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  private SymbolicIdentifier getSymbolicIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     return factory.createIdentifier(pLocation);
   }
@@ -680,9 +681,27 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+
         } else if (func.equals("free")) {
           // Needed for erasing values
           missingInformationList.add(new MissingInformation(((CFunctionCall)expression).getFunctionCallExpression()));
+
+          if (useSymbolicValues) {
+            // If the method call's parameter is an identifier, we have to assign a new symbolic identifier
+            CExpression parameter =
+                ((CFunctionCall) expression).getFunctionCallExpression().getParameterExpressions().get(0);
+            if (parameter instanceof CIdExpression) {
+              MemoryLocation memLoc = getMemoryLocation(((CIdExpression) parameter));
+
+              ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+              Type identifierType = parameter.getExpressionType();
+              assert identifierType.equals(newElement.getTypeForMemoryLocation(memLoc));
+              SymbolicIdentifier newIdentifier = getSymbolicIdentifier(identifierType, expression);
+              newElement.assignConstant(memLoc, newIdentifier, identifierType);
+
+              return newElement;
+            }
+          }
         }
       }
     }
