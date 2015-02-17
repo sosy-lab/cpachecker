@@ -391,7 +391,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       }
 
       if (otherValue instanceof SymbolicIdentifier && other.hasKnownValue((SymbolicIdentifier) otherValue)) {
-        otherValue = identifierMap.get(otherValue);
+        otherValue = other.identifierMap.get(otherValue);
       }
 
       if (!otherValue.equals(thisValue)) {
