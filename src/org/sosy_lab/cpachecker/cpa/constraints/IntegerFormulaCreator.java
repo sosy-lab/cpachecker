@@ -28,14 +28,9 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Assert;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -67,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftLeftExpr
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.UnarySymbolicExpression;
+import org.sosy_lab.cpachecker.util.Types;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -80,8 +76,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaMan
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-
-import sun.awt.Symbol;
 
 /**
  * Creator for {@link Formula}s using only integer values.
@@ -548,127 +542,12 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     Type toType = pExpression.getType();
     Type fromType = pExpression.getOperand().getType();
 
-    if (canHoldAllValues(toType, fromType)) {
+    if (Types.canHoldAllValues(toType, fromType, machineModel)) {
       return pExpression.getOperand().accept(this);
 
     } else {
       return handleUnsupportedExpression(pExpression);
     }
-  }
-
-  /**
-   * Returns whether the first given type can hold all values the second given typ can hold.
-   *
-   * @param pHoldingType the first type
-   * @param pInnerType the second type
-   *
-   * @return <code>true</code> if the first given type can hold all values the second given type
-   *    can hold
-   */
-  private boolean canHoldAllValues(Type pHoldingType, Type pInnerType) {
-
-    if (pHoldingType instanceof CType) {
-      assert pInnerType instanceof CType;
-      CSimpleType toType;
-      CSimpleType fromType;
-
-      if (pHoldingType instanceof CPointerType) {
-        toType = machineModel.getPointerEquivalentSimpleType();
-      } else if (pHoldingType instanceof CSimpleType) {
-        toType = (CSimpleType) pHoldingType;
-      } else {
-        return pHoldingType.equals(pInnerType);
-      }
-
-      if (pInnerType instanceof CPointerType) {
-        fromType = machineModel.getPointerEquivalentSimpleType();
-      } else if (pInnerType instanceof CSimpleType) {
-        fromType = (CSimpleType) pInnerType;
-      } else {
-        return pHoldingType.equals(pInnerType);
-      }
-
-      return canHoldAllValues(toType, fromType);
-
-    } else if (pHoldingType instanceof JSimpleType) {
-      assert pInnerType instanceof JSimpleType;
-
-      return canHoldAllValues((JSimpleType) pHoldingType, (JSimpleType) pInnerType);
-
-    } else {
-      throw new AssertionError("Unhandled type " + pHoldingType);
-    }
-
-  }
-
-  private boolean canHoldAllValues(CSimpleType pHoldingType, CSimpleType pInnerType) {
-    final boolean isHoldingTypeSigned = machineModel.isSigned(pHoldingType);
-    final boolean isInnerTypeSigned = machineModel.isSigned(pInnerType);
-
-    if (isInnerTypeSigned && !isHoldingTypeSigned) {
-      return false;
-    }
-
-    BigInteger maxHoldingValue = machineModel.getMaximalIntegerValue(pHoldingType);
-    BigInteger maxInnerValue = machineModel.getMaximalIntegerValue(pInnerType);
-
-    if (maxHoldingValue.compareTo(maxInnerValue) < 0) {
-      return false;
-    }
-
-    BigInteger minHoldingValue = machineModel.getMinimalIntegerValue(pHoldingType);
-    BigInteger minInnerValue = machineModel.getMinimalIntegerValue(pInnerType);
-
-    if (minHoldingValue.compareTo(minInnerValue) > 0) {
-      return false;
-    }
-
-    CBasicType holdingType = pHoldingType.getType();
-    CBasicType innerType = pInnerType.getType();
-
-    // if inner type is float, holding type has to be float
-    return !innerType.isFloatingPointType() || holdingType.isFloatingPointType();
-  }
-
-  private boolean canHoldAllValues(JSimpleType pHoldingType, JSimpleType pInnerType) {
-    JBasicType holdingType = pHoldingType.getType();
-    JBasicType innerType = pInnerType.getType();
-    boolean canHold = false;
-
-
-    switch (innerType) {
-      case BOOLEAN:
-        return holdingType == JBasicType.BOOLEAN;
-
-      case CHAR:
-        return holdingType == JBasicType.CHAR;
-
-      case BYTE:
-        canHold |= holdingType == JBasicType.BYTE;
-        // $FALL-THROUGH$
-      case SHORT:
-        canHold |= holdingType == JBasicType.SHORT;
-        canHold |= holdingType == JBasicType.FLOAT;
-        // $FALL-THROUGH$
-      case INT:
-        canHold |= holdingType == JBasicType.INT;
-        canHold |= holdingType == JBasicType.DOUBLE;
-        // $FALL-THROUGH$
-      case LONG:
-        canHold |= holdingType == JBasicType.LONG;
-        break;
-
-      case FLOAT:
-        canHold |= holdingType == JBasicType.FLOAT;
-        // $FALL-THROUGH$
-      case DOUBLE:
-        canHold |= holdingType == JBasicType.DOUBLE;
-        break;
-      default:
-        throw new AssertionError("Unhandled type " + pInnerType.getType());
-    }
-
-    return canHold;
   }
 
   @Override
