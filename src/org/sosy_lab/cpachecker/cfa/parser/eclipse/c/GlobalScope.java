@@ -171,11 +171,7 @@ class GlobalScope extends AbstractScope {
     String name = declaration.getName();
     assert name != null;
 
-    if (functions.containsKey(name)) {
-      // TODO multiple function declarations are legal, as long as they are equal
-      // check this and throw exception if not
-//        throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
-    }
+    // TODO multiple function declarations are legal, as long as they are equal, check this and throw exception if not
 
     if (globalVars.containsKey(name)) {
       throw new CFAGenerationRuntimeException("Name of global variable "
