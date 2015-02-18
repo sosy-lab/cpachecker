@@ -279,7 +279,7 @@ public class CExpressionTransformer extends ExpressionTransformer
       return null;
 
     } else {
-      return factory.createCast(operand, pIastCastExpression.getCastType());
+      return factory.createCast(operand, pIastCastExpression.getCastType(), Optional.of(machineModel));
     }
   }
 

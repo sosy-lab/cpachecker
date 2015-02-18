@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -274,7 +275,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = pJCastExpression.getOperand().accept(this);
 
-    return factory.createCast(operand, pJCastExpression.getCastType());
+    return factory.createCast(operand, pJCastExpression.getCastType(), Optional.<MachineModel>absent());
   }
 
   @Override

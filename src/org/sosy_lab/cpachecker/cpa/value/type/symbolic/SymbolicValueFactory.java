@@ -31,11 +31,15 @@ import java.util.Map;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.Types;
 
 import com.google.common.base.Optional;
 
@@ -513,7 +517,17 @@ public class SymbolicValueFactory {
     return createExpression(pOperand, pOperandType, pExpressionType, pLocation, xorCreator);
   }
 
-  public SymbolicExpression createCast(SymbolicValue pValue, Type pTargetType) {
+  /**
+   * Creates a {@link SymbolicExpression} representing the cast of the given value to the given type.
+   * If multiple casts occur sequentially, it is tried to simplify them.
+   * A {@link MachineModel} might be necessary for this if the cast types are instances of {@link CType}.
+   *
+   * @param pValue the value to cast
+   * @param pTargetType the type to cast to
+   * @param pMachineModel the machine model, optionally
+   * @return a <code>SymbolicExpression</code> representing the cast of the given value to the given type
+   */
+  public SymbolicExpression createCast(SymbolicValue pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
     SymbolicExpression operand;
 
     if (!(pValue instanceof SymbolicExpression)) {
@@ -526,7 +540,68 @@ public class SymbolicValueFactory {
       return operand;
 
     } else {
-      return new CastExpression(operand, pTargetType);
+      boolean isCast = operand instanceof CastExpression;
+
+      operand = new CastExpression(operand, pTargetType);
+
+      if (isCast) {
+        operand = simplifyCasts((CastExpression) operand, pMachineModel);
+      }
+
+      return operand;
+    }
+  }
+
+  /**
+   * Removes unnecessary sequential casts.
+   *
+   * <p>If a cast that does not change the value of the operand is proceeded by another cast, this
+   * first cast is removed.</p>
+   *
+   * <p>Example:
+   *  <pre>
+   *    char b = nondet();
+   *    b = (int) (long) b;
+   *  </pre>
+   *  In the above example, an expression representing <code>(int) b</code> will be returned.
+   * </p>
+   *
+   * @param pExpression the {@link CastExpression} to simplify
+   * @param pMachineModel the machine model
+   * @return a simplified version of the given expression.
+   */
+  private SymbolicExpression simplifyCasts(CastExpression pExpression, Optional<MachineModel> pMachineModel) {
+    Type typeOfBasicExpression = getTypeOfBasicExpression(pExpression);
+    SymbolicExpression operand = pExpression.getOperand();
+
+    if (operand instanceof CastExpression) {
+      Type typeOfOuterCast = pExpression.getType();
+      Type typeOfInnerCast = operand.getType();
+      SymbolicExpression nextOperand = ((CastExpression) operand).getOperand();
+
+      if (typeOfOuterCast instanceof CType && pMachineModel.isPresent()) {
+        assert typeOfInnerCast instanceof CType && typeOfBasicExpression instanceof CType;
+        if (Types.canHoldAllValues(typeOfInnerCast, typeOfBasicExpression, pMachineModel.get())) {
+          return createCast(nextOperand, typeOfOuterCast, pMachineModel);
+        }
+
+      } else if (typeOfOuterCast instanceof JType) {
+        assert typeOfInnerCast instanceof JType && typeOfBasicExpression instanceof JType;
+        if (Types.canHoldAllValues((JType) typeOfInnerCast, (JType) typeOfBasicExpression)) {
+          return createCast(nextOperand, typeOfOuterCast, pMachineModel);
+        }
+      }
+    }
+
+    return pExpression;
+  }
+
+  private Type getTypeOfBasicExpression(SymbolicExpression pExpression) {
+    if (pExpression instanceof CastExpression) {
+      return getTypeOfBasicExpression(((CastExpression) pExpression).getOperand());
+
+    } else {
+      return pExpression.getType();
     }
   }
 

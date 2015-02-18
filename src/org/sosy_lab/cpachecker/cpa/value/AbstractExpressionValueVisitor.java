@@ -104,14 +104,15 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLongs;
 
 
@@ -1546,7 +1547,7 @@ public abstract class AbstractExpressionValueVisitor
       final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType);
+      return castIfSymbolic(value, targetType, Optional.of(machineModel));
     }
 
     // For now can only cast numeric value's
@@ -1671,17 +1672,17 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private static Value castIfSymbolic(Value pValue, Type pTargetType) {
+  private static Value castIfSymbolic(Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    if (pValue instanceof SymbolicValue) {
-      return factory.createCast((SymbolicValue)pValue, pTargetType);
+    if (pValue instanceof SymbolicValue
+        && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-    } else {
-
-      // If the value is not symbolic, just return it.
-      return pValue;
+      return factory.createCast((SymbolicValue) pValue, pTargetType, pMachineModel);
     }
+
+    // If the value is not symbolic, just return it.
+    return pValue;
   }
 
   /**
@@ -1705,7 +1706,7 @@ public abstract class AbstractExpressionValueVisitor
       JType targetType, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType);
+      return castIfSymbolic(value, targetType, Optional.<MachineModel>absent());
     }
 
     // Other than symbolic values, we can only cast numeric values, for now.
