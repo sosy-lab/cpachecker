@@ -340,7 +340,7 @@ public class AutomatonGraphmlParser {
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
-        if (!assumptions.isEmpty() || !actions.isEmpty()) {
+        if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty()) {
           matchingTransitions.add(new AutomatonTransition(
               new AutomatonBoolExpr.And(conjunctedTriggers,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
