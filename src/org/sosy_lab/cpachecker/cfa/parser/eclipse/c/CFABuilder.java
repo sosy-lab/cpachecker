@@ -46,6 +46,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -87,7 +88,7 @@ import com.google.common.collect.TreeMultimap;
 class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
-  private final List<Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>>> functionDeclarations = new ArrayList<>();
+  private final List<Triple<List<IASTFunctionDefinition>, String, GlobalScope>> functionDeclarations = new ArrayList<>();
   private final SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
@@ -142,7 +143,7 @@ class CFABuilder extends ASTVisitor {
                                 globalScope.getTypes(),
                                 staticVariablePrefix);
     astCreator = new ASTConverter(config, fileScope, logger, niceFileNameFunction, sourceOriginMapping, machine, staticVariablePrefix, sideAssignmentStack);
-    functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), Pair.of(staticVariablePrefix, fileScope)));
+    functionDeclarations.add(Triple.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
   }
@@ -297,9 +298,9 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration)decl).getType().accept(fillInAllBindingsVisitor);
     }
 
-    for (Pair<List<IASTFunctionDefinition>, Pair<String, GlobalScope>> pair : functionDeclarations) {
-      for (IASTFunctionDefinition declaration : pair.getFirst()) {
-        handleFunctionDefinition(pair.getSecond().getSecond(), pair.getSecond().getFirst(), declaration);
+    for (Triple<List<IASTFunctionDefinition>, String, GlobalScope> triple : functionDeclarations) {
+      for (IASTFunctionDefinition declaration : triple.getFirst()) {
+        handleFunctionDefinition(triple.getThird(), triple.getSecond(), declaration);
       }
     }
 
