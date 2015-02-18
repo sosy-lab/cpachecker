@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -33,10 +33,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
 /**
  * Class for creating {@link Formula}s out of {@link Constraint}s
- *
- * @param T concrete {@link Formula} type the implementation creates
  */
-public interface FormulaCreator<T extends Formula> extends ConstraintVisitor<T>, SymbolicValueVisitor<T> {
+public interface FormulaCreator {
 
   /**
    * Creates a {@link BooleanFormula} representing the given {@link Constraint}.
@@ -44,7 +42,7 @@ public interface FormulaCreator<T extends Formula> extends ConstraintVisitor<T>,
    * @param pConstraint the constraint to create a formula of
    * @return a <code>Formula</code> representing the given constraint
    */
-  BooleanFormula createFormula(Constraint pConstraint);
+  BooleanFormula createFormula(Constraint pConstraint) throws UnrecognizedCCodeException, InterruptedException;
 
   /**
    * Creates a {@link BooleanFormula} representing the given term-value assignment.
@@ -60,5 +58,6 @@ public interface FormulaCreator<T extends Formula> extends ConstraintVisitor<T>,
    * @param termAssignment the value of the assignment
    * @return a <code>BooleanFormula</code> representing the given assignment
    */
-  BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment);
+  BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment)
+      throws UnrecognizedCCodeException, InterruptedException;
 }

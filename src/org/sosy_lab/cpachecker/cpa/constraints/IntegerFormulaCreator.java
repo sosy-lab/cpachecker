@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.BinaryNotExpression;
@@ -80,7 +81,8 @@ import com.google.common.collect.Table;
 /**
  * Creator for {@link Formula}s using only integer values.
  */
-public class IntegerFormulaCreator implements FormulaCreator<Formula> {
+public class IntegerFormulaCreator
+    implements FormulaCreator, SymbolicValueVisitor<Formula>, ConstraintVisitor<Formula> {
 
   private static long auxiliaryVariableAmount = 0;
   private static long floatVariableAmount = 0;

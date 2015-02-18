@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -66,9 +67,12 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 import com.google.common.base.Optional;
 
@@ -96,6 +100,7 @@ public class ConstraintsTransferRelation
 
   private Solver solver;
   private FormulaManagerView formulaManager;
+  private CtoFormulaConverter converter;
 
   public ConstraintsTransferRelation(MachineModel pMachineModel, LogManager pLogger,
       Configuration pConfig, ShutdownNotifier pShutdownNotifier)
@@ -106,6 +111,7 @@ public class ConstraintsTransferRelation
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     initializeSolver(pLogger, pConfig, pShutdownNotifier);
+    initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
   }
 
   private void initializeSolver(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
@@ -114,6 +120,23 @@ public class ConstraintsTransferRelation
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
   }
+
+  // Can only be called after machineModel and formulaManager are set
+  private void initializeCToFormulaConverter(LogManager pLogger, Configuration pConfig,
+      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+
+    FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
+    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, options, machineModel, formulaManager);
+
+    converter = new CtoFormulaConverter(options,
+                                        formulaManager,
+                                        machineModel,
+                                        Optional.<VariableClassification>absent(),
+                                        pLogger,
+                                        pShutdownNotifier,
+                                        typeHandler,
+                                        AnalysisDirection.FORWARD);
+}
 
   @Override
   protected ConstraintsState handleFunctionCallEdge(FunctionCallEdge pCfaEdge, List<? extends AExpression> pArguments,
@@ -153,13 +176,14 @@ public class ConstraintsTransferRelation
     return state;
   }
 
-  private ConstraintsState getNewState(ConstraintsState pOldState, ValueAnalysisState pValueState, AExpression pExpression,
-      ConstraintFactory pFactory, boolean pTruthAssumption, FileLocation pFileLocation)
+  private ConstraintsState getNewState(ConstraintsState pOldState, ValueAnalysisState pValueState,
+      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
+      FileLocation pFileLocation)
         throws SolverException, InterruptedException {
 
     ConstraintsState newState = pOldState.copyOf();
 
-    newState.initialize(solver, formulaManager, getFormulaCreator(pValueState));
+    newState.initialize(solver, formulaManager, getFormulaCreator(pValueState, pFunctionName));
 
     try {
       Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
@@ -188,15 +212,19 @@ public class ConstraintsTransferRelation
     return newState;
   }
 
-  private FormulaCreator<? extends Formula> getFormulaCreator(ValueAnalysisState pValueState) {
+  private FormulaCreator getFormulaCreator(ValueAnalysisState pValueState, String pFunctionName) {
     switch (formulaNumberHandling) {
       case INTEGER:
         return new IntegerFormulaCreator(formulaManager, pValueState, machineModel);
       case BITVECTOR:
-        return new BitvectorFormulaCreator(formulaManager, machineModel);
+        return new BitvectorFormulaCreator(formulaManager, getConverter(), pValueState, pFunctionName, machineModel);
       default:
         throw new AssertionError("Unhandled handling type " + formulaNumberHandling);
     }
+  }
+
+  private CtoFormulaConverter getConverter() {
+    return converter;
   }
 
   private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
@@ -358,6 +386,7 @@ public class ConstraintsTransferRelation
                              pCfaEdge.getExpression(),
                              factory,
                              pCfaEdge.getTruthAssumption(),
+                             functionName,
                              fileLocation);
 
     } catch (SolverException | InterruptedException e) {

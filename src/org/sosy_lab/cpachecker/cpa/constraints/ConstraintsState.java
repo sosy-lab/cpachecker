@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -58,7 +59,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
 
   private Solver solver;
   private ProverEnvironment prover;
-  private FormulaCreator<? extends Formula> formulaCreator;
+  private FormulaCreator formulaCreator;
   private FormulaManagerView formulaManager;
 
   private IdentifierAssignment definiteAssignment = new IdentifierAssignment();
@@ -108,7 +109,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     return new ConstraintsState(this);
   }
 
-  protected FormulaCreator<? extends Formula> getFormulaCreator() {
+  protected FormulaCreator getFormulaCreator() {
     return formulaCreator;
   }
 
@@ -246,7 +247,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    * @param pFormulaManager the formula manager to use for creating {@link Formula}s
    * @param pFormulaCreator the formula creator to use for creating <code>Formula</code>s
    */
-  public void initialize(Solver pSolver, FormulaManagerView pFormulaManager, FormulaCreator<?> pFormulaCreator) {
+  public void initialize(Solver pSolver, FormulaManagerView pFormulaManager, FormulaCreator pFormulaCreator) {
     solver = pSolver;
     formulaManager = pFormulaManager;
     formulaCreator = pFormulaCreator;
@@ -260,7 +261,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    * @throws SolverException
    * @throws InterruptedException
    */
-  public boolean isUnsat() throws SolverException, InterruptedException {
+  public boolean isUnsat() throws SolverException, InterruptedException, UnrecognizedCCodeException {
     boolean unsat = false;
 
     try {
@@ -293,7 +294,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     prover = null;
   }
 
-  private void computeDefiniteAssignment() throws SolverException, InterruptedException {
+  private void computeDefiniteAssignment() throws SolverException, InterruptedException, UnrecognizedCCodeException {
     Model validAssignment = prover.getModel();
 
     for (Map.Entry<Model.AssignableTerm, Object> entry : validAssignment.entrySet()) {
@@ -330,7 +331,8 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     return IdentifierConverter.getInstance().isSymbolicEncoding(pTerm.getName());
   }
 
-  private boolean isOnlySatisfyingAssignment(Model.AssignableTerm pTerm, Object termAssignment) throws SolverException, InterruptedException {
+  private boolean isOnlySatisfyingAssignment(Model.AssignableTerm pTerm, Object termAssignment)
+      throws SolverException, InterruptedException, UnrecognizedCCodeException {
 
     BooleanFormula prohibitAssignment = solver.getFormulaManager()
                                        .makeNot(formulaCreator.transformAssignment(pTerm, termAssignment));
@@ -364,7 +366,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     }
   }
 
-  private BooleanFormula getFullFormula() {
+  private BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
       BooleanFormula completeFormula = null;
       BooleanFormula currFormula;
 
