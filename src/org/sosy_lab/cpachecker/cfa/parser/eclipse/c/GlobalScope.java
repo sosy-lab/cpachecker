@@ -100,11 +100,9 @@ class GlobalScope extends AbstractScope {
       if (binding != null && binding.getName().equals(name)) {
         return true;
       }
+
       binding = globalVars.get(name);
-      if (binding != null && binding.getName().equals(name)) {
-        return true;
-      }
-      return false;
+      return binding != null && binding.getName().equals(name);
     }
 
   @Override
