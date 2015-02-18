@@ -137,6 +137,7 @@ class CFABuilder extends ASTVisitor {
   public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
     sideAssignmentStack = new Sideassignments();
     fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
+                                new HashMap<String, CSimpleDeclaration>(),
                                 new HashMap<String, CFunctionDeclaration>(),
                                 new HashMap<String, CComplexTypeDeclaration>(),
                                 new HashMap<String, CTypeDefDeclaration>(),
@@ -380,7 +381,7 @@ class CFABuilder extends ASTVisitor {
       }
     }
 
-    globalScope= new GlobalScope(globalVars, functions, types, typedefs, new HashMap<String, CComplexTypeDeclaration>(), "");
+    globalScope= new GlobalScope(globalVars, new HashMap<String, CSimpleDeclaration>(), functions, types, typedefs, new HashMap<String, CComplexTypeDeclaration>(), "");
     return PROCESS_CONTINUE;
   }
 }

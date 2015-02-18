@@ -58,12 +58,14 @@ import com.google.common.collect.ImmutableMap;
 class GlobalScope extends AbstractScope {
 
   private final Map<String, CSimpleDeclaration> globalVars;
+  private final Map<String, CSimpleDeclaration> globalVarsWithNewNames;
   private final Map<String, CFunctionDeclaration> functions;
   private final Map<String, CComplexTypeDeclaration> types;
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final Map<String, CComplexTypeDeclaration> alreadyDeclaratedTypesInOtherFiles;
 
   public GlobalScope(Map<String, CSimpleDeclaration> globalVars,
+                     Map<String, CSimpleDeclaration> globalVarsWithNewNames,
                      Map<String, CFunctionDeclaration> functions,
                      Map<String, CComplexTypeDeclaration> types,
                      Map<String, CTypeDefDeclaration> typedefs,
@@ -71,6 +73,7 @@ class GlobalScope extends AbstractScope {
                      String currentFile) {
     super(currentFile);
     this.globalVars = globalVars;
+    this.globalVarsWithNewNames = globalVarsWithNewNames;
     this.functions = functions;
     this.types = types;
     this.typedefs = typedefs;
@@ -79,6 +82,7 @@ class GlobalScope extends AbstractScope {
 
   public GlobalScope() {
     this(new HashMap<String, CSimpleDeclaration>(),
+         new HashMap<String, CSimpleDeclaration>(),
          new HashMap<String, CFunctionDeclaration>(),
          new HashMap<String, CComplexTypeDeclaration>(),
          new HashMap<String, CTypeDefDeclaration>(),
@@ -93,11 +97,8 @@ class GlobalScope extends AbstractScope {
 
   @Override
   public boolean variableNameInUse(String name) {
-      checkNotNull(name);
-
-      CSimpleDeclaration binding = globalVars.get(name);
-      return binding != null && binding.getName().equals(name);
-    }
+    return globalVarsWithNewNames.containsKey(checkNotNull(name));
+  }
 
   @Override
   public CSimpleDeclaration lookupVariable(String name) {
@@ -185,6 +186,7 @@ class GlobalScope extends AbstractScope {
     }
 
     globalVars.put(name, declaration);
+    globalVarsWithNewNames.put(declaration.getName(), declaration);
   }
 
   /**
