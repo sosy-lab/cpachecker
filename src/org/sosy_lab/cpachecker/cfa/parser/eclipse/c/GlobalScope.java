@@ -369,11 +369,11 @@ class GlobalScope extends AbstractScope {
 
     if (oldType instanceof CCompositeType) {
       CCompositeType ct = new CCompositeType(oldType.isConst(), oldType.isVolatile(), oldType.getKind(),
-                                          ImmutableList.<CCompositeTypeMemberDeclaration>of(), newName);
+                                          ImmutableList.<CCompositeTypeMemberDeclaration>of(), newName, oldType.getOrigName());
 
       IType key = ASTTypeConverter.getTypeFromTypeConversion(oldType, currentFile);
       if (key != null) {
-        ASTTypeConverter.overwriteType(key, new CElaboratedType(ct.isConst(), ct.isVolatile(), ct.getKind(), ct.getName(), ct), currentFile);
+        ASTTypeConverter.overwriteType(key, new CElaboratedType(ct.isConst(), ct.isVolatile(), ct.getKind(), ct.getName(), ct.getOrigName(), ct), currentFile);
       }
 
       List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>(((CCompositeType)oldType).getMembers().size());
@@ -395,7 +395,7 @@ class GlobalScope extends AbstractScope {
         list.add(newC);
       }
 
-      CEnumType et = new CEnumType(oldType.isConst(), oldType.isVolatile(), list, newName);
+      CEnumType et = new CEnumType(oldType.isConst(), oldType.isVolatile(), list, newName, oldType.getOrigName());
       for (CEnumerator enumValue : et.getEnumerators()) {
         enumValue.setEnum(et);
       }
@@ -403,7 +403,7 @@ class GlobalScope extends AbstractScope {
 
     } else if (oldType instanceof CElaboratedType) {
       CElaboratedType et = new CElaboratedType(oldType.isConst(), oldType.isVolatile(),
-                       oldType.getKind(), newName, null);
+                       oldType.getKind(), newName, oldType.getOrigName(), null);
       newD = new CComplexTypeDeclaration(newD.getFileLocation(), true, et);
     }
     return newD;

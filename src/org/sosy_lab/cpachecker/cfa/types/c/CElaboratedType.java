@@ -33,18 +33,21 @@ public final class CElaboratedType implements CComplexType, Serializable {
 
   private static final long serialVersionUID = -3566628634889842927L;
   private final ComplexTypeKind kind;
-  private final String   name;
-  private final boolean   isConst;
-  private final boolean   isVolatile;
+  private final String name;
+  private final String origName;
+  private final boolean isConst;
+  private final boolean isVolatile;
 
   private CComplexType realType = null;
 
   public CElaboratedType(boolean pConst, final boolean pVolatile,
-      final ComplexTypeKind pKind, final String pName, final CComplexType pRealType) {
+      final ComplexTypeKind pKind, final String pName, final String pOrigName,
+      final CComplexType pRealType) {
     isConst = pConst;
     isVolatile = pVolatile;
     kind = pKind;
     name = pName.intern();
+    origName = pOrigName.intern();
     realType = pRealType;
   }
 
@@ -59,6 +62,14 @@ public final class CElaboratedType implements CComplexType, Serializable {
   @Override
   public String getQualifiedName() {
     return (kind.toASTString() + " " + name).trim();
+  }
+
+  @Override
+  public String getOrigName() {
+    if (realType != null) {
+      return realType.getOrigName();
+    }
+    return origName;
   }
 
   @Override
@@ -171,7 +182,7 @@ public final class CElaboratedType implements CComplexType, Serializable {
   @Override
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     if (realType == null) {
-      return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, null);
+      return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName, null);
     } else {
       return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
     }

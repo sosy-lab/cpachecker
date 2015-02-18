@@ -104,6 +104,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                                  !ignoreVolatile && t.isVolatile(),
                                  t.getKind(),
                                  t.getName(),
+                                 t.getOrigName(),
                                  realType);
     }
 
@@ -171,7 +172,8 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
              new CEnumType(!ignoreConst && t.isConst(),
                            !ignoreVolatile && t.isVolatile(),
                            t.getEnumerators(),
-                           t.getName());
+                           t.getName(),
+                           t.getOrigName());
     }
 
     @Override
@@ -222,7 +224,8 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                                            !typeVisitor.ignoreVolatile && canonicalType.isVolatile(),
                                            canonicalType.getKind(),
                                            canonicalType.getMembers(),
-                                           canonicalType.getName());
+                                           canonicalType.getName(),
+                                           canonicalType.getOrigName());
       }
       typeCache.put(t, canonicalType);
       return typeVisitor.visit(canonicalType);

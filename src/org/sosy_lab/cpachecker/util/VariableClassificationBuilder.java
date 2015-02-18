@@ -438,7 +438,8 @@ public class VariableClassificationBuilder {
                                 false,
                                 compositeType.getKind(),
                                 compositeType.getMembers(),
-                                compositeType.getName());
+                                compositeType.getName(),
+                                compositeType.getOrigName());
     } else {
       return compositeType;
     }

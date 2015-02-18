@@ -1114,7 +1114,7 @@ class ASTConverter {
       // e.g. like this: "enum { e1, e2 = e1 }"
       if (enumType != null) {
         type = new CElaboratedType(type.isConst(), type.isVolatile(), ComplexTypeKind.ENUM,
-            enumType.getName(), enumType);
+            enumType.getName(), enumType.getOrigName(), enumType);
       }
     }
 
@@ -1459,7 +1459,7 @@ class ASTConverter {
       result.add(newD);
 
       // now replace type with an elaborated type referencing the new type
-      type = new CElaboratedType(type.isConst(), type.isVolatile(), complexType.getKind(), complexType.getName(), newD.getType());
+      type = new CElaboratedType(type.isConst(), type.isVolatile(), complexType.getKind(), complexType.getName(), complexType.getOrigName(), newD.getType());
 
     } else if (type instanceof CElaboratedType) {
       boolean typeAlreadyKnown = scope.lookupType(((CElaboratedType) type).getQualifiedName()) != null;
@@ -1599,7 +1599,7 @@ class ASTConverter {
       CCompositeType compositeType = (CCompositeType)type;
       addSideEffectDeclarationForType(compositeType, getLocation(d));
       type = new CElaboratedType(compositeType.isConst(), compositeType.isVolatile(),
-          compositeType.getKind(), compositeType.getName(), compositeType);
+          compositeType.getKind(), compositeType.getName(), compositeType.getOrigName(), compositeType);
     }
 
     List<CCompositeTypeMemberDeclaration> result;
@@ -1918,11 +1918,17 @@ class ASTConverter {
     }
 
     String name = convert(d.getName());
+    String origName = name;
     if (Strings.isNullOrEmpty(name)) {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
-    CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name);
+    // if the origName is null we want it to be empty
+    if (origName == null) {
+      origName = "";
+    }
+
+    CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name, origName);
 
     // in cases like struct s { (struct s)* f }
     // we need to fill in the binding from the inner "struct s" type to the outer
@@ -1945,6 +1951,7 @@ class ASTConverter {
 
 
     String name = convert(d.getName());
+    String origName = name;
 
     // when the enum has no name we create one
     // (this may be the case when the enum declaration is surrounded by a typedef)
@@ -1952,7 +1959,7 @@ class ASTConverter {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
-    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name);
+    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name, origName);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
     }
