@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -52,9 +53,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ComparisonChain;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
@@ -65,41 +65,174 @@ public class SourceLocationMapper {
   private static Map<Integer, Token> tokenNumberToTokenMap = Maps.newHashMap();
   private static Map<Integer, Integer> tokenNumberToLineNumberMap = Maps.newHashMap();
 
-  public static class OriginDescriptor implements Comparable<OriginDescriptor> {
-    public final Optional<String> originFileName;
+  public static interface LocationDescriptor {
+
+    boolean matches(FileLocation pFileLocation);
+
+  }
+
+  public static class FileNameDescriptor implements LocationDescriptor {
+
+    private final Optional<String> originFileName;
+
+    private final boolean matchBaseName;
+
+    public FileNameDescriptor(String originFileName) {
+      this(originFileName, true);
+    }
+
+    public FileNameDescriptor(String originFileName, boolean matchBaseName) {
+      this.originFileName = Optional.of(originFileName);
+      this.matchBaseName = matchBaseName;
+    }
+
+    private FileNameDescriptor(Optional<String> originFileName, boolean matchBaseName) {
+      Preconditions.checkNotNull(originFileName);
+      this.originFileName = originFileName;
+      this.matchBaseName = matchBaseName;
+    }
+
+    @Override
+    public boolean matches(FileLocation pFileLocation) {
+      if (!originFileName.isPresent()) {
+        return true;
+      }
+      String originFileName = this.originFileName.get();
+      String fileLocationFileName = pFileLocation.getFileName();
+      if (matchBaseName) {
+        originFileName = getBaseName(originFileName);
+        fileLocationFileName = getBaseName(fileLocationFileName);
+      }
+      return originFileName.equals(fileLocationFileName);
+    }
+
+    private String getBaseName(String pOf) {
+      int index = pOf.lastIndexOf('/');
+      if (index == -1) {
+        index = pOf.lastIndexOf('\\');
+      }
+      if (index == -1) {
+        return pOf;
+      } else {
+        return pOf.substring(index + 1);
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      return originFileName.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof FileNameDescriptor && pObj.getClass().equals(FileNameDescriptor.class)) {
+        FileNameDescriptor other = (FileNameDescriptor) pObj;
+        return originFileName.equals(other.originFileName);
+      }
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      return originFileName.isPresent() ? "FILE " + originFileName : "TRUE";
+    }
+
+    protected Optional<String> getOriginFileName() {
+      return originFileName;
+    }
+
+  }
+
+  public static class OriginLineDescriptor extends FileNameDescriptor implements LocationDescriptor {
+
     public final int originLineNumber;
 
-    public OriginDescriptor(Optional<String> pOriginFileName, int pOriginLineNumber) {
-      this.originFileName = pOriginFileName;
+    public OriginLineDescriptor(Optional<String> pOriginFileName, int pOriginLineNumber) {
+      this(pOriginFileName, pOriginLineNumber, true);
+    }
+
+    public OriginLineDescriptor(Optional<String> pOriginFileName, int pOriginLineNumber, boolean pMatchBaseName) {
+      super(pOriginFileName, pMatchBaseName);
       this.originLineNumber = pOriginLineNumber;
     }
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((originFileName == null) ? 0 : originFileName.hashCode());
-      result = prime * result + originLineNumber;
-      return result;
+      return Objects.hash(getOriginFileName(), originLineNumber);
     }
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof OriginDescriptor)) {
+      if (this == pObj) {
+        return true;
+      }
+      if (!(pObj instanceof OriginLineDescriptor)) {
         return false;
       }
-      return this.compareTo((OriginDescriptor)pObj) == 0;
+      OriginLineDescriptor other = (OriginLineDescriptor) pObj;
+      return Objects.equals(getOriginFileName(), other.getOriginFileName())
+          && originLineNumber == other.originLineNumber;
     }
 
     @Override
-    public int compareTo(OriginDescriptor that) {
-      return ComparisonChain.start()
-          .compare(this.originFileName.orNull(), that.originFileName.orNull(), Ordering.natural().nullsFirst())
-          .compare(this.originLineNumber, that.originLineNumber)
-          .result();
+    public boolean matches(FileLocation pFileLocation) {
+      return super.matches(pFileLocation)
+          && pFileLocation.getStartingLineNumber() <= originLineNumber
+          && pFileLocation.getEndingLineNumber() >= originLineNumber;
+    }
+
+    @Override
+    public String toString() {
+      return "ORIGIN STARTING LINE " + originLineNumber;
     }
   }
 
+  public static class OffsetDescriptor extends FileNameDescriptor implements LocationDescriptor {
+
+    public final int offset;
+
+    public OffsetDescriptor(Optional<String> pOriginFileName, int pOffset) {
+      this(pOriginFileName, pOffset, true);
+    }
+
+    public OffsetDescriptor(Optional<String> pOriginFileName, int pOffset, boolean pMatchBaseName) {
+      super(pOriginFileName, pMatchBaseName);
+      this.offset = pOffset;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(getOriginFileName(), offset);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (!(pObj instanceof OffsetDescriptor)) {
+        return false;
+      }
+      OffsetDescriptor other = (OffsetDescriptor) pObj;
+      return Objects.equals(getOriginFileName(), other.getOriginFileName())
+          && offset == other.offset;
+    }
+
+    @Override
+    public boolean matches(FileLocation pFileLocation) {
+      return super.matches(pFileLocation)
+          && pFileLocation.getNodeOffset() <= offset
+          && pFileLocation.getNodeOffset() + pFileLocation.getNodeLength() > offset;
+    }
+
+    @Override
+    public String toString() {
+      return "OFFSET " + offset;
+    }
+  }
 
   public static Set<String> matchTokenNumbersToTokenStrings(final Set<Integer> tokenNumbers) {
     return Collections.emptySet();

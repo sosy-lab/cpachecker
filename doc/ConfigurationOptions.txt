@@ -573,6 +573,9 @@ cpa.arg.witness.exportFunctionCallsAndReturns = true
 # on the transitions?
 cpa.arg.witness.exportLineNumbers = true
 
+# Verification witness: Include the offset within the file?
+cpa.arg.witness.exportOffset = true
+
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
 
@@ -1920,6 +1923,9 @@ spec.considerAssumptions = true
 # Consider the negative semantics of tokens provided with path automatons.
 spec.considerNegativeSemanticsAttribute = false
 
+# Match the character offset within the file.
+spec.matchOffset = true
+
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
 spec.matchOriginLine = true
@@ -1933,9 +1939,9 @@ spec.matchSourcecodeData = false
 # otherwise match starting lines as usual.
 spec.singlePathMatching = false
 
-# Do not try to "catch up" with witness lines: If they do not match, go to
+# Do not try to "catch up" with witness guards: If they do not match, go to
 # the sink.
-spec.strictLineMatching = false
+spec.strictMatching = false
 
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false
