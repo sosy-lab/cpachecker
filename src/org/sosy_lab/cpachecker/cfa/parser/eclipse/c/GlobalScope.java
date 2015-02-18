@@ -92,16 +92,10 @@ class GlobalScope extends AbstractScope {
   }
 
   @Override
-  public boolean variableNameInUse(String name, String origName) {
+  public boolean variableNameInUse(String name) {
       checkNotNull(name);
-      checkNotNull(origName);
 
-      CSimpleDeclaration binding = globalVars.get(origName);
-      if (binding != null && binding.getName().equals(name)) {
-        return true;
-      }
-
-      binding = globalVars.get(name);
+      CSimpleDeclaration binding = globalVars.get(name);
       return binding != null && binding.getName().equals(name);
     }
 

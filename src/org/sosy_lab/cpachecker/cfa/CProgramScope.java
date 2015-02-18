@@ -251,7 +251,7 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public boolean variableNameInUse(String pName, String pOrigName) {
+  public boolean variableNameInUse(String pName) {
     return variableNames.contains(pName);
   }
 

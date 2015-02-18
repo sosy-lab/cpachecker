@@ -45,7 +45,7 @@ abstract class AbstractScope implements Scope {
   public abstract boolean isGlobalScope();
 
   @Override
-  public abstract boolean variableNameInUse(String name, String origName);
+  public abstract boolean variableNameInUse(String name);
 
   @Override
   public abstract CSimpleDeclaration lookupVariable(String name);

@@ -133,19 +133,14 @@ class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public boolean variableNameInUse(String name, String origName) {
+  public boolean variableNameInUse(String name) {
       checkNotNull(name);
-      checkNotNull(origName);
 
       Iterator<Map<String, CSimpleDeclaration>> it = varsList.descendingIterator();
       while (it.hasNext()) {
         Map<String, CSimpleDeclaration> vars = it.next();
 
-        CSimpleDeclaration binding = vars.get(origName);
-        if (binding != null && binding.getName().equals(name)) {
-          return true;
-        }
-        binding = vars.get(name);
+        CSimpleDeclaration binding = vars.get(name);
         if (binding != null && binding.getName().equals(name)) {
           return true;
         }

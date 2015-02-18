@@ -592,7 +592,7 @@ class ASTConverter {
       final FileLocation loc, final CType pType, @Nullable CInitializer initializer) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
-    while (scope.variableNameInUse(name + i, name + i)) {
+    while (scope.variableNameInUse(name + i)) {
       i++;
     }
     name += i;
@@ -1549,10 +1549,10 @@ class ASTConverter {
         cStorageClass = CStorageClass.AUTO;
       }
 
-      if (!isGlobal && scope.variableNameInUse(name, name)) {
+      if (!isGlobal && scope.variableNameInUse(name)) {
         String sep = "__";
         int index = 1;
-        while (scope.variableNameInUse(name + sep + index, origName)) {
+        while (scope.variableNameInUse(name + sep + index)) {
           ++index;
         }
         name = name + sep + index;
