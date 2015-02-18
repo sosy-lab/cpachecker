@@ -109,14 +109,7 @@ class GlobalScope extends AbstractScope {
 
   @Override
   public CSimpleDeclaration lookupVariable(String name) {
-    checkNotNull(name);
-
-    CSimpleDeclaration binding = globalVars.get(name);
-    if (binding != null) {
-      return binding;
-    }
-
-    return null;
+    return globalVars.get(checkNotNull(name));
   }
 
   @Override
