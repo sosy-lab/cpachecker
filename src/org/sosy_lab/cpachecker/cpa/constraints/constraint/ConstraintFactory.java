@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -115,27 +114,6 @@ public class ConstraintFactory {
       return null;
     } else {
       return createNot(positiveConstraint);
-    }
-  }
-
-
-  public Constraint createPositiveConstraint(CUnaryExpression pExpression) throws UnrecognizedCodeException {
-    CUnaryExpression.UnaryOperator operator = pExpression.getOperator();
-
-    switch (operator) {
-      case SIZEOF:
-      case ALIGNOF:
-      case AMPER:
-        return null;
-
-      default:
-        SymbolicExpression operandExpression = getCTransformer().transform(pExpression);
-
-        if (operandExpression == null) {
-          return null;
-        } else {
-          return transformValueToConstraint(operandExpression, pExpression.getExpressionType());
-        }
     }
   }
 
