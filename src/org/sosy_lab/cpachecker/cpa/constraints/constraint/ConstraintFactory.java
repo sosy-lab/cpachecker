@@ -89,7 +89,7 @@ public class ConstraintFactory {
   }
 
   public Constraint createNegativeConstraint(JUnaryExpression pExpression) throws UnrecognizedCodeException {
-    Constraint positiveConstraint = createNot(createPositiveConstraint(pExpression));
+    Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
     if (positiveConstraint == null) {
       return null;
