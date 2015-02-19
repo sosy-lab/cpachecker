@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -401,7 +403,7 @@ public class SourceLocationMapper {
 
     result.add(pEdge.getFileLocation());
 
-    return result;
+    return FluentIterable.from(result).filter(Predicates.not(Predicates.equalTo(FileLocation.DUMMY))).toSet();
   }
 
   public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
