@@ -322,7 +322,7 @@ public class BAMPredicateReducer implements Reducer {
         if (result.isEmpty()) {
           result = evaluatedGlobalPredicates;
         }
-        String functionName = context.getCallNode().getFunctionName();
+        String functionName = loc.getFunctionName();
         return Sets.union(result, rootPredicatePrecision.getFunctionPredicates().get(functionName))
             .immutableCopy();
       } else {
