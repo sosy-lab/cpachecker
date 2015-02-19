@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.constraints.IdentifierConverter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryOrExpression;
@@ -112,9 +114,7 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
       return ((SymbolicValue) pValue).accept(this);
 
     } else if (pValue instanceof NumericValue) {
-      CType canonicalType = pType.getCanonicalType();
-
-      if (canonicalType instanceof CPointerType || ((CSimpleType) canonicalType).getType().isIntegerType()) {
+      if (isIntegerType(pType)) {
         BigInteger valueAsBigInt = BigInteger.valueOf(((NumericValue) pValue).longValue());
 
         return new CIntegerLiteralExpression(DUMMY_LOCATION, pType, valueAsBigInt);
@@ -127,6 +127,13 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
     } else {
       throw new AssertionError("Unhandled value " + pValue);
     }
+  }
+
+  private boolean isIntegerType(CType pType) {
+    CType canonicalType = pType.getCanonicalType();
+
+    return canonicalType instanceof CPointerType || canonicalType instanceof CEnumType
+        || ((CSimpleType) canonicalType).getType().isIntegerType();
   }
 
   private CType getCType(Type pType) {
