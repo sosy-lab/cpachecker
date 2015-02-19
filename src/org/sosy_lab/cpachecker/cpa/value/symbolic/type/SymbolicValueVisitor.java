@@ -69,4 +69,6 @@ public interface SymbolicValueVisitor<T> {
   T visit(CastExpression pExpression);
 
   T visit(PointerExpression pExpression);
+
+  T visit(AddressOfExpression pExpression);
 }

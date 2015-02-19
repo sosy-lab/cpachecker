@@ -139,6 +139,7 @@ public class CExpressionTransformer extends ExpressionTransformer
     final Type expressionType = pIastUnaryExpression.getExpressionType();
 
     switch (operator) {
+      case AMPER:
       case MINUS:
       case TILDE: {
         SymbolicExpression operand = pIastUnaryExpression.getOperand().accept(this);
@@ -151,7 +152,7 @@ public class CExpressionTransformer extends ExpressionTransformer
       }
 
       default:
-        return null; // TODO: amper, alignof, sizeof with own expressions
+        return null; // TODO: alignof, sizeof with own expressions
     }
   }
 
@@ -162,6 +163,8 @@ public class CExpressionTransformer extends ExpressionTransformer
         return factory.negate(pOperand, pExpressionType);
       case TILDE:
         return factory.binaryNot(pOperand, pExpressionType);
+      case AMPER:
+        return factory.addressOf(pOperand, pExpressionType);
       default:
         throw new AssertionError("No arithmetic operator: " + pOperator);
     }

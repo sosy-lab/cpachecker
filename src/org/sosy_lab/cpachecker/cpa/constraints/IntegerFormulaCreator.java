@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryOrExpression;
@@ -97,6 +98,7 @@ public class IntegerFormulaCreator
   private static final String FLOAT_VAR_NAME = "float";
   private static final String POINTER_EXP_FUNC_NAME = "pointer";
   private static final String CAST_EXP_FUNC_NAME = "cast";
+  private static final String ADDR_EXP_FUNC_NAME = "addr";
   private static final String AUXILIARY_NAME = "auxVar";
 
 
@@ -245,6 +247,10 @@ public class IntegerFormulaCreator
 
     if (pExpression instanceof CastExpression) {
       return CAST_EXP_FUNC_NAME;
+    }
+
+    if (pExpression instanceof AddressOfExpression) {
+      return ADDR_EXP_FUNC_NAME;
     }
 
     throw new AssertionError("Unexpected expression " + pExpression);
@@ -560,6 +566,11 @@ public class IntegerFormulaCreator
 
   @Override
   public Formula visit(PointerExpression pExpression) {
+    return handleUnsupportedExpression(pExpression);
+  }
+
+  @Override
+  public Formula visit(AddressOfExpression pExpression) {
     return handleUnsupportedExpression(pExpression);
   }
 

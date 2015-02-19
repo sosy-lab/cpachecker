@@ -306,4 +306,12 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
 
     return new CPointerExpression(DUMMY_LOCATION, cType, operandExpression);
   }
+
+  @Override
+  public CExpression visit(AddressOfExpression pExpression) {
+    CType cType = getCType(pExpression.getType());
+    CExpression operandExpression = pExpression.getOperand().accept(this);
+
+    return new CUnaryExpression(DUMMY_LOCATION, cType, operandExpression, CUnaryExpression.UnaryOperator.AMPER);
+  }
 }

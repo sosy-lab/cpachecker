@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryOrExpression;
@@ -112,6 +113,11 @@ public class ConstraintTrivialityChecker implements ConstraintVisitor<Boolean>, 
 
   @Override
   public Boolean visit(PointerExpression pExpression) {
+    return isTrivialExpression(pExpression);
+  }
+
+  @Override
+  public Boolean visit(AddressOfExpression pExpression) {
     return isTrivialExpression(pExpression);
   }
 

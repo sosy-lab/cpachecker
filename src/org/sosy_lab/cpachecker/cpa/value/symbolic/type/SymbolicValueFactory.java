@@ -70,7 +70,6 @@ public class SymbolicValueFactory {
   }
 
   public SymbolicIdentifier newIdentifier(AAstNode pLocation) throws SymbolicBoundReachedException {
-
     return SymbolicIdentifier.getNewIdentifier();
   }
 
@@ -317,5 +316,17 @@ public class SymbolicValueFactory {
   public PointerExpression pointer(SymbolicExpression pOperand, Type pType) {
     checkNotNull(pOperand);
     return new PointerExpression(pOperand, pType);
+  }
+
+  public SymbolicExpression addressOf(SymbolicExpression pOperand, Type pType) {
+    checkNotNull(pOperand);
+
+    // &*a = a
+    if (pOperand instanceof PointerExpression) {
+      return ((PointerExpression) pOperand).getOperand();
+
+    } else {
+      return new AddressOfExpression(pOperand, pType);
+    }
   }
 }
