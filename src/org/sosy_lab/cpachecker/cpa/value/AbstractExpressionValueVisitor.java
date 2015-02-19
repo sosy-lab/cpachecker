@@ -340,7 +340,7 @@ public abstract class AbstractExpressionValueVisitor
       case SHIFT_LEFT:
         return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT:
-        return factory.shiftRight(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_AND:
         return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_OR:
@@ -896,9 +896,9 @@ public abstract class AbstractExpressionValueVisitor
       case SHIFT_LEFT:
         return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT_SIGNED:
-        return factory.shiftRight(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT_UNSIGNED:
-        throw new AssertionError(); // TODO!
+        return factory.shiftRightUnsigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_AND:
         return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LOGICAL_AND:

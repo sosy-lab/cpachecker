@@ -149,9 +149,16 @@ public class SymbolicValueFactory {
     return new ShiftLeftExpression(pOperand1, pOperand2, pType, pCalculationType);
   }
 
-  public SymbolicExpression shiftRight(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
+  public SymbolicExpression shiftRightSigned(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new ShiftRightExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new ShiftRightExpression(pOperand1, pOperand2, pType, pCalculationType,
+        ShiftRightExpression.ShiftType.SIGNED);
+  }
+
+  public SymbolicExpression shiftRightUnsigned(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
+      Type pCalculationType) {
+    return new ShiftRightExpression(pOperand1, pOperand2, pType, pCalculationType,
+        ShiftRightExpression.ShiftType.UNSIGNED);
   }
 
   public SymbolicExpression binaryAnd(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,

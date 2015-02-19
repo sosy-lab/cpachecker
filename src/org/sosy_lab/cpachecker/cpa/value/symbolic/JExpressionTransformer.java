@@ -106,9 +106,9 @@ public class JExpressionTransformer extends ExpressionTransformer
       case SHIFT_LEFT:
         return factory.shiftLeft(operand1Expression, operand2Expression, expressionType, expressionType);
       case SHIFT_RIGHT_SIGNED:
-        return factory.shiftRight(operand1Expression, operand2Expression, expressionType, expressionType);
+        return factory.shiftRightSigned(operand1Expression, operand2Expression, expressionType, expressionType);
       case SHIFT_RIGHT_UNSIGNED:
-        throw new AssertionError("Shift right unsigned not implemented"); // TODO implement
+        return factory.shiftRightUnsigned(operand1Expression, operand2Expression, expressionType, expressionType);
       case BINARY_AND:
         return factory.binaryAnd(operand1Expression, operand2Expression, expressionType, expressionType);
       case BINARY_OR:

@@ -32,9 +32,19 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class ShiftRightExpression extends BinarySymbolicExpression {
 
+  public enum ShiftType { SIGNED, UNSIGNED };
+
+  private final ShiftType shiftType;
+
   protected ShiftRightExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
-      Type pExpressionType, Type pCalculationType) {
+      Type pExpressionType, Type pCalculationType, ShiftType pShiftType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
+
+    shiftType = pShiftType;
+  }
+
+  public boolean isSigned() {
+    return shiftType == ShiftType.SIGNED;
   }
 
   @Override

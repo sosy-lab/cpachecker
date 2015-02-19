@@ -109,7 +109,7 @@ public class CExpressionTransformer extends ExpressionTransformer
       case SHIFT_LEFT:
         return factory.shiftLeft(operand1Expression, operand2Expression, calculationType, calculationType);
       case SHIFT_RIGHT:
-        return factory.shiftRight(operand1Expression, operand2Expression, calculationType, calculationType);
+        return factory.shiftRightSigned(operand1Expression, operand2Expression, calculationType, calculationType);
       case BINARY_AND:
         return factory.binaryAnd(operand1Expression, operand2Expression, calculationType, calculationType);
       case BINARY_OR:

@@ -160,18 +160,24 @@ public class IntegerFormulaCreator
 
   @Override
   public Formula visit(BinaryAndExpression pAnd) {
-    return handleUnsupportedExpression(pAnd);
+    return handleUnsupportedExpression(pAnd, false);
   }
 
-  private Formula handleUnsupportedExpression(BinarySymbolicExpression pExp) {
+  private Formula handleUnsupportedExpression(BinarySymbolicExpression pExp, boolean isSignedOperation) {
     Formula leftOperand = pExp.getOperand1().accept(this);
     Formula rightOperand = pExp.getOperand2().accept(this);
 
     final FormulaType<?> expressionType = getFormulaType(pExp.getType());
     final FormulaType<?> calculationType = getFormulaType(pExp.getCalculationType());
-    final FunctionTypes functionTypes = new FunctionTypes(expressionType)
-                                                         .parameter(calculationType)
-                                                         .parameter(calculationType);
+    FunctionTypes functionTypes = new FunctionTypes(expressionType)
+                                                    .parameter(calculationType)
+                                                    .parameter(calculationType);
+
+    if (isSignedOperation) {
+      functionTypes = functionTypes.signed();
+    } else {
+      functionTypes = functionTypes.unsigned();
+    }
 
     final String functionName = getFunctionNameByExpression(pExp);
 
@@ -276,12 +282,12 @@ public class IntegerFormulaCreator
 
   @Override
   public Formula visit(BinaryOrExpression pOr) {
-    return handleUnsupportedExpression(pOr);
+    return handleUnsupportedExpression(pOr, false);
   }
 
   @Override
   public Formula visit(BinaryXorExpression pXor) {
-    return handleUnsupportedExpression(pXor);
+    return handleUnsupportedExpression(pXor, false);
   }
 
   @Override
@@ -623,12 +629,20 @@ public class IntegerFormulaCreator
 
   @Override
   public Formula visit(ShiftLeftExpression pShiftLeft) {
-    return handleUnsupportedExpression(pShiftLeft);
+    return handleUnsupportedExpression(pShiftLeft, false);
   }
 
   @Override
   public Formula visit(ShiftRightExpression pShiftRight) {
-    return handleUnsupportedExpression(pShiftRight);
+    /*
+     * TODO: Implement the 'correct' behaviour for negative values in C.
+     * According to C99, if the operand of pShiftRight has a signed type and negative value,
+     * the behaviour is undefined. Currently, signed shifts are used as they are created in
+     * CExpressionTransformer.
+     * For Java, on the other hand, signed and unsigned shifts exist, so everything's fine here
+     * for analyzing Java programs.
+     */
+    return handleUnsupportedExpression(pShiftRight, pShiftRight.isSigned());
   }
 
   @Override
@@ -701,12 +715,24 @@ public class IntegerFormulaCreator
     private final FormulaType<?> returnType;
     private final List<FormulaType<?>> parameterTypes = new ArrayList<>();
 
+    private boolean isSignedOperation = true;
+
     public FunctionTypes(FormulaType<?> pReturnType) {
       returnType = pReturnType;
     }
 
     public FunctionTypes parameter(FormulaType<?> pParameterType) {
       parameterTypes.add(pParameterType);
+      return this;
+    }
+
+    public FunctionTypes signed() {
+      isSignedOperation = true;
+      return this;
+    }
+
+    public FunctionTypes unsigned() {
+      isSignedOperation = false;
       return this;
     }
 
@@ -727,6 +753,9 @@ public class IntegerFormulaCreator
       if (!returnType.equals(that.returnType)) {
         return false;
       }
+      if (isSignedOperation != that.isSignedOperation) {
+        return false;
+      }
 
       return true;
     }
@@ -735,6 +764,7 @@ public class IntegerFormulaCreator
     public int hashCode() {
       int result = returnType.hashCode();
       result = 31 * result + parameterTypes.hashCode();
+      result = 31 * result + (isSignedOperation ? 1 : 0);
       return result;
     }
 
