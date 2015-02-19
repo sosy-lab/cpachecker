@@ -303,6 +303,12 @@ public class BAMPredicateReducer implements Reducer {
     }
 
     @Override
+    public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
+      // TODO this should be reduced/expanded
+      return rootPredicatePrecision.getFunctionPredicates();
+    }
+
+    @Override
     public Set<AbstractionPredicate> getGlobalPredicates() {
       if (evaluatedGlobalPredicates != null) {
         return evaluatedGlobalPredicates;
