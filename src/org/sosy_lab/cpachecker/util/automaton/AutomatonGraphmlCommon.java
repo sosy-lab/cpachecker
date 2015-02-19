@@ -79,7 +79,7 @@ public class AutomatonGraphmlCommon {
     OFFSET("offset", "edge", "offset", "int"),
     ORIGINFILE("originfile", "edge", "originFileName", "string"),
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
-    TOKENSNEGATED("negated", "edge", "negativeCase", "string"),
+    NEGATIVECASE("negated", "edge", "negativeCase", "string"),
     ASSUMPTION("assumption", "edge", "assumption", "string"),
 
     FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),

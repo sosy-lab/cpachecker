@@ -1920,11 +1920,11 @@ restartAlgorithm.configFiles = no default value
 # File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
 
+# Match the branching information at a branching location.
+spec.considerAssumeCase = true
+
 # Consider assumptions that are provided with the path automaton?
 spec.considerAssumptions = true
-
-# Consider the negative semantics of tokens provided with path automatons.
-spec.considerNegativeSemanticsAttribute = false
 
 # Match the character offset within the file.
 spec.matchOffset = true

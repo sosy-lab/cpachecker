@@ -196,10 +196,6 @@ public class ARGPathExport {
     public int hashCode() {
       return keyValues.hashCode();
     }
-
-    public boolean summarizes(TransitionCondition pOther) {
-      return Maps.difference(keyValues, pOther.keyValues).entriesOnlyOnRight().isEmpty();
-    }
   }
 
   private static class AggregatedEdge {
@@ -361,7 +357,7 @@ public class ARGPathExport {
 
         // Does the transition descriptor of TT match (equals) the descriptor of this transition?
         //  edgesTo(from)[1].c == this.c
-        if (aggregationEdge.condition.summarizes(desc)) {
+        if (aggregationEdge.condition.equals(desc)) {
           // If everything can be answered with "yes":
           //  Instead of adding a new transition, modify the points-to information of TT
 
@@ -445,7 +441,7 @@ public class ARGPathExport {
         if (edge instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) edge;
           if (!a.getTruthAssumption()) {
-            desc.put(KeyDef.TOKENSNEGATED, "true");
+            desc.put(KeyDef.NEGATIVECASE, "true");
           }
         }
       }
@@ -494,7 +490,7 @@ public class ARGPathExport {
       doc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
       doc.appendNewKeyDef(KeyDef.TOKENS, null);
       doc.appendNewKeyDef(KeyDef.ORIGINTOKENS, null);
-      doc.appendNewKeyDef(KeyDef.TOKENSNEGATED, "false");
+      doc.appendNewKeyDef(KeyDef.NEGATIVECASE, "false");
       doc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
       doc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
       doc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);

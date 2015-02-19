@@ -247,7 +247,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static class MatchAssumeEdge implements AutomatonBoolExpr {
+  static enum MatchAssumeEdge implements AutomatonBoolExpr {
+
+    INSTANCE;
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -263,28 +265,21 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   static class MatchAssumeCase implements AutomatonBoolExpr {
 
-    private final Optional<Boolean> matchPositiveCase;
+    private final boolean matchPositiveCase;
 
-    public MatchAssumeCase(Optional<Boolean> pMatchPositiveCase) {
+    public MatchAssumeCase(boolean pMatchPositiveCase) {
       matchPositiveCase = pMatchPositiveCase;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (matchPositiveCase.isPresent()) {
-        if (pArgs.getCfaEdge() instanceof AssumeEdge) {
-          AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
-          if (matchPositiveCase.get() == a.getTruthAssumption()) {
-            return CONST_TRUE;
-          }
+      if (pArgs.getCfaEdge() instanceof AssumeEdge) {
+        AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
+        if (matchPositiveCase == a.getTruthAssumption()) {
+          return CONST_TRUE;
         }
       }
-
       return CONST_FALSE;
-    }
-
-    public Optional<Boolean> getMatchNegativeCase() {
-      return matchPositiveCase;
     }
 
     @Override
