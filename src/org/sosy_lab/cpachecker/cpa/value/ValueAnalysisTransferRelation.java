@@ -676,32 +676,16 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     throws UnrecognizedCodeException {
 
     if (expression instanceof CFunctionCall) {
-      CExpression fn = ((CFunctionCall)expression).getFunctionCallExpression().getFunctionNameExpression();
+      CFunctionCall functionCall = (CFunctionCall) expression;
+      CExpression fn = functionCall.getFunctionCallExpression().getFunctionNameExpression();
+
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
 
         } else if (func.equals("free")) {
-          // Needed for erasing values
-          missingInformationList.add(new MissingInformation(((CFunctionCall)expression).getFunctionCallExpression()));
-
-          if (useSymbolicValues) {
-            // If the method call's parameter is an identifier, we have to assign a new symbolic identifier
-            CExpression parameter =
-                ((CFunctionCall) expression).getFunctionCallExpression().getParameterExpressions().get(0);
-            if (parameter instanceof CIdExpression) {
-              MemoryLocation memLoc = getMemoryLocation(((CIdExpression) parameter));
-
-              ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-              Type identifierType = parameter.getExpressionType();
-              assert identifierType.equals(newElement.getTypeForMemoryLocation(memLoc));
-              SymbolicIdentifier newIdentifier = getSymbolicIdentifier(identifierType, expression);
-              newElement.assignConstant(memLoc, newIdentifier, identifierType);
-
-              return newElement;
-            }
-          }
+          return handleCallToFree(functionCall);
         }
       }
     }
@@ -719,6 +703,30 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     } else {
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
+    }
+
+    return state;
+  }
+
+  private ValueAnalysisState handleCallToFree(CFunctionCall pExpression) throws SymbolicBoundReachedException {
+    // Needed for erasing values
+    missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
+
+    if (useSymbolicValues) {
+      // If the method call's parameter is an identifier, we have to assign a new symbolic identifier
+      CExpression parameter =
+          pExpression.getFunctionCallExpression().getParameterExpressions().get(0);
+      if (parameter instanceof CIdExpression) {
+        MemoryLocation memLoc = getMemoryLocation(((CIdExpression) parameter));
+
+        ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+        Type identifierType = parameter.getExpressionType();
+        assert identifierType.equals(newElement.getTypeForMemoryLocation(memLoc));
+        SymbolicIdentifier newIdentifier = getSymbolicIdentifier(identifierType, pExpression);
+        newElement.assignConstant(memLoc, newIdentifier, identifierType);
+
+        return newElement;
+      }
     }
 
     return state;
