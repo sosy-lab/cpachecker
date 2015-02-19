@@ -376,9 +376,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (FileLocation.DUMMY.equals(pArgs.getCfaEdge().getFileLocation())) {
-        return CONST_FALSE;
-      }
       return AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge()) ? CONST_FALSE : CONST_TRUE;
     }
 
