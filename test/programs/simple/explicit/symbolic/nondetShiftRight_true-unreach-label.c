@@ -9,7 +9,7 @@ int main() {
   a = a << 7;
   b = b << 7;
 
-  if (a != 0) {
+  if (a == 0) {
     goto ERROR;
   }
 
