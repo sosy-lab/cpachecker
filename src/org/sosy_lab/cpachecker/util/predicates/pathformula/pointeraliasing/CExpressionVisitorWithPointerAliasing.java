@@ -324,7 +324,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           final List<Pair<CCompositeType, String>> alreadyUsedFields = ImmutableList.copyOf(usedFields);
           usedFields.clear();
 
-          if (errorConditions != null && operand instanceof CFieldReference) {
+          if (errorConditions.isEnabled() && operand instanceof CFieldReference) {
             // for &(s->f) and &((*s).f) do special case because the pointer is
             // not actually dereferenced and thus we don't want to add error conditions
             // for invalid-deref
