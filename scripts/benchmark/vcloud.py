@@ -100,7 +100,7 @@ def execute_benchmark(benchmark, output_handler):
                 output_handler.set_error('interrupted')
             else:
                 errorMsg = "Cloud return code: {0}".format(returnCode)
-                logging.warn(errorMsg)
+                logging.warning(errorMsg)
                 output_handler.set_error(errorMsg)
     else:
         returnCode = 0    

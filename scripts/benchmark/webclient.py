@@ -81,7 +81,7 @@ def get_system_info():
 def execute_benchmark(benchmark, output_handler):
 
     if (benchmark.tool_name != 'CPAchecker'):
-        logging.warn("The web client does only support the CPAchecker.")
+        logging.warning("The web client does only support the CPAchecker.")
         return
 
     if not benchmark.config.cloudMaster[-1] == '/':

@@ -324,7 +324,7 @@ class _AppEngineSubmitter(threading.Thread):
                         pass
             except urllib2.HTTPError as e:
                 msg = e.read()
-                logging.warn('Tasks could not be submitted. HTTP Error: {}: {}, Message: {}'.format(e.code, e.reason, msg))
+                logging.warning('Tasks could not be submitted. HTTP Error: {}: {}, Message: {}'.format(e.code, e.reason, msg))
                 logging.debug('Submitting will be retried later.')
                 for run in runs:
                     self.queue.put(run)
@@ -367,10 +367,10 @@ class _AppEnginePoller(threading.Thread):
 
             except urllib2.HTTPError as e:
                 if 'OVER_QUOTA' in e.read():
-                    logging.warn('A resource on App Engine has been depleted and no more requests can be processed!')
+                    logging.warning('A resource on App Engine has been depleted and no more requests can be processed!')
                     self.done = True
                 else:
-                    logging.warn('Server error while polling tasks: {} {}. Polling will be retried later.'.format(e.code, e.reason))
+                    logging.warning('Server error while polling tasks: {} {}. Polling will be retried later.'.format(e.code, e.reason))
             except:
                 logging.exception('Error while polling tasks.')
 
