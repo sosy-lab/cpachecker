@@ -242,16 +242,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   public Value getValueFor(MemoryLocation variableName) {
     Value value = constantsMap.get(variableName);
 
-    if (value == null) {
-      try {
-        value = SymbolicValueFactory.getInstance().newIdentifier(null);
-        constantsMap.putAndCopy(variableName, value);
-
-      } catch (SymbolicBoundReachedException e) {
-        throw new AssertionError("Symbolic bound reached, though no location specified");
-      }
-    }
-
     return checkNotNull(value);
   }
 

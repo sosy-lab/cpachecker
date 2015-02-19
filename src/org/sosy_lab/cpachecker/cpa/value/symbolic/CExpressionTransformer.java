@@ -236,11 +236,12 @@ public class CExpressionTransformer extends ExpressionTransformer
         missingInformation = true;
         return null;
 
-      } else {
+      } else if (state.contains(memLoc)) {
         Value value = state.getValueFor(memLoc);
 
-        return factory.asConstant(
-            value, pExpression.getExpressionType());
+        return factory.asConstant(value, pExpression.getExpressionType());
+      } else {
+        return null;
       }
     }
   }
