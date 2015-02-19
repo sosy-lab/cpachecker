@@ -117,6 +117,10 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
@@ -125,10 +129,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -668,7 +668,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private SymbolicIdentifier getSymbolicIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.createIdentifier(pLocation);
+    return factory.newIdentifier(pLocation);
   }
 
   @Override
@@ -1345,7 +1345,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       } else if (ae instanceof ConstraintsState) {
         result.clear();
 
-        ConstraintsStrengthenOperator strengthenOperator = ConstraintsStrengthenOperator.getInstance(machineModel, logger);
+        ConstraintsStrengthenOperator strengthenOperator = ConstraintsStrengthenOperator
+            .getInstance(machineModel, logger);
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           Collection<ValueAnalysisState> ret =

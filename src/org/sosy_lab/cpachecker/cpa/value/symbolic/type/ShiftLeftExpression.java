@@ -21,19 +21,27 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint;
+package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 
 /**
- * A {@link Constraint} with two operands, like 'equals'.
+ * {@link BinarySymbolicExpression} representing the 'shift left' operation.
  */
-public interface BinaryConstraint extends Constraint {
+public class ShiftLeftExpression extends BinarySymbolicExpression {
 
-  SymbolicExpression getOperand1();
+  protected ShiftLeftExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
+  }
 
-  SymbolicExpression getOperand2();
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
 
-  Type getCalculationType();
+  @Override
+  public String toString() {
+    return "(" + getOperand1() + " << " + getOperand2() + ")";
+  }
 }

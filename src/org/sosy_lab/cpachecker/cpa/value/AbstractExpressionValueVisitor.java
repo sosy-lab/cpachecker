@@ -99,6 +99,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
@@ -106,9 +110,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -314,44 +315,50 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static SymbolicValue createSymbolicExpression(Value pLeftValue, CType pLeftType, Value pRightValue,
-      CType pRightType, CBinaryExpression.BinaryOperator pOperator, CType pExpressionType, Type pCalculationType, AAstNode pLocation)
+      CType pRightType, CBinaryExpression.BinaryOperator pOperator, CType pExpressionType, CType pCalculationType, AAstNode pLocation)
       throws SymbolicBoundReachedException {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression leftOperand;
+    SymbolicExpression rightOperand;
+
+    leftOperand = factory.asConstant(pLeftValue, pLeftType);
+    rightOperand = factory.asConstant(pRightValue, pRightType);
+
 
     switch (pOperator) {
       case PLUS:
-        return factory.createAddition(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case MINUS:
-        return factory.createSubtraction(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case MULTIPLY:
-        return factory.createMultiplication(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case DIVIDE:
-        return factory.createDivision(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case MODULO:
-        return factory.createModulo(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_LEFT:
-        return factory.createShiftLeft(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT:
-        return factory.createShiftRight(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.shiftRight(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_AND:
-        return factory.createBinaryAnd(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_OR:
-        return factory.createBinaryOr(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_XOR:
-        return factory.createBinaryXor(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case EQUALS:
-        return factory.createEquals(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case NOT_EQUALS:
-        return factory.createNotEquals(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_THAN:
-        return factory.createLessThan(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_EQUAL:
-        return factory.createLessThanOrEqual(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_THAN:
-        return factory.createGreaterThan(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL:
-        return factory.createGreaterThanOrEqual(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
+        return factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
       default:
         throw new AssertionError("Unhandled binary operation " + pOperator);
     }
@@ -758,12 +765,13 @@ public abstract class AbstractExpressionValueVisitor
   private Value createSymbolicExpression(Value pValue, CType pOperandType, UnaryOperator pUnaryOperator,
       CType pExpressionType, AAstNode pLocation) throws SymbolicBoundReachedException {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
     switch (pUnaryOperator) {
       case MINUS:
-        return factory.createNegation(pValue, pOperandType, pExpressionType, pLocation);
+        return factory.negate(operand, pExpressionType);
       case TILDE:
-        return factory.createBinaryNot(pValue, pOperandType, pExpressionType, pLocation);
+        return factory.binaryNot(operand, pExpressionType);
       default:
         throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
     }
@@ -829,7 +837,8 @@ public abstract class AbstractExpressionValueVisitor
     if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
       final JType expressionType = pExpression.getExpressionType();
 
-      return calculateSymbolicOperation(pLValue, pLType, pRValue, pRType, pOperator, expressionType, expressionType, pExpression);
+      return createSymbolicExpression(pLValue, pLType, pRValue, pRType, pOperator, expressionType, expressionType,
+          pExpression);
 
     } else if (pLValue instanceof NumericValue) {
 
@@ -864,63 +873,57 @@ public abstract class AbstractExpressionValueVisitor
     return UnknownValue.getInstance();
   }
 
-  private Value calculateSymbolicOperation(Value pLeftValue, JType pLeftType, Value pRightValue,
+  private Value createSymbolicExpression(Value pLeftValue, JType pLeftType, Value pRightValue,
       JType pRightType, JBinaryExpression.BinaryOperator pOperator, JType pExpressionType, JType pCalculationType,
       AAstNode pLocation) {
     assert pLeftValue instanceof SymbolicValue || pRightValue instanceof SymbolicValue;
 
-    try {
-      final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
+    SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
 
-      switch (pOperator) {
-        case PLUS:
-          return factory.createAddition(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case MINUS:
-          return factory.createSubtraction(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case MULTIPLY:
-          return factory.createMultiplication(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case DIVIDE:
-          return factory.createDivision(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case MODULO:
-          return factory.createModulo(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case SHIFT_LEFT:
-          return factory.createShiftLeft(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case SHIFT_RIGHT_SIGNED:
-          return factory.createShiftRight(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case SHIFT_RIGHT_UNSIGNED:
-          throw new AssertionError(); // TODO!
-        case BINARY_AND:
-        case LOGICAL_AND:
-          return factory.createBinaryAnd(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case BINARY_OR:
-        case LOGICAL_OR:
-          return factory.createBinaryOr(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case BINARY_XOR:
-        case LOGICAL_XOR:
-          return factory.createBinaryXor(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case EQUALS:
-          return factory.createEquals(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case NOT_EQUALS:
-          return factory.createNotEquals(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case LESS_THAN:
-          return factory.createLessThan(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case LESS_EQUAL:
-          return factory.createLessThanOrEqual(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case GREATER_THAN:
-          return factory.createGreaterThan(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case GREATER_EQUAL:
-          return factory.createGreaterThanOrEqual(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case CONDITIONAL_AND:
-          return factory.createConditionalAnd(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        case CONDITIONAL_OR:
-          return factory.createConditionalOr(pLeftValue, pLeftType, pRightValue, pRightType, pExpressionType, pCalculationType, pLocation);
-        default:
-          throw new AssertionError("Unhandled binary operation " + pOperator);
-      }
-
-    } catch (SymbolicBoundReachedException e) {
-      logger.logUserException(Level.WARNING, e, null);
-      return null;
+    switch (pOperator) {
+      case PLUS:
+        return factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MINUS:
+        return factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MULTIPLY:
+        return factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case DIVIDE:
+        return factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MODULO:
+        return factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_LEFT:
+        return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT_SIGNED:
+        return factory.shiftRight(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT_UNSIGNED:
+        throw new AssertionError(); // TODO!
+      case BINARY_AND:
+        return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LOGICAL_AND:
+        return factory.logicalAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_OR:
+        return factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LOGICAL_OR:
+        return factory.logicalOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_XOR:
+      case LOGICAL_XOR:
+        return factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case EQUALS:
+        return factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case NOT_EQUALS:
+        return factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_THAN:
+        return factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_EQUAL:
+        return factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_THAN:
+        return factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_EQUAL:
+        return factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      default:
+        throw new AssertionError("Unhandled binary operation " + pOperator);
     }
   }
 
@@ -1269,14 +1272,15 @@ public abstract class AbstractExpressionValueVisitor
       throws SymbolicBoundReachedException {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
     switch (pUnaryOperator) {
       case COMPLEMENT:
-        return factory.createBinaryNot(pValue, pOperandType, pExpressionType, pLocation);
+        return factory.binaryNot(operand, pExpressionType);
       case NOT:
-        return factory.createLogicalNot(pValue, pOperandType, pExpressionType, pLocation);
+        return factory.logicalNot(operand, pExpressionType);
       case MINUS:
-        return factory.createNegation(pValue, pOperandType, pExpressionType, pLocation);
+        return factory.negate(operand, pExpressionType);
       case PLUS:
         return pValue;
       default:
@@ -1678,7 +1682,7 @@ public abstract class AbstractExpressionValueVisitor
     if (pValue instanceof SymbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.createCast((SymbolicValue) pValue, pTargetType, pMachineModel);
+      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
     }
 
     // If the value is not symbolic, just return it.

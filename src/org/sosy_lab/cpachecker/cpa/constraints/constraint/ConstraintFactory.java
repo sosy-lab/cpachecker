@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -40,10 +39,13 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.CExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.JExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpressionFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.expressions.SymbolicExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
@@ -58,8 +60,7 @@ public class ConstraintFactory {
   private final String functionName;
   private final Optional<ValueAnalysisState> valueState;
 
-  private boolean missingInformation = false;
-  private SymbolicExpressionFactory expressionFactory;
+  private SymbolicValueFactory expressionFactory;
 
 
   private ConstraintFactory(String pFunctionName, Optional<ValueAnalysisState> pValueState, MachineModel pMachineModel,
@@ -69,7 +70,7 @@ public class ConstraintFactory {
     logger = pLogger;
     functionName = pFunctionName;
     valueState = pValueState;
-    expressionFactory = SymbolicExpressionFactory.getInstance();
+    expressionFactory = SymbolicValueFactory.getInstance();
   }
 
   public static ConstraintFactory getInstance(String pFunctionName, Optional<ValueAnalysisState> pValueState,
@@ -77,59 +78,22 @@ public class ConstraintFactory {
     return new ConstraintFactory(pFunctionName, pValueState, pMachineModel, pLogger);
   }
 
-  /**
-   * Returns whether information was missing while creating the last constraint.
-   *
-   * <p>This method always resets after one call. So when calling this method after the creation of a constraint,
-   * it will only return <code>true</code> at the first call, if at all.</p>
-   *
-   * @return <code>true</code> if information was missing, <code>false</code> otherwise
-   */
-  public boolean hasMissingInformation() {
-    boolean hasMissingInformation = missingInformation;
-    missingInformation = false;
-
-    return hasMissingInformation;
-  }
-
-  public Constraint createNegativeConstraint(CUnaryExpression pExpression) throws UnrecognizedCodeException {
-    Constraint positiveConstraint = createPositiveConstraint(pExpression);
-
-    if (positiveConstraint == null) {
-      return null;
-    } else {
-      return createNot(positiveConstraint);
-    }
-  }
-
   public Constraint createNegativeConstraint(CBinaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
-    if (positiveConstraint == null) {
-      return null;
-    } else {
-      return createNot(positiveConstraint);
-    }
+    return createNot(positiveConstraint);
   }
 
   public Constraint createNegativeConstraint(JUnaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createNot(createPositiveConstraint(pExpression));
 
-    if (positiveConstraint == null) {
-      return null;
-    } else {
-      return createNot(positiveConstraint);
-    }
+    return createNot(positiveConstraint);
   }
 
   public Constraint createNegativeConstraint(JBinaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
-    if (positiveConstraint == null) {
-      return null;
-    } else {
-      return createNot(positiveConstraint);
-    }
+    return createNot(positiveConstraint);
   }
 
   public Constraint createNegativeConstraint(AIdExpression pExpression) throws UnrecognizedCodeException {
@@ -164,114 +128,51 @@ public class ConstraintFactory {
   }
 
   public Constraint createPositiveConstraint(CBinaryExpression pExpression) throws UnrecognizedCodeException {
-    final CBinaryExpression.BinaryOperator operator = pExpression.getOperator();
-    final Type expressionType = pExpression.getExpressionType();
-    final Type calculationType = pExpression.getCalculationType();
-
     final CExpressionTransformer transformer = getCTransformer();
 
-    SymbolicExpression leftOperand = transformer.transform(pExpression.getOperand1());
+    assert isConstraint(pExpression);
+    return (Constraint) transformer.transform(pExpression);
+  }
 
-    checkForMissingInfo(transformer);
-    if (leftOperand == null) {
-      return null;
-    }
-
-    SymbolicExpression rightOperand = transformer.transform(pExpression.getOperand2());
-
-    checkForMissingInfo(transformer);
-    if (rightOperand == null) {
-      return null;
-    }
-
-    switch (operator) {
+  private boolean isConstraint(CBinaryExpression pExpression) {
+    switch (pExpression.getOperator()) {
       case EQUALS:
-        return createEqual(leftOperand, rightOperand, expressionType, calculationType);
       case NOT_EQUALS:
-        return createNotEqual(leftOperand, rightOperand, expressionType, calculationType);
-      case GREATER_EQUAL: {
-        SymbolicExpression swap = leftOperand;
-        leftOperand = rightOperand;
-        rightOperand = swap;
-      }
-      // $FALL-THROUGH$
+      case GREATER_EQUAL:
+      case GREATER_THAN:
       case LESS_EQUAL:
-        return createLessOrEqual(leftOperand, rightOperand, expressionType, calculationType);
-
-      case GREATER_THAN: {
-        SymbolicExpression swap = leftOperand;
-        leftOperand = rightOperand;
-        rightOperand = swap;
-      }
-      // $FALL-THROUGH$
       case LESS_THAN:
-        return createLess(leftOperand, rightOperand, expressionType, calculationType);
-
+        return true;
       default:
-        throw new AssertionError("Operation " + operator + " not a constraint.");
+        return false;
     }
   }
 
   public Constraint createPositiveConstraint(JUnaryExpression pExpression) throws UnrecognizedCodeException {
     assert pExpression.getOperator() == JUnaryExpression.UnaryOperator.NOT;
 
-    JExpression operand = pExpression.getOperand();
-    SymbolicExpression operandExpression = getJavaTransformer().transform(operand);
-
-    if (operandExpression == null) {
-      return null;
-
-    } else {
-      return createNot(operandExpression);
-    }
+    return (Constraint) getJavaTransformer().transform(pExpression);
   }
 
-
   public Constraint createPositiveConstraint(JBinaryExpression pExpression) throws UnrecognizedCodeException {
-    final JBinaryExpression.BinaryOperator operator = pExpression.getOperator();
-    final Type expressionType = pExpression.getExpressionType();
-
     final JExpressionTransformer transformer = getJavaTransformer();
 
-    SymbolicExpression leftOperand = transformer.transform(pExpression.getOperand1());
+    assert isConstraint(pExpression);
+    return (Constraint) pExpression.accept(transformer);
+  }
 
-    checkForMissingInfo(transformer);
-    if (leftOperand == null) {
-      return null;
-    }
-
-    SymbolicExpression rightOperand = transformer.transform(pExpression.getOperand2());
-
-    checkForMissingInfo(transformer);
-    if (rightOperand == null) {
-      return null;
-    }
-
-    switch (operator) {
-      case EQUALS:
-        return createEqual(leftOperand, rightOperand, expressionType, expressionType);
-      case NOT_EQUALS:
-        return createNotEqual(leftOperand, rightOperand, expressionType, expressionType);
-      case GREATER_EQUAL: {
-        SymbolicExpression swap = leftOperand;
-        leftOperand = rightOperand;
-        rightOperand = swap;
-      }
-      // $FALL-THROUGH$
-      case LESS_EQUAL:
-        return createLessOrEqual(leftOperand, rightOperand, expressionType, expressionType);
-
-      case GREATER_THAN: {
-        SymbolicExpression swap = leftOperand;
-        leftOperand = rightOperand;
-        rightOperand = swap;
-      }
-      // $FALL-THROUGH$
+  private boolean isConstraint(JBinaryExpression pExpression) {
+    switch (pExpression.getOperator()) {
+      case GREATER_THAN:
+      case GREATER_EQUAL:
       case LESS_THAN:
-        return createLess(leftOperand, rightOperand, expressionType, expressionType);
+      case LESS_EQUAL:
+      case NOT_EQUALS:
+      case EQUALS:
+        return true;
 
       default:
-        throw new AssertionError("Operation " + operator + " not a constraint.");
+        return false;
     }
   }
 
@@ -285,6 +186,7 @@ public class ConstraintFactory {
       return (Constraint) symbolicExpression;
 
     } else {
+      assert false : "Value is no constraint!";
       return transformValueToConstraint(symbolicExpression, pExpression.getExpressionType());
     }
   }
@@ -292,7 +194,8 @@ public class ConstraintFactory {
   private Constraint transformValueToConstraint(SymbolicExpression pExpression, Type expressionType) {
 
     if (isNumeric(expressionType)) {
-      return createLessOrEqual(getZeroConstant(expressionType), pExpression, expressionType,
+      // 1 <= pExpression
+      return createLessOrEqual(getOneConstant(expressionType), pExpression, expressionType,
           getCalculationType(expressionType));
 
     } else if (isBoolean(expressionType)) {
@@ -362,8 +265,8 @@ public class ConstraintFactory {
     }
   }
 
-  private SymbolicExpression getZeroConstant(Type pType) {
-    return expressionFactory.asConstant(new NumericValue(0L), pType);
+  private SymbolicExpression getOneConstant(Type pType) {
+    return expressionFactory.asConstant(new NumericValue(1L), pType);
   }
 
   private SymbolicExpression getTrueValueConstant() {
@@ -400,10 +303,6 @@ public class ConstraintFactory {
     return pType;
   }
 
-  private void checkForMissingInfo(ExpressionTransformer pTransformer) {
-    missingInformation |= pTransformer.hasMissingInformation();
-  }
-
   private UnaryConstraint createNot(Constraint pConstraint) {
     // We use ConstraintExpression as Constraints, so this should be possible
     return createNot((SymbolicExpression) pConstraint);
@@ -436,6 +335,6 @@ public class ConstraintFactory {
   private Constraint createEqual(SymbolicExpression pLeftOperand, SymbolicExpression pRightOperand,
       Type pExpressionType, Type pCalculationType) {
 
-    return (Constraint) expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
+    return expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
 }

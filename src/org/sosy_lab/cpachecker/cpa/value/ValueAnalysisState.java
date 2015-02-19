@@ -43,11 +43,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -244,7 +244,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
     if (value == null) {
       try {
-        value = SymbolicValueFactory.getInstance().createIdentifier(null);
+        value = SymbolicValueFactory.getInstance().newIdentifier(null);
         constantsMap.putAndCopy(variableName, value);
 
       } catch (SymbolicBoundReachedException e) {

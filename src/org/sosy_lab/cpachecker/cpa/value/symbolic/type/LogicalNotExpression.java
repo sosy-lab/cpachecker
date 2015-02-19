@@ -21,19 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint;
+package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
 
 /**
- * A {@link Constraint} with two operands, like 'equals'.
+ * {@link UnarySymbolicExpression} representing the 'logical not' operation.
  */
-public interface BinaryConstraint extends Constraint {
+public class LogicalNotExpression extends UnarySymbolicExpression implements UnaryConstraint {
 
-  SymbolicExpression getOperand1();
+  protected LogicalNotExpression(SymbolicExpression pOperand, Type pType) {
+    super (pOperand, pType);
+  }
 
-  SymbolicExpression getOperand2();
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
 
-  Type getCalculationType();
+  @Override
+  public <T> T accept(ConstraintVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public String toString() {
+    return "!" + getOperand();
+  }
 }

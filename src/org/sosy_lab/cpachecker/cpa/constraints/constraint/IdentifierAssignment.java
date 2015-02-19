@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
 
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.Maps;

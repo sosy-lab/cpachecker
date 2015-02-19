@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,19 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.constraint;
+package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 
 /**
- * A {@link Constraint} with two operands, like 'equals'.
+ * {@link SymbolicExpression} that represents a pointer expression.
+ *
+ * <p>This can be a classic pointer expression like <code>*p</code> in C or a reference as in Java.</p>
  */
-public interface BinaryConstraint extends Constraint {
+public class PointerExpression extends UnarySymbolicExpression {
 
-  SymbolicExpression getOperand1();
+  protected PointerExpression(SymbolicExpression pOperand, Type pType) {
+    super(pOperand, pType);
+  }
 
-  SymbolicExpression getOperand2();
-
-  Type getCalculationType();
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
 }
