@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -111,15 +112,17 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
       return ((SymbolicValue) pValue).accept(this);
 
     } else if (pValue instanceof NumericValue) {
-      if (((CSimpleType) pType.getCanonicalType()).getType().isFloatingPointType()) {
-        BigDecimal valueAsDecimal = ((NumericValue) pValue).bigDecimalValue();
+      CType canonicalType = pType.getCanonicalType();
 
-        return new CFloatLiteralExpression(DUMMY_LOCATION, pType, valueAsDecimal);
-
-      } else {
+      if (canonicalType instanceof CPointerType || ((CSimpleType) canonicalType).getType().isIntegerType()) {
         BigInteger valueAsBigInt = BigInteger.valueOf(((NumericValue) pValue).longValue());
 
         return new CIntegerLiteralExpression(DUMMY_LOCATION, pType, valueAsBigInt);
+
+      } else {
+        BigDecimal valueAsDecimal = ((NumericValue) pValue).bigDecimalValue();
+
+        return new CFloatLiteralExpression(DUMMY_LOCATION, pType, valueAsDecimal);
       }
     } else {
       throw new AssertionError("Unhandled value " + pValue);
