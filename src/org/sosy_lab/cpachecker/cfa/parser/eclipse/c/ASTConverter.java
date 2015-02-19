@@ -1129,7 +1129,6 @@ class ASTConverter {
 
     final CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
     final FileLocation fileLoc = getLocation(e);
-    CType type = typeConverter.convert(e.getExpressionType());
     final CType operandType = operand.getExpressionType();
 
     switch (e.getOperator()) {
@@ -1138,23 +1137,25 @@ class ASTConverter {
     case IASTUnaryExpression.op_plus:
       return operand;
 
-    case IASTUnaryExpression.op_star:
+    case IASTUnaryExpression.op_star: {
 
-      if (containsProblemType(type)) {
-        if (operandType instanceof CPointerType) {
-          type = ((CPointerType) operand.getExpressionType()).getType();
-        } else if (operandType instanceof CArrayType) {
-          type = ((CArrayType) operand.getExpressionType()).getType();
-        } else {
-          logger.logf(Level.WARNING,
-                      "Dereferencing of a non-pointer in expression %s (%s)",
-                      e.getRawSignature(),
-                      operand.getExpressionType().toString());
-        }
+      // In case of pointers inside field references that refer to inner fields
+      // the CDT type is not as we want it, thus we resolve the type on our own.
+      CType type;
+      if (operandType instanceof CPointerType) {
+        type = ((CPointerType) operand.getExpressionType()).getType();
+      } else if (operandType instanceof CArrayType) {
+        type = ((CArrayType) operand.getExpressionType()).getType();
+      } else {
+        logger.logf(Level.WARNING,
+                    "Dereferencing of a non-pointer in expression %s (%s)",
+                    e.getRawSignature(),
+                    operand.getExpressionType().toString());
+        type = typeConverter.convert(e.getExpressionType());
       }
       return simplifyUnaryPointerExpression(operand, fileLoc, type);
-
-    case IASTUnaryExpression.op_amper:
+    }
+    case IASTUnaryExpression.op_amper: {
 
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       // in case of *& both can be left out
@@ -1162,13 +1163,14 @@ class ASTConverter {
         return ((CPointerExpression)operand).getOperand();
       }
 
+      CType type = typeConverter.convert(e.getExpressionType());
       if (containsProblemType(type)) {
         type = new CPointerType(true, false, operandType);
       }
 
       // if none of the special cases before fits the default unaryExpression is created
       return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.AMPER);
-
+    }
     case IASTUnaryExpression.op_labelReference:
       // L: void * addressOfLabel = && L;
 
@@ -1233,6 +1235,7 @@ class ASTConverter {
       return simplifyUnaryNotExpression(operand);
 
     default:
+      CType type = typeConverter.convert(e.getExpressionType());
       return new CUnaryExpression(fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
     }
   }
