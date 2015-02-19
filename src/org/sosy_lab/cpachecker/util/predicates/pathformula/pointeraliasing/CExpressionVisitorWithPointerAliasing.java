@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
@@ -320,7 +321,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           // the fields f1 and f2 along with the field s{1,2}.ss1 should be tracked from the first line onwards, because
           // it's too hard to determine (without the help of some alias analysis)
           // whether f1 assigned in the second line is an outer or inner structure field.
-          final List<Pair<CCompositeType, String>> alreadyUsedFields = getUsedFields();
+          final List<Pair<CCompositeType, String>> alreadyUsedFields = ImmutableList.copyOf(usedFields);
           usedFields.clear();
 
           if (errorConditions != null && operand instanceof CFieldReference) {
