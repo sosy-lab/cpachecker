@@ -81,19 +81,31 @@ public class ConstraintFactory {
   public Constraint createNegativeConstraint(CBinaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
-    return createNot(positiveConstraint);
+    if (positiveConstraint == null) {
+      return null;
+    } else {
+      return createNot(positiveConstraint);
+    }
   }
 
   public Constraint createNegativeConstraint(JUnaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createNot(createPositiveConstraint(pExpression));
 
-    return createNot(positiveConstraint);
+    if (positiveConstraint == null) {
+      return null;
+    } else {
+      return createNot(positiveConstraint);
+    }
   }
 
   public Constraint createNegativeConstraint(JBinaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
-    return createNot(positiveConstraint);
+    if (positiveConstraint == null) {
+      return null;
+    } else {
+      return createNot(positiveConstraint);
+    }
   }
 
   public Constraint createNegativeConstraint(AIdExpression pExpression) throws UnrecognizedCodeException {

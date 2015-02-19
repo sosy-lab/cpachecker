@@ -249,7 +249,12 @@ public class CExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(CPointerExpression pPointerExpression) throws UnrecognizedCodeException {
     SymbolicExpression operand = pPointerExpression.getOperand().accept(this);
 
-    return factory.pointer(operand, pPointerExpression.getExpressionType());
+    if (operand == null) {
+      return null;
+
+    } else {
+      return factory.pointer(operand, pPointerExpression.getExpressionType());
+    }
   }
 
   private ExpressionValueVisitor getValueVisitor(ValueAnalysisState pState) {
