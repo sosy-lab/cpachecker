@@ -90,7 +90,7 @@ public class ConstraintsTransferRelation
     INTEGER, BITVECTOR
   }
 
-  @Option(secure=true, description="")
+  @Option(secure=true, description="The way numbers are represented in boolean formulas.")
   private FormulaNumberHandlingType formulaNumberHandling = FormulaNumberHandlingType.INTEGER;
 
 
