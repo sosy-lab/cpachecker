@@ -223,10 +223,7 @@ def _parseAppEngineResult(run):
     return_value = 0
     overQuota = False
 
-    hasStdOutFile = (os.path.exists(run.log_file+'.stdOut') and os.path.isfile(run.log_file+'.stdOut'))
-    hasErrOutFile = (os.path.exists(run.log_file+'.stdErr') and os.path.isfile(run.log_file+'.stdErr'))
-
-    if hasStdOutFile:
+    if os.path.isfile(run.log_file+'.stdOut'):
         try:
             with open(run.log_file+'.stdOut', 'rt') as file:
                 lines = file.read()
@@ -245,9 +242,9 @@ def _parseAppEngineResult(run):
                 run.cputime = result['statistic']['CPUTime']
                 run.values['host'] = result['statistic']['host']
         except:
-            pass # can't read std out file
+            logging.exception('Failure when reading result file of run')
 
-    if hasErrOutFile:
+    if os.path.isfile(run.log_file+'.stdErr'):
         try:
             with open(run.log_file+'.stdErr', 'rt') as errFile:
                 lines = errFile.read()
@@ -263,7 +260,7 @@ def _parseAppEngineResult(run):
                         return_value = 9 # timeout
                         timeout = True
         except:
-            pass # can't read err file
+            logging.exception('Failure when reading error-report file of run')
 
     return (return_value, error, timeout, notSubmitted, overQuota)
 
@@ -362,7 +359,8 @@ class _AppEnginePoller(threading.Thread):
                             request = urllib2.Request(uri, json.dumps(task['key']).encode(), headers=headers)
                             request.get_method = lambda: 'PUT'
                             urllib2.urlopen(request)
-                        except: pass
+                        except:
+                            logging.exception('Error while polling tasks.')
                         continue
                     self.saveResult(APPENGINE_TASKS[task['key']], task)
                 logging.debug('Received results are fully processed.')
@@ -374,7 +372,7 @@ class _AppEnginePoller(threading.Thread):
                 else:
                     logging.warn('Server error while polling tasks: {} {}. Polling will be retried later.'.format(e.code, e.reason))
             except:
-                logging.warn('Error while polling tasks. {}'.format(sys.exc_info()[0]))
+                logging.exception('Error while polling tasks.')
 
             self.done = (APPENGINE_SUBMITTER_THREAD.done and self.finishedTasks >= len(APPENGINE_TASKS))
             if not self.done: time.sleep(self.benchmark.config.appenginePollInterval)
@@ -403,7 +401,7 @@ class _AppEnginePoller(threading.Thread):
                 statisticsProcessed = True
             except:
                 statisticsProcessed = False
-                logging.debug('Could not save statistics '+taskKey)
+                logging.exception('Could not save statistics of'+taskKey)
         else:
             statisticsProcessed = True
 
@@ -415,7 +413,8 @@ class _AppEnginePoller(threading.Thread):
                 response = urllib2.urlopen(request).read().decode()
                 response = 'Task Key: {}\n{}'.format(task['key'], response)
                 util.write_file(response, log_file+'.stdErr')
-            except: pass
+            except:
+                logging.exception('Error while retrieving result file for '+taskKey)
 
         headers = {'Content-type':'application/json', 'Accept':'application/json'}
         markedAsProcessed = False
@@ -443,7 +442,7 @@ class _AppEnginePoller(threading.Thread):
                 request.get_method = lambda: 'DELETE'
                 urllib2.urlopen(request).read()
             except:
-                logging.warn('The task {} could not be deleted.'.format(taskKey))
+                logging.exception('The task {} could not be deleted.'.format(taskKey))
 
 
 class AppEngineSystemInfo(object):
