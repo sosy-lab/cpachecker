@@ -381,6 +381,9 @@ cfa.moveDeclarationsToFunctionStart = false
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
+# Show messages when dead code is encountered during parsing.
+cfa.showDeadCode = true
+
 # Remove all edges which don't have any effect on the program
 cfa.simplifyCfa = true
 
