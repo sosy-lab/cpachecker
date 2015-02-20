@@ -213,7 +213,7 @@ public class AutomatonGraphmlParser {
         if (!targetNodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(targetStateId).isEmpty()
             || targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
           AutomatonBoolExpr otherAutomataSafe =
-              new AutomatonBoolExpr.Negation(
+              not(
                   new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY)
               );
           assertions = Collections.singletonList(otherAutomataSafe);
@@ -289,7 +289,7 @@ public class AutomatonGraphmlParser {
             LocationDescriptor originDescriptor = new OriginLineDescriptor(matchOriginFileName, matchOriginLineNumber);
 
             AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
-            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, startingLineMatchingExpr);
+            conjunctedTriggers = and(conjunctedTriggers, startingLineMatchingExpr);
           }
 
         }
@@ -311,7 +311,7 @@ public class AutomatonGraphmlParser {
             LocationDescriptor originDescriptor = new OffsetDescriptor(matchOriginFileName, offset);
 
             AutomatonBoolExpr offsetMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
-            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, offsetMatchingExpr);
+            conjunctedTriggers = and(conjunctedTriggers, offsetMatchingExpr);
           }
 
         }
@@ -326,7 +326,7 @@ public class AutomatonGraphmlParser {
             sourceCode = sourceCodeDataTags.iterator().next();
           }
           final AutomatonBoolExpr exactEdgeMatch = new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode);
-          conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, exactEdgeMatch);
+          conjunctedTriggers = and(conjunctedTriggers, exactEdgeMatch);
         }
 
         // If the triggers do not apply, none of the above transitions is taken
@@ -334,14 +334,15 @@ public class AutomatonGraphmlParser {
         if (strictMatching) {
           // If we are doing strict matching, anything that is relevant but does not match must go to the sink
           nonMatchingTransitions.add(createAutomatonSinkTransition(
-              new AutomatonBoolExpr.And(new AutomatonBoolExpr.Negation(conjunctedTriggers), AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
+              and(not(conjunctedTriggers),
+                  AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
               Collections.<AutomatonBoolExpr>emptyList(),
               Collections.<AutomatonAction>emptyList()));
 
           // Anything that does not match but is irrelevant must go back to the source state
           nonMatchingTransitions.add(createAutomatonTransition(
-              new AutomatonBoolExpr.And(new AutomatonBoolExpr.Negation(conjunctedTriggers),
-                  new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE)),
+              and(not(conjunctedTriggers),
+                  not(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE)),
               assertions,
               Collections.<AutomatonAction>emptyList(),
               sourceStateId));
@@ -349,7 +350,7 @@ public class AutomatonGraphmlParser {
           // If we are more lenient, we just wait in the source state until the witness checker catches up with the witness,
           // i.e. until some CFA edge matches the triggers
           nonMatchingTransitions.add(createAutomatonTransition(
-              new AutomatonBoolExpr.Negation(conjunctedTriggers),
+              not(conjunctedTriggers),
               assertions,
               Collections.<AutomatonAction>emptyList(),
               sourceStateId));
@@ -366,17 +367,14 @@ public class AutomatonGraphmlParser {
             assumeCase = true;
           }
 
-          AutomatonBoolExpr assumeCaseMatchingExpr =
-              new AutomatonBoolExpr.Negation(
-                  new AutomatonBoolExpr.And(
-                      AutomatonBoolExpr.MatchAssumeEdge.INSTANCE,
-                      new AutomatonBoolExpr.Negation(new AutomatonBoolExpr.MatchAssumeCase(assumeCase))
-                  ));
+          AutomatonBoolExpr assumeCaseMatchingExpr = or(
+              not(AutomatonBoolExpr.MatchAssumeEdge.INSTANCE),
+              new AutomatonBoolExpr.MatchAssumeCase(assumeCase));
 
-          conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, assumeCaseMatchingExpr);
+          conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
         }
 
-        conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE);
+        conjunctedTriggers = and(conjunctedTriggers, AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE);
 
         Collection<AutomatonTransition> matchingTransitions = new ArrayList<>();
 
@@ -387,7 +385,7 @@ public class AutomatonGraphmlParser {
         // so in that case we ALSO need a transition back to the source state
         if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty()) {
           matchingTransitions.add(createAutomatonTransition(
-              new AutomatonBoolExpr.And(conjunctedTriggers,
+              and(conjunctedTriggers,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
               assertions,
               Collections.<AutomatonAction>emptyList(),
@@ -410,9 +408,7 @@ public class AutomatonGraphmlParser {
 
         if (!nodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(stateId).isEmpty()) {
           AutomatonBoolExpr otherAutomataSafe =
-              new AutomatonBoolExpr.Negation(
-                  new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY)
-              );
+              not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY));
           List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
           transitions.add(
               createAutomatonTransition(
@@ -742,6 +738,30 @@ public class AutomatonGraphmlParser {
       pLogger.logException(Level.WARNING, e, "SAX parser configured incorrectly. Could not determine whether or not the path describes a graphml automaton.");
       return false;
     }
+  }
+
+  private static AutomatonBoolExpr not(AutomatonBoolExpr pA) {
+    if (pA.equals(AutomatonBoolExpr.TRUE)) {
+      return AutomatonBoolExpr.FALSE;
+    }
+    if (pA.equals(AutomatonBoolExpr.FALSE)) {
+      return AutomatonBoolExpr.TRUE;
+    }
+    return new AutomatonBoolExpr.Negation(pA);
+  }
+
+  private static AutomatonBoolExpr and(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
+    if (pA.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
+      return pB;
+    }
+    if (pB.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
+      return pA;
+    }
+    return new AutomatonBoolExpr.And(pA, pB);
+  }
+
+  private static AutomatonBoolExpr or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
+    return not(and(not(pA), not(pB)));
   }
 
 }
