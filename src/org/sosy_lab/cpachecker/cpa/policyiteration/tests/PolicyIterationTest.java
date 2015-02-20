@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -76,6 +77,7 @@ public class PolicyIterationTest {
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
 
+  @Ignore // has mostly timeouts in BuildBot
   @Test public void pointers_loop_true_assert() throws Exception {
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
