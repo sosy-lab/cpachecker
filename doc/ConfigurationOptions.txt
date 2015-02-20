@@ -582,10 +582,6 @@ cpa.arg.witness.exportOffset = true
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
 
-# Verification witness: Include the token numbers of the operations on the
-# transitions?
-cpa.arg.witness.exportTokenNumbers = true
-
 # signal the analysis to break in case the given number of error state is
 # reached 
 cpa.automaton.breakOnTargetState = 1
@@ -1920,11 +1916,11 @@ restartAlgorithm.configFiles = no default value
 # File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
 
-# Match the branching information at a branching location.
-spec.considerAssumeCase = true
-
 # Consider assumptions that are provided with the path automaton?
 spec.considerAssumptions = true
+
+# Match the branching information at a branching location.
+spec.matchAssumeCase = true
 
 # Match the character offset within the file.
 spec.matchOffset = true
@@ -1935,12 +1931,6 @@ spec.matchOriginLine = true
 
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
-
-# If a witness represents a single path in Automaton match both starting and
-# ending lines of the CFA edge (ending line = starting line of the next
-# edge). If matching CFA edge exists, go to the sink for the other edges,
-# otherwise match starting lines as usual.
-spec.singlePathMatching = false
 
 # Do not try to "catch up" with witness guards: If they do not match, go to
 # the sink.
