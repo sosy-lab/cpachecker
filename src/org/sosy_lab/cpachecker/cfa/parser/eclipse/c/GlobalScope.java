@@ -291,7 +291,7 @@ class GlobalScope extends AbstractScope {
       // the new type
     } else if (programContainsExactNamedType) {
       declaration = createRenamedType(declaration);
-      name = declaration.getQualifiedName();
+      name = declaration.getType().getQualifiedName();
       overwriteTypeIfNecessary(type, declaration.getType());
     }
 
