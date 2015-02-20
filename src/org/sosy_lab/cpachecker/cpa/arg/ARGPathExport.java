@@ -100,10 +100,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeRangeSet;
 
 @Options(prefix="cpa.arg.witness")
 public class ARGPathExport {
@@ -117,9 +114,6 @@ public class ARGPathExport {
   @Option(secure=true, description="Verification witness: Include the considered case of an assume?")
   boolean exportAssumeCaseInfo = true;
 
-  @Option(secure=true, description="Verification witness: Include the token numbers of the operations on the transitions?")
-  boolean exportTokenNumbers = true;
-
   @Option(secure=true, description="Verification witness: Include the (starting) line numbers of the operations on the transitions?")
   boolean exportLineNumbers = true;
 
@@ -132,30 +126,6 @@ public class ARGPathExport {
   public ARGPathExport(Configuration config) throws InvalidConfigurationException {
     Preconditions.checkNotNull(config);
     config.inject(this);
-  }
-
-  private String tokensToText(Set<Integer> tokens) {
-    StringBuilder result = new StringBuilder();
-    RangeSet<Integer> tokenRanges = TreeRangeSet.create();
-    for (Integer token: tokens) {
-      tokenRanges.add(Range.closed(token, token));
-    }
-    for (Range<Integer> range : tokenRanges.asRanges()) {
-      if (result.length() > 0) {
-        result.append(",");
-      }
-      Integer from = range.lowerEndpoint();
-      Integer to = range.upperEndpoint();
-      if (to - from == 0) {
-        result.append(from);
-      } else {
-        result.append(from);
-        result.append("-");
-        result.append(to);
-      }
-    }
-
-    return result.toString();
   }
 
   private String getStateIdent(ARGState state) {
@@ -446,11 +416,6 @@ public class ARGPathExport {
         }
       }
 
-      if (exportTokenNumbers) {
-        Set<Integer> absoluteTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(edge, false);
-        desc.put(KeyDef.TOKENS, tokensToText(absoluteTokens));
-      }
-
       if (exportLineNumbers) {
         Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(edge);
         if (locations.size() > 0) {
@@ -488,8 +453,6 @@ public class ARGPathExport {
       doc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
       doc.appendNewKeyDef(KeyDef.SOURCECODE, null);
       doc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
-      doc.appendNewKeyDef(KeyDef.TOKENS, null);
-      doc.appendNewKeyDef(KeyDef.ORIGINTOKENS, null);
       doc.appendNewKeyDef(KeyDef.NEGATIVECASE, "false");
       doc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
       doc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);

@@ -73,8 +73,6 @@ public class AutomatonGraphmlCommon {
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
 
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
-    TOKENS("tokens", "edge", "tokenSet", "string"),
-    ORIGINTOKENS("origintokens", "edge", "originTokenSet", "string"),
     ORIGINLINE("originline", "edge", "lineNumberInOrigin", "int"),
     OFFSET("offset", "edge", "offset", "int"),
     ORIGINFILE("originfile", "edge", "originFileName", "string"),
