@@ -252,8 +252,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         state = abstraction.get();
         logger.log(Level.FINE, ">>> Abstraction produced state: ", state);
       }
-    } finally {
       abstractStates.put(state.getLocation(), state);
+    } finally {
       statistics.stopAbstractionTimer();
     }
 
