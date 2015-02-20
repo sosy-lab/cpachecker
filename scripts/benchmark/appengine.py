@@ -224,6 +224,7 @@ def _parseAppEngineResult(run):
     overQuota = False
 
     if os.path.isfile(run.log_file+'.stdOut'):
+        lines = None
         try:
             with open(run.log_file+'.stdOut', 'rt') as file:
                 lines = file.read()
@@ -242,9 +243,11 @@ def _parseAppEngineResult(run):
                 run.cputime = result['statistic']['CPUTime']
                 run.values['host'] = result['statistic']['host']
         except:
-            logging.exception('Failure when reading result file of run')
+            logging.exception('Failure when reading result file of run'
+                              + ((', content is:\n' + lines) if lines is not None else ''))
 
     if os.path.isfile(run.log_file+'.stdErr'):
+        lines = None
         try:
             with open(run.log_file+'.stdErr', 'rt') as errFile:
                 lines = errFile.read()
@@ -260,7 +263,8 @@ def _parseAppEngineResult(run):
                         return_value = 9 # timeout
                         timeout = True
         except:
-            logging.exception('Failure when reading error-report file of run')
+            logging.exception('Failure when reading error-report file of run'
+                              + ((', content is:\n' + lines) if lines is not None else ''))
 
     return (return_value, error, timeout, notSubmitted, overQuota)
 
