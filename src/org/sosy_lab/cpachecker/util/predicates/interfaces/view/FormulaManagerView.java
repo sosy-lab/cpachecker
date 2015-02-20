@@ -74,6 +74,8 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -1229,7 +1231,7 @@ public class FormulaManagerView {
     } else {
       int arity = unsafeManager.getArity(f);
       for (int i = 0; i < arity; ++i) {
-        res |= myIsPurelyArithmetic(unsafeManager.getArg(f, i));
+        res = myIsPurelyArithmetic(unsafeManager.getArg(f, i));
         if (!res) {
           break;
         }
@@ -1239,6 +1241,20 @@ public class FormulaManagerView {
     return res;
   }
 
+  private final Predicate<Formula> FILTER_VARIABLES = new Predicate<Formula>() {
+    @Override
+    public boolean apply(Formula input) {
+      return unsafeManager.isVariable(input);
+    }
+  };
+
+  private final Predicate<Formula> FILTER_UF = new Predicate<Formula>() {
+    @Override
+    public boolean apply(Formula input) {
+      return unsafeManager.isUF(input);
+    }
+  };
+
   /**
    * Extract the names of all free variables in a formula.
    *
@@ -1247,11 +1263,24 @@ public class FormulaManagerView {
    */
   public Set<String> extractVariableNames(Formula f) {
     Set<String> result = Sets.newHashSet();
-
-    for (Formula v: myExtractFreeVariables(unwrap(f))) {
+    for (Formula v: myExtractSubformulas(unwrap(f), FILTER_VARIABLES)) {
       result.add(unsafeManager.getName(v));
     }
+    return result;
+  }
 
+  /**
+   * Extract the names of all free variables + UFs in a formula.
+   *
+   * @param f   The input formula
+   * @return    Set of variable names (might be instantiated)
+   */
+  public Set<String> extractFunctionNames(Formula f) {
+    Set<String> result = Sets.newHashSet();
+    for (Formula v: myExtractSubformulas(unwrap(f), Predicates.or(FILTER_UF,
+        FILTER_VARIABLES))) {
+      result.add(unsafeManager.getName(v));
+    }
     return result;
   }
 
@@ -1259,23 +1288,34 @@ public class FormulaManagerView {
    * Extract pairs of <variable name, variable formula>
    *  of all free variables in a formula.
    *
-   * @param f   The input formula
-   * @return
+   * @param pF The input formula
+   * @return Map from variable names to variable formulas.
    */
   public Map<String, Formula> extractFreeVariableMap(Formula pF) {
     Map<String, Formula> result = Maps.newHashMap();
 
-    for (Formula v: myExtractFreeVariables(unwrap(pF))) {
+    for (Formula v: myExtractSubformulas(unwrap(pF), FILTER_VARIABLES)) {
       result.put(unsafeManager.getName(v), v);
     }
 
     return result;
   }
 
+  /**
+   * Extract variables + UFs from the formula.
+   */
+  public Set<Triple<Formula, String, Integer>> extractFunctionSymbols(Formula f) {
+    return extractSubformulas(f, Predicates.or(FILTER_UF, FILTER_VARIABLES));
+  }
+
   public Set<Triple<Formula, String, Integer>> extractFreeVariables(Formula f) {
+    return extractSubformulas(f, FILTER_VARIABLES);
+  }
+
+  private Set<Triple<Formula, String, Integer>> extractSubformulas(Formula f, Predicate<Formula> predicate) {
     Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
 
-    for (Formula varFormula: myExtractFreeVariables(unwrap(f))) {
+    for (Formula varFormula: myExtractSubformulas(unwrap(f), predicate)) {
       Pair<String, Integer> var = parseName(unsafeManager.getName(varFormula));
       result.add(Triple.of(varFormula, var.getFirst(), var.getSecond()));
     }
@@ -1283,11 +1323,8 @@ public class FormulaManagerView {
     return result;
   }
 
-  public Set<Formula> extractFreeVariableFormulas(Formula f) {
-    return myExtractFreeVariables(unwrap(f));
-  }
-
-  private Set<Formula> myExtractFreeVariables(Formula pExtractFrom) {
+  private Set<Formula> myExtractSubformulas(Formula pExtractFrom,
+      Predicate<Formula> filter) {
     // TODO The FormulaType of returned formulas may not be correct,
     // because we cannot determine if for example a Rational formula
     // is really rational, or should be wrapped as a Bitvector formula
@@ -1300,7 +1337,7 @@ public class FormulaManagerView {
     while (!toProcess.isEmpty()) {
       Formula t = toProcess.pop();
 
-      if (unsafeManager.isFreeVariable(t)) {
+      if (filter.apply(t)) {
         varFormulas.add(t);
 
       } else if (unsafeManager.isBoundVariable(t)) {
@@ -1457,13 +1494,12 @@ public class FormulaManagerView {
   }
 
   /**
-   * Adds prefix to all variables present in the formula.
-   * TODO: refactor, combine with the previous substitution API.
+   * Adds prefix to all variables and UFs present in the formula.
    */
-  public Formula addPrefixToAllVariables(Formula input, String prefix) {
+  public Formula addPrefixToAll(Formula input, String prefix) {
     Formula formula = unwrap(input);
     Set<Triple<Formula, String, Integer>> allVars =
-        extractFreeVariables(formula);
+        extractFunctionSymbols(formula);
     FormulaType<Formula> t = getFormulaType(formula);
 
     List<Formula> from = new ArrayList<>(allVars.size());

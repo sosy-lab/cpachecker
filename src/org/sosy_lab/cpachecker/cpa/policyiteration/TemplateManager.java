@@ -226,7 +226,7 @@ public class TemplateManager {
       if (customPrefix.equals("")) {
         return sum;
       } else {
-        return fmgrv.addPrefixToAllVariables(sum, customPrefix);
+        return fmgrv.addPrefixToAll(sum, customPrefix);
       }
     }
   }
