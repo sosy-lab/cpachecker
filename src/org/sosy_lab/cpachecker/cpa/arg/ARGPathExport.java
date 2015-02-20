@@ -39,7 +39,6 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -190,14 +189,13 @@ public class ARGPathExport {
   public void writePath(Appendable pTarget,
       final ARGState pRootState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-      final Predicate<? super ARGState> pDisplayedElements,
-      final Predicate<? super Pair<ARGState, ARGState>> pPathEdges,
+      final Predicate<? super ARGState> pPathElements,
       final CounterexampleInfo pCounterExample)
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer = new WitnessWriter(defaultFileName);
-    writer.writePath(pTarget, pRootState, pSuccessorFunction, pDisplayedElements, pPathEdges, pCounterExample);
+    writer.writePath(pTarget, pRootState, pSuccessorFunction, pPathElements, pCounterExample);
   }
 
   private String getInitialFileName(ARGState pRootState) {
@@ -482,8 +480,7 @@ public class ARGPathExport {
     public void writePath(Appendable pTarget,
         final ARGState pRootState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-        final Predicate<? super ARGState> pDisplayedElements,
-        final Predicate<? super Pair<ARGState, ARGState>> pPathEdges,
+        final Predicate<? super ARGState> pPathStates,
         final CounterexampleInfo pCounterExample)
         throws IOException {
 
@@ -528,9 +525,6 @@ public class ARGPathExport {
       while (!worklist.isEmpty()) {
         ARGState s = worklist.removeLast();
 
-        if (!pDisplayedElements.apply(s)) {
-          continue;
-        }
         if (!processed.add(s)) {
           continue;
         }
@@ -556,7 +550,7 @@ public class ARGPathExport {
           }
 
           // Only proceed with this state if the path states contains the child
-          boolean isEdgeOnPath = pPathEdges.apply(Pair.of(s, child));
+          boolean isEdgeOnPath = true;
           if (s.getChildren().contains(child)) {
             if (isEdgeOnPath) {
               // Child belongs to the path!
@@ -580,7 +574,7 @@ public class ARGPathExport {
       while (!worklist.isEmpty()) {
         ARGState s = worklist.removeLast();
 
-        if (!pDisplayedElements.apply(s)) {
+        if (!pPathStates.apply(s)) {
           continue;
         }
         if (!processed.add(s)) {
@@ -636,7 +630,7 @@ public class ARGPathExport {
           }
 
           // Only proceed with this state if the path states contains the child
-          boolean isEdgeOnPath = pPathEdges.apply(Pair.of(s, child));
+          boolean isEdgeOnPath = true;
           if (s.getChildren().contains(child)) {
             if (isEdgeOnPath) {
               // Child belongs to the path!
@@ -794,5 +788,6 @@ public class ARGPathExport {
     }
 
   }
+
 
 }
