@@ -351,14 +351,15 @@ public class BAMPredicateReducer implements Reducer {
         return false;
       } else {
         computeView();
-        return evaluatedPredicateMap.equals(((ReducedPredicatePrecision) pObj).evaluatedPredicateMap);
+        return evaluatedPredicateMap.equals(((ReducedPredicatePrecision) pObj).evaluatedPredicateMap) &&
+            getFunctionPredicates().equals(((ReducedPredicatePrecision) pObj).getFunctionPredicates());
       }
     }
 
     @Override
     public int hashCode() {
       computeView();
-      return evaluatedPredicateMap.hashCode();
+      return 31 * evaluatedPredicateMap.hashCode() + getFunctionPredicates().hashCode();
     }
 
     @Override
