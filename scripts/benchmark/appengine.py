@@ -223,6 +223,11 @@ def _parseAppEngineResult(run):
     return_value = 0
     overQuota = False
 
+    # set dummy value because real value might be missing in failure case
+    # and BenchExec always needs values
+    run.cputime = 0
+    run.walltime = 0
+
     if os.path.isfile(run.log_file+'.stdOut'):
         lines = None
         try:
@@ -239,9 +244,10 @@ def _parseAppEngineResult(run):
                     return_value = 6 # aborted
                     overQuota = True
 
-                run.walltime = timedelta(microseconds=result['statistic']['latency']).total_seconds()
-                run.cputime = result['statistic']['CPUTime']
-                run.values['host'] = result['statistic']['host']
+                if result.get('statistic', None):
+                    run.walltime = timedelta(microseconds=result['statistic']['latency']).total_seconds()
+                    run.cputime = result['statistic']['CPUTime']
+                    run.values['host'] = result['statistic']['host']
         except:
             logging.exception('Failure when reading result file of run'
                               + ((', content is:\n' + lines) if lines is not None else ''))
