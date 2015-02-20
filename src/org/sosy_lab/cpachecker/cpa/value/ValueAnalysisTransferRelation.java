@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -99,9 +100,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -589,7 +593,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    if (initialValue.isUnknown() && useSymbolicValues) {
+    if (initialValue.isUnknown() && useSymbolicValues && isEligibleForSymbolicValue(declarationType)) {
       initialValue = getSymbolicIdentifier(declarationType, declaration);
     }
 
@@ -609,6 +613,16 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return newElement;
+  }
+
+  private boolean isEligibleForSymbolicValue(Type pDeclarationType) {
+    if (pDeclarationType instanceof CType) {
+      CType canonicalType = ((CType) pDeclarationType).getCanonicalType();
+
+      return !(canonicalType instanceof CCompositeType || canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
+    }
+
+    return true;
   }
 
   private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
