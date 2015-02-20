@@ -84,7 +84,7 @@ public class SlicingFormulaManager {
     Set<Formula> intermediateVariables = new HashSet<>();
 
     // Rename all non-final variables.
-    for (Triple<Formula, String, Integer> triple : fmgr.extractFreeVariables(slice)) {
+    for (Triple<Formula, String, Integer> triple : fmgr.extractFunctionSymbols(slice)) {
       Formula var = triple.getFirst();
       String varName = triple.getSecond();
       Integer ssaIndex = triple.getThird();
@@ -121,7 +121,7 @@ public class SlicingFormulaManager {
     while (changed) {
       changed = false;
       for (BooleanFormula atom : atoms) {
-        Set<String> variableNames = fmgr.extractVariableNames(atom);
+        Set<String> variableNames = fmgr.extractFunctionNames(atom);
         for (String s : variableNames) {
           if (seedCondition.apply(s) || closure.contains(s)) {
             changed = closure.addAll(variableNames);
@@ -149,7 +149,7 @@ public class SlicingFormulaManager {
 
     if (unsafeManager.isAtom(f)) {
       Formula uninstantiatedF = fmgr.uninstantiate(f);
-      Set<String> containedVariables = fmgr.extractVariableNames(uninstantiatedF);
+      Set<String> containedVariables = fmgr.extractFunctionNames(uninstantiatedF);
       if (!Sets.intersection(closure, containedVariables).isEmpty()) {
         out = f;
       } else {
