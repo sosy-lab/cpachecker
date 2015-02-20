@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 
 import java.io.IOException;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.EnumSet;
@@ -96,6 +95,8 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -123,37 +124,38 @@ public class ARGPathExport {
   @Option(secure=true, description="Verification witness: Include the offset within the file?")
   boolean exportOffset = true;
 
-  public ARGPathExport(Configuration config) throws InvalidConfigurationException {
-    Preconditions.checkNotNull(config);
-    config.inject(this);
+
+  public ARGPathExport(Configuration pConfig) throws InvalidConfigurationException {
+    Preconditions.checkNotNull(pConfig);
+    pConfig.inject(this);
   }
 
-  private String getStateIdent(ARGState state) {
-    return getStateIdent(state, "");
+  private String getStateIdent(ARGState pState) {
+    return getStateIdent(pState, "");
   }
 
-  private String getStateIdent(ARGState state, String identPostfix) {
-    return String.format("A%d%s", state.getStateId(), identPostfix);
+  private String getStateIdent(ARGState pState, String pIdentPostfix) {
+    return String.format("A%d%s", pState.getStateId(), pIdentPostfix);
   }
 
-  private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount) {
-    return getStateIdent(state, String.format("_%d_%d", subStateNo, subStateCount));
+  private String getPseudoStateIdent(ARGState pState, int pSubStateNo, int pSubStateCount) {
+    return getStateIdent(pState, String.format("_%d_%d", pSubStateNo, pSubStateCount));
   }
 
   private static class TransitionCondition {
     public final Map<KeyDef, String> keyValues = Maps.newHashMap();
 
-    public void put(final KeyDef key, final String value) {
-      keyValues.put(key, value);
+    public void put(final KeyDef pKey, final String pValue) {
+      keyValues.put(pKey, pValue);
     }
 
     @Override
-    public boolean equals(Object o) {
-      if (!(o instanceof TransitionCondition)) {
+    public boolean equals(Object pOther) {
+      if (!(pOther instanceof TransitionCondition)) {
         return false;
       }
 
-      TransitionCondition oT = (TransitionCondition) o;
+      TransitionCondition oT = (TransitionCondition) pOther;
 
       return this.keyValues.equals(oT.keyValues);
     }
@@ -174,29 +176,32 @@ public class ARGPathExport {
     public final TransitionCondition condition;
     public final Set<String> aggregatesTargets = Sets.newHashSet();
 
-    public AggregatedEdge(final String source, final String targetRepresentedBy,
-        final TransitionCondition condition) {
-      this.source = source;
-      this.condition = condition;
-      this.targetRepresentedBy = targetRepresentedBy;
-      this.aggregatesTargets.add(targetRepresentedBy);
+    public AggregatedEdge(final String pSource,
+        final String pTargetRepresentedBy,
+        final TransitionCondition pCondition) {
+
+      this.source = pSource;
+      this.condition = pCondition;
+      this.targetRepresentedBy = pTargetRepresentedBy;
+      this.aggregatesTargets.add(pTargetRepresentedBy);
     }
   }
 
-  public void writePath(Appendable sb,
-      final ARGState rootState,
-      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
-      final Predicate<? super ARGState> displayedElements,
-      final Predicate<? super Pair<ARGState, ARGState>> pathEdges,
-      CounterexampleInfo pCounterExample)
+  public void writePath(Appendable pTarget,
+      final ARGState pRootState,
+      final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
+      final Predicate<? super ARGState> pDisplayedElements,
+      final Predicate<? super Pair<ARGState, ARGState>> pPathEdges,
+      final CounterexampleInfo pCounterExample)
       throws IOException {
-    String defaultFileName = getInitialFileName(rootState);
+
+    String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer = new WitnessWriter(defaultFileName);
-    writer.writePath(sb, rootState, successorFunction, displayedElements, pathEdges, pCounterExample);
+    writer.writePath(pTarget, pRootState, pSuccessorFunction, pDisplayedElements, pPathEdges, pCounterExample);
   }
 
-  private String getInitialFileName(ARGState s) {
-    CFANode initialLoc = AbstractStates.extractLocation(s);
+  private String getInitialFileName(ARGState pRootState) {
+    CFANode initialLoc = AbstractStates.extractLocation(pRootState);
     Deque<CFANode> worklist = Queues.newArrayDeque();
     worklist.push(initialLoc);
 
@@ -226,23 +231,23 @@ public class ARGPathExport {
 
     private final String defaultSourcefileName;
 
-    public WitnessWriter(@Nullable String defaultSourcefileName) {
-      this.defaultSourcefileName = defaultSourcefileName;
+    public WitnessWriter(@Nullable String pDefaultSourcefileName) {
+      this.defaultSourcefileName = pDefaultSourcefileName;
     }
 
     @SuppressWarnings("unused")
-    private boolean isNodeRepresentingOneOf(Collection<AggregatedEdge> targets, String nodeId) {
-      for (AggregatedEdge t : targets) {
-        if (t.targetRepresentedBy.equals(nodeId)) {
+    private boolean isNodeRepresentingOneOf(Collection<AggregatedEdge> pTargets, String pNodeId) {
+      for (AggregatedEdge t : pTargets) {
+        if (t.targetRepresentedBy.equals(pNodeId)) {
           return true;
         }
       }
       return false;
     }
 
-    private boolean containsRestrictedEdgeTo(Collection<AggregatedEdge> targets, String nodeId) {
-      for (AggregatedEdge t : targets) {
-        if (t.targetRepresentedBy.equals(nodeId)) {
+    private boolean containsRestrictedEdgeTo(Collection<AggregatedEdge> pTargets, String pNodeId) {
+      for (AggregatedEdge t : pTargets) {
+        if (t.targetRepresentedBy.equals(pNodeId)) {
           if (t.condition.hasTransitionRestrictions()) {
             return true;
           }
@@ -251,88 +256,88 @@ public class ARGPathExport {
       return false;
     }
 
-    private void appendNewPathNode(GraphMlBuilder doc, String nodeId) throws IOException {
-      Element result = doc.createNodeElement(nodeId, NodeType.ONPATH);
-      for (NodeFlag f : nodeFlags.get(nodeId)) {
-        doc.addDataElementChild(result, f.key, "true");
+    private void appendNewPathNode(GraphMlBuilder pDoc, String pNodeId) throws IOException {
+      Element result = pDoc.createNodeElement(pNodeId, NodeType.ONPATH);
+      for (NodeFlag f : nodeFlags.get(pNodeId)) {
+        pDoc.addDataElementChild(result, f.key, "true");
       }
 
       // Decide if writing the node should be delayed.
       // Some nodes might not get referenced by edges later.
-      Collection<AggregatedEdge> existingEdgesTo = targetToSourceMap.get(nodeId);
+      Collection<AggregatedEdge> existingEdgesTo = targetToSourceMap.get(pNodeId);
       // -- A node must always be written if it represents a set of aggregated nodes
-      if (containsRestrictedEdgeTo(existingEdgesTo, nodeId)) {
-        doc.appendToAppendable(result);
+      if (containsRestrictedEdgeTo(existingEdgesTo, pNodeId)) {
+        pDoc.appendToAppendable(result);
       } else {
-        delayedNodes.put(nodeId, result);
+        delayedNodes.put(pNodeId, result);
       }
     }
 
-    private void appendDelayedNode(final GraphMlBuilder doc, final String nodeId) {
-      Element e = delayedNodes.get(nodeId);
+    private void appendDelayedNode(final GraphMlBuilder pDoc, final String pNodeId) {
+      Element e = delayedNodes.get(pNodeId);
       if (e != null) {
-        delayedNodes.remove(nodeId);
-        doc.appendToAppendable(e);
+        delayedNodes.remove(pNodeId);
+        pDoc.appendToAppendable(e);
       }
     }
 
-    private void appendNewEdge(final GraphMlBuilder doc, String from,
-        final String to, final CFAEdge edge, final ARGState fromState,
-        final Map<ARGState, CFAEdgeWithAssumptions> valueMap) throws IOException {
+    private void appendNewEdge(final GraphMlBuilder pDoc, String pFrom,
+        final String pTo, final CFAEdge pEdge, final ARGState pFromState,
+        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) throws IOException {
 
-      TransitionCondition desc = constructTransitionCondition(from, to, edge, fromState, valueMap);
+      TransitionCondition desc = constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
 
-      if (!nodeFlags.containsKey(to) && aggregateToPrevEdge(from, to, desc)) {
+      if (!nodeFlags.containsKey(pTo) && aggregateToPrevEdge(pFrom, pTo, desc)) {
         return;
       }
 
       // Switch the source node (from) to the aggregating one
       // -- only if this is unambiguous
-      Collection<AggregatedEdge> edgesToTheSourceNode = targetToSourceMap.get(from);
+      Collection<AggregatedEdge> edgesToTheSourceNode = targetToSourceMap.get(pFrom);
       if (edgesToTheSourceNode.size() == 1) {
         AggregatedEdge aggregationEdge = edgesToTheSourceNode.iterator().next();
-        from = aggregationEdge.targetRepresentedBy;
+        pFrom = aggregationEdge.targetRepresentedBy;
 
         // If there is a edge to "from" with an empty transition condition (epsilon)
         //  then switch "from" to the "from" of the epsilon edge
         if (!aggregationEdge.condition.hasTransitionRestrictions()) {
-          from = aggregationEdge.source;
+          pFrom = aggregationEdge.source;
         }
         // -- delay writing epsilon edges!
       }
 
       if (desc.hasTransitionRestrictions()) {
-        appendDelayedNode(doc, from);
-        appendDelayedNode(doc, to);
+        appendDelayedNode(pDoc, pFrom);
+        appendDelayedNode(pDoc, pTo);
 
-        Element result = doc.createEdgeElement(from, to);
+        Element result = pDoc.createEdgeElement(pFrom, pTo);
         for (KeyDef k : desc.keyValues.keySet())  {
-          doc.addDataElementChild(result, k, desc.keyValues.get(k));
+          pDoc.addDataElementChild(result, k, desc.keyValues.get(k));
         }
-        doc.appendToAppendable(result);
+        pDoc.appendToAppendable(result);
       }
 
-      AggregatedEdge t = new AggregatedEdge(from, to, desc);
-      sourceToTargetMap.put(from, t);
-      targetToSourceMap.put(to, t);
+      AggregatedEdge t = new AggregatedEdge(pFrom, pTo, desc);
+      sourceToTargetMap.put(pFrom, t);
+      targetToSourceMap.put(pTo, t);
     }
 
-    private boolean aggregateToPrevEdge(String from, final String to, TransitionCondition desc) {
+    private boolean aggregateToPrevEdge(String pFrom, final String pTo, TransitionCondition pDesc) {
       // What edges to "from" exist?
       //    edgesTo(from) = [e | e = (u,c,v) in E, v = from]
 
-      Collection<AggregatedEdge> edgesToTheSourceNode = targetToSourceMap.get(from);
+      Collection<AggregatedEdge> edgesToTheSourceNode = targetToSourceMap.get(pFrom);
       if (edgesToTheSourceNode.size() == 1) {
         AggregatedEdge aggregationEdge = edgesToTheSourceNode.iterator().next();
 
         // Does the transition descriptor of TT match (equals) the descriptor of this transition?
         //  edgesTo(from)[1].c == this.c
-        if (aggregationEdge.condition.equals(desc)) {
+        if (aggregationEdge.condition.equals(pDesc)) {
           // If everything can be answered with "yes":
           //  Instead of adding a new transition, modify the points-to information of TT
 
-          aggregationEdge.aggregatesTargets.add(to);
-          targetToSourceMap.put(to, aggregationEdge);
+          aggregationEdge.aggregatesTargets.add(pTo);
+          targetToSourceMap.put(pTo, aggregationEdge);
 
           return true;
         }
@@ -341,56 +346,63 @@ public class ARGPathExport {
       return false;
     }
 
-    private TransitionCondition constructTransitionCondition(String from, String to, final CFAEdge edge, ARGState fromState,
-        Map<ARGState, CFAEdgeWithAssumptions> valueMap) {
-      TransitionCondition desc = new TransitionCondition();
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(edge)) {
-        return desc;
+    private TransitionCondition constructTransitionCondition(
+        final String pFrom,
+        final String pTo,
+        final CFAEdge pEdge,
+        final ARGState pFromState,
+        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+
+      final TransitionCondition result = new TransitionCondition();
+      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+        return result;
       }
 
       //desc.put(KeyDef.CFAPREDECESSORNODE, edge.getPredecessor().toString());
       //desc.put(KeyDef.CFASUCCESSORNODE, edge.getSuccessor().toString());
 
       if (exportFunctionCallsAndReturns) {
-        if (edge.getSuccessor() instanceof FunctionEntryNode) {
-          FunctionEntryNode in = (FunctionEntryNode) edge.getSuccessor();
-          desc.put(KeyDef.FUNCTIONENTRY, in.getFunctionName());
-        } else if (edge.getSuccessor() instanceof FunctionExitNode) {
-          FunctionExitNode out = (FunctionExitNode) edge.getSuccessor();
-          desc.put(KeyDef.FUNCTIONEXIT, out.getFunctionName());
+        if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
+          FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
+          result.put(KeyDef.FUNCTIONENTRY, in.getFunctionName());
+
+        } else if (pEdge.getSuccessor() instanceof FunctionExitNode) {
+          FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
+          result.put(KeyDef.FUNCTIONEXIT, out.getFunctionName());
         }
       }
 
       if (exportAssumptions) {
-        if (fromState != null) {
-          DelayedAssignmentsKey key = new DelayedAssignmentsKey(from, edge, fromState);
+        if (pFromState != null) {
+          DelayedAssignmentsKey key = new DelayedAssignmentsKey(pFrom, pEdge, pFromState);
           CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
 
-          if (valueMap != null && valueMap.containsKey(fromState)) {
-            CFAEdgeWithAssumptions currentEdgeWithAssignments = valueMap.get(fromState);
+          if (pValueMap != null && pValueMap.containsKey(pFromState)) {
+            CFAEdgeWithAssumptions currentEdgeWithAssignments = pValueMap.get(pFromState);
             if (cfaEdgeWithAssignments == null) {
               cfaEdgeWithAssignments = currentEdgeWithAssignments;
+
             } else {
-              List<AExpressionStatement> delayedAssignments = cfaEdgeWithAssignments.getExpStmts();
-              List<AExpressionStatement> currentAssignments = currentEdgeWithAssignments.getExpStmts();
-              List<AExpressionStatement> allAssignments = new ArrayList<>(delayedAssignments.size() + currentAssignments.size());
-              allAssignments.addAll(delayedAssignments);
-              allAssignments.addAll(currentAssignments);
-              cfaEdgeWithAssignments = new CFAEdgeWithAssumptions(edge, allAssignments, currentEdgeWithAssignments.getComment());
+              Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
+              allAssignments.addAll(cfaEdgeWithAssignments.getExpStmts());
+              allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
+              cfaEdgeWithAssignments = new CFAEdgeWithAssumptions(pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment());
             }
           }
 
           if (cfaEdgeWithAssignments != null) {
             List<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
-            Predicate<AExpressionStatement> assignsParameterOfOtherFunction = new AssignsParameterOfOtherFunction(edge);
+            Predicate<AExpressionStatement> assignsParameterOfOtherFunction = new AssignsParameterOfOtherFunction(pEdge);
             List<AExpressionStatement> functionValidAssignments = FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
+
             if (functionValidAssignments.size() < assignments.size()) {
-              cfaEdgeWithAssignments = new CFAEdgeWithAssumptions(edge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
-              FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(edge.getSuccessor());
-              if (nextEdges.size() == 1 && fromState.getChildren().size() == 1) {
-                String keyFrom = to;
+              cfaEdgeWithAssignments = new CFAEdgeWithAssumptions(pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
+              FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
+
+              if (nextEdges.size() == 1 && pFromState.getChildren().size() == 1) {
+                String keyFrom = pTo;
                 CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
-                ARGState keyState = Iterables.getOnlyElement(fromState.getChildren());
+                ARGState keyState = Iterables.getOnlyElement(pFromState.getChildren());
                 List<AExpressionStatement> valueAssignments = FluentIterable.from(assignments).filter(Predicates.not(assignsParameterOfOtherFunction)).toList();
                 CFAEdgeWithAssumptions valueCFAEdgeWithAssignments =
                     new CFAEdgeWithAssumptions(keyEdge, valueAssignments, "");
@@ -399,78 +411,80 @@ public class ARGPathExport {
                     valueCFAEdgeWithAssignments);
               }
             }
+
             String code = cfaEdgeWithAssignments.getAsCode();
+
             if (!code.isEmpty()) {
-              desc.put(KeyDef.ASSUMPTION, code);
+              result.put(KeyDef.ASSUMPTION, code);
             }
           }
         }
       }
 
       if (exportAssumeCaseInfo) {
-        if (edge instanceof AssumeEdge) {
-          AssumeEdge a = (AssumeEdge) edge;
+        if (pEdge instanceof AssumeEdge) {
+          AssumeEdge a = (AssumeEdge) pEdge;
           if (!a.getTruthAssumption()) {
-            desc.put(KeyDef.NEGATIVECASE, "true");
+            result.put(KeyDef.NEGATIVECASE, "true");
           }
         }
       }
 
       if (exportLineNumbers) {
-        Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(edge);
+        Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(pEdge);
         if (locations.size() > 0) {
           FileLocation l = locations.iterator().next();
           if (!l.getFileName().equals(defaultSourcefileName)) {
-            desc.put(KeyDef.ORIGINFILE, l.getFileName());
+            result.put(KeyDef.ORIGINFILE, l.getFileName());
           }
-          desc.put(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+          result.put(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
         }
       }
 
       if (exportOffset) {
-        Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(edge);
+        Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(pEdge);
         if (locations.size() > 0) {
           FileLocation l = locations.iterator().next();
           if (!l.getFileName().equals(defaultSourcefileName)) {
-            desc.put(KeyDef.ORIGINFILE, l.getFileName());
+            result.put(KeyDef.ORIGINFILE, l.getFileName());
           }
-          desc.put(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
+          result.put(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
         }
       }
 
       if (exportSourcecode) {
-        desc.put(KeyDef.SOURCECODE, edge.getRawStatement());
+        result.put(KeyDef.SOURCECODE, pEdge.getRawStatement());
       }
 
-      return desc;
+      return result;
     }
 
-    private void appendKeyDefinitions(GraphMlBuilder doc, GraphType graphType) {
-      if (graphType == GraphType.CONDITION) {
-        doc.appendNewKeyDef(KeyDef.INVARIANT, null);
-        doc.appendNewKeyDef(KeyDef.NAMED, null);
+    private void appendKeyDefinitions(GraphMlBuilder pDoc, GraphType pGraphType) {
+      if (pGraphType == GraphType.CONDITION) {
+        pDoc.appendNewKeyDef(KeyDef.INVARIANT, null);
+        pDoc.appendNewKeyDef(KeyDef.NAMED, null);
       }
-      doc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
-      doc.appendNewKeyDef(KeyDef.SOURCECODE, null);
-      doc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
-      doc.appendNewKeyDef(KeyDef.NEGATIVECASE, "false");
-      doc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
-      doc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
-      doc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
+      pDoc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
+      pDoc.appendNewKeyDef(KeyDef.SOURCECODE, null);
+      pDoc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
+      pDoc.appendNewKeyDef(KeyDef.NEGATIVECASE, "false");
+      pDoc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
+      pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
+      pDoc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
       for (NodeFlag f : NodeFlag.values()) {
-        doc.appendNewKeyDef(f.key, "false");
+        pDoc.appendNewKeyDef(f.key, "false");
       }
 
-      doc.appendNewKeyDef(KeyDef.FUNCTIONENTRY, null);
-      doc.appendNewKeyDef(KeyDef.FUNCTIONEXIT, null);
+      pDoc.appendNewKeyDef(KeyDef.FUNCTIONENTRY, null);
+      pDoc.appendNewKeyDef(KeyDef.FUNCTIONEXIT, null);
     }
 
-    public void writePath(Appendable sb,
-        final ARGState rootState,
-        final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
-        final Predicate<? super ARGState> displayedElements,
-        final Predicate<? super Pair<ARGState, ARGState>> pathEdges,
-        CounterexampleInfo pCounterExample)
+    public void writePath(Appendable pTarget,
+        final ARGState pRootState,
+        final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
+        final Predicate<? super ARGState> pDisplayedElements,
+        final Predicate<? super Pair<ARGState, ARGState>> pPathEdges,
+        final CounterexampleInfo pCounterExample)
         throws IOException {
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
@@ -489,7 +503,7 @@ public class ARGPathExport {
 
       GraphMlBuilder doc;
       try {
-        doc = new GraphMlBuilder(sb);
+        doc = new GraphMlBuilder(pTarget);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }
@@ -499,7 +513,7 @@ public class ARGPathExport {
       // TODO! (we could use the version of a XML schema)
 
       // ...
-      String entryStateNodeId = getStateIdent(rootState);
+      String entryStateNodeId = getStateIdent(pRootState);
       boolean containsSinkNode = false;
       int multiEdgeCount = 0; // see below
 
@@ -508,13 +522,13 @@ public class ARGPathExport {
       doc.appendGraphHeader(graphType, "C");
 
       Deque<ARGState> worklist = new ArrayDeque<>();
-      worklist.add(rootState);
+      worklist.add(pRootState);
 
       // Collect node flags in advance
       while (!worklist.isEmpty()) {
         ARGState s = worklist.removeLast();
 
-        if (!displayedElements.apply(s)) {
+        if (!pDisplayedElements.apply(s)) {
           continue;
         }
         if (!processed.add(s)) {
@@ -533,7 +547,7 @@ public class ARGPathExport {
         nodeFlags.putAll(sourceStateNodeId, sourceNodeFlags);
 
         // Process child states
-        for (ARGState child : successorFunction.apply(s)) {
+        for (ARGState child : pSuccessorFunction.apply(s)) {
           // The child might be covered by another state
           // --> switch to the covering state
           if (child.isCovered()) {
@@ -542,7 +556,7 @@ public class ARGPathExport {
           }
 
           // Only proceed with this state if the path states contains the child
-          boolean isEdgeOnPath = pathEdges.apply(Pair.of(s, child));
+          boolean isEdgeOnPath = pPathEdges.apply(Pair.of(s, child));
           if (s.getChildren().contains(child)) {
             if (isEdgeOnPath) {
               // Child belongs to the path!
@@ -561,12 +575,12 @@ public class ARGPathExport {
       }
 
       // Build the actual graph
-      worklist.add(rootState);
+      worklist.add(pRootState);
       processed.clear();
       while (!worklist.isEmpty()) {
         ARGState s = worklist.removeLast();
 
-        if (!displayedElements.apply(s)) {
+        if (!pDisplayedElements.apply(s)) {
           continue;
         }
         if (!processed.add(s)) {
@@ -581,7 +595,7 @@ public class ARGPathExport {
         appendNewPathNode(doc, sourceStateNodeId);
 
         // Process child states
-        for (ARGState child : successorFunction.apply(s)) {
+        for (ARGState child : pSuccessorFunction.apply(s)) {
           // The child might be covered by another state
           // --> switch to the covering state
           if (child.isCovered()) {
@@ -622,7 +636,7 @@ public class ARGPathExport {
           }
 
           // Only proceed with this state if the path states contains the child
-          boolean isEdgeOnPath = pathEdges.apply(Pair.of(s, child));
+          boolean isEdgeOnPath = pPathEdges.apply(Pair.of(s, child));
           if (s.getChildren().contains(child)) {
             if (isEdgeOnPath) {
               // Child belongs to the path!
