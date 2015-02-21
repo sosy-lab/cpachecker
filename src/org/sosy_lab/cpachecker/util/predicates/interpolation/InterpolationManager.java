@@ -411,9 +411,9 @@ public final class InterpolationManager {
     while (true) {
       boolean consistent = true;
       // 1. assert all the needed constraints
-      for (int i = 0; i < needed.length; ++i) {
-        if (!bfmgr.isTrue(needed[i])) {
-          thmProver.push(needed[i]);
+      for (BooleanFormula aNeeded : needed) {
+        if (!bfmgr.isTrue(aNeeded)) {
+          thmProver.push(aNeeded);
           ++toPop;
         }
       }
@@ -570,7 +570,7 @@ public final class InterpolationManager {
         for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
           // last iteration is left out because B would be empty
           final int start_of_A = 0;
-          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A, 0));
+          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A));
         }
         return interpolants;
       }
@@ -590,7 +590,7 @@ public final class InterpolationManager {
         for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
           // last iteration is left out because B would be empty
           final int start_of_A = getWellScopedStartOfA(orderedFormulas, callstack, end_of_A);
-          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A, callstack.size()));
+          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A));
         }
         return interpolants;
       }
@@ -752,7 +752,7 @@ public final class InterpolationManager {
    * We need all atoms of both interpolants in one formula,
    * If one of the formulas is True or False, we do not get Atoms from it. Thus we remove those cases.
    */
-  private BooleanFormula rebuildInterpolant(BooleanFormula functionSummary, BooleanFormula functionExecution) {
+  private BooleanFormula rebuildInterpolant(final BooleanFormula functionSummary, final BooleanFormula functionExecution) {
     final BooleanFormula rebuildItp;
     if (bfmgr.isTrue(functionSummary) || bfmgr.isFalse(functionSummary)) {
       rebuildItp = functionExecution;
@@ -767,7 +767,7 @@ public final class InterpolationManager {
   }
 
   /** check, if there exists a function-exit-node to the current call-node. */
-  private boolean callHasReturn(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas, int callIndex) {
+  private static boolean callHasReturn(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas, int callIndex) {
     // TODO caching as optimisation to reduce from  k*O(n)  to  O(n)+k*O(1)  ?
     final Deque<CFANode> callstack = new ArrayDeque<>();
 
@@ -813,11 +813,10 @@ public final class InterpolationManager {
    * The sublist is taken from the list of GroupIds, including both start and end of A.
    */
   private <T> BooleanFormula getInterpolantFromSublist(final InterpolatingProverEnvironment<T> pItpProver,
-        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A, final int depth)
-            throws SolverException, InterruptedException {
+        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A) throws InterruptedException, SolverException {
     shutdownNotifier.shutdownIfNecessary();
 
-    logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A, "(depth", depth, ")");
+    logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A);
 
     getInterpolantTimer.start();
     final BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));

@@ -171,7 +171,7 @@ class BAMCPAStatistics implements Statistics {
     exportUsedReachedSets(simplifiedArgFile, reached);
   }
 
-  private void exportAllReachedSets(final Path superArgFile, final PathTemplate indexedFile,
+  protected void exportAllReachedSets(final Path superArgFile, final PathTemplate indexedFile,
                                       final UnmodifiableReachedSet mainReachedSet) {
 
     if (superArgFile != null) {

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -265,7 +266,8 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                     "returning from empty callstack is only possible at program-exit";
 
             prevCallState = callStacks.get(callState);
-            parentFormula = rebuildStateAfterFunctionCall(parentFormula, finishedFormulas.get(callState));
+            parentFormula = rebuildStateAfterFunctionCall(parentFormula,
+                finishedFormulas.get(callState), (FunctionExitNode)extractLocation(parentElement));
 
           } else {
             assert callStacks.containsKey(parentElement); // check for null is not enough
@@ -320,8 +322,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
     }
 
     /* rebuild indices from outer scope */
-    private PathFormula rebuildStateAfterFunctionCall(PathFormula parentFormula, PathFormula rootFormula) {
-      final SSAMap newSSA = BAMPredicateReducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa());
+    private PathFormula rebuildStateAfterFunctionCall(final PathFormula parentFormula, final PathFormula rootFormula,
+        final FunctionExitNode functionExitNode) {
+      final SSAMap newSSA = BAMPredicateReducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa(), functionExitNode);
       return pfmgr.makeNewPathFormula(parentFormula, newSSA);
     }
 

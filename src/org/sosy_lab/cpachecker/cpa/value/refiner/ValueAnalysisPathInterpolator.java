@@ -196,7 +196,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       pathInterpolants.put(pathIterator.getAbstractState(), interpolant);
 
       if(!pathIterator.hasNext()) {
-        assert interpolant.isFalse() : "final interpolant is not false";
+        assert interpolant.isFalse() : "final interpolant is not false: " + interpolant;
       }
     }
 

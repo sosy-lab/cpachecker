@@ -846,9 +846,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
         rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
 
-      } else if (VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE.equals(trackedVar.getIdentifier())) {
-        // lets assume, that RETURN_VAR is only tracked along one edge, which is the ReturnEdge.
-        // so that we can ignore the functionname for this condition.
+      } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
+          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
         assert (!rebuildState.contains(trackedVar)) :
                 "calling function should not contain return-variable of called function: " + trackedVar;
         if (this.contains(trackedVar)) {

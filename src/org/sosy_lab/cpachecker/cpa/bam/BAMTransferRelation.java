@@ -298,6 +298,7 @@ public class BAMTransferRelation implements TransferRelation {
       // update waitlist
       for (final ReachedSet reachedSet : argCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
+          logger.log(Level.ALL, "re-adding state", recursionUpdateState);
           reachedSet.reAddToWaitlist(recursionUpdateState);
         }
         // else if (pHeadOfMainFunctionState == recursionUpdateState) {
@@ -588,7 +589,8 @@ public class BAMTransferRelation implements TransferRelation {
       reducedResult = cachedReturnStates;
       statesForFurtherAnalysis = reducedResult;
 
-    } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 && ((ARGState)reached.getLastState()).isTarget()) {
+    } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 &&
+        reached.getLastState() != null && ((ARGState)reached.getLastState()).isTarget()) {
       assert Iterables.getOnlyElement(cachedReturnStates) == reached.getLastState() :
               "cache hit only allowed for finished reached-sets or target-states";
 
