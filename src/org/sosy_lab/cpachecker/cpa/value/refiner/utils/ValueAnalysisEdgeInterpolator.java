@@ -25,6 +25,7 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -34,6 +35,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
@@ -112,6 +114,7 @@ public class ValueAnalysisEdgeInterpolator {
   public ValueAnalysisInterpolant deriveInterpolant(
       final ARGPath pErrorPath,
       final CFAEdge pCurrentEdge,
+      final Deque<ValueAnalysisState> callstack,
       final int pOffset,
       final ValueAnalysisInterpolant pInputInterpolant,
       final Set<MemoryLocation> useDefRelation) throws CPAException, InterruptedException {
@@ -120,7 +123,9 @@ public class ValueAnalysisEdgeInterpolator {
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
 
-    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pCurrentEdge);
+    // TODO callstack-management depends on a forward-iteration on a single path.
+    // TODO Thus interpolants have to be computed from front to end. Can we assure this?
+    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pCurrentEdge, callstack);
 
     if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
@@ -195,8 +200,21 @@ public class ValueAnalysisEdgeInterpolator {
    * @return the initial successor
    * @throws CPATransferException
    */
-  private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState, CFAEdge initialEdge)
+  private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState,
+      final CFAEdge initialEdge, final Deque<ValueAnalysisState> callstack)
       throws CPATransferException {
+
+    // we enter a function, so lets add the previous state to the stack
+    if (initialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      callstack.addLast(initialState);
+    }
+
+    // we leave a function, so rebuild return-state before assigning the return-value.
+    if (!callstack.isEmpty() && initialEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      // rebuild states with info from previous state
+      final ValueAnalysisState callState = callstack.removeLast();
+      initialState = initialState.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)initialEdge.getPredecessor());
+    }
 
     Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
         initialState,
