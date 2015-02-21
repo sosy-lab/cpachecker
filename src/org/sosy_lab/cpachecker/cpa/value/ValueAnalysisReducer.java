@@ -27,6 +27,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -134,11 +135,12 @@ public class ValueAnalysisReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState, AbstractState pExpandedState, CFANode exitLocation) {
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState,
+      AbstractState pExpandedState, FunctionExitNode exitLocation) {
 
     ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
     ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
 
-    return expandedState.rebuildStateAfterFunctionCall(rootState);
+    return expandedState.rebuildStateAfterFunctionCall(rootState, exitLocation);
   }
 }

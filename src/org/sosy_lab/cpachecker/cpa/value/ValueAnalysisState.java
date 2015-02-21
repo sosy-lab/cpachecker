@@ -38,6 +38,7 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -822,7 +823,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
    * This function rebuilds a new state with the correct values from the previous callState.
    * We delete the wrong values and insert new values, if necessary. */
-  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState) {
+  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState, final FunctionExitNode functionExit) {
 
     // we build a new state from:
     // - local variables from callState,

@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -660,8 +661,16 @@ public class BAMTransferRelation implements TransferRelation {
     logger.log(Level.ALL, "rebuilding state with root state", rootState);
     logger.log(Level.ALL, "rebuilding state with entry state", entryState);
     logger.log(Level.ALL, "rebuilding state with expanded state", expandedState);
+
+    final CFANode location = extractLocation(expandedState);
+    if (!(location instanceof FunctionExitNode)) {
+      logger.log(Level.ALL, "rebuilding skipped because of non-function-exit-location");
+      assert isTargetState(expandedState) : "only target states are returned without rebuild";
+      return expandedState;
+    }
+
     final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(
-            rootState, entryState, expandedState, extractLocation(expandedState));
+            rootState, entryState, expandedState, (FunctionExitNode)location);
     logger.log(Level.ALL, "rebuilding finished with state", rebuildState);
 
     // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
