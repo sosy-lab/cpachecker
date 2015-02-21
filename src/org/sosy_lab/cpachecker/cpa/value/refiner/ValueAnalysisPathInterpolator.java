@@ -109,6 +109,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
   private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
   private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
+  private StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -330,7 +331,9 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath);
+
+      totalPrefixes.setNextValue(prefixes.size());
 
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
       errorPath = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
@@ -354,6 +357,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     writer.put(totalInterpolations);
     writer.put(totalInterpolationQueries);
     writer.put(sizeOfInterpolant);
+    writer.put(totalPrefixes);
   }
 
   public int getInterpolationOffset() {

@@ -304,6 +304,12 @@ public class BAMPredicateReducer implements Reducer {
     }
 
     @Override
+    public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
+      // TODO this should be reduced/expanded
+      return rootPredicatePrecision.getFunctionPredicates();
+    }
+
+    @Override
     public Set<AbstractionPredicate> getGlobalPredicates() {
       if (evaluatedGlobalPredicates != null) {
         return evaluatedGlobalPredicates;
@@ -323,7 +329,7 @@ public class BAMPredicateReducer implements Reducer {
         if (result.isEmpty()) {
           result = evaluatedGlobalPredicates;
         }
-        String functionName = context.getCallNode().getFunctionName();
+        String functionName = loc.getFunctionName();
         return Sets.union(result, rootPredicatePrecision.getFunctionPredicates().get(functionName))
             .immutableCopy();
       } else {
@@ -346,14 +352,15 @@ public class BAMPredicateReducer implements Reducer {
         return false;
       } else {
         computeView();
-        return evaluatedPredicateMap.equals(((ReducedPredicatePrecision) pObj).evaluatedPredicateMap);
+        return evaluatedPredicateMap.equals(((ReducedPredicatePrecision) pObj).evaluatedPredicateMap) &&
+            getFunctionPredicates().equals(((ReducedPredicatePrecision) pObj).getFunctionPredicates());
       }
     }
 
     @Override
     public int hashCode() {
       computeView();
-      return evaluatedPredicateMap.hashCode();
+      return 31 * evaluatedPredicateMap.hashCode() + getFunctionPredicates().hashCode();
     }
 
     @Override

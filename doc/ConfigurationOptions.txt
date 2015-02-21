@@ -98,13 +98,15 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
-analysis.customInstruction = false
-
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
 # entry function
 analysis.entryFunction = "main"
+
+# do analysis and then extract pre- and post conditions for custom
+# instruction from analysis result
+analysis.extractRequirements.customInstruction = false
 
 # create all potential function pointer call edges
 analysis.functionPointerCalls = true
@@ -172,10 +174,6 @@ analysis.traversal.useCallstack = false
 # handle more abstract states (with less information) first? (only for
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
-
-# handle states with a deeper callstack first?
-# This needs the CallstackPccCPA to have any effect.
-analysis.traversal.usePccCallstack = false
 
 # Use an implementation of postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
@@ -267,6 +265,9 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
 
+# Generate invariants and add them to the induction hypothesis.
+bmc.addInvariantsByAI = false
+
 # Generate additional invariants by induction and add them to the induction
 # hypothesis.
 bmc.addInvariantsByInduction = true
@@ -291,9 +292,6 @@ bmc.havocLoopTerminationConditionVariablesOnly = false
 
 # try using induction to verify programs with loops
 bmc.induction = false
-
-# Generate invariants and add them to the induction hypothesis.
-bmc.useInvariantsForInduction = false
 
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
@@ -382,6 +380,9 @@ cfa.moveDeclarationsToFunctionStart = false
 
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
+
+# Show messages when dead code is encountered during parsing.
+cfa.showDeadCode = true
 
 # Remove all edges which don't have any effect on the program
 cfa.simplifyCfa = true
@@ -493,6 +494,10 @@ cpa.apron.refiner.checkForRepeatedRefinements = true
 # seconds or specify a unit; 0 for infinite)
 cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 
+# split disequalities considering integer operands into two states or use
+# disequality provided by apron library 
+cpa.apron.splitDisequalities = true
+
 # inform merge operator in predicated analysis that it should delete the
 # subgraph of the merged nodewhich is required to get at most one successor
 # per CFA edge.
@@ -571,12 +576,11 @@ cpa.arg.witness.exportFunctionCallsAndReturns = true
 # on the transitions?
 cpa.arg.witness.exportLineNumbers = true
 
+# Verification witness: Include the offset within the file?
+cpa.arg.witness.exportOffset = true
+
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
-
-# Verification witness: Include the token numbers of the operations on the
-# transitions?
-cpa.arg.witness.exportTokenNumbers = true
 
 # signal the analysis to break in case the given number of error state is
 # reached 
@@ -659,6 +663,11 @@ cpa.bdd.merge = "join"
 
 # depth of recursion bound
 cpa.callstack.depth = 0
+
+# which abstract domain to use for callstack cpa, typically FLAT which is
+# faster since it uses only object equivalence
+cpa.callstack.domain = "FLAT"
+  allowed values: [FLAT, FLATPCC]
 
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
@@ -1212,6 +1221,15 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
+# prefixPreference
+cpa.predicate.refinement.prefixPreference = DEFAULT
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
+             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
+             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
+
+# prefixProvider
+cpa.predicate.refinement.prefixProvider = "SMT"
+
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
@@ -1593,6 +1611,10 @@ cpa.value.blk.alwaysAtJoins = false
 # restrict abstractions to loop heads
 cpa.value.blk.alwaysAtLoops = false
 
+# restrict liveness abstractions to nodes with more than one entering and/or
+# leaving edge
+cpa.value.blk.onlyAtNonLinearCFA = false
+
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.value.initAssumptionVars = false
@@ -1900,8 +1922,11 @@ spec.automatonDumpFile = no default value
 # Consider assumptions that are provided with the path automaton?
 spec.considerAssumptions = true
 
-# Consider the negative semantics of tokens provided with path automatons.
-spec.considerNegativeSemanticsAttribute = false
+# Match the branching information at a branching location.
+spec.matchAssumeCase = true
+
+# Match the character offset within the file.
+spec.matchOffset = true
 
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
@@ -1910,15 +1935,9 @@ spec.matchOriginLine = true
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
 
-# If a witness represents a single path in Automaton match both starting and
-# ending lines of the CFA edge (ending line = starting line of the next
-# edge). If matching CFA edge exists, go to the sink for the other edges,
-# otherwise match starting lines as usual.
-spec.singlePathMatching = false
-
-# Do not try to "catch up" with witness lines: If they do not match, go to
+# Do not try to "catch up" with witness guards: If they do not match, go to
 # the sink.
-spec.strictLineMatching = false
+spec.strictMatching = false
 
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false

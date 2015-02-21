@@ -27,6 +27,7 @@ import static com.google.common.collect.Iterables.skip;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -65,6 +66,7 @@ public class ErrorPathClassifier {
 
   private static final String PREFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in prefix";
   private static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in suffix";
+  private static final String INBTWN_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge inbetween";
 
   private static int invocationCounter = 0;
 
@@ -292,8 +294,14 @@ public class ErrorPathClassifier {
     return new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(currentErrorPath);
   }
 
-  private Long obtainDomainTypeScoreForVariables(Set<String> useDefinitionInformation) {
-    Long domainTypeScore = 1L;
+  public Long obtainDomainTypeScoreForVariables(Set<String> useDefinitionInformation) {
+
+    if(useDefinitionInformation.isEmpty()) {
+      return Long.valueOf(UNKNOWN_VAR);
+    }
+
+    Long currentScore = 1L;
+    Long previousScore = currentScore;
     for (String variableName : useDefinitionInformation) {
       int factor = UNKNOWN_VAR;
 
@@ -304,15 +312,21 @@ public class ErrorPathClassifier {
         factor = INTEQUAL_VAR;
       }
 
-      domainTypeScore = domainTypeScore * factor;
+      currentScore = currentScore * factor;
 
       if (loopStructure.isPresent()
           && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-        domainTypeScore = domainTypeScore + Integer.MAX_VALUE;
+        return Long.MAX_VALUE;
       }
+
+      // check for overflow
+      if(currentScore < previousScore) {
+        return Long.MAX_VALUE - 1;
+      }
+      previousScore = currentScore;
     }
 
-    return domainTypeScore;
+    return currentScore;
   }
 
   /**
@@ -328,7 +342,9 @@ public class ErrorPathClassifier {
   private ARGPath buildPath(final int bestIndex, final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
     MutableARGPath errorPath = new MutableARGPath();
     for (int j = 0; j <= bestIndex; j++) {
-      errorPath.addAll(pathToList(pPrefixes.get(j)));
+      List<Pair<ARGState, CFAEdge>> list = pathToList(pPrefixes.get(j));
+
+      errorPath.addAll(/*replaceAssumeEdgesWithBlankEdges*/(list));
 
       if (j != bestIndex) {
         replaceAssumeEdgeWithBlankEdge(errorPath);
@@ -355,7 +371,28 @@ public class ErrorPathClassifier {
     return errorPath.immutableCopy();
   }
 
-  public static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
+  private List<Pair<ARGState, CFAEdge>> replaceAssumeEdgesWithBlankEdges(List<Pair<ARGState, CFAEdge>> pList) {
+    ArrayDeque<Pair<ARGState, CFAEdge>> newList = new ArrayDeque<>();
+
+    for(int i = 0; i < pList.size(); i++) {
+      Pair<ARGState, CFAEdge> elem = pList.get(i);
+      if(i < pList.size() - 1 && elem.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge) {
+        newList.addLast(Pair.<ARGState, CFAEdge>of(elem.getFirst(), new BlankEdge("",
+            FileLocation.DUMMY,
+            elem.getSecond().getPredecessor(),
+            elem.getSecond().getSuccessor(),
+            INBTWN_REPLACEMENT)));
+      }
+
+      else {
+        newList.addLast(elem);
+      }
+    }
+
+    return new ArrayList<>(newList);
+  }
+
+  private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
     return Pair.zipList(path.asStatesList(), path.asEdgesList());
   }
 

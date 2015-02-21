@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 
 final class BMCHelper {
@@ -61,16 +62,26 @@ final class BMCHelper {
 
       @Override
       public BooleanFormula apply(AbstractState pInput) {
-        return assertAt(pInput, pUninstantiatedFormula, pFMGR);
+        return assertAt(pInput, pUninstantiatedFormula, pFMGR, 1);
       }
 
     });
   }
 
-  public static BooleanFormula assertAt(AbstractState pState, BooleanFormula pUninstantiatedFormula, FormulaManagerView pFMGR) {
+  public static Iterable<BooleanFormula> assertAtWithIncrementingDefaultIndex(Iterable<AbstractState> pStates, final BooleanFormula pUninstantiatedFormula, final FormulaManagerView pFMGR, int firstDefault) {
+    ImmutableSet.Builder<BooleanFormula> formulas = ImmutableSet.builder();
+    int defaultIndex = firstDefault;
+    for (AbstractState state : pStates) {
+      formulas.add(assertAt(state, pUninstantiatedFormula, pFMGR, defaultIndex));
+      ++defaultIndex;
+    }
+    return formulas.build();
+  }
+
+  public static BooleanFormula assertAt(AbstractState pState, BooleanFormula pUninstantiatedFormula, FormulaManagerView pFMGR, int pDefaultIndex) {
     PredicateAbstractState pas = AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
     PathFormula pathFormula = pas.getPathFormula();
-    BooleanFormula instantiatedFormula = pFMGR.instantiate(pUninstantiatedFormula, pathFormula.getSsa().withDefault(1));
+    BooleanFormula instantiatedFormula = pFMGR.instantiate(pUninstantiatedFormula, pathFormula.getSsa().withDefault(pDefaultIndex));
     BooleanFormula stateFormula = pathFormula.getFormula();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
     return bfmgr.or(bfmgr.not(stateFormula), instantiatedFormula);

@@ -52,11 +52,12 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.PrefixProvider;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-public class ValueAnalysisFeasibilityChecker {
+public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
 
   private final LogManager logger;
   private final ValueAnalysisTransferRelation transfer;
@@ -117,25 +118,7 @@ public class ValueAnalysisFeasibilityChecker {
   public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial, final Deque<ValueAnalysisState> pCallstack)
       throws CPAException, InterruptedException {
 
-    return path.size() == getInfeasilbePrefix(path, pInitial, pCallstack).size();
-  }
-
-  /**
-   * This method obtains the shortest prefix of the path, that is infeasible by itself.
-   * If the path is feasible, the whole path is returned.
-   * We assume that the path starts at the CFA-root-node and does not skip any edge on its way.
-   *
-   * @param path the path to check
-   * @param pInitial the initial state
-   * @param pCallstack the initial callstack
-   * @return the shortest prefix of the path that is feasible by itself
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisState pInitial,
-                                     final Deque<ValueAnalysisState> pCallstack)
-          throws CPAException, InterruptedException {
-    return getInfeasilbePrefixes(path, pInitial,pCallstack).get(0);
+    return path.size() == getInfeasilbePrefixes(path, pInitial, pCallstack).get(0).size();
   }
 
   /**
@@ -143,15 +126,14 @@ public class ValueAnalysisFeasibilityChecker {
    * is returned as the only element of the list.
    *
    * @param path the path to check
-   * @param pInitial the initial state
    * @return the list of prefix of the path that are feasible by themselves
    * @throws CPAException
    * @throws InterruptedException
    */
-  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path,
-                                             final ValueAnalysisState pInitial)
+  @Override
+  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path)
       throws CPAException, InterruptedException {
-    return getInfeasilbePrefixes(path, pInitial, new ArrayDeque<ValueAnalysisState>());
+    return getInfeasilbePrefixes(path, new ValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
   }
 
   /**

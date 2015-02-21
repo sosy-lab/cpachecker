@@ -41,8 +41,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -75,7 +75,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
   private String requirementsStateClassName;
 
-  private Class<?> requirementsStateClass;
+  private Class<AbstractState> requirementsStateClass;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
@@ -105,14 +105,15 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     }
 
     try {
-      requirementsStateClass = Class.forName(requirementsStateClassName);
+      // TODO warning?
+      requirementsStateClass = (Class<AbstractState>) Class.forName(requirementsStateClassName);
     } catch (ClassNotFoundException e) {
       throw new InvalidConfigurationException("The abstract state " + requirementsStateClassName + " is unknown.");
     }
 
-    CFANode locState = AbstractStates.extractLocation(cpa.getInitialState(cfa.getMainFunction(),                                                StateSpacePartition.getDefaultPartition()));
-    if (locState == null) {
-      throw new InvalidConfigurationException("The initial state of cpa is not an abstract state.");
+    if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+                                          requirementsStateClass) == null) {
+      throw new InvalidConfigurationException(requirementsStateClassName + "is not an abstract state.");
     }
 
     // TODO to be continued: CFA integration
@@ -240,11 +241,11 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
 
       if (pCustomIA.isEndState(tmp, ciStart)) {
         list.add(tmp);
+        continue;
       }
 
       // breadth-first-search
-      Collection<ARGState> children = tmp.getChildren();
-      for (ARGState child : children) {
+      for (ARGState child : tmp.getChildren()) {
         if (!visitedNodes.contains(child)) {
           queue.add(child);
           visitedNodes.add(child);

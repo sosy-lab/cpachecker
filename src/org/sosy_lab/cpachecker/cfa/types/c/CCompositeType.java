@@ -35,14 +35,15 @@ import com.google.common.collect.ImmutableList;
 public final class CCompositeType implements CComplexType, Serializable {
 
   private static final long serialVersionUID = -839957929135012583L;
-  private final CComplexType.ComplexTypeKind    kind;
+  private final CComplexType.ComplexTypeKind kind;
   private List<CCompositeTypeMemberDeclaration> members;
-  private final String                name;
+  private final String name;
+  private final String origName;
   private boolean   isConst;
   private boolean   isVolatile;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
-      final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
+      final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName, final String pOrigName) {
 
     checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
     isConst= pConst;
@@ -50,6 +51,7 @@ public final class CCompositeType implements CComplexType, Serializable {
     kind = pKind;
     members = ImmutableList.copyOf(pMembers);
     name = pName.intern();
+    origName = pOrigName.intern();
   }
 
   @Override
@@ -74,6 +76,12 @@ public final class CCompositeType implements CComplexType, Serializable {
   public String getQualifiedName() {
     return (kind.toASTString() + " " + name).trim();
   }
+
+  @Override
+  public String getOrigName() {
+    return origName;
+  }
+
 
   @Override
   public String toString() {
@@ -240,7 +248,7 @@ public final class CCompositeType implements CComplexType, Serializable {
 
   @Override
   public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name);
+    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name, origName);
   }
 
 }

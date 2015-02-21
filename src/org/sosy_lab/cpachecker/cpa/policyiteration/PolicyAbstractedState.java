@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
@@ -94,7 +95,8 @@ public final class PolicyAbstractedState extends PolicyState
       PathFormula initial) {
     PolicyIntermediateState Iinitial = PolicyIntermediateState.of(
         pLocation, ImmutableSet.<Template>of(),
-        initial, ImmutableMultimap.<Location, Location>of()
+        initial, ImmutableMultimap.<Location, Location>of(),
+        ImmutableMap.<Location, SSAMap>of()
     );
     return PolicyAbstractedState.of(
         ImmutableMap.<Template, PolicyBound>of(),

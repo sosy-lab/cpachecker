@@ -25,4 +25,3 @@ For project information: visit http://cpachecker.sosy-lab.org
 
 dbeyer 2014-04-04
 dbeyer 2010-02-02
-

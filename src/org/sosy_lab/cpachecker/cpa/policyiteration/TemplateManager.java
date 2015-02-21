@@ -54,9 +54,7 @@ public class TemplateManager {
       description="Generate octagon templates for all combinations of variables. ")
   private boolean generateOctagons = false;
 
-  @Option(secure=true,
-      description="Generate templates from assert statements"
-  )
+  @Option(secure=true, description="Generate templates from assert statements")
   private boolean generateFromAsserts = true;
 
   @Option(secure=true,
@@ -84,6 +82,9 @@ public class TemplateManager {
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
   private static final String RET_VARIABLE = "__retval__";
 
+  private static final String ASSERT_FUNC_NAME = "assert";
+  private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
+
   public TemplateManager(
       LogManager pLogger,
       Configuration pConfig,
@@ -91,8 +92,9 @@ public class TemplateManager {
       FormulaManagerView pFormulaManagerView,
       PathFormulaManager pPfmgr
       ) throws InvalidConfigurationException{
-    pfmgr = pPfmgr;
     pConfig.inject(this, TemplateManager.class);
+
+    pfmgr = pPfmgr;
     cfa = pCfa;
     logger = pLogger;
     rfmgr = pFormulaManagerView.getRationalFormulaManager();
@@ -163,6 +165,7 @@ public class TemplateManager {
               idExpression2);
 
           out.add(new Template(expr1.add(expr2), type));
+          out.add(new Template(expr1.negate().sub(expr2), type));
           out.add(new Template(expr1.sub(expr2), type));
           out.add(new Template(expr2.sub(expr1), type));
         }
@@ -223,7 +226,7 @@ public class TemplateManager {
       if (customPrefix.equals("")) {
         return sum;
       } else {
-        return fmgrv.addPrefixToAllVariables(sum, customPrefix);
+        return fmgrv.addPrefixToAll(sum, customPrefix);
       }
     }
   }
@@ -260,8 +263,6 @@ public class TemplateManager {
 
   }
 
-
-  // TODO: refactor.
   /**
    * Generate templates from the calls to assert() functions.
    */
@@ -272,34 +273,37 @@ public class TemplateManager {
       for (int edgeIdx=0; edgeIdx<node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
         String statement = edge.getRawStatement();
-
         Optional<Template> template = Optional.absent();
-        if (statement.contains("assert")) {
-          if (statement.contains("__assert_fail")
-              && edge instanceof CStatementEdge) {
 
-            for (int enteringEdgeIdx=0;
-                 enteringEdgeIdx<node.getNumEnteringEdges(); enteringEdgeIdx++) {
-              CFAEdge enteringEdge = node.getEnteringEdge(enteringEdgeIdx);
-              if (enteringEdge instanceof CAssumeEdge) {
-                CAssumeEdge assumeEdge = (CAssumeEdge) enteringEdge;
-                CExpression expression = assumeEdge.getExpression();
+        if (statement.contains(ASSERT_H_FUNC_NAME)
+            && edge instanceof CStatementEdge) {
 
-                template = recExpressionToTemplate(expression);
-              }
+          for (int enteringEdgeIdx=0;
+               enteringEdgeIdx<node.getNumEnteringEdges(); enteringEdgeIdx++) {
+            CFAEdge enteringEdge = node.getEnteringEdge(enteringEdgeIdx);
+            if (enteringEdge instanceof CAssumeEdge) {
+              CAssumeEdge assumeEdge = (CAssumeEdge) enteringEdge;
+              CExpression expression = assumeEdge.getExpression();
+
+              template = recExpressionToTemplate(expression);
             }
-
-          } else if (edge instanceof CFunctionCallEdge) {
-            CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
-            if (callEdge.getArguments().isEmpty()) {
-              continue;
-            }
-            CExpression expression = callEdge.getArguments().get(0);
-            template = recExpressionToTemplate(expression);
           }
+
+        } else if (statement.contains(ASSERT_FUNC_NAME) &&
+            edge instanceof CFunctionCallEdge) {
+
+          CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
+          if (callEdge.getArguments().isEmpty()) {
+            continue;
+          }
+          CExpression expression = callEdge.getArguments().get(0);
+          template = recExpressionToTemplate(expression);
         }
+
         if (template.isPresent()) {
           Template t = template.get();
+
+          // Add template and its negation.
           templates.add(t);
           templates.add(
               new Template(t.linearExpression.negate(), t.type)
@@ -321,37 +325,28 @@ public class TemplateManager {
       Optional<Template> templateA = recExpressionToTemplate(operand1);
       Optional<Template> templateB = recExpressionToTemplate(operand2);
 
+      // Special handling for constants and multiplication.
       if (operator == CBinaryExpression.BinaryOperator.MULTIPLY
           && (templateA.isPresent() || templateB.isPresent())) {
 
-        CIntegerLiteralExpression literal;
-        if (operand1 instanceof CIntegerLiteralExpression) {
-          literal = (CIntegerLiteralExpression) operand1;
-          Rational coeff = Rational.ofBigInteger(literal.getValue());
-          if (templateB.isPresent()) {
-            return Optional.of(
-                new Template(
-                    templateB.get().linearExpression.multByConst(coeff),
-                    templateB.get().type
-                )
-            );
-          }
-        } else if (operand2 instanceof CIntegerLiteralExpression) {
-          literal = (CIntegerLiteralExpression) operand2;
-          Rational coeff = Rational.ofBigInteger(literal.getValue());
-          if (templateA.isPresent()) {
-            return Optional.of(
-                new Template(
-                    templateA.get().linearExpression.multByConst(coeff),
-                    templateA.get().type
-                )
-            );
-          }
+        if (operand1 instanceof CIntegerLiteralExpression &&
+            templateB.isPresent()) {
+
+          return Optional.of(useCoeff(
+              (CIntegerLiteralExpression) operand1, templateB.get()
+          ));
+        } else if (operand2 instanceof CIntegerLiteralExpression &&
+            templateA.isPresent()) {
+
+          return Optional.of(
+              useCoeff((CIntegerLiteralExpression) operand2, templateA.get())
+          );
         } else {
           return Optional.absent();
         }
       }
 
+      // Otherwise just add/subtract templates.
       if (templateA.isPresent() && templateB.isPresent()) {
         LinearExpression<CIdExpression> a = templateA.get().linearExpression;
         LinearExpression<CIdExpression> b = templateB.get().linearExpression;
@@ -375,14 +370,19 @@ public class TemplateManager {
     } else if (expression instanceof CIdExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       CIdExpression idExpression = (CIdExpression)expression;
-      return Optional.of(
-          new Template(
+      return Optional.of(new Template(
               LinearExpression.ofVariable(idExpression),
-              (CSimpleType) expression.getExpressionType()
-          )
-      );
+              (CSimpleType) expression.getExpressionType()));
     } else {
       return Optional.absent();
     }
+  }
+
+  private Template useCoeff(
+      CIntegerLiteralExpression literal, Template other) {
+    Rational coeff = Rational.ofBigInteger(literal.getValue());
+    return new Template(other.linearExpression.multByConst(coeff),
+        other.type
+    );
   }
 }

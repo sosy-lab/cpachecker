@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.ISCOperator;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 import com.google.common.base.Preconditions;
+import com.google.common.math.IntMath;
 
 /**
  * Instances of this class represent compound states of intervals.
@@ -391,7 +392,7 @@ public class CompoundInterval {
     int leftInclusive = 0;
     int rightExclusive = this.intervals.length;
     while (leftInclusive < rightExclusive) {
-      int index = leftInclusive + (rightExclusive - leftInclusive) / 2;
+      int index = IntMath.mean(leftInclusive, rightExclusive);
       SimpleInterval intervalAtIndex = this.intervals[index];
       boolean lbIndexLeqLb = !intervalAtIndex.hasLowerBound() || hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0;
       boolean ubIndexGeqUb = !intervalAtIndex.hasUpperBound() || hasUpperBound && intervalAtIndex.getUpperBound().compareTo(ub) >= 0;
@@ -430,7 +431,7 @@ public class CompoundInterval {
       } else { // Interval at index starts after the value
         rightExclusive = index;
       }
-      index = leftInclusive + (rightExclusive - leftInclusive) / 2;
+      index = IntMath.mean(leftInclusive, rightExclusive);
     }
     return index == 0 ? -1 : -index;
   }

@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -156,7 +157,8 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           predicateCpa.getPathFormulaManager(),
                                           strategy,
                                           predicateCpa.getSolver(),
-                                          predicateCpa.getAssumesStore());
+                                          predicateCpa.getAssumesStore(),
+                                          predicateCpa.getCfa());
   }
 
   @Override
@@ -181,10 +183,20 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         final PathFormulaManager pPathFormulaManager,
         final RefinementStrategy pStrategy,
         final Solver pSolver,
-        final PredicateAssumeStore pAssumesStore)
+        final PredicateAssumeStore pAssumesStore,
+        final CFA pCfa)
             throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pPathFormulaManager, pStrategy, pSolver, pAssumesStore);
+      super(config,
+          logger,
+          pCpa,
+          pInterpolationManager,
+          pPathChecker,
+          pPathFormulaManager,
+          pStrategy,
+          pSolver,
+          pAssumesStore,
+          pCfa);
 
     }
 

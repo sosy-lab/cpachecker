@@ -630,6 +630,14 @@ public class PredicateAbstractionManager {
     return predicateBuilder.build();
   }
 
+  private ImmutableSet<AbstractionPredicate> filterSubsumedPredicates(
+      final Collection<AbstractionPredicate> pPredicates,
+      final BooleanFormula f,
+      final SSAMap ssa,
+      final CFANode pLocation) throws SolverException, InterruptedException {
+    return null;
+  }
+
   private Function<AbstractionPredicate, BooleanFormula> predicateToFormula = new Function<AbstractionPredicate, BooleanFormula>() {
     @Override
     public BooleanFormula apply(AbstractionPredicate pArg0) {

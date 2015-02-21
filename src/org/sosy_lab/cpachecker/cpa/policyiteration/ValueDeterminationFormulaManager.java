@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -19,6 +20,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -26,6 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 
 public class ValueDeterminationFormulaManager {
@@ -49,8 +52,7 @@ public class ValueDeterminationFormulaManager {
       LogManager logger,
       CFA cfa,
       FormulaManager rfmgr,
-      TemplateManager pTemplateManager
-  ) throws InvalidConfigurationException{
+      TemplateManager pTemplateManager) throws InvalidConfigurationException{
 
     this.fmgr = fmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
@@ -68,16 +70,19 @@ public class ValueDeterminationFormulaManager {
    * The abstract state associated with the <code>focusedNode</code>
    * is the <b>new</b> state, with <code>updated</code> applied.
    *
-   * @return Global constraint for value determination.
+   * @return Global constraint for value determination and types of the abstract
+   * domain elements.
+   *
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  public List<BooleanFormula> valueDeterminationFormula(
+  public Pair<ImmutableMap<String, FormulaType<?>>, BooleanFormula> valueDeterminationFormula(
       Map<Location, PolicyAbstractedState> policy,
       final Location focusedLocation,
       final Map<Template, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
+    Map<String, FormulaType<?>> types = new HashMap<>();
 
     for (Entry<Location, PolicyAbstractedState> entry : policy.entrySet()) {
       Location toLocation = entry.getKey();
@@ -89,7 +94,7 @@ public class ValueDeterminationFormulaManager {
         Template template = incoming.getKey();
         PolicyBound bound = incoming.getValue();
 
-        String prefix = String.format(VISIT_PREFIX,
+        final String prefix = String.format(VISIT_PREFIX,
             bound.serializePath(toLocation));
 
         if (toLocation == focusedLocation && !updated.containsKey(template)) {
@@ -97,13 +102,8 @@ public class ValueDeterminationFormulaManager {
           // Insert the invariant from the previous constraint.
           Formula templateFormula = templateManager.toFormula(
               template,
-              new PathFormula(
-                  bfmgr.makeBoolean(true),
-                  SSAMap.emptySSAMap(),
-                  PointerTargetSet.emptyPointerTargetSet(),
-                  0
-              ),
-              prefix);
+              new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(),
+                  PointerTargetSet.emptyPointerTargetSet(), 0), prefix);
           BooleanFormula constraint = fmgr.makeLessOrEqual(
               templateFormula,
               fmgr.makeNumber(templateFormula, bound.bound), true
@@ -111,9 +111,10 @@ public class ValueDeterminationFormulaManager {
 
           constraints.add(constraint);
         } else {
-          PathFormula formula = incoming.getValue().formula;
+          PathFormula formula = bound.formula;
+          Location fromLocation = bound.predecessor;
+          SSAMap startSSA = bound.startSSA;
 
-          Location fromLocation = incoming.getValue().predecessor;
           int toLocationNo = toLocation.toID();
           int toLocationPrimeNo = toPrime(toLocationNo);
 
@@ -127,8 +128,10 @@ public class ValueDeterminationFormulaManager {
           PolicyAbstractedState incomingState = policy.get(fromLocation);
           for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
             Template incomingTemplate = incomingConstraint.getKey();
+
+
             Formula templateFormula = templateWithInitialMap(
-                incomingTemplate, formula,  prefix);
+                startSSA, incomingTemplate, formula,  prefix);
             String prevAbstractDomainElement = absDomainVarName(fromLocation,
                 incomingTemplate);
             Formula absDomainElementFormula = fmgr.makeVariable(
@@ -136,8 +139,7 @@ public class ValueDeterminationFormulaManager {
             );
 
             BooleanFormula constraint = fmgr.makeLessOrEqual(
-                templateFormula, absDomainElementFormula, true
-            );
+                templateFormula, absDomainElementFormula, true);
             constraints.add(constraint);
           }
 
@@ -157,6 +159,7 @@ public class ValueDeterminationFormulaManager {
               template, prefixedPathFormula, prefix);
           final String abstractDomainElement = absDomainVarName(toLocation, template);
           BooleanFormula outConstraint;
+          types.put(abstractDomainElement, fmgr.getFormulaType(outExpr));
 
           outConstraint = fmgr.makeEqual(
               outExpr,
@@ -169,7 +172,7 @@ public class ValueDeterminationFormulaManager {
         visited.add(prefix);
       }
     }
-    return constraints;
+    return Pair.of(ImmutableMap.copyOf(types), bfmgr.and(constraints));
   }
 
   /**
@@ -265,9 +268,8 @@ public class ValueDeterminationFormulaManager {
     return String.format(BOUND_VAR_NAME, pLocation.toID(), template);
   }
 
-  private Formula templateWithInitialMap(Template template,
+  private Formula templateWithInitialMap(SSAMap initialMap, Template template,
       PathFormula p, String prefix) {
-    SSAMap initialMap = deriveInitialSSAMap(p);
     PathFormula initialFormula = new PathFormula(
         p.getFormula(), initialMap, p.getPointerTargetSet(),
         p.getLength()
@@ -275,35 +277,5 @@ public class ValueDeterminationFormulaManager {
     return templateManager.toFormula(
         template, initialFormula, prefix
     );
-  }
-
-  private SSAMap deriveInitialSSAMap(PathFormula pFormula) {
-    Set<Triple<Formula, String, Integer>> allVars =
-        fmgr.extractFreeVariables(pFormula.getFormula());
-    Map<String, Integer> initialSSA = new HashMap<>();
-    for (Triple<Formula, String, Integer> e : allVars) {
-      String varName = e.getSecond();
-      Integer newValue = e.getThird();
-      if (!initialSSA.containsKey(varName) && newValue != null) {
-        initialSSA.put(varName, newValue);
-      } else if (initialSSA.containsKey(varName) && newValue != null) {
-        initialSSA.put(
-            varName, Math.min(newValue, initialSSA.get(varName))
-        );
-      }
-    }
-
-    SSAMap.SSAMapBuilder b = SSAMap.emptySSAMap().builder();
-    for (Entry<String, Integer> e : initialSSA.entrySet()) {
-      String varName = e.getKey();
-      int newIdx = e.getValue();
-      CType type = pFormula.getSsa().getType(varName);
-      if (type == null) {
-        type = CNumericTypes.DOUBLE;
-      }
-      b = b.setIndex(varName, type , newIdx);
-    }
-
-    return b.build();
   }
 }

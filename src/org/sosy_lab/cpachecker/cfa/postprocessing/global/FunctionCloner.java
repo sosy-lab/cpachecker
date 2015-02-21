@@ -34,8 +34,8 @@ import javax.annotation.Nonnull;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -604,7 +604,7 @@ class FunctionCloner implements CFAVisitor {
       // possible problem: compositeType contains itself again -> recursion
       // solution: cache the empty compositeType and fill it later.
       CCompositeType comp = new CCompositeType(type.isConst(), type.isVolatile(), type.getKind(),
-              ImmutableList.<CCompositeTypeMemberDeclaration>of(), type.getName());
+              ImmutableList.<CCompositeTypeMemberDeclaration>of(), type.getName(), type.getOrigName());
       typeCache.put(type, comp);
 
       // convert members and set them
@@ -619,7 +619,7 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CElaboratedType type) {
-      return new CElaboratedType(type.isConst(), type.isVolatile(), type.getKind(), type.getName(), cloneType(type.getRealType()));
+      return new CElaboratedType(type.isConst(), type.isVolatile(), type.getKind(), type.getName(), type.getOrigName(), cloneType(type.getRealType()));
     }
 
     @Override
@@ -631,7 +631,7 @@ class FunctionCloner implements CFAVisitor {
         enumType.setEnum(e.getEnum());
         l.add(enumType);
       }
-      return new CEnumType(type.isConst(), type.isVolatile(), l, type.getName());
+      return new CEnumType(type.isConst(), type.isVolatile(), l, type.getName(), type.getOrigName());
     }
 
     @Override

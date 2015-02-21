@@ -139,16 +139,19 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       = ImmutableMap.of("pthread_create", "threads");
 
   private final LogManager logger;
+  private final boolean splitDisequalities;
 
   private final Set<CFANode> loopHeads;
 
   /**
    * Class constructor.
+   * @param pSplitDisequalities
    * @throws InvalidCFAException
    * @throws InvalidConfigurationException
    */
-  public ApronTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
+  public ApronTransferRelation(LogManager log, CFA cfa, boolean pSplitDisequalities) throws InvalidCFAException {
     logger = log;
+    splitDisequalities = pSplitDisequalities;
 
     if (!cfa.getLoopStructure().isPresent()) {
       throw new InvalidCFAException("OctagonCPA does not work without loop information!");
@@ -345,10 +348,23 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
                                                                                                    right,
                                                                                                    increasedLeft)))));
             } else {
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
+
+              if(splitDisequalities) {
+                // use same trick as in octagon analysis since disequality does not seem to work
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     left,
+                                                                                                     right)))));
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     right,
+                                                                                                     left)))));
+              } else {
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
                                                                 new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
                                                                                                    left,
                                                                                                    right)))));
+              }
             }
           }
           break;
@@ -456,10 +472,22 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
                                                                                                    right,
                                                                                                    increasedLeft)))));
             } else {
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
+              if(splitDisequalities) {
+                // use same trick as in octagon analysis since disequality does not seem to work
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     left,
+                                                                                                     right)))));
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
+                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
+                                                                                                     right,
+                                                                                                     left)))));
+              } else {
+                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
                                                                 new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
                                                                                                    left,
                                                                                                    right)))));
+              }
             }
           } else {
             possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ,
@@ -651,8 +679,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, functionEntryNode.getReturnVariable().get().getName(), 0),
-                                                      getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+    if (functionEntryNode.getReturnVariable().isPresent()) {
+      possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, functionEntryNode.getReturnVariable().get().getName(), 0),
+          getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+    } else {
+      possibleStates.add(state);
+    }
 
     // declare all parameters as variables
     for (int i = 0; i < parameters.size(); i++) {
@@ -874,13 +906,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       variableName = ((CFieldReference) left).getFieldOwner().toASTString();
     } else {
       variableName = ((CIdExpression) left).toASTString();
-
-      if (!isGlobal(left)) {
-        variableName = buildVarName(functionName, variableName);
-      }
     }
 
-    if (isGlobal(left)) {
+    if (!isGlobal(left)) {
       return MemoryLocation.valueOf(functionName, variableName, 0);
     } else {
       return MemoryLocation.valueOf(variableName);

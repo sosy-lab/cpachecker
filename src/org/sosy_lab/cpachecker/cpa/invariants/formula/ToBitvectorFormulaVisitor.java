@@ -130,7 +130,14 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
     if (intervals.isSingleton()) {
       BigInteger value = intervals.getValue();
       // Get only the [size] least significant bits
-      value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
+      BigInteger upperExclusive = BigInteger.valueOf(2).pow(size);
+      boolean negative = value.signum() < 0;
+      if (negative && !value.equals(upperExclusive.shiftRight(1).negate())) {
+        value = value.negate();
+        value = value.and(BigInteger.valueOf(2).pow(size - 1).subtract(BigInteger.valueOf(1))).negate();
+      } else if (!negative) {
+        value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
+      }
       return this.bvfmgr.makeBitvector(size, value);
     }
     return null;

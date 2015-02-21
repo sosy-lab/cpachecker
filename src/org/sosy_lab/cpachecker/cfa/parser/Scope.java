@@ -47,10 +47,9 @@ public interface Scope {
   /**
    *
    * @param name
-   * @param origName
    * @return
    */
-  public boolean variableNameInUse(String name, String origName);
+  public boolean variableNameInUse(String name);
 
   /**
    * Returns the declaration of the variable with the given name, if the

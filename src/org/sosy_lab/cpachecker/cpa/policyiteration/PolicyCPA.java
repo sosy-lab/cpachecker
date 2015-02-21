@@ -81,13 +81,14 @@ public class PolicyCPA
     statistics = new PolicyIterationStatistics(config);
     TemplateManager templateManager = new TemplateManager(
         logger, config, cfa, formulaManager, pathFormulaManager);
+    SlicingFormulaManager slicingFormulaManager = new SlicingFormulaManager(
+        logger, formulaManager,
+        realFormulaManager.getUnsafeFormulaManager(),
+        realFormulaManager.getBooleanFormulaManager(), pathFormulaManager,
+        solver);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
         new ValueDeterminationFormulaManager(
             formulaManager, logger, cfa, realFormulaManager, templateManager);
-    FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
-        logger, formulaManager,
-        realFormulaManager.getUnsafeFormulaManager(),
-        realFormulaManager.getBooleanFormulaManager());
 
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(
@@ -102,7 +103,7 @@ public class PolicyCPA
         solver, logger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
         statistics,
-        formulaSlicingManager,
+        slicingFormulaManager,
         formulaLinearizationManager);
     mergeOperator = new MergeJoinOperator(this);
     stopOperator = new StopSepOperator(this);

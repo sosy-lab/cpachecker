@@ -122,6 +122,18 @@ public class ARGPath implements Appender {
   }
 
   /**
+   * This method obtains the suffix from the path, starting after the given offset.
+   *
+   * @param pOffset the offset
+   * @return the suffix
+   */
+  public ARGPath obtainSuffix(int pOffset) {
+    checkElementIndex(pOffset, states.size());
+    return new ARGPath(states.subList(pOffset, states.size()),
+                       edges.subList(pOffset, edges.size()));
+  }
+
+  /**
    * Only return the list of edges between the states,
    * excluding the one edge after the last state.
    * The result of this method is always one element shorter

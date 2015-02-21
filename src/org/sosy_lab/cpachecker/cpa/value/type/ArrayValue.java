@@ -75,7 +75,7 @@ public class ArrayValue implements Value {
    *</p>
    *
    * @param pType the type of the array. Only values of this type's element type or subtypes
-   * of this type's element type can be stored in the returned <code>ArrayValue</code> object
+   *    of this type's element type can be stored in the returned <code>ArrayValue</code> object
    * @param pArraySize the size of the array
    */
   public ArrayValue(JArrayType pType, int pArraySize) {
@@ -105,10 +105,12 @@ public class ArrayValue implements Value {
    * (that is values of the type or subtypes of this type and instances of {@link UnknownValue}).
    * Otherwise, an <code>IllegalArgumentException</code> is thrown at runtime.
    * </p>
-    throw new IllegalArgumentException()
+   *
    * @param pType the type of the array. Only values of this type's element type or subtypes
-   * of this type's element type can be stored in the returned <code>ArrayValue</code> object
+   *    of this type's element type can be stored in the returned <code>ArrayValue</code> object
    * @param pValues a <code>List</code> containing the initial values the array should have
+   *
+   * @throws IllegalArgumentException if a given value is not compatible with the array type
    */
   public ArrayValue(JArrayType pType, List<Value> pValues) {
     arrayType = pType;
@@ -257,7 +259,7 @@ public class ArrayValue implements Value {
    * Returns the type of this array. This includes information such as the element type and
    * the number of dimensions this array has.
    *
-   * @return
+   * @return the {@link JArrayType} of this array
    */
   public JArrayType getArrayType() { return arrayType; }
 
