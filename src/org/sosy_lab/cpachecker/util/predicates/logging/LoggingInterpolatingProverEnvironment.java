@@ -77,9 +77,18 @@ public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingPr
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> formulas) {
-    logger.log(Level.FINE, "formulasOfA:", formulas);
-    List<BooleanFormula> bf = wrapped.getSeqInterpolants(formulas);
+  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas) {
+    logger.log(Level.FINE, "formulasOfA:", partitionedFormulas);
+    List<BooleanFormula> bf = wrapped.getSeqInterpolants(partitionedFormulas);
+    logger.log(Level.FINE, "interpolants:", bf);
+    return bf;
+  }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree) {
+    logger.log(Level.FINE, "formulasOfA:", partitionedFormulas);
+    logger.log(Level.FINE, "startOfSubTree:", startOfSubTree);
+    List<BooleanFormula> bf = wrapped.getTreeInterpolants(partitionedFormulas, startOfSubTree);
     logger.log(Level.FINE, "interpolants:", bf);
     return bf;
   }

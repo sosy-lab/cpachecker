@@ -107,6 +107,12 @@ class PrincessInterpolatingProver extends PrincessAbstractProver implements Inte
   }
 
   @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<Integer>> partitionedFormulas, int[] startOfSubTree) {
+    throw new UnsupportedOperationException("directly receiving of tree interpolants is not supported." +
+        "Use another solver or another strategy for interpolants.");
+  }
+
+  @Override
   public Model getModel() {
     assert assertedFormulas.size() == annotatedTerms.size();
     final List<IExpression> values = Lists.<IExpression>newArrayList(annotatedTerms.values());

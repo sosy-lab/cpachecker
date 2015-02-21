@@ -56,19 +56,22 @@ public class Z3InterpolationTest {
       x = ifmgr.makeVariable("x");
       y = ifmgr.makeVariable("y");
       z = ifmgr.makeVariable("z");
-      prover.push(ifmgr.equal(
-          y,
-          ifmgr.multiply(ifmgr.makeNumber(2), x)
-      ));
-      Z3Formula formula2 = (Z3Formula) ifmgr.equal(
+      BooleanFormula f1 = ifmgr.equal(
+              y,
+              ifmgr.multiply(ifmgr.makeNumber(2), x));
+      BooleanFormula f2 = ifmgr.equal(
               y,
               ifmgr.add(
                   ifmgr.makeNumber(1),
                   ifmgr.multiply(z, ifmgr.makeNumber(2))
-              )
-          );
+              ));
+      long id1 = prover.push(f1);
+      long id2 = prover.push(f2);
+      boolean check = prover.isUnsat();
+      assert check : "formulas must be contradicting";
       BooleanFormula interpolant = prover.getInterpolant(
-          Collections.singletonList(formula2.getFormulaInfo()));
+          Collections.singletonList(id2));
+      // we actually only check for a successful execution here, the result is irrelevant.
     }
   }
 }

@@ -132,6 +132,11 @@ public class SolverInterpolationTest extends SolverBasedTest0 {
             .that(solver).isNotEqualTo(Solvers.MATHSAT5);
   }
 
+  private void requireTreeItp() {
+    assume().withFailureMessage("Solver does not support tree-interpolation.")
+        .that(solver == Solvers.Z3 || solver == Solvers.SMTINTERPOL).isTrue();
+  }
+
   @Test
   @SuppressWarnings({"unchecked", "varargs"})
   public <T> void sequentialInterpolation() throws SolverException, InterruptedException {
@@ -170,6 +175,125 @@ public class SolverInterpolationTest extends SolverBasedTest0 {
     stack.pop();
 
     checkItpSequence(stack, Lists.newArrayList(A, B, C, D), itps);
+  }
+
+  @Test
+  @SuppressWarnings({"unchecked", "varargs"})
+  public <T> void treeInterpolation() throws SolverException, InterruptedException {
+
+    requireTreeItp();
+
+    InterpolatingProverEnvironment<T> stack = newEnvironmentForTest();
+
+    int i = index.getFreshId();
+
+    IntegerFormula zero = imgr.makeNumber(0);
+    IntegerFormula one = imgr.makeNumber(1);
+
+    IntegerFormula a = imgr.makeVariable("a" + i);
+    IntegerFormula b = imgr.makeVariable("b" + i);
+    IntegerFormula c = imgr.makeVariable("c" + i);
+    IntegerFormula d = imgr.makeVariable("d" + i);
+
+    // build formula:  1 = A = B = C = D = 0
+    BooleanFormula A = imgr.equal(one, a);
+    BooleanFormula B = imgr.equal(a, b);
+    BooleanFormula R = imgr.equal(b, c);
+    BooleanFormula C = imgr.equal(c, d);
+    BooleanFormula D = imgr.equal(d, zero);
+
+    Set<T> TA = Sets.newHashSet(stack.push(A));
+    Set<T> TB = Sets.newHashSet(stack.push(B));
+    Set<T> TR = Sets.newHashSet(stack.push(R));
+    Set<T> TC = Sets.newHashSet(stack.push(C));
+    Set<T> TD = Sets.newHashSet(stack.push(D));
+
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable();
+
+    // we build a very simple tree:
+    // A  D
+    // |  |
+    // B  C
+    // | /
+    // R
+    List<BooleanFormula> itps = stack.getTreeInterpolants(
+        Lists.newArrayList(TA, TB, TD, TC, TR),  // post-order
+        new int[]         { 0,  0,  2,  2,  0}); // left-most node in current subtree
+
+    stack.pop(); // clear stack, such that we can re-use the solver
+    stack.pop();
+    stack.pop();
+    stack.pop();
+    stack.pop();
+
+    checkImplies(stack, A, itps.get(0));
+    checkImplies(stack, bmgr.and(itps.get(0),B), itps.get(1));
+    checkImplies(stack, D, itps.get(2));
+    checkImplies(stack, bmgr.and(itps.get(2),C), itps.get(3));
+    checkImplies(stack, bmgr.and(Lists.newArrayList(itps.get(1), itps.get(3), R)), bmgr.makeBoolean(false));
+  }
+
+  @Test
+  @SuppressWarnings({"unchecked", "varargs"})
+  public <T> void treeInterpolation2() throws SolverException, InterruptedException {
+
+    requireTreeItp();
+
+    InterpolatingProverEnvironment<T> stack = newEnvironmentForTest();
+
+    int i = index.getFreshId();
+
+    IntegerFormula one = imgr.makeNumber(1);
+    IntegerFormula five = imgr.makeNumber(5);
+
+    IntegerFormula a = imgr.makeVariable("a" + i);
+    IntegerFormula b = imgr.makeVariable("b" + i);
+    IntegerFormula c = imgr.makeVariable("c" + i);
+    IntegerFormula d = imgr.makeVariable("d" + i);
+    IntegerFormula e = imgr.makeVariable("e" + i);
+
+    // build formula:  1 = A = B = C = D+1 and D = E = 5
+    BooleanFormula A = imgr.equal(one, a);
+    BooleanFormula B = imgr.equal(a, b);
+    BooleanFormula R1 = imgr.equal(b, c);
+    BooleanFormula C = imgr.equal(c, imgr.add(d, one));
+    BooleanFormula R2 = imgr.equal(d, e);
+    BooleanFormula D = imgr.equal(e, five);
+
+    Set<T> TA = Sets.newHashSet(stack.push(A));
+    Set<T> TB = Sets.newHashSet(stack.push(B));
+    Set<T> TR1 = Sets.newHashSet(stack.push(R1));
+    Set<T> TC = Sets.newHashSet(stack.push(C));
+    Set<T> TR2 = Sets.newHashSet(stack.push(R2));
+    Set<T> TD = Sets.newHashSet(stack.push(D));
+
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable();
+
+    // we build a simple tree:
+    // A
+    // |
+    // B  C
+    // | /
+    // R1 D
+    // | /
+    // R2
+    List<BooleanFormula> itps = stack.getTreeInterpolants(
+        Lists.newArrayList(TA, TB, TC, TR1, TD, TR2),  // post-order
+        new int[]         { 0,  0,  2,   0,  4,  0}); // left-most node in current subtree
+
+    stack.pop(); // clear stack, such that we can re-use the solver
+    stack.pop();
+    stack.pop();
+    stack.pop();
+    stack.pop();
+    stack.pop();
+
+    checkImplies(stack, A, itps.get(0));
+    checkImplies(stack, bmgr.and(itps.get(0),B), itps.get(1));
+    checkImplies(stack, C, itps.get(2));
+    checkImplies(stack, bmgr.and(Lists.newArrayList(itps.get(1), itps.get(2), R1)), itps.get(3));
+    checkImplies(stack, D, itps.get(4));
+    checkImplies(stack, bmgr.and(Lists.newArrayList(itps.get(3), itps.get(4), R2)), bmgr.makeBoolean(false));
   }
 
   private void checkItpSequence(InterpolatingProverEnvironment<?> stack,
