@@ -48,18 +48,13 @@ import com.google.common.base.Optional;
 @Options(prefix = "cpa.value")
 public class SymbolicValueFactory {
 
-  private static final SymbolicValueFactory INSTANCE = new SymbolicValueFactory();
-
-  private static final String NO_SYMBOLIC_VALUE_ERROR =
-      "Don't create a symbolic expression if you can just compute the expression's value!";
+  private static final SymbolicValueFactory SINGLETON = new SymbolicValueFactory();
 
   @Option(name = "maxSymbolicValues",
       description = "The maximum amount of symbolic values to create per ast node.")
   private int maxValuesPerNode = 100000;
 
   private final Map<AAstNode, Integer> valuesPerNodeMap = new HashMap<>();
-
-  private static final SymbolicValueFactory SINGLETON = new SymbolicValueFactory();
 
   private SymbolicValueFactory() {
     // DO NOTHING
