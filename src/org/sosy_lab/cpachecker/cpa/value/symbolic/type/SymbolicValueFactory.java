@@ -206,11 +206,23 @@ public class SymbolicValueFactory {
   }
 
   public SymbolicExpression logicalNot(SymbolicExpression pOperand, Type pType) {
-    return new LogicalNotExpression(pOperand, pType);
+
+    if (pOperand instanceof LogicalNotExpression) {
+      return ((LogicalNotExpression) pOperand).getOperand();
+
+    } else {
+      return new LogicalNotExpression(pOperand, pType);
+    }
   }
 
   public SymbolicExpression binaryNot(SymbolicExpression pOperand, Type pType) {
-    return new BinaryNotExpression(pOperand, pType);
+
+    if (pOperand instanceof BinaryNotExpression) {
+      return ((BinaryNotExpression) pOperand).getOperand();
+
+    } else {
+      return new BinaryNotExpression(pOperand, pType);
+    }
   }
 
   public SymbolicExpression greaterThan(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
