@@ -259,6 +259,8 @@ public class SymbolicValueFactory {
     } else {
       boolean isCast = operand instanceof CastExpression;
 
+      operand = new CastExpression(operand, pTargetType);
+
       if (isCast) {
         operand = simplifyCasts((CastExpression) operand, pMachineModel);
       }
