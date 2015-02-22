@@ -37,7 +37,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -238,8 +237,6 @@ public class ConstraintsTransferRelation
     } else if (pExpression instanceof CBinaryExpression) {
       return createConstraint((CBinaryExpression)pExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof AIdExpression) {
-      return createConstraint((AIdExpression) pExpression, pFactory, pTruthAssumption);
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());
     }
@@ -276,19 +273,6 @@ public class ConstraintsTransferRelation
       boolean pTruthAssumption) throws UnrecognizedCodeException {
 
     Constraint constraint;
-
-    if (pTruthAssumption) {
-      constraint = pFactory.createPositiveConstraint(pExpression);
-    } else {
-      constraint = pFactory.createNegativeConstraint(pExpression);
-    }
-
-    return Optional.fromNullable(constraint);
-  }
-
-  private Optional<Constraint> createConstraint(AIdExpression pExpression, ConstraintFactory pFactory,
-      boolean pTruthAssumption) throws UnrecognizedCodeException {
-   Constraint constraint;
 
     if (pTruthAssumption) {
       constraint = pFactory.createPositiveConstraint(pExpression);
