@@ -79,7 +79,7 @@ import com.google.common.collect.Multimap;
 public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsProvider {
 
   @Option(secure=true, description="whether or not to do lazy-abstraction", name="restart", toUppercase = true)
-  private RestartStrategy restartStrategy = RestartStrategy.TOP;
+  private RestartStrategy restartStrategy = RestartStrategy.ROOT;
 
   @Option(secure=true, description="whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
   private boolean useTopDownInterpolationStrategy = true;
@@ -267,7 +267,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   }
 
   private void createGlobalPrecision(final ReachedSet pReached, ValueAnalysisInterpolationTree interpolationTree) {
-    for (ARGState root : interpolationTree.obtainRefinementRoots(RestartStrategy.BOTTOM)) {
+    for (ARGState root : interpolationTree.obtainRefinementRoots(RestartStrategy.PIVOT)) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision

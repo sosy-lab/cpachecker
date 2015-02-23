@@ -1246,23 +1246,24 @@ cpa.predicate.refinement.sliceBlockFormulas = false
 # predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
 
-# Strategy how to interact woith the intepolating prover. If a strategy
-# starts with 'CPACHECKER_', we use our own implementation and do not use the
-# solver's method. In our own implementation the properties of interpolants
-# are guaranteed for special cases only.
-# - CPACHECKER_SEQ: We simply return each interpolant for i={0..n-1} for the
+# Strategy how to interact with the intepolating prover. The analysis must
+# support the strategy, otherwise the result will be useless!
+# - SEQ_CPACHECKER: We simply return each interpolant for i={0..n-1} for the
 # partitions A=[0 .. i] and B=[i+1 .. n]. The result is similar to
 # INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', i.e. the solver
-# has to generate nice interpolants. 
+# has to generate nice interpolants itself. Supported by all solvers!
 # - INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the
 # partitions [1,...n]. 
-# - CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the
+# - TREE: use the tree-interpolation-feature of a solver to get interpolants
+# - TREE_WELLSCOPED: We return each interpolant for i={0..n-1} for the
 # partitions A=[lastFunctionEntryIndex .. i] and B=[0 ..
-# lastFunctionEntryIndex-1 , i+1 .. n].
-# - NESTED: use callstack and previous interpolants for next interpolants
-# (see 'Nested Interpolants').
-cpa.predicate.refinement.strategy = CPACHECKER_SEQ
-  enum:     [CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, NESTED]
+# lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme.
+# - TREE_NESTED: use callstack and previous interpolants for next
+# interpolants (see 'Nested Interpolants'),
+# - TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from
+# 'Tree Interpolation in Vampire'.
+cpa.predicate.refinement.strategy = SEQ_CPACHECKER
+  enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
@@ -1646,10 +1647,10 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 cpa.value.refinement.itpSortedTargets = false
 
 # whether or not to do lazy-abstraction
-cpa.value.refinement.restart = BOTTOM
-  enum:     [TOP, BOTTOM, COMMON]
-cpa.value.refinement.restart = TOP
-  enum:     [TOP, BOTTOM, COMMON]
+cpa.value.refinement.restart = PIVOT
+  enum:     [ROOT, PIVOT, COMMON]
+cpa.value.refinement.restart = ROOT
+  enum:     [ROOT, PIVOT, COMMON]
 
 # globalPrec
 cpa.value.refinement.useGlobalPrecision = false

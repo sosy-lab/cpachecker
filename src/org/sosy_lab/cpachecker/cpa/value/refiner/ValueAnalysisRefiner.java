@@ -87,7 +87,7 @@ import com.google.common.collect.Sets;
 public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
-  private RestartStrategy restartStrategy = RestartStrategy.BOTTOM;
+  private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
       secure = true,
@@ -428,7 +428,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     }
 
     // no relocation needed if restart at top
-    if(restartStrategy == RestartStrategy.TOP) {
+    if(restartStrategy == RestartStrategy.ROOT) {
       return pRefinementRoot;
     }
 
@@ -628,14 +628,15 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   /**
    * The strategy to determine where to restart the analysis after a successful refinement.
-   * {@link #TOP} means that the analysis is restarted from the root of the ARG
-   * {@link #BOTTOM} means that the analysis is restarted from the individual refinement roots identified
+   * {@link #ROOT} means that the analysis is restarted from the root of the ARG
+   * {@link #PIVOT} means that the analysis is restarted from the lowest possible refinement root, i.e.,
+   *  the first ARGNode associated with a non-trivial interpolant (cf. Lazy Abstraction, 2002)
    * {@link #COMMON} means that the analysis is restarted from lowest ancestor common to all refinement roots, if more
    * than two refinement roots where identified
    */
   public enum RestartStrategy {
-    TOP,
-    BOTTOM,
+    ROOT,
+    PIVOT,
     COMMON
   }
 }

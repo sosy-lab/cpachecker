@@ -289,7 +289,7 @@ class ValueAnalysisInterpolationTree {
    * @return the set of refinement roots
    */
   Collection<ARGState> obtainRefinementRoots(RestartStrategy strategy) {
-    if (strategy == RestartStrategy.TOP) {
+    if (strategy == RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
       return new HashSet<>(Collections.singleton(successorRelation.get(root).iterator().next()));
     }
