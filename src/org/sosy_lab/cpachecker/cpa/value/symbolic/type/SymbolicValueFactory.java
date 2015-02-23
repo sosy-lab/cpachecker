@@ -92,6 +92,7 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression asConstant(Value pValue, Type pType) {
     checkNotNull(pValue);
+    assert !pValue.isUnknown();
     if (pValue instanceof SymbolicExpression) {
       return ((SymbolicExpression) pValue);
 
