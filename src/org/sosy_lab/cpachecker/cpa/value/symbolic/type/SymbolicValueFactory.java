@@ -43,7 +43,9 @@ import org.sosy_lab.cpachecker.util.Types;
 import com.google.common.base.Optional;
 
 /**
- * Factory for creating {@link SymbolicValue}s
+ * Factory for creating {@link SymbolicValue}s.
+ * All {@link SymbolicExpression}s created with this factory use canonical C types, as provided by
+ * {@link CType#getCanonicalType()}.
  */
 @Options(prefix = "cpa.value")
 public class SymbolicValueFactory {
