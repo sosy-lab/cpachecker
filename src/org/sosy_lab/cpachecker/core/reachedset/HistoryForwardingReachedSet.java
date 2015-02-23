@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 public class HistoryForwardingReachedSet extends ForwardingReachedSet {
 
   private final Collection<ReachedSet> usedReachedSets;
+  private boolean first = true;
 
   public HistoryForwardingReachedSet(ReachedSet pDelegate) {
     super(pDelegate);
@@ -46,10 +47,14 @@ public class HistoryForwardingReachedSet extends ForwardingReachedSet {
   @Override
   public void setDelegate(ReachedSet pDelegate) {
     super.setDelegate(pDelegate);
-    usedReachedSets.add(pDelegate);
+    if (!first) {
+      usedReachedSets.add(pDelegate);
+    } else {
+      first = false;
+    }
   }
 
-  public Collection<ReachedSet> getAllReachedSetsUsedAsDelegates(){
+  public Collection<ReachedSet> getAllReachedSetsUsedAsDelegates() {
     return ImmutableSet.copyOf(usedReachedSets);
   }
 
