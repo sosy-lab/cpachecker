@@ -265,8 +265,9 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     boolean unsat = false;
 
     try {
-      prover = solver.newProverEnvironmentWithModelGeneration();
       if (!constraints.isEmpty()) {
+        prover = solver.newProverEnvironmentWithModelGeneration();
+
         prover.push(getFullFormula());
         unsat = prover.isUnsat();
 
@@ -290,8 +291,10 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   }
 
   private void closeProver() {
-    prover.close();
-    prover = null;
+    if (prover != null) {
+      prover.close();
+      prover = null;
+    }
   }
 
   private void computeDefiniteAssignment() throws SolverException, InterruptedException, UnrecognizedCCodeException {
