@@ -679,6 +679,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return UnknownValue.getInstance();
   }
 
+  private boolean isComplexJavaType(Type pType) {
+    return pType instanceof JClassOrInterfaceType
+        || pType instanceof JArrayType;
+  }
+
   private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
       ARightHandSide pExp) {
 
@@ -686,17 +691,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   private boolean isTrackedField(ADeclaration pDeclaration, Value pInitialValue) {
-    boolean isNoComplexType = !isComplexJavaType(pDeclaration.getType())
-        && (missingInformationRightJExpression != null || !pInitialValue.isUnknown());
+    boolean isNoClassType = !(pDeclaration.getType() instanceof JClassOrInterfaceType);
 
-    return isNoComplexType || pInitialValue instanceof EnumConstantValue
-        || pInitialValue instanceof ArrayValue || pInitialValue instanceof NullValue
-        || pInitialValue.isUnknown();
-  }
-
-  private boolean isComplexJavaType(Type pType) {
-    return pType instanceof JClassOrInterfaceType
-        || pType instanceof JArrayType;
+    // We only track known values and only null values of Java class types.
+    return !pInitialValue.isUnknown() && (isNoClassType || pInitialValue.equals(NullValue.getInstance()));
   }
 
   private Value getSymbolicIdentifier(Type pType) {
