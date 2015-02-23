@@ -389,7 +389,7 @@ public class PartialARGsCombiner implements Algorithm {
     return result;
   }
 
-  private class EdgeSuccessor implements Predicate<ARGState> {
+  private static class EdgeSuccessor implements Predicate<ARGState> {
 
     private CFAEdge edge;
     private ARGState predecessor;
