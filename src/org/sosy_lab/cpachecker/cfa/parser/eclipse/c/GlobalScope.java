@@ -224,17 +224,15 @@ class GlobalScope extends AbstractScope {
         return false;
       }
 
+      // two CCompositeTypes or two CEnumTypes
+      // declaring struct twice is not allowed, even with equal signatures
       if (oldType.getClass() == type.getClass()) {
-        // two CCompositeTypes or two CEnumTypes
-        // declaring struct twice is not allowed, even with equal signatures
-        if (oldType.getClass() == type.getClass()) {
-          if (declaration.getFileLocation().getFileName().equals(oldDeclaration.getFileLocation().getFileName())) {
-            throw new CFAGenerationRuntimeException("Redeclaring " + name
-                + " in " + declaration.getFileLocation()
-                + ", originally declared in " + oldDeclaration.getFileLocation());
-          } else {
-            return true;
-          }
+        if (declaration.getFileLocation().getFileName().equals(oldDeclaration.getFileLocation().getFileName())) {
+          throw new CFAGenerationRuntimeException("Redeclaring " + name
+              + " in " + declaration.getFileLocation()
+              + ", originally declared in " + oldDeclaration.getFileLocation());
+        } else {
+          return true;
         }
       }
 
