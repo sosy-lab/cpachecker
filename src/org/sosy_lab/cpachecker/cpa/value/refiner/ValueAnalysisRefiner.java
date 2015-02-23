@@ -614,15 +614,12 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   }
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    if (refinementCounter > 0) {
-      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
-      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
-      out.println("Time for completing refinement:       " + totalTime);
-      pathInterpolator.printStatistics(out, pResult, pReached);
-      out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));
-      out.println("Total number of similar, repeated refinements: " + String.format(Locale.US, "%9d", timesRepeatedRefinements));
-
-    }
+    out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
+    out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
+    out.println("Time for completing refinement:       " + totalTime);
+    pathInterpolator.printStatistics(out, pResult, pReached);
+    out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));
+    out.println("Total number of similar, repeated refinements: " + String.format(Locale.US, "%9d", timesRepeatedRefinements));
   }
 
   private int obtainErrorPathId(ARGPath path) {
