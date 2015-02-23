@@ -50,6 +50,6 @@ public class CastExpression extends UnarySymbolicExpression {
 
   @Override
   public String toString() {
-    return "Cast[" + getType() + ", " + getOperand();
+    return "Cast[" + getType() + ", " + getOperand() + "]";
   }
 }
