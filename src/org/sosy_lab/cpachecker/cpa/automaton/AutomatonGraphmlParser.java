@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OffsetDescriptor;
@@ -213,12 +212,7 @@ public class AutomatonGraphmlParser {
         final List<AutomatonBoolExpr> assertions;
         if (!targetNodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(targetStateId).isEmpty()
             || targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-          AutomatonBoolExpr otherAutomataSafe = and(
-              not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY)),
-              not(new AutomatonBoolExpr.ALLCPAQuery(SMGState.HAS_LEAKS)),
-              not(new AutomatonBoolExpr.ALLCPAQuery(SMGState.HAS_INVALID_FREES)),
-              not(new AutomatonBoolExpr.ALLCPAQuery(SMGState.HAS_INVALID_READS)),
-              not(new AutomatonBoolExpr.ALLCPAQuery(SMGState.HAS_INVALID_WRITES)));
+          AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
           assertions = Collections.singletonList(otherAutomataSafe);
         } else {
           assertions = Collections.emptyList();
@@ -410,8 +404,7 @@ public class AutomatonGraphmlParser {
         }
 
         if (!nodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(stateId).isEmpty()) {
-          AutomatonBoolExpr otherAutomataSafe =
-              not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY));
+          AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
           List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
           transitions.add(
               createAutomatonTransition(
@@ -459,6 +452,12 @@ public class AutomatonGraphmlParser {
     } catch (CParserException e) {
       throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
     }
+  }
+
+  private static AutomatonBoolExpr createViolationAssertion() {
+    return and(
+        not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY))
+        );
   }
 
   private static AutomatonTransition createAutomatonTransition(
