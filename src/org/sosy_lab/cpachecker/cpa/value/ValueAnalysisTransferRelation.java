@@ -691,7 +691,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   private boolean isTrackedField(ADeclaration pDeclaration, Value pInitialValue) {
-    boolean isNoClassType = !(pDeclaration.getType() instanceof JClassOrInterfaceType);
+    Type declarationType = pDeclaration.getType();
+    boolean isNoClassType = !isComplexJavaType(declarationType)
+        || (trackJavaArrayValues && declarationType instanceof JArrayType);
 
     // We only track known values and only null values of Java class types.
     return !pInitialValue.isUnknown() && (isNoClassType || pInitialValue.equals(NullValue.getInstance()));
@@ -942,9 +944,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       if (arrayDeclaration != null) {
         String idName = arrayDeclaration.getQualifiedName();
-        Value idValue = state.getValueFor(idName);
-        if (idValue.isExplicitlyKnown()) {
-          return (ArrayValue) idValue;
+
+        if (state.contains(idName)) {
+          Value idValue = state.getValueFor(idName);
+          if (idValue.isExplicitlyKnown()) {
+            return (ArrayValue) idValue;
+          }
         }
       }
 
