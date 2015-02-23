@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -282,17 +281,16 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
 
       if (value.isUnknown()) {
+        if (isMissingCExpressionInformation(visitor, exp)) {
+          addMissingInformation(formalParamName, exp);
+        }
+
         if (useSymbolicValues) {
           value = getSymbolicIdentifier(parameters.get(i).getType(), exp);
           newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
 
         } else {
           newElement.forget(formalParamName);
-
-          if (isMissingCExpressionInformation(visitor, exp)) {
-            addMissingInformation(formalParamName, exp);
-
-          }
         }
       } else {
         newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
