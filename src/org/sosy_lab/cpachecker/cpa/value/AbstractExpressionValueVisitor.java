@@ -219,14 +219,6 @@ public abstract class AbstractExpressionValueVisitor
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
 
-    /* We do not cast the value to the calculation type for symbolic expressions. This allows us to
-     * keep the type information of symbolic identifiers.
-     * The calculation type is stored in the encapsulating expression.
-     */
-    if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
-      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, binaryExpr, logger);
-    }
-
     lVal = castCValue(lVal, binaryExpr.getOperand1().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
     if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
@@ -242,6 +234,10 @@ public abstract class AbstractExpressionValueVisitor
        */
       rVal =
           castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
+    }
+
+    if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
+      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, binaryExpr, logger);
     }
 
     if (!lVal.isNumericValue() || !rVal.isNumericValue()) {
