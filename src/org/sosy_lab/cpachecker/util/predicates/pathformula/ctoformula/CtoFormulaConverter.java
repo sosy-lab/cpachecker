@@ -1198,7 +1198,7 @@ public class CtoFormulaConverter {
   }
 
   public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException, InterruptedException {
-    PointerTargetSetBuilder pts = DummyPointerTargetSetBuilder.INSTANCE;
+    PointerTargetSetBuilder pts = createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
     Constraints constraints = new Constraints(bfmgr);
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     BooleanFormula f = makePredicate(exp, true, edge, function, ssa, pts, constraints, errorConditions);
