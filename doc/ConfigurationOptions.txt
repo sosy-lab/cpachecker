@@ -1358,6 +1358,9 @@ cpa.predicate.symbolicCoverageCheck = false
 # check satisfiability when a target state has been found (should be true)
 cpa.predicate.targetStateSatCheck = true
 
+# Whether to track values stored in variables of function-pointer type.
+cpa.predicate.trackFunctionPointers = true
+
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)

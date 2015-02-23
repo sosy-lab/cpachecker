@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -231,6 +230,16 @@ public class CtoFormulaConverter {
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
+    if (!options.trackFunctionPointers()) {
+      CType lhsType = lhs.getExpressionType().getCanonicalType();
+      if (lhsType instanceof CPointerType) {
+        CType innerType = ((CPointerType)lhsType).getType();
+        if (innerType instanceof CFunctionType) {
+          return false;
+        }
+      }
+    }
+
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       return lhs.accept(new IsRelevantLhsVisitor(this));
     } else {
