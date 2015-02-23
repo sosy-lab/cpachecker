@@ -181,7 +181,11 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
 
     if (async) {
       shutdownNotifier.registerAndCheckImmediately(shutdownListener);
-      invariantGenerationFuture = executorService.submit(task);
+      if (!executorService.isShutdown() && !shutdownNotifier.shouldShutdown()) {
+        invariantGenerationFuture = executorService.submit(task);
+      } else {
+        invariantGenerationFuture = new LazyFutureTask<>(task);
+      }
     } else {
       invariantGenerationFuture = new LazyFutureTask<>(task);
     }
