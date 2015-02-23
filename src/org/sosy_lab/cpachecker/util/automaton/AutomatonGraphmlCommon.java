@@ -80,6 +80,7 @@ public class AutomatonGraphmlCommon {
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
     NEGATIVECASE("negated", "edge", "negativeCase", "string"),
     ASSUMPTION("assumption", "edge", "assumption", "string"),
+    ASSUMPTIONSCOPE("assumption.scope", "edge", "assumption.scope", "string"),
 
     FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),

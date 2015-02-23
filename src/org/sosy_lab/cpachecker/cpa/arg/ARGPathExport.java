@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -250,6 +251,7 @@ public class ARGPathExport {
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
     private final String defaultSourcefileName;
+    private boolean isFunctionScope = false;
 
     public WitnessWriter(@Nullable String pDefaultSourcefileName) {
       this.defaultSourcefileName = pDefaultSourcefileName;
@@ -308,6 +310,8 @@ public class ARGPathExport {
         final String pTo, final CFAEdge pEdge, final ARGState pFromState,
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) throws IOException {
 
+      attemptSwitchToFunctionScope(pEdge);
+
       TransitionCondition desc = constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
 
       if (!nodeFlags.containsKey(pTo)
@@ -345,6 +349,20 @@ public class ARGPathExport {
       AggregatedEdge t = new AggregatedEdge(pFrom, pTo, desc);
       sourceToTargetMap.put(pFrom, t);
       targetToSourceMap.put(pTo, t);
+    }
+
+    private void attemptSwitchToFunctionScope(CFAEdge pEdge) {
+      if (isFunctionScope) {
+        return;
+      }
+      if (!(pEdge instanceof BlankEdge)) {
+        return;
+      }
+      BlankEdge edge = (BlankEdge) pEdge;
+      if (!edge.getDescription().equals("Function start dummy edge")) {
+        return;
+      }
+      isFunctionScope = true;
     }
 
     private boolean aggregateToPrevEdge(String pFrom, final String pTo, TransitionCondition pDesc) {
@@ -441,6 +459,9 @@ public class ARGPathExport {
 
             if (!code.isEmpty()) {
               result.put(KeyDef.ASSUMPTION, code);
+              if (isFunctionScope ) {
+                result.put(KeyDef.ASSUMPTIONSCOPE, pEdge.getPredecessor().getFunctionName());
+              }
             }
           }
         }

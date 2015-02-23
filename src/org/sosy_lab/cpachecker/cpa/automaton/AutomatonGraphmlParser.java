@@ -257,9 +257,18 @@ public class AutomatonGraphmlParser {
         // Add assumptions to the transition
         if (considerAssumptions) {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
+          Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
+          Preconditions.checkArgument(assumptionScopes.size() < 2, "At most one assumption scope must be provided for an edge.");
           Scope scope = this.scope;
-          if (!newStack.isEmpty() && scope instanceof CProgramScope) {
-            scope = ((CProgramScope) scope).createFunctionScope(newStack.peek());
+          if (scope instanceof CProgramScope
+              && (!assumptionScopes.isEmpty() || !newStack.isEmpty())) {
+            final String functionName;
+            if (!assumptionScopes.isEmpty()) {
+              functionName = assumptionScopes.iterator().next();
+            } else {
+              functionName = newStack.peek();
+            }
+            scope = ((CProgramScope) scope).createFunctionScope(functionName);
           }
           for (String assumeCode : transAssumes) {
             assumptions.addAll(removeDuplicates(adjustCharAssignments(
@@ -272,10 +281,10 @@ public class AutomatonGraphmlParser {
 
         if (matchOriginLine) {
           Set<String> originFileTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
-          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
+          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge.");
 
           Set<String> originLineTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINLINE);
-          Preconditions.checkArgument(originLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge!");
+          Preconditions.checkArgument(originLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge.");
 
           int matchOriginLineNumber = -1;
           if (originLineTags.size() > 0) {
@@ -293,10 +302,10 @@ public class AutomatonGraphmlParser {
 
         if (matchOffset) {
           Set<String> originFileTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
-          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
+          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge.");
 
           Set<String> offsetTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.OFFSET);
-          Preconditions.checkArgument(offsetTags.size() <  2, "At most one offset data tag must be provided for each edge!");
+          Preconditions.checkArgument(offsetTags.size() <  2, "At most one offset data tag must be provided for each edge.");
 
           int offset = -1;
           if (offsetTags.size() > 0) {
@@ -315,7 +324,7 @@ public class AutomatonGraphmlParser {
 
         if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
-          Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided!");
+          Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided.");
           final String sourceCode;
           if (sourceCodeDataTags.isEmpty()) {
             sourceCode = "";
@@ -358,7 +367,7 @@ public class AutomatonGraphmlParser {
 
           final boolean assumeCase;
           if (assumeCaseTags.size() > 0) {
-            Preconditions.checkArgument(assumeCaseTags.size() <  2, "At most one assume case tag must be provided for each edge!");
+            Preconditions.checkArgument(assumeCaseTags.size() <  2, "At most one assume case tag must be provided for each edge.");
             assumeCase = !Boolean.parseBoolean(assumeCaseTags.iterator().next());
           } else {
             assumeCase = true;
