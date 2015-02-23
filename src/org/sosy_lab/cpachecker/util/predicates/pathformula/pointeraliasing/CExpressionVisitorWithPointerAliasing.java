@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
