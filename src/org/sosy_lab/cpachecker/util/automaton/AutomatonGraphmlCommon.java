@@ -69,6 +69,7 @@ public class AutomatonGraphmlCommon {
     ISVIOLATIONNODE("violation","node","isViolationNode","boolean"),
     ISENTRYNODE("entry","node","isEntryNode","boolean"),
     ISSINKNODE("sink","node","isSinkNode","boolean"),
+    VIOLATEDPROPERTY("violatedProperty", "node", "violatedProperty", "string"),
 
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
 

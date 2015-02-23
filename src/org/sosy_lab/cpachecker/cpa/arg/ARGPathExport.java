@@ -28,17 +28,21 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -104,6 +108,22 @@ import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.arg.witness")
 public class ARGPathExport {
+
+  private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<ARGState, ARGState>() {
+
+    @Override
+    public ARGState apply(ARGState pChild) {
+      ARGState child = pChild;
+      // The child might be covered by another state
+      // --> switch to the covering state
+      if (child.isCovered()) {
+        child = child.getCoveringState();
+        assert !child.isCovered();
+      }
+      return child;
+    }
+
+  };
 
   @Option(secure=true, description="Verification witness: Include function calls and function returns?")
   boolean exportFunctionCallsAndReturns = true;
@@ -221,9 +241,11 @@ public class ARGPathExport {
   }
 
   private class WitnessWriter {
+
     private final Multimap<String, AggregatedEdge> sourceToTargetMap = HashMultimap.create();
     private final Multimap<String, AggregatedEdge> targetToSourceMap = HashMultimap.create();
     private final Multimap<String, NodeFlag> nodeFlags = HashMultimap.create();
+    private final Multimap<String, String> violatedProperties = HashMultimap.create();
     private final Map<String, Element> delayedNodes = Maps.newHashMap();
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
@@ -259,6 +281,9 @@ public class ARGPathExport {
       for (NodeFlag f : nodeFlags.get(pNodeId)) {
         pDoc.addDataElementChild(result, f.key, "true");
       }
+      for (String violation : violatedProperties.get(pNodeId)) {
+        pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation);
+      }
 
       // Decide if writing the node should be delayed.
       // Some nodes might not get referenced by edges later.
@@ -285,7 +310,9 @@ public class ARGPathExport {
 
       TransitionCondition desc = constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
 
-      if (!nodeFlags.containsKey(pTo) && aggregateToPrevEdge(pFrom, pTo, desc)) {
+      if (!nodeFlags.containsKey(pTo)
+          && !violatedProperties.containsKey(pTo)
+          && aggregateToPrevEdge(pFrom, pTo, desc)) {
         return;
       }
 
@@ -477,6 +504,108 @@ public class ARGPathExport {
       pDoc.appendNewKeyDef(KeyDef.FUNCTIONEXIT, null);
     }
 
+    /**
+     * Starting from the given initial ARG state, collects that state and all
+     * transitive successors (as defined by the successor function) that are
+     * children of their direct predecessor and are accepted by the path state
+     * predicate.
+     *
+     * @param pInitialState the initial ARG state.
+     * @param pSuccessorFunction the function defining the successors of a
+     * state.
+     * @param pPathStates a filter on the nodes.
+     *
+     * @return the parents with their children.
+     */
+    private Iterable<ARGState> collectPathNodes(
+        final ARGState pInitialState,
+        final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
+        final Predicate<? super ARGState> pPathStates) {
+      return FluentIterable
+          .from(collectPathEdges(pInitialState, pSuccessorFunction, pPathStates))
+          .transform(Pair.<ARGState>getProjectionToFirst());
+    }
+
+    /**
+     * Starting from the given initial ARG state, collects that state and all
+     * transitive successors (as defined by the successor function) that are
+     * children of their direct predecessor. Children are only computed for
+     * nodes that are accepted by the path state predicate.
+     *
+     * @param pInitialState the initial ARG state.
+     * @param pSuccessorFunction the function defining the successors of a
+     * state.
+     * @param pPathStates a filter on the parent nodes.
+     *
+     * @return the parents with their children.
+     */
+    private Iterable<Pair<ARGState, Iterable<ARGState>>> collectPathEdges(
+        final ARGState pInitialState,
+        final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
+        final Predicate<? super ARGState> pPathStates) {
+      return new Iterable<Pair<ARGState, Iterable<ARGState>>>() {
+
+        private final Set<ARGState> visited = new HashSet<>();
+
+        private final Deque<ARGState> waitlist = new ArrayDeque<>();
+
+        {
+          waitlist.add(pInitialState);
+          visited.add(pInitialState);
+        }
+
+        @Override
+        public Iterator<Pair<ARGState, Iterable<ARGState>>> iterator() {
+          return new Iterator<Pair<ARGState, Iterable<ARGState>>>() {
+
+            @Override
+            public boolean hasNext() {
+              return !waitlist.isEmpty();
+            }
+
+            @Override
+            public Pair<ARGState, Iterable<ARGState>> next() {
+              if (!hasNext()) {
+                throw new NoSuchElementException();
+              }
+              assert !waitlist.isEmpty();
+              final ARGState parent = waitlist.poll();
+
+              Predicate<ARGState> childFilter = new Predicate<ARGState>() {
+
+                @Override
+                public boolean apply(ARGState pChild) {
+                  return parent.getChildren().contains(pChild);
+                }
+
+              };
+
+              // Get all children
+              FluentIterable<ARGState> children = FluentIterable
+                  .from(pSuccessorFunction.apply(parent))
+                  .transform(COVERED_TO_COVERING)
+                  .filter(childFilter);
+
+              // Only the children on the path become parents themselves
+              for (ARGState child : children.filter(pPathStates)) {
+                if (visited.add(child)) {
+                  waitlist.offer(child);
+                }
+              }
+
+              return Pair.<ARGState, Iterable<ARGState>>of(parent, children);
+            }
+
+            @Override
+            public void remove() {
+              throw new UnsupportedOperationException("Removal not supported.");
+            }
+
+          };
+        }
+      };
+    }
+
     public void writePath(Appendable pTarget,
         final ARGState pRootState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
@@ -494,8 +623,6 @@ public class ARGPathExport {
         }
       }
 
-      Set<ARGState> processed = new HashSet<>();
-
       GraphType graphType = GraphType.PROGRAMPATH;
 
       GraphMlBuilder doc;
@@ -511,25 +638,13 @@ public class ARGPathExport {
 
       // ...
       String entryStateNodeId = getStateIdent(pRootState);
-      boolean containsSinkNode = false;
-      int multiEdgeCount = 0; // see below
 
       doc.appendDocHeader();
       appendKeyDefinitions(doc, graphType);
       doc.appendGraphHeader(graphType, "C");
 
-      Deque<ARGState> worklist = new ArrayDeque<>();
-      worklist.add(pRootState);
-
       // Collect node flags in advance
-      while (!worklist.isEmpty()) {
-        ARGState s = worklist.removeLast();
-
-        if (!processed.add(s)) {
-          continue;
-        }
-
-        // Write the state
+      for (ARGState s : collectPathNodes(pRootState, pSuccessorFunction, pPathStates)) {
         String sourceStateNodeId = getStateIdent(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
@@ -538,48 +653,19 @@ public class ARGPathExport {
         if (s.isTarget()) {
           sourceNodeFlags.add(NodeFlag.ISVIOLATION);
         }
+        sourceNodeFlags.addAll(extractNodeFlags(s));
         nodeFlags.putAll(sourceStateNodeId, sourceNodeFlags);
-
-        // Process child states
-        for (ARGState child : pSuccessorFunction.apply(s)) {
-          // The child might be covered by another state
-          // --> switch to the covering state
-          if (child.isCovered()) {
-            child = child.getCoveringState();
-            assert !child.isCovered();
-          }
-
-          // Only proceed with this state if the path states contains the child
-          boolean isEdgeOnPath = true;
-          if (s.getChildren().contains(child)) {
-            if (isEdgeOnPath) {
-              // Child belongs to the path!
-              worklist.add(child);
-            } else {
-              // Child does not belong to the path --> add a branch to the SINK node!
-              containsSinkNode = true;
-            }
-          }
-        }
+        violatedProperties.putAll(sourceStateNodeId, extractViolatedProperties(s));
       }
-      if (containsSinkNode) {
-        nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
-        appendNewPathNode(doc, SINK_NODE_ID);
-        appendDelayedNode(doc, SINK_NODE_ID);
-      }
+      // Write the sink node
+      nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
+      appendNewPathNode(doc, SINK_NODE_ID);
+      appendDelayedNode(doc, SINK_NODE_ID);
 
       // Build the actual graph
-      worklist.add(pRootState);
-      processed.clear();
-      while (!worklist.isEmpty()) {
-        ARGState s = worklist.removeLast();
-
-        if (!pPathStates.apply(s)) {
-          continue;
-        }
-        if (!processed.add(s)) {
-          continue;
-        }
+      int multiEdgeCount = 0;
+      for (Pair<ARGState, Iterable<ARGState>> argEdges : collectPathEdges(pRootState, pSuccessorFunction, pPathStates)) {
+        ARGState s = argEdges.getFirst();
 
         // Location of the state
         CFANode loc = AbstractStates.extractLocation(s);
@@ -589,13 +675,7 @@ public class ARGPathExport {
         appendNewPathNode(doc, sourceStateNodeId);
 
         // Process child states
-        for (ARGState child : pSuccessorFunction.apply(s)) {
-          // The child might be covered by another state
-          // --> switch to the covering state
-          if (child.isCovered()) {
-            child = child.getCoveringState();
-            assert !child.isCovered();
-          }
+        for (ARGState child : argEdges.getSecond()) {
 
           String childStateId = getStateIdent(child);
           CFANode childLoc = AbstractStates.extractLocation(child);
@@ -630,21 +710,35 @@ public class ARGPathExport {
           }
 
           // Only proceed with this state if the path states contains the child
-          boolean isEdgeOnPath = true;
-          if (s.getChildren().contains(child)) {
-            if (isEdgeOnPath) {
-              // Child belongs to the path!
-              appendNewEdge(doc, prevStateId, childStateId, edgeToNextState, s, valueMap);
-              worklist.add(child);
-            } else {
-              // Child does not belong to the path --> add a branch to the SINK node!
-              appendNewEdge(doc, prevStateId, SINK_NODE_ID, edgeToNextState, s, valueMap);
-            }
+          if (pPathStates.apply(child)) {
+            // Child belongs to the path!
+            appendNewEdge(doc, prevStateId, childStateId, edgeToNextState, s, valueMap);
+          } else {
+            // Child does not belong to the path --> add a branch to the SINK node!
+            appendNewEdge(doc, prevStateId, SINK_NODE_ID, edgeToNextState, s, valueMap);
           }
         }
       }
 
       doc.appendFooter();
+    }
+
+    private Collection<NodeFlag> extractNodeFlags(ARGState pState) {
+      if (pState.isTarget()) {
+        return Collections.singleton(NodeFlag.ISVIOLATION);
+      }
+      return Collections.emptySet();
+    }
+
+    private Collection<String> extractViolatedProperties(ARGState pState) {
+      if (pState.isTarget()) {
+        String violatedPropertyDescription = pState.getViolatedPropertyDescription();
+        int pos = violatedPropertyDescription.indexOf(':');
+        if (pos >= 0) {
+          return Collections.singleton(violatedPropertyDescription.substring(0, pos));
+        }
+      }
+      return Collections.emptySet();
     }
   }
 
