@@ -1923,7 +1923,12 @@ class ASTConverter {
     String name = convert(d.getName());
     String origName = name;
     if (Strings.isNullOrEmpty(name)) {
-      name = "__anon_type_" + anonTypeCounter++;
+      name = "__anon_type_";
+      if (d.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+        name += ((IASTSimpleDeclaration)d.getParent()).getDeclarators()[0].getName().getRawSignature();
+      } else {
+        name += anonTypeCounter++;
+      }
     }
 
     // if the origName is null we want it to be empty
