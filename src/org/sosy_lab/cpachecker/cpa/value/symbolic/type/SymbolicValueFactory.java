@@ -97,23 +97,23 @@ public class SymbolicValueFactory {
       return ((SymbolicExpression) pValue);
 
     } else {
-      return new ConstantSymbolicExpression(pValue, pType);
+      return new ConstantSymbolicExpression(pValue, getCanonicalType(pType));
     }
   }
 
   public SymbolicExpression multiply(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new MultiplicationExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new MultiplicationExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression add(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new AdditionExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new AdditionExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression minus(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pType, Type pCalculationType) {
-    return new AdditionExpression(pOperand1, negate(pOperand2, pOperand1.getType()), pType, pCalculationType);
+    return new AdditionExpression(pOperand1, negate(pOperand2, pOperand1.getType()), getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
 
@@ -130,75 +130,75 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression divide(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new DivisionExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new DivisionExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
 
   }
 
   public SymbolicExpression modulo(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new ModuloExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new ModuloExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression shiftLeft(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new ShiftLeftExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new ShiftLeftExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression shiftRightSigned(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new ShiftRightExpression(pOperand1, pOperand2, pType, pCalculationType,
+    return new ShiftRightExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType),
         ShiftRightExpression.ShiftType.SIGNED);
   }
 
   public SymbolicExpression shiftRightUnsigned(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new ShiftRightExpression(pOperand1, pOperand2, pType, pCalculationType,
+    return new ShiftRightExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType),
         ShiftRightExpression.ShiftType.UNSIGNED);
   }
 
   public SymbolicExpression binaryAnd(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new BinaryAndExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new BinaryAndExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression binaryOr(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new BinaryOrExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new BinaryOrExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression binaryXor(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new BinaryXorExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new BinaryXorExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public EqualsExpression equal(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new EqualsExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new EqualsExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression lessThan(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new LessThanExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new LessThanExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression lessThanOrEqual(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pType, Type pCalculationType) {
-    return new LessThanOrEqualExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new LessThanOrEqualExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression notEqual(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return logicalNot(equal(pOperand1, pOperand2, pType, pCalculationType), pType);
+    return logicalNot(equal(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType)), pType);
   }
 
   public SymbolicExpression logicalAnd(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new LogicalAndExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new LogicalAndExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression logicalOr(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
       Type pCalculationType) {
-    return new LogicalOrExpression(pOperand1, pOperand2, pType, pCalculationType);
+    return new LogicalOrExpression(pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression logicalNot(SymbolicExpression pOperand, Type pType) {
@@ -207,7 +207,7 @@ public class SymbolicValueFactory {
       return ((LogicalNotExpression) pOperand).getOperand();
 
     } else {
-      return new LogicalNotExpression(pOperand, pType);
+      return new LogicalNotExpression(pOperand, getCanonicalType(pType));
     }
   }
 
@@ -217,7 +217,7 @@ public class SymbolicValueFactory {
       return ((BinaryNotExpression) pOperand).getOperand();
 
     } else {
-      return new BinaryNotExpression(pOperand, pType);
+      return new BinaryNotExpression(pOperand, getCanonicalType(pType));
     }
   }
 
@@ -225,14 +225,14 @@ public class SymbolicValueFactory {
       Type pCalculationType) {
 
     // represent 'a > b' as 'b < a' so we do need less classes
-    return new LessThanExpression(pOperand2, pOperand1, pType, pCalculationType);
+    return new LessThanExpression(pOperand2, pOperand1, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   public SymbolicExpression greaterThanOrEqual(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pType, Type pCalculationType) {
 
     // represent 'a >= b' as 'b <= a' so we do need less classes
-    return new LessThanOrEqualExpression(pOperand2, pOperand1, pType, pCalculationType);
+    return new LessThanOrEqualExpression(pOperand2, pOperand1, getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
   /**
@@ -246,21 +246,23 @@ public class SymbolicValueFactory {
    * @return a <code>SymbolicExpression</code> representing the cast of the given value to the given type
    */
   public SymbolicExpression cast(SymbolicValue pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+    Type canonicalTargetType = getCanonicalType(pTargetType);
+
     SymbolicExpression operand;
 
     if (!(pValue instanceof SymbolicExpression)) {
-      return asConstant(pValue, pTargetType);
+      return asConstant(pValue, canonicalTargetType);
     } else {
       operand = (SymbolicExpression) pValue;
     }
 
-    if (operand.getType().equals(pTargetType)) {
+    if (operand.getType().equals(canonicalTargetType)) {
       return operand;
 
     } else {
       boolean isCast = operand instanceof CastExpression;
 
-      operand = new CastExpression(operand, pTargetType);
+      operand = new CastExpression(operand, canonicalTargetType);
 
       if (isCast) {
         operand = simplifyCasts((CastExpression) operand, pMachineModel);
@@ -325,7 +327,7 @@ public class SymbolicValueFactory {
 
   public PointerExpression pointer(SymbolicExpression pOperand, Type pType) {
     checkNotNull(pOperand);
-    return new PointerExpression(pOperand, pType);
+    return new PointerExpression(pOperand, getCanonicalType(pType));
   }
 
   public SymbolicExpression addressOf(SymbolicExpression pOperand, Type pType) {
@@ -336,7 +338,15 @@ public class SymbolicValueFactory {
       return ((PointerExpression) pOperand).getOperand();
 
     } else {
-      return new AddressOfExpression(pOperand, pType);
+      return new AddressOfExpression(pOperand, getCanonicalType(pType));
+    }
+  }
+
+  private Type getCanonicalType(Type pType) {
+    if (pType instanceof CType) {
+      return ((CType) pType).getCanonicalType();
+    } else {
+      return pType;
     }
   }
 }
