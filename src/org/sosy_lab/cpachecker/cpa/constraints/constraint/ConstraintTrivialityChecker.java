@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
@@ -184,5 +185,10 @@ public class ConstraintTrivialityChecker implements ConstraintVisitor<Boolean>, 
   @Override
   public Boolean visit(LogicalNotExpression pConstraint) {
     return isTrivialExpression(pConstraint);
+  }
+
+  @Override
+  public Boolean visit(NegationExpression pExpression) {
+    return isTrivialExpression(pExpression);
   }
 }

@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
@@ -393,7 +394,7 @@ public class IntegerFormulaCreator
 
       @Override
       public IntegerFormula create(Formula pOp1, Formula pOp2) {
-        return numeralFormulaManager.divide((IntegerFormula)pOp1, (IntegerFormula)pOp2);
+        return numeralFormulaManager.divide((IntegerFormula) pOp1, (IntegerFormula) pOp2);
       }
     };
 
@@ -512,7 +513,7 @@ public class IntegerFormulaCreator
 
       @Override
       public BooleanFormula create(Formula pOp1, Formula pOp2) {
-        return booleanFormulaManager.or((BooleanFormula)pOp1, (BooleanFormula)pOp2);
+        return booleanFormulaManager.or((BooleanFormula) pOp1, (BooleanFormula) pOp2);
       }
     };
 
@@ -654,6 +655,13 @@ public class IntegerFormulaCreator
      * for analyzing Java programs.
      */
     return handleUnsupportedExpression(pShiftRight, pShiftRight.isSigned());
+  }
+
+  @Override
+  public Formula visit(NegationExpression pExpression) {
+    Formula operandFormula = pExpression.getOperand().accept(this);
+
+    return formulaManager.makeNegate(operandFormula);
   }
 
   @Override

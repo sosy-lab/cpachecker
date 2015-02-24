@@ -71,4 +71,6 @@ public interface SymbolicValueVisitor<T> {
   T visit(PointerExpression pExpression);
 
   T visit(AddressOfExpression pExpression);
+
+  T visit(NegationExpression pExpression);
 }

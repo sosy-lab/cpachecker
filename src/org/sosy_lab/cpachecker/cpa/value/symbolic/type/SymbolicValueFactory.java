@@ -121,9 +121,7 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression negate(SymbolicExpression pFormula, Type pType) {
     checkNotNull(pFormula);
-    final Type formulaType = pFormula.getType();
-
-    return multiply(getMinusOne(formulaType), pFormula, pType, pType);
+    return new NegationExpression(pFormula, pType);
   }
 
   private SymbolicExpression getMinusOne(Type pType) {

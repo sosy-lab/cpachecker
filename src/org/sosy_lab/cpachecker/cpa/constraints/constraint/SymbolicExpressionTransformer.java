@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
@@ -309,9 +310,11 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
 
   @Override
   public CExpression visit(AddressOfExpression pExpression) {
-    CType cType = getCType(pExpression.getType());
-    CExpression operandExpression = pExpression.getOperand().accept(this);
+    return createUnaryExpression(pExpression, CUnaryExpression.UnaryOperator.AMPER);
+  }
 
-    return new CUnaryExpression(DUMMY_LOCATION, cType, operandExpression, CUnaryExpression.UnaryOperator.AMPER);
+  @Override
+  public CExpression visit(NegationExpression pExpression) {
+    return createUnaryExpression(pExpression, CUnaryExpression.UnaryOperator.MINUS);
   }
 }
