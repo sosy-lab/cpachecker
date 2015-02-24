@@ -5,7 +5,10 @@ int main() {
   float b = 2.3;
 
   if (a < 0) {
-    a = -a;
+    a = a + 1;
+    if (a < 0) {
+      a = -a;
+    }
   }
 
   b += a;
