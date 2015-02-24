@@ -43,6 +43,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -72,7 +73,7 @@ import com.google.common.collect.Maps;
 public class PartialARGsCombiner implements Algorithm {
 
   private final Algorithm restartAlgorithm;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
   private final Configuration config;
 
@@ -80,7 +81,7 @@ public class PartialARGsCombiner implements Algorithm {
   public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) {
     restartAlgorithm = pAlgorithm;
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdown = pShutdownNotifier;
     config = pConfig;
   }
@@ -136,8 +137,8 @@ public class PartialARGsCombiner implements Algorithm {
       }
       // TODO need to add all ARG states?, require different precision?
       // add to reached set and delete from waitlist to prevent UNKNOWN result
-      reached.add(root, SingletonPrecision.getInstance());
-      reached.removeOnlyFromWaitlist(root);
+      pReachedSet.add(root, SingletonPrecision.getInstance());
+      pReachedSet.removeOnlyFromWaitlist(root);
 
     } else {
       logger.log(Level.INFO, "Program analysis is already unsound.",
@@ -403,7 +404,7 @@ public class PartialARGsCombiner implements Algorithm {
         if (pInitialStates.get(index)==result.get(index)) {
           result.set(index, innerWrapped);
         } else {
-            logger.log(Level.WARNING,
+            logger.logOnce(Level.WARNING,
                     "Cannot identify the inner state which is more precise, use the earliest found. Combination may be unsound.");
           }
         }
