@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
@@ -100,6 +101,10 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
+
+  @Option(secure=true, name="combineARGsAfterRestart",
+      description="combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration")
+  private boolean useARGCombiningAlgorithm = false;
 
   @Option(secure=true, name="algorithm.predicatedAnalysis",
       description="use a predicated analysis which proves if the program satisfies a specified property"
@@ -162,6 +167,9 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
 
+      if (useARGCombiningAlgorithm) {
+        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier);
+      }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
