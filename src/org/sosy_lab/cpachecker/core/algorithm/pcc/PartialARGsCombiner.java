@@ -332,7 +332,7 @@ public class PartialARGsCombiner implements Algorithm {
       // collect ARG successors
       for (int index : indices) {
         if (pSuccessorsForEdge.get(index).size() > 0) {
-          argSuccessors.add(pSuccessorsForEdge.get(index).get(indices[index]));
+          argSuccessors.add(getUncoveredSuccessor(pSuccessorsForEdge.get(index).get(indices[index])));
         }
       }
 
@@ -354,6 +354,13 @@ public class PartialARGsCombiner implements Algorithm {
     }
 
     return result;
+  }
+
+  private ARGState getUncoveredSuccessor(ARGState pMaybeCovered) {
+    while (pMaybeCovered.isCovered()) {
+      pMaybeCovered = pMaybeCovered.getCoveringState();
+    }
+    return pMaybeCovered;
   }
 
   private List<AbstractState> combineARGStates(final List<ARGState> combiningStates,
