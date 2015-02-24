@@ -40,7 +40,6 @@ public class HistoryForwardingReachedSet extends ForwardingReachedSet {
   public HistoryForwardingReachedSet(ReachedSet pDelegate) {
     super(pDelegate);
     usedReachedSets = new ArrayList<>();
-    usedReachedSets.add(pDelegate);
   }
 
   @Override
