@@ -29,12 +29,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.CExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.JExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
@@ -162,11 +172,30 @@ public class ConstraintFactory {
 
     if (symbolicExpression == null) {
       return null;
+    } else if (symbolicExpression instanceof Constraint) {
+      return (Constraint) symbolicExpression;
 
     } else {
-      assert symbolicExpression instanceof Constraint;
-      return (Constraint) symbolicExpression;
+      return transformValueToConstraint(symbolicExpression, pExpression.getExpressionType());
     }
+  }
+
+  private Constraint transformValueToConstraint(SymbolicExpression pExpression, Type expressionType) {
+
+    if (isNumeric(expressionType)) {
+      // 1 == pExpression
+      // We do not have to cast the values to a specific calculation type, as every type can represent 1 and 0.
+      return createEqual(getOneConstant(expressionType), pExpression, expressionType,
+          pExpression.getType());
+
+    } else if (isBoolean(expressionType)) {
+      assert expressionType instanceof JType : "Expression is boolean but not a constraint in C!";
+      return createEqual(pExpression, getTrueValueConstant(), expressionType, pExpression.getType());
+
+    } else {
+      throw new AssertionError("Unexpected type " + expressionType);
+    }
+
   }
 
   private JExpressionTransformer getJavaTransformer() {
@@ -177,6 +206,93 @@ public class ConstraintFactory {
     return new CExpressionTransformer(functionName, valueState, machineModel, logger);
   }
 
+  private boolean isNumeric(Type pType) {
+    if (pType instanceof CType) {
+      CType canonicalType = ((CType) pType).getCanonicalType();
+      if (canonicalType instanceof CSimpleType) {
+        switch (((CSimpleType) canonicalType).getType()) {
+          case FLOAT:
+          case INT:
+            return true;
+          default:
+            // DO NOTHING, false is returned below
+        }
+      }
+
+      return false;
+    } else if (pType instanceof JSimpleType) {
+      switch (((JSimpleType)pType).getType()) {
+        case BYTE:
+        case CHAR:
+        case SHORT:
+        case INT:
+        case LONG:
+        case FLOAT:
+        case DOUBLE:
+          return true;
+        default:
+          // DO NOTHING, false is returned below
+      }
+
+      return false;
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
+  }
+
+  private boolean isBoolean(Type pType) {
+    if (pType instanceof CType) {
+      CType canonicalType = ((CType) pType).getCanonicalType();
+
+      return canonicalType instanceof CSimpleType
+          && ((CSimpleType) canonicalType).getType() == CBasicType.BOOL;
+    }
+
+    if(pType instanceof JSimpleType) {
+      return ((JSimpleType)pType).getType() == JBasicType.BOOLEAN;
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
+  }
+
+  private SymbolicExpression getOneConstant(Type pType) {
+    return expressionFactory.asConstant(new NumericValue(1L), pType);
+  }
+
+  private SymbolicExpression getTrueValueConstant() {
+    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.getBoolean());
+  }
+
+  private Type getCalculationType(Type pType) {
+    if (pType instanceof CType) {
+      return getCCalculationType((CType) pType);
+    } else if (pType instanceof JType) {
+      return getJCalculationType((JType) pType);
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
+  }
+
+  private Type getCCalculationType(CType pType) {
+    CType canonicalType = pType.getCanonicalType();
+
+    if (canonicalType instanceof CSimpleType) {
+      switch (((CSimpleType)canonicalType).getType()) {
+        case CHAR:
+        case INT:
+          return CNumericTypes.SIGNED_INT;
+        default:
+          return pType;
+      }
+    } else {
+      throw new AssertionError("Unexpected type " + pType);
+    }
+  }
+
+  private Type getJCalculationType(JType pType) {
+    return pType;
+  }
+
   private Constraint createNot(Constraint pConstraint) {
     // We use ConstraintExpression as Constraints, so this should be possible
     return createNot((SymbolicExpression) pConstraint);
@@ -185,5 +301,11 @@ public class ConstraintFactory {
   private Constraint createNot(SymbolicExpression pSymbolicExpression) {
     return (Constraint)
         expressionFactory.logicalNot(pSymbolicExpression, pSymbolicExpression.getType());
+  }
+
+  private Constraint createEqual(SymbolicExpression pLeftOperand, SymbolicExpression pRightOperand,
+      Type pExpressionType, Type pCalculationType) {
+
+    return expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
 }
