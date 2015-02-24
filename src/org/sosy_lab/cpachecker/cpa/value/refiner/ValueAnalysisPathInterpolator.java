@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -52,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
@@ -106,6 +109,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
   private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
   private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
+  private StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -170,6 +174,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPathPrefix.size());
 
     PathIterator pathIterator = errorPathPrefix.pathIterator();
+    Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
     while(pathIterator.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -177,6 +182,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       if (!interpolant.isFalse()) {
         interpolant = interpolator.deriveInterpolant(errorPathPrefix,
             pathIterator.getOutgoingEdge(),
+            callstack,
             pathIterator.getIndex(),
             interpolant,
             useDefRelation);
@@ -195,7 +201,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       pathInterpolants.put(pathIterator.getAbstractState(), interpolant);
 
       if(!pathIterator.hasNext()) {
-        assert interpolant.isFalse() : "final interpolant is not false";
+        assert interpolant.isFalse() : "final interpolant is not false: " + interpolant;
       }
     }
 
@@ -325,7 +331,9 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath);
+
+      totalPrefixes.setNextValue(prefixes.size());
 
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
       errorPath = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
@@ -349,6 +357,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     writer.put(totalInterpolations);
     writer.put(totalInterpolationQueries);
     writer.put(sizeOfInterpolant);
+    writer.put(totalPrefixes);
   }
 
   public int getInterpolationOffset() {

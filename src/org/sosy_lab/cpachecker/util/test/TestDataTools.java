@@ -167,17 +167,20 @@ public class TestDataTools {
     return Pair.of(assumeEdge, pAssumeExr);
   }
 
-
-  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr) {
+  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr, CFANode pPred, CFANode pSucc) {
     CAssumeEdge assumeEdge = new CAssumeEdge(
         "dummyassume",
         FileLocation.DUMMY,
-        newDummyNode(),
-        newDummyNode(),
+        pPred,
+        pSucc,
         pAssumeExr,
         true);
 
     return Pair.of(assumeEdge, pAssumeExr);
+  }
+
+  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr) {
+    return makeAssume(pAssumeExr, newDummyNode(), newDummyNode());
   }
 
   public static CFA makeCFA(String cProgram) throws IOException, ParserException, InterruptedException {

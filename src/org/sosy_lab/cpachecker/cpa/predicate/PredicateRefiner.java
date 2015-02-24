@@ -77,6 +77,7 @@ public abstract class PredicateRefiner implements Refiner {
         pfmgr,
         strategy,
         solver,
-        predicateCpa.getAssumesStore());
+        predicateCpa.getAssumesStore(),
+        predicateCpa.getCfa());
   }
 }

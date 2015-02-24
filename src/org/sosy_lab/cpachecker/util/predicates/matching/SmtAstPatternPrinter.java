@@ -39,7 +39,7 @@ public class SmtAstPatternPrinter {
 
   private static void internalPrint(Appendable pOut, SmtAstPatternSelection pPattern, int pDepth) throws IOException {
     String ident = String.format("%" + Integer.valueOf(1 + pDepth * 4) + "s", "");
-    pOut.append(String.format("%s%s\n", ident, pPattern.getRelationship()));
+    pOut.append(String.format("%s%s%n", ident, pPattern.getRelationship()));
     for (SmtAstPatternSelectionElement elementPattern: pPattern) {
       if (elementPattern instanceof SmtAstPatternSelection) {
         internalPrint(pOut, (SmtAstPatternSelection) elementPattern, pDepth+1);
@@ -54,7 +54,7 @@ public class SmtAstPatternPrinter {
       SmtFunctionApplicationPattern pApp = (SmtFunctionApplicationPattern) pPattern;
 
       String ident = String.format("%" + Integer.valueOf(1 + pDepth * 4) + "s", "");
-      pOut.append(String.format("%s%s\n", ident, pApp.toString()));
+      pOut.append(String.format("%s%s%n", ident, pApp.toString()));
 
       for (SmtAstPatternSelectionElement argP: pApp.getArgumentPatterns(false)) {
         if (argP instanceof SmtAstPatternSelection) {

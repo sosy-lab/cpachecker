@@ -51,7 +51,7 @@ public class DummyScope implements Scope {
   }
 
   @Override
-  public boolean variableNameInUse(String pName, String pOrigName) {
+  public boolean variableNameInUse(String pName) {
     throw new UnsupportedOperationException();
   }
 

@@ -108,7 +108,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     }
   }
 
-  private transient final ControlAutomatonCPA automatonCPA;
+  private transient ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<AStatement> assumptions;
@@ -427,12 +427,14 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(internalState.getStateId());
+    out.writeObject(automatonCPA.getAutomaton().getName());
   }
 
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int stateId = in.readInt();
     internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
+    automatonCPA = GlobalInfo.getInstance().getAutomatonInfo().getCPAForAutomaton((String)in.readObject());
   }
 
   public int getMatches() {

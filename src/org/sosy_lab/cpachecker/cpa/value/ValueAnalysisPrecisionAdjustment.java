@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -72,6 +73,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
   @Option(secure=true, description="restrict abstractions to join points")
   private boolean alwaysAtJoins = false;
+
+  @Option(secure=true, description="restrict liveness abstractions to nodes with more than one entering and/or leaving edge")
+  private boolean onlyAtNonLinearCFA = false;
 
   private final ImmutableSet<CFANode> loopHeads;
 
@@ -162,9 +166,25 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   }
 
   private void enforceLiveness(ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {
-    for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
-      if (!liveVariables.get().isVariableLive(variable.getAsSimpleString(), location.getLocationNode())) {
-        resultState.forget(variable);
+    CFANode actNode = location.getLocationNode();
+
+    boolean hasMoreThanOneEnteringLeavingEdge = actNode.getNumEnteringEdges() > 1 || actNode.getNumLeavingEdges() > 1;
+
+    if (!onlyAtNonLinearCFA || hasMoreThanOneEnteringLeavingEdge) {
+      boolean onlyBlankEdgesEntering = true;
+      for (int i = 0; i < actNode.getNumEnteringEdges() && onlyBlankEdgesEntering; i++) {
+        onlyBlankEdgesEntering = location.getLocationNode().getEnteringEdge(i) instanceof BlankEdge;
+      }
+
+      // when there are only blank edges that lead to this state, then we can
+      // skip the abstraction, after a blank edge there cannot be a variable
+      // less live
+      if (!onlyBlankEdgesEntering) {
+        for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
+          if (!liveVariables.get().isVariableLive(variable.getAsSimpleString(), location.getLocationNode())) {
+            resultState.forget(variable);
+          }
+        }
       }
     }
   }

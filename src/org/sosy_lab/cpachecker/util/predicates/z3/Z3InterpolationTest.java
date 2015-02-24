@@ -31,10 +31,12 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
+@SuppressWarnings("unused")
 public class Z3InterpolationTest {
   private Z3FormulaManager mgr;
   private Z3IntegerFormulaManager ifmgr;
@@ -44,7 +46,7 @@ public class Z3InterpolationTest {
     NativeLibraries.loadLibrary("z3j");
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = TestLogManager.getInstance();
-    mgr = Z3FormulaManager.create(logger, config, null);
+    mgr = Z3FormulaManager.create(logger, config, ShutdownNotifier.create(), null);
     ifmgr = (Z3IntegerFormulaManager) mgr.getIntegerFormulaManager();
   }
 
@@ -54,19 +56,22 @@ public class Z3InterpolationTest {
       x = ifmgr.makeVariable("x");
       y = ifmgr.makeVariable("y");
       z = ifmgr.makeVariable("z");
-      prover.push(ifmgr.equal(
-          y,
-          ifmgr.multiply(ifmgr.makeNumber(2), x)
-      ));
-      Z3Formula formula2 = (Z3Formula) ifmgr.equal(
+      BooleanFormula f1 = ifmgr.equal(
+              y,
+              ifmgr.multiply(ifmgr.makeNumber(2), x));
+      BooleanFormula f2 = ifmgr.equal(
               y,
               ifmgr.add(
                   ifmgr.makeNumber(1),
                   ifmgr.multiply(z, ifmgr.makeNumber(2))
-              )
-          );
+              ));
+      long id1 = prover.push(f1);
+      long id2 = prover.push(f2);
+      boolean check = prover.isUnsat();
+      assert check : "formulas must be contradicting";
       BooleanFormula interpolant = prover.getInterpolant(
-          Collections.singletonList(formula2.getFormulaInfo()));
+          Collections.singletonList(id2));
+      // we actually only check for a successful execution here, the result is irrelevant.
     }
   }
 }

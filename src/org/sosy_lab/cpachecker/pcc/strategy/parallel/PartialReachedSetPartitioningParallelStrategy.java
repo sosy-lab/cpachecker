@@ -145,10 +145,7 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
   @Override
   protected void readProofFromStream(ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
-    ioHelper.readMetadata(pIn, true);
-    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      ioHelper.readPartition(pIn, stats);
-    }
+    ioHelper.readProof(pIn, stats);
   }
 
 }

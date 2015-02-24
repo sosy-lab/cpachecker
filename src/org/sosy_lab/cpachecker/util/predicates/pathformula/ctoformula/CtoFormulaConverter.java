@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -231,6 +230,16 @@ public class CtoFormulaConverter {
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
+    if (!options.trackFunctionPointers()) {
+      CType lhsType = lhs.getExpressionType().getCanonicalType();
+      if (lhsType instanceof CPointerType) {
+        CType innerType = ((CPointerType)lhsType).getType();
+        if (innerType instanceof CFunctionType) {
+          return false;
+        }
+      }
+    }
+
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       return lhs.accept(new IsRelevantLhsVisitor(this));
     } else {
@@ -590,9 +599,7 @@ public class CtoFormulaConverter {
 //  @Override
   public PathFormula makeAnd(PathFormula oldFormula,
       CFAEdge edge, ErrorConditions errorConditions)
-      throws CPATransferException, InterruptedException {
-    // this is where the "meat" is... We have to parse the statement
-    // attached to the edge, and convert it to the appropriate formula
+      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException {
 
     String function = (edge.getPredecessor() != null)
                           ? edge.getPredecessor().getFunctionName() : null;
@@ -720,7 +727,7 @@ public class CtoFormulaConverter {
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       return makeStatement((CStatementEdge) edge, function,
@@ -785,7 +792,7 @@ public class CtoFormulaConverter {
       final CStatementEdge statement, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, InterruptedException {
 
     CStatement stmt = statement.getStatement();
     if (stmt instanceof CAssignment) {
@@ -813,7 +820,7 @@ public class CtoFormulaConverter {
       final CDeclarationEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, InterruptedException {
 
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
@@ -905,7 +912,7 @@ public class CtoFormulaConverter {
       final CFunctionSummaryEdge ce, final String calledFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, InterruptedException {
 
     addGlobalAssignmentConstraints(ce, calledFunction, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, false);
 
@@ -972,7 +979,7 @@ public class CtoFormulaConverter {
       final CFunctionCallEdge edge, final String callerFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, InterruptedException {
 
     List<CExpression> actualParams = edge.getArguments();
 
@@ -1027,7 +1034,7 @@ public class CtoFormulaConverter {
       final CReturnStatementEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, InterruptedException {
     if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
@@ -1191,7 +1198,7 @@ public class CtoFormulaConverter {
   }
 
   public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException, InterruptedException {
-    PointerTargetSetBuilder pts = DummyPointerTargetSetBuilder.INSTANCE;
+    PointerTargetSetBuilder pts = createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
     Constraints constraints = new Constraints(bfmgr);
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     BooleanFormula f = makePredicate(exp, true, edge, function, ssa, pts, constraints, errorConditions);

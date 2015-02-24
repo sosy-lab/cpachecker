@@ -78,17 +78,31 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   @Override
   public BooleanFormula getInterpolant(List<T> pFormulasOfA) throws SolverException {
     BooleanFormula itpF = itpEnv.getInterpolant(pFormulasOfA);
-    return mainFmgr.parse(itpFmgr.dumpFormula(itpF).toString());
+    return convertToMain(itpF);
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> pFormulasOfA) {
-    final List<BooleanFormula> itps = itpEnv.getSeqInterpolants(pFormulasOfA);
+  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas) {
+    final List<BooleanFormula> itps = itpEnv.getSeqInterpolants(partitionedFormulas);
     final List<BooleanFormula> result = new ArrayList<>();
     for (BooleanFormula itp : itps) {
-      result.add(mainFmgr.parse(itpFmgr.dumpFormula(itp).toString()));
+      result.add(convertToMain(itp));
     }
     return result;
+  }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree) {
+    final List<BooleanFormula> itps = itpEnv.getTreeInterpolants(partitionedFormulas, startOfSubTree);
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (BooleanFormula itp : itps) {
+      result.add(convertToMain(itp));
+    }
+    return result;
+  }
+
+  private BooleanFormula convertToMain(BooleanFormula f) {
+    return mainFmgr.parse(itpFmgr.dumpFormula(f).toString());
   }
 
   @Override

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -68,7 +70,9 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
   public int hashCode() {
     int prime = 31;
     int result = 7;
-    return prime * result + super.hashCode();
+    result = prime * result + super.hashCode();
+    result = prime * result + Objects.hashCode(qualifiedName);
+    return result;
   }
 
   @Override
@@ -77,11 +81,12 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
       return true;
     }
 
-    if (!(obj instanceof CParameterDeclaration)) {
+    if (!(obj instanceof CParameterDeclaration) || !super.equals(obj)) {
       return false;
     }
 
-    return super.equals(obj);
+    CParameterDeclaration other = (CParameterDeclaration) obj;
+    return Objects.equals(qualifiedName, other.qualifiedName);
   }
 
 

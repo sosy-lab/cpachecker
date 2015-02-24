@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,6 +38,7 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -43,13 +46,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -64,8 +64,6 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
@@ -88,8 +86,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
 
-  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
-      justification="After de-serializing, we only read values from this class, and we don't need types for this.")
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
   /**
@@ -177,7 +173,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   /**
    * This method removes a memory location from the underlying map and returns the removed value.
    *
-   * @param nameInFormula the name of the memory location to remove
+   * @param pMemoryLocation the name of the memory location to remove
    * @return the value of the removed memory location
    */
   public Pair<Value, Type> forget(MemoryLocation pMemoryLocation) {
@@ -897,7 +893,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
    * This function rebuilds a new state with the correct values from the previous callState.
    * We delete the wrong values and insert new values, if necessary. */
-  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState) {
+  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState, final FunctionExitNode functionExit) {
 
     // we build a new state from:
     // - local variables from callState,
@@ -920,9 +916,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
         rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
 
-      } else if (VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE.equals(trackedVar.getIdentifier())) {
-        // lets assume, that RETURN_VAR is only tracked along one edge, which is the ReturnEdge.
-        // so that we can ignore the functionname for this condition.
+      } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
+          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
         assert (!rebuildState.contains(trackedVar)) :
                 "calling function should not contain return-variable of called function: " + trackedVar;
         if (this.contains(trackedVar)) {
@@ -932,5 +927,14 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     return rebuildState;
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException {
+    try {
+      in.defaultReadObject();
+    } catch (ClassNotFoundException e) {
+      throw new IOException("",e);
+    }
+    memLocToType = PathCopyingPersistentTreeMap.of();
   }
 }

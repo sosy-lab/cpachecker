@@ -67,6 +67,7 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
     final int prime = 31;
     int result = 7;
     result = prime * result + (isFinal ? 1231 : 1237);
+    result = prime * result + qualifiedName.hashCode();
     result = prime * result + super.hashCode();
     return result;
   }
@@ -85,7 +86,8 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
 
     JParameterDeclaration other = (JParameterDeclaration) obj;
 
-    return other.isFinal == isFinal;
+    return other.isFinal == isFinal
+        && qualifiedName.equals(other.qualifiedName);
   }
 
 }

@@ -2,6 +2,8 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.base.Joiner;
@@ -34,9 +36,8 @@ public final class Location {
     // Making sure that equal location will have the same identifier.
     if (serializationMap.inverse().containsKey(this)) {
 
-      // NOTE: check how dangerous this is.
       // Normally we shouldn't let {@code this} reference escape during the
-      // construction, but in this case it appears fine.
+      // construction, but in this case it is fine.
       locationID = serializationMap.inverse().get(this);
     } else {
       locationID = ++locationCounter;
@@ -51,33 +52,34 @@ public final class Location {
     return new Location(initial, ImmutableList.<CFANode>of());
   }
 
-  public static Location withCallsite(Location old,
-      CFANode pCallsite,
-      CFANode node) {
-    return new Location(
-        node,
-        ImmutableList.<CFANode>builder()
-        .addAll(old.callerNodes)
-        .add(pCallsite)
-        .build());
-  }
-
-  public static Location popCallsite(Location old, CFANode node) {
-    return new Location(
-        node,
-        old.callerNodes.subList(0, old.callerNodes.size() - 1));
-  }
-
+  /**
+   * De-serialize location from an identifier.
+   */
   public static Location ofID(int l) {
     return serializationMap.get(l);
   }
 
+  /**
+   * Serialize location to an identifier.
+   */
   public int toID() {
     return locationID;
   }
 
-  public static Location withNode(Location old, CFANode node) {
-    return new Location(node, old.callerNodes);
+  public static Location transferRelation(Location old, CFAEdge pEdge) {
+    CFANode newNode = pEdge.getSuccessor();
+    if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+
+      return new Location(
+          newNode, ImmutableList.<CFANode>builder()
+            .addAll(old.callerNodes).add(pEdge.getPredecessor()).build());
+    } else if (pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+
+      return new Location(
+          newNode, old.callerNodes.subList(0, old.callerNodes.size() - 1));
+    } else {
+      return new Location(newNode, old.callerNodes);
+    }
   }
 
   @Override

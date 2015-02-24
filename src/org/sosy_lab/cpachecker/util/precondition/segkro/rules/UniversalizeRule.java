@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.GenericPatterns.PropositionType;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -36,9 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
+import com.google.common.collect.ImmutableSet;
 
 public class UniversalizeRule extends PatternBasedRule {
 
@@ -54,12 +53,9 @@ public class UniversalizeRule extends PatternBasedRule {
     // (= (select b (+ i 1)) 0)
     // (= 0 (select b (+ i 1)))
 
-    // TODO: Nested arrays...
-    // TODO: Handling of deeper nestings (implementation of matchInSubtree)
-
     premises.add(new PatternBasedPremise(
-        GenericPatterns.array_at_index_matcher("a", or(matchNumeralExpressionBind("i")))
-          ));
+        GenericPatterns.array_at_index_matcher("a", or(matchNumeralExpressionBind("i")), PropositionType.ALL)
+    ));
   }
 
   @Override
@@ -71,18 +67,12 @@ public class UniversalizeRule extends PatternBasedRule {
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
     final BooleanFormula f = (BooleanFormula) Preconditions.checkNotNull(pAssignment.get("a"));
     final IntegerFormula i = (IntegerFormula) Preconditions.checkNotNull(pAssignment.get("i"));
+    final Formula parentOfI = Preconditions.checkNotNull(pAssignment.get(parentOf("i")));
 
     final IntegerFormula x = ifm.makeVariable("x");
-    final BooleanFormula xConstraint =  bfm.and(
-        ifm.greaterOrEquals(x, i),
-        ifm.lessThan(x, ifm.subtract(i, ifm.makeNumber(1))));
 
-    Map<Formula, Formula> transformation = Maps.newHashMap();
-    transformation.put(i, x);
+    final BooleanFormula fPrime = (BooleanFormula) substituteInParent(parentOfI, i, x, f);
 
-    final BooleanFormula fPrime = matcher.substitute(f, transformation);
-
-    return Lists.newArrayList(
-        qfm.forall(Lists.newArrayList(x), bfm.and(fPrime, xConstraint)));
+    return ImmutableSet.of(qfm.forall(x, i, i, fPrime));
   }
 }

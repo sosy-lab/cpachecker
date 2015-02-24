@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
@@ -386,6 +387,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   }
 
   @Override
+  public InvariantsFormula<CompoundInterval> visit(JArrayLengthExpression pArrayLengthExpression) {
+    return TOP;
+  }
+
+  @Override
   public InvariantsFormula<CompoundInterval> visit(JVariableRunTimeType pThisRunTimeType)
       throws UnrecognizedCodeException {
     return TOP;
@@ -451,10 +457,18 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     final boolean isSigned;
     final int bitLength;
 
-    if (pTargetType instanceof CSimpleType) {
-      CSimpleType targetType = ((CSimpleType) pTargetType).getCanonicalType();
+    Type type = pTargetType;
+    if (type instanceof CType) {
+      type = ((CType) type).getCanonicalType();
+    }
+
+    if (type instanceof CSimpleType) {
+      CSimpleType targetType = ((CSimpleType) type).getCanonicalType();
       isSigned = pMachineModel.isSigned(targetType);
       bitLength = pMachineModel.getSizeof(targetType) * pMachineModel.getSizeofCharInBits();
+    } else if (type instanceof CType) {
+      isSigned = false;
+      bitLength = pMachineModel.getSizeof((CType) type) * pMachineModel.getSizeofCharInBits();
     } else {
       // TODO java types
       return TOP;

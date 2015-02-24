@@ -42,6 +42,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -106,7 +107,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger,
-      Configuration config, @Nullable PathCounterTemplate solverLogfile)
+      Configuration config, ShutdownNotifier pShutdownNotifier,
+      @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
@@ -139,6 +141,14 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     // TODO add some other params, memory-limit?
     final long context = mk_context_rc(cfg);
+    pShutdownNotifier.register(
+        new ShutdownNotifier.ShutdownRequestListener() {
+          @Override
+          public void shutdownRequested(String reason) {
+            interrupt(context);
+          }
+        }
+    );
     del_config(cfg);
 
     long boolSort = mk_bool_sort(context);

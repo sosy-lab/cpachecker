@@ -216,4 +216,5 @@ public abstract class SolverBasedTest0 {
           }
         };
   }
+
 }

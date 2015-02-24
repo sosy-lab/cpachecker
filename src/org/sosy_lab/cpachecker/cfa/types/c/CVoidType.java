@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +34,9 @@ import com.google.common.base.Strings;
  * This class represents the type "void".
  * It does not allow any modifiers and has only a single instance.
  */
-public final class CVoidType implements CType {
+public final class CVoidType implements CType, Serializable {
+
+  private static final long serialVersionUID = 1385808708190595556L;
 
   public final static CVoidType VOID = new CVoidType(false, false);
 

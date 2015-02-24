@@ -71,6 +71,10 @@ public class TargetLocationProvider {
   }
 
   public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
+    return tryGetAutomatonTargetLocations(pRootNode, true);
+  }
+
+  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode, boolean pSkipRecursion) {
     try {
       // Create new configuration with default set of CPAs
       ConfigurationBuilder configurationBuilder = Configuration.builder();
@@ -79,7 +83,7 @@ public class TargetLocationProvider {
       }
       configurationBuilder.setOption("output.disable", "true");
       configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
-      configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
+      configurationBuilder.setOption("cpa.callstack.skipRecursion", Boolean.toString(pSkipRecursion));
 
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
@@ -104,7 +108,19 @@ public class TargetLocationProvider {
 
       return ImmutableSet.copyOf(result);
 
-    } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
+    } catch (CPAException e) {
+
+      if (!shutdownNotifier.shouldShutdown()) {
+        if ((pSkipRecursion || !pSkipRecursion && !e.toString().toLowerCase().contains("recursion"))) {
+          logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        } else {
+          logManager.logException(Level.FINEST, e, "Recursion detected. Defaulting to selecting all locations.");
+        }
+      }
+
+      return null;
+
+    } catch (InvalidConfigurationException | InterruptedException e) {
 
       if (!shutdownNotifier.shouldShutdown()) {
         logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");

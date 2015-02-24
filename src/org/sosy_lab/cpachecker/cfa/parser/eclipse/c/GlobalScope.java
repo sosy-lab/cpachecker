@@ -58,31 +58,35 @@ import com.google.common.collect.ImmutableMap;
 class GlobalScope extends AbstractScope {
 
   private final Map<String, CSimpleDeclaration> globalVars;
+  private final Map<String, CSimpleDeclaration> globalVarsWithNewNames;
   private final Map<String, CFunctionDeclaration> functions;
   private final Map<String, CComplexTypeDeclaration> types;
   private final Map<String, CTypeDefDeclaration> typedefs;
-  private final Map<String, CComplexTypeDeclaration> alreadyDeclaratedTypesInOtherFiles;
+  private final ProgramDeclarations programDeclarations;
 
   public GlobalScope(Map<String, CSimpleDeclaration> globalVars,
+                     Map<String, CSimpleDeclaration> globalVarsWithNewNames,
                      Map<String, CFunctionDeclaration> functions,
                      Map<String, CComplexTypeDeclaration> types,
                      Map<String, CTypeDefDeclaration> typedefs,
-                     Map<String, CComplexTypeDeclaration> alreadyDeclaratedTypesInOtherFiles,
+                     ProgramDeclarations programDeclarations,
                      String currentFile) {
     super(currentFile);
     this.globalVars = globalVars;
+    this.globalVarsWithNewNames = globalVarsWithNewNames;
     this.functions = functions;
     this.types = types;
     this.typedefs = typedefs;
-    this.alreadyDeclaratedTypesInOtherFiles = alreadyDeclaratedTypesInOtherFiles;
+    this.programDeclarations = programDeclarations;
   }
 
   public GlobalScope() {
     this(new HashMap<String, CSimpleDeclaration>(),
+         new HashMap<String, CSimpleDeclaration>(),
          new HashMap<String, CFunctionDeclaration>(),
          new HashMap<String, CComplexTypeDeclaration>(),
          new HashMap<String, CTypeDefDeclaration>(),
-         new HashMap<String, CComplexTypeDeclaration>(),
+         new ProgramDeclarations(),
          "");
   }
 
@@ -92,31 +96,13 @@ class GlobalScope extends AbstractScope {
   }
 
   @Override
-  public boolean variableNameInUse(String name, String origName) {
-      checkNotNull(name);
-      checkNotNull(origName);
-
-      CSimpleDeclaration binding = globalVars.get(origName);
-      if (binding != null && binding.getName().equals(name)) {
-        return true;
-      }
-      binding = globalVars.get(name);
-      if (binding != null && binding.getName().equals(name)) {
-        return true;
-      }
-      return false;
-    }
+  public boolean variableNameInUse(String name) {
+    return globalVarsWithNewNames.containsKey(checkNotNull(name)) || programDeclarations.variableNameInUse(name);
+  }
 
   @Override
   public CSimpleDeclaration lookupVariable(String name) {
-    checkNotNull(name);
-
-    CSimpleDeclaration binding = globalVars.get(name);
-    if (binding != null) {
-      return binding;
-    }
-
-    return null;
+    return globalVars.get(checkNotNull(name));
   }
 
   @Override
@@ -144,9 +130,14 @@ class GlobalScope extends AbstractScope {
   public CType lookupTypedef(final String name) {
     checkNotNull(name);
 
-    final CTypeDefDeclaration declaration = typedefs.get(name);
+    CTypeDefDeclaration declaration = typedefs.get(getRenamedTypeName(name));
     if (declaration != null) {
       return declaration.getType();
+    } else {
+      declaration = typedefs.get(name);
+      if (declaration != null) {
+        return declaration.getType();
+      }
     }
 
     return null;
@@ -171,11 +162,7 @@ class GlobalScope extends AbstractScope {
     String name = declaration.getName();
     assert name != null;
 
-    if (functions.containsKey(name)) {
-      // TODO multiple function declarations are legal, as long as they are equal
-      // check this and throw exception if not
-//        throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
-    }
+    // TODO multiple function declarations are legal, as long as they are equal, check this and throw exception if not
 
     if (globalVars.containsKey(name)) {
       throw new CFAGenerationRuntimeException("Name of global variable "
@@ -184,6 +171,7 @@ class GlobalScope extends AbstractScope {
     }
 
     functions.put(name, declaration);
+    programDeclarations.registerFunctionDeclaration(declaration);
   }
 
   @Override
@@ -204,6 +192,7 @@ class GlobalScope extends AbstractScope {
     }
 
     globalVars.put(name, declaration);
+    globalVarsWithNewNames.put(declaration.getName(), declaration);
   }
 
   /**
@@ -223,140 +212,100 @@ class GlobalScope extends AbstractScope {
 
     String name = type.getQualifiedName();
 
+    boolean programContainsEqualType = programDeclarations.containsEqualType(declaration);
+    boolean programContainsExactNamedType = programDeclarations.containsTypeWithExactName(name);
+
     if (types.containsKey(name)) {
       CComplexTypeDeclaration oldDeclaration = types.get(name);
-
       CComplexType oldType = oldDeclaration.getType();
 
-      // in case we are analyzing multiple files as one cfa there may be several
-      // identical type declarations, if it is one we just return false
-      if ((type instanceof CElaboratedType && ((CElaboratedType) type).getRealType() == oldType)
-          || type == oldType || (oldType instanceof CElaboratedType && ((CElaboratedType)oldType).getRealType() == type)
-          || (type instanceof CElaboratedType && oldType instanceof CElaboratedType && ((CElaboratedType) type).getRealType() == ((CElaboratedType)oldType).getRealType())) {
+      if (type instanceof CElaboratedType) {
+        // the current declaration just re-declares an existing type
         return false;
       }
 
-      if (alreadyDeclaratedTypesInOtherFiles.containsKey(name) && !(type.getCanonicalType() instanceof CElaboratedType)) {
-        CComplexTypeDeclaration otherFile = alreadyDeclaratedTypesInOtherFiles.get(name);
-        CComplexType otherType = (CComplexType) otherFile.getType().getCanonicalType();
-        type = (CComplexType) type.getCanonicalType();
-
-        if (areEqualTypes(otherType, type, false)) {
-          type = otherType;
-
-        } else {
-          // remove wrong named declaration from types map
-          types.remove(name);
-          declaration = createRenamedType(declaration);
-          name = declaration.getType().getQualifiedName();
-        }
-
-      } else {
-
-        // the current declaration just re-declares an existing type
-        if (type instanceof CElaboratedType) {
-          return false;
-        }
-
-        // two CCompositeTypes or two CEnumTypes
-        // declaring struct twice is not allowed, even with equal signatures
-        if (oldType.getClass() == type.getClass()) {
+      // two CCompositeTypes or two CEnumTypes
+      // declaring struct twice is not allowed, even with equal signatures
+      if (oldType.getClass() == type.getClass()) {
+        if (declaration.getFileLocation().getFileName().equals(oldDeclaration.getFileLocation().getFileName())) {
           throw new CFAGenerationRuntimeException("Redeclaring " + name
               + " in " + declaration.getFileLocation()
               + ", originally declared in " + oldDeclaration.getFileLocation());
+        } else {
+          return true;
         }
       }
 
+      assert oldType instanceof CElaboratedType
+             && !(type instanceof CElaboratedType);
 
-      assert oldType instanceof CElaboratedType;
+      boolean realTypeAlreadySet = false;
 
-      // We now have a real declaration for a type for which we have seen a forward declaration
-      // We set a reference to the full type in the old type
-      // and update the types map with the full type.
-      ((CElaboratedType)oldType).setRealType(type);
+      // there was already a declaration before and the found type is already known
+      // from another file so we chose as realtype for the former declaration
+      // the type from the other file
+      if (programContainsEqualType) {
+        CComplexTypeDeclaration oldProgDeclaration = programDeclarations.getEqualType(declaration);
 
-    } else if (alreadyDeclaratedTypesInOtherFiles.containsKey(name) && !(type.getCanonicalType() instanceof CElaboratedType)) {
-      CComplexTypeDeclaration otherFile = alreadyDeclaratedTypesInOtherFiles.get(name);
-      CComplexType knownType = (CComplexType) otherFile.getType().getCanonicalType();
-      type = (CComplexType) type.getCanonicalType();
+        // if program wide only an elaborated type is found we set the realtype of this
+        // elaborated type to the new found complete type and replace it afterwards
+        // with the new found declaration without the elaborated type surrounding it
+        if (oldProgDeclaration.getType().getCanonicalType() instanceof CElaboratedType) {
+          programDeclarations.registerTypeDeclaration(declaration);
+          ((CElaboratedType) oldProgDeclaration.getType()).setRealType(type);
 
-      // first found type is only elaborated, but the new one is a complete type, so we set the
-      // type with the normal name, and also set the old elaborate type's real type to the new one
-      if (knownType instanceof CElaboratedType) {
-        declaration = alreadyDeclaratedTypesInOtherFiles.get(name);
-        ((CElaboratedType)otherFile.getType()).setRealType(type);
-      } else if (areEqualTypes(knownType, type, false)) {
-        declaration = alreadyDeclaratedTypesInOtherFiles.get(name);
-      } else {
-        declaration = createRenamedType(declaration);
-        name = declaration.getType().getQualifiedName();
+          // if we set the real type here and the declaration from the program
+          // scope is the same as the one from the globalscope we don't have
+          // to set it later on
+          realTypeAlreadySet = oldProgDeclaration.getType() == oldType;
+
+        } else {
+          overwriteTypeIfNecessary(type, oldProgDeclaration.getType());
+          type = oldProgDeclaration.getType();
+        }
+
       }
+
+      // We now have a real declaration for a type for which we have seen a forward
+      // declaration. We set a reference to the full type in the old type he types
+      // map with the full type. But only if this was not done before
+      if (!realTypeAlreadySet
+          && !(!(oldType.getCanonicalType() instanceof CElaboratedType)
+               && ProgramDeclarations.areEqualTypes((CComplexType) oldType.getCanonicalType(),
+                                                    (CComplexType) type.getCanonicalType(),
+                                                    false))) {
+        ((CElaboratedType)oldType).setRealType(type);
+      }
+
+      // there was no former type declaration here, but the TYPE that should
+      // be declared is already known from another parsed file, so we take
+      // the type from this file instead of the new one
+    } else if (programContainsEqualType) {
+      declaration = programDeclarations.getEqualType(declaration);
+      overwriteTypeIfNecessary(type, declaration.getType());
+
+      // there was no former type declaration here, but the NAME of the type that
+      // should be declared is already known from another parsed file, so we rename
+      // the new type
+    } else if (programContainsExactNamedType) {
+      declaration = createRenamedType(declaration);
+      name = declaration.getType().getQualifiedName();
+      overwriteTypeIfNecessary(type, declaration.getType());
+    }
+
+    if (!programContainsEqualType) {
+      programDeclarations.registerTypeDeclaration(declaration);
     }
 
     types.put(name, declaration);
     return true;
   }
 
-  /**
-   * This method checks CComplexTypes on equality. As members are usually not
-   * checked by our equality methods these are here checked additionally, but
-   * only by name.
-   */
-  private boolean areEqualTypes(CComplexType oldType, CComplexType forwardType, boolean compareWithoutName) {
-    boolean areEqual = false;
-    oldType = (CComplexType) oldType.getCanonicalType();
-    forwardType = (CComplexType) forwardType.getCanonicalType();
-    if (forwardType.equals(oldType) ||
-        (compareWithoutName && forwardType.isConst() == oldType.isConst()
-            && forwardType.isVolatile() == oldType.isVolatile()
-            && forwardType.getKind() == oldType.getKind())) {
-
-      if (forwardType instanceof CCompositeType) {
-        List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) forwardType).getMembers();
-        List<CCompositeTypeMemberDeclaration> oldMembers = ((CCompositeType) oldType).getMembers();
-
-        if (members.size() == oldMembers.size()) {
-          areEqual = true;
-          for (int i = 0; i < members.size() && areEqual; i++) {
-            String member1 = members.get(i).getName();
-            String member2 = oldMembers.get(i).getName();
-            if (member1 == null) {
-              areEqual = false;
-            } else {
-              areEqual = member1.equals(member2);
-              CType typeM1 = members.get(i).getType();
-              CType typeM2 = oldMembers.get(i).getType();
-              if (!areEqual
-                  && typeM1 instanceof CComplexType && typeM2 instanceof CComplexType
-                  && (member1.contains("_anon_type_member") && member2.contains("_anon_type_member_"))) {
-                areEqual = areEqualTypes((CComplexType)oldMembers.get(i).getType(), (CComplexType)members.get(i).getType(), true);
-              }
-            }
-          }
-        }
-      } else if (forwardType instanceof CEnumType) {
-        List<CEnumerator> members = ((CEnumType) forwardType).getEnumerators();
-        List<CEnumerator> oldMembers = ((CEnumType) oldType).getEnumerators();
-
-        if (members.size() == oldMembers.size()) {
-          areEqual = true;
-          for (int i = 0; i < members.size() && areEqual; i++) {
-            areEqual = members.get(i).getName().equals(oldMembers.get(i).getName());
-          }
-        }
-      }
-    } else {
-
-    // in files where only a forwards declaration can be found but no complete
-    // type we assume that this type is equal to the before found type with the
-    // same name this also works when the elaborated type is the old type, the
-    // first type found which has the same name and a complete type will now be
-    // the realType of the oldType
-    areEqual = ((forwardType instanceof CElaboratedType && forwardType.getName().equals(oldType.getName()))
-               || (oldType instanceof CElaboratedType && oldType.getName().equals(forwardType.getName())));
+  private void overwriteTypeIfNecessary(CType oldType, CType newType) {
+    IType iType = ASTTypeConverter.getTypeFromTypeConversion(oldType, currentFile);
+    if (iType != null) {
+      ASTTypeConverter.overwriteType(iType, newType, currentFile);
     }
-
-    return areEqual;
   }
 
   /**
@@ -369,11 +318,11 @@ class GlobalScope extends AbstractScope {
 
     if (oldType instanceof CCompositeType) {
       CCompositeType ct = new CCompositeType(oldType.isConst(), oldType.isVolatile(), oldType.getKind(),
-                                          ImmutableList.<CCompositeTypeMemberDeclaration>of(), newName);
+                                          ImmutableList.<CCompositeTypeMemberDeclaration>of(), newName, oldType.getOrigName());
 
       IType key = ASTTypeConverter.getTypeFromTypeConversion(oldType, currentFile);
       if (key != null) {
-        ASTTypeConverter.overwriteType(key, new CElaboratedType(ct.isConst(), ct.isVolatile(), ct.getKind(), ct.getName(), ct), currentFile);
+        ASTTypeConverter.overwriteType(key, new CElaboratedType(ct.isConst(), ct.isVolatile(), ct.getKind(), ct.getName(), ct.getOrigName(), ct), currentFile);
       }
 
       List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>(((CCompositeType)oldType).getMembers().size());
@@ -395,7 +344,7 @@ class GlobalScope extends AbstractScope {
         list.add(newC);
       }
 
-      CEnumType et = new CEnumType(oldType.isConst(), oldType.isVolatile(), list, newName);
+      CEnumType et = new CEnumType(oldType.isConst(), oldType.isVolatile(), list, newName, oldType.getOrigName());
       for (CEnumerator enumValue : et.getEnumerators()) {
         enumValue.setEnum(et);
       }
@@ -403,7 +352,7 @@ class GlobalScope extends AbstractScope {
 
     } else if (oldType instanceof CElaboratedType) {
       CElaboratedType et = new CElaboratedType(oldType.isConst(), oldType.isVolatile(),
-                       oldType.getKind(), newName, null);
+                       oldType.getKind(), newName, oldType.getOrigName(), null);
       newD = new CComplexTypeDeclaration(newD.getFileLocation(), true, et);
     }
     return newD;
@@ -441,6 +390,9 @@ class GlobalScope extends AbstractScope {
       if (oldType.getCanonicalType() instanceof CElaboratedType && type.getCanonicalType() instanceof CCompositeType
           && ((CElaboratedType) oldType).getName().equals(((CCompositeType)type).getName())) {
         typedefs.put(name, declaration);
+        if (programDeclarations.containsEqualTypeDef(declaration)) {
+
+        }
         return true;
       }
 

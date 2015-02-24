@@ -7,13 +7,14 @@
 
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=true</option>
-  <option name="-heap">7500M</option>
+  <option name="-heap">7000M</option>
   <option name="-ldv"/>
 
   <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
 
   <rundefinition>
     <sourcefiles>
+      <include>../programs/ldv-benchmarks/validator/*/*.c</include>
       <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
       <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-drivers--md--md-mod.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-fs--dlm--dlm.ko-ldv_main16_false-unreach-label.cil.out.c</exclude>
@@ -24,6 +25,17 @@
       <exclude>../programs/ldv-benchmarks/unsafes/39_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-39_7a-fs--ceph--ceph.ko-ldv_main2_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/43_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-43_1a-drivers--net--ethernet--chelsio--cxgb3--cxgb3.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/68_1/linux-3.12-rc1/linux-3.12-rc1.tar.xz-68_1-drivers--staging--winbond--w35und.ko-ldv_main7_false-unreach-label.cil.out.c</exclude>
+
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--ata--libata.ko-ldv_main4_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ceph--ceph.ko-ldv_main11_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-148_7a-drivers--net--ethernet--qlogic--qlcnic--qlcnic.ko-ldv_main1_false-unreach-label.cil.out.c</exclude>
+
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--staging--lustre--lustre--llite--lustre.ko-ldv_main2_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--ceph--ceph.ko-ldv_main11_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-fs--dlm--dlm.ko-ldv_main16_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/129_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-129_1a-fs--nilfs2--nilfs2.ko-ldv_main10_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--scsi--scsi_mod.ko-ldv_main13_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--staging--media--lirc--lirc_imon.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
     </sourcefiles>
   </rundefinition>
 </benchmark>

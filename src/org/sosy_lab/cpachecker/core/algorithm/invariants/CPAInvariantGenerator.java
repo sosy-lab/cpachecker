@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 /**
@@ -99,6 +102,19 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   private final ShutdownNotifier shutdownNotifier;
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
+
+  private volatile boolean cancelled = false;
+
+  private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
+
+  private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
+
+    @Override
+    public void shutdownRequested(String pReason) {
+      cancelled = true;
+      invariantGenerationFuture.cancel(true);
+    }
+  };
 
   public ConfigurableProgramAnalysis getCPAs() {
     return invariantCPAs;
@@ -148,12 +164,14 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       };
       invariantGenerationFuture = new LazyFutureTask<>(task);
     }
+
+    shutdownNotifier.registerAndCheckImmediately(shutdownListener);
   }
 
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
-    invariantGenerationFuture.cancel(true);
+    cancelled = true;
     shutdownNotifier.requestShutdown("Invariant generation cancel requested.");
   }
 
@@ -161,6 +179,11 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   public UnmodifiableReachedSet get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
     shutdownNotifier.shutdownIfNecessary();
+
+    if (cancelled) {
+      throw new InterruptedException("Invariant generation was interrupted.");
+    }
+
     try {
       return invariantGenerationFuture.get();
 
@@ -173,6 +196,24 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   @Override
   public Timer getTimeOfExecution() {
     return invariantGeneration;
+  }
+
+  @Override
+  public void addUpdateListener(UpdateListener pUpdateListener) {
+    Preconditions.checkNotNull(pUpdateListener);
+    updateListeners.add(pUpdateListener);
+  }
+
+  @Override
+  public void removeUpdateListener(UpdateListener pUpdateListener) {
+    Preconditions.checkNotNull(pUpdateListener);
+    updateListeners.remove(pUpdateListener);
+  }
+
+  private void notifyUpdateListeners() {
+    for (UpdateListener updateListener : updateListeners) {
+      updateListener.updated();
+    }
   }
 
   private class InvariantGenerationTask implements Callable<UnmodifiableReachedSet> {
@@ -218,7 +259,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
     private boolean done = false;
 
-    private boolean cancelled = false;
+    private boolean cancelledInner = false;
 
     public AdjustingInvariantGenerationFuture(final ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation) {
       conditionCPAs = CPAs.asIterable(invariantCPAs).filter(AdjustableConditionCPA.class).toList();
@@ -238,7 +279,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
     @Override
     public boolean cancel(boolean pMayInterruptIfRunning) {
-      cancelled = true;
+      cancelledInner = true;
       boolean wasDone = done;
       setDone();
       Future<UnmodifiableReachedSet> currentFuture = this.currentFuture.get();
@@ -261,7 +302,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
     @Override
     public boolean isCancelled() {
-      return cancelled;
+      return cancelledInner;
     }
 
     @Override
@@ -280,11 +321,12 @@ public class CPAInvariantGenerator implements InvariantGenerator {
           // wrapping this call itself, so this function must not be called
           // before ref is set to the wrapping future
           currentFuture.set(ref.get());
+          notifyUpdateListeners();
           if (adjustConditions() && !shutdownNotifier.shouldShutdown()) {
             scheduleTask(pReachedSetFactory, pInitialLocation);
           } else {
             setDone();
-            cancelled |= ref.get().isCancelled();
+            cancelledInner |= ref.get().isCancelled();
           }
           return result;
         }

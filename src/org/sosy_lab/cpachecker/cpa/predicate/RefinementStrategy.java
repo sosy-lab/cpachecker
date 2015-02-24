@@ -177,7 +177,9 @@ public abstract class RefinementStrategy {
           // We can add this information to the cache to speed up later sat checks.
           PredicateAbstractState s = getPredicateState(w);
           BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
-          solver.addUnsatisfiableFormulaToCache(blockFormula);
+          // solver.addUnsatisfiableFormulaToCache(blockFormula);
+          // TODO disabled, because tree-interpolation returns true-false-interpolants 
+          // without an unsatisfiable intermediate formula
           // TODO: Move caching to InterpolationManager.buildCounterexampleTrace
         }
         break;

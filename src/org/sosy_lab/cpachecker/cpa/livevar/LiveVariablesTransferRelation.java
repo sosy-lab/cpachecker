@@ -475,7 +475,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    */
   private static final class LeftHandSideIdExpressionVisitor extends DeclarationCollectingVisitor {
     @Override
-    public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) throws RuntimeException {
+    public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) {
       return pE.getArrayExpression().<Set<ASimpleDeclaration>,
                                       Set<ASimpleDeclaration>,
                                       Set<ASimpleDeclaration>,

@@ -33,8 +33,6 @@ import os
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-import benchmark.util as Util
-
 def determineRevision(dir):
     """
     Determine the revision of the given directory in a version control system.
@@ -43,7 +41,7 @@ def determineRevision(dir):
     try:
         svnProcess = subprocess.Popen(['svnversion', '--committed', dir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = svnProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
+        stdout = _decode_to_string(stdout).strip()
         stdout = stdout.split(':')[-1]
         if not (svnProcess.returncode or stderr or (stdout == 'exported') or (stdout == 'Unversioned directory')):
             return stdout
@@ -60,14 +58,14 @@ def determineRevision(dir):
 
         gitProcess = subprocess.Popen(['git', 'svn', 'find-rev', 'HEAD'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = gitProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
+        stdout = _decode_to_string(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
             return stdout + ('M' if _isGitRepositoryDirty(dir) else '')
 
         # Check for git repository
         gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = gitProcess.communicate()
-        stdout = Util.decodeToString(stdout).strip()
+        stdout = _decode_to_string(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
             return stdout + ('+' if _isGitRepositoryDirty(dir) else '')
     except OSError:
@@ -81,6 +79,17 @@ def _isGitRepositoryDirty(dir):
     if not (gitProcess.returncode or stderr):
         return True if stdout else False  # True if stdout is non-empty
     return None
+
+
+def _decode_to_string(to_decode):
+    """
+    This function is needed for Python 3,
+    because a subprocess can return bytes instead of a string.
+    """
+    try:
+        return to_decode.decode('utf-8')
+    except AttributeError: # bytesToDecode was of type string before
+        return to_decode
 
 
 if __name__ == "__main__":

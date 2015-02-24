@@ -31,8 +31,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -84,15 +87,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
-import com.google.common.collect.Collections2;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 @Options(prefix="precondition")
 public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvider {
@@ -216,34 +220,33 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VALID, pWpLoc);
   }
 
-  private Collection<ARGPath> getTracesToAbstractionLocation(
+  private Set<ARGState> getStatesAtLocation(
       final ReachedSet pReachedSet,
       final Predicate<AbstractState> pPartitionFilterPredicate,
       final CFANode pLoc)
-    throws NoTraceFoundException {
+          throws NoTraceFoundException {
 
     Preconditions.checkNotNull(pPartitionFilterPredicate);
     Preconditions.checkNotNull(pReachedSet);
     Preconditions.checkNotNull(pLoc);
 
-    ImmutableSet<AbstractState> targetStates = from(pReachedSet)
-        .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES, toState(PredicateAbstractState.class)))
+    ImmutableSet<ARGState> statesAtWpLoc = from(pReachedSet)
         .filter(Predicates.compose(equalTo(pLoc), AbstractStates.EXTRACT_LOCATION))
         .filter(pPartitionFilterPredicate)
+        .transform(toState(ARGState.class))
         .toSet();
 
-    if (targetStates.isEmpty()) {
+    Set<ARGState> relevantStates = Sets.newHashSet(statesAtWpLoc);
+    // Also the states that are covered by an abstract state at the WP location have to be considered!!
+    for (ARGState e: statesAtWpLoc) {
+      relevantStates.addAll(e.getCoveredByThis());
+    }
+
+    if (relevantStates.isEmpty()) {
       throw new NoTraceFoundException("No trace to the target location found!");
     }
 
-    return Collections2.transform(targetStates, new Function<AbstractState, ARGPath>() {
-      @Override
-      public ARGPath apply(AbstractState pState) {
-        // Return a path to the state!
-        ARGState arbitraryTargetState = AbstractStates.extractStateByType(pState, ARGState.class);
-        return ARGUtils.getOnePathTo(arbitraryTargetState);
-      }
-    });
+    return relevantStates;
   }
 
   private boolean isDisjoint(BooleanFormula pP1, BooleanFormula pP2) throws SolverException, InterruptedException {
@@ -293,6 +296,12 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     BooleanFormula lastIterationPcValid = null;
     PredicatePrecision lastPrecision = null;
 
+    Set<ARGPath> coveredViolationTraces = Sets.newHashSet();
+    Set<ARGPath> coveredValidTraces = Sets.newHashSet();
+    Multimap<ARGPath, ARGPath> coveredTracePairs = HashMultimap.create();
+
+    PredicatePrecision newPrecision = null;
+
     do {
       // Run the CPA algorithm
       wrappedAlgorithm.run(pReachedSet);
@@ -310,7 +319,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
       lastIterationPcViolation = pcViolation;
       lastIterationPcValid = pcValid;
 
-
+      // We might have found a necessary and sufficient precondition...
       if (isDisjoint(pcViolation, pcValid)) {
         logger.log(Level.INFO, "Necessary and sufficient precondition found!");
 
@@ -331,52 +340,52 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
         // Get arbitrary traces...(without disjunctions)
         // ... to the location that violates the specification
         // ... to the location that represents the exit location
-        Collection<ARGPath> tracesFromViolation = getTracesToAbstractionLocation(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION, wpLoc);
-        Collection<ARGPath> tracesFromValid = getTracesToAbstractionLocation(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION, wpLoc);
+        Pair<ARGPath, ARGPath> tracesWithIntersectInAbstr = getTracesWithIntersectInAbstr(pReachedSet, wpLoc, coveredTracePairs);
 
-        stats.tracesToError += tracesFromViolation.size();
-        stats.tracesToExit += tracesFromValid.size();
+        final ARGPath traceFromViolation = tracesWithIntersectInAbstr.getFirst();
+        final ARGPath traceFromValid = tracesWithIntersectInAbstr.getSecond();
 
-        PredicatePrecision newPrecision = null;
+        coveredTracePairs.put(traceFromViolation, traceFromValid);
 
-        for (ARGPath traceVio : tracesFromViolation) {
-          for (ARGPath traceVal : tracesFromValid) {
+        final PathPosition traceVioWpPos = traceFromViolation.reversePathIterator().getPosition();
+        final PathPosition traceValWpPos = traceFromValid.reversePathIterator().getPosition();
 
-            // Check the disjointness of the WP for the two traces...
-            final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceVio, Optional.of(wpLoc));
-            final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceVal, Optional.of(wpLoc));
+        stats.tracesToError += 1;
+        stats.tracesToExit += 1;
 
-            if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
-              logger.log(Level.WARNING, "Non-determinism in the program!");
-              return true;
-            }
+        // Check the disjointness of the WP for the two traces...
+        final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceFromViolation, traceVioWpPos);
+        final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceFromValid, traceValWpPos);
 
-            if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)) {
-              stats.infeasibleTracesToError++;
-            }
-
-            if (mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
-              stats.infeasibleTracesToExit++;
-            }
-
-            if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)
-             && mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
-              logger.log(Level.WARNING, "Infeasible traces during the precondition refinement! CEGAR applicable!");
-            }
-
-            // Refine the precision so that the
-            // abstraction on the two traces is disjoint
-            PredicatePrecision newPrecFromTracePair = refiner.refine(traceVio, traceVal, wpLoc);
-
-            if (newPrecision == null) {
-              newPrecision = newPrecFromTracePair;
-            } else {
-              newPrecision = newPrecision.mergeWith(newPrecFromTracePair);
-            }
-
-            // TODO: Location-specific precision?
-          }
+        if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
+          logger.log(Level.WARNING, "Non-determinism in the program!");
+          return true;
         }
+
+        if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)) {
+          stats.infeasibleTracesToError++;
+        }
+
+        if (mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
+          stats.infeasibleTracesToExit++;
+        }
+
+        if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)
+         && mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
+          logger.log(Level.WARNING, "Infeasible traces during the precondition refinement! CEGAR applicable!");
+        }
+
+        // Refine the precision so that the
+        // abstraction on the two traces is disjoint
+        PredicatePrecision newPrecFromTracePair = refiner.refine(traceVioWpPos, traceValWpPos);
+
+        if (newPrecision == null) {
+          newPrecision = newPrecFromTracePair;
+        } else {
+          newPrecision = newPrecision.mergeWith(newPrecFromTracePair);
+        }
+
+        // TODO: Location-specific precision?
 
         stats.refinements++;
 
@@ -403,6 +412,64 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
       }
 
     } while (true);
+  }
+
+  private Pair<ARGPath, ARGPath> getTracesWithIntersectInAbstr(
+      final ReachedSet pReachedSet,
+      final CFANode pWpLoc,
+      final Multimap<ARGPath, ARGPath> pCoveredPairs)
+          throws NoTraceFoundException, SolverException, InterruptedException {
+
+    Set<ARGState> violatingStates = getStatesAtLocation(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION, pWpLoc);
+    Set<ARGState> validStates = getStatesAtLocation(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION, pWpLoc);
+
+    // Get a pair of abstract states with an intersection in the abstraction
+    for (ARGState violating : violatingStates) {
+      PredicateAbstractState violatingAbstState = AbstractStates.extractStateByType(violating, PredicateAbstractState.class);
+
+      for (ARGState valid : validStates) {
+        PredicateAbstractState validAbstState = AbstractStates.extractStateByType(valid, PredicateAbstractState.class);
+
+        Set<ARGPath> handledViolatingTraces = Sets.newHashSet();
+        Set<ARGPath> handledValidTraces = Sets.newHashSet();
+
+        // Some cases that have to be considered:
+        //    One trace to the ERROR location, more traces to the EXIT location
+
+        if (!isDisjoint(
+            violatingAbstState.getAbstractionFormula().asFormula(),
+            validAbstState.getAbstractionFormula().asFormula())) {
+
+          Optional<ARGPath> violatingTrace = Optional.absent();
+          Optional<ARGPath> validTrace = Optional.absent();
+
+          do {
+
+            violatingTrace = ARGUtils.getOnePathTo(violating, handledViolatingTraces);
+            if (!violatingTrace.isPresent()) {
+              continue;
+            }
+
+            handledViolatingTraces.add(violatingTrace.get());
+
+            validTrace = ARGUtils.getOnePathTo(valid, pCoveredPairs.get(violatingTrace.get()));
+            if (!validTrace.isPresent()) {
+              continue;
+            }
+
+            handledValidTraces.add(validTrace.get());
+
+            if (!(pCoveredPairs.containsEntry(violatingTrace, validTrace))) {
+              return Pair.of(violatingTrace.get(), validTrace.get());
+            }
+
+          } while (violatingTrace.isPresent() && validTrace.isPresent());
+        }
+      }
+    }
+
+    throw new NoTraceFoundException("No new pair of disjoint abstract traces found! "
+        + "The choosen predicate abstraction method might be too imprecise!");
   }
 
   private void refinePrecisionForNextIteration(

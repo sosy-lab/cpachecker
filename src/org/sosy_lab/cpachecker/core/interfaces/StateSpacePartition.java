@@ -62,6 +62,9 @@ public class StateSpacePartition implements Partitionable {
 
   @Override
   public boolean equals(Object pObj) {
+    if (!(pObj instanceof StateSpacePartition)) {
+      return false;
+    }
     return ((StateSpacePartition) pObj).getPartitionKey().equals(partitionKey);
   }
 

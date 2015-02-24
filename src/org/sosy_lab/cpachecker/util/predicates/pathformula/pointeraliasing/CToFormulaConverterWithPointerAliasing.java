@@ -485,7 +485,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                       final PointerTargetSetBuilder pts,
                                       final Constraints constraints,
                                       final ErrorConditions errorConditions)
-  throws CPATransferException, InterruptedException {
+  throws UnrecognizedCCodeException, InterruptedException {
     BooleanFormula result = super.makeReturn(assignment, returnEdge, function, ssa, pts, constraints, errorConditions);
 
     if (assignment.isPresent()) {
@@ -527,13 +527,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CDeclarationEdge declarationEdge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, InterruptedException {
 
     // TODO merge with super-class method
 
     if (declarationEdge.getDeclaration() instanceof CTypeDeclaration) {
       final CType declarationType = CTypeUtils.simplifyType(
-                                      ((CTypeDeclaration) declarationEdge.getDeclaration()).getType());
+                                      (declarationEdge.getDeclaration()).getType());
       if (declarationType instanceof CCompositeType) {
         typeHandler.addCompositeTypeToCache((CCompositeType) declarationType);
       }
@@ -698,7 +698,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CFunctionCallEdge edge, final String callerFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, InterruptedException {
 
     final CFunctionEntryNode entryNode = edge.getSuccessor();
     BooleanFormula result = super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
@@ -726,7 +726,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CFunctionSummaryEdge summaryEdge, final String calledFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws CPATransferException, InterruptedException {
+          throws UnrecognizedCCodeException, InterruptedException {
 
     final BooleanFormula result = super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 

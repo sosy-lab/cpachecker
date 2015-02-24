@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+import com.google.common.base.Objects;
+
 /**
  * CPA for partitioning the state space of an analysis;
  * one set of reached states can be used to analyze
@@ -96,15 +98,16 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((partition == null) ? 0 : partition.hashCode());
+      result = prime * result + Objects.hashCode(partition);
       return result;
     }
 
     @Override
     public boolean equals(Object pObj) {
-      StateSpacePartition thisPartition = this.partition;
-      StateSpacePartition otherPartition = ((PartitionState) pObj).partition;
-      return thisPartition.equals(otherPartition);
+      if (!(pObj instanceof PartitionState)) {
+        return false;
+      }
+      return Objects.equal(this.partition, ((PartitionState) pObj).partition);
     }
   }
 

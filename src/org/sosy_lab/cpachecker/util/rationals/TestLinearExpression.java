@@ -1,7 +1,10 @@
 package org.sosy_lab.cpachecker.util.rationals;
 
-import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
+
+import org.junit.Test;
+
+import com.google.common.testing.EqualsTester;
 
 
 public class TestLinearExpression {
@@ -34,7 +37,7 @@ public class TestLinearExpression {
     assertThat(x.getCoeff("y")).isEqualTo(Rational.ofString("2"));
     assertThat(x.getCoeff("z")).isEqualTo(Rational.ofString("3"));
 
-    assertThat(x.isIntegral());
+    assertThat(x.isIntegral()).isTrue();
   }
 
   @Test public void testSub() {
@@ -83,7 +86,6 @@ public class TestLinearExpression {
     y = y.add(LinearExpression.pair("z", Rational.ofString("3")));
     y = y.sub(LinearExpression.pair("z", Rational.ofString("3")));
 
-    assertThat(x).isEqualTo(y);
-    assertThat(x.hashCode()).isEqualTo(y.hashCode());
+    new EqualsTester().addEqualityGroup(x, y);
   }
 }

@@ -97,7 +97,11 @@ public class MinCorePrio implements InterpolationWithCandidates {
     Collection<BooleanFormula> resultPredicates = getInterpolantAsPredicateCollection(
         pPhiMinus, pPhiPlus, pItpCandidatePredicates, pItpLocation);
 
-    // The result is the conjunction of the predicates
+    if (resultPredicates.isEmpty()) {
+      return pPhiMinus;
+
+    }
+
     BooleanFormula result = bmgr.makeBoolean(true);
     for (BooleanFormula p: resultPredicates) {
       result = bmgr.and(result, p);
@@ -157,6 +161,7 @@ public class MinCorePrio implements InterpolationWithCandidates {
       Set<BooleanFormula> resultPredicatesMinusF = Sets.newHashSet(resultPredicates);
       resultPredicatesMinusF.remove(f);
       if (resultPredicatesMinusF.isEmpty()) {
+
         return resultPredicates;
       }
 

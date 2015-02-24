@@ -113,14 +113,25 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
         if (isWildcardState(e)) {
           throw new UnsupportedCCodeException("ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
         }
+        Collection<CallstackState> result;
 
         CallstackState nextStackState = e.getPreviousState();
         if (nextStackState == null) {
           // BACKWARDS: The analysis might start somewhere in the call tree (and we might have not predecessor state)
-          nextStackState = new CallstackState(null, nextAnalysisFunction, nextAnalysisLoc);
+          result = Collections.singleton(new CallstackState(null, nextAnalysisFunction, nextAnalysisLoc));
+
+          // This if clause is needed to check if the correct FunctionCallEdge is taken.
+          // Consider a method which is called from different other methods, then
+          // there is more than one FunctionCallEdge at this CFANode. To chose the
+          // correct one, we compare the callNode that is saved in the current
+          // CallStackState with the next location of the analysis.
+        } else if (e.getCallNode().equals(nextAnalysisLoc)) {
+          result = Collections.singleton(nextStackState);
+        } else {
+          result = Collections.emptySet();
         }
 
-        return Collections.singleton(nextStackState);
+        return result;
       }
 
     default:

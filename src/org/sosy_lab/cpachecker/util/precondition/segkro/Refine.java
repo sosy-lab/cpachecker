@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionHelper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -56,7 +58,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -102,7 +103,7 @@ public class Refine implements PreconditionRefiner {
   BooleanFormula interpolate(
       final BooleanFormula pPreconditionA,
       final BooleanFormula pPreconditionB,
-      final CFANode pItpLocation)
+      final PathPosition pItpPosition)
           throws SolverException, InterruptedException {
 
     List<BooleanFormula> p = enp.extractNewPreds(pPreconditionA);
@@ -110,16 +111,16 @@ public class Refine implements PreconditionRefiner {
         ? pPreconditionA
         : bmgr.and(pPreconditionA, bmgr.and(p));
 
-    return ipc.getInterpolant(f, pPreconditionB, p, pItpLocation);
+    return ipc.getInterpolant(f, pPreconditionB, p, pItpPosition.getLocation());
   }
 
   private PathFormula pre(
-      final ARGPath pPathToEntryLocation,
-      final CFANode pStopAtNode,
+      final PathPosition pPreForPosition,
       final FormulaMode pMode)
           throws CPATransferException, SolverException, InterruptedException {
 
-    final PathFormula pf = helper.computePathformulaForArbitraryTrace(pPathToEntryLocation, Optional.of(pStopAtNode));
+    final ARGPath pathToPosition = pPreForPosition.getPath();
+    final PathFormula pf = helper.computePathformulaForArbitraryTrace(pathToPosition, pPreForPosition);
     final BooleanFormula f = mgrv.eliminateDeadVariables(pf.getFormula(), pf.getSsa());
 
     if (pMode == FormulaMode.UNINSTANTIATED) {
@@ -129,15 +130,57 @@ public class Refine implements PreconditionRefiner {
     }
   }
 
+  @VisibleForTesting
+  static class ReversedEdge {
+
+    private CFAEdge original;
+
+    public ReversedEdge(CFAEdge pOriginal) {
+      Preconditions.checkNotNull(pOriginal);
+      this.original = pOriginal;
+    }
+
+    public CFAEdge getOriginal() {
+      return original;
+    }
+
+    public CFAEdgeType getEdgeType() {
+      return original.getEdgeType();
+    }
+
+    public CFANode getPredecessor() {
+      return original.getSuccessor();
+    }
+
+    public CFANode getSuccessor() {
+      return original.getPredecessor();
+    }
+
+    @Override
+    public String toString() {
+      return getPredecessor() + " -{" +
+          original.getDescription().replaceAll("\n", " ") + "}-> " + getSuccessor();
+    }
+  }
+
+  @VisibleForTesting
+  List<ReversedEdge> getReversedTrace(ARGPath pTrace) {
+    List<ReversedEdge> result = Lists.newArrayListWithCapacity(pTrace.asEdgesList().size());
+    for (CFAEdge g: Lists.reverse(pTrace.asEdgesList())) {
+      if (g != null) {
+        result.add(new ReversedEdge(g));
+      }
+    }
+    return result;
+  }
+
   private Multimap<CFANode, BooleanFormula> predsFromTrace(
-      final ARGPath pTraceToEntryLocation,
-      final PathFormula pInstanciatedTracePrecond,
-      final CFANode pEntryWpLocation)
+      final PathPosition pFinalWpPosition,
+      final PathFormula pInstanciatedTracePrecond)
           throws SolverException, InterruptedException, CPATransferException {
 
     Preconditions.checkNotNull(pInstanciatedTracePrecond);
-    Preconditions.checkNotNull(pEntryWpLocation);
-    Preconditions.checkNotNull(pTraceToEntryLocation);
+    Preconditions.checkNotNull(pFinalWpPosition);
 
     ImmutableMultimap.Builder<CFANode, BooleanFormula> result = ImmutableMultimap.builder();
 
@@ -148,17 +191,17 @@ public class Refine implements PreconditionRefiner {
 
     PathFormula preAtK = pInstanciatedTracePrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
 
-    boolean skippedUntilEntryWpLocation = false;
-    List<CFAEdge> edgesStartingAtEntry = Lists.reverse(pTraceToEntryLocation.asEdgesList());
+    PathIterator reverseIt = pFinalWpPosition.reverseIterator();
 
-    for (CFAEdge t: edgesStartingAtEntry) {
+    while (reverseIt.hasNext()) {
 
-      if (!skippedUntilEntryWpLocation) {
-        if (t.getPredecessor().equals(pEntryWpLocation)) {
-          skippedUntilEntryWpLocation = true;
-        } else {
-          continue;
-        }
+      final CFAEdge t = reverseIt.getIncomingEdge();
+      final PathPosition currentPos = reverseIt.getPosition();
+      reverseIt.advance();
+      final PathPosition nextPos = reverseIt.getPosition();
+
+      if (t == null) {
+        continue;
       }
 
       if (t.getEdgeType() != CFAEdgeType.BlankEdge) {
@@ -174,9 +217,7 @@ public class Refine implements PreconditionRefiner {
         //      afterTransCond === varphi_{k+1}
 
         // Formula A
-        PathFormula preAtKp1 = pre(
-            pTraceToEntryLocation, t.getSuccessor(),
-            FormulaMode.INSTANTIATED);
+        PathFormula preAtKp1 = pre(nextPos, FormulaMode.INSTANTIATED);
 
         if (bmgr.isTrue(preAtKp1.getFormula())) {
           continue;
@@ -236,21 +277,20 @@ public class Refine implements PreconditionRefiner {
 
   @Override
   public PredicatePrecision refine(
-      final ARGPath pTraceFromViolation,
-      final ARGPath pTraceFromValidTermination,
-      final CFANode pWpLocation)
+      final PathPosition pTraceFromViolation,
+      final PathPosition pTraceFromValidTermination)
     throws SolverException, InterruptedException, CPATransferException {
 
     // Compute the precondition for both traces
-    PathFormula pcViolation = pre(pTraceFromViolation, pWpLocation, FormulaMode.INSTANTIATED);
-    PathFormula pcValid = pre(pTraceFromValidTermination, pWpLocation, FormulaMode.INSTANTIATED);
+    PathFormula pcViolation = pre(pTraceFromViolation, FormulaMode.INSTANTIATED);
+    PathFormula pcValid = pre(pTraceFromValidTermination, FormulaMode.INSTANTIATED);
 
     // "Enrich" the preconditions with more general predicates
     // TODO: Is this part completely useless when using QE?
     pcViolation = alterPf(pcViolation,
-        interpolate(pcViolation.getFormula(), pcValid.getFormula(), pWpLocation));
+        interpolate(pcViolation.getFormula(), pcValid.getFormula(), pTraceFromViolation));
     pcValid = alterPf(pcValid,
-        interpolate(pcValid.getFormula(), pcViolation.getFormula(), pWpLocation));
+        interpolate(pcValid.getFormula(), pcViolation.getFormula(), pTraceFromValidTermination));
 
     // Now we have an initial set of useful predicates; add them to the corresponding list.
     Builder<BooleanFormula> globalPreds = ImmutableList.builder();
@@ -263,10 +303,10 @@ public class Refine implements PreconditionRefiner {
     //    (or the WPs along the trace)...
     //
     // -- along the trace to the violating state...
-    Multimap<CFANode, BooleanFormula> predsViolation = predsFromTrace(pTraceFromViolation, pcViolation, pWpLocation);
+    Multimap<CFANode, BooleanFormula> predsViolation = predsFromTrace(pTraceFromViolation, pcViolation);
     localPreds.putAll(predsViolation);
     // -- along the trace to the termination state...
-    Multimap<CFANode, BooleanFormula> predsFromValid = predsFromTrace(pTraceFromValidTermination, pcValid, pWpLocation);
+    Multimap<CFANode, BooleanFormula> predsFromValid = predsFromTrace(pTraceFromValidTermination, pcValid);
     localPreds.putAll(predsFromValid);
 
     return predicatesAsGlobalPrecision(globalPreds.build(), localPreds.build());

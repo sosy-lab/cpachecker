@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,9 +55,6 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
     defineRotations(">=", "<="); // IMPORTANT: This should NOT define a NEGATION!
     defineRotations(">", "<");
-
-    defineOperatorImplications(">=", Sets.newHashSet("=", ">"));
-    defineOperatorImplications("<=", Sets.newHashSet("=", "<"));
 
     defineCommutative("=");
     defineCommutative("+");
@@ -120,8 +116,10 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
       if (p instanceof SmtAstPattern) {
         SmtAstPattern asp = (SmtAstPattern) p;
         r = internalPerform(pParentFormula, pF, pQuantifiedVariables, asp, pBindingRestrictions);
+      } else if (p instanceof SmtAstPatternSelection){
+        r = matchSelectionOnOneFormula(pParentFormula, pF, pQuantifiedVariables, (SmtAstPatternSelection) p, pBindingRestrictions);
       } else {
-        r = matchSelectionOnOneFormula(pParentFormula, pF, pQuantifiedVariables, pPatternSelection, pBindingRestrictions);
+        throw new UnsupportedOperationException("Unknown Ast Pattern Type!");
       }
 
       matches = matches + (r.matches() ? 1 : 0);
@@ -326,13 +324,6 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     }
 
     return result;
-  }
-
-  @Override
-  public void defineOperatorImplications(String pImpliedBy, HashSet<String> pImplies) {
-    for (String implied: pImplies) {
-      functionImpliedBy.put(implied, pImpliedBy);
-    }
   }
 
   protected boolean isCommutative(final String pFunctionName) {

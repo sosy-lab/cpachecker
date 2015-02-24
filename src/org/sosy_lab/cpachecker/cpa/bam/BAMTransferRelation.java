@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -297,6 +299,7 @@ public class BAMTransferRelation implements TransferRelation {
       // update waitlist
       for (final ReachedSet reachedSet : argCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
+          logger.log(Level.ALL, "re-adding state", recursionUpdateState);
           reachedSet.reAddToWaitlist(recursionUpdateState);
         }
         // else if (pHeadOfMainFunctionState == recursionUpdateState) {
@@ -587,7 +590,8 @@ public class BAMTransferRelation implements TransferRelation {
       reducedResult = cachedReturnStates;
       statesForFurtherAnalysis = reducedResult;
 
-    } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 && ((ARGState)reached.getLastState()).isTarget()) {
+    } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 &&
+        reached.getLastState() != null && ((ARGState)reached.getLastState()).isTarget()) {
       assert Iterables.getOnlyElement(cachedReturnStates) == reached.getLastState() :
               "cache hit only allowed for finished reached-sets or target-states";
 
@@ -660,8 +664,16 @@ public class BAMTransferRelation implements TransferRelation {
     logger.log(Level.ALL, "rebuilding state with root state", rootState);
     logger.log(Level.ALL, "rebuilding state with entry state", entryState);
     logger.log(Level.ALL, "rebuilding state with expanded state", expandedState);
+
+    final CFANode location = extractLocation(expandedState);
+    if (!(location instanceof FunctionExitNode)) {
+      logger.log(Level.ALL, "rebuilding skipped because of non-function-exit-location");
+      assert isTargetState(expandedState) : "only target states are returned without rebuild";
+      return expandedState;
+    }
+
     final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(
-            rootState, entryState, expandedState, extractLocation(expandedState));
+            rootState, entryState, expandedState, (FunctionExitNode)location);
     logger.log(Level.ALL, "rebuilding finished with state", rebuildState);
 
     // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
@@ -841,6 +853,19 @@ public class BAMTransferRelation implements TransferRelation {
             partitioning, wrappedReducer, argCache, pPathElementToReachedState,
             abstractStateToReachedSet, expandedToReducedCache, logger);
     return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
+  }
+
+  /** searches through all available reachedSet for a matching state and returns its precision */
+  Precision getPrecisionForState(final ARGState state, final UnmodifiableReachedSet mainReachedSet) {
+    if (mainReachedSet.contains(state)) {
+      return mainReachedSet.getPrecision(state);
+    }
+    for (UnmodifiableReachedSet rs : abstractStateToReachedSet.values()) {
+      if (rs.contains(state)) {
+        return rs.getPrecision(state);
+      }
+    }
+    throw new AssertionError("No reachedset found for state " + state + ". Where does this state come from?");
   }
 
   void clearCaches() {

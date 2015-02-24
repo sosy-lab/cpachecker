@@ -64,7 +64,9 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
+  private final Deque<Map<String, CSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
+  private final Deque<Map<String, CSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
 
 
   private CFunctionDeclaration currentFunction = null;
@@ -81,7 +83,9 @@ class FunctionScope extends AbstractScope {
     typesStack.addLast(pTypes);
     typedefs.putAll(pTypedefs);
     varsStack.push(pGlobalVars);
+    varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
+    varsListWithNewNames.push(pGlobalVars);
 
     enterBlock();
   }
@@ -121,32 +125,29 @@ class FunctionScope extends AbstractScope {
     labelsStack.addLast(new HashMap<String, CVariableDeclaration>());
     labelsNodeStack.addLast(new HashMap<String, CLabelNode>());
     varsStack.addLast(new HashMap<String, CSimpleDeclaration>());
+    varsStackWitNewNames.addLast(new HashMap<String, CSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
+    varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
   }
 
   public void leaveBlock() {
     checkState(varsStack.size() > 2);
     varsStack.removeLast();
+    varsStackWitNewNames.removeLast();
     typesStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
   }
 
   @Override
-  public boolean variableNameInUse(String name, String origName) {
+  public boolean variableNameInUse(String name) {
       checkNotNull(name);
-      checkNotNull(origName);
 
-      Iterator<Map<String, CSimpleDeclaration>> it = varsList.descendingIterator();
+      Iterator<Map<String, CSimpleDeclaration>> it = varsListWithNewNames.descendingIterator();
       while (it.hasNext()) {
         Map<String, CSimpleDeclaration> vars = it.next();
 
-        CSimpleDeclaration binding = vars.get(origName);
-        if (binding != null && binding.getName().equals(name)) {
-          return true;
-        }
-        binding = vars.get(name);
-        if (binding != null && binding.getName().equals(name)) {
+        if (vars.get(name) != null) {
           return true;
         }
       }
@@ -232,6 +233,7 @@ class FunctionScope extends AbstractScope {
     assert name != null;
 
     Map<String, CSimpleDeclaration> vars = varsStack.getLast();
+    Map<String, CSimpleDeclaration> varsWithNewNames = varsStackWitNewNames.getLast();
 
     // multiple declarations of the same variable are disallowed
     if (vars.containsKey(name)) {
@@ -239,6 +241,7 @@ class FunctionScope extends AbstractScope {
     }
 
     vars.put(name, declaration);
+    varsWithNewNames.put(declaration.getName(), declaration);
   }
 
   @Override

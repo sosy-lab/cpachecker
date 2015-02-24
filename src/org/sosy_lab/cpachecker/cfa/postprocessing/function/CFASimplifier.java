@@ -165,8 +165,8 @@ public class CFASimplifier {
       final CFANode endpoint2 = findEndOfBlankEdgeChain(endpoint);
       removeChainOfNodes(endpoint, endpoint2, cfa, removedFileLocations);
 
-      CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges",
-          FileLocation.merge(removedFileLocations), branchingPoint, endpoint2, "skipped uneccesary edges");
+      CFAEdge blankEdge = new BlankEdge("skipped unnecessary edges",
+          FileLocation.merge(removedFileLocations), branchingPoint, endpoint2, "skipped unnecessary edges");
       CFACreationUtils.addEdgeUnconditionallyToCFA(blankEdge);
     }
   }

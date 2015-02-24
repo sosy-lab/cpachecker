@@ -410,7 +410,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   protected BDDState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
-              || "skipped uneccesary edges".equals(cfaEdge.getDescription());
+              || "skipped unnecessary edges".equals(cfaEdge.getDescription());
 
       // delete variables from returning function,
       // we do not need them after this location, because the next edge is the functionReturnEdge.

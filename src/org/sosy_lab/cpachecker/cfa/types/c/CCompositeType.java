@@ -25,22 +25,25 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
-public final class CCompositeType implements CComplexType {
+public final class CCompositeType implements CComplexType, Serializable {
 
-  private final CComplexType.ComplexTypeKind    kind;
+  private static final long serialVersionUID = -839957929135012583L;
+  private final CComplexType.ComplexTypeKind kind;
   private List<CCompositeTypeMemberDeclaration> members;
-  private final String                name;
+  private final String name;
+  private final String origName;
   private boolean   isConst;
   private boolean   isVolatile;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
-      final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
+      final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName, final String pOrigName) {
 
     checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
     isConst= pConst;
@@ -48,6 +51,7 @@ public final class CCompositeType implements CComplexType {
     kind = pKind;
     members = ImmutableList.copyOf(pMembers);
     name = pName.intern();
+    origName = pOrigName.intern();
   }
 
   @Override
@@ -72,6 +76,12 @@ public final class CCompositeType implements CComplexType {
   public String getQualifiedName() {
     return (kind.toASTString() + " " + name).trim();
   }
+
+  @Override
+  public String getOrigName() {
+    return origName;
+  }
+
 
   @Override
   public String toString() {
@@ -122,10 +132,11 @@ public final class CCompositeType implements CComplexType {
    * This is the declaration of a member of a composite type.
    * It contains a type and an optional name.
    */
-  public static final class CCompositeTypeMemberDeclaration {
+  public static final class CCompositeTypeMemberDeclaration implements Serializable{
 
 
 
+    private static final long serialVersionUID = 8647666228796784933L;
     private final CType    type;
     private final String   name;
 
@@ -237,7 +248,7 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name);
+    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name, origName);
   }
 
 }

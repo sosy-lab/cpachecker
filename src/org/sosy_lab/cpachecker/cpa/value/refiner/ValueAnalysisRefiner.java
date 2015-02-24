@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -63,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -86,7 +87,7 @@ import com.google.common.collect.Sets;
 public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
-  private RestartStrategy restartStrategy = RestartStrategy.BOTTOM;
+  private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
       secure = true,
@@ -124,11 +125,17 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    */
   private final Set<ARGState> feasibleTargets = new HashSet<>();
 
+  /**
+   * keep log of previous refinements to identify repeated one
+   */
+  private final Set<Integer> previousRefinementIds = new HashSet<>();
+
   // statistics
   private int refinementCounter = 0;
   private int targetCounter = 0;
   private final Timer totalTime = new Timer();
   private int timesRootRelocated = 0;
+  private int timesRepeatedRefinements = 0;
 
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -207,12 +214,16 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
 
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
+    Collection<ARGState> refinementRoots = interpolationTree.obtainRefinementRoots(restartStrategy);
 
-    for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
+    for (ARGState root : refinementRoots) {
       root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
 
-      List<Precision> precisions = new ArrayList<>(2);
+      if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(interpolationTree.extractPrecisionIncrement(root).values())) {
+        root = relocateRepeatedRefinementRoot(root);
+      }
 
+      List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
       precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
           .withIncrement(interpolationTree.extractPrecisionIncrement(root)));
@@ -363,6 +374,42 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return subgraph;
   }
 
+  /**
+   * A simple heuristic to detect similar repeated refinements.
+   */
+  private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
+    // a refinement is a similar, repeated refinement
+    // if the (sorted) precision increment was already added in a previous refinement
+    return !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
+  }
+
+  /**
+   * This method chooses a new refinement root, in a bottom-up fashion along the error path.
+   * It either picks the next state on the path sharing the same CFA location, or the (only)
+   * child of the ARG root, what ever comes first.
+   *
+   * @param currentRoot the current refinement root
+   * @return the relocated refinement root
+   */
+  private ARGState relocateRepeatedRefinementRoot(final ARGState currentRoot) {
+    timesRepeatedRefinements++;
+    int currentRootNumber = AbstractStates.extractLocation(currentRoot).getNodeNumber();
+
+    ARGPath path = ARGUtils.getOnePathTo(currentRoot);
+    for (ARGState currentState : path.asStatesList().reverse()) {
+      // skip identity, because a new root has to be found
+      if (currentState == currentRoot) {
+        continue;
+      }
+
+      if (currentRootNumber == AbstractStates.extractLocation(currentState).getNodeNumber()) {
+        return currentState;
+      }
+    }
+
+    return Iterables.getOnlyElement(path.getFirstState().getChildren());
+  }
+
   private ARGState relocateRefinementRoot(final ARGState pRefinementRoot,
       final boolean  predicatePrecisionIsAvailable) {
 
@@ -381,7 +428,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     }
 
     // no relocation needed if restart at top
-    if(restartStrategy == RestartStrategy.TOP) {
+    if(restartStrategy == RestartStrategy.ROOT) {
       return pRefinementRoot;
     }
 
@@ -506,8 +553,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           ARGPath path2 = ARGUtils.getOnePathTo(target2);
 
           if(itpSortedTargets) {
-            List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1, new ValueAnalysisState());
-            List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2, new ValueAnalysisState());
+            List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1);
+            List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2);
 
             Long score1 = classifier.obtainScoreForPrefixes(prefixes1, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
             Long score2 = classifier.obtainScoreForPrefixes(prefixes2, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
@@ -567,13 +614,12 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   }
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    if (refinementCounter > 0) {
-      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
-      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
-      out.println("Time for completing refinement:       " + totalTime);
-      pathInterpolator.printStatistics(out, pResult, pReached);
-      out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));
-    }
+    out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
+    out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
+    out.println("Time for completing refinement:       " + totalTime);
+    pathInterpolator.printStatistics(out, pResult, pReached);
+    out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));
+    out.println("Total number of similar, repeated refinements: " + String.format(Locale.US, "%9d", timesRepeatedRefinements));
   }
 
   private int obtainErrorPathId(ARGPath path) {
@@ -582,14 +628,15 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   /**
    * The strategy to determine where to restart the analysis after a successful refinement.
-   * {@link #TOP} means that the analysis is restarted from the root of the ARG
-   * {@link #BOTTOM} means that the analysis is restarted from the individual refinement roots identified
+   * {@link #ROOT} means that the analysis is restarted from the root of the ARG
+   * {@link #PIVOT} means that the analysis is restarted from the lowest possible refinement root, i.e.,
+   *  the first ARGNode associated with a non-trivial interpolant (cf. Lazy Abstraction, 2002)
    * {@link #COMMON} means that the analysis is restarted from lowest ancestor common to all refinement roots, if more
    * than two refinement roots where identified
    */
   public enum RestartStrategy {
-    TOP,
-    BOTTOM,
+    ROOT,
+    PIVOT,
     COMMON
   }
 }

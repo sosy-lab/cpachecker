@@ -143,7 +143,7 @@ public class FormulaManagerFactory {
 
       case Z3:
         try {
-          return Z3FormulaManager.create(logger, config, logfile);
+          return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile);
         } catch (UnsatisfiedLinkError e) {
           if (e.getMessage().contains("libfoci.so")) {
             throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."

@@ -69,17 +69,18 @@ public class AutomatonGraphmlCommon {
     ISVIOLATIONNODE("violation","node","isViolationNode","boolean"),
     ISENTRYNODE("entry","node","isEntryNode","boolean"),
     ISSINKNODE("sink","node","isSinkNode","boolean"),
+    VIOLATEDPROPERTY("violatedProperty", "node", "violatedProperty", "string"),
 
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
 
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
-    TOKENS("tokens", "edge", "tokenSet", "string"),
-    ORIGINTOKENS("origintokens", "edge", "originTokenSet", "string"),
     ORIGINLINE("originline", "edge", "lineNumberInOrigin", "int"),
+    OFFSET("offset", "edge", "offset", "int"),
     ORIGINFILE("originfile", "edge", "originFileName", "string"),
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
-    TOKENSNEGATED("negated", "edge", "negativeCase", "string"),
+    NEGATIVECASE("negated", "edge", "negativeCase", "string"),
     ASSUMPTION("assumption", "edge", "assumption", "string"),
+    ASSUMPTIONSCOPE("assumption.scope", "edge", "assumption.scope", "string"),
 
     FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),

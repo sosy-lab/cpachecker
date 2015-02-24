@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 
 import com.google.common.collect.Lists;
 
-
+@SuppressWarnings("unused")
 public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
 
   private UniversalizeRule ur;
@@ -191,6 +191,16 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
 
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(bfm.not(_b_at_0_EQ_0)));
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion10() throws SolverException, InterruptedException {
+    //  (not (= (select b 0) 0))
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+        Lists.newArrayList(bfm.not(bfm.not(_b_at_0_EQ_0))));
 
     assertThat(result).isNotEmpty();
   }

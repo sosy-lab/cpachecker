@@ -34,19 +34,21 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PredicatedAnalysisAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -100,6 +102,10 @@ public class CoreComponentsFactory {
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
+  @Option(secure=true, name="combineARGsAfterRestart",
+      description="combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration")
+  private boolean useARGCombiningAlgorithm = false;
+
   @Option(secure=true, name="algorithm.predicatedAnalysis",
       description="use a predicated analysis which proves if the program satisfies a specified property"
           + " with the help of a PredicateCPA to separate differnt program paths")
@@ -121,6 +127,9 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
+
+  @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
+  private boolean useCustomInstructionRequirementExtraction = false;
 
   @Option(secure=true, name="refinePreconditions",
       description = "Refine the preconditions until the set of unsafe and safe states are disjoint.")
@@ -158,6 +167,9 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
 
+      if (useARGCombiningAlgorithm) {
+        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier);
+      }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
@@ -207,6 +219,10 @@ public class CoreComponentsFactory {
 
       if (useResultCheckAlgorithm) {
         algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
+      }
+
+      if (useCustomInstructionRequirementExtraction) {
+        algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
 
       if (usePreconditionRefinementAlgorithm) {

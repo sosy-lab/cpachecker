@@ -1118,12 +1118,12 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visitDefault(CType pT) throws RuntimeException {
+    public ValueLiterals visitDefault(CType pT) {
       return createUnknownValueLiterals();
     }
 
     @Override
-    public ValueLiterals visit(CPointerType pointerType) throws RuntimeException {
+    public ValueLiterals visit(CPointerType pointerType) {
 
       Address address = Address.valueOf(value);
 
@@ -1143,7 +1143,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visit(CArrayType arrayType) throws RuntimeException {
+    public ValueLiterals visit(CArrayType arrayType) {
       Address address = Address.valueOf(value);
 
       ValueLiteral valueLiteral;
@@ -1164,7 +1164,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visit(CElaboratedType pT) throws RuntimeException {
+    public ValueLiterals visit(CElaboratedType pT) {
 
       CType realType = pT.getRealType();
 
@@ -1176,36 +1176,36 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visit(CEnumType pT) throws RuntimeException {
+    public ValueLiterals visit(CEnumType pT) {
 
       /*We don't need to resolve enum types */
       return createUnknownValueLiterals();
     }
 
     @Override
-    public ValueLiterals visit(CFunctionType pT) throws RuntimeException {
+    public ValueLiterals visit(CFunctionType pT) {
 
       // TODO Implement function resolving for comments
       return createUnknownValueLiterals();
     }
 
     @Override
-    public ValueLiterals visit(CSimpleType simpleType) throws RuntimeException {
+    public ValueLiterals visit(CSimpleType simpleType) {
       return new ValueLiterals(getValueLiteral(simpleType, value));
     }
 
     @Override
-    public ValueLiterals visit(CProblemType pT) throws RuntimeException {
+    public ValueLiterals visit(CProblemType pT) {
       return createUnknownValueLiterals();
     }
 
     @Override
-    public ValueLiterals visit(CTypedefType pT) throws RuntimeException {
+    public ValueLiterals visit(CTypedefType pT) {
       return pT.getRealType().accept(this);
     }
 
     @Override
-    public ValueLiterals visit(CCompositeType compType) throws RuntimeException {
+    public ValueLiterals visit(CCompositeType compType) {
 
       if (compType.getKind() == ComplexTypeKind.ENUM) {
         return createUnknownValueLiterals();
@@ -1384,17 +1384,17 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visitDefault(CType pT) throws RuntimeException {
+      public Void visitDefault(CType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CTypedefType pT) throws RuntimeException {
+      public Void visit(CTypedefType pT) {
         return pT.getRealType().accept(this);
       }
 
       @Override
-      public Void visit(CElaboratedType pT) throws RuntimeException {
+      public Void visit(CElaboratedType pT) {
 
         CType realType = pT.getRealType();
 
@@ -1406,12 +1406,12 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CEnumType pT) throws RuntimeException {
+      public Void visit(CEnumType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CCompositeType compType) throws RuntimeException {
+      public Void visit(CCompositeType compType) {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
           // TODO Enum
@@ -1517,7 +1517,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CArrayType arrayType) throws RuntimeException {
+      public Void visit(CArrayType arrayType) {
 
         CType expectedType = arrayType.getType().getCanonicalType();
 
@@ -1608,7 +1608,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CPointerType pointerType) throws RuntimeException {
+      public Void visit(CPointerType pointerType) {
 
         CType expectedType = pointerType.getType().getCanonicalType();
 
@@ -1692,12 +1692,12 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visitDefault(CType pT) throws RuntimeException {
+      public Void visitDefault(CType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CElaboratedType type) throws RuntimeException {
+      public Void visit(CElaboratedType type) {
 
         CType realType = type.getRealType();
 
@@ -1709,12 +1709,12 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CTypedefType pType) throws RuntimeException {
+      public Void visit(CTypedefType pType) {
         return pType.getRealType().accept(this);
       }
 
       @Override
-      public Void visit(CCompositeType compType) throws RuntimeException {
+      public Void visit(CCompositeType compType) {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
           return null;

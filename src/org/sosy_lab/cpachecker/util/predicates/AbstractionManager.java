@@ -224,7 +224,7 @@ public final class AbstractionManager {
         Region var = parts.getFirst();
 
         AbstractionPredicate pred = absVarToPredicate.get(var);
-        assert pred != null;
+        assert pred != null : var;
         BooleanFormula atom = pred.getSymbolicAtom();
 
         if (bfmgr.isTrue(m1)) {
@@ -320,6 +320,20 @@ public final class AbstractionManager {
             return pInput.getAbstractVariable();
           }
         }, Functions.forMap(atomToPredicate)));
+  }
+
+  public Region buildRegionFromFormulaWithUnknownAtoms(BooleanFormula pF) {
+    return rmgr.fromFormula(pF, fmgr,
+        new Function<BooleanFormula, Region>() {
+
+          @Override
+          public Region apply(BooleanFormula pInput) {
+            if (atomToPredicate.containsKey(pInput)) {
+            return atomToPredicate.get(pInput).getAbstractVariable();
+            }
+            return makePredicate(pInput).getAbstractVariable();
+          }
+        });
   }
 
   public RegionCreator getRegionCreator() {

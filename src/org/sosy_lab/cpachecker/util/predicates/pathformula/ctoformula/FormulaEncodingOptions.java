@@ -75,6 +75,9 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
+  @Option(secure=true, description = "Whether to track values stored in variables of function-pointer type.")
+  private boolean trackFunctionPointers = true;
+
   @Option(secure=true, description = "Insert tmp-variables for parameters at function-entries. " +
           "The variables are similar to return-variables at function-exit.")
   private boolean useParameterVariables = false;
@@ -110,6 +113,10 @@ public class FormulaEncodingOptions {
 
   public boolean ignoreIrrelevantVariables() {
     return ignoreIrrelevantVariables;
+  }
+
+  public boolean trackFunctionPointers() {
+    return trackFunctionPointers;
   }
 
   public boolean useParameterVariables() {

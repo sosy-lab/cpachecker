@@ -267,12 +267,18 @@ public class PointerTargetSetManager {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
                                                                getUnitedFieldBaseName(currentFieldIndex++)));
       }
+
+
+      String varName = UNITED_BASE_UNION_TAG_PREFIX
+                       + type1.toString().replace(' ', '_')
+                       + "_and_"
+                       + type2.toString().replace(' ', '_');
       return new CCompositeType(false,
                                 false,
                                 ComplexTypeKind.UNION,
                                 membersBuilder.build(),
-                                UNITED_BASE_UNION_TAG_PREFIX + type1.toString().replace(' ', '_') + "_and_" +
-                                                               type2.toString().replace(' ', '_'));
+                                varName,
+                                varName);
     }
   }
 

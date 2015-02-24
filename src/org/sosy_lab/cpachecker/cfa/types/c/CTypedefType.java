@@ -25,13 +25,15 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * This represents a type which was created by using typedef.
  */
-public final class CTypedefType implements CType {
+public final class CTypedefType implements CType, Serializable {
 
+  private static final long serialVersionUID = -3461236537115147688L;
   private final String name; // the typedef name
   private final CType realType; // the real type this typedef points to
   private boolean   isConst;

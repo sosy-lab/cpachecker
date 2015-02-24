@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.precondition;
 
-import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.*;
 import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 
 import org.junit.Before;
-import org.junit.Test;
+import org.junit.Ignore;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -52,12 +50,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -65,7 +59,8 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
-
+@Ignore
+@SuppressWarnings("unused")
 public class PreconditionHelperTest extends SolverBasedTest0 {
 
   private PreconditionHelper helper;
@@ -90,6 +85,7 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
   protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
     ConfigurationBuilder result = super.createTestConfigBuilder();
     result.setOption("cpa.predicate.handlePointerAliasing", "false");
+    result.setOption("cpa.predicate.handleArrays", "true");
 
     return result;
   }
@@ -140,54 +136,77 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
     _stmt_al_assign_0 = makeAssignment(_al, _0).getFirst();
   }
 
-  @Test
-  public void testGetPreconditionOfPath1() throws CPATransferException, SolverException, InterruptedException {
-    //  line 8: N9 -{Label: ERROR}-> N10
-    //  line 7: N6 -{[i >= al]}-> N9
-    //  line 6: N5 -{[(b[i]) != 0]}-> N6
-    //  lines 6-12: N4 -{while}-> N5
-    //  line 5: N3 -{i = 0;}-> N4
-    //  line 4: N2 -{int i;}-> N3
-    //  none: N19 -{Function start dummy edge}-> N2
-    //  lines 3-13: N18 -{void copy(int a[], int b[]);}-> N19
-    //  line 2: N17 -{int al = 0;}-> N18
-    //  line 1: N16 -{void __VERIFIER_error();}-> N17
-    //  none: N1 -{INIT GLOBAL VARS}-> N16
-
-    ARGPath pathMock = mock(ARGPath.class);
-    when(pathMock.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
-        _label_error,
-        _assume_i_geq_al,
-        _assume_b_at_i_neq_0,
-        _while,
-        _stmt_i_assign_0,
-        _stmt_declare_i,
-        _dummy,
-        _function_declaration
-//        _stmt_al_assign_0 // TODO: This SHOULD NOT BE RELEVANT!
-        ));
-
-    BooleanFormula pc = helper.getPreconditionOfPath(pathMock, Optional.<CFANode>absent());
-
-    assertThat(pc).isNotNull();
-  }
-
-  @Test
-  public void testGetPreconditionOfPath2() throws CPATransferException, SolverException, InterruptedException {
-    ARGPath pathMock = mock(ARGPath.class);
-    when(pathMock.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
-        _assume_i_geq_al,
-        _stmt_i_assign_0,
-        _stmt_declare_i
-        ));
-
-    BooleanFormula pc = helper.getPreconditionOfPath(pathMock, Optional.<CFANode>absent());
-
-    assertThat(pc).isNotNull();
-    assertThat(pc.toString()).isEqualTo(
-              imgr.greaterOrEquals(imgr.makeNumber(0), imgr.makeVariable("al")
-            ).toString());
-  }
+//  @Test
+//  public void testGetPreconditionOfPath1() throws CPATransferException, SolverException, InterruptedException {
+//    //  line 8: N9 -{Label: ERROR}-> N10
+//    //  line 7: N6 -{[i >= al]}-> N9
+//    //  line 6: N5 -{[(b[i]) != 0]}-> N6
+//    //  lines 6-12: N4 -{while}-> N5
+//    //  line 5: N3 -{i = 0;}-> N4
+//    //  line 4: N2 -{int i;}-> N3
+//    //  none: N19 -{Function start dummy edge}-> N2
+//    //  lines 3-13: N18 -{void copy(int a[], int b[]);}-> N19
+//    //  line 2: N17 -{int al = 0;}-> N18
+//    //  line 1: N16 -{void __VERIFIER_error();}-> N17
+//    //  none: N1 -{INIT GLOBAL VARS}-> N16
+//
+//    ARGPath pathMock = mock(ARGPath.class);
+//    when(pathMock.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _label_error,
+//        _assume_i_geq_al,
+//        _assume_b_at_i_neq_0,
+//        _while,
+//        _stmt_i_assign_0,
+//        _stmt_declare_i,
+//        _dummy,
+//        _function_declaration
+//        ));
+//
+//    // (and (>= 0 al) (not (= (select b 0) 0)))
+//    BooleanFormula expected_pc_at_entry = bmgr.and(
+//        imgr.greaterOrEquals(
+//            imgr.makeNumber(0),
+//            imgr.makeVariable("al")),
+//        bmgr.not(imgr.equal(
+//            amgr.select(
+//                amgr.makeArray("b", FormulaType.IntegerType, FormulaType.IntegerType),
+//                imgr.makeNumber(0)),
+//            imgr.makeNumber(0))));
+//
+//    BooleanFormula pc_at_entry = helper.getPreconditionOfPath(pathMock, Optional.<CFANode>absent());
+//    assertThat(pc_at_entry.toString()).isEqualTo(expected_pc_at_entry.toString());
+//
+//    // (and (>= i al) (not (= (select b i) 0)))
+//    BooleanFormula expected_pc_without_i_assign_0 = bmgr.and(
+//        imgr.greaterOrEquals(
+//            imgr.makeVariable("i"),
+//            imgr.makeVariable("al")),
+//        bmgr.not(imgr.equal(
+//            amgr.select(
+//                amgr.makeArray("b", FormulaType.IntegerType, FormulaType.IntegerType),
+//                imgr.makeVariable("i")),
+//            imgr.makeNumber(0))));
+//
+//    BooleanFormula pc_without_i_assign_0 = helper.getPreconditionOfPath(pathMock, Optional.of(_while.getSuccessor()));
+//    assertThat(pc_without_i_assign_0.toString()).isEqualTo(expected_pc_without_i_assign_0.toString());
+//  }
+//
+//  @Test
+//  public void testGetPreconditionOfPath2() throws CPATransferException, SolverException, InterruptedException {
+//    ARGPath pathMock = mock(ARGPath.class);
+//    when(pathMock.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+//        _assume_i_geq_al,
+//        _stmt_i_assign_0,
+//        _stmt_declare_i
+//        ));
+//
+//    BooleanFormula pc = helper.getPreconditionOfPath(pathMock, Optional.<CFANode>absent());
+//
+//    assertThat(pc).isNotNull();
+//    assertThat(pc.toString()).isEqualTo(
+//              imgr.greaterOrEquals(imgr.makeNumber(0), imgr.makeVariable("al")
+//            ).toString());
+//  }
 
 
 }

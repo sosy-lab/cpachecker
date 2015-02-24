@@ -104,6 +104,10 @@ analysis.disable = false
 # entry function
 analysis.entryFunction = "main"
 
+# do analysis and then extract pre- and post conditions for custom
+# instruction from analysis result
+analysis.extractRequirements.customInstruction = false
+
 # create all potential function pointer call edges
 analysis.functionPointerCalls = true
 
@@ -261,6 +265,9 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
 
+# Generate invariants and add them to the induction hypothesis.
+bmc.addInvariantsByAI = false
+
 # Generate additional invariants by induction and add them to the induction
 # hypothesis.
 bmc.addInvariantsByInduction = true
@@ -285,9 +292,6 @@ bmc.havocLoopTerminationConditionVariablesOnly = false
 
 # try using induction to verify programs with loops
 bmc.induction = false
-
-# Generate invariants and add them to the induction hypothesis.
-bmc.useInvariantsForInduction = false
 
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
@@ -376,6 +380,9 @@ cfa.moveDeclarationsToFunctionStart = false
 
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
+
+# Show messages when dead code is encountered during parsing.
+cfa.showDeadCode = true
 
 # Remove all edges which don't have any effect on the program
 cfa.simplifyCfa = true
@@ -487,6 +494,10 @@ cpa.apron.refiner.checkForRepeatedRefinements = true
 # seconds or specify a unit; 0 for infinite)
 cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 
+# split disequalities considering integer operands into two states or use
+# disequality provided by apron library 
+cpa.apron.splitDisequalities = true
+
 # inform merge operator in predicated analysis that it should delete the
 # subgraph of the merged nodewhich is required to get at most one successor
 # per CFA edge.
@@ -565,12 +576,11 @@ cpa.arg.witness.exportFunctionCallsAndReturns = true
 # on the transitions?
 cpa.arg.witness.exportLineNumbers = true
 
+# Verification witness: Include the offset within the file?
+cpa.arg.witness.exportOffset = true
+
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
-
-# Verification witness: Include the token numbers of the operations on the
-# transitions?
-cpa.arg.witness.exportTokenNumbers = true
 
 # signal the analysis to break in case the given number of error state is
 # reached 
@@ -654,13 +664,16 @@ cpa.bdd.merge = "join"
 # depth of recursion bound
 cpa.callstack.depth = 0
 
+# which abstract domain to use for callstack cpa, typically FLAT which is
+# faster since it uses only object equivalence
+cpa.callstack.domain = "FLAT"
+  allowed values: [FLAT, FLATPCC]
+
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
 cpa.callstack.skipFunctionPointerRecursion = false
 
-# Skip recursion. Treat function call as a statement (the same as for
-# functions without bodies)
 # Skip recursion (this is unsound). Treat function call as a statement (the
 # same as for functions without bodies)
 cpa.callstack.skipRecursion = false
@@ -756,6 +769,7 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
+# The way numbers are represented in boolean formulas.
 cpa.constraints.formulaNumberHandling = INTEGER
   enum:     [INTEGER, BITVECTOR]
 
@@ -1209,6 +1223,15 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
+# prefixPreference
+cpa.predicate.refinement.prefixPreference = DEFAULT
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
+             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
+             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
+
+# prefixProvider
+cpa.predicate.refinement.prefixProvider = "SMT"
+
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
@@ -1227,23 +1250,24 @@ cpa.predicate.refinement.sliceBlockFormulas = false
 # predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
 
-# Strategy how to interact woith the intepolating prover. If a strategy
-# starts with 'CPACHECKER_', we use our own implementation and do not use the
-# solver's method. In our own implementation the properties of interpolants
-# are guaranteed for special cases only.
-# - CPACHECKER_SEQ: We simply return each interpolant for i={0..n-1} for the
+# Strategy how to interact with the intepolating prover. The analysis must
+# support the strategy, otherwise the result will be useless!
+# - SEQ_CPACHECKER: We simply return each interpolant for i={0..n-1} for the
 # partitions A=[0 .. i] and B=[i+1 .. n]. The result is similar to
 # INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', i.e. the solver
-# has to generate nice interpolants. 
+# has to generate nice interpolants itself. Supported by all solvers!
 # - INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the
 # partitions [1,...n]. 
-# - CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the
+# - TREE: use the tree-interpolation-feature of a solver to get interpolants
+# - TREE_WELLSCOPED: We return each interpolant for i={0..n-1} for the
 # partitions A=[lastFunctionEntryIndex .. i] and B=[0 ..
-# lastFunctionEntryIndex-1 , i+1 .. n].
-# - NESTED: use callstack and previous interpolants for next interpolants
-# (see 'Nested Interpolants').
-cpa.predicate.refinement.strategy = CPACHECKER_SEQ
-  enum:     [CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, NESTED]
+# lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme.
+# - TREE_NESTED: use callstack and previous interpolants for next
+# interpolants (see 'Nested Interpolants'),
+# - TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from
+# 'Tree Interpolation in Vampire'.
+cpa.predicate.refinement.strategy = SEQ_CPACHECKER
+  enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
@@ -1318,6 +1342,11 @@ cpa.predicate.solver.z3.requireProofs = true
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
 
+# which stop operator to use for predicate cpa (usually SEP should be used in
+# analysis)
+cpa.predicate.stop = "SEP"
+  allowed values: [SEP, SEPPCC]
+
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
@@ -1332,6 +1361,9 @@ cpa.predicate.symbolicCoverageCheck = false
 
 # check satisfiability when a target state has been found (should be true)
 cpa.predicate.targetStateSatCheck = true
+
+# Whether to track values stored in variables of function-pointer type.
+cpa.predicate.trackFunctionPointers = true
 
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
@@ -1531,11 +1563,13 @@ cpa.stator.policy.encodeTemplatesAsRationals = false
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = Rational.ONE
 
+# Generate templates from assert statements
+cpa.stator.policy.generateFromAsserts = true
+
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
 
-# Generate octagon templates for all combinations of variables. This can be
-# expensive.
+# Generate octagon templates for all combinations of variables. 
 cpa.stator.policy.generateOctagons = false
 
 # Generate templates for the upper bounds of each variable
@@ -1582,6 +1616,10 @@ cpa.value.blk.alwaysAtJoins = false
 # restrict abstractions to loop heads
 cpa.value.blk.alwaysAtLoops = false
 
+# restrict liveness abstractions to nodes with more than one entering and/or
+# leaving edge
+cpa.value.blk.onlyAtNonLinearCFA = false
+
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.value.initAssumptionVars = false
@@ -1590,7 +1628,7 @@ cpa.value.initAssumptionVars = false
 cpa.value.initialPrecisionFile = no default value
 
 # The maximum amount of symbolic values to create per ast node.
-cpa.value.maxSymbolicValues = 4000
+cpa.value.maxSymbolicValues = 100000
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
@@ -1619,10 +1657,10 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 cpa.value.refinement.itpSortedTargets = false
 
 # whether or not to do lazy-abstraction
-cpa.value.refinement.restart = BOTTOM
-  enum:     [TOP, BOTTOM, COMMON]
-cpa.value.refinement.restart = TOP
-  enum:     [TOP, BOTTOM, COMMON]
+cpa.value.refinement.restart = PIVOT
+  enum:     [ROOT, PIVOT, COMMON]
+cpa.value.refinement.restart = ROOT
+  enum:     [ROOT, PIVOT, COMMON]
 
 # globalPrec
 cpa.value.refinement.useGlobalPrecision = false
@@ -1665,7 +1703,15 @@ cpa.value.symbolicExecution = false
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
 
-customInstructions.definitionFile = no default value
+# Prefix for files containing the custom instruction requirements.
+custominstructions.ciFilePrefix = "ci"
+
+# File to be parsed
+custominstructions.definitionFile = no default value
+
+# Qualified name of class for abstract state which provides custom
+# instruction requirements.
+custominstructions.requirementsStateClassName = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -1884,8 +1930,11 @@ spec.automatonDumpFile = no default value
 # Consider assumptions that are provided with the path automaton?
 spec.considerAssumptions = true
 
-# Consider the negative semantics of tokens provided with path automatons.
-spec.considerNegativeSemanticsAttribute = false
+# Match the branching information at a branching location.
+spec.matchAssumeCase = true
+
+# Match the character offset within the file.
+spec.matchOffset = true
 
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
@@ -1894,15 +1943,9 @@ spec.matchOriginLine = true
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
 
-# If a witness represents a single path in Automaton match both starting and
-# ending lines of the CFA edge (ending line = starting line of the next
-# edge). If matching CFA edge exists, go to the sink for the other edges,
-# otherwise match starting lines as usual.
-spec.singlePathMatching = false
-
-# Do not try to "catch up" with witness lines: If they do not match, go to
+# Do not try to "catch up" with witness guards: If they do not match, go to
 # the sink.
-spec.strictLineMatching = false
+spec.strictMatching = false
 
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -209,6 +210,13 @@ public class CExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(CImaginaryLiteralExpression pIastLiteralExpression)
       throws UnrecognizedCodeException {
     assert false : "Imaginary literal";
+    return null;
+  }
+
+  @Override
+  public SymbolicExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
+      throws UnrecognizedCodeException {
+    assert false : "Address of label expression used in symbolic expression";
     return null;
   }
 

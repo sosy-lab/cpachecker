@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -8,18 +9,18 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -27,12 +28,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 
 public class ValueDeterminationFormulaManager {
 
   /** Dependencies */
-  private final PathFormulaManager pfmgr;
   private final FormulaManager formulaManager;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -44,18 +45,15 @@ public class ValueDeterminationFormulaManager {
 
   /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
-  private static final String EDGE_PREFIX = "[%d]_";
+  private static final String VISIT_PREFIX = "[%d]_";
 
   public ValueDeterminationFormulaManager(
-      PathFormulaManager pfmgr,
       FormulaManagerView fmgr,
       LogManager logger,
       CFA cfa,
       FormulaManager rfmgr,
-      TemplateManager pTemplateManager
-  ) throws InvalidConfigurationException{
+      TemplateManager pTemplateManager) throws InvalidConfigurationException{
 
-    this.pfmgr = pfmgr;
     this.fmgr = fmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
@@ -72,42 +70,40 @@ public class ValueDeterminationFormulaManager {
    * The abstract state associated with the <code>focusedNode</code>
    * is the <b>new</b> state, with <code>updated</code> applied.
    *
-   * @return Global constraint for value determination.
+   * @return Global constraint for value determination and types of the abstract
+   * domain elements.
+   *
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  public List<BooleanFormula> valueDeterminationFormula(
+  public Pair<ImmutableMap<String, FormulaType<?>>, BooleanFormula> valueDeterminationFormula(
       Map<Location, PolicyAbstractedState> policy,
       final Location focusedLocation,
       final Map<Template, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
+    Map<String, FormulaType<?>> types = new HashMap<>();
 
     for (Entry<Location, PolicyAbstractedState> entry : policy.entrySet()) {
       Location toLocation = entry.getKey();
       PolicyState state = entry.getValue();
       Preconditions.checkState(state.isAbstract());
-      Set<String> visitedEdges = new HashSet<>();
+      Set<String> visited = new HashSet<>();
 
       for (Entry<Template, PolicyBound> incoming : state.asAbstracted()) {
         Template template = incoming.getKey();
         PolicyBound bound = incoming.getValue();
 
-        // Prefix the constraints by the edges.
-        // We encode the whole paths, as things might differ inside the path.
-        String edgePrefix = String.format(EDGE_PREFIX, bound.serializePath());
+        final String prefix = String.format(VISIT_PREFIX,
+            bound.serializePath(toLocation));
 
         if (toLocation == focusedLocation && !updated.containsKey(template)) {
 
           // Insert the invariant from the previous constraint.
           Formula templateFormula = templateManager.toFormula(
               template,
-              new PathFormula(
-                  bfmgr.makeBoolean(true),
-                  SSAMap.emptySSAMap(),
-                  PointerTargetSet.emptyPointerTargetSet(),
-                  0
-              ), edgePrefix);
+              new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(),
+                  PointerTargetSet.emptyPointerTargetSet(), 0), prefix);
           BooleanFormula constraint = fmgr.makeLessOrEqual(
               templateFormula,
               fmgr.makeNumber(templateFormula, bound.bound), true
@@ -115,23 +111,41 @@ public class ValueDeterminationFormulaManager {
 
           constraints.add(constraint);
         } else {
-          CFAEdge trace = incoming.getValue().trace;
+          PathFormula formula = bound.formula;
+          Location fromLocation = bound.predecessor;
+          SSAMap startSSA = bound.startSSA;
 
-          Location fromLocation = incoming.getValue().updatedFrom;
           int toLocationNo = toLocation.toID();
           int toLocationPrimeNo = toPrime(toLocationNo);
 
-          PathFormula edgePathFormula = pathFormulaWithCustomIdxAndPrefix(
-              trace,
-              toLocationNo,
+          PathFormula prefixedPathFormula = pathFormulaWithCustomIdxAndPrefix(
+              formula,
               toLocationPrimeNo,
-              edgePrefix
+              prefix
           );
-          BooleanFormula edgeFormula = edgePathFormula.getFormula();
+          BooleanFormula edgeFormula = prefixedPathFormula.getFormula();
+
+          PolicyAbstractedState incomingState = policy.get(fromLocation);
+          for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
+            Template incomingTemplate = incomingConstraint.getKey();
+
+
+            Formula templateFormula = templateWithInitialMap(
+                startSSA, incomingTemplate, formula,  prefix);
+            String prevAbstractDomainElement = absDomainVarName(fromLocation,
+                incomingTemplate);
+            Formula absDomainElementFormula = fmgr.makeVariable(
+                fmgr.getFormulaType(templateFormula), prevAbstractDomainElement
+            );
+
+            BooleanFormula constraint = fmgr.makeLessOrEqual(
+                templateFormula, absDomainElementFormula, true);
+            constraints.add(constraint);
+          }
 
           // Optimization.
           if (!(edgeFormula.equals(bfmgr.makeBoolean(true))
-                || visitedEdges.contains(edgePrefix))) {
+                || visited.contains(prefix))) {
 
             // Check for visited.
             constraints.add(edgeFormula);
@@ -142,51 +156,45 @@ public class ValueDeterminationFormulaManager {
           }
 
           Formula outExpr = templateManager.toFormula(
-              template, edgePathFormula, edgePrefix);
-          String varName = absDomainVarName(toLocation, template);
+              template, prefixedPathFormula, prefix);
+          final String abstractDomainElement = absDomainVarName(toLocation, template);
           BooleanFormula outConstraint;
+          types.put(abstractDomainElement, fmgr.getFormulaType(outExpr));
 
           outConstraint = fmgr.makeEqual(
               outExpr,
-              fmgr.makeVariable(fmgr.getFormulaType(outExpr), varName)
+              fmgr.makeVariable(fmgr.getFormulaType(outExpr), abstractDomainElement)
           );
 
           logger.log(Level.FINE, "Output constraint = ", outConstraint);
           constraints.add(outConstraint);
         }
-        visitedEdges.add(edgePrefix);
+        visited.add(prefix);
       }
     }
-    return constraints;
+    return Pair.of(ImmutableMap.copyOf(types), bfmgr.and(constraints));
   }
 
   /**
-   * Perform the associated maximization.
-   */
-
-  /**
-   * Create a path formula for the edge, specifying <i>both</i> custom
-   * from-index and the custom to-index.
-   * E.g. for statement {@code x++}, start index set to 2 and stop index set to 1000
-   * will produce:
-   *
-   *    {@code x@1000 = x@2 + 1}
+   * Prefix all variables and change the {@code stopIdx}.
+   * NOTE: Changing the {@code stopIdx} probably does not do anything,
+   * the variable is prefixed anyway.
    */
   private PathFormula pathFormulaWithCustomIdxAndPrefix(
-      CFAEdge edge, int startIdx, int stopIdx, String customPrefix)
-      throws CPATransferException, InterruptedException {
+      PathFormula p,
+      int stopIdx,
+      String customPrefix) throws CPATransferException, InterruptedException {
 
-    PathFormula p = pathFormulaWithCustomStartIdx(edge, startIdx);
-    SSAMap customFromIdxSSAMap = p.getSsa();
+    SSAMap ssa = p.getSsa();
 
-    SSAMap.SSAMapBuilder newMapBuilder = customFromIdxSSAMap.builder();
+    SSAMap.SSAMapBuilder newMapBuilder = ssa.builder();
 
-    final BooleanFormula edgeFormula = p.getFormula();
+    final BooleanFormula policyConstraint = p.getFormula();
 
     List<Formula> fromVars = new ArrayList<>();
     List<Formula> toVars = new ArrayList<>();
 
-    Set<Triple<Formula, String, Integer>> allVars = fmgr.extractFreeVariables(edgeFormula);
+    Set<Triple<Formula, String, Integer>> allVars = fmgr.extractFreeVariables(policyConstraint);
     for (Triple<Formula, String, Integer> e : allVars) {
 
       Formula formula = e.getFirst();
@@ -204,7 +212,7 @@ public class ValueDeterminationFormulaManager {
       }
 
       int newIdx;
-      if (oldIdx == customFromIdxSSAMap.getIndex(varName)) {
+      if (oldIdx == ssa.getIndex(varName)) {
 
         newIdx = stopIdx;
         newMapBuilder = newMapBuilder.setIndex(varName, type, newIdx);
@@ -217,7 +225,7 @@ public class ValueDeterminationFormulaManager {
     }
 
     BooleanFormula innerFormula = formulaManager.getUnsafeFormulaManager().substitute(
-        edgeFormula, fromVars, toVars
+        policyConstraint, fromVars, toVars
     );
 
     return new PathFormula(
@@ -230,23 +238,6 @@ public class ValueDeterminationFormulaManager {
   private Formula makeVariable(
         Formula pFormula, String variable, int idx, String namespace) {
     return fmgr.makeVariable(fmgr.getFormulaType(pFormula), namespace + variable, idx);
-  }
-
-  /**
-   * Creates a {@link PathFormula} with SSA indexing starting
-   * from the specified value.
-   * E.g. for {@code x++} and starting index set to 1000 will produce:
-   *
-   *    x@1001 = x@1000 + 1
-   */
-  private PathFormula pathFormulaWithCustomStartIdx(CFAEdge edge, int startIdx)
-      throws CPATransferException, InterruptedException {
-    PathFormula empty = pfmgr.makeEmptyPathFormula();
-    PathFormula emptyWithCustomSSA = pfmgr.makeNewPathFormula(
-        empty,
-        SSAMap.emptySSAMap().withDefault(startIdx));
-
-    return pfmgr.makeAnd(emptyWithCustomSSA, edge);
   }
 
   /**
@@ -275,5 +266,16 @@ public class ValueDeterminationFormulaManager {
 
   String absDomainVarName(Location pLocation, Template template) {
     return String.format(BOUND_VAR_NAME, pLocation.toID(), template);
+  }
+
+  private Formula templateWithInitialMap(SSAMap initialMap, Template template,
+      PathFormula p, String prefix) {
+    PathFormula initialFormula = new PathFormula(
+        p.getFormula(), initialMap, p.getPointerTargetSet(),
+        p.getLength()
+    );
+    return templateManager.toFormula(
+        template, initialFormula, prefix
+    );
   }
 }

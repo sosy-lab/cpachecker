@@ -57,6 +57,13 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
+
+  // Properties:
+  public static final String HAS_INVALID_FREES = "has-invalid-frees";
+  public static final String HAS_INVALID_READS = "has-invalid-reads";
+  public static final String HAS_INVALID_WRITES = "has-invalid-writes";
+  public static final String HAS_LEAKS = "has-leaks";
+
   private final boolean memoryErrors;
   private final boolean unknownOnUndefined;
 
@@ -716,28 +723,28 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // has-leaks:boolean
 
     switch (pProperty) {
-      case "has-leaks":
+      case HAS_LEAKS:
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
           issueMemoryLeakMessage();
           return true;
         }
         return false;
-      case "has-invalid-writes":
+      case HAS_INVALID_WRITES:
         if (invalidWrite) {
           //TODO: Give more information
           issueInvalidWriteMessage();
           return true;
         }
         return false;
-      case "has-invalid-reads":
+      case HAS_INVALID_READS:
         if (invalidRead) {
           //TODO: Give more information
           issueInvalidReadMessage();
           return true;
         }
         return false;
-      case "has-invalid-frees":
+      case HAS_INVALID_FREES:
         if (invalidFree) {
           //TODO: Give more information
           issueInvalidFreeMessage();

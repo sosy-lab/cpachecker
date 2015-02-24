@@ -42,10 +42,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManag
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
+@SuppressWarnings("unused")
 public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
   private ExtractNewPreds enp;
@@ -53,6 +55,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
   private FormulaManagerView mgrv;
   private ArrayFormulaManagerView afm;
+  private QuantifiedFormulaManagerView qfm;
   private BooleanFormulaManagerView bfm;
   private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
@@ -84,8 +87,10 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   private IntegerFormula _i;
   private IntegerFormula _n;
   private IntegerFormula _al;
+  private IntegerFormula _bl;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b0;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
+  private IntegerFormula _k;
 
 
   @Override
@@ -101,6 +106,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     afm = mgrv.getArrayFormulaManager();
     bfm = mgrv.getBooleanFormulaManager();
     ifm = mgrv.getIntegerFormulaManager();
+    qfm = mgrv.getQuantifiedFormulaManager();
 
     rulesEngine = new RuleEngine(logger, solver);
     enp = new ExtractNewPreds(solver, rulesEngine);
@@ -113,7 +119,9 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     _1 = ifm.makeNumber(1);
 
     _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
+    _k = mgrv.makeVariable(NumeralType.IntegerType, "k");
     _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
+    _bl = mgrv.makeVariable(NumeralType.IntegerType, "bl");
     _n = mgrv.makeVariable(NumeralType.IntegerType, "n");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
@@ -169,7 +177,20 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
         _i0_LESS_al0));
   }
 
-  @Test(timeout=500)
+  private BooleanFormula rangePredicate(boolean pForall, IntegerFormula pLowerLimit, IntegerFormula pUpperLimit) {
+    IntegerFormula _x = ifm.makeVariable("x");
+    BooleanFormula _range = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _x), ifm.makeNumber(0))),
+        ifm.greaterOrEquals(_x, pLowerLimit),
+        ifm.lessOrEquals(_x, pUpperLimit)));
+
+    if (pForall) {
+      return qfm.forall(Lists.newArrayList(_x), _range);
+    } else {
+      return qfm.exists(Lists.newArrayList(_x), _range);
+    }
+  }
+
   public void testOnTraceX() throws SolverException, InterruptedException {
     BooleanFormula _safeWp1 = bfm.and(Lists.newArrayList(
         bfm.not(ifm.equal(afm.select(_b, _i), _0)),        // b[i] != 0
@@ -189,7 +210,11 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
         ));
 
     List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
-    assertThat(result).isNotEmpty();
+
+    assertThat(result).containsAllIn(
+        Lists.newArrayList(
+            rangePredicate(false, _i, ifm.add(_i, _1)),
+            rangePredicate(false, _i, _al)));
   }
 
   @Test
@@ -202,7 +227,11 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
         ));
 
     List<BooleanFormula> result = enp.extractNewPreds(wpError);
-    assertThat(result).isNotEmpty();
+
+    assertThat(result).containsAllIn(
+        Lists.newArrayList(
+            rangePredicate(true, _i, ifm.add(_i, _1)),
+            rangePredicate(true, _i, _al)));
   }
 
   @Test
@@ -215,19 +244,28 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
         ));
 
     List<BooleanFormula> result = enp.extractNewPreds(wpError);
-    assertThat(result).isNotEmpty();
+
+    assertThat(result).containsAllIn(
+        Lists.newArrayList(
+            ifm.equal(_al,  _1),
+            rangePredicate(true, _0, _1),
+            rangePredicate(true, _0, _al)));
   }
 
   @Test
   public void testOnSafeWp4() throws SolverException, InterruptedException {
     BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
-        bfm.not(ifm.equal(afm.select(_b, _0), _0)), // b[0] != 0
-        ifm.lessOrEquals(_1, _al),                  // 1 <= al
-        ifm.equal(afm.select(_b, _1), _0)           // b[1] = 0
+        bfm.not(ifm.equal(afm.select(_b, _0), _0)),     // b[0] != 0
+        ifm.lessOrEquals(_1, _al),         // 1 <= al
+        ifm.equal(afm.select(_b, _1), _0)  // b[1] = 0
         ));
 
     List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
-    assertThat(result).isNotEmpty();
+
+    assertThat(result).containsAllIn(
+        Lists.newArrayList(
+            rangePredicate(false, _0, _1),
+            rangePredicate(false, _0, _al)));
   }
 
   @Test
@@ -253,6 +291,69 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
     List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
     assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testOnArrayPreds3() throws SolverException, InterruptedException {
+    // i = 0
+    // (not (= (select b i) 0))
+    // (< i n)
+    // (= k (+ i 1))
+    // (= (select b k) 0)
+
+    List<BooleanFormula> preds = Lists.newArrayList(
+        ifm.equal(_i, _0),
+        bfm.not(ifm.equal(afm.select(_b, _i), _0)),
+        ifm.lessThan(_i, _n),
+        ifm.equal(_k, ifm.add(_i, _1)),
+        ifm.equal(afm.select(_b, _k), _0)
+        );
+
+    List<BooleanFormula> result = enp.extractNewPreds(preds);
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testOnArrayPreds4() throws SolverException, InterruptedException {
+    // (and (= (select |copy::b@1| (+ 1 |copy::i@2|)) 0)
+    // (not (= (select |copy::b@1| |copy::i@2|) 0))
+    // (not (>= |copy::i@2| al@1)))
+
+    List<BooleanFormula> preds = Lists.newArrayList(
+        ifm.equal(afm.select(_b, ifm.add(ifm.makeNumber(1), _i)), _0),
+        bfm.not(ifm.equal(afm.select(_b, _i), _0)),
+        bfm.not(ifm.greaterOrEquals(_i, _al))
+        );
+
+    List<BooleanFormula> result = enp.extractNewPreds(preds);
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testOnArrayPreds5() throws SolverException, InterruptedException {
+    // (<= (+ 0 1) al@1)
+    // (not (= (select |copy::b@1| 0) 0))
+    // (= (select |copy::b@1| 1) 0)
+
+    List<BooleanFormula> preds = Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _0), _0)),
+        ifm.equal(afm.select(_b, _0), _0),
+        ifm.lessOrEquals(ifm.add(ifm.makeNumber(0), ifm.makeNumber(1)), _al)
+        );
+
+    List<BooleanFormula> result = enp.extractNewPreds(preds);
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testLinCombPreds() throws SolverException, InterruptedException {
+    BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
+        ifm.lessThan(_0, _bl),
+        ifm.greaterOrEquals(_0, _al)
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
+    assertThat(result).contains(ifm.lessThan(_al, _bl));
   }
 
 }

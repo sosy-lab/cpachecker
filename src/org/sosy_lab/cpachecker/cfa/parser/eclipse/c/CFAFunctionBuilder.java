@@ -82,8 +82,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -181,6 +181,9 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Option(secure=true, description="Also initialize local variables with default values, "
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
+
+  @Option(secure=true, description="Show messages when dead code is encountered during parsing.")
+  private boolean showDeadCode = true;
 
   public CFAFunctionBuilder(Configuration config, LogManagerWithoutDuplicates pLogger, FunctionScope pScope,
       Function<String, String> pNiceFileNameFunction,
@@ -857,7 +860,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category helper
    */
   private void addToCFA(CFAEdge edge) {
-    CFACreationUtils.addEdgeToCFA(edge, logger);
+    CFACreationUtils.addEdgeToCFA(edge, logger, showDeadCode);
   }
 
   /**

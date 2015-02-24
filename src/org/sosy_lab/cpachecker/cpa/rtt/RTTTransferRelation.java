@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.rtt;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.DefaultJExpressionVisitor;
@@ -99,9 +97,6 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
   // variable name for temporary storage of information
   private static final String TEMP_VAR_NAME = "___cpa_temp_result_var_";
   private static final String JAVA_ENUM_OBJECT_NAME = "java.lang.Enum";
-
-  private final Set<String> staticFieldVariables = new HashSet<>();
-  private final Set<String> nonStaticFieldVariables = new HashSet<>();
 
   private static int nextFreeId = 0;
 
@@ -227,7 +222,6 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // get the variable name in the declarator
-    String varName = decl.getName();
     String methodName = declarationEdge.getPredecessor().getFunctionName();
 
     // variables without initializer are set to null
@@ -239,12 +233,8 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
       JFieldDeclaration fieldVariable = (JFieldDeclaration) decl;
 
-      if (fieldVariable.isStatic()) {
-        // if this is a  field, add to the list of field variables
-        staticFieldVariables.add(varName);
-      } else {
-        nonStaticFieldVariables.add(varName);
-      }
+      // if this is a  field, add to the list of field variables
+      newElement.addFieldVariable(fieldVariable);
     }
 
     // get initial value
@@ -257,7 +247,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // assign initial value
-    String scopedVarName = getScopedVariableName(varName, methodName,
+    String scopedVarName = NameProvider.getInstance().getScopedVariableName(decl, methodName,
         newElement.getClassObjectScope());
 
     if (initialValue == null) {
@@ -294,8 +284,8 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
                             RTTState newElement, String functionName) {
 
     String assignedVar =
-        getScopedVariableName(lParam, functionName,
-            newElement.getClassObjectScope());
+        NameProvider.getInstance().getScopedVariableName(lParam, functionName,
+            newElement.getClassObjectScope(), newElement);
 
     if (value == null) {
       newElement.forget(assignedVar);
@@ -345,14 +335,17 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
       // a = ...
 
       String methodName = cfaEdge.getPredecessor().getFunctionName();
+      JSimpleDeclaration declaration = ((JIdExpression) op1).getDeclaration();
 
       // If declaration could not be resolve, forget variable
-      if (((JIdExpression) op1).getDeclaration() == null) {
+      if (declaration == null) {
 
-        String scopedName = getScopedVariableName(
-                                              ((JIdExpression) op1).getName(),
-                                              methodName,
-                                              newElement.getClassObjectScope());
+        String scopedName = NameProvider.getInstance()
+                                        .getScopedVariableName(
+                                            ((JIdExpression) op1).getName(),
+                                            methodName,
+                                            newElement.getClassObjectScope(),
+                                            newElement);
 
         newElement.forget(scopedName);
         return;
@@ -366,20 +359,20 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
   private void handleAssignmentToVariable(JIdExpression lParam, JRightHandSide exp,
       ExpressionValueVisitor visitor) throws UnrecognizedCCodeException {
 
+    NameProvider nameProvider = NameProvider.getInstance();
 
-    String lParamObjectScope = getObjectScope(visitor.state, visitor.functionName, lParam);
+    String lParamObjectScope = nameProvider.getObjectScope(visitor.state, visitor.functionName, lParam);
     String value = exp.accept(visitor);
 
     RTTState newElement = visitor.state;
 
-    if (nonStaticFieldVariables.contains(lParam.getName()) && lParamObjectScope == null) {
+    if (!newElement.isKnownAsStatic(lParam.getName()) && lParamObjectScope == null) {
       // can't resolve lParam variable, do nothing
       // TODO How to forget old Values?
       return;
     }
 
-    String assignedVar
-    = getScopedVariableName(lParam.getName(),
+    String assignedVar = nameProvider.getScopedVariableName(lParam.getDeclaration(),
         visitor.functionName, lParamObjectScope);
 
     if (value != null && (lParam.getExpressionType() instanceof JReferenceType)) {
@@ -389,38 +382,6 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
       newElement.forget(assignedVar);
     }
   }
-
-  private String getObjectScope(RTTState rttState, String methodName,
-      JIdExpression notScopedField) {
-
-    // Could not resolve var
-    if (notScopedField.getDeclaration() == null) {
-      return null;
-    }
-
-    if (notScopedField instanceof JFieldAccess) {
-
-      JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
-
-      String qualifierScope = getObjectScope(rttState, methodName, qualifier);
-
-      String scopedFieldName =
-          getScopedVariableName(qualifier.getDeclaration().getName(), methodName, qualifierScope);
-
-      if (rttState.contains(scopedFieldName)) {
-        return rttState.getUniqueObjectFor(scopedFieldName);
-      } else {
-        return null;
-      }
-    } else {
-      if (rttState.contains(RTTState.KEYWORD_THIS)) {
-        return rttState.getUniqueObjectFor(RTTState.KEYWORD_THIS);
-      } else {
-        return null;
-      }
-    }
-  }
-
 
   private RTTState handleFunctionReturn(
       RTTState element,
@@ -433,6 +394,8 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
+    NameProvider nameProvider = NameProvider.getInstance();
+
     // expression is an assignment operation, e.g. a = g(b);
 
     if (exprOnSummary instanceof JMethodInvocationAssignmentStatement) {
@@ -443,9 +406,14 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
       if ((op1 instanceof JIdExpression)) {
 
-        String returnVarName = getScopedVariableName(TEMP_VAR_NAME, calledFunctionName, newElement.getClassObjectScope());
+        String returnVarName = nameProvider.getScopedVariableName(TEMP_VAR_NAME,
+                                                                  calledFunctionName,
+                                                                  newElement.getClassObjectScope(),
+                                                                  newElement);
 
-        String assignedVarName = getScopedVariableName(((JIdExpression) op1).getName(), callerFunctionName, newElement.getClassObjectStack().peek());
+        String assignedVarName = nameProvider.getScopedVariableName(((JIdExpression) op1).getDeclaration(),
+                                                                    callerFunctionName,
+                                                                    newElement.getClassObjectStack().peek());
 
 
         JSimpleDeclaration decl = ((JIdExpression) op1).getDeclaration();
@@ -498,8 +466,9 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
       value = exp.accept(visitor);
 
-      String formalParamName =
-          getScopedVariableName(paramNames.get(i), calledFunctionName, newElement.getClassObjectScope());
+      String formalParamName = NameProvider.getInstance()
+                                           .getScopedVariableName(paramNames.get(i), calledFunctionName,
+                                               newElement.getClassObjectScope(), newElement);
 
       if (value == null || !(exp.getExpressionType() instanceof JReferenceType)) {
         newElement.forget(formalParamName);
@@ -531,8 +500,12 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
       JReferencedMethodInvocationExpression objectMethodInvocation = (JReferencedMethodInvocationExpression) functionCall;
       JSimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable().getDeclaration();
 
-      if (newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))) {
-        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope())));
+      String variableName = NameProvider.getInstance()
+                                        .getScopedVariableName(variableReference, callerFunctionName,
+                                            newElement.getClassObjectScope());
+
+      if (newElement.contains(variableName)) {
+        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(variableName));
       } else {
         // When the object of the variable can't be found
         newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
@@ -551,17 +524,6 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
      //  the method Invocation can't be handled
     }
     return newElement;
-  }
-
-  private String getScopedVariableName(String variableName, String functionName, String uniqueObject) {
-
-    if (variableName.equals(RTTState.KEYWORD_THIS)) { return variableName; }
-
-    if (staticFieldVariables.contains(variableName)) { return variableName; }
-
-    if (nonStaticFieldVariables.contains(variableName)) { return uniqueObject + "::" + variableName; }
-
-    return functionName + "::" + variableName;
   }
 
   private RTTState handleAssumption(RTTState element,
@@ -593,7 +555,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private class FunctionExitValueVisitor extends ExpressionValueVisitor {
+  private static class FunctionExitValueVisitor extends ExpressionValueVisitor {
 
     public FunctionExitValueVisitor(CFAEdge pEdge, RTTState pElement, String pFunctionName) {
       super(pEdge, pElement, pFunctionName);
@@ -609,10 +571,10 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
 
 
-  private class AssigningValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> {
+  private static class AssigningValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> {
 
-    final private boolean truthAssumption;
-    final private RTTState newState;
+    private final boolean truthAssumption;
+    private final RTTState newState;
     private final String methodName;
 
 
@@ -624,7 +586,9 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public String visit(JVariableRunTimeType pE) throws UnrecognizedCCodeException {
-      return getScopedVariableName(pE.getReferencedVariable().getName(), methodName, newState.getKeywordThisUniqueObject());
+      return NameProvider.getInstance()
+          .getScopedVariableName(pE.getReferencedVariable().getDeclaration(), methodName,
+                             newState.getKeywordThisUniqueObject());
     }
 
     @Override
@@ -642,14 +606,14 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
       JClassOrInterfaceType assignableType = pE.getTypeDef();
 
-      String referenz  = pE.getRunTimeTypeExpression().accept(this);
+      String reference  = pE.getRunTimeTypeExpression().accept(this);
 
-      if (referenz == null) {
+      if (reference == null) {
         return null;
       }
 
-      if (truthAssumption == true) {
-        newState.assignAssumptionType(referenz, assignableType);
+      if (truthAssumption) {
+        newState.assignAssumptionType(reference, assignableType);
       }
 
       return null;
@@ -659,7 +623,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
 
 
-  private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
+  private static class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
 
     protected final CFAEdge edge;
     protected final RTTState state;
@@ -685,7 +649,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public String visit(JCharLiteralExpression pPaCharLiteralExpression) throws UnrecognizedCCodeException {
-      return "Charackter";
+      return "Character";
     }
 
     @Override
@@ -788,8 +752,8 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
 
     @Override
-    public String visit(JArrayCreationExpression pJBooleanLiteralExpression) throws UnrecognizedCCodeException {
-      // TODO Support Boolean Class
+    public String visit(JArrayCreationExpression pJArrayCreationExpression) throws UnrecognizedCCodeException {
+      // TODO Support Array Class
       return null;
     }
 
@@ -823,6 +787,9 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
         return null;
       }
 
+      NameProvider nameProvider = NameProvider.getInstance();
+      JSimpleDeclaration declaration = idExpression.getDeclaration();
+
       if (idExpression instanceof JFieldAccess) {
 
         JFieldAccess fiExpr = (JFieldAccess) idExpression;
@@ -832,22 +799,24 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
         JIdExpression qualifier = fiExpr.getReferencedVariable();
 
         String uniqueQualifierObject = qualifier.accept(this);
+        String variableName =
+            nameProvider.getScopedVariableName(declaration, functionName, uniqueQualifierObject);
 
         if (type instanceof JClassOrInterfaceType
-            && state.contains(getScopedVariableName(idExpression.getName(), functionName, uniqueQualifierObject))) {
-          return state.getUniqueObjectFor(getScopedVariableName(idExpression.getName(), functionName,
-              uniqueQualifierObject));
+            && state.contains(variableName)) {
+          return state.getUniqueObjectFor(variableName);
         } else {
           return null;
         }
       } else {
 
         JType type = idExpression.getExpressionType();
+        String variableName =
+            nameProvider.getScopedVariableName(declaration, functionName, state.getClassObjectScope());
 
         if (type instanceof JClassOrInterfaceType
-            && state.contains(getScopedVariableName(idExpression.getName(), functionName, state.getClassObjectScope()))) {
-          return state.getUniqueObjectFor(getScopedVariableName(idExpression.getName(), functionName,
-              state.getClassObjectScope()));
+            && state.contains(variableName)) {
+          return state.getUniqueObjectFor(variableName);
         } else {
           return null;
         }

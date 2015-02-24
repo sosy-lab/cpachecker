@@ -41,7 +41,7 @@ public class CtoFormulaTypeHandlerWithArrays extends CtoFormulaTypeHandler {
   }
 
   @Override
-  protected FormulaType<?> getFormulaTypeFromCType0(CType pType) {
+  public FormulaType<?> getFormulaTypeFromCType(CType pType) {
     if (pType instanceof CArrayType) {
       final CArrayType at = (CArrayType) pType;
       FormulaType<?> arrayIndexType = getFormulaTypeFromCType(
@@ -50,6 +50,6 @@ public class CtoFormulaTypeHandlerWithArrays extends CtoFormulaTypeHandler {
       return FormulaType.getArrayType(arrayIndexType, arrayElementType);
     }
 
-    return super.getFormulaTypeFromCType0(pType);
+    return super.getFormulaTypeFromCType(pType);
   }
 }

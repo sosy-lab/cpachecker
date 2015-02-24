@@ -55,6 +55,7 @@ import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.Model;
 import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
+import de.uni_freiburg.informatik.ultimate.logic.ReasonUnknown;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
@@ -338,8 +339,21 @@ class SmtInterpolEnvironment {
         return true;
       case UNSAT:
         return false;
-      default:
+      case UNKNOWN:
         shutdownNotifier.shutdownIfNecessary();
+        Object reason = script.getInfo(":reason-unknown");
+        if (!(reason instanceof ReasonUnknown)) {
+          throw new SMTLIBException("checkSat returned UNKNOWN with unknown reason " + reason);
+        }
+        switch ((ReasonUnknown)reason) {
+        case MEMOUT:
+          // SMTInterpol catches OOM, but we want to have it thrown.
+          throw new OutOfMemoryError("Out of memory during SMTInterpol operation");
+        default:
+          throw new SMTLIBException("checkSat returned UNKNOWN with unexpected reason " + reason);
+        }
+
+      default:
         throw new SMTLIBException("checkSat returned " + result);
       }
     } catch (SMTLIBException e) {
@@ -500,6 +514,41 @@ class SmtInterpolEnvironment {
     checkState(stackDepth > 0, "interpolants should be on higher levels");
     try {
       return script.getInterpolants(partition);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  /**
+   * Compute a sequence of interpolants. The nesting array describes the
+   * start of the subtree for tree interpolants. For inductive sequences of
+   * interpolants use a nesting array completely filled with 0.
+   *
+   * Example:
+   *
+   * A  D
+   * |  |
+   * B  E
+   * | /
+   * C
+   * |
+   * F  H
+   * | /
+   * G
+   *
+   * arrayIndex     = [0,1,2,3,4,5,6,7]  // only for demonstration, not needed
+   * partition      = [A,B,D,E,C,F,H,G]  // post-order of tree
+   * startOfSubTree = [0,0,2,2,0,0,6,0]  // index of left-most leaf of the current element
+   *
+   * @param partition The array of formulas (post-order of tree).
+   *                  This should contain either top-level names or conjunction of top-level names.
+   * @param startOfSubtree The start of the subtree containing the formula at this index as root.
+   * @return Tree interpolants respecting the nesting relation.
+   */
+  public Term[] getTreeInterpolants(Term[] partition, int[] startOfSubTree) {
+    checkState(stackDepth > 0, "interpolants should be on higher levels");
+    try {
+      return script.getInterpolants(partition, startOfSubTree);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

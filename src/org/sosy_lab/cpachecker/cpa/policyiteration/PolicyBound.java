@@ -3,39 +3,62 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Objects;
 
+/**
+ * Policy with a local bound.
+ */
 public class PolicyBound {
 
-  // We have to track a location now as well, as the node does not
-  // identify the callstack position.
-  final Location updatedFrom;
+  /**
+   * Location of an abstracted state which has caused an update.
+   */
+  final Location predecessor;
 
-  final MultiEdge trace;
+  /**
+   * Policy formula. Has to be concave&monotone (no conjunctions in particular).
+   */
+  final PathFormula formula;
 
-  // NOTE: might make more sense to use normal Rational, because we are no longer
-  // storing infinities or negative infinities.
+  /**
+   * Bound on the policy.
+   */
   final Rational bound;
 
-  private static final Map<Pair<Location, MultiEdge>, Integer> serializationMap = new HashMap<>();
+  /**
+   * Start SSAMap for the {@code formula}.
+   */
+  final SSAMap startSSA;
+
+  private static final Map<Triple<Location, PathFormula, Location>, Integer> serializationMap = new HashMap<>();
   private static int pathCounter = -1;
 
-  PolicyBound(MultiEdge pTrace, Rational pBound, Location pUpdatedFrom) {
-    trace = pTrace;
+  PolicyBound(PathFormula pFormula, Rational pBound, Location pPredecessor,
+      SSAMap pStartSSA) {
+    formula = pFormula;
     bound = pBound;
-    updatedFrom = pUpdatedFrom;
+    predecessor = pPredecessor;
+    startSSA = pStartSSA;
   }
 
-  public static PolicyBound of(MultiEdge edge, Rational bound, Location pUpdatedFrom) {
-    return new PolicyBound(edge, bound, pUpdatedFrom);
+  public static PolicyBound of(PathFormula pFormula, Rational bound,
+      Location pUpdatedFrom, SSAMap pStartSSA) {
+    return new PolicyBound(pFormula, bound, pUpdatedFrom, pStartSSA);
   }
 
-  public int serializePath() {
-    Pair<Location, MultiEdge> p = Pair.of(updatedFrom, trace);
+  /**
+   * @return Unique identifier for the triple
+   * {@code fromLocation, PathFormula, fromLocation}.
+   * Identifies a path in the value determination sub-CFG.
+   */
+  public int serializePath(Location toLocation) {
+    Triple<Location, PathFormula, Location> p = Triple.of(
+        predecessor, formula, toLocation);
     Integer serialization = serializationMap.get(p);
     if (serialization == null) {
       serialization = ++pathCounter;
@@ -46,12 +69,12 @@ public class PolicyBound {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(updatedFrom, bound, trace);
+    return Objects.hashCode(predecessor, bound, formula);
   }
 
   @Override
   public String toString() {
-    return String.format("%s (edge: %s)", bound, trace);
+    return String.format("%s (from: %s)", bound, predecessor);
   }
 
   @Override
@@ -60,8 +83,6 @@ public class PolicyBound {
     if (other == null) return false;
     if (other.getClass() != this.getClass()) return false;
     PolicyBound o = (PolicyBound) other;
-    // Hm what about the cases where the constraints are equal, but
-    // the traces are not?..
-    return updatedFrom.equals(o.updatedFrom) && bound.equals(o.bound) && trace.equals(o.trace);
+    return predecessor.equals(o.predecessor) && bound.equals(o.bound) && formula.equals(o.formula);
   }
 }

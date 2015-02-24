@@ -268,7 +268,6 @@ public class CEXExporter {
         witnessExporter.writePath(pAppendable, rootState,
                 ARGUtils.CHILDREN_OF_STATE,
                 Predicates.in(pathElements),
-                isTargetPathEdge,
                 counterexample);
       }
     });

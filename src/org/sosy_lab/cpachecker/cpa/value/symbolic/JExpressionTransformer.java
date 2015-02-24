@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
@@ -257,6 +258,11 @@ public class JExpressionTransformer extends ExpressionTransformer
   }
 
   @Override
+  public SymbolicExpression visit(JArrayLengthExpression pJArrayLengthExpression) throws UnrecognizedCodeException {
+    return null;
+  }
+
+  @Override
   public SymbolicExpression visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCodeException {
     throw new UnsupportedOperationException("A variable's runtime type can't be transformed to ConstraintExpressions");
   }
@@ -284,6 +290,6 @@ public class JExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(JArraySubscriptExpression pAArraySubscriptExpression)
       throws UnrecognizedCodeException {
-    return null;
+    return null; // TODO
   }
 }

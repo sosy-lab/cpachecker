@@ -45,9 +45,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Predicate;
@@ -60,13 +58,11 @@ import com.google.common.collect.Sets;
 public class PredicateAbstractionsWriter {
 
   private final LogManager logger;
-  private final AbstractionManager absmgr;
   private final FormulaManagerView fmgr;
 
-  public PredicateAbstractionsWriter(LogManager pLogger, AbstractionManager pAbsMgr,
+  public PredicateAbstractionsWriter(LogManager pLogger,
       FormulaManagerView pFmMgr) {
     this.logger = pLogger;
-    this.absmgr = pAbsMgr;
     this.fmgr = pFmMgr;
   }
 
@@ -119,8 +115,7 @@ public class PredicateAbstractionsWriter {
 
         // Abstraction formula
         PredicateAbstractState predicateState = checkNotNull(extractStateByType(state, PredicateAbstractState.class));
-        Region region = predicateState.getAbstractionFormula().asRegion();
-        BooleanFormula formula = absmgr.toConcrete(region);
+        BooleanFormula formula = predicateState.getAbstractionFormula().asFormula();
 
         Pair<String, List<String>> p = splitFormula(fmgr, formula);
         String formulaString = p.getFirst();

@@ -136,7 +136,7 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
       if (coeff == Rational.ONE) {
         b.append(var);
       } else if (coeff == Rational.NEG_ONE) {
-        b.append("-").append(var);
+        b.append(" - ").append(var);
       } else {
         b.append(coeff.toString()).append(var);
       }

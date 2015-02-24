@@ -53,6 +53,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -71,6 +72,7 @@ public abstract class PatternBasedRule extends AbstractRule {
   final StatTimer conclusionTimer = new StatTimer(StatKind.SUM, "Concluding");
   final StatTimer matchingTimer = new StatTimer(StatKind.SUM, "Matching");
   final StatTimer overallTimer = new StatTimer(StatKind.SUM, "Overall");
+  final StatTimer conclusionValidationTimer = new StatTimer(StatKind.SUM, "Validation");
 
   public PatternBasedRule(Solver pSolver, SmtAstMatcher pMatcher) {
     super(pSolver, pMatcher);
@@ -96,7 +98,24 @@ public abstract class PatternBasedRule extends AbstractRule {
 
   @Override
   public Set<BooleanFormula> apply(BooleanFormula pInput) throws SolverException, InterruptedException {
-    return apply(fmv.extractAtoms(pInput, false, false));
+    return apply(fmv.extractLiterals(pInput, false, false, false), HashMultimap.<String, Formula>create());
+  }
+
+  protected Formula substituteInParent(
+      final Formula pParent,
+      final Formula pToSubstitute,
+      final Formula pSubstituteBy,
+      final Formula pReplaceParentIn) {
+
+    Map<Formula, Formula> transformation = Maps.newHashMap();
+    transformation.put(pToSubstitute, pSubstituteBy);
+
+    final Formula parentPrime = matcher.substitute(pParent, transformation);
+
+    Map<Formula, Formula> transformation2 = Maps.newHashMap();
+    transformation2.put(pParent, parentPrime);
+
+    return matcher.substitute(pReplaceParentIn, transformation2);
   }
 
   @Override
@@ -209,11 +228,31 @@ public abstract class PatternBasedRule extends AbstractRule {
         conclusionTimer.stop();
       }
 
+
+      // The conclusion must be a valid over-approximation
+      conclusionValidationTimer.start();
+      boolean isValidOverapproximation = isValidConclusion(pConjunctiveInputPredicates, result);
+      conclusionValidationTimer.stop();
+
+      if (!isValidOverapproximation) {
+        return Collections.emptySet();
+      }
+
       return result;
 
     } finally {
       overallTimer.stop();
     }
+  }
+
+  protected boolean isValidConclusion(
+      final Collection<BooleanFormula> pConjunctiveInputPredicates,
+      final Set<BooleanFormula> pResult)
+          throws SolverException, InterruptedException {
+
+    return solver.isUnsat(bfm.not(bfm.implication(
+        bfm.and(ImmutableList.copyOf(pConjunctiveInputPredicates)),
+        bfm.and(ImmutableList.copyOf(pResult)))));
   }
 
 }

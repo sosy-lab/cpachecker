@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="200" hardtimelimit="1000" memlimit="2000" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="2000" cpuCores="1">
     <option name="-noout" />
-    <option name="-policy-counterexample-checking"/>
+    <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=true</option>
+    <option name="-setprop">analysis.reportFalseAsUnknown=true</option>
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
     <sourcefiles>
@@ -10,6 +11,7 @@
     </sourcefiles>
 
     <rundefinition>
+        <option name="-policy"/>
     </rundefinition>
 
     <columns>
@@ -26,5 +28,8 @@
 
         <column title="#counterexample checks">Number of counterexample checks</column>
         <column title="counterexample checking time">Time for counterexample checks</column>
+
+        <column title="CFA size">CFA size</column>
+        <column title="Number of relevant variables">Number of relevant variables</column>
     </columns>
 </benchmark>

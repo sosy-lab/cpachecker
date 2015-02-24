@@ -32,45 +32,39 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -330,16 +324,27 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       CExpression pLeftHandSide,
       InvariantsFormula<CompoundInterval> pValue,
       InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+
+    InvariantsFormula<CompoundInterval> value = pValue;
+    if (pPrecision.getMaximumFormulaDepth() == 0) {
+      CompoundInterval v = evaluate(pValue, pElement.getEnvironment());
+      if (v.isSingleton()) {
+        value = CompoundIntervalFormulaManager.INSTANCE.asConstant(v);
+      } else {
+        value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      }
+    }
+
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     VariableNameExtractor variableNameExtractor = new VariableNameExtractor(pEdge, pElement.getEnvironment());
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
       String array = variableNameExtractor.getVarName(arraySubscriptExpression.getArrayExpression());
       InvariantsFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
-      return pElement.assignArray(array, subscript, pValue);
+      return pElement.assignArray(array, subscript, value);
     } else {
       String varName = variableNameExtractor.getVarName(pLeftHandSide);
-      return pElement.assign(varName, pValue);
+      return pElement.assign(varName, value);
     }
   }
 
@@ -684,7 +689,12 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     } if (pExpression instanceof CExpression) {
       Map<String, CType> result = new HashMap<>();
 
-      for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(new CExpressionVisitor<Iterable<ALeftHandSide>, RuntimeException>() {
+      for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(new DefaultCExpressionVisitor<Iterable<ALeftHandSide>, RuntimeException>() {
+
+        @Override
+        protected Iterable<ALeftHandSide> visitDefault(CExpression pExp) {
+          return Collections.emptySet();
+        }
 
         @Override
         public Iterable<ALeftHandSide> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
@@ -722,40 +732,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         }
 
         @Override
-        public Iterable<ALeftHandSide> visit(CCharLiteralExpression pIastCharLiteralExpression) {
-          return Collections.emptySet();
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
-          return Collections.emptySet();
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
-          return Collections.emptySet();
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CStringLiteralExpression pIastStringLiteralExpression) {
-          return Collections.emptySet();
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CTypeIdExpression pIastTypeIdExpression) {
-          return Collections.emptySet();
-        }
-
-        @Override
         public Iterable<ALeftHandSide> visit(CUnaryExpression pIastUnaryExpression) {
           return pIastUnaryExpression.getOperand().accept(this);
         }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CImaginaryLiteralExpression pIastLiteralExpression) {
-          return Collections.emptySet();
-        }
-
       }
         )) {
         InvariantsFormula<CompoundInterval> formula;
