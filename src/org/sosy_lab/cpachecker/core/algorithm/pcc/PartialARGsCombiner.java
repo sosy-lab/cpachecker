@@ -114,9 +114,10 @@ public class PartialARGsCombiner implements Algorithm {
         checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
             "Require that all restart configurations consider a location aware state");
 
-        if (from(reached).anyMatch(IS_TARGET_STATE)) {
+        if (from(usedReached).anyMatch(IS_TARGET_STATE)) {
           logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(usedReached);
+          return false;
         }
 
         rootNodes.add((ARGState) usedReached.getFirstState());
