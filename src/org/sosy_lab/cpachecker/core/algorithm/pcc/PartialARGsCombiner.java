@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -85,6 +88,7 @@ public class PartialARGsCombiner implements Algorithm {
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
+    checkArgument(pReachedSet instanceof ForwardingReachedSet, "PartialARGsCombiner needs ForwardingReachedSet");
 
     HistoryForwardingReachedSet reached = new HistoryForwardingReachedSet(pReachedSet);
 
@@ -98,6 +102,7 @@ public class PartialARGsCombiner implements Algorithm {
 
       if (usedReachedSets.size() <= 1) {
         logger.log(Level.INFO, "Only a single ARG is considered. Do not need to combine ARGs");
+        ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
         return true;
       }
 
@@ -109,6 +114,11 @@ public class PartialARGsCombiner implements Algorithm {
         checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
             "Require that all restart configurations consider a location aware state");
 
+        if (from(reached).anyMatch(IS_TARGET_STATE)) {
+          logger.log(Level.INFO, "Error found, do not combine ARGs.");
+          ((ForwardingReachedSet) pReachedSet).setDelegate(usedReached);
+        }
+
         rootNodes.add((ARGState) usedReached.getFirstState());
       }
 
@@ -118,17 +128,21 @@ public class PartialARGsCombiner implements Algorithm {
 
       logger.log(Level.INFO, "Propagate the combined ARG as analysis result");
       try {
-        reached.setDelegate(new ReachedSetFactory(config, logger).create());
+        ((ForwardingReachedSet) pReachedSet).setDelegate(new ReachedSetFactory(config, logger).create());
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
         return false;
       }
       // TODO need to add all ARG states?, require different precision?
+      // add to reached set and delete from waitlist to prevent UNKNOWN result
       reached.add(root, SingletonPrecision.getInstance());
+      reached.removeOnlyFromWaitlist(root);
 
     } else {
       logger.log(Level.INFO, "Program analysis is already unsound.",
           "Do not continue with combination of unsound results");
+      // set reached set to last used by restart algorithm
+      ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
       return false;
     }
 
