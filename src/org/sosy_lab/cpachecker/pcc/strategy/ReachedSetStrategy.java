@@ -65,14 +65,14 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
 
   @Override
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
-      reachedSet = new AbstractState[pReached.size()];
-      pReached.asCollection().toArray(reachedSet);
+    reachedSet = new AbstractState[pReached.size()];
+    pReached.asCollection().toArray(reachedSet);
     if (reachedSet.length > 0 && reachedSet[0] instanceof ARGState) {
       for (int i = 0; i < reachedSet.length; i++) {
         reachedSet[i] = ((ARGState) reachedSet[i]).getWrappedState();
       }
     }
-      orderReachedSetByLocation(reachedSet);
+    orderReachedSetByLocation(reachedSet);
   }
 
   @Override
