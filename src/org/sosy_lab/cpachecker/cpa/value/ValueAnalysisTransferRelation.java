@@ -122,7 +122,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -678,9 +678,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         || pType instanceof JArrayType;
   }
 
-  private SymbolicIdentifier getSymbolicIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  private SymbolicValue getSymbolicIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.newIdentifier(pLocation);
+    return factory.asConstant(factory.newIdentifier(pLocation), pType);
   }
 
   @Override
@@ -734,7 +734,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
         Type identifierType = parameter.getExpressionType();
         assert identifierType.equals(newElement.getTypeForMemoryLocation(memLoc));
-        SymbolicIdentifier newIdentifier = getSymbolicIdentifier(identifierType, pExpression);
+        SymbolicValue newIdentifier = getSymbolicIdentifier(identifierType, pExpression);
         newElement.assignConstant(memLoc, newIdentifier, identifierType);
 
         return newElement;
