@@ -8,6 +8,7 @@
   <option name="-setprop">statistics.memory=false</option>
   <option name="-setprop">analysis.postProcessing=false</option>
   <option name="-setprop">cpa.arg.deleteInPredicatedAnalysis=false</option>
+  <option name="-setprop">cpa.predicate.solver=MATHSAT5</option>
 
   <rundefinition name="predicatedAnalysis">
   <!-- sign CPA -->
@@ -351,16 +352,189 @@
     	<include>../programs/simple/predicated_analysis/kundu_uninit_b.cil.c</include>     
     </sourcefiles>
   </rundefinition>
-  
+ 
+   <rundefinition name="predicatedAnalysisARGProofCheck">
+	  <option name="-setprop">output.path=./</option>
+	  <option name="-setprop">analysis.algorithm.proofCheck=true</option>
+	  <option name="-setprop">pcc.strategy=ARG_CPAStrategy</option>
+ <!-- sign CPA -->
+    <sourcefiles>
+    	<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_demo.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+        <option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_demo_sign.obj</option>	    	  	
+    	<include>../programs/simple/predicated_analysis/demo.c</include> 
+    </sourcefiles>
+    <sourcefiles>
+    	<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_demo.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+        <option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_demo2.obj</option>	    	  	
+    	<include>../programs/simple/predicated_analysis/demo2.c</include> 
+    </sourcefiles>
+    <sourcefiles>
+   		<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+     	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example2_sign.obj</option>	    	  	   	
+    	<include>../programs/simple/predicated_analysis/Example2.c</include>       
+    </sourcefiles>
+     <sourcefiles>
+   		<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+     	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+     	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example3_sign.obj</option>	    	  	   	 
+    	<include>../programs/simple/predicated_analysis/Example3.c</include>      
+    </sourcefiles>
+     <sourcefiles>
+   		<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+     	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example3b_sign.obj</option>	    	  	   	
+    	<include>../programs/simple/predicated_analysis/Example3b.c</include>       
+    </sourcefiles>
+    <sourcefiles>
+   		<option name="-predicatedAnalysis-Sign-proofcheck"/>
+   		<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+     	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example3c_sign.obj</option>	    	  	   	 
+    	<include>../programs/simple/predicated_analysis/Example3c.c</include>       
+    </sourcefiles>
+    <sourcefiles>
+   		<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+     	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example4_sign.obj</option>	    	  	   	
+    	<include>../programs/simple/predicated_analysis/Example4.c</include>      
+    </sourcefiles>
+    <sourcefiles>
+   		<option name="-predicatedAnalysis-Sign-proofcheck"/>
+   		<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+     	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example4b_sign.obj</option>	    	  	   	
+    	<include>../programs/simple/predicated_analysis/Example4b.c</include>      
+    </sourcefiles>   
+    <sourcefiles>
+    	<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_list_harmonic_fraction.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_list_statistics.obj</option>	    	  	   	
+    	<include>../programs/simple/predicated_analysis/list_statistics.cil.c</include> 
+    </sourcefiles>
+    <sourcefiles>
+    	<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_list_harmonic_fraction.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_harmonicMean.obj</option>	    	  	   	
+    	<include>../programs/simple/predicated_analysis/harmonicMean.cil.c</include> 
+    </sourcefiles>
+    <sourcefiles>
+    	<option name="-predicatedAnalysis-Sign-proofcheck"/>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_list_harmonic_fraction.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_fraction.obj</option>	    	  	   	
+    	<include>../programs/simple/predicated_analysis/fraction.cil.c</include> 
+    </sourcefiles>
+<!-- interval CPA -->
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-Interval-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_Example3b_3c_4b.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example3b_interval.obj</option>	    	
+    	<include>../programs/simple/predicated_analysis/Example3b.c</include>   
+    </sourcefiles>
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-Interval-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_Example3b_3c_4b.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example3c_interval.obj</option>	   	  
+    	<include>../programs/simple/predicated_analysis/Example3c.c</include>   
+    </sourcefiles>
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-Interval-proofcheck"/>
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_Example3b_3c_4b.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_Example4b_interval.obj</option>  
+    	<include>../programs/simple/predicated_analysis/Example4b.c</include>  
+    </sourcefiles>        
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-bitprecise-Interval-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_apache.obj</option> 
+    	<include>../programs/simple/predicated_analysis/apache.cil.c</include>   
+    </sourcefiles>
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-bitprecise-Interval-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache2.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_apache2.obj</option> 
+    	<include>../programs/simple/predicated_analysis/apache2.cil.c</include>    
+    </sourcefiles>
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-bitprecise-Interval-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_encode.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_encode_ie_nosprintf.obj</option>
+    	<include>../programs/simple/predicated_analysis/encode_ie_nosprintf.cil.c</include>   
+    </sourcefiles>
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-bitprecise-Interval-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_gdImage.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_gdImageStringFTExSimple.obj</option> 
+    	<include>../programs/simple/predicated_analysis/gdImageStringFTExSimple.cil.c</include>   
+    </sourcefiles>
+<!-- value CPA -->
+	<sourcefiles>
+       	<option name="-predicatedAnalysis-Value-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option>
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_test_locks5.obj</option>	
+    	<include>../programs/simple/predicated_analysis/test_locks_5.c</include>     
+    </sourcefiles>
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-Value-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option> 
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_test_locks5d.obj</option>	
+    	<include>../programs/simple/predicated_analysis/test_locks_5d.c</include>     
+    </sourcefiles>
+    <!--<sourcefiles>
+       	<option name="-predicatedAnalysis-Value-proofcheck"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option> 
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_test_locks12.obj</option>	
+    	<include>../programs/simple/predicated_analysis/test_locks_12.c</include>     
+    </sourcefiles>-->
+    <sourcefiles>
+       	<option name="-predicatedAnalysis-Value-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option> 
+    	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_test_locks12d.obj</option>	
+    	<include>../programs/simple/predicated_analysis/test_locks_12d.c</include>     
+    </sourcefiles>
+ <!-- uninitvar CPA -->
+      <sourcefiles>
+       	<option name="-predicatedAnalysis-Uninit-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+       	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_kundu_uninit_a.obj</option>	
+    	<include>../programs/simple/predicated_analysis/kundu_uninit_a.cil.c</include>     
+    </sourcefiles>
+     <sourcefiles>
+       	<option name="-predicatedAnalysis-Uninit-proofcheck"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
+       	<option name="-setprop">pcc.proofFile=test/programs/simple/predicated_analysis/arg/arg_kundu_uninit_b.obj</option>	
+    	<include>../programs/simple/predicated_analysis/kundu_uninit_b.cil.c</include>     
+    </sourcefiles>
+  </rundefinition>
+ 
 <columns>
 <column title="Total time">Total time for CPAchecker</column>
 <column title="Set up time">Time for analysis setup</column>
 <column title="Parse time">Time for CFA construction</column>
 <column title="Predicate read time">Time for reading initial predicates</column>
 <column title="Analysis time">Time for Analysis</column>
+<column title="Proof checking time">Total time for proof check algorithm</column>
 <column title="numAbs">Number of abstractions</column>
 <column title="#Refine">Number of refinements</column>
 <column title="memory heap">Used heap memory</column>
 <column title="memory non-heap">Used non-heap memory</column>
-</columns>
+</columns> 
 </benchmark>
