@@ -135,6 +135,10 @@ analysis.machineModel = LINUX32
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
 
+# if enabled post processes (cosmetic changes) the reached set as specified
+# by the CPAs
+analysis.postProcessing = false
+
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
 
@@ -512,10 +516,21 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 # disequality provided by apron library 
 cpa.apron.splitDisequalities = true
 
+# whether or not add #include <stdio.h> in front of transformed program
+cpa.arg.addInclude = true
+
 # inform merge operator in predicated analysis that it should delete the
 # subgraph of the merged nodewhich is required to get at most one successor
 # per CFA edge.
 cpa.arg.deleteInPredicatedAnalysis = false
+
+# disable post processor for runtime verification ARG simplification, always
+# disable if CPA does not contain an automaton/monitor for error
+# specification
+cpa.arg.disableRVARGSimplification = false
+
+# export final ARG as C program
+cpa.arg.dumpARG = false
 
 # Dump all ARG related statistics files after each iteration of the CPA
 # algorithm? (for debugging and demonstration)
