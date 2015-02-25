@@ -966,7 +966,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       // this is just a placeholder signalising that the sideeffects do not
       // need to have a return value
-      if (stmt == CIntegerLiteralExpression.ZERO) {
+      if (stmt instanceof CExpressionStatement && ((CExpressionStatement)stmt).getExpression() == CIntegerLiteralExpression.ZERO) {
         return handleAllSideEffects(prevNode, fileLocation, rawSignature, false);
       } else {
         prevNode = handleAllSideEffects(prevNode, fileLocation, rawSignature, true);
