@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -200,7 +201,7 @@ public class PartialARGsCombiner implements Algorithm {
         edgeSuccessorIdentifier.setCFAEdge(succEdge);
 
         for (ARGState component : components) {
-          // get the successors of ARG state for this
+          // get the successors of ARG state for this edge succEdge
           edgeSuccessorIdentifier.setPredecessor(component);
           successorsForEdge.add(Lists.newArrayList(Iterables.filter(component.getChildren(), edgeSuccessorIdentifier)));
         }
@@ -222,7 +223,6 @@ public class PartialARGsCombiner implements Algorithm {
         }
       }
     }
-
     return true;
   }
 
@@ -319,6 +319,7 @@ public class PartialARGsCombiner implements Algorithm {
 
   private String getName(AbstractState pState) {
     if (pState instanceof AutomatonState) { return ((AutomatonState) pState).getOwningAutomatonName(); }
+    if (pState instanceof PredicateAbstractState) { return PredicateAbstractState.class.getName(); }
     return pState.getClass().getName();
   }
 
@@ -342,7 +343,6 @@ public class PartialARGsCombiner implements Algorithm {
     Collection<Pair<List<AbstractState>, List<ARGState>>> result = new ArrayList<>(count);
 
     // compute cartesian product
-    List<ARGState> argSuccessors = new ArrayList<>(pSuccessorsForEdge.size());
     int[] indices = new int[pSuccessorsForEdge.size()];
     int nextIndex=0;
     boolean restart;
@@ -351,10 +351,10 @@ public class PartialARGsCombiner implements Algorithm {
     while(indices[indices.length-1]<lastSize){
       shutdown.shutdownIfNecessary();
 
-      argSuccessors.clear();
+      final List<ARGState> argSuccessors = new ArrayList<>(pSuccessorsForEdge.size());
 
       // collect ARG successors
-      for (int index : indices) {
+      for (int index = 0; index < indices.length; index++) {
         if (pSuccessorsForEdge.get(index).size() > 0) {
           argSuccessors.add(getUncoveredSuccessor(pSuccessorsForEdge.get(index).get(indices[index])));
         }
