@@ -103,7 +103,9 @@ public class PartialARGsCombiner implements Algorithm {
 
       if (usedReachedSets.size() <= 1) {
         logger.log(Level.INFO, "Only a single ARG is considered. Do not need to combine ARGs");
-        ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
+        if (usedReachedSets.size() == 1) {
+          ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
+        }
         return true;
       }
 
@@ -135,7 +137,7 @@ public class PartialARGsCombiner implements Algorithm {
         logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
         return false;
       }
-      // TODO need to add all ARG states?, require different precision?
+      // TODO need to add all ARG states?, require different precision?, seem to work in this setting
       // add to reached set and delete from waitlist to prevent UNKNOWN result
       pReachedSet.add(root, SingletonPrecision.getInstance());
       pReachedSet.removeOnlyFromWaitlist(root);
@@ -144,7 +146,9 @@ public class PartialARGsCombiner implements Algorithm {
       logger.log(Level.INFO, "Program analysis is already unsound.",
           "Do not continue with combination of unsound results");
       // set reached set to last used by restart algorithm
-      ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
+      if (reached.getDelegate() != pReachedSet) {
+        ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
+      }
       return false;
     }
 
