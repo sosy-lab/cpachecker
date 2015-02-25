@@ -487,6 +487,8 @@ class ASTTypeConverter {
     if (realType != null) {
       name = realType.getName();
       origName = realType.getOrigName();
+    } else {
+      name = scope.getRenamedTypeName(name);
     }
 
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, origName, realType);

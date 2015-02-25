@@ -113,7 +113,22 @@ class GlobalScope extends AbstractScope {
   @Override
   public CComplexType lookupType(String name) {
     checkNotNull(name);
-    CComplexTypeDeclaration declaration = types.get(getRenamedTypeName(name));
+
+    CComplexTypeDeclaration declaration;
+
+    // if the name is already renamed to the file specific version we do not
+    // need to it a second time, however it is necessary that we also test if
+    // the type name is available in not renamed format
+    if (name.contains(currentFile)) {
+      declaration = types.get(name);
+      name = name.replaceAll("__" + currentFile, "");
+
+      // if the type is not renamed already we first test if the file specific
+      // version is in the types map
+    } else {
+      declaration = types.get(getRenamedTypeName(name));
+    }
+
     if (declaration != null) {
       return declaration.getType();
     } else {
@@ -210,35 +225,40 @@ class GlobalScope extends AbstractScope {
       return true;
     }
 
+    // we only store elaborated types that are renamed (they have the filename
+    // appended to their usual name
+    if (declaration.getType().getCanonicalType() instanceof CElaboratedType) {
+      declaration = createRenamedType(declaration);
+
+      // the current declaration just re-declares an existing type
+      if (types.containsKey(declaration.getType().getQualifiedName())) {
+        return false;
+      }
+    }
+
     String name = type.getQualifiedName();
 
     boolean isOnlyElaboratedType = type.getCanonicalType() instanceof CElaboratedType;
     boolean programContainsEqualType = !isOnlyElaboratedType && programDeclarations.containsEqualType(declaration);
     boolean programContainsExactNamedType = !isOnlyElaboratedType && programDeclarations.containsTypeWithExactName(name);
 
-    if (types.containsKey(name)) {
-      CComplexTypeDeclaration oldDeclaration = types.get(name);
+    // when entering this if clause we know that the curent type is not an elaborated
+    // type, as this would have been captured in the if clause above, thus it was
+    // not renamed before, however if there is a former elaborated type it was
+    // renamed, thus we have to search for the renamed name in the types map
+    if (types.containsKey(getRenamedTypeName(name))) {
+      assert !(type.getCanonicalType() instanceof CElaboratedType);
+
+      CComplexTypeDeclaration oldDeclaration = types.get(getRenamedTypeName(name));
       CComplexType oldType = oldDeclaration.getType();
 
-      if (type instanceof CElaboratedType) {
-        // the current declaration just re-declares an existing type
-        return false;
+      // the old type is already complete and the new type is also a complete
+      // type this may not be
+      if (!(oldType.getCanonicalType() instanceof CElaboratedType)) {
+        throw new CFAGenerationRuntimeException("Redeclaring " + name
+            + " in " + declaration.getFileLocation()
+            + ", originally declared in " + oldDeclaration.getFileLocation());
       }
-
-      // two CCompositeTypes or two CEnumTypes
-      // declaring struct twice is not allowed, even with equal signatures
-      if (oldType.getClass() == type.getClass()) {
-        if (declaration.getFileLocation().getFileName().equals(oldDeclaration.getFileLocation().getFileName())) {
-          throw new CFAGenerationRuntimeException("Redeclaring " + name
-              + " in " + declaration.getFileLocation()
-              + ", originally declared in " + oldDeclaration.getFileLocation());
-        } else {
-          return true;
-        }
-      }
-
-      assert oldType instanceof CElaboratedType
-             && !(type instanceof CElaboratedType);
 
       // there was already a declaration before and the found type is already known
       // from another file so we chose as realtype for the former declaration
@@ -254,12 +274,10 @@ class GlobalScope extends AbstractScope {
       }
 
       // We now have a real declaration for a type for which we have seen a forward
-      // declaration.
-      if (oldType.getCanonicalType() instanceof CElaboratedType) {
-        ((CElaboratedType)oldType).setRealType(type);
-      } else if (((CElaboratedType) oldType).getRealType() != type && !programContainsEqualType) {
-        throw new AssertionError("test");
-      }
+      // declaration. We set a reference to the full type in the old type he types
+      // map with the full type. But only if this was not done before
+      ((CElaboratedType)oldType).setRealType(type);
+      types.remove(getRenamedTypeName(name));
 
       // there was no former type declaration here, but the TYPE that should
       // be declared is already known from another parsed file, so we take
