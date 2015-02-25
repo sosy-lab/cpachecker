@@ -1,28 +1,34 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::x| () Real)
-(define-fun .def_63 () Bool (<= |main::x| (to_real (- 1))))
-(declare-fun |main::y| () Real)
-(define-fun .def_82 () Bool (<= |main::y| (to_real 1)))
-(declare-fun |main::z| () Real)
-(define-fun .def_85 () Bool (<= |main::z| (to_real 1)))
-(define-fun .def_161 () Bool (<= |main::x| (to_real (- 2))))
+(declare-fun |main::x| () Int)
+(define-fun .def_54 () Bool (<= 1 |main::x|))
+(declare-fun |main::y| () Int)
+(define-fun .def_86 () Bool (<= |main::y| 1))
+(declare-fun |main::z| () Int)
+(define-fun .def_88 () Bool (<= |main::z| 1))
+(define-fun .def_150 () Bool (<= 2 |main::x|))
 
 main N5:
-(assert .def_63)
-(assert .def_82)
+(assert .def_54)
+(assert .def_86)
 
 main N11:
-(assert .def_63)
-(assert .def_85)
-(assert .def_161)
+(assert .def_54)
+(assert .def_88)
+(assert .def_150)
 
 main N14:
-(assert .def_85)
-(assert .def_161)
+(assert .def_88)
+(assert .def_150)
 
-main N17:
+main N26:
 (assert false)
 
-main N18:
+main N36:
+(assert false)
+
+main N45:
+(assert false)
+
+main N52:
 (assert false)
 

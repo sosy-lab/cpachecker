@@ -1,241 +1,416 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::p| () Real)
-(define-fun .def_1025 () Bool (<= |main::p| (to_real 6)))
-(define-fun .def_206 () Bool (<= |main::p| (to_real 0)))
-(define-fun .def_1193 () Bool (<= |main::p| (to_real 7)))
-(define-fun .def_1368 () Bool (<= |main::p| (to_real 8)))
-(define-fun .def_293 () Bool (<= |main::p| (to_real 1)))
-(define-fun .def_1550 () Bool (<= |main::p| (to_real 9)))
-(define-fun .def_423 () Bool (<= |main::p| (to_real 2)))
-(define-fun .def_1739 () Bool (<= |main::p| (to_real 10)))
-(define-fun .def_563 () Bool (<= |main::p| (to_real 3)))
-(define-fun .def_1935 () Bool (<= |main::p| (to_real 11)))
-(define-fun .def_710 () Bool (<= |main::p| (to_real 4)))
-(define-fun .def_864 () Bool (<= |main::p| (to_real 5)))
+(declare-fun |main::p| () Int)
+(define-fun .def_693 () Bool (<= |main::p| 6))
+(define-fun .def_154 () Bool (<= |main::p| 0))
+(define-fun .def_850 () Bool (<= |main::p| 7))
+(define-fun .def_964 () Bool (<= |main::p| 8))
+(define-fun .def_228 () Bool (<= |main::p| 1))
+(define-fun .def_2078 () Bool (<= |main::p| 9))
+(define-fun .def_288 () Bool (<= |main::p| 2))
+(define-fun .def_2330 () Bool (<= |main::p| 10))
+(define-fun .def_352 () Bool (<= |main::p| 3))
+(define-fun .def_2491 () Bool (<= |main::p| 11))
+(define-fun .def_471 () Bool (<= |main::p| 4))
+(define-fun .def_574 () Bool (<= |main::p| 5))
 
 main N39:
-(assert .def_206)
+(assert .def_154)
 
 main N43:
-(assert .def_206)
-(assert .def_293)
+(assert .def_154)
+(assert .def_228)
 
 main N47:
-(assert .def_206)
-(assert .def_293)
-(assert .def_423)
+(assert .def_154)
+(assert .def_228)
+(assert .def_288)
 
 main N51:
-(assert .def_206)
-(assert .def_293)
-(assert .def_423)
-(assert .def_563)
+(assert .def_154)
+(assert .def_228)
+(assert .def_288)
+(assert .def_352)
 
 main N55:
-(assert .def_206)
-(assert .def_293)
-(assert .def_423)
-(assert .def_563)
-(assert .def_710)
+(assert .def_154)
+(assert .def_228)
+(assert .def_288)
+(assert .def_352)
+(assert .def_471)
 
 main N59:
-(assert .def_206)
-(assert .def_293)
-(assert .def_423)
-(assert .def_563)
-(assert .def_710)
-(assert .def_864)
+(assert .def_154)
+(assert .def_228)
+(assert .def_288)
+(assert .def_352)
+(assert .def_471)
+(assert .def_574)
 
 main N63:
-(assert .def_1025)
-(assert .def_206)
-(assert .def_293)
-(assert .def_423)
-(assert .def_563)
-(assert .def_710)
-(assert .def_864)
+(assert .def_693)
+(assert .def_154)
+(assert .def_228)
+(assert .def_288)
+(assert .def_352)
+(assert .def_471)
+(assert .def_574)
 
 main N67:
-(assert .def_1025)
-(assert .def_206)
-(assert .def_1193)
-(assert .def_293)
-(assert .def_423)
-(assert .def_563)
-(assert .def_710)
-(assert .def_864)
+(assert .def_693)
+(assert .def_154)
+(assert .def_850)
+(assert .def_228)
+(assert .def_288)
+(assert .def_352)
+(assert .def_471)
+(assert .def_574)
 
 main N71:
-(assert .def_1025)
-(assert .def_206)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_293)
-(assert .def_423)
-(assert .def_563)
-(assert .def_710)
-(assert .def_864)
+(assert .def_693)
+(assert .def_154)
+(assert .def_850)
+(assert .def_964)
+(assert .def_228)
+(assert .def_288)
+(assert .def_352)
+(assert .def_471)
+(assert .def_574)
 
 main N75:
-(assert .def_1025)
-(assert .def_206)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_293)
-(assert .def_1550)
-(assert .def_423)
-(assert .def_563)
-(assert .def_710)
-(assert .def_864)
+(assert .def_693)
+(assert .def_154)
+(assert .def_850)
+(assert .def_964)
+(assert .def_228)
+(assert .def_2078)
+(assert .def_288)
+(assert .def_352)
+(assert .def_471)
+(assert .def_574)
 
 main N79:
-(assert .def_1025)
-(assert .def_206)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_293)
-(assert .def_1550)
-(assert .def_423)
-(assert .def_1739)
-(assert .def_563)
-(assert .def_710)
-(assert .def_864)
+(assert .def_693)
+(assert .def_154)
+(assert .def_850)
+(assert .def_964)
+(assert .def_228)
+(assert .def_2078)
+(assert .def_288)
+(assert .def_2330)
+(assert .def_352)
+(assert .def_471)
+(assert .def_574)
 
 main N83:
-(assert .def_1025)
-(assert .def_206)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_293)
-(assert .def_1550)
-(assert .def_423)
-(assert .def_1739)
-(assert .def_563)
-(assert .def_1935)
-(assert .def_710)
-(assert .def_864)
+(assert .def_693)
+(assert .def_154)
+(assert .def_850)
+(assert .def_964)
+(assert .def_228)
+(assert .def_2078)
+(assert .def_288)
+(assert .def_2330)
+(assert .def_352)
+(assert .def_2491)
+(assert .def_471)
+(assert .def_574)
 
 main N87:
-(assert .def_1025)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_293)
-(assert .def_1550)
-(assert .def_423)
-(assert .def_1739)
-(assert .def_563)
-(assert .def_1935)
-(assert .def_710)
-(assert .def_864)
-
-main N90:
+(assert .def_693)
+(assert .def_850)
 (assert false)
+(assert .def_964)
+(assert .def_228)
+(assert .def_2078)
+(assert .def_288)
+(assert .def_2330)
+(assert .def_352)
+(assert .def_2491)
+(assert .def_471)
+(assert .def_574)
 
 main N92:
-(assert .def_1025)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_1550)
-(assert .def_423)
-(assert .def_1739)
-(assert .def_563)
-(assert .def_1935)
-(assert .def_710)
-(assert .def_864)
-
-main N95:
+(assert .def_693)
+(assert .def_850)
 (assert false)
+(assert .def_964)
+(assert .def_2078)
+(assert .def_288)
+(assert .def_2330)
+(assert .def_352)
+(assert .def_2491)
+(assert .def_471)
+(assert .def_574)
 
 main N97:
-(assert .def_1025)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_1550)
-(assert .def_1739)
-(assert .def_563)
-(assert .def_1935)
-(assert .def_710)
-(assert .def_864)
-
-main N100:
+(assert .def_693)
+(assert .def_850)
 (assert false)
+(assert .def_964)
+(assert .def_2078)
+(assert .def_2330)
+(assert .def_352)
+(assert .def_2491)
+(assert .def_471)
+(assert .def_574)
 
 main N102:
-(assert .def_1025)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_1550)
-(assert .def_1739)
-(assert .def_1935)
-(assert .def_710)
-(assert .def_864)
-
-main N105:
+(assert .def_693)
+(assert .def_850)
 (assert false)
+(assert .def_964)
+(assert .def_2078)
+(assert .def_2330)
+(assert .def_2491)
+(assert .def_471)
+(assert .def_574)
 
 main N107:
-(assert .def_1025)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_1550)
-(assert .def_1739)
-(assert .def_1935)
-(assert .def_864)
-
-main N110:
+(assert .def_693)
+(assert .def_850)
 (assert false)
+(assert .def_964)
+(assert .def_2078)
+(assert .def_2330)
+(assert .def_2491)
+(assert .def_574)
 
 main N112:
-(assert .def_1025)
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_1550)
-(assert .def_1739)
-(assert .def_1935)
-
-main N115:
+(assert .def_693)
+(assert .def_850)
 (assert false)
+(assert .def_964)
+(assert .def_2078)
+(assert .def_2330)
+(assert .def_2491)
 
 main N117:
-(assert .def_1193)
-(assert .def_1368)
-(assert .def_1550)
-(assert .def_1739)
-(assert .def_1935)
-
-main N120:
+(assert .def_850)
 (assert false)
+(assert .def_964)
+(assert .def_2078)
+(assert .def_2330)
+(assert .def_2491)
 
 main N122:
-(assert .def_1368)
-(assert .def_1550)
-(assert .def_1739)
-(assert .def_1935)
-
-main N125:
 (assert false)
+(assert .def_964)
+(assert .def_2078)
+(assert .def_2330)
+(assert .def_2491)
 
 main N127:
-(assert .def_1550)
-(assert .def_1739)
-(assert .def_1935)
-
-main N130:
 (assert false)
+(assert .def_2078)
+(assert .def_2330)
+(assert .def_2491)
 
 main N132:
-(assert .def_1739)
-(assert .def_1935)
-
-main N135:
 (assert false)
+(assert .def_2330)
+(assert .def_2491)
 
 main N137:
-(assert .def_1935)
+(assert .def_2491)
 
-main N140:
+main N160:
 (assert false)
 
-main N145:
+main N167:
+(assert false)
+
+main N181:
+(assert false)
+
+main N190:
+(assert false)
+
+main N197:
+(assert false)
+
+main N212:
+(assert false)
+
+main N217:
+(assert false)
+
+main N241:
+(assert false)
+
+main N246:
+(assert false)
+
+main N261:
+(assert false)
+
+main N307:
+(assert false)
+
+main N316:
+(assert false)
+
+main N353:
+(assert false)
+
+main N366:
+(assert false)
+
+main N381:
+(assert false)
+
+main N399:
+(assert false)
+
+main N414:
+(assert false)
+
+main N431:
+(assert false)
+
+main N496:
+(assert false)
+
+main N518:
+(assert false)
+
+main N533:
+(assert false)
+
+main N540:
+(assert false)
+
+main N557:
+(assert false)
+
+main N587:
+(assert false)
+
+main N646:
+(assert false)
+
+main N667:
+(assert false)
+
+main N683:
+(assert false)
+
+main N690:
+(assert false)
+
+main N709:
+(assert false)
+
+main N722:
+(assert false)
+
+main N737:
+(assert false)
+
+main N751:
+(assert false)
+
+main N766:
+(assert false)
+
+main N781:
+(assert false)
+
+main N796:
+(assert false)
+
+main N809:
+(assert false)
+
+main N820:
+(assert false)
+
+main N829:
+(assert false)
+
+main N852:
+(assert false)
+
+main N857:
+(assert false)
+
+main N898:
+(assert false)
+
+main N903:
+(assert false)
+
+main N908:
+(assert false)
+
+main N944:
+(assert false)
+
+main N965:
+(assert false)
+
+main N972:
+(assert false)
+
+main N981:
+(assert false)
+
+main N988:
+(assert false)
+
+main N999:
+(assert false)
+
+main N1014:
+(assert false)
+
+main N1019:
+(assert false)
+
+main N1037:
+(assert false)
+
+main N1054:
+(assert false)
+
+main N1061:
+(assert false)
+
+main N1066:
+(assert false)
+
+main N1083:
+(assert false)
+
+main N1094:
+(assert false)
+
+main N1101:
+(assert false)
+
+main N1119:
+(assert false)
+
+main N1128:
+(assert false)
+
+main N1133:
+(assert false)
+
+main N1144:
+(assert false)
+
+main N1151:
+(assert false)
+
+main N1165:
+(assert false)
+
+main N1170:
+(assert false)
+
+main N1177:
+(assert false)
+
+main N1182:
 (assert false)
 

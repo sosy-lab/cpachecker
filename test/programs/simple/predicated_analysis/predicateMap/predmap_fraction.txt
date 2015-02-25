@@ -1,38 +1,38 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |reduceFraction::frac$c| () Real)
-(define-fun .def_82 () Bool (= |reduceFraction::frac$c| (to_real 0)))
-(declare-fun |gcd::x| () Real)
-(define-fun .def_85 () Bool (= |gcd::x| (to_real 0)))
-(declare-fun |main::frac$d| () Real)
-(define-fun .def_116 () Bool (= |main::frac$d| (to_real 0)))
-(declare-fun |reduceFraction::frac$d| () Real)
-(define-fun .def_119 () Bool (= |reduceFraction::frac$d| (to_real 0)))
-(declare-fun |gcd::y| () Real)
-(define-fun .def_122 () Bool (= |gcd::y| (to_real 0)))
-(declare-fun |main::frac$c| () Real)
-(define-fun .def_183 () Bool (= |main::frac$c| (to_real 0)))
+(declare-fun |reduceFraction::frac$c| () Int)
+(define-fun .def_69 () Bool (= |reduceFraction::frac$c| 0))
+(declare-fun |gcd::x| () Int)
+(define-fun .def_72 () Bool (= |gcd::x| 0))
+(declare-fun |main::frac$d| () Int)
+(define-fun .def_111 () Bool (= |main::frac$d| 0))
+(declare-fun |reduceFraction::frac$d| () Int)
+(define-fun .def_114 () Bool (= |reduceFraction::frac$d| 0))
+(declare-fun |gcd::y| () Int)
+(define-fun .def_117 () Bool (= |gcd::y| 0))
+(declare-fun |main::frac$c| () Int)
+(define-fun .def_188 () Bool (= |main::frac$c| 0))
 
 gcd N0:
 (assert false)
-(assert .def_183)
+(assert .def_188)
 
 gcd N1:
-(assert .def_85)
-(assert .def_122)
-(assert .def_183)
+(assert .def_72)
+(assert .def_117)
+(assert .def_188)
 
 reduceFraction N13:
-(assert .def_82)
-(assert .def_119)
-(assert .def_183)
+(assert .def_69)
+(assert .def_114)
+(assert .def_188)
 
 reduceFraction N15:
-(assert .def_183)
+(assert .def_188)
 
 main N35:
-(assert .def_116)
-(assert .def_183)
+(assert .def_111)
+(assert .def_188)
 
 main N40:
-(assert .def_183)
+(assert .def_188)
 

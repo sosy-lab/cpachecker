@@ -1,21 +1,24 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::y| () Real)
-(define-fun .def_66 () Bool (<= (to_real 0) |main::y|))
-(declare-fun |main::x| () Real)
-(define-fun .def_69 () Bool (<= (to_real 1) |main::x|))
-(declare-fun |main::i| () Real)
-(define-fun .def_106 () Bool (= |main::i| (to_real 1)))
+(declare-fun |main::y| () Int)
+(define-fun .def_58 () Bool (<= 0 |main::y|))
+(declare-fun |main::x| () Int)
+(define-fun .def_61 () Bool (<= 1 |main::x|))
+(declare-fun |main::i| () Int)
+(define-fun .def_98 () Bool (= |main::i| 1))
 
 main N4:
-(assert .def_66)
+(assert .def_58)
 
 main N10:
-(assert .def_69)
-(assert .def_106)
+(assert .def_61)
+(assert .def_98)
 
 main N13:
-(assert .def_106)
+(assert .def_98)
 
-main N18:
+main N26:
+(assert false)
+
+main N31:
 (assert false)
 

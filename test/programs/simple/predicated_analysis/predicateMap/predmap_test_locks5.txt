@@ -1,70 +1,148 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::p1| () Real)
-(define-fun .def_128 () Bool (<= |main::p1| (to_real 0)))
-(declare-fun |main::p2| () Real)
-(define-fun .def_174 () Bool (<= |main::p2| (to_real 0)))
-(declare-fun |main::p3| () Real)
-(define-fun .def_251 () Bool (<= |main::p3| (to_real 0)))
-(declare-fun |main::p4| () Real)
-(define-fun .def_384 () Bool (<= |main::p4| (to_real 0)))
-(declare-fun |main::p5| () Real)
-(define-fun .def_645 () Bool (<= |main::p5| (to_real 0)))
+(declare-fun |main::p1| () Int)
+(define-fun .def_85 () Bool (<= |main::p1| 0))
+(declare-fun |main::p2| () Int)
+(define-fun .def_133 () Bool (<= |main::p2| 0))
+(declare-fun |main::p3| () Int)
+(define-fun .def_212 () Bool (<= |main::p3| 0))
+(declare-fun |main::p4| () Int)
+(define-fun .def_347 () Bool (<= |main::p4| 0))
+(declare-fun |main::p5| () Int)
+(define-fun .def_610 () Bool (<= |main::p5| 0))
 
 main N33:
-(assert .def_128)
+(assert .def_85)
 
 main N37:
-(assert .def_128)
-(assert .def_174)
+(assert .def_85)
+(assert .def_133)
 
 main N41:
-(assert .def_128)
-(assert .def_174)
-(assert .def_251)
+(assert .def_85)
+(assert .def_133)
+(assert .def_212)
 
 main N45:
-(assert .def_128)
-(assert .def_174)
-(assert .def_251)
-(assert .def_384)
+(assert .def_85)
+(assert .def_133)
+(assert .def_212)
+(assert .def_347)
 
 main N49:
-(assert .def_128)
-(assert .def_174)
-(assert .def_251)
-(assert .def_384)
-(assert .def_645)
+(assert .def_85)
+(assert .def_133)
+(assert .def_212)
+(assert .def_347)
+(assert .def_610)
 
 main N53:
-(assert .def_174)
-(assert .def_251)
-(assert .def_384)
-(assert .def_645)
-
-main N56:
-(assert false)
+(assert .def_133)
+(assert .def_212)
+(assert .def_347)
+(assert .def_610)
 
 main N58:
-(assert .def_251)
-(assert .def_384)
-(assert .def_645)
-
-main N61:
-(assert false)
+(assert .def_212)
+(assert .def_347)
+(assert .def_610)
 
 main N63:
-(assert .def_384)
-(assert .def_645)
-
-main N66:
-(assert false)
+(assert .def_347)
+(assert .def_610)
 
 main N68:
-(assert .def_645)
+(assert .def_610)
 
-main N71:
+main N91:
 (assert false)
 
-main N76:
+main N98:
+(assert false)
+
+main N103:
+(assert false)
+
+main N114:
+(assert false)
+
+main N119:
+(assert false)
+
+main N126:
+(assert false)
+
+main N135:
+(assert false)
+
+main N150:
+(assert false)
+
+main N155:
+(assert false)
+
+main N164:
+(assert false)
+
+main N181:
+(assert false)
+
+main N190:
+(assert false)
+
+main N205:
+(assert false)
+
+main N214:
+(assert false)
+
+main N223:
+(assert false)
+
+main N230:
+(assert false)
+
+main N245:
+(assert false)
+
+main N258:
+(assert false)
+
+main N271:
+(assert false)
+
+main N282:
+(assert false)
+
+main N295:
+(assert false)
+
+main N306:
+(assert false)
+
+main N317:
+(assert false)
+
+main N326:
+(assert false)
+
+main N339:
+(assert false)
+
+main N350:
+(assert false)
+
+main N361:
+(assert false)
+
+main N370:
+(assert false)
+
+main N381:
+(assert false)
+
+main N390:
+(assert false)
+
+main N399:
 (assert false)
 

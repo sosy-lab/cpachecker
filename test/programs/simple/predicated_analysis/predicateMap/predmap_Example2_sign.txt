@@ -1,16 +1,19 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::i| () Real)
-(define-fun .def_87 () Bool (= |main::i| (to_real 0)))
+(declare-fun |main::i| () Int)
+(define-fun .def_70 () Bool (= |main::i| 0))
 
 main N14:
-(assert .def_87)
+(assert .def_70)
 
 main N19:
-(assert .def_87)
+(assert .def_70)
 
 main N22:
-(assert .def_87)
+(assert .def_70)
 
-main N24:
+main N31:
+(assert false)
+
+main N36:
 (assert false)
 

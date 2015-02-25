@@ -1,21 +1,24 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::l| () Real)
-(define-fun .def_120 () Bool (= |main::l| (to_real 0)))
-(declare-fun |harmonicMean::l| () Real)
-(define-fun .def_123 () Bool (= |harmonicMean::l| (to_real 0)))
+(declare-fun |main::l| () Int)
+(define-fun .def_99 () Bool (= |main::l| 0))
+(declare-fun |harmonicMean::l| () Int)
+(define-fun .def_102 () Bool (= |harmonicMean::l| 0))
 
 harmonicMean N1:
-(assert .def_123)
+(assert .def_102)
 
 harmonicMean N9:
-(assert .def_123)
-
-harmonicMean N30:
-(assert false)
+(assert .def_102)
 
 main N59:
-(assert .def_120)
+(assert .def_99)
 
 main N68:
-(assert .def_120)
+(assert .def_99)
+
+harmonicMean N89:
+(assert false)
+
+harmonicMean N96:
+(assert false)
 

@@ -1,56 +1,62 @@
 (set-info :source |printed by MathSAT|)
 (declare-fun |gdImageStringFTEx::next| () (_ BitVec 32))
-(define-fun .def_246 () Bool (= |gdImageStringFTEx::next| (_ bv0 32)))
-(define-fun .def_346 () Bool (= |gdImageStringFTEx::next| (_ bv1 32)))
-(declare-fun |gdImageStringFTEx::encoding| () (_ BitVec 32))
-(define-fun .def_624 () Bool (= |gdImageStringFTEx::encoding| (_ bv1 32)))
+(define-fun .def_224 () Bool (= |gdImageStringFTEx::next| (_ bv0 32)))
+(define-fun .def_319 () Bool (= |gdImageStringFTEx::next| (_ bv1 32)))
+(define-fun .def_593 () Bool (= |gdImageStringFTEx::next| (_ bv2 32)))
 (declare-fun |gdImageStringFTEx::len| () (_ BitVec 32))
-(define-fun .def_670 () Bool (= |gdImageStringFTEx::len| (_ bv1 32)))
-(define-fun .def_787 () Bool (= |gdImageStringFTEx::next| (_ bv2 32)))
+(define-fun .def_800 () Bool (= |gdImageStringFTEx::len| (_ bv1 32)))
 
 gdTcl_UtfToUniChar N1:
-(assert .def_246)
+(assert .def_224)
 
 gdImageStringFTEx N22:
-(assert .def_246)
-(assert .def_346)
-(assert .def_624)
-(assert .def_787)
-
-gdImageStringFTEx N29:
-(assert false)
+(assert .def_224)
+(assert .def_319)
+(assert .def_593)
 
 gdImageStringFTEx N42:
-(assert .def_246)
-(assert .def_346)
-(assert .def_624)
-(assert .def_787)
+(assert .def_224)
+(assert .def_319)
+(assert .def_593)
 
 gdImageStringFTEx N46:
-(assert .def_246)
-(assert .def_670)
+(assert .def_224)
+(assert .def_800)
 
 gdImageStringFTEx N53:
-(assert .def_246)
-(assert .def_624)
-(assert .def_787)
+(assert .def_224)
 
 gdImageStringFTEx N56:
-(assert .def_246)
-(assert .def_787)
+(assert .def_224)
 
 gdImageStringFTEx N60:
-(assert false)
-(assert .def_346)
-(assert .def_624)
+(assert .def_319)
 
 gdImageStringFTEx N70:
-(assert .def_346)
-(assert .def_787)
+(assert .def_319)
+(assert .def_593)
 
 gdImageStringFTEx N73:
-(assert .def_787)
+(assert .def_593)
 
-gdImageStringFTEx N76:
+gdImageStringFTEx N98:
+(assert false)
+
+gdImageStringFTEx N103:
+(assert false)
+
+gdImageStringFTEx N108:
+(assert false)
+
+gdImageStringFTEx N113:
+(assert false)
+
+gdImageStringFTEx N118:
+(assert false)
+
+gdImageStringFTEx N125:
+(assert false)
+
+gdImageStringFTEx N132:
 (assert false)
 

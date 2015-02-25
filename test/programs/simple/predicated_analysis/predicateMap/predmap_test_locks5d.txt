@@ -1,66 +1,99 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::p| () Real)
-(define-fun .def_108 () Bool (<= |main::p| (to_real 0)))
-(define-fun .def_153 () Bool (<= |main::p| (to_real 1)))
-(define-fun .def_220 () Bool (<= |main::p| (to_real 2)))
-(define-fun .def_297 () Bool (<= |main::p| (to_real 3)))
-(define-fun .def_381 () Bool (<= |main::p| (to_real 4)))
+(declare-fun |main::p| () Int)
+(define-fun .def_84 () Bool (<= |main::p| 0))
+(define-fun .def_123 () Bool (<= |main::p| 1))
+(define-fun .def_155 () Bool (<= |main::p| 2))
+(define-fun .def_198 () Bool (<= |main::p| 3))
+(define-fun .def_260 () Bool (<= |main::p| 4))
 
 main N25:
-(assert .def_108)
+(assert .def_84)
 
 main N29:
-(assert .def_108)
-(assert .def_153)
+(assert .def_84)
+(assert .def_123)
 
 main N33:
-(assert .def_108)
-(assert .def_153)
-(assert .def_220)
+(assert .def_84)
+(assert .def_123)
+(assert .def_155)
 
 main N37:
-(assert .def_108)
-(assert .def_153)
-(assert .def_220)
-(assert .def_297)
+(assert .def_84)
+(assert .def_123)
+(assert .def_155)
+(assert .def_198)
 
 main N41:
-(assert .def_108)
-(assert .def_153)
-(assert .def_220)
-(assert .def_297)
-(assert .def_381)
+(assert .def_84)
+(assert .def_123)
+(assert .def_155)
+(assert .def_198)
+(assert .def_260)
 
 main N45:
-(assert .def_153)
-(assert .def_220)
-(assert .def_297)
-(assert .def_381)
-
-main N48:
 (assert false)
+(assert .def_123)
+(assert .def_155)
+(assert .def_198)
+(assert .def_260)
 
 main N50:
-(assert .def_220)
-(assert .def_297)
-(assert .def_381)
-
-main N53:
 (assert false)
+(assert .def_155)
+(assert .def_198)
+(assert .def_260)
 
 main N55:
-(assert .def_297)
-(assert .def_381)
-
-main N58:
 (assert false)
+(assert .def_198)
+(assert .def_260)
 
 main N60:
-(assert .def_381)
+(assert .def_260)
 
-main N63:
+main N83:
 (assert false)
 
-main N68:
+main N90:
+(assert false)
+
+main N104:
+(assert false)
+
+main N113:
+(assert false)
+
+main N120:
+(assert false)
+
+main N135:
+(assert false)
+
+main N140:
+(assert false)
+
+main N164:
+(assert false)
+
+main N169:
+(assert false)
+
+main N180:
+(assert false)
+
+main N187:
+(assert false)
+
+main N201:
+(assert false)
+
+main N206:
+(assert false)
+
+main N213:
+(assert false)
+
+main N218:
 (assert false)
 

@@ -1,10 +1,10 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::f| () Real)
-(define-fun .def_47 () Bool (<= |main::f| (to_real 0)))
+(declare-fun |main::f| () Int)
+(define-fun .def_38 () Bool (<= |main::f| 0))
 
 main N6:
-(assert .def_47)
+(assert .def_38)
 
-main N13:
+main N20:
 (assert false)
 

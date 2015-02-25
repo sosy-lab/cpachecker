@@ -1,26 +1,26 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |main::l| () Real)
-(define-fun .def_268 () Bool (= |main::l| (to_real 0)))
-(declare-fun |extract_even::head| () Real)
-(define-fun .def_271 () Bool (= |extract_even::head| (to_real 0)))
+(declare-fun |main::l| () Int)
+(define-fun .def_180 () Bool (= |main::l| 0))
+(declare-fun |extract_even::head| () Int)
+(define-fun .def_183 () Bool (= |extract_even::head| 0))
 
 extract_even N9:
-(assert .def_271)
+(assert .def_183)
 
 extract_even N13:
-(assert .def_271)
+(assert .def_183)
 
 extract_even N20:
-(assert .def_271)
+(assert .def_183)
 
 extract_even N26:
-(assert .def_271)
+(assert .def_183)
 
 main N104:
-(assert .def_268)
+(assert .def_180)
 
 main N113:
-(assert .def_268)
+(assert .def_180)
 
 main N119:
 (assert false)
