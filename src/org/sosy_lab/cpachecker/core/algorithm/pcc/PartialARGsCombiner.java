@@ -127,20 +127,13 @@ public class PartialARGsCombiner implements Algorithm {
       }
 
       shutdown.shutdownIfNecessary();
-      ARGState root = combineARGs(rootNodes);
 
-
-      logger.log(Level.INFO, "Propagate the combined ARG as analysis result");
-      try {
-        ((ForwardingReachedSet) pReachedSet).setDelegate(new ReachedSetFactory(config, logger).create());
-      } catch (InvalidConfigurationException e) {
-        logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
+      if (!combineARGs(rootNodes, (ForwardingReachedSet) pReachedSet)) {
+        logger.log(Level.SEVERE, "Combination of ARGs failed.");
         return false;
       }
-      // TODO need to add all ARG states?, require different precision?, seem to work in this setting
-      // add to reached set and delete from waitlist to prevent UNKNOWN result
-      pReachedSet.add(root, SingletonPrecision.getInstance());
-      pReachedSet.removeOnlyFromWaitlist(root);
+
+      logger.log(Level.INFO, "Finished combination of ARGS");
 
     } else {
       logger.log(Level.INFO, "Program analysis is already unsound.",
@@ -155,12 +148,19 @@ public class PartialARGsCombiner implements Algorithm {
     return true;
   }
 
-  private ARGState combineARGs(List<ARGState> roots) throws InterruptedException {
+  private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReachedSet) throws InterruptedException {
     Pair<Map<String, Integer>, List<AbstractState>> initStates =
         identifyCompositeStateTypesAndTheirInitialInstances(roots);
 
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
+
+    try {
+      pReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
+    } catch (InvalidConfigurationException e) {
+      logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
+      return false;
+    }
 
     shutdown.shutdownIfNecessary();
 
@@ -186,6 +186,10 @@ public class PartialARGsCombiner implements Algorithm {
 
       components = toVisit.peek().getFirst();
       composedState = toVisit.poll().getSecond();
+
+      // add composed state to reached set
+      pReachedSet.add(composedState, SingletonPrecision.getInstance());
+      pReachedSet.removeOnlyFromWaitlist(composedState);
 
       // identify possible successor edges
       locPred = AbstractStates.extractLocation(composedState);
@@ -219,7 +223,7 @@ public class PartialARGsCombiner implements Algorithm {
       }
     }
 
-    return combinedRoot;
+    return true;
   }
 
   private Pair<Map<String, Integer>, List<AbstractState>>
