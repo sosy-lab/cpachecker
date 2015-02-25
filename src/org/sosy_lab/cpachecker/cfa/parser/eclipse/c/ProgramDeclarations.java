@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -71,6 +72,7 @@ public class ProgramDeclarations {
    * of type declarations in the GlobalScope)
    */
   public void registerTypeDeclaration(CComplexTypeDeclaration declaration) {
+    Preconditions.checkArgument(!(declaration.getType().getCanonicalType() instanceof CElaboratedType));
     CComplexType type = declaration.getType();
     String qualifiedName = type.getQualifiedName();
 
@@ -135,6 +137,7 @@ public class ProgramDeclarations {
   }
 
   public boolean containsEqualType(CComplexTypeDeclaration declaration) {
+    Preconditions.checkArgument(!(declaration.getType().getCanonicalType() instanceof CElaboratedType));
     return getOrContainsEqualType(declaration).getFirst();
   }
 
@@ -143,6 +146,7 @@ public class ProgramDeclarations {
   }
 
   public CComplexTypeDeclaration getEqualType(CComplexTypeDeclaration declaration) {
+    Preconditions.checkArgument(!(declaration.getType().getCanonicalType() instanceof CElaboratedType));
     return getOrContainsEqualType(declaration).getSecond();
   }
 
@@ -166,6 +170,7 @@ public class ProgramDeclarations {
   }
 
   private Pair<Boolean, CComplexTypeDeclaration> getOrContainsEqualType(CComplexTypeDeclaration declaration) {
+    Preconditions.checkArgument(!(declaration.getType().getCanonicalType() instanceof CElaboratedType));
     for (String name : origNamesToQualifiedNames.get(declaration.getType().getOrigName())) {
       if (types.containsKey(name) && areEqualTypes(types.get(name).getType(), declaration.getType(), false)) {
         return Pair.of(true, types.get(name));

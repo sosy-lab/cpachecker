@@ -97,7 +97,7 @@ public final class CElaboratedType implements CComplexType, Serializable {
     checkNotNull(pRealType);
     checkArgument(pRealType != this);
     checkArgument(pRealType.getKind() == kind);
-    checkArgument(pRealType.getName().equals(name));
+    checkArgument(pRealType.getName().substring(0, name.length()).equals(name));
     realType = pRealType;
   }
 

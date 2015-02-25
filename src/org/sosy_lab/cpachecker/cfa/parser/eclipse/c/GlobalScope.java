@@ -212,8 +212,9 @@ class GlobalScope extends AbstractScope {
 
     String name = type.getQualifiedName();
 
-    boolean programContainsEqualType = programDeclarations.containsEqualType(declaration);
-    boolean programContainsExactNamedType = programDeclarations.containsTypeWithExactName(name);
+    boolean isOnlyElaboratedType = type.getCanonicalType() instanceof CElaboratedType;
+    boolean programContainsEqualType = !isOnlyElaboratedType && programDeclarations.containsEqualType(declaration);
+    boolean programContainsExactNamedType = !isOnlyElaboratedType && programDeclarations.containsTypeWithExactName(name);
 
     if (types.containsKey(name)) {
       CComplexTypeDeclaration oldDeclaration = types.get(name);
@@ -239,42 +240,25 @@ class GlobalScope extends AbstractScope {
       assert oldType instanceof CElaboratedType
              && !(type instanceof CElaboratedType);
 
-      boolean realTypeAlreadySet = false;
-
       // there was already a declaration before and the found type is already known
       // from another file so we chose as realtype for the former declaration
       // the type from the other file
       if (programContainsEqualType) {
         CComplexTypeDeclaration oldProgDeclaration = programDeclarations.getEqualType(declaration);
-
-        // if program wide only an elaborated type is found we set the realtype of this
-        // elaborated type to the new found complete type and replace it afterwards
-        // with the new found declaration without the elaborated type surrounding it
-        if (oldProgDeclaration.getType().getCanonicalType() instanceof CElaboratedType) {
-          programDeclarations.registerTypeDeclaration(declaration);
-          ((CElaboratedType) oldProgDeclaration.getType()).setRealType(type);
-
-          // if we set the real type here and the declaration from the program
-          // scope is the same as the one from the globalscope we don't have
-          // to set it later on
-          realTypeAlreadySet = oldProgDeclaration.getType() == oldType;
-
-        } else {
-          overwriteTypeIfNecessary(type, oldProgDeclaration.getType());
-          type = oldProgDeclaration.getType();
-        }
-
+        overwriteTypeIfNecessary(type, oldProgDeclaration.getType());
+        type = oldProgDeclaration.getType();
+      } else if (programContainsExactNamedType) {
+        declaration = createRenamedType(declaration);
+        name = declaration.getType().getQualifiedName();
+        overwriteTypeIfNecessary(type, declaration.getType());
       }
 
       // We now have a real declaration for a type for which we have seen a forward
-      // declaration. We set a reference to the full type in the old type he types
-      // map with the full type. But only if this was not done before
-      if (!realTypeAlreadySet
-          && !(!(oldType.getCanonicalType() instanceof CElaboratedType)
-               && ProgramDeclarations.areEqualTypes((CComplexType) oldType.getCanonicalType(),
-                                                    (CComplexType) type.getCanonicalType(),
-                                                    false))) {
+      // declaration.
+      if (oldType.getCanonicalType() instanceof CElaboratedType) {
         ((CElaboratedType)oldType).setRealType(type);
+      } else if (((CElaboratedType) oldType).getRealType() != type && !programContainsEqualType) {
+        throw new AssertionError("test");
       }
 
       // there was no former type declaration here, but the TYPE that should
@@ -293,7 +277,7 @@ class GlobalScope extends AbstractScope {
       overwriteTypeIfNecessary(type, declaration.getType());
     }
 
-    if (!programContainsEqualType) {
+    if (!programContainsEqualType && !isOnlyElaboratedType) {
       programDeclarations.registerTypeDeclaration(declaration);
     }
 
