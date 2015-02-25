@@ -437,8 +437,18 @@ class ASTConverter {
       return convertExpressionWithSideEffects(e.getNegativeResultExpression());
     case NORMAL:
       CIdExpression tmp = createTemporaryVariable(e);
-      sideAssignmentStack.addConditionalExpression(e, tmp);
-      return tmp;
+
+      // this means the return value (if there could be one) of the conditional
+      // expression is not used
+      if (tmp.getExpressionType() instanceof CVoidType) {
+        sideAssignmentStack.addConditionalExpression(e, null);
+        // TODO we should not return a variable here, however null cannot be returned
+        // perhaps we need a dummyexpression here
+        return CIntegerLiteralExpression.ZERO;
+      } else {
+        sideAssignmentStack.addConditionalExpression(e, tmp);
+        return tmp;
+      }
     default:
       throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
@@ -572,7 +582,12 @@ class ASTConverter {
 //            "Cannot create temporary variable for expression with type void",
 //            e, niceFileNameFunction);
       }
+
+      // workaround for strange CDT behaviour
+    } else if (type instanceof CProblemType && e instanceof IASTConditionalExpression) {
+      type = typeConverter.convert(((IASTConditionalExpression)e).getNegativeResultExpression().getExpressionType());
     }
+
     return createInitializedTemporaryVariable(
         getLocation(e), type, (CInitializer)null);
   }
@@ -1369,6 +1384,9 @@ class ASTConverter {
 
     } else if (node instanceof CExpression) {
       return new CExpressionStatement(getLocation(e), (CExpression)node);
+
+    } else if (node == null) {
+      return null;
 
     } else {
       throw new AssertionError();
