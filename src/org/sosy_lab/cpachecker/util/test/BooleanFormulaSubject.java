@@ -107,7 +107,9 @@ public class BooleanFormulaSubject extends Subject<BooleanFormulaSubject, Boolea
 
       // get unsat core for failure message
       final List<BooleanFormula> unsatCore = prover.getUnsatCore();
-      if (unsatCore.isEmpty()) {
+      if (unsatCore.isEmpty()
+          || (unsatCore.size() == 1 && getSubject().equals(unsatCore.get(0)))) {
+        // empty or trivial unsat core
         fail("is", "satisfiable");
       } else {
         failWithBadResults("is", "satisfiable", "has unsat core", unsatCore);
