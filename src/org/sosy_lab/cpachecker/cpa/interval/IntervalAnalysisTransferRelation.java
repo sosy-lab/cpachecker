@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -156,6 +157,10 @@ public class IntervalAnalysisTransferRelation extends SingleEdgeTransferRelation
         successor = handleFunctionReturn(intervalElement, (CFunctionReturnEdge)cfaEdge);
         break;
 
+      case MultiEdge:
+        successor = handleMultiEdge(intervalElement, (MultiEdge) cfaEdge);
+        break;
+
       default:
         throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
@@ -167,6 +172,34 @@ public class IntervalAnalysisTransferRelation extends SingleEdgeTransferRelation
     } else {
       return soleSuccessor(successor);
     }
+  }
+
+  private IntervalAnalysisState handleMultiEdge(IntervalAnalysisState pIntervalElement, MultiEdge pCfaEdge) throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException {
+    IntervalAnalysisState nextSuccessor = pIntervalElement;
+
+    for (CFAEdge edge : pCfaEdge.getEdges()) {
+      switch (edge.getEdgeType()) {
+      case DeclarationEdge:
+        nextSuccessor = handleDeclaration(nextSuccessor, (CDeclarationEdge) edge);
+        break;
+
+      case StatementEdge:
+        nextSuccessor = handleStatement(nextSuccessor, ((CStatementEdge) edge).getStatement(), edge);
+        break;
+
+      case ReturnStatementEdge:
+        nextSuccessor = handleExitFromFunction(nextSuccessor, ((CReturnStatementEdge) edge).getExpression(),
+                ((CReturnStatementEdge) edge), edge);
+        break;
+
+      case BlankEdge:
+        break;
+
+      default:
+        throw new UnrecognizedCFAEdgeException(edge);
+      }
+    }
+    return nextSuccessor;
   }
 
   /**
