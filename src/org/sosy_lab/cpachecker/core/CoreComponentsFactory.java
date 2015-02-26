@@ -168,7 +168,7 @@ public class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
 
       if (useARGCombiningAlgorithm) {
-        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier);
+        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier, cfa);
       }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);

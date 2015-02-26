@@ -44,25 +44,31 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateExchanger;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -77,14 +83,24 @@ public class PartialARGsCombiner implements Algorithm {
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
   private final Configuration config;
+  private final AutomatonStateExchanger stateReplace;
 
 
   public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+      ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException {
     restartAlgorithm = pAlgorithm;
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdown = pShutdownNotifier;
     config = pConfig;
+
+    stateReplace = new AutomatonStateExchanger();
+
+    try {
+      saveAutomatonStatesByName(new CPABuilder(config, logger, shutdown, new ReachedSetFactory(config, logger)).
+                            buildCPAWithSpecAutomatas(pCfa));
+    } catch (CPAException e) {
+      throw new InvalidConfigurationException("Cannot set up ARG combiner, do not get automata", e);
+    }
   }
 
   @Override
@@ -149,9 +165,24 @@ public class PartialARGsCombiner implements Algorithm {
     return true;
   }
 
-  private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReachedSet) throws InterruptedException {
+  private boolean saveAutomatonStatesByName(final ConfigurableProgramAnalysis pSpecs)
+      throws InvalidConfigurationException {
+    for (ConfigurableProgramAnalysis cpa : CPAs.asIterable(pSpecs)) {
+      if (cpa instanceof ControlAutomatonCPA) {
+        if (!stateReplace.registerAutomaton((ControlAutomatonCPA) cpa)) {
+          logger.log(Level.SEVERE, "Property specification, given by automata specification, is ambigous.");
+          throw new InvalidConfigurationException(
+              "Ambigious property specification,  automata specification contains automata with same name or same state names");
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReachedSet)
+      throws InterruptedException, CPAException {
     Pair<Map<String, Integer>, List<AbstractState>> initStates =
-        identifyCompositeStateTypesAndTheirInitialInstances(roots);
+      identifyCompositeStateTypesAndTheirInitialInstances(roots);
 
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
@@ -227,8 +258,9 @@ public class PartialARGsCombiner implements Algorithm {
   }
 
   private Pair<Map<String, Integer>, List<AbstractState>>
-      identifyCompositeStateTypesAndTheirInitialInstances(Collection<ARGState> rootNodes) throws InterruptedException {
-    logger.log(Level.FINE, "Derive composite state structure of combined ARG");
+      identifyCompositeStateTypesAndTheirInitialInstances(Collection<ARGState> rootNodes)
+  throws InterruptedException, CPAException {
+   logger.log(Level.FINE, "Derive composite state structure of combined ARG");
 
     List<AbstractState> initialState = new ArrayList<>();
     Map<String, Integer> stateToPos = new HashMap<>();
@@ -276,7 +308,7 @@ public class PartialARGsCombiner implements Algorithm {
     for (int i = 1, j = 0; i < automataStateNames.size(); i++) {
       assert (j < i && j >= 0);
       if (automataStateNames.get(j).equals(automataStateNames.get(i))) {
-        if (j + numRootStates - 1 == i) {
+        if (j + numRootStates - 1 == i && stateReplace.considersAutomaton(automataStateNames.get(j))) {
           // automaton states commonly used
           commonAutomataStates.add(automataStateNames.get(j));
         }
@@ -301,7 +333,7 @@ public class PartialARGsCombiner implements Algorithm {
         assert (initialState.size() == nextId);
 
         stateToPos.put(name, nextId);
-        initialState.add(innerWrapped);
+        initialState.add(stateReplace.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
         nextId++;
       }
     }
@@ -326,7 +358,7 @@ public class PartialARGsCombiner implements Algorithm {
 
   private Collection<Pair<List<AbstractState>, List<ARGState>>> computeCartesianProduct(
       final List<List<ARGState>> pSuccessorsForEdge, final Map<String, Integer> pStateToPos,
-      final List<AbstractState> pInitialStates) throws InterruptedException {
+      final List<AbstractState> pInitialStates) throws InterruptedException, CPAException {
     // compute number of successors
     int count = 0;
     for (List<ARGState> successor : pSuccessorsForEdge) {
@@ -388,7 +420,8 @@ public class PartialARGsCombiner implements Algorithm {
   }
 
   private List<AbstractState> combineARGStates(final List<ARGState> combiningStates,
-      final Map<String, Integer> pStateToPos, final List<AbstractState> pInitialStates) throws InterruptedException {
+      final Map<String, Integer> pStateToPos, final List<AbstractState> pInitialStates)
+      throws InterruptedException, CPAException {
     // set every state to the top state (except for automaton states) in case we have no concrete information
     List<AbstractState> result = new ArrayList<>(pInitialStates);
 
@@ -410,7 +443,12 @@ public class PartialARGsCombiner implements Algorithm {
         }
         index = pStateToPos.get(getName(innerWrapped));
         if (pInitialStates.get(index)==result.get(index)) {
-          result.set(index, innerWrapped);
+          if (result.get(index) instanceof AutomatonState) {
+            result.set(index,
+                   stateReplace.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
+          } else {
+            result.set(index, innerWrapped);
+          }
         } else {
             logger.logOnce(Level.WARNING,
                     "Cannot identify the inner state which is more precise, use the earliest found. Combination may be unsound.");
