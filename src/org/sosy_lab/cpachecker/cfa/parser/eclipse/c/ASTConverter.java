@@ -1959,7 +1959,7 @@ class ASTConverter {
 
     // in cases like struct s { (struct s)* f }
     // we need to fill in the binding from the inner "struct s" type to the outer
-    compositeType.accept(new FillInBindingVisitor(kind, name, compositeType));
+    compositeType.accept(new FillInBindingVisitor(kind, scope.getRenamedTypeName(name), compositeType));
     return compositeType;
   }
 
