@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -95,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
@@ -104,6 +107,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -441,36 +447,79 @@ public class AssumptionToEdgeAllocator {
 
     List<AExpressionStatement> statements = new ArrayList<>(subValues.size() + 1);
 
+    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+
     if (!pValueLiterals.hasUnknownValueLiteral()) {
 
-      CExpression leftAssumption = getLeftAssumptionFromLhs(pLValue);
-
-      CBinaryExpression assumption =
-          new CBinaryExpression(leftAssumption.getFileLocation(), CNumericTypes.BOOL, leftAssumption.getExpressionType(), leftAssumption,
-              pValueLiterals.getExpressionValueLiteralAsCExpression(), CBinaryExpression.BinaryOperator.EQUALS);
+      CExpression leftSide = getLeftAssumptionFromLhs(pLValue);
+      CExpression rightSide = pValueLiterals.getExpressionValueLiteralAsCExpression();
 
       AExpressionStatement statement =
-          new CExpressionStatement(leftAssumption.getFileLocation(), assumption);
-
+          buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       statements.add(statement);
     }
 
     for (SubExpressionValueLiteral subValueLiteral : subValues) {
 
-      CExpression leftAssumption = getLeftAssumptionFromLhs(subValueLiteral.getSubExpression());
-
-      CBinaryExpression assumption =
-          new CBinaryExpression(pLValue.getFileLocation(), CNumericTypes.BOOL, pLValue.getExpressionType(),
-              leftAssumption,
-              subValueLiteral.getValueLiteralAsCExpression(), CBinaryExpression.BinaryOperator.EQUALS);
+      CExpression leftSide = getLeftAssumptionFromLhs(subValueLiteral.getSubExpression());
+      CExpression rightSide = subValueLiteral.getValueLiteralAsCExpression();
 
       AExpressionStatement statement =
-          new CExpressionStatement(pLValue.getFileLocation(), assumption);
-
+          buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       statements.add(statement);
     }
 
-    return statements;
+    return FluentIterable.from(statements).filter(Predicates.notNull()).toList();
+  }
+
+  private static @Nullable AExpressionStatement buildEquationExpressionStatement(
+      CBinaryExpressionBuilder pBuilder,
+      CExpression pLeftSide,
+      CExpression pRightSide) {
+    CExpression leftSide = pLeftSide;
+    CExpression rightSide = pRightSide;
+
+    final CType leftType = leftSide.getExpressionType().getCanonicalType();
+    final CType rightType = rightSide.getExpressionType().getCanonicalType();
+
+    if (leftType instanceof CVoidType && rightType instanceof CVoidType) {
+      return null;
+    }
+
+    FluentIterable<Class<? extends CType>> acceptedTypes = FluentIterable.from(Arrays.asList(
+        CSimpleType.class,
+        CArrayType.class,
+        CPointerType.class));
+
+    boolean leftIsAccepted = acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
+
+      @Override
+      public boolean apply(Class<? extends CType> pArg0) {
+        return pArg0.isAssignableFrom(leftType.getClass());
+      }
+    });
+
+    boolean rightIsAccepted = acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
+
+      @Override
+      public boolean apply(Class<? extends CType> pArg0) {
+        return pArg0.isAssignableFrom(rightType.getClass());
+      }
+    });
+
+    if (leftType instanceof CSimpleType && !rightIsAccepted) {
+      rightSide = new CCastExpression(rightSide.getFileLocation(), leftType, rightSide);
+    } else if (!leftIsAccepted && rightType instanceof CSimpleType) {
+      leftSide = new CCastExpression(leftSide.getFileLocation(), rightType, leftSide);
+    }
+
+    CBinaryExpression assumption =
+        pBuilder.buildBinaryExpressionUnchecked(
+            leftSide,
+            rightSide,
+            CBinaryExpression.BinaryOperator.EQUALS);
+
+    return new CExpressionStatement(assumption.getFileLocation(), assumption);
   }
 
   private CExpression getLeftAssumptionFromLhs(CLeftHandSide pLValue) {

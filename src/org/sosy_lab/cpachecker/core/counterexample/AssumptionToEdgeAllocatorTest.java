@@ -295,7 +295,7 @@ public class AssumptionToEdgeAllocatorTest {
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][2]) == (26);");
       break;
     case "List list;":
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(&list) == (80LL);");
+      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(signed long long int)(&list)) == (80LL);");
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.h) == (31);");
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n) == (108LL);");
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->h) == (41);");
