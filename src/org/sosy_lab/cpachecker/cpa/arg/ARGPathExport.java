@@ -57,10 +57,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -434,6 +436,8 @@ public class ARGPathExport {
           }
 
           if (cfaEdgeWithAssignments != null) {
+            boolean isFunctionScope = this.isFunctionScope;
+
             List<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
             Predicate<AExpressionStatement> assignsParameterOfOtherFunction = new AssignsParameterOfOtherFunction(pEdge);
             List<AExpressionStatement> functionValidAssignments = FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
@@ -455,12 +459,50 @@ public class ARGPathExport {
               }
             }
 
+            // Do not export our own temporary variables
+            assignments = FluentIterable.from(cfaEdgeWithAssignments.getExpStmts()).filter(new Predicate<AExpressionStatement>() {
+
+              @Override
+              public boolean apply(AExpressionStatement statement) {
+                if (statement.getExpression() instanceof CExpression) {
+                  CExpression expression = (CExpression) statement.getExpression();
+                  for (CIdExpression idExpression : expression.accept(new CIdExpressionCollectingVisitor())) {
+                    if (idExpression.getDeclaration().getQualifiedName().toUpperCase().contains("__CPACHECKER_TMP")) {
+                      return false;
+                    }
+                  }
+                  return true;
+                }
+                return false;
+              }
+
+            }).toList();
+            cfaEdgeWithAssignments = new CFAEdgeWithAssumptions(pEdge, assignments, cfaEdgeWithAssignments.getComment());
+
+            String functionName = pEdge.getPredecessor().getFunctionName();
+
+            // Determine the scope for static local variables
+            for (AExpressionStatement functionValidAssignment : functionValidAssignments) {
+              if (functionValidAssignment instanceof CExpressionStatement) {
+                CExpression expression = (CExpression) functionValidAssignment.getExpression();
+                for (CIdExpression idExpression : expression.accept(new CIdExpressionCollectingVisitor())) {
+                  CSimpleDeclaration declaration = idExpression.getDeclaration();
+                  if (declaration.getName().contains("static")
+                      && !declaration.getOrigName().contains("static")
+                      && declaration.getQualifiedName().contains("::")) {
+                    isFunctionScope = true;
+                    functionName = declaration.getQualifiedName().substring(0, declaration.getQualifiedName().indexOf("::"));
+                  }
+                }
+              }
+            }
+
             String code = cfaEdgeWithAssignments.getAsCode();
 
             if (!code.isEmpty()) {
               result.put(KeyDef.ASSUMPTION, code);
-              if (isFunctionScope ) {
-                result.put(KeyDef.ASSUMPTIONSCOPE, pEdge.getPredecessor().getFunctionName());
+              if (isFunctionScope) {
+                result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
               }
             }
           }
