@@ -126,6 +126,12 @@ public class PartialARGsCombiner implements Algorithm {
         return true;
       }
 
+      if (from(reached.getDelegate()).anyMatch((IS_TARGET_STATE))) {
+        logger.log(Level.INFO, "Error found, do not combine ARGs.");
+        ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
+        return false;
+      }
+
       logger.log(Level.FINE, "Extract root nodes of ARGs");
       List<ARGState> rootNodes = new ArrayList<>(usedReachedSets.size());
       for (ReachedSet usedReached : usedReachedSets) {
@@ -134,10 +140,11 @@ public class PartialARGsCombiner implements Algorithm {
         checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
             "Require that all restart configurations consider a location aware state");
 
-        if (from(usedReached).anyMatch(IS_TARGET_STATE)) {
-          logger.log(Level.INFO, "Error found, do not combine ARGs.");
-          ((ForwardingReachedSet) pReachedSet).setDelegate(usedReached);
-          return false;
+        for (AbstractState errorState : from(usedReached).filter((IS_TARGET_STATE))) {
+          logger.log(Level.INFO, "Error state found in reached set ", usedReached,
+              "but not by last configuration. Error state must be infeasible.");
+          logger.log(Level.FINE, "Remove infeasible error state", errorState);
+          ((ARGState) errorState).removeFromARG();
         }
 
         rootNodes.add((ARGState) usedReached.getFirstState());
