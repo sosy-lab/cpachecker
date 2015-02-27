@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -172,7 +174,29 @@ public class ConstraintsTransferRelation
 
     newState.initialize(solver, formulaManager, getFormulaCreator(pValueState, pFunctionName));
 
+    // assume edges with integer literals are created by statements like __VERIFIER_assume(0);
+    // We do not have to create a constraints out of these, as they are always trivial.
+    if (pExpression instanceof CIntegerLiteralExpression) {
+      BigInteger valueAsInt = ((CIntegerLiteralExpression) pExpression).getValue();
+
+      if (pTruthAssumption == valueAsInt.equals(BigInteger.ONE)) {
+        return newState;
+      } else {
+        return null;
+      }
+
+    } else {
+      return computeNewStateByCreatingConstraint(pOldState, pValueState, pExpression, pFactory, pTruthAssumption, pFunctionName, pFileLocation);
+    }
+  }
+
+  private ConstraintsState computeNewStateByCreatingConstraint(ConstraintsState pOldState,
+      ValueAnalysisState pValueState,
+      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
+      FileLocation pFileLocation) throws UnrecognizedCodeException, SolverException, InterruptedException {
+
     Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
+    ConstraintsState newState = pOldState.copyOf();
 
     if (newConstraint.isPresent()) {
       newState.add(newConstraint.get());
@@ -211,8 +235,11 @@ public class ConstraintsTransferRelation
     } else if (pExpression instanceof CBinaryExpression) {
       return createConstraint((CBinaryExpression)pExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof AIdExpression) {
+    }
+    // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
+    else if (pExpression instanceof AIdExpression) {
       return createConstraint((AIdExpression) pExpression, pFactory, pTruthAssumption);
+
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());
     }
@@ -340,7 +367,6 @@ public class ConstraintsTransferRelation
 
     ConstraintsState newState = null;
     try {
-
 
       newState = getNewState(pStateToStrengthen,
           pStrengtheningState,
