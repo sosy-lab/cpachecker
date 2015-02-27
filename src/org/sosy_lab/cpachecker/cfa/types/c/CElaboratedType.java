@@ -180,6 +180,25 @@ public final class CElaboratedType implements CComplexType, Serializable {
   }
 
   @Override
+  public boolean equalsWithOrigName(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CElaboratedType)) {
+      return false;
+    }
+
+    CElaboratedType other = (CElaboratedType) obj;
+
+    return isConst == other.isConst
+           && isVolatile == other.isVolatile
+           && kind == other.kind
+           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
+           && Objects.equals(realType, other.realType);
+  }
+
+  @Override
   public CType getCanonicalType() {
     return getCanonicalType(false, false);
   }

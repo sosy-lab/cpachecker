@@ -242,6 +242,24 @@ public final class CCompositeType implements CComplexType, Serializable {
   }
 
   @Override
+  public boolean equalsWithOrigName(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CCompositeType)) {
+      return false;
+    }
+
+    CCompositeType other = (CCompositeType) obj;
+
+    return isConst == other.isConst
+           && isVolatile == other.isVolatile
+           && kind == other.kind
+           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()));
+  }
+
+  @Override
   public CCompositeType getCanonicalType() {
     return getCanonicalType(false, false);
   }

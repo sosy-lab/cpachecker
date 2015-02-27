@@ -256,6 +256,24 @@ public final class CEnumType implements CComplexType {
   }
 
   @Override
+  public boolean equalsWithOrigName(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CEnumType)) {
+      return false;
+    }
+
+    CEnumType other = (CEnumType) obj;
+
+    return isConst == other.isConst
+           && isVolatile == other.isVolatile
+           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
+           && Objects.equals(enumerators, other.enumerators);
+  }
+
+  @Override
   public CEnumType getCanonicalType() {
     return getCanonicalType(false, false);
   }
