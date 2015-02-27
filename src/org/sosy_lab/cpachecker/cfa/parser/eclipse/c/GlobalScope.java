@@ -392,9 +392,6 @@ class GlobalScope extends AbstractScope {
       if (oldType.getCanonicalType() instanceof CElaboratedType && type.getCanonicalType() instanceof CCompositeType
           && ((CElaboratedType) oldType).getName().equals(((CCompositeType)type).getName())) {
         typedefs.put(name, declaration);
-        if (programDeclarations.containsEqualTypeDef(declaration)) {
-
-        }
         return true;
       }
 
