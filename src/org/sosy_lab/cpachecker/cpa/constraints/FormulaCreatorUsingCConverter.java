@@ -110,7 +110,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       }
 
       if (integerValue != null) {
-        expression = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.LONG_INT, integerValue);
+        expression = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.LONG_LONG_INT, integerValue);
       } else {
         assert decimalValue != null;
         expression = new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.LONG_DOUBLE, decimalValue);
