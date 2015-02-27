@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -90,20 +92,29 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
     if (termAssignment instanceof Number) {
 
-      BigInteger value;
+      BigInteger integerValue = null;
+      BigDecimal decimalValue = null;
       CExpression expression;
 
       if (termAssignment instanceof Long) {
-        value = BigInteger.valueOf((long) termAssignment);
+        integerValue = BigInteger.valueOf((long) termAssignment);
 
       } else if (termAssignment instanceof BigInteger) {
-        value = (BigInteger) termAssignment;
+        integerValue = (BigInteger) termAssignment;
+
+      } else if (termAssignment instanceof BigDecimal) {
+          decimalValue = (BigDecimal) termAssignment;
 
       } else {
         throw new AssertionError("Unhandled assignment number " + termAssignment);
       }
 
-      expression = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.LONG_INT, value);
+      if (integerValue != null) {
+        expression = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.LONG_INT, integerValue);
+      } else {
+        assert decimalValue != null;
+        expression = new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.LONG_DOUBLE, decimalValue);
+      }
       rightFormula = toFormulaTransformer.makePredicate(expression, getDummyEdge(), functionName, getSsaMapBuilder());
 
     } else {

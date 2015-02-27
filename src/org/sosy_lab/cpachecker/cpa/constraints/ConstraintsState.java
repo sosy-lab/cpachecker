@@ -309,7 +309,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
 
   private Value convertToValue(Object pTermAssignment, Model.TermType pType) {
     if (pType.equals(Model.TermType.Integer) || pType.equals(Model.TermType.Bitvector)
-        || pType.equals(Model.TermType.FloatingPoint)) {
+        || pType.equals(Model.TermType.FloatingPoint) || pType.equals(Model.TermType.Real)) {
       assert pTermAssignment instanceof Number;
 
       return new NumericValue((Number) pTermAssignment);
