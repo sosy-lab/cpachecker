@@ -317,12 +317,12 @@ class ASTConverter {
   }
 
 
-  private CComplexTypeDeclaration addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
+  private void addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
     CComplexTypeDeclaration decl = new CComplexTypeDeclaration(loc, scope.isGlobalScope(), type);
 
-    scope.registerTypeDeclaration(decl);
-    sideAssignmentStack.addPreSideAssignment(decl);
-    return decl;
+    if (scope.registerTypeDeclaration(decl)) {
+      sideAssignmentStack.addPreSideAssignment(decl);
+    }
   }
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
