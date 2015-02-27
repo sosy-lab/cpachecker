@@ -261,7 +261,7 @@ public class ARGPathExport {
           public int compare(Element pO1, Element pO2) {
             String tagName1 = pO1.getTagName();
             String tagName2 = pO2.getTagName();
-            if (tagName1.equals(GraphMlTag.NODE) && tagName2.equals(GraphMlTag.EDGE)) {
+            if (tagName1.equals(GraphMlTag.NODE.text) && tagName2.equals(GraphMlTag.EDGE.text)) {
               return -1;
             } else if (tagName1.equals(GraphMlTag.EDGE.text) && tagName2.equals(GraphMlTag.NODE.text)) {
               return 1;
