@@ -312,7 +312,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       if(infeasilbePrefixes.size() > 1) {
         ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
 
-        return classifier.obtainPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
+        return classifier.obtainSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
       }
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ErrorPathClassifier failed: " + e.getMessage(), e);

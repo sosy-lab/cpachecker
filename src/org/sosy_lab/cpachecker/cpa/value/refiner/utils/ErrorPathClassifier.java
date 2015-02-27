@@ -161,7 +161,7 @@ public class ErrorPathClassifier {
     loopStructure   = pLoopStructure;
   }
 
-  public ARGPath obtainPrefix(ErrorPathPrefixPreference preference,
+  public ARGPath obtainSlicedPrefix(ErrorPathPrefixPreference preference,
       ARGPath errorPath,
       List<ARGPath> pPrefixes) {
 
