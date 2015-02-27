@@ -128,4 +128,63 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
       return -1;
     }
   }
+
+
+  /**
+   * Converter for {@link SymbolicIdentifier} objects.
+   * Converts SymbolicIdentifiers to and from Strings.
+   */
+  public static class Converter {
+
+    private static final Converter SINGLETON = new Converter();
+
+    private static final String PREFIX = "s";
+
+    private Converter() {
+      // DO NOTHING
+    }
+
+    public static Converter getInstance() {
+      return SINGLETON;
+    }
+
+    /**
+     * Converts a given {@link SymbolicIdentifier} to a String.
+     * The returned <code>String</code> contains all information necessary for uniquely identifying the given
+     * identifier.
+     *
+     *  <p>For a given identifier p, <code>convert(convert(p)) = p</code> is always true.
+     *
+     * @param pIdentifier the <code>SymbolicIdentifier</code> to convert to a string
+     * @return a <code>String</code> containing all information necessary for converting it to a identifier
+     */
+    public String convert(SymbolicIdentifier pIdentifier) {
+      return PREFIX + pIdentifier.getId();
+    }
+
+    /**
+     * Converts a given encoding of a {@link SymbolicIdentifier} to the corresponding
+     * <code>SymbolicIdentifier</code>.
+     *
+     * Only valid encodings, as produced by {@link #convert(SymbolicIdentifier)}, are allowed.
+     *
+     * @param pIdentifierInformation a <code>String</code> encoding of a <code>SymbolicIdentifier</code>
+     * @return the <code>SymbolicIdentifier</code> representing the given encoding
+     */
+    public SymbolicIdentifier convert(String pIdentifierInformation) {
+      final long id = Long.parseLong(pIdentifierInformation.substring(PREFIX.length()));
+      return new SymbolicIdentifier(id);
+    }
+
+    /**
+     * Returns whether the given string is a valid encoding of a {@link SymbolicIdentifier}.
+     *
+     * @param pName the string to analyse
+     * @return <code>true</code> if the given string is a valid encoding of a <code>SymbolicIdentifier</code>,
+     *    <code>false</code> otherwise
+     */
+    public boolean isSymbolicEncoding(String pName) {
+      return pName.matches(PREFIX + "[0-9]+");
+    }
+  }
 }

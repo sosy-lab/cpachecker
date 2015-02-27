@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -187,21 +186,15 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
-    try {
-      final Value lVal = pE.getOperand1().accept(this);
-      if (lVal.isUnknown()) {
-        return Value.UnknownValue.getInstance();
-      }
-      final Value rVal = pE.getOperand2().accept(this);
-      if (rVal.isUnknown()) {
-        return Value.UnknownValue.getInstance();
-      }
-      return calculateBinaryOperation(lVal, rVal, pE, machineModel, logger);
-
-    } catch (SymbolicBoundReachedException e) {
-      // TODO make this less ugly. We should just throw SymbolicBoundReachedException.
-      throw new UnrecognizedCCodeException(e.getMessage(), pE);
+    final Value lVal = pE.getOperand1().accept(this);
+    if (lVal.isUnknown()) {
+      return Value.UnknownValue.getInstance();
     }
+    final Value rVal = pE.getOperand2().accept(this);
+    if (rVal.isUnknown()) {
+      return Value.UnknownValue.getInstance();
+    }
+    return calculateBinaryOperation(lVal, rVal, pE, machineModel, logger);
   }
 
   /**
@@ -215,7 +208,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   public static Value calculateBinaryOperation(Value lVal, Value rVal,
       final CBinaryExpression binaryExpr,
-      final MachineModel machineModel, final LogManagerWithoutDuplicates logger) throws SymbolicBoundReachedException {
+      final MachineModel machineModel, final LogManagerWithoutDuplicates logger) {
 
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
@@ -297,8 +290,7 @@ public abstract class AbstractExpressionValueVisitor
    * @return the calculated Value
    */
   public static Value calculateSymbolicBinaryExpression(Value pLValue, Value pRValue,
-      final CBinaryExpression pExpression, AAstNode pLocation, LogManagerWithoutDuplicates pLogger)
-      throws SymbolicBoundReachedException {
+      final CBinaryExpression pExpression, AAstNode pLocation, LogManagerWithoutDuplicates pLogger) {
 
     final BinaryOperator operator = pExpression.getOperator();
 
@@ -312,8 +304,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static SymbolicValue createSymbolicExpression(Value pLeftValue, CType pLeftType, Value pRightValue,
-      CType pRightType, CBinaryExpression.BinaryOperator pOperator, CType pExpressionType, CType pCalculationType, AAstNode pLocation)
-      throws SymbolicBoundReachedException {
+      CType pRightType, CBinaryExpression.BinaryOperator pOperator, CType pExpressionType, CType pCalculationType, AAstNode pLocation) {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression leftOperand;
@@ -731,19 +722,15 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    try {
-      if (value instanceof SymbolicValue) {
-        final CType expressionType = unaryExpression.getExpressionType();
-        final CType operandType = unaryOperand.getExpressionType();
+    if (value instanceof SymbolicValue) {
+      final CType expressionType = unaryExpression.getExpressionType();
+      final CType operandType = unaryOperand.getExpressionType();
 
-        return createSymbolicExpression(value, operandType, unaryOperator, expressionType, unaryExpression);
+      return createSymbolicExpression(value, operandType, unaryOperator, expressionType, unaryExpression);
 
-      } else if (!value.isNumericValue()) {
-        logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
-        return Value.UnknownValue.getInstance();
-      }
-    } catch (SymbolicBoundReachedException e) {
-      throw new UnrecognizedCCodeException(e.getMessage(), unaryExpression);
+    } else if (!value.isNumericValue()) {
+      logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
+      return Value.UnknownValue.getInstance();
     }
 
     final NumericValue numericValue = (NumericValue) value;
@@ -760,7 +747,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private Value createSymbolicExpression(Value pValue, CType pOperandType, UnaryOperator pUnaryOperator,
-      CType pExpressionType, AAstNode pLocation) throws SymbolicBoundReachedException {
+      CType pExpressionType, AAstNode pLocation) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
@@ -1222,51 +1209,45 @@ public abstract class AbstractExpressionValueVisitor
     final String errorMsg
       = "Invalid argument [" + valueObject + "] for unary operator [" + unaryOperator + "].";
 
-    try {
-      if (valueObject.isUnknown()) {
-        return UnknownValue.getInstance();
+    if (valueObject.isUnknown()) {
+      return UnknownValue.getInstance();
 
-      } else if (valueObject.isNumericValue()) {
-        NumericValue value = (NumericValue)valueObject;
+    } else if (valueObject.isNumericValue()) {
+      NumericValue value = (NumericValue)valueObject;
 
-        switch (unaryOperator) {
-          case MINUS:
-            return value.negate();
+      switch (unaryOperator) {
+        case MINUS:
+          return value.negate();
 
-          case COMPLEMENT:
-            return evaluateComplement(unaryOperand, value);
+        case COMPLEMENT:
+          return evaluateComplement(unaryOperand, value);
 
-          case PLUS:
-            return value;
+        case PLUS:
+          return value;
 
-          default:
-            logger.log(Level.FINE, errorMsg);
-            return UnknownValue.getInstance();
-        }
-
-      } else if (valueObject instanceof BooleanValue
-          && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {
-        return ((BooleanValue)valueObject).negate();
-
-      } else if (valueObject instanceof SymbolicValue) {
-        final JType expressionType = unaryExpression.getExpressionType();
-        final JType operandType = unaryOperand.getExpressionType();
-
-        return createSymbolicExpression(valueObject, operandType, unaryOperator, expressionType, unaryExpression);
-
-      } else {
-        logger.logf(Level.FINE, errorMsg);
-        return UnknownValue.getInstance();
+        default:
+          logger.log(Level.FINE, errorMsg);
+          return UnknownValue.getInstance();
       }
-    } catch (SymbolicBoundReachedException e) {
-      logger.logUserException(Level.WARNING, e, null);
-      return null;
+
+    } else if (valueObject instanceof BooleanValue
+        && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {
+      return ((BooleanValue)valueObject).negate();
+
+    } else if (valueObject instanceof SymbolicValue) {
+      final JType expressionType = unaryExpression.getExpressionType();
+      final JType operandType = unaryOperand.getExpressionType();
+
+      return createSymbolicExpression(valueObject, operandType, unaryOperator, expressionType, unaryExpression);
+
+    } else {
+      logger.logf(Level.FINE, errorMsg);
+      return UnknownValue.getInstance();
     }
   }
 
   private Value createSymbolicExpression(Value pValue, JType pOperandType,
-      JUnaryExpression.UnaryOperator pUnaryOperator, JType pExpressionType, AAstNode pLocation)
-      throws SymbolicBoundReachedException {
+      JUnaryExpression.UnaryOperator pUnaryOperator, JType pExpressionType, AAstNode pLocation) {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);

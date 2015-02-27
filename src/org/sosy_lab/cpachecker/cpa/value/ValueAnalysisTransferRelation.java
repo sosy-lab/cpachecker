@@ -121,7 +121,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -253,7 +252,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   @Override
   protected ValueAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
       List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
-      String calledFunctionName) throws UnrecognizedCCodeException, SymbolicBoundReachedException {
+      String calledFunctionName) throws UnrecognizedCCodeException {
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     assert (parameters.size() == arguments.size())
@@ -318,7 +317,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
-      throws UnrecognizedCCodeException, SymbolicBoundReachedException {
+      throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
     ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
@@ -568,7 +567,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected ValueAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, ADeclaration declaration)
-      throws UnrecognizedCCodeException, SymbolicBoundReachedException {
+      throws UnrecognizedCCodeException {
 
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
@@ -707,7 +706,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return !pInitialValue.isUnknown() && (isNoClassType || pInitialValue.equals(NullValue.getInstance()));
   }
 
-  private SymbolicValue getSymbolicIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
+  private SymbolicValue getSymbolicIdentifier(Type pType, AAstNode pLocation) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     return factory.asConstant(factory.newIdentifier(pLocation), pType);
   }
@@ -749,7 +748,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return state;
   }
 
-  private ValueAnalysisState handleCallToFree(CFunctionCall pExpression) throws SymbolicBoundReachedException {
+  private ValueAnalysisState handleCallToFree(CFunctionCall pExpression) {
     // Needed for erasing values
     missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
 
@@ -884,7 +883,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
   private ValueAnalysisState handleAssignmentToVariable(
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
-      throws UnrecognizedCCodeException, SymbolicBoundReachedException {
+      throws UnrecognizedCCodeException {
 
     Value value;
     if (exp instanceof JRightHandSide) {
@@ -1021,8 +1020,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
   }
 
-  private void assignUnknownValueToEnclosingInstanceOfArray(JArraySubscriptExpression pArraySubscriptExpression)
-      throws SymbolicBoundReachedException {
+  private void assignUnknownValueToEnclosingInstanceOfArray(JArraySubscriptExpression pArraySubscriptExpression) {
 
     JExpression enclosingExpression = pArraySubscriptExpression.getArrayExpression();
 

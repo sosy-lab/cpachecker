@@ -30,7 +30,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -81,17 +80,6 @@ import com.google.common.base.Optional;
 @Options(prefix="cpa.constraints")
 public class ConstraintsTransferRelation
     extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
-
-  /**
-   * Enum for possible types of number handling in formulas for SAT checks.
-   */
-  public static enum FormulaNumberHandlingType {
-    INTEGER, BITVECTOR
-  }
-
-  @Option(secure=true, description="The way numbers are represented in boolean formulas.")
-  private FormulaNumberHandlingType formulaNumberHandling = FormulaNumberHandlingType.INTEGER;
-
 
   private final LogManagerWithoutDuplicates logger;
 
@@ -178,48 +166,33 @@ public class ConstraintsTransferRelation
   private ConstraintsState getNewState(ConstraintsState pOldState, ValueAnalysisState pValueState,
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
       FileLocation pFileLocation)
-        throws SolverException, InterruptedException {
+      throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     ConstraintsState newState = pOldState.copyOf();
 
     newState.initialize(solver, formulaManager, getFormulaCreator(pValueState, pFunctionName));
 
-    try {
-      Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
+    Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
 
-      if (newConstraint.isPresent()) {
-        newState.add(newConstraint.get());
+    if (newConstraint.isPresent()) {
+      newState.add(newConstraint.get());
 
-        if (newState.isUnsat()) {
-          return null;
-
-        } else {
-          newState = simplify(newState, pValueState);
-
-          return newState;
-        }
+      if (newState.isUnsat()) {
+        return null;
 
       } else {
+        newState = simplify(newState, pValueState);
 
         return newState;
       }
 
-    } catch (UnrecognizedCodeException e) {
-      logger.logUserException(Level.WARNING, e, pFileLocation.toString());
+    } else {
+      return newState;
     }
-
-    return newState;
   }
 
   private FormulaCreator getFormulaCreator(ValueAnalysisState pValueState, String pFunctionName) {
-    switch (formulaNumberHandling) {
-      case INTEGER:
-        return new IntegerFormulaCreator(formulaManager, pValueState, machineModel);
-      case BITVECTOR:
-        return new BitvectorFormulaCreator(formulaManager, getConverter(), pValueState, pFunctionName, machineModel);
-      default:
-        throw new AssertionError("Unhandled handling type " + formulaNumberHandling);
-    }
+    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pValueState, pFunctionName);
   }
 
   private CtoFormulaConverter getConverter() {
@@ -354,29 +327,35 @@ public class ConstraintsTransferRelation
    *    otherwise
    */
   private Optional<Collection<ConstraintsState>> strengthen(ConstraintsState pStateToStrengthen,
-      ValueAnalysisState pStrengtheningState, AssumeEdge pCfaEdge) {
+      ValueAnalysisState pStrengtheningState, AssumeEdge pCfaEdge) throws UnrecognizedCodeException {
 
     Collection<ConstraintsState> newStates = new ArrayList<>();
     final String functionName = pCfaEdge.getPredecessor().getFunctionName();
+    final boolean truthAssumption = pCfaEdge.getTruthAssumption();
+    final AExpression edgeExpression = pCfaEdge.getExpression();
+
     final ConstraintFactory factory =
         ConstraintFactory.getInstance(functionName, Optional.of(pStrengtheningState), machineModel, logger);
     final FileLocation fileLocation = pCfaEdge.getFileLocation();
 
     ConstraintsState newState = null;
     try {
+
+
       newState = getNewState(pStateToStrengthen,
-                             pStrengtheningState,
-                             pCfaEdge.getExpression(),
-                             factory,
-                             pCfaEdge.getTruthAssumption(),
-                             functionName,
-                             fileLocation);
+          pStrengtheningState,
+          edgeExpression,
+          factory,
+          truthAssumption,
+          functionName,
+          fileLocation);
 
     } catch (SolverException | InterruptedException e) {
       logger.logUserException(Level.WARNING, e, fileLocation.toString());
     }
 
     // newState == null represents the bottom element, so we return an empty collection
+    // (which represents the bottom element for strengthen methods)
     if (newState != null) {
       newStates.add(newState);
 

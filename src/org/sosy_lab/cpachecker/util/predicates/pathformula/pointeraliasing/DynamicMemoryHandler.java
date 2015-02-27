@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -142,20 +141,15 @@ class DynamicMemoryHandler {
       Integer value0 = tryEvaluateExpression(param0);
       Integer value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
-        try {
-          long result = ExpressionValueVisitor.calculateBinaryOperation(
-              new NumericValue(value0.longValue()), new NumericValue(value1.longValue()), multiplication,
-              conv.machineModel, conv.logger).asLong(multiplication.getExpressionType());
+        long result = ExpressionValueVisitor.calculateBinaryOperation(
+            new NumericValue(value0.longValue()), new NumericValue(value1.longValue()), multiplication,
+            conv.machineModel, conv.logger).asLong(multiplication.getExpressionType());
 
-          CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
-              multiplication.getExpressionType(),
-              BigInteger.valueOf(result));
-          parameters = Collections.singletonList(newParam);
+        CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
+            multiplication.getExpressionType(),
+            BigInteger.valueOf(result));
+        parameters = Collections.singletonList(newParam);
 
-        } catch (SymbolicBoundReachedException e2) {
-          // this will not happen
-          throw new AssertionError(e2);
-        }
       } else {
         parameters = Collections.<CExpression>singletonList(multiplication);
       }

@@ -25,17 +25,12 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicBoundReachedException;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Types;
@@ -52,12 +47,6 @@ public class SymbolicValueFactory {
 
   private static final SymbolicValueFactory SINGLETON = new SymbolicValueFactory();
 
-  @Option(name = "maxSymbolicValues",
-      description = "The maximum amount of symbolic values to create per ast node.")
-  private int maxValuesPerNode = 100000;
-
-  private final Map<AAstNode, Integer> valuesPerNodeMap = new HashMap<>();
-
   private SymbolicValueFactory() {
     // DO NOTHING
   }
@@ -66,30 +55,8 @@ public class SymbolicValueFactory {
     return SINGLETON;
   }
 
-  public SymbolicIdentifier newIdentifier(AAstNode pLocation) throws SymbolicBoundReachedException {
+  public SymbolicIdentifier newIdentifier(AAstNode pLocation) {
     return SymbolicIdentifier.getNewIdentifier();
-  }
-
-  private void checkInBound(AAstNode pLocation) throws SymbolicBoundReachedException {
-    Optional<Integer> currentAmount = Optional.fromNullable(valuesPerNodeMap.get(pLocation));
-
-    if (currentAmount.isPresent() && currentAmount.get() >= maxValuesPerNode) {
-      throw new SymbolicBoundReachedException(
-          "Maximum of " + maxValuesPerNode + " symbolic values reached.", pLocation);
-    }
-  }
-
-  private void increaseSymbolicAmount(AAstNode pLocation) {
-    Optional<Integer> currentAmount = Optional.fromNullable(valuesPerNodeMap.get(pLocation));
-    int newAmount;
-
-    if (currentAmount.isPresent()) {
-      newAmount = currentAmount.get() + 1;
-    } else {
-      newAmount = 1;
-    }
-
-    valuesPerNodeMap.put(pLocation, newAmount);
   }
 
   public SymbolicExpression asConstant(Value pValue, Type pType) {

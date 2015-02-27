@@ -24,8 +24,7 @@
 
 /**
  * This package contains the {@link Constraint} class and everything related to it.
- * This includes a {@link ConstraintFactory} for creating <code>Constraint</code> objects and all classes required to do
- * this.
+ * This includes the {@link ConstraintFactory} class for creating <code>Constraint</code>s.
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 

@@ -25,5 +25,10 @@
 /**
  * Contains classes for Constraints CPA.
  * Constraints CPA tracks constraints such as conditions in if- or while-statements.
+ * The ConstraintsCPA is only useful in combination with a CPA creating symbolic values,
+ * for example {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA} with
+ * property <code>cpa.value.symbolicExecution</code> set to true.
+ * Without symbolic execution, it's transfer relation will always return a state containing
+ * no information.
  */
 package org.sosy_lab.cpachecker.cpa.constraints;

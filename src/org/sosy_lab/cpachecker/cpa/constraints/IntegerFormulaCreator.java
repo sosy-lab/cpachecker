@@ -28,7 +28,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -65,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.Types;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -108,8 +106,6 @@ public class IntegerFormulaCreator
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
 
-  private final MachineModel machineModel;
-
   private final ValueAnalysisState valueState;
 
   private final FunctionSet declaredFunctions = new FunctionSet();
@@ -119,12 +115,11 @@ public class IntegerFormulaCreator
 
   private List<BooleanFormula> conditions = new ArrayList<>();
 
-  public IntegerFormulaCreator(FormulaManagerView pFormulaManager, ValueAnalysisState pValueState, MachineModel pMachineModel) {
+  public IntegerFormulaCreator(FormulaManagerView pFormulaManager, ValueAnalysisState pValueState) {
     formulaManager = pFormulaManager;
     numeralFormulaManager = formulaManager.getIntegerFormulaManager();
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
     functionFormulaManager = formulaManager.getFunctionFormulaManager();
-    machineModel = pMachineModel;
 
     oneFormula = numeralFormulaManager.makeNumber(1);
     zeroFormula = numeralFormulaManager.makeNumber(0);
@@ -358,7 +353,7 @@ public class IntegerFormulaCreator
   }
 
   private String getVariableName(SymbolicIdentifier pValue) {
-    return IdentifierConverter.getInstance().convert(pValue);
+    return SymbolicIdentifier.Converter.getInstance().convert(pValue);
   }
 
   private FormulaType<?> getFormulaType(Type pType) {
@@ -554,15 +549,7 @@ public class IntegerFormulaCreator
 
   @Override
   public Formula visit(CastExpression pExpression) {
-    Type toType = pExpression.getType();
-    Type fromType = pExpression.getOperand().getType();
-
-    if (Types.canHoldAllValues(toType, fromType, machineModel)) {
-      return pExpression.getOperand().accept(this);
-
-    } else {
-      return handleUnsupportedExpression(pExpression);
-    }
+    return pExpression.getOperand().accept(this);
   }
 
   @Override

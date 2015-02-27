@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -175,6 +177,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    */
   @Override
   public boolean add(Constraint pConstraint) {
+    checkNotNull(pConstraint);
     boolean setHasChanged = super.add(pConstraint);
 
     constraintsHaveChanged |= setHasChanged;
@@ -331,7 +334,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   }
 
   private boolean isSymbolicTerm(Model.AssignableTerm pTerm) {
-    return IdentifierConverter.getInstance().isSymbolicEncoding(pTerm.getName());
+    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm.getName());
   }
 
   private boolean isOnlySatisfyingAssignment(Model.AssignableTerm pTerm, Object termAssignment)
@@ -351,7 +354,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   }
 
   private SymbolicIdentifier toSymbolicIdentifier(String pEncoding) {
-    return IdentifierConverter.getInstance().convert(pEncoding);
+    return SymbolicIdentifier.Converter.getInstance().convert(pEncoding);
   }
 
   private Value convertToValue(Object pTermAssignment, Model.TermType pType) {

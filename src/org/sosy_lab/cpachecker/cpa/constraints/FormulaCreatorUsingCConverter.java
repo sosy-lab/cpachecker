@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -47,13 +46,20 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 import com.google.common.base.Optional;
 
 /**
- * Creator for {@link Formula}s using bitvectors.
+ * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating
+ * {@link BooleanFormula}s out of {@link Constraint}s.
+ *
+ * The properties responsible for the behaviour of PredicateCPA's formula handling influence the
+ * behaviour of this class, too.
+ * A number of important properties can be found in the classes {@link FormulaEncodingOptions}
+ * and {@link FormulaManagerView}.
  */
-public class BitvectorFormulaCreator implements FormulaCreator {
+public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
   private final FormulaManagerView formulaManager;
   private final CtoFormulaConverter toFormulaTransformer;
@@ -61,13 +67,12 @@ public class BitvectorFormulaCreator implements FormulaCreator {
 
   private final String functionName;
 
-
-  public BitvectorFormulaCreator(FormulaManagerView pFormulaManager, CtoFormulaConverter pConverter,
-      ValueAnalysisState pValueState, String pFunctionName, MachineModel pMachineModel) {
+  public FormulaCreatorUsingCConverter(FormulaManagerView pFormulaManager, CtoFormulaConverter pConverter,
+      ValueAnalysisState pValueState, String pFunctionName) {
 
     formulaManager = pFormulaManager;
     toFormulaTransformer = pConverter;
-    toExpressionTransformer = new SymbolicExpressionTransformer(pMachineModel, pValueState);
+    toExpressionTransformer = new SymbolicExpressionTransformer(pValueState);
     functionName = pFunctionName;
   }
 

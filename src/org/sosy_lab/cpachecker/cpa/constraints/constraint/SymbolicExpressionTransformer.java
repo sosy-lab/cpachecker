@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -46,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
-import org.sosy_lab.cpachecker.cpa.constraints.IdentifierConverter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -85,11 +83,9 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
 
   private static final FileLocation DUMMY_LOCATION = FileLocation.DUMMY;
 
-  private final MachineModel machineModel;
   private final ValueAnalysisState valueState;
 
-  public SymbolicExpressionTransformer(MachineModel pMachineModel, ValueAnalysisState pValueState) {
-    machineModel = pMachineModel;
+  public SymbolicExpressionTransformer(ValueAnalysisState pValueState) {
     valueState = pValueState;
   }
 
@@ -157,7 +153,7 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
       return transformValue(concreteValue, pType);
 
     } else {
-      String name = IdentifierConverter.getInstance().convert(pIdentifier);
+      String name = SymbolicIdentifier.Converter.getInstance().convert(pIdentifier);
       CSimpleDeclaration declaration = getIdentifierDeclaration(name, pType);
 
       return new CIdExpression(DUMMY_LOCATION, pType, name, declaration);
