@@ -82,7 +82,7 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression minus(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pType, Type pCalculationType) {
-    return new AdditionExpression(pOperand1, negate(pOperand2, pOperand1.getType()), getCanonicalType(pType), getCanonicalType(pCalculationType));
+    return new AdditionExpression(pOperand1, negate(pOperand2, pOperand2.getType()), getCanonicalType(pType), getCanonicalType(pCalculationType));
   }
 
 
