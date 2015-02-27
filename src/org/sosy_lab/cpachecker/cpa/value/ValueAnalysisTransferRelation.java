@@ -115,9 +115,9 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
@@ -292,7 +292,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
-              || "skipped unnecessary edges".equals(cfaEdge.getDescription());
+              || "skipped unnecessary edges".equals(cfaEdge.getDescription())
+              || ErrorPathClassifier.SUFFIX_REPLACEMENT.equals(cfaEdge.getDescription());
 
       // clone state, because will be changed through removing all variables of current function's scope
       state = ValueAnalysisState.copyOf(state);
