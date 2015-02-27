@@ -34,7 +34,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -64,21 +66,29 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
   private class ExtendedNodeSelectionARGPass extends NodeSelectionARGPass {
 
     private final Precision precision;
+    private final boolean handlePredicateStates;
 
     public ExtendedNodeSelectionARGPass(final Precision pRootPrecision, final ARGState pRoot) {
       super(pRoot);
       precision = pRootPrecision;
+      handlePredicateStates = AbstractStates.extractStateByType(pRoot, PredicateAbstractState.class) != null;
     }
 
     @Override
     protected boolean isToAdd(final ARGState pNode) {
       boolean isToAdd = super.isToAdd(pNode);
-      if (!isToAdd && !pNode.isCovered()) {
-        for (ARGState parent : pNode.getParents()) {
-          if (!isTransferSuccessor(parent, pNode)) {
-            isToAdd = true;
+      if (!isToAdd) {
+        if (handlePredicateStates) {
+          isToAdd = isPredicateAbstractionState(pNode);
+        } else {
+          if (!pNode.isCovered()) {
+            for (ARGState parent : pNode.getParents()) {
+              if (!isTransferSuccessor(parent, pNode)) {
+                isToAdd = true;
+              }
+              break;
+            }
           }
-          break;
         }
       }
       return isToAdd;
@@ -104,6 +114,10 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
       } catch (InterruptedException | CPAException e) {
       }
       return false;
+    }
+
+    private boolean isPredicateAbstractionState(ARGState pChild) {
+      return AbstractStates.extractStateByType(pChild, PredicateAbstractState.class).isAbstractionState();
     }
 
   }
