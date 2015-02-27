@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -122,9 +121,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   @Option(secure=true, description="prefixPreference")
   private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DEFAULT;
-
-  @Option(secure=true, description="prefixProvider")
-  private String prefixProvider = "SMT";
 
   Configuration config;
 
@@ -310,9 +306,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private ARGPath performRefinementSelection(ARGPath allStatesTrace) throws CPAException, InterruptedException {
     try {
 
-      PrefixProvider provider = (prefixProvider.equals("SMT"))
-          ? new PredicateBasedPrefixProvider(logger, solver, pfmgr)
-          : new ValueAnalysisFeasibilityChecker(logger, cfa, config);
+      PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
 
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(),
           cfa.getLoopStructure());
@@ -321,7 +315,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
           allStatesTrace,
           provider.getInfeasilbePrefixes(allStatesTrace));
     } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
+      throw new CPAException("Configuring ErrorPathClassifier failed: " + e.getMessage(), e);
     }
     return allStatesTrace;
   }
