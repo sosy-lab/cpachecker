@@ -40,15 +40,16 @@ public class AutomatonStateExchanger {
     nameToCPA = Maps.newHashMap();
   }
 
-  public boolean registerAutomaton(final ControlAutomatonCPA pAutomatonCPA) {
-    final String prefix = pAutomatonCPA.getAutomaton().getName() + "::";
+  public boolean registerAutomaton(final AutomatonState pStateOfAutomata) {
+    ControlAutomatonCPA automatonCPA = pStateOfAutomata.getAutomatonCPA();
+    final String prefix = automatonCPA.getAutomaton().getName() + "::";
     String qualifiedName;
 
-    if (nameToCPA.put(pAutomatonCPA.getAutomaton().getName(), pAutomatonCPA) != null) {
+    if (nameToCPA.put(automatonCPA.getAutomaton().getName(), automatonCPA) != null) {
       return false;
     }
 
-    for (AutomatonInternalState internal : pAutomatonCPA.getAutomaton().getStates()) {
+    for (AutomatonInternalState internal : automatonCPA.getAutomaton().getStates()) {
       qualifiedName = prefix + internal.getName();
       if (qualifiedAutomatonStateNameToInternalState.put(qualifiedName, internal) != null) {
         return false;

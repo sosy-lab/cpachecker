@@ -47,13 +47,11 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -61,14 +59,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateExchanger;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -94,13 +90,6 @@ public class PartialARGsCombiner implements Algorithm {
     config = pConfig;
 
     stateReplace = new AutomatonStateExchanger();
-
-    try {
-      saveAutomatonStatesByName(new CPABuilder(config, logger, shutdown, new ReachedSetFactory(config, logger)).
-                            buildCPAWithSpecAutomatas(pCfa));
-    } catch (CPAException e) {
-      throw new InvalidConfigurationException("Cannot set up ARG combiner, do not get automata", e);
-    }
   }
 
   @Override
@@ -169,20 +158,6 @@ public class PartialARGsCombiner implements Algorithm {
       return false;
     }
 
-    return true;
-  }
-
-  private boolean saveAutomatonStatesByName(final ConfigurableProgramAnalysis pSpecs)
-      throws InvalidConfigurationException {
-    for (ConfigurableProgramAnalysis cpa : CPAs.asIterable(pSpecs)) {
-      if (cpa instanceof ControlAutomatonCPA) {
-        if (!stateReplace.registerAutomaton((ControlAutomatonCPA) cpa)) {
-          logger.log(Level.SEVERE, "Property specification, given by automata specification, is ambigous.");
-          throw new InvalidConfigurationException(
-              "Ambigious property specification,  automata specification contains automata with same name or same state names");
-        }
-      }
-    }
     return true;
   }
 
@@ -324,6 +299,7 @@ public class PartialARGsCombiner implements Algorithm {
       }
     }
 
+    // assume root is the root node of the first ARG constructed
     ARGState root = rootNodes.iterator().next();
 
     if (root.getWrappedState() instanceof AbstractWrapperState) {
@@ -340,6 +316,11 @@ public class PartialARGsCombiner implements Algorithm {
         assert (initialState.size() == nextId);
 
         stateToPos.put(name, nextId);
+        if (!stateReplace.registerAutomaton((AutomatonState) innerWrapped)) {
+          logger.log(Level.SEVERE, "Property specification, given by automata specification, is ambigous.");
+          throw new CPAException(
+              "Ambigious property specification,  automata specification contains automata with same name or same state names");
+        }
         initialState.add(stateReplace.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
         nextId++;
       }
