@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -67,14 +66,20 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   private IdentifierAssignment definiteAssignment = new IdentifierAssignment();
 
   /**
-   * Stores whether the constraints stored in this state have changed in the last transfer
+   * Creates a new, initial <code>ConstraintsState</code> object.
    */
-  private boolean constraintsHaveChanged;
+  public ConstraintsState() {
+    constraints = new HashSet<>();
+  }
 
   /**
-   * Creates a new <code>ConstraintsState</code> shallow copy of the given <code>ConstraintsState</code>.
+   * Creates a new <code>ConstraintsState</code> copy of the given <code>ConstraintsState</code>.
+   * The returned copy will use the same references to {@link Solver} and {@link ProverEnvironment}
+   * currently stored in the given state.
+   * To use new ones, {@link #initialize(Solver, FormulaManagerView, FormulaCreator)} may be
+   * called on the returned state.
    *
-   * This constructor is used by {@link #copyOf()}.
+   * <p>This constructor should only be used by {@link #copyOf()} and subtypes of this class.</p>
    *
    * @param pState the state to copy
    */
@@ -85,15 +90,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     formulaCreator = pState.formulaCreator;
     formulaManager = pState.formulaManager;
 
-    constraintsHaveChanged = pState.constraintsHaveChanged;
     definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
-  }
-
-  /**
-   * Creates a new, initial <code>ConstraintsState</code> object.
-   */
-  public ConstraintsState() {
-    constraints = new HashSet<>();
   }
 
   @Override
@@ -103,10 +100,13 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
 
   /**
    * Returns a new copy of the given <code>ConstraintsState</code> object.
+   * The returned state is always uninitialized.
    *
    * @return a new copy of the given <code>ConstraintsState</code> object
+   * @see #isInitialized()
+   * @see #initialize(Solver, FormulaManagerView, FormulaCreator)
    */
-  // We use a method here so subtypes can override it, in constrast to a public copy constructor
+  // We use a method here so subtypes can override it, in contrast to a public copy constructor
   public ConstraintsState copyOf() {
     return new ConstraintsState(this);
   }
@@ -178,55 +178,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   @Override
   public boolean add(Constraint pConstraint) {
     checkNotNull(pConstraint);
-    boolean setHasChanged = super.add(pConstraint);
-
-    constraintsHaveChanged |= setHasChanged;
-
-    return setHasChanged;
-  }
-
-  @Override
-  public void clear() {
-    if (!isEmpty()) {
-      constraintsHaveChanged = true;
-    }
-    super.clear();
-  }
-
-  @Override
-  public boolean remove(Object pObj) {
-    boolean setHasChanged = super.remove(pObj);
-
-    constraintsHaveChanged |= setHasChanged;
-
-    return setHasChanged;
-  }
-
-  @Override
-  public boolean addAll(Collection<? extends Constraint> pConstraintsToAdd) {
-    boolean setHasChanged = super.addAll(pConstraintsToAdd);
-
-    constraintsHaveChanged |= setHasChanged;
-
-    return setHasChanged;
-  }
-
-  @Override
-  public boolean removeAll(Collection<?> pObjectsToRemove) {
-    boolean setHasChanged = super.removeAll(pObjectsToRemove);
-
-    constraintsHaveChanged |= setHasChanged;
-
-    return setHasChanged;
-  }
-
-  @Override
-  public boolean retainAll(Collection<?> pObjectsToRetain) {
-    boolean setHasChanged = super.retainAll(pObjectsToRetain);
-
-    constraintsHaveChanged |= setHasChanged;
-
-    return setHasChanged;
+    return super.add(pConstraint);
   }
 
   /**
@@ -282,8 +234,6 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
         } else {
           definiteAssignment = null;
         }
-
-        constraintsHaveChanged = false;
 
       }
     } finally {
