@@ -352,7 +352,7 @@ public class ErrorPathClassifier {
     // append the (feasible) suffix
     for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
       // keep the original target ...
-      if(element.getFirst().isTarget() || element.getSecond().getEdgeType() == CFAEdgeType.MultiEdge) {
+      if(element.getFirst().isTarget()) {
         errorPath.add(element);
       }
 
