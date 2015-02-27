@@ -25,11 +25,8 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -90,30 +87,34 @@ public class Types {
   private static boolean canHoldAllValues(CSimpleType pHoldingType, CSimpleType pInnerType, MachineModel pMachineModel) {
     final boolean isHoldingTypeSigned = pMachineModel.isSigned(pHoldingType);
     final boolean isInnerTypeSigned = pMachineModel.isSigned(pInnerType);
+    final boolean isHoldingTypeFloat = pHoldingType.getType().isFloatingPointType();
+    final boolean isInnerTypeFloat = pInnerType.getType().isFloatingPointType();
 
     if (isInnerTypeSigned && !isHoldingTypeSigned) {
       return false;
-    }
-
-    BigInteger maxHoldingValue = pMachineModel.getMaximalIntegerValue(pHoldingType);
-    BigInteger maxInnerValue = pMachineModel.getMaximalIntegerValue(pInnerType);
-
-    if (maxHoldingValue.compareTo(maxInnerValue) < 0) {
+    } else if (isInnerTypeFloat && !isHoldingTypeFloat) {
       return false;
     }
 
-    BigInteger minHoldingValue = pMachineModel.getMinimalIntegerValue(pHoldingType);
-    BigInteger minInnerValue = pMachineModel.getMinimalIntegerValue(pInnerType);
+    int holdingBitSize = pMachineModel.getSizeof(pHoldingType) * pMachineModel.getSizeofCharInBits();
+    int innerBitSize = pMachineModel.getSizeof(pInnerType) * pMachineModel.getSizeofCharInBits();
 
-    if (minHoldingValue.compareTo(minInnerValue) > 0) {
+    if (innerBitSize > holdingBitSize) {
       return false;
     }
 
-    CBasicType holdingType = pHoldingType.getType();
-    CBasicType innerType = pInnerType.getType();
+    // if inner type is not signed, but holding type is, add a relevant bit to the inner type
+    // (adding one to both/removing the sign bit for both does not change anything, so we only
+    // change the bits in this case)
+    if (isHoldingTypeSigned && !isInnerTypeSigned) {
+      innerBitSize++;
+    }
 
-    // if inner type is float, holding type has to be float
-    return !innerType.isFloatingPointType() || holdingType.isFloatingPointType();
+    if (isHoldingTypeFloat && !isInnerTypeFloat) {
+      holdingBitSize = holdingBitSize / 2;
+    }
+
+    return holdingBitSize >= innerBitSize;
   }
 
   /**
