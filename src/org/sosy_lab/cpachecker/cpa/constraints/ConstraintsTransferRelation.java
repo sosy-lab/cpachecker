@@ -170,17 +170,13 @@ public class ConstraintsTransferRelation
       FileLocation pFileLocation)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
-    ConstraintsState newState = pOldState.copyOf();
-
-    newState.initialize(solver, formulaManager, getFormulaCreator(pValueState, pFunctionName));
-
     // assume edges with integer literals are created by statements like __VERIFIER_assume(0);
     // We do not have to create a constraints out of these, as they are always trivial.
     if (pExpression instanceof CIntegerLiteralExpression) {
       BigInteger valueAsInt = ((CIntegerLiteralExpression) pExpression).getValue();
 
       if (pTruthAssumption == valueAsInt.equals(BigInteger.ONE)) {
-        return newState;
+        return pOldState.copyOf();
       } else {
         return null;
       }
@@ -197,6 +193,8 @@ public class ConstraintsTransferRelation
 
     Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
     ConstraintsState newState = pOldState.copyOf();
+
+    newState.initialize(solver, formulaManager, getFormulaCreator(pValueState, pFunctionName));
 
     if (newConstraint.isPresent()) {
       newState.add(newConstraint.get());
