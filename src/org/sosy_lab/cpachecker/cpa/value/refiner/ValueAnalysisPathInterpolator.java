@@ -336,7 +336,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       totalPrefixes.setNextValue(prefixes.size());
 
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
-      errorPath = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
+      errorPath = classifier.obtainSlicedPrefix(prefixPreference, errorPath, prefixes);
 
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);

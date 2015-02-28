@@ -216,7 +216,6 @@ class ASTConverter {
   // more than one file (which get parsed with different AstConverters, although
   // they are in the same run) unique
   private static int anonTypeCounter = 0;
-  private static int anonTypeMemberCounter = 0;
 
 
   private final Sideassignments sideAssignmentStack;
@@ -318,12 +317,12 @@ class ASTConverter {
   }
 
 
-  private CComplexTypeDeclaration addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
+  private void addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
     CComplexTypeDeclaration decl = new CComplexTypeDeclaration(loc, scope.isGlobalScope(), type);
 
-    scope.registerTypeDeclaration(decl);
-    sideAssignmentStack.addPreSideAssignment(decl);
-    return decl;
+    if (scope.registerTypeDeclaration(decl)) {
+      sideAssignmentStack.addPreSideAssignment(decl);
+    }
   }
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
@@ -438,8 +437,18 @@ class ASTConverter {
       return convertExpressionWithSideEffects(e.getNegativeResultExpression());
     case NORMAL:
       CIdExpression tmp = createTemporaryVariable(e);
-      sideAssignmentStack.addConditionalExpression(e, tmp);
-      return tmp;
+
+      // this means the return value (if there could be one) of the conditional
+      // expression is not used
+      if (tmp.getExpressionType() instanceof CVoidType) {
+        sideAssignmentStack.addConditionalExpression(e, null);
+        // TODO we should not return a variable here, however null cannot be returned
+        // perhaps we need a dummyexpression here
+        return CIntegerLiteralExpression.ZERO;
+      } else {
+        sideAssignmentStack.addConditionalExpression(e, tmp);
+        return tmp;
+      }
     default:
       throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
@@ -573,7 +582,12 @@ class ASTConverter {
 //            "Cannot create temporary variable for expression with type void",
 //            e, niceFileNameFunction);
       }
+
+      // workaround for strange CDT behaviour
+    } else if (type instanceof CProblemType && e instanceof IASTConditionalExpression) {
+      type = typeConverter.convert(((IASTConditionalExpression)e).getNegativeResultExpression().getExpressionType());
     }
+
     return createInitializedTemporaryVariable(
         getLocation(e), type, (CInitializer)null);
   }
@@ -1371,6 +1385,9 @@ class ASTConverter {
     } else if (node instanceof CExpression) {
       return new CExpressionStatement(getLocation(e), (CExpression)node);
 
+    } else if (node == null) {
+      return null;
+
     } else {
       throw new AssertionError();
     }
@@ -1505,7 +1522,7 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Typedef with initializer", d, niceFileNameFunction);
         }
-        return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
+        return new CTypeDefDeclaration(fileLoc, isGlobal, type, scope.getRenamedTypeName(name), scope.getRenamedTypeName(scope.createScopedNameOf(name)));
       }
 
       // We need to resolve typedefs, but we cannot call getCanonicalType()
@@ -1581,7 +1598,7 @@ class ASTConverter {
 
   }
 
-  private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final IASTDeclaration d) {
+  private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final IASTDeclaration d, int nofMember) {
     if (d instanceof IASTProblemDeclaration) {
       throw new CFAGenerationRuntimeException((IASTProblemDeclaration)d, niceFileNameFunction);
     }
@@ -1609,25 +1626,25 @@ class ASTConverter {
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, null);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, null, nofMember);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, declarators[0]);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, declarators[0], nofMember);
       result = Collections.singletonList(newD);
 
     } else {
       result = new ArrayList<>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
-        result.add(createDeclarationForCompositeType(type, c));
+        result.add(createDeclarationForCompositeType(type, c, nofMember));
       }
     }
 
     return result;
   }
 
-  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CType type, IASTDeclarator d) {
+  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CType type, IASTDeclarator d, int nofMember) {
     String name = null;
 
     if (d != null) {
@@ -1643,7 +1660,7 @@ class ASTConverter {
     }
 
     if (name == null) {
-      name = "__anon_type_member_" + anonTypeMemberCounter++;
+      name = "__anon_type_member_" + nofMember;
     }
 
     return new CCompositeTypeMemberDeclaration(type, name);
@@ -1902,8 +1919,10 @@ class ASTConverter {
   private CCompositeType convert(IASTCompositeTypeSpecifier d) {
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(d.getMembers().length);
 
+    int nofMember = 0;
     for (IASTDeclaration c : d.getMembers()) {
-      List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c);
+      List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c, nofMember);
+      nofMember++;
       assert !newCs.isEmpty();
       list.addAll(newCs);
     }
@@ -1940,7 +1959,7 @@ class ASTConverter {
 
     // in cases like struct s { (struct s)* f }
     // we need to fill in the binding from the inner "struct s" type to the outer
-    compositeType.accept(new FillInBindingVisitor(kind, name, compositeType));
+    compositeType.accept(new FillInBindingVisitor(kind, scope.getRenamedTypeName(name), compositeType));
     return compositeType;
   }
 

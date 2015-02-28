@@ -964,7 +964,13 @@ class CFAFunctionBuilder extends ASTVisitor {
       String rawSignature = expression.getRawSignature();
       final CStatement stmt = astCreator.convertExpressionToStatement(expression);
 
-      prevNode = handleAllSideEffects(prevNode, fileLocation, rawSignature, true);
+      // this is just a placeholder signalising that the sideeffects do not
+      // need to have a return value
+      if (stmt instanceof CExpressionStatement && ((CExpressionStatement)stmt).getExpression() == CIntegerLiteralExpression.ZERO) {
+        return handleAllSideEffects(prevNode, fileLocation, rawSignature, false);
+      } else {
+        prevNode = handleAllSideEffects(prevNode, fileLocation, rawSignature, true);
+      }
 
       stmt.accept(checkBinding);
       if (lastNode == null) {

@@ -98,6 +98,10 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
+# combine (partial) ARGs obtained by restarts of the analysis after an
+# unknown result with a different configuration
+analysis.combineARGsAfterRestart = false
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -1228,9 +1232,6 @@ cpa.predicate.refinement.prefixPreference = DEFAULT
   enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
              DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
              DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
-
-# prefixProvider
-cpa.predicate.refinement.prefixProvider = "SMT"
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.

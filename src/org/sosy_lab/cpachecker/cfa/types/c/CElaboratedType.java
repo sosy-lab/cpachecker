@@ -33,7 +33,7 @@ public final class CElaboratedType implements CComplexType, Serializable {
 
   private static final long serialVersionUID = -3566628634889842927L;
   private final ComplexTypeKind kind;
-  private final String name;
+  private String name;
   private final String origName;
   private final boolean isConst;
   private final boolean isVolatile;
@@ -97,8 +97,13 @@ public final class CElaboratedType implements CComplexType, Serializable {
     checkNotNull(pRealType);
     checkArgument(pRealType != this);
     checkArgument(pRealType.getKind() == kind);
-    checkArgument(pRealType.getName().equals(name));
+
+    // all elaborated types are renamed such that they only match on the struct
+    // name suffixed with the filename, when setting the realtype the name
+    // may change to be only the struct name without the suffix
+    checkArgument(name.contains(pRealType.getName()));
     realType = pRealType;
+    name = realType.getName();
   }
 
   @Override
@@ -171,6 +176,25 @@ public final class CElaboratedType implements CComplexType, Serializable {
 
     return isConst == other.isConst && isVolatile == other.isVolatile
            && kind == other.kind && Objects.equals(name, other.name)
+           && Objects.equals(realType, other.realType);
+  }
+
+  @Override
+  public boolean equalsWithOrigName(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CElaboratedType)) {
+      return false;
+    }
+
+    CElaboratedType other = (CElaboratedType) obj;
+
+    return isConst == other.isConst
+           && isVolatile == other.isVolatile
+           && kind == other.kind
+           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
            && Objects.equals(realType, other.realType);
   }
 

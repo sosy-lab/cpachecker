@@ -424,6 +424,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
    return vars;
   }
 
+  ControlAutomatonCPA getAutomatonCPA() {
+    return automatonCPA;
+  }
+
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(internalState.getStateId());

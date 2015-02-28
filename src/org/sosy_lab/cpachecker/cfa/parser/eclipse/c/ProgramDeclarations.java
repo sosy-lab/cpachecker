@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Verify.verify;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,6 +117,37 @@ public class ProgramDeclarations {
 
   public boolean variableNameInUse(String name) {
     return globalVars.containsKey(name);
+  }
+
+  /**
+   * This method looks up a type that is matching a certain typeName. If no type
+   * can be found the origName is taken into consideration and a type that is not
+   * exactly matching the typeName will be returned if found.
+   *
+   * @param typeName the exact typeName that should be found
+   * @param origName the origName that is ok to be found if no exact match occured before
+   * @return
+   */
+  public CComplexType lookupType(String typeName, String origName) {
+    CComplexTypeDeclaration returnType = types.get(typeName);
+
+    // exact matching type found, just return it
+    if (returnType != null) {
+      return returnType.getType();
+
+      // no exact matching type found, search for origName equivalents
+    } else {
+      Collection<String> typeNames = origNamesToQualifiedNames.get(origName);
+      for (String name : typeNames) {
+        returnType = types.get(name);
+        if (returnType != null) {
+          return returnType.getType();
+        }
+      }
+    }
+
+    // no matching type could be found
+    return null;
   }
 
   public boolean containsTypeWithExactName(String typeName) {

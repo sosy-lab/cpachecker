@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import static com.google.common.collect.Iterables.skip;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -64,8 +62,8 @@ public class ErrorPathClassifier {
 
   private static final int MAX_PREFIX_LENGTH = 1000;
 
+  public static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this edge in suffix";
   private static final String PREFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in prefix";
-  private static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in suffix";
   private static final String INBTWN_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge inbetween";
 
   private static int invocationCounter = 0;
@@ -161,7 +159,7 @@ public class ErrorPathClassifier {
     loopStructure   = pLoopStructure;
   }
 
-  public ARGPath obtainPrefix(ErrorPathPrefixPreference preference,
+  public ARGPath obtainSlicedPrefix(ErrorPathPrefixPreference preference,
       ARGPath errorPath,
       List<ARGPath> pPrefixes) {
 
@@ -351,20 +349,20 @@ public class ErrorPathClassifier {
       }
     }
 
-    // append the feasible suffix; nevertheless, replace assume edges, because they
-    // might contradict in other domains, e.g. for octagons, or predicate analysis
-    for(Pair<ARGState, CFAEdge> element : skip(pathToList(originalErrorPath), errorPath.size())) {
-      if(element.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge
-          && element.getFirst() != originalErrorPath.getLastState()) {
+    // append the (feasible) suffix
+    for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
+      // keep the original target ...
+      if(element.getFirst().isTarget()) {
+        errorPath.add(element);
+      }
+
+      // ... while replacing each transition by a no-op (should make, e.g., interpolation simpler/faster)
+      else {
         errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
             FileLocation.DUMMY,
             element.getSecond().getPredecessor(),
             element.getSecond().getSuccessor(),
             SUFFIX_REPLACEMENT)));
-      }
-
-      else {
-        errorPath.add(element);
       }
     }
 

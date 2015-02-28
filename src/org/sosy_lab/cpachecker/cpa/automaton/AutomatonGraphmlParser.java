@@ -210,8 +210,7 @@ public class AutomatonGraphmlParser {
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
         final List<AutomatonBoolExpr> assertions;
-        if (!targetNodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(targetStateId).isEmpty()
-            || targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
+        if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
           AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
           assertions = Collections.singletonList(otherAutomataSafe);
         } else {
@@ -412,7 +411,7 @@ public class AutomatonGraphmlParser {
           transitions = new ArrayList<>();
         }
 
-        if (!nodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(stateId).isEmpty()) {
+        if (nodeFlags.contains(NodeFlag.ISVIOLATION)) {
           AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
           List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
           transitions.add(
