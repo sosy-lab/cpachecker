@@ -363,13 +363,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       // we expect left hand side of the expression to be a variable
 
+      boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
+
       if (op1 instanceof CLeftHandSide) {
         ExpressionValueVisitor v =
             new ExpressionValueVisitor(state, callerFunctionName,
                 machineModel, logger, symbolicValues);
         MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
-
-        boolean valueExists = state.contains(functionReturnVar);
 
         if (assignedVarName == null) {
           if (v.hasMissingPointer() && valueExists) {
@@ -386,7 +386,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       } else if (op1 instanceof AIdExpression) {
         String assignedVarName = ((AIdExpression) op1).getDeclaration().getQualifiedName();
 
-        if (!state.contains(functionReturnVar)) {
+        if (!valueExists) {
           newElement.forget(assignedVarName);
         } else if (op1 instanceof JIdExpression && isDynamicField((JIdExpression)op1)) {
           missingScopedFieldName = true;
@@ -404,7 +404,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         Value newValue = UnknownValue.getInstance();
         JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
 
-        if (state.contains(functionReturnVar)) {
+        if (valueExists) {
           newValue = state.getValueFor(functionReturnVar);
         }
 
