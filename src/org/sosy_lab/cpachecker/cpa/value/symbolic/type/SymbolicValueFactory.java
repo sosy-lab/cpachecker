@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Types;
 
@@ -82,17 +81,18 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression minus(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pType, Type pCalculationType) {
-    return new AdditionExpression(pOperand1, negate(pOperand2, pOperand2.getType()), getCanonicalType(pType), getCanonicalType(pCalculationType));
+    Type canonicalCalcType = getCanonicalType(pType);
+
+    // use the calculation type of the binary expression as expression type of the negation
+    // - the produced value will always fit in this one
+    SymbolicExpression negatedRightOperand = negate(pOperand2, canonicalCalcType);
+    return new AdditionExpression(pOperand1, negatedRightOperand, getCanonicalType(pType), canonicalCalcType);
   }
 
 
   public SymbolicExpression negate(SymbolicExpression pFormula, Type pType) {
     checkNotNull(pFormula);
     return new NegationExpression(pFormula, pType);
-  }
-
-  private SymbolicExpression getMinusOne(Type pType) {
-    return asConstant(new NumericValue(-1L), pType);
   }
 
   public SymbolicExpression divide(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
