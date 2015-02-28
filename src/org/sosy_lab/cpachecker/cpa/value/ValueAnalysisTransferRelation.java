@@ -128,7 +128,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -495,8 +494,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
-
-      assert !(value instanceof SymbolicValueFormula);
 
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue, booleanVariables);
 
