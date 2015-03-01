@@ -103,8 +103,14 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
         integerValue = (BigInteger) termAssignment;
 
       } else if (termAssignment instanceof BigDecimal) {
-          decimalValue = (BigDecimal) termAssignment;
+        decimalValue = (BigDecimal) termAssignment;
 
+      } else if (termAssignment instanceof Float) {
+        decimalValue = BigDecimal.valueOf((float) termAssignment);
+
+      } else if (termAssignment instanceof Double) {
+        decimalValue = BigDecimal.valueOf((double) termAssignment);
+        
       } else {
         throw new AssertionError("Unhandled assignment number " + termAssignment);
       }
