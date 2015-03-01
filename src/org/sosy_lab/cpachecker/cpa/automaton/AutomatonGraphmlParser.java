@@ -258,23 +258,25 @@ public class AutomatonGraphmlParser {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
           Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
           Preconditions.checkArgument(assumptionScopes.size() < 2, "At most one assumption scope must be provided for an edge.");
-          Scope scope = this.scope;
-          if (scope instanceof CProgramScope
-              && (!assumptionScopes.isEmpty() || !newStack.isEmpty())) {
-            final String functionName;
-            if (!assumptionScopes.isEmpty()) {
-              functionName = assumptionScopes.iterator().next();
-            } else {
-              functionName = newStack.peek();
+          if (!transAssumes.isEmpty()) {
+            Scope scope = this.scope;
+            if (scope instanceof CProgramScope
+                && (!assumptionScopes.isEmpty() || !newStack.isEmpty())) {
+              final String functionName;
+              if (!assumptionScopes.isEmpty()) {
+                functionName = assumptionScopes.iterator().next();
+              } else {
+                functionName = newStack.peek();
+              }
+              scope = ((CProgramScope) scope).createFunctionScope(functionName);
             }
-            scope = ((CProgramScope) scope).createFunctionScope(functionName);
-          }
-          for (String assumeCode : transAssumes) {
-            assumptions.addAll(removeDuplicates(adjustCharAssignments(
-                AutomatonASTComparator.generateSourceASTOfBlock(
-                    tryFixArrayInitializers(assumeCode),
-                    cparser,
-                    scope))));
+            for (String assumeCode : transAssumes) {
+              assumptions.addAll(removeDuplicates(adjustCharAssignments(
+                  AutomatonASTComparator.generateSourceASTOfBlock(
+                      tryFixArrayInitializers(assumeCode),
+                      cparser,
+                      scope))));
+            }
           }
         }
 
@@ -349,6 +351,7 @@ public class AutomatonGraphmlParser {
               and(not(conjunctedTriggers),
                   not(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE)),
               assertions,
+              Collections.<CStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
               sourceStateId));
         } else {
@@ -357,6 +360,7 @@ public class AutomatonGraphmlParser {
           nonMatchingTransitions.add(createAutomatonTransition(
               not(conjunctedTriggers),
               assertions,
+              Collections.<CStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
               sourceStateId));
         }
@@ -384,7 +388,7 @@ public class AutomatonGraphmlParser {
         Collection<AutomatonTransition> matchingTransitions = new ArrayList<>();
 
         // If the triggers match, there must be one successor state that moves the automaton forwards
-        matchingTransitions.add(createAutomatonTransition(conjunctedTriggers, assertions, actions, targetStateId));
+        matchingTransitions.add(createAutomatonTransition(conjunctedTriggers, assertions, assumptions, actions, targetStateId));
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
@@ -393,6 +397,7 @@ public class AutomatonGraphmlParser {
               and(conjunctedTriggers,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
               assertions,
+              Collections.<CStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
               sourceStateId));
         }
@@ -418,6 +423,7 @@ public class AutomatonGraphmlParser {
               createAutomatonTransition(
                   AutomatonBoolExpr.TRUE,
                   assertions,
+                  Collections.<CStatement>emptyList(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId));
         }
@@ -471,6 +477,7 @@ public class AutomatonGraphmlParser {
   private static AutomatonTransition createAutomatonTransition(
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumptions,
       List<AutomatonAction> pActions,
       String pTargetStateId) {
     if (pTargetStateId.equals(AutomatonGraphmlCommon.SINK_NODE_ID)) {
@@ -479,6 +486,7 @@ public class AutomatonGraphmlParser {
     return new AutomatonTransition(
             pTriggers,
             pAssertions,
+            pAssumptions,
             pActions,
             pTargetStateId);
   }
