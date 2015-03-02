@@ -1475,11 +1475,25 @@ class ASTConverter {
       // struct, union, or enum declaration
       // split type definition from eventual variable declaration
       CComplexType complexType = (CComplexType)type;
-      CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType);
-      result.add(newD);
+
+      // in case of struct declarations with variable declarations we
+      // need to add the struct declaration as sideeffect, so that
+      // we can be sure the variable gets the correct (perhaps renamed) type
+      if (declarators.length > 0 && type instanceof CCompositeType) {
+        addSideEffectDeclarationForType((CCompositeType) complexType, fileLoc);
+        complexType = scope.lookupType(complexType.getQualifiedName());
+
+      } else {
+        result.add(new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType));
+      }
 
       // now replace type with an elaborated type referencing the new type
-      type = new CElaboratedType(type.isConst(), type.isVolatile(), complexType.getKind(), complexType.getName(), complexType.getOrigName(), newD.getType());
+      type = new CElaboratedType(type.isConst(),
+                                 type.isVolatile(),
+                                 complexType.getKind(),
+                                 complexType.getName(),
+                                 complexType.getOrigName(),
+                                 complexType);
 
     } else if (type instanceof CElaboratedType) {
       boolean typeAlreadyKnown = scope.lookupType(((CElaboratedType) type).getQualifiedName()) != null;
