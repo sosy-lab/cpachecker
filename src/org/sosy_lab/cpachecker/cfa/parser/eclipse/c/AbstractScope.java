@@ -111,4 +111,18 @@ abstract class AbstractScope implements Scope {
   public boolean isFileSpecificTypeName(String type) {
     return type.endsWith(SUFFIX_SEPARATOR + currentFile);
   }
+
+  /**
+   * This method removes the file specific part of a type name if there is one.
+   *
+   * @param type The type name where the original version should be found.
+   * @return The type name without the filename suffix.
+   */
+  public String removeFileSpecificPartOfTypeName(String type) {
+    if (isFileSpecificTypeName(type)) {
+      return type.replace(SUFFIX_SEPARATOR + currentFile, "");
+    } else {
+      return type;
+    }
+  }
 }
