@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -33,9 +34,16 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
@@ -48,7 +56,10 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
 public class ValueAnalysisEdgeInterpolator {
@@ -121,11 +132,11 @@ public class ValueAnalysisEdgeInterpolator {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
+    ValueAnalysisState initialState = pInputInterpolant.createValueAnalysisState();
 
     // TODO callstack-management depends on a forward-iteration on a single path.
     // TODO Thus interpolants have to be computed from front to end. Can we assure this?
-    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pCurrentEdge, callstack);
+    ValueAnalysisState initialSuccessor = getInitialSuccessor(initialState, pCurrentEdge, callstack);
 
     if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
@@ -156,7 +167,7 @@ public class ValueAnalysisEdgeInterpolator {
       return ValueAnalysisInterpolant.TRUE;
     }
 
-    for (MemoryLocation currentMemoryLocation : initialSuccessor.getTrackedMemoryLocations()) {
+    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(pCurrentEdge, initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate interpolant
@@ -169,6 +180,59 @@ public class ValueAnalysisEdgeInterpolator {
     }
 
     return initialSuccessor.createInterpolant();
+  }
+
+  /**
+   * This method determines those memory locations on which to interpolate.
+   *
+   * Basically, this is the intersection of memory locations that are contained in the candidate interpolant
+   * and are referenced in the current edge. Hence, all memory locations that are in the candidate interpolant
+   * but are not referenced in the current edge also end up in the final interpolant.
+   */
+  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final CFAEdge pCurrentEdge,
+      ValueAnalysisState candidateInterpolant) {
+    Set<MemoryLocation> variablesToInterpolateOn = new HashSet<>(candidateInterpolant.getTrackedMemoryLocations());
+    // no restriction done, interpolate on each variable in candidate interpolant
+    // variablesToInterpolateOn.retainAll(obtainMemoryLocationsReferencedInEdge(pCurrentEdge));
+
+    return variablesToInterpolateOn;
+  }
+
+  /**
+   * This method returns all memory locations that are referenced in the given edge.
+   */
+  private Set<MemoryLocation> obtainMemoryLocationsReferencedInEdge(CFAEdge edge) {
+    Set<String> variablesInEdge = SourceLocationMapper.getEdgeVariableNames(edge);
+
+    Set<MemoryLocation> memoryLocationsInEdge = new HashSet<>(FluentIterable.from(variablesInEdge)
+        .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
+
+    // last edge of a multi-edge could be a return-statement edge, so unpack last edge
+    if(edge instanceof MultiEdge) {
+      edge = Iterables.getLast(((MultiEdge)edge).getEdges());
+    }
+
+    // also add parameters to referenced variables, because they are assigned
+    // by the transfer relation when function call edges are handled
+    if (edge instanceof CFunctionCallEdge) {
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
+      for(AParameterDeclaration parameterDeclaration: functionCallEdge.getSuccessor().getFunctionParameters()) {
+        memoryLocationsInEdge.add(MemoryLocation.valueOf(parameterDeclaration.getQualifiedName()));
+      }
+    }
+
+    // also add special return variable (fn::__retval__) to set of referenced variables
+    else if (edge instanceof CReturnStatementEdge) {
+      CReturnStatementEdge returnStatementEdge = ((CReturnStatementEdge) edge);
+      Optional<CExpression> expression = returnStatementEdge.getExpression();
+      if(expression.isPresent()) {
+        for(CIdExpression id : returnStatementEdge.asAssignment().get().accept(new CIdExpressionCollectingVisitor())) {
+          memoryLocationsInEdge.add(MemoryLocation.valueOf(id.getDeclaration().getQualifiedName()));
+        }
+      }
+    }
+
+    return memoryLocationsInEdge;
   }
 
   /**
