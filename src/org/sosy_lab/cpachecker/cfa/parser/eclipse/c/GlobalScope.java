@@ -218,37 +218,38 @@ class GlobalScope extends AbstractScope {
   @Override
   public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
     CComplexType type = declaration.getType();
+    String name = type.getQualifiedName();
+    boolean isOnlyElaboratedType = type.getCanonicalType() instanceof CElaboratedType;
 
+    // This is an unnamed type like "enum { e }". We ignore it.
     if (type.getName().isEmpty()) {
-      // This is an unnamed type like "enum { e }".
-      // We ignore it.
       return true;
-    }
 
-    if (type.getCanonicalType() instanceof CElaboratedType) {
-      // we only store elaborated types that are renamed (they have the filename, appended to their usual name)
+      // This is an elaborated type like "struct s__filename;" We check that it has the
+      // proper name (the filename suffix)
+      // if there is already a type with this name (or the not file specific version
+      // registered we can quit here.
+    } else if (isOnlyElaboratedType) {
       assert isFileSpecificTypeName(type.getName()) : "The type should have the correct name before registering it.";
 
       // the current declaration just re-declares an existing type
-      if (types.containsKey(declaration.getType().getQualifiedName())) {
+      if (types.containsKey(name) || types.containsKey(removeFileSpecificPartOfTypeName(name))) {
         return false;
       }
     }
 
-    String name = type.getQualifiedName();
-
-    boolean isOnlyElaboratedType = type.getCanonicalType() instanceof CElaboratedType;
     boolean programContainsEqualType = !isOnlyElaboratedType && programDeclarations.containsEqualType(declaration);
     boolean programContainsExactNamedType = !isOnlyElaboratedType && programDeclarations.containsTypeWithExactName(name);
 
-    // when entering this if clause we know that the curent type is not an elaborated
+    // when entering this if clause we know that the current type is not an elaborated
     // type, as this would have been captured in the if clause above, thus it was
     // not renamed before, however if there is a former elaborated type it was
     // renamed, thus we have to search for the renamed name in the types map
     if (types.containsKey(getFileSpecificTypeName(name))) {
       assert !(type.getCanonicalType() instanceof CElaboratedType);
+      String fileSpecificTypeName = getFileSpecificTypeName(name);
 
-      CComplexTypeDeclaration oldDeclaration = types.get(getFileSpecificTypeName(name));
+      CComplexTypeDeclaration oldDeclaration = types.get(fileSpecificTypeName);
       CComplexType oldType = oldDeclaration.getType();
 
       // the old type is already complete and the new type is also a complete
@@ -266,6 +267,9 @@ class GlobalScope extends AbstractScope {
         CComplexTypeDeclaration oldProgDeclaration = programDeclarations.getEqualType(declaration);
         overwriteTypeIfNecessary(type, oldProgDeclaration.getType());
         type = oldProgDeclaration.getType();
+
+      // there was already a declaration with this typename before, however
+      // the types do not match so we need to rename the type for this file
       } else if (programContainsExactNamedType) {
         declaration = createRenamedTypeDeclaration(declaration);
         name = declaration.getType().getQualifiedName();
@@ -276,7 +280,7 @@ class GlobalScope extends AbstractScope {
       // declaration. We set a reference to the full type in the old type he types
       // map with the full type. But only if this was not done before
       ((CElaboratedType)oldType).setRealType(type);
-      types.remove(getFileSpecificTypeName(name));
+      types.remove(fileSpecificTypeName);
 
       // there was no former type declaration here, but the TYPE that should
       // be declared is already known from another parsed file, so we take
