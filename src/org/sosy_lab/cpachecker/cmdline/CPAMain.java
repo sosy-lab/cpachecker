@@ -46,11 +46,14 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
+import org.sosy_lab.cpachecker.core.AnalysisNotifier;
+import org.sosy_lab.cpachecker.core.AnalysisNotifier.AnalysisListener;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
+import org.sosy_lab.cpachecker.util.mav.ConditionalMAVListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
@@ -93,6 +96,7 @@ public class CPAMain {
 
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    AnalysisNotifier analysisNotifier = AnalysisNotifier.getInstance();
     CPAchecker cpachecker = null;
     ProofGenerator proofGenerator = null;
     ResourceLimitChecker limits = null;
@@ -103,6 +107,11 @@ public class CPAMain {
         throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
+
+      if (options.multiAspectVerification) {
+        AnalysisListener cmavListener = new ConditionalMAVListener(cpaConfig, logManager);
+        analysisNotifier.register(cmavListener);
+      }
 
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownNotifier);
       limits.start();
@@ -193,6 +202,11 @@ public class CPAMain {
 
     @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
+
+    @Option(name="analysis.multiAspectVerification",
+        description="use Multi-Aspect Verification")
+    private boolean multiAspectVerification = false;
+
   }
 
   private static void dumpConfiguration(MainOptions options, Configuration config,

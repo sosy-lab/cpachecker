@@ -82,6 +82,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   Timer totalStrengthenTime = new Timer();
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
+  private boolean disable = false;
+
+  public void disable() {
+    disable = true;
+  }
+
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
@@ -95,6 +101,10 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                       throws CPATransferException {
 
     Preconditions.checkArgument(pElement instanceof AutomatonState);
+
+    if(disable) {
+      return Collections.singleton(pElement);
+    }
 
     if (pElement instanceof AutomatonUnknownState) {
       // the last CFA edge could not be processed properly
@@ -297,6 +307,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           violatedPropertyDescription = t.getViolatedPropertyDescription(exprArgs);
         }
         AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches(), violatedPropertyDescription);
+        lSuccessor.setTransitionName(t.getName());
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
         } else {
@@ -344,4 +355,5 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return lSuccessors;
     }
   }
+
 }

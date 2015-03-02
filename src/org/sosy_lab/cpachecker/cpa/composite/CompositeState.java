@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -182,5 +183,17 @@ public class CompositeState implements AbstractWrapperState,
     public String toString() {
       return "[" + Joiner.on(", ").skipNulls().join(keys) + "]";
     }
+  }
+
+  @Override
+  public List<AbstractState> getTargetLeaves() {
+    List<AbstractState> result = new ArrayList<>();
+    for (AbstractState abstractState : states) {
+      if (abstractState instanceof Targetable && ((Targetable)abstractState).isTarget())
+      {
+        result.add(abstractState);
+      }
+    }
+    return result;
   }
 }

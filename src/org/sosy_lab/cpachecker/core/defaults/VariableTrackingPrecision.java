@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -58,7 +59,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
 
-public abstract class VariableTrackingPrecision implements Precision {
+public abstract class VariableTrackingPrecision implements Precision, AdjustablePrecision {
 
   /**
    * This method creates a precision which cannot be refined, all decisions about
@@ -74,6 +75,13 @@ public abstract class VariableTrackingPrecision implements Precision {
           throws InvalidConfigurationException {
     return new ConfigurablePrecision(config, vc, cpaClass);
   }
+
+  /**
+   * This method creates Precision by the given increment.
+   * @param pIncrement
+   * @return
+   */
+  public abstract VariableTrackingPrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> pIncrement);
 
   /**
    * This method creates a refinable precision. The baseline should usually be
@@ -365,6 +373,27 @@ public abstract class VariableTrackingPrecision implements Precision {
       return cpaClass;
     }
 
+    @Override
+    public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
+      return join((VariableTrackingPrecision) otherPrecision);
+    }
+
+    @Override
+    public boolean subtract(AdjustablePrecision pOtherPrecision) {
+      // Do nothing for Configurable Precision.
+      return false;
+    }
+
+    @Override
+    public VariableTrackingPrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> pIncrement) {
+      return this;
+    }
+
+    @Override
+    public void clear() {
+      // Do nothing for Configurable Precision.
+    }
+
   }
 
 
@@ -404,7 +433,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
-    private final ImmutableMultimap<CFANode, MemoryLocation> rawPrecision;
+    private ImmutableMultimap<CFANode, MemoryLocation> rawPrecision;
 
 
     private LocalizedRefinablePrecision(VariableTrackingPrecision pBaseline) {
@@ -452,6 +481,8 @@ public abstract class VariableTrackingPrecision implements Precision {
       return new LocalizedRefinablePrecision(super.baseline, ImmutableMultimap.copyOf(joinedPrec));
     }
 
+
+
     @Override
     public int getSize() {
       return rawPrecision.size();
@@ -472,6 +503,49 @@ public abstract class VariableTrackingPrecision implements Precision {
       return super.isTracking(pVariable, pType, pLocation)
               && rawPrecision.containsEntry(pLocation, pVariable);
     }
+
+    @Override
+    public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
+      return join((VariableTrackingPrecision) otherPrecision);
+    }
+
+    @Override
+    public boolean subtract(AdjustablePrecision otherPrecision) {
+      assert otherPrecision.getClass().equals(this.getClass());
+
+      Multimap<CFANode, MemoryLocation> newPrecision = TreeMultimap.create();
+      Multimap<CFANode, MemoryLocation> removeable = TreeMultimap.create(
+        ((VariableTrackingPrecision.LocalizedRefinablePrecision)otherPrecision).rawPrecision);
+
+      for (CFANode cfaNode: rawPrecision.keySet()) {
+        Collection<MemoryLocation> currentLocations = rawPrecision.get(cfaNode);
+        if (!(removeable.containsKey(cfaNode) &&
+          rawPrecision.get(cfaNode).equals(currentLocations)))
+        {
+          newPrecision.putAll(cfaNode, currentLocations);
+        }
+      }
+      rawPrecision = ImmutableMultimap.copyOf(newPrecision);
+      return false;
+    }
+
+    @Override
+    public LocalizedRefinablePrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> increment) {
+      if (this.rawPrecision.entries().containsAll(increment.entries())) {
+        return null;
+      } else {
+        // sorted multimap so that we have deterministic output
+        SetMultimap<CFANode, MemoryLocation> refinedPrec = TreeMultimap.create();
+        refinedPrec.putAll(increment);
+        return new LocalizedRefinablePrecision(super.baseline, ImmutableMultimap.copyOf(refinedPrec));
+      }
+    }
+
+    @Override
+    public void clear() {
+      rawPrecision = ImmutableMultimap.of();
+    }
+
   }
 
   public static class ScopedRefinablePrecision extends RefinablePrecision {
@@ -496,6 +570,18 @@ public abstract class VariableTrackingPrecision implements Precision {
         return this;
       } else {
         SortedSet<MemoryLocation> refinedPrec = new TreeSet<>(rawPrecision);
+        refinedPrec.addAll(increment.values());
+
+        return new ScopedRefinablePrecision(super.baseline, ImmutableSortedSet.copyOf(refinedPrec));
+      }
+    }
+
+    @Override
+    public ScopedRefinablePrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> increment) {
+      if (this.rawPrecision.containsAll(increment.values())) {
+        return null;
+      } else {
+        SortedSet<MemoryLocation> refinedPrec = new TreeSet<>();
         refinedPrec.addAll(increment.values());
 
         return new ScopedRefinablePrecision(super.baseline, ImmutableSortedSet.copyOf(refinedPrec));
@@ -537,6 +623,7 @@ public abstract class VariableTrackingPrecision implements Precision {
 
       SortedSet<MemoryLocation> joinedPrec = new TreeSet<>(rawPrecision);
       joinedPrec.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
+
       return new ScopedRefinablePrecision(super.baseline, ImmutableSortedSet.copyOf(joinedPrec));
     }
 
@@ -559,6 +646,34 @@ public abstract class VariableTrackingPrecision implements Precision {
     public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
       return super.isTracking(pVariable, pType, pLocation)
               && rawPrecision.contains(pVariable);
+    }
+
+    @Override
+    public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
+      return join((VariableTrackingPrecision) otherPrecision);
+    }
+
+    @Override
+    public boolean subtract(AdjustablePrecision otherPrecision) {
+      assert otherPrecision.getClass().equals(this.getClass());
+
+      Collection<MemoryLocation> newPrecision = new ArrayList<>();
+      Collection<MemoryLocation> removeable = ((VariableTrackingPrecision.ScopedRefinablePrecision)
+        otherPrecision).rawPrecision;
+      for (MemoryLocation memoryLocation : rawPrecision) {
+        if (!removeable.contains(memoryLocation))
+        {
+          newPrecision.add(memoryLocation);
+        }
+      }
+      rawPrecision = ImmutableSortedSet.copyOf(newPrecision);
+
+      return false;
+    }
+
+    @Override
+    public void clear() {
+      rawPrecision = ImmutableSortedSet.of();
     }
   }
 

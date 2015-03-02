@@ -114,6 +114,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
   private final String violatedPropertyDescription;
+  private String transitionName;
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
@@ -155,6 +156,14 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     if (isTarget()) {
       checkNotNull(violatedPropertyDescription);
     }
+  }
+
+  public void setTransitionName(String transitionName) {
+    this.transitionName = transitionName;
+  }
+
+  public String getTransitionName() {
+    return transitionName;
   }
 
   @Override
@@ -451,4 +460,9 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   public void setMatches(int pMatches) {
     matches = pMatches;
   }
+
+  public ControlAutomatonCPA getAutomaton() {
+    return automatonCPA;
+  }
+
 }

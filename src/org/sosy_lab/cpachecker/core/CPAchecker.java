@@ -310,6 +310,9 @@ public class CPAchecker {
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
+
+    result = AnalysisNotifier.getInstance().updateResult(result);
+
     return new CPAcheckerResult(result,
         violatedPropertyDescription, reached, stats);
   }
@@ -368,6 +371,8 @@ public class CPAchecker {
 
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownNotifier);
+
+    AnalysisNotifier.getInstance().onStartAnalysis();
 
     stats.startAnalysisTimer();
     try {

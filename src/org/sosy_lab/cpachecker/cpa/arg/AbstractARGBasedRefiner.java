@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.AnalysisNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -95,6 +96,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
     final @Nullable ARGPath path = computePath(lastElement, reached);
 
+    AnalysisNotifier.getInstance().beforeRefinement(lastElement);
+
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
       logger.log(Level.ALL, "Function calls on Error path:\n",
@@ -128,7 +131,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       argCpa.addCounterexample(lastElement, counterexample);
 
-      logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
+      logger.log(Level.INFO, "Counterexample", (counterexamplesCounter + 1), "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
       argCpa.exportCounterexampleOnTheFly(lastElement, counterexample, counterexamplesCounter);
@@ -136,6 +139,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());
+
+    AnalysisNotifier.getInstance().afterRefinement(counterexample.isSpurious(), pReached, reached, path, refinementNumber);
 
     return counterexample.isSpurious();
   }

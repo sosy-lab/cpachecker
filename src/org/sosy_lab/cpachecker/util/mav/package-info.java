@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,22 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
-
-import java.util.List;
-
-public interface AbstractWrapperState extends AbstractState {
-
-  /**
-   * Retrieve all wrapped abstract states contained directly in this object.
-   * @return A non-empty list of abstract states.
-   */
-  public Iterable<AbstractState> getWrappedStates();
-
-  /**
-   * Retrieve all wrapped target abstract states.
-   * @return
-   */
-  public List<AbstractState> getTargetLeaves();
-
-}
+/**
+ * Multi Aspect Verification approach.
+ */
+package org.sosy_lab.cpachecker.util.mav;

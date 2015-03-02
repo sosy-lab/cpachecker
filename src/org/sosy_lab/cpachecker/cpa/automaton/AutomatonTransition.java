@@ -45,14 +45,15 @@ import com.google.common.collect.ImmutableList;
  * A transition in the automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
  * This determines if the transition matches on a certain {@link CFAEdge}.
  */
-class AutomatonTransition {
+public class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
-  private final AutomatonBoolExpr trigger;
+  private AutomatonBoolExpr trigger;
   private final AutomatonBoolExpr assertion;
   private final ImmutableList<AStatement> assumption;
   private final ImmutableList<AutomatonAction> actions;
   private final StringExpression violatedPropertyDescription;
+  private final String name; // Static name of the transition.
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -108,6 +109,22 @@ class AutomatonTransition {
     this.followStateName = checkNotNull(pFollowStateName);
     this.followState = pFollowState;
     this.violatedPropertyDescription = pViolatedPropertyDescription;
+    if (pViolatedPropertyDescription != null)
+    {
+      if (!pViolatedPropertyDescription.toString().isEmpty())
+      {
+        this.name = pViolatedPropertyDescription.toString();
+      }
+      else
+      {
+        this.name = trigger.toString();
+      }
+    }
+    else
+    {
+      this.name = null;
+    }
+
 
     if (pAssertions.isEmpty()) {
       this.assertion = AutomatonBoolExpr.TRUE;
@@ -243,5 +260,15 @@ class AutomatonTransition {
 
   public ImmutableList<AStatement> getAssumptions() {
     return assumption;
+  }
+
+  public void disable(String specificationId) {
+    if(this.name.equals(specificationId)) {
+      trigger = AutomatonBoolExpr.FALSE;
+    }
+  }
+
+  public String getName() {
+    return name;
   }
 }

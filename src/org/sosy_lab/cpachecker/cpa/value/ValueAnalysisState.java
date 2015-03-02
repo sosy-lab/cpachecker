@@ -122,6 +122,9 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     if (blacklist.contains(pMemoryLocation)) {
       return;
     }
+    if (value == null) {
+      return;
+    }
     constantsMap = constantsMap.putAndCopy(pMemoryLocation, checkNotNull(value));
     memLocToType = memLocToType.putAndCopy(pMemoryLocation, pType);
   }

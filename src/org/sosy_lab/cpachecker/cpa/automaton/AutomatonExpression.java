@@ -59,6 +59,12 @@ interface AutomatonExpression {
         return new ResultValue<>(str);
       }
     }
+
+    @Override
+    public String toString() {
+      return toPrint;
+    }
+
   }
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.

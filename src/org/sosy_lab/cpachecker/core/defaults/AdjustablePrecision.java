@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,22 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.core.defaults;
 
-import java.util.List;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-public interface AbstractWrapperState extends AbstractState {
-
-  /**
-   * Retrieve all wrapped abstract states contained directly in this object.
-   * @return A non-empty list of abstract states.
-   */
-  public Iterable<AbstractState> getWrappedStates();
+/**
+ * Class represents Precision as a set, in which it is possible to add elements and subtract them.
+ */
+public interface AdjustablePrecision extends Precision{
 
   /**
-   * Retrieve all wrapped target abstract states.
-   * @return
+   * Add other Precision to current and return new Precision.
    */
-  public List<AbstractState> getTargetLeaves();
+  public AdjustablePrecision add(AdjustablePrecision otherPrecision);
 
+  /**
+   * Subtract other Precision from current.
+   * Returns true, if this operation has exhausted Precision Clearing Time Limit (PCTL).
+   */
+  public boolean subtract(AdjustablePrecision otherPrecision);
+
+  /**
+   * Clear current Precision.
+   */
+  public void clear();
 }

@@ -125,6 +125,8 @@ public class CPABuilder {
           automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
         }
 
+        AnalysisNotifier.getInstance().onSpecificationAutomatonCreate(automata);
+
         for (Automaton automaton : automata) {
           String cpaAlias = automaton.getName();
 

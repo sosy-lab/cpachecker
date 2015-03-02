@@ -47,6 +47,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisNotifier;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
@@ -62,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -73,6 +76,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.value.refinement")
@@ -137,7 +141,6 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
-
     logger = pLogger;
     pathInterpolator = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
     checker = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
@@ -188,15 +191,32 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       List<Precision> precisions = new ArrayList<>(2);
 
       // merge the value precisions of the subtree, and refine it
-      precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
-          .withIncrement(interpolationTree.extractPrecisionIncrement(root)));
+      Multimap<CFANode, MemoryLocation> increment = interpolationTree.extractPrecisionIncrement(root);
+      VariableTrackingPrecision oldPrecision = mergeValuePrecisionsForSubgraph(root, pReached);
+      precisions.add(oldPrecision.withIncrement(increment));
+
+      // Process Variable Precision in MAVNotifier.
+      VariableTrackingPrecision variablePrecision =
+          oldPrecision.createPrecisionByIncrement(increment);
+      if (variablePrecision != null)
+      {
+        AnalysisNotifier.getInstance().onPrecisionIncrementCreate(variablePrecision);
+      }
 
       // merge the predicate precisions of the subtree, if available
       if(isPredicatePrecisionAvailable(pReached, root)) {
         precisions.add(mergePredictePrecisionsForSubgraph(root, pReached));
+
+        // Process Predicate Precision in MAVNotifier
+        PredicatePrecision predicatePrecision = (PredicatePrecision) precisions.get(1);
+        if (!predicatePrecision.isEmpty())
+        {
+          AnalysisNotifier.getInstance().onPrecisionIncrementCreate(predicatePrecision);
+        }
       }
 
       refinementInformation.put(root, precisions);
+
     }
 
     for (Map.Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {

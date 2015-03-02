@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -104,5 +106,20 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   @Override
   public ImmutableList<AbstractState> getWrappedStates() {
     return ImmutableList.of(wrappedState);
+  }
+
+  @Override
+  public List<AbstractState> getTargetLeaves() {
+    if (wrappedState instanceof AutomatonState)
+    {
+      return ImmutableList.of(wrappedState);
+    }
+    else if (wrappedState instanceof AbstractWrapperState)
+    {
+      return ((AbstractWrapperState)wrappedState).getTargetLeaves();
+    }
+    else {
+      return ImmutableList.of();
+    }
   }
 }

@@ -200,7 +200,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     GlobalInfo.getInstance().storeAutomaton(automaton);
   }
 
-  Automaton getAutomaton() {
+  public Automaton getAutomaton() {
     return this.automaton;
   }
 
@@ -274,5 +274,17 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   LogManager getLogManager() {
     return logger;
+  }
+
+  public void disable() {
+    transferRelation.disable();
+  }
+
+  public void disable(String violatedPropertyDescription) {
+    for(AutomatonInternalState s : automaton.getStates()) {
+      for (AutomatonTransition transition : s.getTransitions()) {
+        transition.disable(violatedPropertyDescription);
+      }
+    }
   }
 }
