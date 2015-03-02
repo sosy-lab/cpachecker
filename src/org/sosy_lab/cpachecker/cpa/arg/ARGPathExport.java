@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
@@ -101,15 +102,17 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import com.google.common.collect.SortedMapDifference;
+import com.google.common.collect.TreeMultimap;
 
 @Options(prefix="cpa.arg.witness")
 public class ARGPathExport {
@@ -166,8 +169,9 @@ public class ARGPathExport {
     return getStateIdent(pState, String.format("_%d_%d", pSubStateNo, pSubStateCount));
   }
 
-  private static class TransitionCondition {
-    public final Map<KeyDef, String> keyValues = Maps.newHashMap();
+  private static class TransitionCondition implements Comparable<TransitionCondition> {
+
+    public final SortedMap<KeyDef, String> keyValues = Maps.newTreeMap();
 
     public void put(final KeyDef pKey, final String pValue) {
       keyValues.put(pKey, pValue);
@@ -175,6 +179,9 @@ public class ARGPathExport {
 
     @Override
     public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
       if (!(pOther instanceof TransitionCondition)) {
         return false;
       }
@@ -197,9 +204,27 @@ public class ARGPathExport {
     public String toString() {
       return keyValues.toString();
     }
+
+    @Override
+    public int compareTo(TransitionCondition pO) {
+      if (this == pO) {
+        return 0;
+      }
+      SortedMapDifference<KeyDef, String> differences = Maps.difference(keyValues, pO.keyValues);
+      if (differences.areEqual()) {
+        return 0;
+      }
+      if (differences.entriesOnlyOnLeft().isEmpty()) {
+        return -1;
+      } else if (differences.entriesOnlyOnRight().isEmpty()) {
+        return 1;
+      }
+      ValueDifference<String> difference = differences.entriesDiffering().values().iterator().next();
+      return difference.leftValue().compareTo(difference.rightValue());
+    }
   }
 
-  private static class Edge {
+  private static class Edge implements Comparable<Edge> {
 
     private final String source;
 
@@ -216,6 +241,22 @@ public class ARGPathExport {
     @Override
     public String toString() {
       return String.format("{%s -- %s --> %s}", source, label, target);
+    }
+
+    @Override
+    public int compareTo(Edge pO) {
+      if (pO == this) {
+        return 0;
+      }
+      int comp = source.compareTo(pO.source);
+      if (comp != 0) {
+        return comp;
+      }
+      comp = target.compareTo(pO.target);
+      if (comp != 0) {
+        return comp;
+      }
+      return label.compareTo(pO.label);
     }
 
   }
@@ -256,12 +297,12 @@ public class ARGPathExport {
 
   private class WitnessWriter {
 
-    private final Multimap<String, NodeFlag> nodeFlags = HashMultimap.create();
-    private final Multimap<String, String> violatedProperties = HashMultimap.create();
+    private final Multimap<String, NodeFlag> nodeFlags = TreeMultimap.create();
+    private final Multimap<String, String> violatedProperties = TreeMultimap.create();
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
-    private final Multimap<String, Edge> leavingEdges = HashMultimap.create();
-    private final Multimap<String, Edge> enteringEdges = HashMultimap.create();
+    private final Multimap<String, Edge> leavingEdges = TreeMultimap.create();
+    private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
 
     private final String defaultSourcefileName;
     private boolean isFunctionScope = false;
