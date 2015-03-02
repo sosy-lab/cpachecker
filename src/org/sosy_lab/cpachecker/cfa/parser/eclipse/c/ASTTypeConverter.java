@@ -360,6 +360,8 @@ class ASTTypeConverter {
     if (realType != null) {
       name = realType.getName();
       origName = realType.getOrigName();
+    } else {
+      name = scope.getFileSpecificTypeName(name);
     }
     return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, origName, realType);
   }
