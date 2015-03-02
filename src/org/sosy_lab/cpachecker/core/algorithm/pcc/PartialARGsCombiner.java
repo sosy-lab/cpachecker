@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,19 +40,25 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -73,13 +80,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 
-public class PartialARGsCombiner implements Algorithm {
+public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
   private final Algorithm restartAlgorithm;
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
   private final Configuration config;
   private final AutomatonStateExchanger stateReplace;
+
+  private final ARGCombinerStatistics stats = new ARGCombinerStatistics();
 
 
   public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
@@ -100,50 +109,63 @@ public class PartialARGsCombiner implements Algorithm {
     HistoryForwardingReachedSet reached = new HistoryForwardingReachedSet(pReachedSet);
 
     logger.log(Level.INFO, "Start inner algorithm to analyze program(s)");
-    if (restartAlgorithm.run(reached)) {
+    boolean sound = false;
+    stats.analysisTime.start();
+    try {
+      sound = restartAlgorithm.run(reached);
+    } finally {
+      stats.analysisTime.stop();
+    }
+
+    if (sound) {
       shutdown.shutdownIfNecessary();
 
       logger.log(Level.INFO, "Program(s) soundly analyzed, start combining ARGs.");
 
-      Collection<ReachedSet> usedReachedSets = reached.getAllReachedSetsUsedAsDelegates();
+      stats.argCombineTime.start();
+      try {
+        Collection<ReachedSet> usedReachedSets = reached.getAllReachedSetsUsedAsDelegates();
 
-      if (usedReachedSets.size() <= 1) {
-        logger.log(Level.INFO, "Only a single ARG is considered. Do not need to combine ARGs");
-        if (usedReachedSets.size() == 1) {
+        if (usedReachedSets.size() <= 1) {
+          logger.log(Level.INFO, "Only a single ARG is considered. Do not need to combine ARGs");
+          if (usedReachedSets.size() == 1) {
+            ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
+          }
+          return true;
+        }
+
+        if (from(reached.getDelegate()).anyMatch((IS_TARGET_STATE))) {
+          logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
-        }
-        return true;
-      }
-
-      if (from(reached.getDelegate()).anyMatch((IS_TARGET_STATE))) {
-        logger.log(Level.INFO, "Error found, do not combine ARGs.");
-        ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
-        return false;
-      }
-
-      logger.log(Level.FINE, "Extract root nodes of ARGs");
-      List<ARGState> rootNodes = new ArrayList<>(usedReachedSets.size());
-      for (ReachedSet usedReached : usedReachedSets) {
-        checkArgument(usedReached.getFirstState() instanceof ARGState,
-            "Require that all restart configurations use ARGCPA as top level CPA.");
-        checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
-            "Require that all restart configurations consider a location aware state");
-
-        for (AbstractState errorState : from(usedReached).filter((IS_TARGET_STATE))) {
-          logger.log(Level.INFO, "Error state found in reached set ", usedReached,
-              "but not by last configuration. Error state must be infeasible.");
-          logger.log(Level.FINE, "Remove infeasible error state", errorState);
-          ((ARGState) errorState).removeFromARG();
+          return false;
         }
 
-        rootNodes.add((ARGState) usedReached.getFirstState());
-      }
+        logger.log(Level.FINE, "Extract root nodes of ARGs");
+        List<ARGState> rootNodes = new ArrayList<>(usedReachedSets.size());
+        for (ReachedSet usedReached : usedReachedSets) {
+          checkArgument(usedReached.getFirstState() instanceof ARGState,
+              "Require that all restart configurations use ARGCPA as top level CPA.");
+          checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
+              "Require that all restart configurations consider a location aware state");
 
-      shutdown.shutdownIfNecessary();
+          for (AbstractState errorState : from(usedReached).filter((IS_TARGET_STATE))) {
+            logger.log(Level.INFO, "Error state found in reached set ", usedReached,
+                "but not by last configuration. Error state must be infeasible.");
+            logger.log(Level.FINE, "Remove infeasible error state", errorState);
+            ((ARGState) errorState).removeFromARG();
+          }
 
-      if (!combineARGs(rootNodes, (ForwardingReachedSet) pReachedSet)) {
-        logger.log(Level.SEVERE, "Combination of ARGs failed.");
-        return false;
+          rootNodes.add((ARGState) usedReached.getFirstState());
+        }
+
+        shutdown.shutdownIfNecessary();
+
+        if (!combineARGs(rootNodes, (ForwardingReachedSet) pReachedSet)) {
+          logger.log(Level.SEVERE, "Combination of ARGs failed.");
+          return false;
+        }
+      } finally {
+        stats.argCombineTime.stop();
       }
 
       logger.log(Level.INFO, "Finished combination of ARGS");
@@ -464,6 +486,35 @@ public class PartialARGsCombiner implements Algorithm {
     private void setPredecessor(ARGState pPred) {
       predecessor = pPred;
     }
+  }
+
+  private static class ARGCombinerStatistics implements Statistics {
+
+    private final Timer argCombineTime = new Timer();
+    private final Timer analysisTime = new Timer();
+
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      out.println("Time for program analyis: " + analysisTime);
+      out.println("Time to combine ARGs:     " + argCombineTime);
+
+    }
+
+    @Override
+    public @Nullable
+    String getName() {
+      return "ARG Combiner Statistics";
+    }
+
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (restartAlgorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)restartAlgorithm).collectStatistics(pStatsCollection);
+    }
+    pStatsCollection.add(stats);
   }
 
 }
