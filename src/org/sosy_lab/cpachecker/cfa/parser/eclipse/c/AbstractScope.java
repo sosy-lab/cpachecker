@@ -100,7 +100,7 @@ abstract class AbstractScope implements Scope {
    */
   @Override
   public String getFileSpecificTypeName(String type) {
-    if (isFileSpecificypeName(type)) {
+    if (isFileSpecificTypeName(type)) {
       return type;
     } else {
       return type + SUFFIX_SEPARATOR + currentFile;
@@ -108,7 +108,7 @@ abstract class AbstractScope implements Scope {
   }
 
   @Override
-  public boolean isFileSpecificypeName(String type) {
+  public boolean isFileSpecificTypeName(String type) {
     return type.endsWith(SUFFIX_SEPARATOR + currentFile);
   }
 }

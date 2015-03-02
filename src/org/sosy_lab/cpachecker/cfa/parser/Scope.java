@@ -120,5 +120,5 @@ public interface Scope {
   /**
    * Checks if a given type is the file specific version or not.
    */
-  public boolean isFileSpecificypeName(String type);
+  public boolean isFileSpecificTypeName(String type);
 }

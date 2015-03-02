@@ -96,7 +96,7 @@ public class DummyScope implements Scope {
   }
 
   @Override
-  public boolean isFileSpecificypeName(String pType) {
+  public boolean isFileSpecificTypeName(String pType) {
     throw new UnsupportedOperationException();
   }
 

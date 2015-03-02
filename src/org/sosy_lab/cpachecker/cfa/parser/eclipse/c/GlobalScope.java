@@ -228,7 +228,7 @@ class GlobalScope extends AbstractScope {
     // we only store elaborated types that are renamed (they have the filename
     // appended to their usual name
     if (type.getCanonicalType() instanceof CElaboratedType) {
-      if (!isFileSpecificypeName(type.getName())) {
+      if (!isFileSpecificTypeName(type.getName())) {
         declaration = createRenamedTypeDeclaration(declaration);
       }
 
@@ -317,7 +317,7 @@ class GlobalScope extends AbstractScope {
    * unequal types with the same name.
    */
   private CComplexTypeDeclaration createRenamedTypeDeclaration(CComplexTypeDeclaration oldDeclaration) {
-    assert !isFileSpecificypeName(oldDeclaration.getType().getName()) : "The type is already renamed to its file specific version.";
+    assert !isFileSpecificTypeName(oldDeclaration.getType().getName()) : "The type is already renamed to its file specific version.";
 
     CComplexType oldType = (CComplexType) oldDeclaration.getType().getCanonicalType();
 
@@ -334,7 +334,7 @@ class GlobalScope extends AbstractScope {
    * @return The renamed type.
    */
   private CComplexType createRenamedType(CComplexType oldType) {
-    assert !isFileSpecificypeName(oldType.getName()) : "The type is already renamed to its file specific version.";
+    assert !isFileSpecificTypeName(oldType.getName()) : "The type is already renamed to its file specific version.";
 
     String newName = getFileSpecificTypeName(oldType.getName());
 

@@ -358,7 +358,7 @@ public class CProgramScope implements Scope {
    */
   @Override
   public String getFileSpecificTypeName(String type) {
-    if (isFileSpecificypeName(type)) {
+    if (isFileSpecificTypeName(type)) {
       return type;
     } else {
       return type + "__" + currentFile;
@@ -366,7 +366,7 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public boolean isFileSpecificypeName(String type) {
+  public boolean isFileSpecificTypeName(String type) {
     return type.endsWith("__" + currentFile);
   }
 
