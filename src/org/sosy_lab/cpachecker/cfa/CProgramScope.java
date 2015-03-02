@@ -357,8 +357,17 @@ public class CProgramScope implements Scope {
    * Returns the name for the type as it would be if it is renamed.
    */
   @Override
-  public String getRenamedTypeName(String type) {
-    return type + "__" + currentFile;
+  public String getFileSpecificTypeName(String type) {
+    if (isFileSpecificypeName(type)) {
+      return type;
+    } else {
+      return type + "__" + currentFile;
+    }
+  }
+
+  @Override
+  public boolean isFileSpecificypeName(String type) {
+    return type.endsWith("__" + currentFile);
   }
 
   /**

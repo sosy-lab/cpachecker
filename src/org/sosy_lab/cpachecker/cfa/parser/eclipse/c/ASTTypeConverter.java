@@ -305,9 +305,9 @@ class ASTTypeConverter {
 
     // We have seen this type already.
     if (oldType != null) {
-      return new CTypedefType(false, false, scope.getRenamedTypeName(name), oldType);
+      return new CTypedefType(false, false, scope.getFileSpecificTypeName(name), oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
-      return new CTypedefType(false, false, scope.getRenamedTypeName(name), convert(t.getType()));
+      return new CTypedefType(false, false, scope.getFileSpecificTypeName(name), convert(t.getType()));
     }
   }
 
@@ -443,7 +443,7 @@ class ASTTypeConverter {
       return convert((IType) binding);
     }
 
-    return new CTypedefType(d.isConst(), d.isVolatile(), scope.getRenamedTypeName(name), type);
+    return new CTypedefType(d.isConst(), d.isVolatile(), scope.getFileSpecificTypeName(name), type);
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
@@ -490,7 +490,7 @@ class ASTTypeConverter {
       name = realType.getName();
       origName = realType.getOrigName();
     } else {
-      name = scope.getRenamedTypeName(name);
+      name = scope.getFileSpecificTypeName(name);
     }
 
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, origName, realType);

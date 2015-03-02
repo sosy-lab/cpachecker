@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * (if a name is visible in the current scope).
  */
 abstract class AbstractScope implements Scope {
+
+  private static final String SUFFIX_SEPARATOR = "__";
   protected final String currentFile;
 
   AbstractScope(String currentFile) {
@@ -97,7 +99,16 @@ abstract class AbstractScope implements Scope {
    * Returns the name for the type as it would be if it is renamed.
    */
   @Override
-  public String getRenamedTypeName(String type) {
-    return type + "__" + currentFile;
+  public String getFileSpecificTypeName(String type) {
+    if (isFileSpecificypeName(type)) {
+      return type;
+    } else {
+      return type + SUFFIX_SEPARATOR + currentFile;
+    }
+  }
+
+  @Override
+  public boolean isFileSpecificypeName(String type) {
+    return type.endsWith(SUFFIX_SEPARATOR + currentFile);
   }
 }

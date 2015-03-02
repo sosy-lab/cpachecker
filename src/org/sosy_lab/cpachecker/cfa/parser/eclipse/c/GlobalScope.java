@@ -126,7 +126,7 @@ class GlobalScope extends AbstractScope {
       // if the type is not renamed already we first test if the file specific
       // version is in the types map
     } else {
-      declaration = types.get(getRenamedTypeName(name));
+      declaration = types.get(getFileSpecificTypeName(name));
     }
 
     if (declaration != null) {
@@ -145,7 +145,7 @@ class GlobalScope extends AbstractScope {
   public CType lookupTypedef(final String name) {
     checkNotNull(name);
 
-    CTypeDefDeclaration declaration = typedefs.get(getRenamedTypeName(name));
+    CTypeDefDeclaration declaration = typedefs.get(getFileSpecificTypeName(name));
     if (declaration != null) {
       return declaration.getType();
     } else {
@@ -246,10 +246,10 @@ class GlobalScope extends AbstractScope {
     // type, as this would have been captured in the if clause above, thus it was
     // not renamed before, however if there is a former elaborated type it was
     // renamed, thus we have to search for the renamed name in the types map
-    if (types.containsKey(getRenamedTypeName(name))) {
+    if (types.containsKey(getFileSpecificTypeName(name))) {
       assert !(type.getCanonicalType() instanceof CElaboratedType);
 
-      CComplexTypeDeclaration oldDeclaration = types.get(getRenamedTypeName(name));
+      CComplexTypeDeclaration oldDeclaration = types.get(getFileSpecificTypeName(name));
       CComplexType oldType = oldDeclaration.getType();
 
       // the old type is already complete and the new type is also a complete
@@ -277,7 +277,7 @@ class GlobalScope extends AbstractScope {
       // declaration. We set a reference to the full type in the old type he types
       // map with the full type. But only if this was not done before
       ((CElaboratedType)oldType).setRealType(type);
-      types.remove(getRenamedTypeName(name));
+      types.remove(getFileSpecificTypeName(name));
 
       // there was no former type declaration here, but the TYPE that should
       // be declared is already known from another parsed file, so we take
@@ -316,7 +316,7 @@ class GlobalScope extends AbstractScope {
    */
   private CComplexTypeDeclaration createRenamedType(CComplexTypeDeclaration newD) {
     CComplexType oldType = newD.getType();
-    String newName = getRenamedTypeName(oldType.getName());
+    String newName = getFileSpecificTypeName(oldType.getName());
 
     if (oldType instanceof CCompositeType) {
       CCompositeType ct = new CCompositeType(oldType.isConst(), oldType.isVolatile(), oldType.getKind(),

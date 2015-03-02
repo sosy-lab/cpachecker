@@ -183,7 +183,7 @@ class FunctionScope extends AbstractScope {
     while (it.hasNext()) {
       Map<String, CComplexTypeDeclaration> types = it.next();
 
-      CComplexTypeDeclaration declaration = types.get(getRenamedTypeName(name));
+      CComplexTypeDeclaration declaration = types.get(getFileSpecificTypeName(name));
       if (declaration != null) {
         return declaration.getType();
       } else {

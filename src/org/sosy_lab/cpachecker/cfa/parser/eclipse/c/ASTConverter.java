@@ -1522,7 +1522,7 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Typedef with initializer", d, niceFileNameFunction);
         }
-        return new CTypeDefDeclaration(fileLoc, isGlobal, type, scope.getRenamedTypeName(name), scope.getRenamedTypeName(scope.createScopedNameOf(name)));
+        return new CTypeDefDeclaration(fileLoc, isGlobal, type, scope.getFileSpecificTypeName(name), scope.getFileSpecificTypeName(scope.createScopedNameOf(name)));
       }
 
       // We need to resolve typedefs, but we cannot call getCanonicalType()
@@ -1959,7 +1959,7 @@ class ASTConverter {
 
     // in cases like struct s { (struct s)* f }
     // we need to fill in the binding from the inner "struct s" type to the outer
-    compositeType.accept(new FillInBindingVisitor(kind, scope.getRenamedTypeName(name), compositeType));
+    compositeType.accept(new FillInBindingVisitor(kind, scope.getFileSpecificTypeName(name), compositeType));
     return compositeType;
   }
 
