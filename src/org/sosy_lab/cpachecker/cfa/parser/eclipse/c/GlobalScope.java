@@ -119,9 +119,9 @@ class GlobalScope extends AbstractScope {
     // if the name is already renamed to the file specific version we do not
     // need to it a second time, however it is necessary that we also test if
     // the type name is available in not renamed format
-    if (name.contains(currentFile)) {
+    if (isFileSpecificTypeName(name)) {
       declaration = types.get(name);
-      name = name.replaceAll("__" + currentFile, "");
+      name = removeFileSpecificPartOfTypeName(name);
 
       // if the type is not renamed already we first test if the file specific
       // version is in the types map
