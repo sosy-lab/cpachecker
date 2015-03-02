@@ -229,11 +229,16 @@ class GlobalScope extends AbstractScope {
       // proper name (the filename suffix)
       // if there is already a type with this name (or the not file specific version
       // registered we can quit here.
-    } else if (isOnlyElaboratedType) {
-      assert isFileSpecificTypeName(type.getName()) : "The type should have the correct name before registering it.";
+    } else if (type instanceof CElaboratedType) {
+      if (isOnlyElaboratedType) {
+        assert isFileSpecificTypeName(type.getName()) : "The type should have the correct name before registering it.";
+      }
 
-      // the current declaration just re-declares an existing type
-      if (types.containsKey(name) || types.containsKey(removeFileSpecificPartOfTypeName(name))) {
+      // the current declaration just re-declares an existing type this could
+      // be an elaborated type without realType (thus file specific) or an elaborated
+      // type with realtype (not file specific) we have to check for both names
+      if (types.containsKey(getFileSpecificTypeName(name))
+          || types.containsKey(removeFileSpecificPartOfTypeName(name))) {
         return false;
       }
     }
@@ -253,8 +258,10 @@ class GlobalScope extends AbstractScope {
       CComplexType oldType = oldDeclaration.getType();
 
       // the old type is already complete and the new type is also a complete
-      // type this may not be
-      if (!(oldType.getCanonicalType() instanceof CElaboratedType)) {
+      // type this may only be if the objects are identical (FillInBindingsVisitor
+      // sets the realtype in some cases before the complete type is registered
+      if (!(oldType.getCanonicalType() instanceof CElaboratedType)
+          && ((CElaboratedType)oldType).getRealType() != type) {
         throw new CFAGenerationRuntimeException("Redeclaring " + name
             + " in " + declaration.getFileLocation()
             + ", originally declared in " + oldDeclaration.getFileLocation());
@@ -279,7 +286,9 @@ class GlobalScope extends AbstractScope {
       // We now have a real declaration for a type for which we have seen a forward
       // declaration. We set a reference to the full type in the old type he types
       // map with the full type. But only if this was not done before
-      ((CElaboratedType)oldType).setRealType(type);
+      if (oldType.getCanonicalType() instanceof CElaboratedType) {
+        ((CElaboratedType)oldType).setRealType(type);
+      }
       types.remove(fileSpecificTypeName);
 
       // there was no former type declaration here, but the TYPE that should
