@@ -185,6 +185,9 @@ class CFAFunctionBuilder extends ASTVisitor {
   @Option(secure=true, description="Show messages when dead code is encountered during parsing.")
   private boolean showDeadCode = true;
 
+  @Option(secure=true, description="Allow then/else branches to be swapped in order to obtain simpler conditions.")
+  private boolean allowBranchSwapping = true;
+
   public CFAFunctionBuilder(Configuration config, LogManagerWithoutDuplicates pLogger, FunctionScope pScope,
       Function<String, String> pNiceFileNameFunction,
       CSourceOriginMapping pSourceOriginMapping,
@@ -1143,7 +1146,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
      CExpression expression = exp;
-      if (flippedThenElse) {
+      if (flippedThenElse && !allowBranchSwapping) {
         expression = buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
         CFANode tmp = thenNodeForLastThen;
         thenNodeForLastThen = elseNodeForLastElse;
@@ -1155,10 +1158,19 @@ class CFAFunctionBuilder extends ASTVisitor {
             loc);
         return Optional.of(exp);
 
+      } else if (allowBranchSwapping) {
+        // build new boolean expression: a==0 and swap branches
+        CExpression conv = buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+
+        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen, loc);
+
+        return Optional.<CExpression>of(exp);
       } else {
         // build new double-negation boolean expression: (a==0)==0
-        CExpression conv = buildBinaryExpression(buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS),
-            CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+        CExpression conv = buildBinaryExpression(
+            buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS),
+            CIntegerLiteralExpression.ZERO,
+            BinaryOperator.EQUALS);
 
         addConditionEdges(conv, rootNode, thenNodeForLastThen, elseNodeForLastElse, loc);
 
