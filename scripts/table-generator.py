@@ -37,6 +37,7 @@ for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', '
 import benchexec.tablegenerator
 
 benchexec.tablegenerator.DEFAULT_OUTPUT_PATH = 'test/results/'
+benchexec.tablegenerator.LIB_URL = 'http://www.sosy-lab.org/lib'
 
 try:
     sys.exit(benchexec.tablegenerator.main())
