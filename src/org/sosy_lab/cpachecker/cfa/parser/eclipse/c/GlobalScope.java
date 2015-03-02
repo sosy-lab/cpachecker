@@ -225,12 +225,9 @@ class GlobalScope extends AbstractScope {
       return true;
     }
 
-    // we only store elaborated types that are renamed (they have the filename
-    // appended to their usual name
     if (type.getCanonicalType() instanceof CElaboratedType) {
-      if (!isFileSpecificTypeName(type.getName())) {
-        declaration = createRenamedTypeDeclaration(declaration);
-      }
+      // we only store elaborated types that are renamed (they have the filename, appended to their usual name)
+      assert isFileSpecificTypeName(type.getName()) : "The type should have the correct name before registering it.";
 
       // the current declaration just re-declares an existing type
       if (types.containsKey(declaration.getType().getQualifiedName())) {
