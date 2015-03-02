@@ -1522,7 +1522,9 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Typedef with initializer", d, niceFileNameFunction);
         }
-        return new CTypeDefDeclaration(fileLoc, isGlobal, type, scope.getFileSpecificTypeName(name), scope.getFileSpecificTypeName(scope.createScopedNameOf(name)));
+
+        name = scope.getFileSpecificTypeName(name);
+        return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
       // We need to resolve typedefs, but we cannot call getCanonicalType()
