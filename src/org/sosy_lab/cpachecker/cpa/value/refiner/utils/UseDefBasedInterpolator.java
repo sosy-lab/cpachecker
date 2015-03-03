@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
@@ -63,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -81,8 +81,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
-
 
 /**
  * This class allows to obtain interpolants statically from a given ARGPath.
@@ -129,29 +127,31 @@ public class UseDefBasedInterpolator {
       ARGState successor = states.get(i + 1);
 
       addCurrentInterpolant(successor);
-      collectVariables(edge, successor);
 
-      /*if(Iterables.getLast(edgesList).getEdgeType() == CFAEdgeType.AssumeEdge
-          && dependingVariables.isEmpty()) {
-        dependenciesResolvedOffset = i;
-        return interpolants;
-      }*/
+      if(edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        for(CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
+          updateDependencies(singleEdge);
+        }
+      }
+      else {
+        updateDependencies(edge);
+      }
     }
 
-    // compensate for the fact of reverse-iteration: reverse the map
+    return orderInterpolants();
+  }
+
+  private Map<ARGState, ValueAnalysisInterpolant> orderInterpolants() {
     Map<ARGState, ValueAnalysisInterpolant> ordered = new LinkedHashMap<>(interpolants.size());
     ListIterator<ARGState> iter = new ArrayList<>(interpolants.keySet()).listIterator(interpolants.size());
     while (iter.hasPrevious()) {
       ARGState state = iter.previous();
       ordered.put(state, interpolants.get(state));
     }
-
     return ordered;
   }
 
-
-  private void collectVariables(CFAEdge edge, ARGState successor) {
-    //syso("edge: " + edge + " [" + edge.getEdgeType() + "]");
+  private void updateDependencies(CFAEdge edge) {
     switch (edge.getEdgeType()) {
     case BlankEdge:
     case CallToReturnEdge:
@@ -173,16 +173,9 @@ public class UseDefBasedInterpolator {
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
 
-      // we do only care about variable declarations
-      if (!(declaration instanceof AVariableDeclaration)) {
-        break;
-      }
-
-      AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
-      String variableName = declaration.getQualifiedName();
-
-      if (dependencies.remove(variableName)) {
-        AInitializer initializer = variableDeclaration.getInitializer();
+      // only variable declarations are of interest
+      if (declaration instanceof AVariableDeclaration && dependencies.remove(declaration.getQualifiedName())) {
+        AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
         if(initializer != null) {
           addDependency(getVariablesUsedForInitialization(initializer));
         }
@@ -224,44 +217,15 @@ public class UseDefBasedInterpolator {
         addDependency(acceptAll(((CAssumeEdge)edge).getExpression()));
         finalAssumeEdgeAlreadyHandled = true;
       }
+
       break;
 
     case StatementEdge:
-      CStatementEdge statementEdge = (CStatementEdge)edge;
-      CStatement statement = statementEdge.getStatement();
-      /*
-      if (statementEdge.getStatement() instanceof CAssignment) {
-        CAssignment assignment = (CAssignment)statementEdge.getStatement();
-
-        if(assignment.getLeftHandSide() instanceof CIdExpression) {
-          String assignedVariable = ((CIdExpression)(assignment.getLeftHandSide())).getDeclaration().getQualifiedName();
-
-          if (dependingVariables.remove(assignedVariable)) {
-            dependingVariables.remove(assignedVariable);
-            collectedVariables.add(assignedVariable);
-            collectVariables(statementEdge, assignment.getRightHandSide());
-          }
-        }
-      }*/
+      CStatement statement = ((CStatementEdge)edge).getStatement();
 
       if (statement instanceof AExpressionAssignmentStatement
           || statement instanceof AFunctionCallAssignmentStatement) {
         handleAssignments((AAssignment) statement);
-      }
-
-      else if (statement instanceof AFunctionCallStatement) {
-        /* not needed
-         * AFunctionCallStatement funcStmt = (AFunctionCallStatement) statement;
-        return state.addLiveVariables(getVariablesUsedAsParameters(funcStmt
-                                                                    .getFunctionCallExpression()
-                                                                    .getParameterExpressions()));*/
-      }
-      break;
-
-    case MultiEdge:
-      // process MultiEdges also in reverse order
-      for (final CFAEdge innerEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
-        collectVariables(innerEdge, successor);
       }
       break;
     }
