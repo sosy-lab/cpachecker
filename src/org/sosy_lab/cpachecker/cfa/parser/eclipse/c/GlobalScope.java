@@ -418,7 +418,7 @@ class GlobalScope extends AbstractScope {
     if (oldType.getType() instanceof CPointerType) {
       return new CPointerType(oldType.isConst(), oldType.isVolatile(), createPointerField((CPointerType) oldType.getType(), eqType, newType));
     } else {
-      if (oldType.getType().equals(eqType)) {
+      if (oldType.getType().getCanonicalType().equals(eqType.getCanonicalType())) {
         return new CPointerType(oldType.isConst(), oldType.isVolatile(), newType);
       } else {
         return new CPointerType(oldType.isConst(), oldType.isVolatile(), oldType.getType());
