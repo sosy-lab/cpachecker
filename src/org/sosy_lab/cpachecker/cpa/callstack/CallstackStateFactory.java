@@ -62,6 +62,8 @@ public class CallstackStateFactory {
    * attributes.
    */
   private static class ComparableCallstackState extends CallstackState {
+    private static final long serialVersionUID = 7294556997204151804L;
+
     ComparableCallstackState(CallstackState previousElement, @Nonnull String function,
         @Nonnull CFANode callerNode) {
       super(previousElement, function, callerNode);
@@ -92,6 +94,8 @@ public class CallstackStateFactory {
 
   }
   public class UniqueCallstackState extends CallstackState {
+
+    private static final long serialVersionUID = -9178322430015798219L;
 
     UniqueCallstackState(CallstackState previousElement, @Nonnull String function,
         @Nonnull CFANode callerNode) {
