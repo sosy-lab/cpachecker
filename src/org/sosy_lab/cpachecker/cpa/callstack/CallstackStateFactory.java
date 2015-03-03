@@ -93,7 +93,8 @@ public class CallstackStateFactory {
     }
 
   }
-  public class UniqueCallstackState extends CallstackState {
+
+  private static class UniqueCallstackState extends CallstackState {
 
     private static final long serialVersionUID = -9178322430015798219L;
 
