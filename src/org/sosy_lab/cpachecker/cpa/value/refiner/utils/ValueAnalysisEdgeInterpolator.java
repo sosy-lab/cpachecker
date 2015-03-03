@@ -191,10 +191,18 @@ public class ValueAnalysisEdgeInterpolator {
    */
   private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final CFAEdge pCurrentEdge,
       ValueAnalysisState candidateInterpolant) {
-    Set<MemoryLocation> variablesToInterpolateOn = new HashSet<>(candidateInterpolant.getTrackedMemoryLocations());
-    // no restriction done, interpolate on each variable in candidate interpolant
-    // variablesToInterpolateOn.retainAll(obtainMemoryLocationsReferencedInEdge(pCurrentEdge));
+    // when returning from a function, the method getInitialSuccessor rebuilds the
+    // context of the calling function, which is needed for BAM-refiner/recursion
+    // so, in that case, return the full candidate interpolant, because we do not
+    // know on how to limit the candidate interpolant
+    if(pCurrentEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      return candidateInterpolant.getTrackedMemoryLocations();
+    }
 
+    // in all other cases, we limit the candidate interpolant to
+    // those memory locations that are referenced in the current edge
+    Set<MemoryLocation> variablesToInterpolateOn = new HashSet<>(candidateInterpolant.getTrackedMemoryLocations());
+    variablesToInterpolateOn.retainAll(obtainMemoryLocationsReferencedInEdge(pCurrentEdge));
     return variablesToInterpolateOn;
   }
 
@@ -208,13 +216,13 @@ public class ValueAnalysisEdgeInterpolator {
         .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
 
     // last edge of a multi-edge could be a return-statement edge, so unpack last edge
-    if(edge instanceof MultiEdge) {
+    if(edge.getEdgeType() == CFAEdgeType.MultiEdge) {
       edge = Iterables.getLast(((MultiEdge)edge).getEdges());
     }
 
     // also add parameters to referenced variables, because they are assigned
     // by the transfer relation when function call edges are handled
-    if (edge instanceof CFunctionCallEdge) {
+    if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
       for(AParameterDeclaration parameterDeclaration: functionCallEdge.getSuccessor().getFunctionParameters()) {
         memoryLocationsInEdge.add(MemoryLocation.valueOf(parameterDeclaration.getQualifiedName()));
@@ -222,7 +230,7 @@ public class ValueAnalysisEdgeInterpolator {
     }
 
     // also add special return variable (fn::__retval__) to set of referenced variables
-    else if (edge instanceof CReturnStatementEdge) {
+    else if (edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
       CReturnStatementEdge returnStatementEdge = ((CReturnStatementEdge) edge);
       Optional<CExpression> expression = returnStatementEdge.getExpression();
       if(expression.isPresent()) {
