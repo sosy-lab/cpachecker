@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateExchanger;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
@@ -283,6 +284,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       for (AbstractState innerWrapped : wrapped) {
         shutdown.shutdownIfNecessary();
 
+        if(innerWrapped instanceof AssumptionStorageState) {
+          continue;
+        }
+
         name = getName(innerWrapped);
 
         if (stateToPos.containsKey(name)) {
@@ -447,7 +452,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         shutdown.shutdownIfNecessary();
 
         if (!pStateToPos.containsKey(getName(innerWrapped))) {
-          Preconditions.checkState(innerWrapped instanceof AutomatonState,
+          Preconditions.checkState(innerWrapped instanceof AutomatonState
+              || innerWrapped instanceof AssumptionStorageState,
                   "Found state which is not considered in combined composite state and which is not due to the use of an assumption automaton");
           continue;
         }
