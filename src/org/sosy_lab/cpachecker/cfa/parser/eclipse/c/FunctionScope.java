@@ -58,9 +58,10 @@ import com.google.common.collect.ImmutableMap;
  */
 class FunctionScope extends AbstractScope {
 
-  private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
+  private final Map<String, CFunctionDeclaration> localFunctions = new HashMap<>();
+  private final Map<String, CFunctionDeclaration> globalFunctions;
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
-  private final Map<String, CTypeDefDeclaration> typedefs = new HashMap<>();
+  private final Map<String, CTypeDefDeclaration> typedefs;
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
@@ -79,9 +80,10 @@ class FunctionScope extends AbstractScope {
       String currentFile) {
     super(currentFile);
 
-    functions.putAll(pFunctions);
+    globalFunctions = pFunctions;
+    typedefs = pTypedefs;
+
     typesStack.addLast(pTypes);
-    typedefs.putAll(pTypedefs);
     varsStack.push(pGlobalVars);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
@@ -106,7 +108,7 @@ class FunctionScope extends AbstractScope {
   public void enterFunction(CFunctionDeclaration pFuncDef) {
     checkState(currentFunction == null);
     currentFunction = checkNotNull(pFuncDef);
-    checkArgument(functions.containsKey(getCurrentFunctionName()));
+    checkArgument(globalFunctions.containsKey(getCurrentFunctionName()) || localFunctions.containsKey(getCurrentFunctionName()));
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
       returnVariable = Optional.absent();
@@ -172,7 +174,14 @@ class FunctionScope extends AbstractScope {
 
   @Override
   public CFunctionDeclaration lookupFunction(String name) {
-    return functions.get(checkNotNull(name));
+    checkNotNull(name);
+
+    // we look at first if the function is available in the local functions
+    CFunctionDeclaration returnDecl = localFunctions.get(name);
+    if (returnDecl != null) {
+      return returnDecl;
+    }
+    return globalFunctions.get(name);
   }
 
   @Override
@@ -303,7 +312,7 @@ class FunctionScope extends AbstractScope {
   }
 
   public void registerLocalFunction(CFunctionDeclaration function) {
-    functions.put(function.getName(), function);
+    localFunctions.put(function.getName(), function);
   }
 
   public String getCurrentFunctionName() {
@@ -318,6 +327,6 @@ class FunctionScope extends AbstractScope {
 
   @Override
   public String toString() {
-    return "Functions: " + Joiner.on(' ').join(functions.keySet());
+    return "Functions: " + Joiner.on(' ').join(globalFunctions.keySet()) + Joiner.on(' ').join(localFunctions.keySet());
   }
 }
