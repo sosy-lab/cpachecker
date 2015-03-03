@@ -49,6 +49,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -329,9 +330,27 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         assert !child.isCovered();
 
         CFAEdge edge = loc.getEdgeTo(extractLocation(child));
-        sb.append("    MATCH \"");
-        escape(edge.getRawStatement(), sb);
-        sb.append("\" -> ");
+
+        if(edge instanceof MultiEdge) {
+          boolean first = true;
+          for(CFAEdge innerEdge: ((MultiEdge)edge).getEdges()) {
+            if(!first) {
+              sb.append("GOTO ARG" + s.getStateId() + ";\n");
+            } else {
+              first = false;
+            }
+            sb.append("    MATCH \"");
+            escape(innerEdge.getRawStatement(), sb);
+            sb.append("\" -> ");
+          }
+
+        } else {
+
+          sb.append("    MATCH \"");
+          escape(edge.getRawStatement(), sb);
+          sb.append("\" -> ");
+
+        }
 
         AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
         BooleanFormula assumption = bfmgr.and(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
