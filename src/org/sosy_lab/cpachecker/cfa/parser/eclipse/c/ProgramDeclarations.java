@@ -79,7 +79,7 @@ public class ProgramDeclarations {
       CComplexTypeDeclaration oldDecl = types.get(qualifiedName);
       if (!(oldDecl.getType().getCanonicalType() instanceof CElaboratedType
             && areEqualTypes(oldDecl.getType(), type, false))) {
-        throw new IllegalArgumentException("There is already a type registered with the qualified name: " + qualifiedName);
+        throw new CFAGenerationRuntimeException("There is already a type registered with the qualified name: " + qualifiedName);
       }
     } else {
       origNamesToQualifiedNames.put(type.getOrigName(), type.getQualifiedName());
