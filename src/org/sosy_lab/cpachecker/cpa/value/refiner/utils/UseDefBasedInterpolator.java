@@ -128,8 +128,8 @@ public class UseDefBasedInterpolator {
 
       addCurrentInterpolant(successor);
 
-      if(edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for(CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
+      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
           updateDependencies(singleEdge);
         }
       }
@@ -159,7 +159,7 @@ public class UseDefBasedInterpolator {
 
       if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
         String assignedVariable = Iterables.getOnlyElement(acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide())).getQualifiedName();
-        if(dependencies.remove(assignedVariable)) {
+        if (dependencies.remove(assignedVariable)) {
           addDependency(Collections.<ASimpleDeclaration>singleton(((FunctionReturnEdge)edge).getFunctionEntry().getReturnVariable().get()));
         }
       }
@@ -172,7 +172,7 @@ public class UseDefBasedInterpolator {
       // only variable declarations are of interest
       if (declaration instanceof AVariableDeclaration && dependencies.remove(declaration.getQualifiedName())) {
         AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
-        if(initializer != null) {
+        if (initializer != null) {
           addDependency(getVariablesUsedForInitialization(initializer));
         }
       }
@@ -196,12 +196,10 @@ public class UseDefBasedInterpolator {
         parameters.add(parameterDeclaration);
       }
 
-      int i = 0;
-      for (AExpression argument : functionCallEdge.getArguments()) {
-        if(dependencies.remove(parameters.get(i).getQualifiedName())) {
-          addDependency(acceptAll(argument));
+      for (int parameterIndex = 0; parameterIndex < parameters.size(); parameterIndex++) {
+        if (dependencies.remove(parameters.get(parameterIndex).getQualifiedName())) {
+          addDependency(acceptAll(functionCallEdge.getArguments().get(parameterIndex)));
         }
-        i++;
       }
 
       break;
@@ -232,7 +230,7 @@ public class UseDefBasedInterpolator {
   }
 
   private void addDependency(Collection<ASimpleDeclaration> decls) {
-    for(ASimpleDeclaration d : decls) {
+    for (ASimpleDeclaration d : decls) {
       dependencies.add(d.getQualifiedName());
     }
   }
@@ -376,7 +374,7 @@ public class UseDefBasedInterpolator {
     final Collection<ASimpleDeclaration> additionallyLeftHandSideVariables = filter(allLeftHandSideVariables, not(in(assignedVariables)));
 
     // if assigned variable is resolving a dependency
-    if(dependencies.remove(Iterables.getOnlyElement(assignedVariables).getQualifiedName())) {
+    if (dependencies.remove(Iterables.getOnlyElement(assignedVariables).getQualifiedName())) {
       // all variables that occur in combination with the leftHandSide additionally
       // to the needed one (e.g. a[i] i is additionally) are added to the newLiveVariables
       addDependency(additionallyLeftHandSideVariables);
