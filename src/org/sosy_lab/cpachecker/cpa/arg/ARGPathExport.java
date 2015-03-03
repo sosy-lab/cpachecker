@@ -205,6 +205,19 @@ public class ARGPathExport {
       return keyValues.toString();
     }
 
+    public boolean summarizes(TransitionCondition pLabel) {
+      if (equals(pLabel)) {
+        return true;
+      }
+      for (KeyDef keyDef : KeyDef.values()) {
+        if (!keyDef.equals(KeyDef.ASSUMPTION)
+            && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     @Override
     public int compareTo(TransitionCondition pO) {
       if (this == pO) {
@@ -233,6 +246,9 @@ public class ARGPathExport {
     private final TransitionCondition label;
 
     public Edge(String pSource, String pTarget, TransitionCondition pLabel) {
+      Preconditions.checkNotNull(pSource);
+      Preconditions.checkNotNull(pTarget);
+      Preconditions.checkNotNull(pLabel);
       this.source = pSource;
       this.target = pTarget;
       this.label = pLabel;
@@ -257,6 +273,25 @@ public class ARGPathExport {
         return comp;
       }
       return label.compareTo(pO.label);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(source, target, label);
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof Edge) {
+        Edge other = (Edge) pOther;
+        return source.equals(other.source)
+            && target.equals(other.target)
+            && label.equals(other.label);
+      }
+      return false;
     }
 
   }
@@ -730,15 +765,18 @@ public class ARGPathExport {
 
                 @Override
                 public boolean apply(final Edge pEdge) {
-                  return !pEdge.label.hasTransitionRestrictions()
+                  // An edge is redundant if it is the only leaving edge of a
+                  // node and it is empty or all its non-assumption contents
+                  // are summarized by a preceding edge
+                  return (!pEdge.label.hasTransitionRestrictions()
                       || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
 
                         @Override
                         public boolean apply(Edge pPrecedingEdge) {
-                          return pPrecedingEdge.label.equals(pEdge.label);
+                          return pPrecedingEdge.label.summarizes(pEdge.label);
                         }
 
-                      });
+                      })) && leavingEdges.get(pEdge.source).size() == 1;
                 }
 
               }).iterator();
@@ -779,14 +817,15 @@ public class ARGPathExport {
       final String source = pEdge.source;
       final String target = pEdge.target;
       final TransitionCondition label = pEdge.label;
-      Preconditions.checkArgument(!label.hasTransitionRestrictions() || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
+      Preconditions.checkArgument((!label.hasTransitionRestrictions()
+          || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
 
         @Override
         public boolean apply(Edge pPrecedingEdge) {
-          return pPrecedingEdge.label.equals(pEdge.label);
+          return pPrecedingEdge.label.summarizes(pEdge.label);
         }
 
-      }));
+      })) && leavingEdges.get(pEdge.source).size() == 1);
       Preconditions.checkArgument(removeEdge(pEdge));
 
       // Merge the flags
@@ -807,7 +846,10 @@ public class ARGPathExport {
 
             @Override
             public Edge apply(Edge pOldEdge) {
-              return new Edge(source, pOldEdge.target, pOldEdge.label);
+              TransitionCondition label = new TransitionCondition();
+              label.keyValues.putAll(pOldEdge.label.keyValues);
+              label.keyValues.putAll(pEdge.label.keyValues);
+              return new Edge(source, pOldEdge.target, label);
             }
 
           });
@@ -831,7 +873,10 @@ public class ARGPathExport {
 
             @Override
             public Edge apply(Edge pOldEdge) {
-              return new Edge(pOldEdge.source, source, pOldEdge.label);
+              TransitionCondition label = new TransitionCondition();
+              label.keyValues.putAll(pOldEdge.label.keyValues);
+              label.keyValues.putAll(pEdge.label.keyValues);
+              return new Edge(pOldEdge.source, source, label);
             }
 
           });
