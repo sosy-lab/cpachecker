@@ -182,8 +182,7 @@ public class SourceLocationMapper {
     @Override
     public boolean matches(FileLocation pFileLocation) {
       return super.matches(pFileLocation)
-          && pFileLocation.getStartingLineNumber() <= originLineNumber
-          && pFileLocation.getEndingLineNumber() >= originLineNumber;
+          && pFileLocation.getStartingLineNumber() == originLineNumber;
     }
 
     @Override
