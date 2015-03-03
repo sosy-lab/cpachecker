@@ -677,8 +677,11 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# Compare CallstackStates using the identity function,that is two states
-# would be equal if they are the same object. Required for PredicateCPA.
+# Compare CallstackStates using the identity function, that is two states
+# would be equal only if they are the same object and not if their call stack
+# contains the same list of functions. This prevents merging of abstract
+# states inside a called functions if they are successors of different
+# abstract states in the caller function.
 cpa.callstack.produceUniqueStates = true
 
 # Skip recursion if it happens only by going via a function pointer (this is

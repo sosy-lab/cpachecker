@@ -37,7 +37,10 @@ import com.google.common.base.Objects;
 @Options(prefix = "cpa.callstack")
 public class CallstackStateFactory {
   @Option(secure = true, description = "Compare CallstackStates using the identity function,"
-      + "that is two states would be equal if they are the same object. Required for PredicateCPA.")
+      + " that is two states would be equal only if they are the same object"
+      + " and not if their call stack contains the same list of functions."
+      + " This prevents merging of abstract states inside a called functions"
+      + " if they are successors of different abstract states in the caller function.")
   private boolean produceUniqueStates=true;
 
   public CallstackStateFactory(Configuration pConfig) throws InvalidConfigurationException {
