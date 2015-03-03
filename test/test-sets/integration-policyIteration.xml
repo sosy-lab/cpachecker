@@ -11,7 +11,7 @@
     </sourcefiles>
 
     <rundefinition>
-        <option name="-policy"/>
+        <option name="-policy-unrolling"/>
     </rundefinition>
 
     <columns>
@@ -29,7 +29,7 @@
         <column title="#counterexample checks">Number of counterexample checks</column>
         <column title="counterexample checking time">Time for counterexample checks</column>
 
-        <column title="CFA size">CFA size</column>
+        <column title="CFA size">Number of CFA edges</column>
         <column title="Number of relevant variables">Number of relevant variables</column>
     </columns>
 </benchmark>

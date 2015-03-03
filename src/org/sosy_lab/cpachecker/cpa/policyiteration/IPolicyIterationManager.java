@@ -21,7 +21,9 @@ public interface IPolicyIterationManager {
   ) throws CPAException, InterruptedException;
 
   Collection<PolicyState> getAbstractSuccessors(
-      PolicyState state, CFAEdge edge
+      PolicyState state,
+      List<AbstractState> otherStates,
+      CFAEdge edge
   ) throws CPATransferException, InterruptedException;
 
   Collection<PolicyState> strengthen(

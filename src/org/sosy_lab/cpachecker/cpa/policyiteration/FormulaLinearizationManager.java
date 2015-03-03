@@ -64,7 +64,7 @@ public class FormulaLinearizationManager {
       return out;
     }
 
-    // Pattern matching.
+    // Pattern matching on (not (= A B)).
     boolean isNot = ufmgr.getName(input).equals(NOT_FUNC_NAME);
 
     if (isNot && ufmgr.getName(ufmgr.getArg(input, 0)).equals(EQ_FUNC_NAME)) {
@@ -78,11 +78,7 @@ public class FormulaLinearizationManager {
     } else {
       List<Formula> newArgs = new ArrayList<>();
       for (int i=0; i<ufmgr.getArity(input); i++) {
-        newArgs.add(
-            recLinearize(
-                ufmgr.getArg(input, i), memoization
-            )
-        );
+        newArgs.add(recLinearize(ufmgr.getArg(input, i), memoization));
       }
 
       out = ufmgr.replaceArgs(input, newArgs);
@@ -110,7 +106,7 @@ public class FormulaLinearizationManager {
     BooleanFormula specVar = bfmgr.not(bfmgr.makeVariable(INITIAL_CONDITION_FLAG));
 
     if (ufmgr.getName(input).equals(OR_FUNC_NAME)) {
-      // Hacky way not to annotate the formulas I create.
+      // Hack not to annotate the formulas I create.
       if (ufmgr.getArity(input) == 2 &&
           (ufmgr.getArg(input, 0).equals(specVar)
               || ufmgr.getArg(input, 1).equals(specVar))) {

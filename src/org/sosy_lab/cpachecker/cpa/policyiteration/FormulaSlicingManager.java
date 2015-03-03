@@ -32,7 +32,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-public class SlicingFormulaManager {
+public class FormulaSlicingManager {
   private final LogManager logger;
   private final FormulaManagerView fmgr;
   private final UnsafeFormulaManager unsafeManager;
@@ -43,7 +43,7 @@ public class SlicingFormulaManager {
   private static final String NOT_FUNC_NAME = "not";
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
 
-  public SlicingFormulaManager(LogManager pLogger,
+  public FormulaSlicingManager(LogManager pLogger,
       FormulaManagerView pFmgr,
       UnsafeFormulaManager pUnsafeManager,
       BooleanFormulaManager pBfmgr,
@@ -101,7 +101,7 @@ public class SlicingFormulaManager {
     }
     BooleanFormula sliceRenamed = (BooleanFormula)unsafeManager.substitute(slice, renames);
 
-    if (isInductive(location.node, outVariables, intermediateVariables,
+    if (isInductive(location.getFinalNode(), outVariables, intermediateVariables,
         pf.updateFormula(sliceRenamed))) {
       return fmgr.simplify(sliceRenamed);
     } else {

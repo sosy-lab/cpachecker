@@ -20,6 +20,7 @@ public final class PolicyIntermediateState extends PolicyState {
 
   /**
    * Trace to determine the coverage relation.
+   * Format: to-node -> set of from_nodes explored.
    */
   private final ImmutableMultimap<Location, Location> trace;
 

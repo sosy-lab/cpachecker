@@ -52,7 +52,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Ints;
 
 /**
  * Main logic in a single class.
@@ -92,7 +91,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final TemplateManager templateManager;
   private final ValueDeterminationFormulaManager vdfmgr;
   private final PolicyIterationStatistics statistics;
-  private final SlicingFormulaManager formulaSlicingManager;
+  private final FormulaSlicingManager formulaSlicingManager;
   private final FormulaLinearizationManager linearizationManager;
 
   public PolicyIterationManager(
@@ -106,7 +105,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       TemplateManager pTemplateManager,
       ValueDeterminationFormulaManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics,
-      SlicingFormulaManager pFormulaSlicingManager,
+      FormulaSlicingManager pFormulaSlicingManager,
       FormulaLinearizationManager pLinearizationManager)
       throws InvalidConfigurationException {
     config.inject(this, PolicyIterationManager.class);
@@ -180,12 +179,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Override
   public Collection<PolicyState> getAbstractSuccessors(PolicyState oldState,
-      CFAEdge edge)
-      throws CPATransferException, InterruptedException {
+      List<AbstractState> otherStates,
+      CFAEdge edge) throws CPATransferException, InterruptedException {
 
     CFANode node = edge.getSuccessor();
     Location oldLocation = oldState.getLocation();
-    Location newLocation = Location.transferRelation(oldLocation, edge);
+    Location newLocation = Location.of(node, otherStates);
 
     PolicyIntermediateState iOldState;
 
@@ -198,7 +197,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Multimap<Location, Location> trace =
         HashMultimap.create(iOldState.getTrace());
 
-    // Serialize the choice to trace as well.
+    // Serialize the choice to trace.
     trace.put(newLocation, oldLocation);
 
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
@@ -237,15 +236,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     statistics.startAbstractionTimer();
     try {
       // Perform the abstraction, if necessary.
-      if (!state.isAbstract() && shouldPerformAbstraction(
-          state.asIntermediate())) {
+      if (!state.isAbstract() && shouldPerformAbstraction(cfaEdge.getSuccessor())) {
         PolicyIntermediateState iState = state.asIntermediate();
 
         logger.log(Level.FINE, ">>> Abstraction from formula",
             iState.getPathFormula());
-        logger.log(Level.FINE, "SSA: ", iState.getPathFormula().getSsa());
-        Optional<PolicyAbstractedState> abstraction =
-            performAbstraction(iState);
+        Optional<PolicyAbstractedState> abstraction = performAbstraction(iState);
         if (!abstraction.isPresent()) {
           return Collections.emptyList();
         }
@@ -283,7 +279,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   public PolicyState join(PolicyState newState, PolicyState oldState)
       throws CPATransferException, InterruptedException, SolverException {
     PolicyState out;
-    Preconditions.checkState(oldState.getNode() == newState.getNode());
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
 
     if (oldState.isAbstract()) {
@@ -307,6 +302,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
   ) throws CPATransferException, InterruptedException {
+    // NOTE: possible optimization before join:
+    // check satisfiability, if one of the paths is unsatisfiable =>
+    // throw it away (avoid unnecessary diamonds, better get rid of them
+    // early).
+
     Preconditions
         .checkState(newState.getLocation().equals(oldState.getLocation()));
     Location location = newState.getLocation();
@@ -524,7 +524,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
     for (PolicyBound bound : updated.values()) {
       Location location = bound.predecessor;
-      if (l.getLoopNodes().contains(location.node)) {
+      if (l.getLoopNodes().contains(location.getFinalNode())) {
         return true;
       }
     }
@@ -537,12 +537,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean checkSatisfiability(PolicyIntermediateState state)
       throws CPATransferException, InterruptedException {
 
+    // TODO: we need to be able to return "false" as well, if we know something
+    // is definitely "false".
     BooleanFormula constraint = state.getPathFormula().getFormula();
-    constraint = linearizationManager.enforceChoice(
-        constraint,
+    constraint = linearizationManager.enforceChoice(constraint,
         Collections.<Entry<Model.AssignableTerm, Object>>emptySet(),
-        true
-    );
+        true);
     try {
       statistics.startCheckSATTimer();
       return !solver.isUnsat(constraint);
@@ -679,7 +679,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     BooleanFormula initialConstraint = bfmgr.and(constraints);
+
+    // INITIAL_CONDITION_FLAG => (initialConstraint /\ metaInfo)
     initialConstraint = bfmgr.or(
+
+        // Either no initial condition (value det. mode) or specified
+        // initial condition (propagation mode).
         bfmgr.not(bfmgr.makeVariable(INITIAL_CONDITION_FLAG)),
         bfmgr.and(
             initialConstraint,
@@ -731,7 +736,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     BigInteger prevLocationID = (BigInteger)model.get(
         new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer));
-    int locationID = Ints.checkedCast(prevLocationID.longValue());
+    int locationID = prevLocationID.intValue();
     Location prevLocation = Location.ofID(locationID);
     SSAMap startSSA = inputState.getStartSSA().get(prevLocation);
 
@@ -744,12 +749,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Whether to compute the abstraction when creating a new
    * state associated with <code>node</code>.
    */
-  private boolean shouldPerformAbstraction(PolicyIntermediateState state) {
-    CFANode node = state.getNode();
+  private boolean shouldPerformAbstraction(CFANode pNode) {
     if (!pathFocusing) {
       return true;
     }
-    if (node.isLoopStart()) {
+    if (pNode.isLoopStart()) {
       return true;
     }
     return false;
