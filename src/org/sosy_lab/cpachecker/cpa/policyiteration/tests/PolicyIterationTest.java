@@ -174,6 +174,7 @@ public class PolicyIterationTest {
         .put("cfa.findLiveVariables", "true")
         .put("analysis.summaryEdges", "true")
         .put("analysis.traveral.order", "bfs")
+        .put("cpa.callstack.produceUniqueStates", "false")
     .build());
     props.putAll(extra);
     return props;
