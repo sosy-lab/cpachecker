@@ -360,12 +360,13 @@ class GlobalScope extends AbstractScope {
       // overwrite the already found type in the types map of the ASTTypeConverter if necessary
       // we need to do this, that the members of the renamed CCompositeType get the correct type names
       // in case of members pointing to the renamed type itself
-      overwriteTypeIfNecessary(oldType, new CElaboratedType(renamedCompositeType.isConst(),
-                                                            renamedCompositeType.isVolatile(),
-                                                            renamedCompositeType.getKind(),
-                                                            renamedCompositeType.getName(),
-                                                            renamedCompositeType.getOrigName(),
-                                                            renamedCompositeType));
+      CElaboratedType renamedElaboratedType = new CElaboratedType(renamedCompositeType.isConst(),
+                                                                  renamedCompositeType.isVolatile(),
+                                                                  renamedCompositeType.getKind(),
+                                                                  renamedCompositeType.getName(),
+                                                                  renamedCompositeType.getOrigName(),
+                                                                  renamedCompositeType);
+      overwriteTypeIfNecessary(oldType, renamedElaboratedType);
 
       List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>(oldCompositeType.getMembers().size());
       for (CCompositeTypeMemberDeclaration decl : oldCompositeType.getMembers()) {
@@ -373,9 +374,11 @@ class GlobalScope extends AbstractScope {
 
         // here we need to take care of the case that the pointer could be pointing
         // to the same that that is renamed currently
+        // we need to put in the elaborated renamed type, otherwise there will be
+        // infinite recursion in the types toASTString method, what we don't want
         if (decl.getType() instanceof CPointerType) {
           newMembers.add(new CCompositeTypeMemberDeclaration(createPointerField((CPointerType) decl.getType(), oldType,
-              renamedCompositeType), decl.getName()));
+              renamedElaboratedType), decl.getName()));
 
         // this member cannot be self referencing as it is no pointer
         } else {
