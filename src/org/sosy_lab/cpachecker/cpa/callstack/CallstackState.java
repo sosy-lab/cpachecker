@@ -40,15 +40,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public final class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
+public abstract class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 3629687385150064994L;
-  private final CallstackState previousState;
-  private final String currentFunction;
-  private transient CFANode callerNode;
+  protected final CallstackState previousState;
+  protected final String currentFunction;
+  protected transient CFANode callerNode;
   private final int depth;
+  protected transient int hashCache = 0;
 
-  CallstackState(CallstackState previousElement, @Nonnull String function, @Nonnull CFANode callerNode) {
+  protected CallstackState(CallstackState previousElement, @Nonnull String function, @Nonnull CFANode callerNode) {
     this.previousState = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);
