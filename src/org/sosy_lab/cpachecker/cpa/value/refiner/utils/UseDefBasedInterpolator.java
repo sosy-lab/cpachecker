@@ -153,10 +153,6 @@ public class UseDefBasedInterpolator {
 
   private void updateDependencies(CFAEdge edge) {
     switch (edge.getEdgeType()) {
-    case BlankEdge:
-    case CallToReturnEdge:
-      //nothing to do
-      break;
 
     case FunctionReturnEdge:
       AFunctionCall summaryExpr = ((FunctionReturnEdge)edge).getSummaryEdge().getExpression();
@@ -227,6 +223,10 @@ public class UseDefBasedInterpolator {
           || statement instanceof AFunctionCallAssignmentStatement) {
         handleAssignments((AAssignment) statement);
       }
+      break;
+
+    default:
+      // nothing to do for any other types of edges
       break;
     }
   }
