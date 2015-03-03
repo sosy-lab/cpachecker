@@ -370,15 +370,17 @@ class GlobalScope extends AbstractScope {
       List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>(oldCompositeType.getMembers().size());
       for (CCompositeTypeMemberDeclaration decl : oldCompositeType.getMembers()) {
 
-        // this member cannot be self referencing as it is no pointer
-        if (!(decl.getType() instanceof CPointerType)) {
-          newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
 
-          // here we need to take care of the case that the pointer could be pointing
-          // to the same that that is renamed currently
-        } else {
+        // here we need to take care of the case that the pointer could be pointing
+        // to the same that that is renamed currently
+        if (decl.getType() instanceof CPointerType) {
           newMembers.add(new CCompositeTypeMemberDeclaration(createPointerField((CPointerType) decl.getType(), oldType,
               renamedCompositeType), decl.getName()));
+
+        // this member cannot be self referencing as it is no pointer
+        } else {
+          newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
+
         }
       }
       renamedCompositeType.setMembers(newMembers);
