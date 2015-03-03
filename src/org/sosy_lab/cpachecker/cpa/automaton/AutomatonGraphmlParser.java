@@ -339,21 +339,12 @@ public class AutomatonGraphmlParser {
         // If the triggers do not apply, none of the above transitions is taken
         Collection<AutomatonTransition> nonMatchingTransitions = new ArrayList<>();
         if (strictMatching) {
-          // If we are doing strict matching, anything that is relevant but does not match must go to the sink
+          // If we are doing strict matching, anything that does not match must go to the sink
           nonMatchingTransitions.add(createAutomatonSinkTransition(
-              and(not(conjunctedTriggers),
-                  AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
+              not(conjunctedTriggers),
               Collections.<AutomatonBoolExpr>emptyList(),
               Collections.<AutomatonAction>emptyList()));
 
-          // Anything that does not match but is irrelevant must go back to the source state
-          nonMatchingTransitions.add(createAutomatonTransition(
-              and(not(conjunctedTriggers),
-                  not(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE)),
-              assertions,
-              Collections.<CStatement>emptyList(),
-              Collections.<AutomatonAction>emptyList(),
-              sourceStateId));
         } else {
           // If we are more lenient, we just wait in the source state until the witness checker catches up with the witness,
           // i.e. until some CFA edge matches the triggers
@@ -382,8 +373,6 @@ public class AutomatonGraphmlParser {
 
           conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
         }
-
-        conjunctedTriggers = and(conjunctedTriggers, AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE);
 
         Collection<AutomatonTransition> matchingTransitions = new ArrayList<>();
 
@@ -451,7 +440,7 @@ public class AutomatonGraphmlParser {
         try (Writer w = Files.openOutputFile(automatonDumpFile)) {
           automaton.writeDotFile(w);
         } catch (IOException e) {
-         // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+          // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
         }
       }
 
