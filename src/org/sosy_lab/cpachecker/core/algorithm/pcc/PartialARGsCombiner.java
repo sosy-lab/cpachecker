@@ -395,6 +395,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     boolean restart;
     int lastSize = pSuccessorsForEdge.get(pSuccessorsForEdge.size()-1).size();
 
+    if(lastSize == 0) {
+      lastSize = 1;
+    }
+
     while(indices[indices.length-1]<lastSize){
       shutdown.shutdownIfNecessary();
 
