@@ -343,7 +343,7 @@ public class ProgramDeclarations {
 
       // if the members are anonymous we cannot rely on the name of the field
       // so we exclude it from the equality test
-      boolean isAnonymousField = member1Name.contains("_anon_type_member_") || member2Name.contains("_anon_type_member_");
+      boolean isAnonymousField = member1Name.contains("_anon_type_member_") && member2Name.contains("_anon_type_member_");
       areEqual = member1Name.equals(member2Name) || isAnonymousField;
 
       // if the name is already not matching (same or anonymous) we don't need to compare
