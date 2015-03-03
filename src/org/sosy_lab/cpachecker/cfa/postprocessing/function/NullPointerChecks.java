@@ -81,7 +81,7 @@ import com.google.common.collect.Lists;
 /******************************************************************+
  * NullPointerDetection
  *
- * Using detectNullPointers, before every occurence of *p we insert a test on
+ * Using detectNullPointers, before every occurrence of *p we insert a test on
  * p == 0 in order to detect null pointers.
  */
 @Options(prefix="cfa.checkNullPointers")
