@@ -42,6 +42,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.collect.HashMultimap;
@@ -78,7 +81,7 @@ public class ProgramDeclarations {
     if (types.containsKey(qualifiedName)) {
       CComplexTypeDeclaration oldDecl = types.get(qualifiedName);
       if (!(oldDecl.getType().getCanonicalType() instanceof CElaboratedType
-            && areEqualTypes(oldDecl.getType(), type, false))) {
+            && areEqualTypes(oldDecl.getType().getCanonicalType(), type.getCanonicalType()))) {
         throw new CFAGenerationRuntimeException("There is already a type registered with the qualified name: " + qualifiedName);
       }
     } else {
@@ -137,6 +140,15 @@ public class ProgramDeclarations {
 
       // no exact matching type found, search for origName equivalents
     } else {
+
+      // at first check if origName is a real struct
+      returnType = types.get("struct " + origName);
+      if (returnType != null) {
+        return returnType.getType();
+      }
+
+      // if there is also no struct with the origName as name we check
+      // all other possible renamed types
       Collection<String> typeNames = origNamesToQualifiedNames.get(origName);
       for (String name : typeNames) {
         returnType = types.get(name);
@@ -188,8 +200,7 @@ public class ProgramDeclarations {
         CType oldType = typedefs.get(name).getType().getCanonicalType();
         CType newType = declaration.getType().getCanonicalType();
 
-        if ((oldType instanceof CComplexType && newType instanceof CComplexType && areEqualTypes((CComplexType)oldType, (CComplexType)newType, false))
-            || !(oldType instanceof CComplexType && !(newType instanceof CComplexType) && oldType.equals(newType))) {
+        if (areEqualTypes(oldType.getCanonicalType(), newType.getCanonicalType())) {
           return Pair.of(true, typedefs.get(name));
         }
       }
@@ -198,73 +209,191 @@ public class ProgramDeclarations {
   }
 
   private Pair<Boolean, CComplexTypeDeclaration> getOrContainsEqualType(CComplexTypeDeclaration declaration) {
-    for (String name : origNamesToQualifiedNames.get(declaration.getType().getOrigName())) {
-      if (types.containsKey(name) && areEqualTypes(types.get(name).getType(), declaration.getType(), false)) {
-        return Pair.of(true, types.get(name));
+    CComplexType newType = (CComplexType) declaration.getType().getCanonicalType();
+    for (String name : origNamesToQualifiedNames.get(newType.getOrigName())) {
+
+      // if a type with this name is in the map we continue checking the equality
+      // of this type with the new one
+      if (types.containsKey(name)) {
+        CComplexTypeDeclaration oldDecl = types.get(name);
+
+        // check the type equality with our definition of equality, not
+        // the equals methods (these leave out the members of complex types)
+        if (areEqualTypes(oldDecl.getType().getCanonicalType(), newType)) {
+          return Pair.of(true, oldDecl);
+        }
       }
     }
     return Pair.of(false, null);
   }
 
   /**
-   * This method checks CComplexTypes on equality. As members are usually not
-   * checked by our equality methods these are here checked additionally, but
-   * only by name.
+   * This method checks the equality of two types (with regards to fields inside
+   * of structs).
+   *
+   * @param type1
+   * @param type2
+   * @param compareWithNameOfType In case of an anonymous struct field the
+   * @return
    */
-  public static boolean areEqualTypes(CComplexType oldType, CComplexType forwardType, boolean compareWithoutName) {
-    boolean areEqual = false;
-    oldType = (CComplexType) oldType.getCanonicalType();
-    forwardType = (CComplexType) forwardType.getCanonicalType();
-    if (forwardType.equals(oldType) ||
-        (compareWithoutName && forwardType.isConst() == oldType.isConst()
-            && forwardType.isVolatile() == oldType.isVolatile()
-            && forwardType.getKind() == oldType.getKind())) {
+  private static boolean areEqualTypes(CType type1, CType type2) {
+    return areEqualTypes(type1, type2, new HashMap<Pair<CType, CType>, Boolean>());
+  }
 
-      if (forwardType instanceof CCompositeType) {
-        List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) forwardType).getMembers();
-        List<CCompositeTypeMemberDeclaration> oldMembers = ((CCompositeType) oldType).getMembers();
+  private static boolean areEqualTypes(CType type1, CType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
+    assert type1.equals(type1.getCanonicalType()) && type2.equals(type2.getCanonicalType());
 
-        if (members.size() == oldMembers.size()) {
-          areEqual = true;
-          for (int i = 0; i < members.size() && areEqual; i++) {
-            String member1 = members.get(i).getName();
-            String member2 = oldMembers.get(i).getName();
-            if (member1 == null) {
-              areEqual = false;
-            } else {
-              areEqual = member1.equals(member2);
-              CType typeM1 = members.get(i).getType();
-              CType typeM2 = oldMembers.get(i).getType();
-              if (!areEqual
-                  && typeM1 instanceof CComplexType && typeM2 instanceof CComplexType
-                  && (member1.contains("_anon_type_member") && member2.contains("_anon_type_member_"))) {
-                areEqual = areEqualTypes((CComplexType)oldMembers.get(i).getType(), (CComplexType)members.get(i).getType(), true);
-              }
-            }
+    // shortcut for object identity, we do not need to test anything else in this case
+    if (type1 == type2) {
+      return true;
+
+      // if types have not the same class they cannot be equal unless there is one type that
+      // is only elaborated and one that is a complete complex type (or another elaborated type)
+    } else if (!(type1.getClass() == type2.getClass()
+              || (type1 instanceof CComplexType && type2 instanceof CElaboratedType)
+              || (type2 instanceof CComplexType && type1 instanceof CElaboratedType))) {
+      return false;
+    }
+
+    // the key of this types in the map
+    Pair<CType, CType> typePair = Pair.of(type1, type2);
+
+    // special case complex type is handled here this is necessary because
+    // in the equals method of CComplexTypes the members are not compared
+    if (type1 instanceof CComplexType) {
+      boolean isOuterTypeEqual = ((CComplexType) type1).equalsWithOrigName(type2);
+
+      // now we need to compare the members of the CComplexTypes
+      // due to the checks before we now that at this stage both types
+      // have the same class
+      if (isOuterTypeEqual) {
+        if (type1 instanceof CCompositeType) {
+          if (!foundTypes.containsKey(typePair)) {
+            boolean areEqual = areEqualCompositeTypes((CCompositeType)type1, (CCompositeType)type2, foundTypes);
+            foundTypes.put(typePair, areEqual);
+            return areEqual;
+
+            // the type was already found before so we can return true here
+          } else {
+            return foundTypes.get(typePair);
           }
-        }
-      } else if (forwardType instanceof CEnumType) {
-        List<CEnumerator> members = ((CEnumType) forwardType).getEnumerators();
-        List<CEnumerator> oldMembers = ((CEnumType) oldType).getEnumerators();
 
-        if (members.size() == oldMembers.size()) {
-          areEqual = true;
-          for (int i = 0; i < members.size() && areEqual; i++) {
-            areEqual = members.get(i).getName().equals(oldMembers.get(i).getName());
-          }
+        } else if (type1 instanceof CEnumType) {
+          return areEqualEnumTypes((CEnumType)type1, (CEnumType)type2);
+
+          // no more checks necessary as the outer type is equal and the elaborated
+          // type does not have any inner type right now
+        } else if (type1 instanceof CElaboratedType) {
+          return true;
+
+          // in case new CComplexTypes get introduced
+        } else {
+          throw new AssertionError("Unhandled CComplexType with kind: " + type1.getClass());
         }
-      } else if (forwardType instanceof CElaboratedType && oldType instanceof CElaboratedType) {
-        areEqual = forwardType.getQualifiedName().equals(oldType.getQualifiedName());
+
+        // one or both types are only elaborated, so we can only check the name of the type
+        // and not the members, as elaborated types are always renamed to the
+        // file specific version this check has to be done on the original type
+        // names
+      } else if (type1.getClass() != type2.getClass() || type1 instanceof CElaboratedType) {
+        return ((CComplexType)type1).getOrigName().equals(((CComplexType)type2).getOrigName());
+
+        // the types are not equal
+      } else {
+        return false;
       }
-    } else {
 
-    // in files where only a forwards declaration can be found but no complete
-    // type we assume that this type is equal to the before found type with the
-    // same name this also works when the elaborated type is the old type, the
-    // first type found which has the same name and a complete type will now be
-    // the realType of the oldType
-    areEqual = ((forwardType instanceof CElaboratedType && forwardType.getName().equals(oldType.getName()))
-               || (oldType instanceof CElaboratedType && oldType.getName().equals(forwardType.getName())));
+      // a pointer could point to a struct type which needs to be compared
+      // with this equality method, thus we have this special case here
+    } else if (type1 instanceof CPointerType
+               && (((CPointerType)type1).getType() instanceof CComplexType
+                   || ((CPointerType)type1).getType() instanceof CFunctionType)) {
+
+        return areEqualTypes(((CPointerType)type1).getType(),
+                            ((CPointerType)type1).getType(),
+                            foundTypes);
+
+    } else if (type1 instanceof CFunctionType) {
+      return areEqualFunctionTypes((CFunctionType)type1,
+                                   (CFunctionType)type2,
+                                   foundTypes);
+
+      // no struct, union or enum we can just use the usual equals method
+    } else {
+      return type1.equals(type2);
+    }
+  }
+
+  private static boolean areEqualCompositeTypes(CCompositeType type1, CCompositeType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
+    List<CCompositeTypeMemberDeclaration> members1 = type1.getMembers();
+    List<CCompositeTypeMemberDeclaration> members2 = type2.getMembers();
+
+    // the types cannot be equal if they have different numbers of fields
+    if (members1.size() != members2.size()) {
+      return false;
+    }
+
+    boolean areEqual = true;
+    for (int i = 0; i < members1.size() && areEqual; i++) {
+      String member1Name = members1.get(i).getName();
+      String member2Name = members2.get(i).getName();
+
+      CType typeM1 = members1.get(i).getType();
+      CType typeM2 = members2.get(i).getType();
+
+      // if the members are anonymous we cannot rely on the name of the field
+      // so we exclude it from the equality test
+      boolean isAnonymousField = member1Name.contains("_anon_type_member_") || member2Name.contains("_anon_type_member_");
+      areEqual = member1Name.equals(member2Name) || isAnonymousField;
+
+      // if the name is already not matching (same or anonymous) we don't need to compare
+      // the types of the fields
+      areEqual = areEqual && areEqualTypes(typeM1.getCanonicalType(), typeM2.getCanonicalType(), foundTypes);
+    }
+
+    return areEqual;
+  }
+
+  private static boolean areEqualEnumTypes(CEnumType type1, CEnumType type2) {
+    List<CEnumerator> members1 = type1.getEnumerators();
+    List<CEnumerator> members2 = type2.getEnumerators();
+
+    // the types cannot be equal if they have different numbers of enumerators
+    if (members1.size() != members2.size()) {
+      return false;
+    }
+
+    boolean areEqual = true;
+    for (int i = 0; i < members1.size() && areEqual; i++) {
+      CEnumerator member1 = members1.get(i);
+      CEnumerator member2 = members2.get(i);
+      areEqual = member1.getName().equals(member2.getName());
+      areEqual = areEqual && ((member1.hasValue() && member2.hasValue() && member1.getValue() == member2.getValue())
+                              || (!member1.hasValue() && !member2.hasValue()));
+    }
+
+    return areEqual;
+  }
+
+  private static boolean areEqualFunctionTypes(CFunctionType type1, CFunctionType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
+
+    // check the function names but only if there is one
+    boolean areEqual = (type1 instanceof CFunctionTypeWithNames
+                         && type2 instanceof CFunctionTypeWithNames
+                         && !((CFunctionTypeWithNames)type1).getName().equals(((CFunctionTypeWithNames)type2).getName()))
+                       || !(type1 instanceof CFunctionTypeWithNames && type2 instanceof CFunctionTypeWithNames);
+
+    // we only need to check the members if the return type is equal
+    areEqual = areEqual && areEqualTypes(type1.getReturnType().getCanonicalType(), type2.getReturnType().getCanonicalType(), foundTypes);
+
+    List<CType> params1 = type1.getParameters();
+    List<CType> params2 = type2.getParameters();
+
+      // unequal number of parameters, we can return false
+    areEqual = areEqual && params1.size() == params2.size();
+
+    for (int i = 0; areEqual && i < params1.size(); i++) {
+      areEqual = areEqualTypes(params1.get(i).getCanonicalType(), params2.get(i).getCanonicalType(), foundTypes);
     }
 
     return areEqual;
