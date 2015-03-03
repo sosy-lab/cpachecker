@@ -677,6 +677,10 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
+# Compare CallstackStates using the identity function,that is two states
+# would be equal if they are the same object. Required for PredicateCPA.
+cpa.callstack.produceUniqueStates = true
+
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -849,10 +853,14 @@ cpa.invariants.merge = "PRECISIONDEPENDENT"
 # variables being live.
 cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 
-# with this option enabled, unction calls taht occur in the CFA are followed.
-# By disabling this option one can traverse a function withou following
+# With this option enabled, unction calls that occur in the CFA are followed.
+# By disabling this option one can traverse a function without following
 # function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
+
+# Number of loop iterations before the loop counter is abstracted. Zero is
+# equivalent to no limit.
+cpa.loopstack.loopIterationsBeforeAbstraction = 0
 
 # this option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
@@ -1843,7 +1851,7 @@ pcc.partitioning.partitioningStrategy = RANDOM
   enum:     [RANDOM, DFS, BFS, OPTIMAL, FM]
 
 # If enabled uses the number of nodes saved in certificate to compute
-# partition number otherwise the size of certificate
+# partition number otherwise the number of states explored during analysis
 pcc.partitioning.useGraphSizeToComputePartitionNumber = false
 
 # file in which proof representation needed for proof checking is stored
