@@ -307,7 +307,8 @@ public class ProgramDeclarations {
       // with this equality method, thus we have this special case here
     } else if (type1 instanceof CPointerType
                && (((CPointerType)type1).getType() instanceof CComplexType
-                   || ((CPointerType)type1).getType() instanceof CFunctionType)) {
+                   || ((CPointerType)type1).getType() instanceof CFunctionType
+                   || ((CPointerType)type1).getType() instanceof CPointerType)) {
 
         return areEqualTypes(((CPointerType)type1).getType(),
                             ((CPointerType)type1).getType(),
