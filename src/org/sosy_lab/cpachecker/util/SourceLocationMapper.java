@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.FileLocationCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -559,7 +561,20 @@ public class SourceLocationMapper {
           CVariableDeclaration varDecl = (CVariableDeclaration) decl;
           result.add(varDecl.getQualifiedName());
           if (varDecl.getInitializer() != null) {
-            idExs.addAll(varDecl.getInitializer().accept(visitor));
+            CInitializer initializer = varDecl.getInitializer();
+
+            // CInitializerLists can be ridiculously long (1000s of entries),
+            // leading to stack overflow error when traversing the list via a visitor
+            // so rather visit each one by one
+            if(initializer instanceof CInitializerList) {
+              for(CInitializer c : ((CInitializerList)initializer).getInitializers()) {
+                idExs.addAll(c.accept(visitor));
+              }
+            }
+
+            else {
+              idExs.addAll(varDecl.getInitializer().accept(visitor));
+            }
           }
         }
       break;
