@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -325,24 +326,47 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
       }
 
+      final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
+      int multiEdgeID = 0;
+
       final CFANode loc = AbstractStates.extractLocation(s);
       for (final ARGState child : getUncoveredChildrenView(s)) {
         assert !child.isCovered();
 
         CFAEdge edge = loc.getEdgeTo(extractLocation(child));
 
-        if(edge instanceof MultiEdge) {
+        if (edge instanceof MultiEdge) {
+          assert (((MultiEdge) edge).getEdges().size() > 1);
+
+          sb.append("    MATCH \"");
+          escape(((MultiEdge) edge).getEdges().get(0).getRawStatement(), sb);
+          sb.append("\" -> ");
+          sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
+
           boolean first = true;
-          for(CFAEdge innerEdge: ((MultiEdge)edge).getEdges()) {
-            if(!first) {
-              sb.append("GOTO ARG" + s.getStateId() + ";\n");
+          for (CFAEdge innerEdge : from(((MultiEdge) edge).getEdges()).skip(1)) {
+
+            if (!first) {
+              multiEdgeID++;
+              descriptionForInnerMultiEdges.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID + ";\n");
+              descriptionForInnerMultiEdges.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
             } else {
               first = false;
             }
-            sb.append("    MATCH \"");
-            escape(innerEdge.getRawStatement(), sb);
-            sb.append("\" -> ");
+
+            descriptionForInnerMultiEdges.append("STATE USEFIRST ARG" + s.getStateId() + "M" + multiEdgeID + " :\n");
+            automatonStates++;
+            descriptionForInnerMultiEdges.append("    MATCH \"");
+            escape(innerEdge.getRawStatement(), descriptionForInnerMultiEdges);
+            descriptionForInnerMultiEdges.append("\" -> ");
           }
+
+          AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
+          addAssumption(descriptionForInnerMultiEdges, assumptionChild);
+          finishTransition(descriptionForInnerMultiEdges, child, relevantStates, falseAssumptionStates,
+              actionOnFinalEdges, branching);
+          descriptionForInnerMultiEdges.append(";\n");
+          descriptionForInnerMultiEdges.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
 
         } else {
 
@@ -350,33 +374,43 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           escape(edge.getRawStatement(), sb);
           sb.append("\" -> ");
 
-        }
+          AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
+          addAssumption(sb, assumptionChild);
+          finishTransition(sb, child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
 
-        AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-        BooleanFormula assumption = bfmgr.and(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
-        sb.append("ASSUME {");
-        escape(assumption.toString(), sb);
-        sb.append("} ");
-
-        if (falseAssumptionStates.contains(child)) {
-          sb.append(actionOnFinalEdges + "GOTO __FALSE");
-
-        } else if (relevantStates.contains(child)) {
-          if (branching) {
-            sb.append("DO branchingCount = branchingCount+1 ");
-          }
-          sb.append("GOTO ARG" + child.getStateId());
-
-        } else {
-          sb.append(actionOnFinalEdges + "GOTO __TRUE");
         }
 
         sb.append(";\n");
       }
       sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
+      sb.append(descriptionForInnerMultiEdges);
 
     }
     sb.append("END AUTOMATON\n");
+  }
+
+  private void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState) throws IOException {
+    BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+    writer.append("ASSUME {");
+    escape(assumption.toString(), writer);
+    writer.append("} ");
+  }
+
+  private void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
+      final Set<AbstractState> falseAssumptionStates, final String actionOnFinalEdges, final boolean branching)
+      throws IOException {
+    if (falseAssumptionStates.contains(child)) {
+      writer.append(actionOnFinalEdges + "GOTO __FALSE");
+
+    } else if (relevantStates.contains(child)) {
+      if (branching) {
+        writer.append("DO branchingCount = branchingCount+1 ");
+      }
+      writer.append("GOTO ARG" + child.getStateId());
+
+    } else {
+      writer.append(actionOnFinalEdges + "GOTO __TRUE");
+    }
   }
 
   /**
