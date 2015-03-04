@@ -96,7 +96,7 @@ public class UseDefBasedInterpolator {
   /**
    * the set of "uses" that are not yet resolved by a "definition"
    */
-  private final Set<String> dependencies = new HashSet<>();
+  private final Set<ASimpleDeclaration> dependencies = new HashSet<>();
 
   /**
    * the mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s.
@@ -115,7 +115,6 @@ public class UseDefBasedInterpolator {
    * @return the mapping mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s
    */
   public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolants(ARGPath path) {
-
     dependencies.clear();
     interpolants.clear();
 
@@ -123,11 +122,9 @@ public class UseDefBasedInterpolator {
     List<ARGState> states = path.asStatesList();
 
     for (int i = edges.size() - 1; i >= 0; i--) {
+      addCurrentInterpolant(states.get(i + 1));
+
       CFAEdge edge = edges.get(i);
-      ARGState successor = states.get(i + 1);
-
-      addCurrentInterpolant(successor);
-
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
           updateDependencies(singleEdge);
@@ -158,7 +155,7 @@ public class UseDefBasedInterpolator {
       AFunctionCall summaryExpr = ((FunctionReturnEdge)edge).getSummaryEdge().getExpression();
 
       if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
-        String assignedVariable = Iterables.getOnlyElement(acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide())).getQualifiedName();
+        ASimpleDeclaration assignedVariable = Iterables.getOnlyElement(acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide()));
         if (dependencies.remove(assignedVariable)) {
           addDependency(Collections.<ASimpleDeclaration>singleton(((FunctionReturnEdge)edge).getFunctionEntry().getReturnVariable().get()));
         }
@@ -170,7 +167,7 @@ public class UseDefBasedInterpolator {
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
 
       // only variable declarations are of interest
-      if (declaration instanceof AVariableDeclaration && dependencies.remove(declaration.getQualifiedName())) {
+      if (declaration instanceof AVariableDeclaration && dependencies.remove(declaration)) {
         AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
         if (initializer != null) {
           addDependency(getVariablesUsedForInitialization(initializer));
@@ -197,7 +194,7 @@ public class UseDefBasedInterpolator {
       }
 
       for (int parameterIndex = 0; parameterIndex < parameters.size(); parameterIndex++) {
-        if (dependencies.remove(parameters.get(parameterIndex).getQualifiedName())) {
+        if (dependencies.remove(parameters.get(parameterIndex))) {
           addDependency(acceptAll(functionCallEdge.getArguments().get(parameterIndex)));
         }
       }
@@ -231,7 +228,7 @@ public class UseDefBasedInterpolator {
 
   private void addDependency(Collection<ASimpleDeclaration> decls) {
     for (ASimpleDeclaration d : decls) {
-      dependencies.add(d.getQualifiedName());
+      dependencies.add(d);
     }
   }
 
@@ -249,8 +246,15 @@ public class UseDefBasedInterpolator {
 
   private ValueAnalysisInterpolant createNonTrivialInterpolant() {
     HashMap<MemoryLocation, Value> values = new HashMap<>();
-    for (String variable : dependencies) {
-      values.put(MemoryLocation.valueOf(variable), UnknownValue.getInstance());
+    for (ASimpleDeclaration declaration : dependencies) {
+      String qualifiedName = declaration.getQualifiedName();
+      if(qualifiedName.contains("::")) {
+        values.put(MemoryLocation.valueOf(qualifiedName.substring(0, qualifiedName.indexOf("::")),
+            declaration.getName(), 0),
+            UnknownValue.getInstance());
+      } else {
+        values.put(MemoryLocation.valueOf(qualifiedName, 0), UnknownValue.getInstance());
+      }
     }
 
     return new ValueAnalysisInterpolant(values, Collections.<MemoryLocation, Type>emptyMap());
@@ -258,6 +262,7 @@ public class UseDefBasedInterpolator {
 
   // TODO: refactor this mess
   private void handleOtherAssumption(CFAEdge edge) {
+
     CAssumeEdge assumeEdge = (CAssumeEdge)edge;
     CExpression expr = assumeEdge.getExpression();
 
@@ -268,16 +273,14 @@ public class UseDefBasedInterpolator {
 
       if(binExpr.getOperand1() instanceof CIdExpression
           && binExpr.getOperand2() instanceof CLiteralExpression) {
-        if(dependencies.contains(((CIdExpression)binExpr.getOperand1()).getDeclaration().getQualifiedName())) {
-          //syso(((CIdExpression)binExpr.getOperand1()).getDeclaration().getQualifiedName() + " no longer depeding");
-          dependencies.remove(((CIdExpression)binExpr.getOperand1()).getDeclaration().getQualifiedName());
+        if(dependencies.contains(((CIdExpression)binExpr.getOperand1()).getDeclaration())) {
+          dependencies.remove(((CIdExpression)binExpr.getOperand1()).getDeclaration());
         }
       }
       else if(binExpr.getOperand2() instanceof CIdExpression
           && binExpr.getOperand1() instanceof CLiteralExpression) {
-        if(dependencies.contains(((CIdExpression)binExpr.getOperand2()).getDeclaration().getQualifiedName())) {
-          //syso(((CIdExpression)binExpr.getOperand2()).getDeclaration().getQualifiedName() + " no longer depeding");
-          dependencies.remove(((CIdExpression)binExpr.getOperand2()).getDeclaration().getQualifiedName());
+        if(dependencies.contains(((CIdExpression)binExpr.getOperand2()).getDeclaration())) {
+          dependencies.remove(((CIdExpression)binExpr.getOperand2()).getDeclaration());
         }
       }
     }
@@ -288,16 +291,14 @@ public class UseDefBasedInterpolator {
       CBinaryExpression binExpr = ((CBinaryExpression) expr);
       if(binExpr.getOperand1() instanceof CIdExpression
           && binExpr.getOperand2() instanceof CLiteralExpression) {
-        if(dependencies.contains(((CIdExpression)binExpr.getOperand1()).getDeclaration().getQualifiedName())) {
-          //syso(((CIdExpression)binExpr.getOperand1()).getDeclaration().getQualifiedName() + " no longer depeding");
-          dependencies.remove(((CIdExpression)binExpr.getOperand1()).getDeclaration().getQualifiedName());
+        if(dependencies.contains(((CIdExpression)binExpr.getOperand1()).getDeclaration())) {
+          dependencies.remove(((CIdExpression)binExpr.getOperand1()).getDeclaration());
         }
       }
       else if(binExpr.getOperand2() instanceof CIdExpression
           && binExpr.getOperand1() instanceof CLiteralExpression) {
-        if(dependencies.contains(((CIdExpression)binExpr.getOperand2()).getDeclaration().getQualifiedName())) {
-          //syso(((CIdExpression)binExpr.getOperand2()).getDeclaration().getQualifiedName() + " no longer depeding");
-          dependencies.remove(((CIdExpression)binExpr.getOperand2()).getDeclaration().getQualifiedName());
+        if(dependencies.contains(((CIdExpression)binExpr.getOperand2()).getDeclaration())) {
+          dependencies.remove(((CIdExpression)binExpr.getOperand2()).getDeclaration());
         }
       }
     }
@@ -373,21 +374,22 @@ public class UseDefBasedInterpolator {
     final Collection<ASimpleDeclaration> allLeftHandSideVariables = acceptAll(leftHandSide);
     final Collection<ASimpleDeclaration> additionallyLeftHandSideVariables = filter(allLeftHandSideVariables, not(in(assignedVariables)));
 
+    if(assignedVariables.size() > 1) {
+      return;
+    }
+
     // if assigned variable is resolving a dependency
-    if (dependencies.remove(Iterables.getOnlyElement(assignedVariables).getQualifiedName())) {
+    if (dependencies.remove(Iterables.getOnlyElement(assignedVariables))) {
       // all variables that occur in combination with the leftHandSide additionally
-      // to the needed one (e.g. a[i] i is additionally) are added to the newLiveVariables
+      // to the needed one (e.g. a[i] i is additionally) are added as dependency
       addDependency(additionallyLeftHandSideVariables);
 
-      // check all variables of the rightHandsides, they should be live afterwards
-      // if the leftHandSide is live
+      // all variables of the right hand side are "used" afterwards
       if (assignment instanceof AExpressionAssignmentStatement) {
         addDependency(acceptAll((AExpression) assignment.getRightHandSide()));
-
       } else if (assignment instanceof AFunctionCallAssignmentStatement){
         AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
         addDependency(getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions()));
-
       } else {
         throw new AssertionError("Unhandled assignment type.");
       }
@@ -398,10 +400,10 @@ public class UseDefBasedInterpolator {
    * This method returns the variables that are used in a given list of CExpressions.
    */
   private Collection<ASimpleDeclaration> getVariablesUsedAsParameters(List<? extends AExpression> parameters) {
-    Collection<ASimpleDeclaration> newLiveVars = new ArrayList<>();
+    Collection<ASimpleDeclaration> usedParameters = new ArrayList<>();
     for (AExpression expression : parameters) {
-      newLiveVars.addAll(acceptAll(expression));
+      usedParameters.addAll(acceptAll(expression));
     }
-    return newLiveVars;
+    return usedParameters;
   }
 }
