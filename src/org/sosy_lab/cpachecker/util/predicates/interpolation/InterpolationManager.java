@@ -173,7 +173,7 @@ public final class InterpolationManager {
   private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
   private static enum InterpolationStrategy {
     SEQ, SEQ_CPACHECKER,
-    TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER};
+    TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER}
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -1103,7 +1103,7 @@ public final class InterpolationManager {
     START,    // leaf-node with no children, start of a subtree
     MIDDLE,   // node with exactly one child, middle node in a sequence
     END       // node with several children, end of a subtree
-  };
+  }
 
   /** returns the current position in a interpolation tree. */
   private static TreePosition getTreePosition(final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas, final int position) {
@@ -1276,7 +1276,7 @@ public final class InterpolationManager {
     }
   }
 
-  private <T> void checkTreeInterpolants(final List<BooleanFormula> formulas,
+  private void checkTreeInterpolants(final List<BooleanFormula> formulas,
       final List<Integer> subtrees, final List<BooleanFormula> interpolants)
       throws SolverException, InterruptedException {
 
