@@ -5,6 +5,7 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 
 import com.google.common.base.Objects;
@@ -39,10 +40,12 @@ public final class Location {
   public static Location of(
       CFANode pNode, Collection<AbstractState> otherStates
   ) {
+    @SuppressWarnings("unchecked")
     Iterable<AbstractState> filteredStates = Iterables.filter(otherStates,
-        Predicates.or(
+        Predicates.<AbstractState>or(
             Predicates.instanceOf(CallstackState.class),
-            Predicates.instanceOf(LoopstackState.class)
+            Predicates.instanceOf(LoopstackState.class),
+            Predicates.instanceOf(FunctionPointerState.class)
         ));
     return new Location(pNode, filteredStates);
   }
