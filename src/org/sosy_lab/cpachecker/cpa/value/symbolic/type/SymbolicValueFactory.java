@@ -81,11 +81,12 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression minus(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pType, Type pCalculationType) {
-    Type canonicalCalcType = getCanonicalType(pType);
+    Type operand2Type = getCanonicalType(pOperand2.getType());
+    Type canonicalCalcType = getCanonicalType(pCalculationType);
 
     // use the calculation type of the binary expression as expression type of the negation
     // - the produced value will always fit in this one
-    SymbolicExpression negatedRightOperand = negate(pOperand2, canonicalCalcType);
+    SymbolicExpression negatedRightOperand = negate(pOperand2, operand2Type);
     return new AdditionExpression(pOperand1, negatedRightOperand, getCanonicalType(pType), canonicalCalcType);
   }
 
