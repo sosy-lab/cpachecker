@@ -93,7 +93,12 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression negate(SymbolicExpression pFormula, Type pType) {
     checkNotNull(pFormula);
-    return new NegationExpression(pFormula, pType);
+    if (pFormula instanceof NegationExpression) {
+      return ((NegationExpression) pFormula).getOperand();
+
+    } else {
+      return new NegationExpression(pFormula, pType);
+    }
   }
 
   public SymbolicExpression divide(SymbolicExpression pOperand1, SymbolicExpression pOperand2, Type pType,
