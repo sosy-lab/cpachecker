@@ -156,6 +156,7 @@ public final class InterpolationManager {
     BACKWARDS,
     ZIGZAG,
     LOOP_FREE_FIRST,
+    RANDOM
     ;
   }
 
@@ -552,6 +553,16 @@ public final class InterpolationManager {
           int id = pAbstractionStates.indexOf(state);
           orderedFormulas.add(Triple.of(traceFormulas.get(id), state, id));
         }
+      }
+
+    } else if (direction == CexTraceAnalysisDirection.RANDOM) {
+      List<AbstractState> stateList = new ArrayList<>(pAbstractionStates);
+      Collections.shuffle(stateList);
+
+      for (int i = 0; i < traceFormulas.size(); i++) {
+        AbstractState state = stateList.get(i);
+        int oldIndex = pAbstractionStates.indexOf(state);
+        orderedFormulas.add(Triple.of(traceFormulas.get(oldIndex), state, i));
       }
 
     } else {
