@@ -131,6 +131,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getSolver(),
                                           predicateCpa.getCfa().getLoopStructure(),
+                                          predicateCpa.getCfa().getVarClassification(),
                                           predicateCpa.getConfiguration(),
                                           predicateCpa.getShutdownNotifier(),
                                           logger);

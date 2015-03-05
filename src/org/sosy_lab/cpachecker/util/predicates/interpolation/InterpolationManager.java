@@ -38,7 +38,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -79,6 +81,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -152,11 +155,39 @@ public final class InterpolationManager {
       description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
   private CexTraceAnalysisDirection direction = CexTraceAnalysisDirection.FORWARDS;
   private static enum CexTraceAnalysisDirection {
+
+    /**
+     * Just the trace as it is
+     */
     FORWARDS,
+
+    /**
+     * The trace when traversed backwards
+     */
     BACKWARDS,
+
+    /**
+     * Takes alternatingly one element from the front of the trace and one of
+     * the back
+     */
     ZIGZAG,
+
+    /**
+     * Those parts of the trace that are in no loops or in less loops than
+     * others are sorted to the front
+     */
     LOOP_FREE_FIRST,
-    RANDOM
+
+    /**
+     * A random order of the trace
+     */
+    RANDOM,
+
+    /**
+     * Formulas with the lowest average score for their variables according
+     * to some calculations in the VariableClassification are sorted to the front
+     */
+    LOWEST_AVG_SCORE
     ;
   }
 
@@ -198,11 +229,13 @@ public final class InterpolationManager {
 
   private final ExecutorService executor;
   private final LoopStructure loopStructure;
+  private final VariableClassification variableClassification;
 
   public InterpolationManager(
       PathFormulaManager pPmgr,
       Solver pSolver,
       Optional<LoopStructure> pLoopStructure,
+      Optional<VariableClassification> pVarClassification,
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) throws InvalidConfigurationException {
@@ -217,6 +250,9 @@ public final class InterpolationManager {
 
     assert (direction != CexTraceAnalysisDirection.LOOP_FREE_FIRST || pLoopStructure.isPresent());
     loopStructure = pLoopStructure.orNull();
+
+    assert (direction != CexTraceAnalysisDirection.LOWEST_AVG_SCORE || pVarClassification.isPresent());
+    variableClassification = pVarClassification.orNull();
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -565,6 +601,27 @@ public final class InterpolationManager {
         orderedFormulas.add(Triple.of(traceFormulas.get(oldIndex), state, i));
       }
 
+    } else if (direction == CexTraceAnalysisDirection.LOWEST_AVG_SCORE) {
+      Map<Double, BooleanFormula> sortedFormulas = new TreeMap<>();
+
+      for (BooleanFormula formula : traceFormulas) {
+        Set<String> varNames = from(fmgr.extractVariableNames(formula))
+                               .transform(new Function<String, String>() {
+                                  @Override
+                                  public String apply(String pInput) {
+                                    return pInput.substring(0, pInput.indexOf("@"));
+                                  }})
+                               .toSet();
+
+        sortedFormulas.put(getAVGScoreForVariables(varNames), formula);
+      }
+
+      int counter = 0;
+      for (BooleanFormula formula : sortedFormulas.values()) {
+        int oldIndex = traceFormulas.indexOf(formula);
+        orderedFormulas.add(Triple.of(formula, pAbstractionStates.get(oldIndex), counter++));
+      }
+
     } else {
       final boolean backwards = direction == CexTraceAnalysisDirection.BACKWARDS;
       final int increment = backwards ? -1 : 1;
@@ -583,6 +640,44 @@ public final class InterpolationManager {
             .equals(ImmutableMultiset.copyOf(traceFormulas))
             : "Ordered list does not contain the same formulas with the same count";
     return result;
+  }
+
+  /**
+   * This method computes a score for a set of variables regarding the domain
+   * types of these variables.
+   * @param variableNames the variables that should be scored
+   * @return the average score over all given variables
+   */
+  private double getAVGScoreForVariables(Set<String> variableNames) {
+
+    long currentScore = 0;
+    for (String variableName : variableNames) {
+
+      // best, easy variables
+      if (variableClassification.getIntBoolVars().contains(variableName)) {
+        currentScore += 2;
+
+      // little harder but still good variables
+      } else if (variableClassification.getIntEqualVars().contains(variableName)) {
+        currentScore += 4;
+
+      // unknown type, potentially much harder than other variables
+      } else {
+        currentScore += 16;
+      }
+
+      // a loop counter variables, really bad for interpolants
+      if (loopStructure.getLoopIncDecVariables().contains(variableName)) {
+        currentScore += 100;
+      }
+
+      // check for overflow
+      if(currentScore < 0) {
+        return Long.MAX_VALUE / variableNames.size();
+      }
+    }
+
+    return currentScore / variableNames.size();
   }
 
   private void createLoopDrivenStateOrdering(final List<AbstractState> pAbstractionStates,
