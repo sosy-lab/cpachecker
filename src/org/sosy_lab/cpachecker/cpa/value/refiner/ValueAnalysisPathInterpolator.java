@@ -84,7 +84,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private boolean doLazyAbstraction = true;
 
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
-  private boolean pathSlicing = true;
+  private boolean pathSlicing = false;
 
   @Option(secure=true, description="whether to perform (more precise) edge-based interpolation or (more efficient) path-based interpolation")
   private boolean performEdgeBasedInterpolation = true;
