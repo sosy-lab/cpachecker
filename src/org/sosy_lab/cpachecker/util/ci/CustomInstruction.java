@@ -284,7 +284,7 @@ public class CustomInstruction{
     String fakeSMT = getFakeSMTDescriptionForACI(mapping);
     //TODO SSAMap
 
-    return new AppliedCustomInstruction(startNode, aciEndNodes, getFakeSMTDescription(), null);//pIndicesForReturnVars); // TODO indices
+    return new AppliedCustomInstruction(startNode, aciEndNodes);// getFakeSMTDescription(), null, pIndicesForReturnVars); // TODO indices
   }
 
   /**
