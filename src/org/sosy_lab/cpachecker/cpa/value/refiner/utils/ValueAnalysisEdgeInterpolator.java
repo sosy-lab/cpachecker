@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -34,16 +33,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
@@ -56,10 +48,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
 public class ValueAnalysisEdgeInterpolator {
@@ -175,64 +164,26 @@ public class ValueAnalysisEdgeInterpolator {
   }
 
   /**
-   * This method determines those memory locations on which to interpolate.
+   * Interpolation on (long) error paths my be expensive, so it might pay off to limit the set of
+   * memory locations on which to interpolate.
    *
-   * Basically, this is the intersection of memory locations that are contained in the candidate interpolant
-   * and are referenced in the current edge. Hence, all memory locations that are in the candidate interpolant
-   * but are not referenced in the current edge also end up in the final interpolant.
+   * This method determines those memory locations on which to interpolate.
+   * Memory locations that are in the candidate interpolant but are not returned herewill end up
+   * in the final interpolant, without any effort spent on interpolation.
+   * Memory locations that are returned here are subject for interpolation, and might be eliminated
+   * from the final interpolant (at the cost of doing one interpolation query for each of them).
+   *
+   * Basically, one could return here the intersection of those memory locations that are contained
+   * in the candidate interpolant and those that are referenced in the current edge.
+   * Hence, all memory locations that are in the candidate interpolant but are not referenced in
+   * the current edge would also end up in the final interpolant.
+   * This optimization was removed again in commit r16007 because the payoff did not justify
+   * maintaining the code, esp. as other optimizations work equally well with less code.
    */
   private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final CFAEdge pCurrentEdge,
       ValueAnalysisState candidateInterpolant) {
-    // when returning from a function, the method getInitialSuccessor rebuilds the
-    // context of the calling function, which is needed for BAM-refiner/recursion
-    // so, in that case, return the full candidate interpolant, because we do not
-    // know on how to limit the candidate interpolant
-    if(pCurrentEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      return candidateInterpolant.getTrackedMemoryLocations();
-    }
 
-    // in all other cases, we limit the candidate interpolant to
-    // those memory locations that are referenced in the current edge
-    Set<MemoryLocation> variablesToInterpolateOn = new HashSet<>(candidateInterpolant.getTrackedMemoryLocations());
-    variablesToInterpolateOn.retainAll(obtainMemoryLocationsReferencedInEdge(pCurrentEdge));
-    return variablesToInterpolateOn;
-  }
-
-  /**
-   * This method returns all memory locations that are referenced in the given edge.
-   */
-  private Set<MemoryLocation> obtainMemoryLocationsReferencedInEdge(CFAEdge edge) {
-    Set<String> variablesInEdge = SourceLocationMapper.getEdgeVariableNames(edge);
-
-    Set<MemoryLocation> memoryLocationsInEdge = new HashSet<>(FluentIterable.from(variablesInEdge)
-        .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
-
-    // last edge of a multi-edge could be a return-statement edge, so unpack last edge
-    if(edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      edge = Iterables.getLast(((MultiEdge)edge).getEdges());
-    }
-
-    // also add parameters to referenced variables, because they are assigned
-    // by the transfer relation when function call edges are handled
-    if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
-      for(AParameterDeclaration parameterDeclaration: functionCallEdge.getSuccessor().getFunctionParameters()) {
-        memoryLocationsInEdge.add(MemoryLocation.valueOf(parameterDeclaration.getQualifiedName()));
-      }
-    }
-
-    // also add special return variable (fn::__retval__) to set of referenced variables
-    else if (edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-      CReturnStatementEdge returnStatementEdge = ((CReturnStatementEdge) edge);
-      Optional<CExpression> expression = returnStatementEdge.getExpression();
-      if(expression.isPresent()) {
-        for(CIdExpression id : returnStatementEdge.asAssignment().get().accept(new CIdExpressionCollectingVisitor())) {
-          memoryLocationsInEdge.add(MemoryLocation.valueOf(id.getDeclaration().getQualifiedName()));
-        }
-      }
-    }
-
-    return memoryLocationsInEdge;
+    return candidateInterpolant.getTrackedMemoryLocations();
   }
 
   /**
