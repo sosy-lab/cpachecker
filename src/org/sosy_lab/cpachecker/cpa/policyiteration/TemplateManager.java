@@ -318,11 +318,11 @@ public class TemplateManager {
 
   private Optional<Template> recExpressionToTemplate(CExpression expression) {
     if (expression instanceof CBinaryExpression) {
-      CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
-      CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
+      CBinaryExpression binaryExpression = (CBinaryExpression)expression;
+      CExpression operand1 = binaryExpression.getOperand1();
+      CExpression operand2 = binaryExpression.getOperand2();
 
-      CBinaryExpression.BinaryOperator operator =
-          ((CBinaryExpression)expression).getOperator();
+      CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
       Optional<Template> templateA = recExpressionToTemplate(operand1);
       Optional<Template> templateB = recExpressionToTemplate(operand2);
 
@@ -348,10 +348,14 @@ public class TemplateManager {
       }
 
       // Otherwise just add/subtract templates.
-      if (templateA.isPresent() && templateB.isPresent()) {
+      if (templateA.isPresent() && templateB.isPresent()
+          && binaryExpression.getCalculationType() instanceof CSimpleType) {
         LinearExpression<CIdExpression> a = templateA.get().linearExpression;
         LinearExpression<CIdExpression> b = templateB.get().linearExpression;
-        CSimpleType type = templateA.get().type;
+
+        // Calculation type is the casting of both types to a suitable "upper"
+        // type.
+        CSimpleType type = (CSimpleType)binaryExpression.getCalculationType();
         Template t;
         if (operator == CBinaryExpression.BinaryOperator.PLUS) {
           t = new Template(a.add(b), type);
