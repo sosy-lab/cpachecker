@@ -292,6 +292,11 @@ class CFABuilder extends ASTVisitor {
   }
 
   public ParseResult createCFA() throws CParserException {
+    // in case we
+    if (functionDeclarations.size() > 1) {
+      programDeclarations.completeUncompletedElaboratedTypes();
+    }
+
     for (Triple<ADeclaration, String, GlobalScope> decl : globalDeclarations) {
       FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(decl.getThird(), programDeclarations);
       ((CDeclaration)decl.getFirst()).getType().accept(fillInAllBindingsVisitor);

@@ -307,7 +307,7 @@ class GlobalScope extends AbstractScope {
       overwriteTypeIfNecessary(type, declaration.getType());
     }
 
-    if (!programContainsEqualType && !isOnlyElaboratedType) {
+    if (!programContainsEqualType) {
       programDeclarations.registerTypeDeclaration(declaration);
     }
 

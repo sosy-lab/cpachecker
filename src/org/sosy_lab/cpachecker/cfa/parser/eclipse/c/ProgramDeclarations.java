@@ -27,8 +27,10 @@ import static com.google.common.base.Verify.verify;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -56,6 +58,7 @@ public class ProgramDeclarations {
   private final Map<String, CSimpleDeclaration> globalVars;
   private final Map<String, CFunctionDeclaration> functions;
   private final Map<String, CComplexTypeDeclaration> types;
+  private final Map<String, CElaboratedType> elaboratedTypes;
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final Multimap<String, String> origNamesToQualifiedNames;
 
@@ -63,6 +66,7 @@ public class ProgramDeclarations {
     globalVars = new HashMap<>();
     functions = new HashMap<>();
     types = new HashMap<>();
+    elaboratedTypes = new HashMap<>();
     typedefs = new HashMap<>();
     origNamesToQualifiedNames = HashMultimap.<String, String>create();
   }
@@ -78,6 +82,14 @@ public class ProgramDeclarations {
     CComplexType type = declaration.getType();
     String qualifiedName = type.getQualifiedName();
 
+    // if there is only an elaborated type we do not want to
+    // store it in the normal declarations map but separated from it
+    if (type.getCanonicalType() instanceof CElaboratedType){
+      elaboratedTypes.put(qualifiedName, (CElaboratedType) type);
+      origNamesToQualifiedNames.put(type.getOrigName(), type.getQualifiedName());
+      return;
+    }
+
     if (types.containsKey(qualifiedName)) {
       CComplexTypeDeclaration oldDecl = types.get(qualifiedName);
       if (!(oldDecl.getType().getCanonicalType() instanceof CElaboratedType
@@ -88,7 +100,45 @@ public class ProgramDeclarations {
       origNamesToQualifiedNames.put(type.getOrigName(), type.getQualifiedName());
     }
 
+
+    // check if there are elaborated types that need to be completed from other
+    // files with the same name, then we complete them this can only happen
+    // if the type is not anonymous
+    if (!type.getOrigName().equals("")) {
+      completeElaboratedTypes(type);
+    }
+
     types.put(qualifiedName, declaration);
+  }
+
+  /**
+   * Tries to complete all elaborated types either with the type from the parameter
+   * or if this is already renamed with the complete type that is not renamed
+   * @param type
+   */
+  private void completeElaboratedTypes(CComplexType type) {
+    // this is a renamed type we cannot use it as realType because
+    // of some restrictions in the setRealType method
+    if (!type.getName().endsWith(type.getOrigName())) {
+      type = types.get(type.getKind().toASTString() + " " + type.getOrigName()).getType();
+    }
+
+    for (String name : origNamesToQualifiedNames.get(type.getOrigName())) {
+
+      // if a type with this name is in the map we check if it is still
+      // elaborated and then set the realType for it if necessary
+      if (elaboratedTypes.containsKey(name)) {
+        CElaboratedType elabType = elaboratedTypes.get(name);
+
+        // if the type is still elaborated then we can set the new type as
+        // realtype for it and delete it from the elabTypes map
+        if (elabType.getRealType() == null) {
+          elabType.setRealType(type);
+        }
+
+        elaboratedTypes.remove(name);
+      }
+    }
   }
 
   public void registerTypeDefDeclaration(CTypeDefDeclaration declaration) {
@@ -225,6 +275,37 @@ public class ProgramDeclarations {
       }
     }
     return Pair.of(false, null);
+  }
+
+  /**
+   * This methods completes all uncompleted elaborated types by setting another
+   * elaborated type as realType (we cannot chose a real realtype as we do not
+   * know which this should be)
+   */
+  public void completeUncompletedElaboratedTypes() {
+    Set<String> handledTypes = new HashSet<>();
+    for (CElaboratedType type : elaboratedTypes.values()) {
+      String origName = type.getOrigName();
+
+      // already handled
+      if (handledTypes.contains(origName)) {
+        continue;
+      }
+
+      handledTypes.add(origName);
+      CElaboratedType newType = new CElaboratedType(type.isConst(), type.isVolatile(), type.getKind(), type.getOrigName(), type.getOrigName(), null);
+      for (String name : origNamesToQualifiedNames.get(origName)) {
+        if (elaboratedTypes.containsKey(name)) {
+          CElaboratedType elabType = elaboratedTypes.get(name);
+
+          // if the type is still elaborated then we can set the new type as
+          // realtype for it and delete it from the elabTypes map
+          if (elabType.getRealType() == null) {
+            elabType.setRealType(newType);
+          }
+        }
+      }
+    }
   }
 
   /**
