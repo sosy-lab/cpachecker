@@ -117,6 +117,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
       @Override
       public void appendTo(Appendable out) throws IOException {
         Set<Term> seen = new HashSet<>();
+        Set<FunctionSymbol> declaredFunctions = new HashSet<>();
         Deque<Term> todo = new ArrayDeque<>();
         PrintTerm termPrinter = new PrintTerm();
 
@@ -141,17 +142,18 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
           }
 
           if (func.getDefinition() == null) {
-            out.append("(declare-fun ");
-            out.append(PrintTerm.quoteIdentifier(func.getName()));
-            out.append(" (");
-            for (Sort paramSort : func.getParameterSorts()) {
-              termPrinter.append(out, paramSort);
-              out.append(' ');
+            if (declaredFunctions.add(func)) {
+              out.append("(declare-fun ");
+              out.append(PrintTerm.quoteIdentifier(func.getName()));
+              out.append(" (");
+              for (Sort paramSort : func.getParameterSorts()) {
+                termPrinter.append(out, paramSort);
+                out.append(' ');
+              }
+              out.append(") ");
+              termPrinter.append(out, func.getReturnSort());
+              out.append(")\n");
             }
-            out.append(") ");
-            termPrinter.append(out, func.getReturnSort());
-            out.append(")\n");
-
           } else {
             // We would have to print a (define-fun) command and
             // recursively traverse into func.getDefinition() (in post-order!).
