@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -126,6 +127,17 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
    */
   @Override
   public String toString() {
+    return toString(new Function<T, String>() {
+      public String apply(T pT) {
+        return pT.toString();
+      }
+    });
+  }
+
+  /**
+   * Printing with a custom serializer for variables.
+   */
+  public String toString(Function<T, String> converter) {
     StringBuilder b = new StringBuilder();
     for (Entry<T, Rational> monomial : this) {
       Rational coeff = monomial.getValue();
@@ -133,12 +145,13 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
         b.append(" + ");
       }
       T var = monomial.getKey();
+      String varSerialized = converter.apply(var);
       if (coeff == Rational.ONE) {
-        b.append(var);
+        b.append(varSerialized);
       } else if (coeff == Rational.NEG_ONE) {
-        b.append(" - ").append(var);
+        b.append(" - ").append(varSerialized);
       } else {
-        b.append(coeff.toString()).append(var);
+        b.append(coeff.toString()).append(varSerialized);
       }
     }
     return b.toString();
