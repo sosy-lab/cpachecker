@@ -35,7 +35,6 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -154,7 +153,7 @@ public class ErrorPathClassifier {
     }};
 
   public ErrorPathClassifier(Optional<VariableClassification> pClassification,
-      Optional<LoopStructure> pLoopStructure) throws InvalidConfigurationException {
+                             Optional<LoopStructure> pLoopStructure) {
     classification  = pClassification;
     loopStructure   = pLoopStructure;
   }
