@@ -39,6 +39,7 @@ public class FormulaSlicingManager {
   private final BooleanFormulaManager bfmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
+  private final PolicyIterationStatistics statistics;
 
   private static final String NOT_FUNC_NAME = "not";
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
@@ -47,13 +48,16 @@ public class FormulaSlicingManager {
       FormulaManagerView pFmgr,
       UnsafeFormulaManager pUnsafeManager,
       BooleanFormulaManager pBfmgr,
-      PathFormulaManager pPfmgr, Solver pSolver) {
+      PathFormulaManager pPfmgr,
+      Solver pSolver,
+      PolicyIterationStatistics pStatistics) {
     logger = pLogger;
     fmgr = pFmgr;
     unsafeManager = pUnsafeManager;
     bfmgr = pBfmgr;
     pfmgr = pPfmgr;
     solver = pSolver;
+    statistics = pStatistics;
   }
 
   /**
@@ -242,9 +246,12 @@ public class FormulaSlicingManager {
     // Slice is inductive if {@code test} is unsatisfiable.
     boolean isInductive;
     try {
+      statistics.slicingTimer.start();
       isInductive = solver.isUnsat(test);
     } catch (SolverException e) {
       throw new CPATransferException("Failed checking unsat", e);
+    } finally {
+      statistics.slicingTimer.stop();
     }
     return isInductive;
   }

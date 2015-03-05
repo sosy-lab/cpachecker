@@ -31,24 +31,31 @@ public class PolicyBound {
   final Rational bound;
 
   /**
-   * Start SSAMap for the {@code formula}.
+   * PathFormula which defines the starting {@link SSAMap} and
+   * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet}
+   * for {@code formula}.
    */
-  final SSAMap startSSA;
+  final PathFormula startPathFormula;
 
-  private static final Map<Triple<Location, PathFormula, Location>, Integer> serializationMap = new HashMap<>();
+  private static final Map<Triple<Location, PathFormula, Location>, Integer>
+      serializationMap = new HashMap<>();
   private static int pathCounter = -1;
 
-  PolicyBound(PathFormula pFormula, Rational pBound, Location pPredecessor,
-      SSAMap pStartSSA) {
+  private PolicyBound(PathFormula pFormula, Rational pBound, Location pPredecessor,
+      PathFormula pStartPathFormula) {
     formula = pFormula;
     bound = pBound;
     predecessor = pPredecessor;
-    startSSA = pStartSSA;
+    startPathFormula = pStartPathFormula;
   }
 
   public static PolicyBound of(PathFormula pFormula, Rational bound,
-      Location pUpdatedFrom, SSAMap pStartSSA) {
-    return new PolicyBound(pFormula, bound, pUpdatedFrom, pStartSSA);
+      Location pUpdatedFrom, PathFormula pStartPathFormula) {
+    return new PolicyBound(pFormula, bound, pUpdatedFrom, pStartPathFormula);
+  }
+
+  public PolicyBound updateValue(Rational newValue) {
+    return new PolicyBound(formula, newValue, predecessor, startPathFormula);
   }
 
   /**
@@ -56,7 +63,7 @@ public class PolicyBound {
    * {@code fromLocation, PathFormula, fromLocation}.
    * Identifies a path in the value determination sub-CFG.
    */
-  public int serializePath(Location toLocation) {
+  public int serializePolicy(Location toLocation) {
     Triple<Location, PathFormula, Location> p = Triple.of(
         predecessor, formula, toLocation);
     Integer serialization = serializationMap.get(p);

@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
@@ -27,18 +26,20 @@ public final class PolicyIntermediateState extends PolicyState {
   /**
    * SSAMap for the starting abstraction points.
    */
-  private final ImmutableMap<Location, SSAMap> startSSA;
+  private final ImmutableMap<Location, PathFormula> startPathFormulas;
 
   private PolicyIntermediateState(
       Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
       Multimap<Location, Location> pTrace,
-      Map<Location, SSAMap> pStartSSA) {
+      Map<Location, PathFormula> pStartPathFormulas
+      ) {
     super(pLocation, pTemplates);
+
     pathFormula = pPathFormula;
     trace = ImmutableMultimap.copyOf(pTrace);
-    startSSA = ImmutableMap.copyOf(pStartSSA);
+    startPathFormulas = ImmutableMap.copyOf(pStartPathFormulas);
   }
 
   public static PolicyIntermediateState of(
@@ -46,14 +47,17 @@ public final class PolicyIntermediateState extends PolicyState {
       Set<Template> pTemplates,
       PathFormula pPathFormula,
       Multimap<Location, Location> pTrace,
-      Map<Location, SSAMap> startSSA
+      Map<Location, PathFormula> pStartPathFormula
   ) {
     return new PolicyIntermediateState(pLocation, pTemplates, pPathFormula,
-        pTrace, startSSA);
+        pTrace, pStartPathFormula);
   }
 
-  public Map<Location, SSAMap> getStartSSA() {
-    return startSSA;
+  /**
+   * @return Starting {@link PathFormula} for possible starting locations.
+   */
+  public Map<Location, PathFormula> getStartPathFormulaMap() {
+    return startPathFormulas;
   }
 
   public PathFormula getPathFormula() {

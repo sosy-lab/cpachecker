@@ -40,12 +40,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -70,7 +71,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure = true,
       description = "Perform formula slicing after abstractions to propagate the" +
           " pointer information")
-  private boolean propagateFormulasPastAbstraction = true;
+  private boolean formulaSlicing = true;
 
   @Option(secure = true, name = "epsilon",
       description = "Value to substitute for the epsilon")
@@ -123,7 +124,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     statistics = pStatistics;
     formulaSlicingManager = pFormulaSlicingManager;
     linearizationManager = pLinearizationManager;
-
     /** Compute the cache for nodes */
     ImmutableMap.Builder<Integer, CFANode> nodeMapBuilder =
         ImmutableMap.builder();
@@ -141,7 +141,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
     loopStructure = loopStructureBuilder.build();
-
     abstractStates = new HashMap<>(pCfa.getAllNodes().size());
   }
 
@@ -220,7 +219,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Redundant variable for path identification.
         trace,
-        iOldState.getStartSSA());
+        iOldState.getStartPathFormulaMap());
 
     // NOTE: the abstraction computation and the global update is delayed
     // until the {@code strengthen} call.
@@ -333,17 +332,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     trace.putAll(oldState.getTrace());
 
     // Join startSSA: first SSAMap for the beginning of the trace.
-    Map<Location, SSAMap> newStartSSA = new HashMap<>();
-    for (Location loc : Sets.union(newState.getStartSSA().keySet(),
-        oldState.getStartSSA().keySet())) {
-      if (newState.getStartSSA().get(loc) == null) {
-        newStartSSA.put(loc, oldState.getStartSSA().get(loc));
-      } else if (oldState.getStartSSA().get(loc) == null) {
-        newStartSSA.put(loc, newState.getStartSSA().get(loc));
+    Map<Location, PathFormula> newStartPathFormula = new HashMap<>();
+    for (Location loc : Sets.union(newState.getStartPathFormulaMap().keySet(),
+        oldState.getStartPathFormulaMap().keySet())) {
+      if (newState.getStartPathFormulaMap().get(loc) == null) {
+        newStartPathFormula.put(loc, oldState.getStartPathFormulaMap().get(loc));
+      } else if (oldState.getStartPathFormulaMap().get(loc) == null) {
+        newStartPathFormula.put(loc, newState.getStartPathFormulaMap().get(loc));
       } else {
-        Preconditions.checkState(newState.getStartSSA().get(loc).equals(
-            oldState.getStartSSA().get(loc)));
-        newStartSSA.put(loc, newState.getStartSSA().get(loc));
+        Preconditions.checkState(newState.getStartPathFormulaMap().get(loc).equals(
+            oldState.getStartPathFormulaMap().get(loc)));
+        newStartPathFormula.put(loc, newState.getStartPathFormulaMap().get(loc));
       }
     }
 
@@ -352,7 +351,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     return PolicyIntermediateState.of(
         location, allTemplates,
         pfmgr.makeOr(newPath, oldPath),
-        trace, newStartSSA
+        trace,
+        newStartPathFormula
     );
   }
 
@@ -405,7 +405,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // Note: this formula contains no disjunctions, as the policy entails
       // the edge selection. Hence it can be used safely for the maximization.
-      Pair<ImmutableMap<String, FormulaType<?>>, BooleanFormula>
+      Pair<ImmutableMap<String, FormulaType<?>>, List<BooleanFormula>>
           constraints = vdfmgr.valueDeterminationFormula(
           related, stateWithUpdates.getLocation(), updated);
 
@@ -428,7 +428,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Map<Template, PolicyBound> updated,
       Location location,
       Map<String, FormulaType<?>> types,
-      BooleanFormula pValueDeterminationConstraints
+      List<BooleanFormula> pValueDeterminationConstraints
   )
       throws InterruptedException, CPATransferException {
 
@@ -438,10 +438,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // Maximize for each template subject to the overall constraints.
     statistics.startValueDeterminationTimer();
-    try (OptEnvironment solver = this.solver.newOptEnvironment()) {
+    try (OptEnvironment optSolver = this.solver.newOptEnvironment()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      solver.addConstraint(pValueDeterminationConstraints);
+      optSolver.addConstraint(bfmgr.and(pValueDeterminationConstraints));
 
       Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
@@ -456,19 +456,21 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           FormulaType<?> type = types.get(varName);
           objective = (NumeralFormula) fmgr.makeVariable(type, varName);
         }
-        int handle = solver.maximize(objective);
+        int handle = optSolver.maximize(objective);
         objectiveHandles.put(template, handle);
       }
-
 
       OptEnvironment.OptStatus result;
       try {
         statistics.startOPTTimer();
-        result = solver.check();
+        result = optSolver.check();
       } finally {
         statistics.stopOPTTimer();
       }
       if (result != OptEnvironment.OptStatus.OPT) {
+
+        // Useful for debugging.
+//        showUnsatCore(pValueDeterminationConstraints);
         shutdownNotifier.shutdownIfNecessary();
         throw new CPATransferException("Unexpected solver state, " +
             "value determination problem should be feasible");
@@ -478,14 +480,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         Template template = policyValue.getKey();
         PolicyBound bound = policyValue.getValue();
 
-        PathFormula policyFormula = bound.formula;
-        Optional<Rational> value = solver.upper(objectiveHandles.get(template),
-            EPSILON);
+        Optional<Rational> value = optSolver.upper(
+            objectiveHandles.get(template), EPSILON);
 
         if (value.isPresent()) {
-          builder.put(template, PolicyBound.of(
-              policyFormula, value.get(), bound.predecessor, bound.startSSA
-          ));
+
+          // Only the value changes, the rest is constant.
+          builder.put(template, bound.updateValue(value.get()));
         } else {
           unbounded.add(template);
         }
@@ -497,6 +498,20 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     return prevState.withUpdates(builder.build(), unbounded, templates);
+  }
+
+  @SuppressWarnings("unused")
+  private void showUnsatCore(List<BooleanFormula> pValueDeterminationConstraints)
+      throws SolverException, InterruptedException {
+    try (ProverEnvironment env = solver.newProverEnvironmentWithUnsatCoreGeneration()) {
+      for (BooleanFormula f : pValueDeterminationConstraints) {
+        env.push(f);
+      }
+      boolean out = env.isUnsat();
+      assert out;
+      List<BooleanFormula> unsatCore = env.getUnsatCore();
+      logger.log(Level.FINE, "Unsat core: ", unsatCore);
+    }
   }
 
   /**
@@ -605,6 +620,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           status = solver.check();
         } finally {
           statistics.stopOPTTimer();
+//          long t = statistics.optTimer.getLengthOfLastInterval().asSeconds();
+//          if (t > 2) {
+              // PROBLEM: this can slow down slow systems even more, halting to a grind.
+//            "Long query: optimization took %d seconds (query below) %n"
+//                + "Objective: %s %n Query: %s %n", t, objective, formulaWithInitial;
+//          }
         }
 
         // Generate the trace for the single template.
@@ -663,7 +684,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyAbstractedState abstractState)
       throws InterruptedException, CPATransferException {
 
-    SSAMap ssa = abstractState.getPathFormula().getSsa();
     List<BooleanFormula> constraints = new ArrayList<>();
     for (Entry<Template, PolicyBound> entry : abstractState) {
       Template template = entry.getKey();
@@ -695,7 +715,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         )
     );
 
-    if (propagateFormulasPastAbstraction) {
+    if (formulaSlicing) {
       BooleanFormula pointerData = formulaSlicingManager.pointerFormulaSlice(
           abstractState.getLocation(),
           abstractState.getPathFormula());
@@ -703,17 +723,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       initialConstraint = bfmgr.and(initialConstraint, pointerData);
     }
 
-    PathFormula path = new PathFormula(
-        initialConstraint, ssa,
-        abstractState.getPathFormula().getPointerTargetSet(),
-        0);
+    PathFormula path = abstractState.getPathFormula().updateFormula(
+        initialConstraint);
 
     return PolicyIntermediateState.of(
         abstractState.getLocation(),
         abstractState.getTemplates(),
         path,
         HashMultimap.<Location, Location>create(),
-        ImmutableMap.of(abstractState.getLocation(), ssa)
+        ImmutableMap.of(abstractState.getLocation(),
+            abstractState.getPathFormula())
     );
   }
 
@@ -738,11 +757,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer));
     int locationID = prevLocationID.intValue();
     Location prevLocation = Location.ofID(locationID);
-    SSAMap startSSA = inputState.getStartSSA().get(prevLocation);
 
     return PolicyBound.of(
         inputPathFormula.updateFormula(policyFormula), bound, prevLocation,
-        startSSA);
+        inputState.getStartPathFormulaMap().get(prevLocation));
   }
 
   /**

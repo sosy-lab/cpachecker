@@ -10,38 +10,28 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
-
 
 public class ValueDeterminationFormulaManager {
 
   /** Dependencies */
-  private final FormulaManager formulaManager;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final LogManager logger;
   private final TemplateManager templateManager;
-
-  /** Private variables. */
-  private final int threshold;
 
   /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
@@ -50,17 +40,12 @@ public class ValueDeterminationFormulaManager {
   public ValueDeterminationFormulaManager(
       FormulaManagerView fmgr,
       LogManager logger,
-      CFA cfa,
-      FormulaManager rfmgr,
       TemplateManager pTemplateManager) throws InvalidConfigurationException{
 
     this.fmgr = fmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
-    this.formulaManager = rfmgr;
     templateManager = pTemplateManager;
-
-    threshold = getThreshold(cfa);
   }
 
   /**
@@ -73,10 +58,10 @@ public class ValueDeterminationFormulaManager {
    * @return Global constraint for value determination and types of the abstract
    * domain elements.
    *
-   * @throws CPATransferException
+   * @throws org.sosy_lab.cpachecker.exceptions.CPATransferException
    * @throws InterruptedException
    */
-  public Pair<ImmutableMap<String, FormulaType<?>>, BooleanFormula> valueDeterminationFormula(
+  public Pair<ImmutableMap<String, FormulaType<?>>, List<BooleanFormula>> valueDeterminationFormula(
       Map<Location, PolicyAbstractedState> policy,
       final Location focusedLocation,
       final Map<Template, PolicyBound> updated
@@ -84,198 +69,140 @@ public class ValueDeterminationFormulaManager {
     List<BooleanFormula> constraints = new ArrayList<>();
     Map<String, FormulaType<?>> types = new HashMap<>();
 
-    for (Entry<Location, PolicyAbstractedState> entry : policy.entrySet()) {
-      Location toLocation = entry.getKey();
-      PolicyState state = entry.getValue();
-      Preconditions.checkState(state.isAbstract());
+    for (Entry<Location, PolicyAbstractedState> stateLocation : policy.entrySet()) {
+      Location toLocation = stateLocation.getKey();
+      PolicyAbstractedState state = stateLocation.getValue();
       Set<String> visited = new HashSet<>();
 
-      for (Entry<Template, PolicyBound> incoming : state.asAbstracted()) {
+      for (Entry<Template, PolicyBound> incoming : state) {
+
         Template template = incoming.getKey();
         PolicyBound bound = incoming.getValue();
+        PathFormula startPathFormula = bound.startPathFormula;
+        PathFormula policyFormula = bound.formula;
+        Location fromLocation = bound.predecessor;
+        Rational currentBound = bound.bound;
+        String prefix = String.format(VISIT_PREFIX,
+            bound.serializePolicy(toLocation));
 
-        final String prefix = String.format(VISIT_PREFIX,
-            bound.serializePath(toLocation));
-
-        if (toLocation == focusedLocation && !updated.containsKey(template)) {
-
-          // Insert the invariant from the previous constraint.
-          Formula templateFormula = templateManager.toFormula(
-              template,
-              new PathFormula(bfmgr.makeBoolean(true), SSAMap.emptySSAMap(),
-                  PointerTargetSet.emptyPointerTargetSet(), 0), prefix);
-          BooleanFormula constraint = fmgr.makeLessOrEqual(
-              templateFormula,
-              fmgr.makeNumber(templateFormula, bound.bound), true
-          );
-
-          constraints.add(constraint);
-        } else {
-          PathFormula formula = bound.formula;
-          Location fromLocation = bound.predecessor;
-          SSAMap startSSA = bound.startSSA;
-
-          int toLocationNo = toLocation.toID();
-          int toLocationPrimeNo = toPrime(toLocationNo);
-
-          PathFormula prefixedPathFormula = pathFormulaWithCustomIdxAndPrefix(
-              formula,
-              toLocationPrimeNo,
-              prefix
-          );
-          BooleanFormula edgeFormula = prefixedPathFormula.getFormula();
-
-          PolicyAbstractedState incomingState = policy.get(fromLocation);
-          for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
-            Template incomingTemplate = incomingConstraint.getKey();
-
-
-            Formula templateFormula = templateWithInitialMap(
-                startSSA, incomingTemplate, formula,  prefix);
-            String prevAbstractDomainElement = absDomainVarName(fromLocation,
-                incomingTemplate);
-            Formula absDomainElementFormula = fmgr.makeVariable(
-                fmgr.getFormulaType(templateFormula), prevAbstractDomainElement
-            );
-
-            BooleanFormula constraint = fmgr.makeLessOrEqual(
-                templateFormula, absDomainElementFormula, true);
-            constraints.add(constraint);
-          }
-
-          // Optimization.
-          if (!(edgeFormula.equals(bfmgr.makeBoolean(true))
-                || visited.contains(prefix))) {
-
-            // Check for visited.
-            constraints.add(edgeFormula);
-          }
-          if (policy.get(fromLocation) == null) {
-            // NOTE: nodes with no templates aren't in the policy.
-            continue;
-          }
-
-          Formula outExpr = templateManager.toFormula(
-              template, prefixedPathFormula, prefix);
-          final String abstractDomainElement = absDomainVarName(toLocation, template);
-          BooleanFormula outConstraint;
-          types.put(abstractDomainElement, fmgr.getFormulaType(outExpr));
-
-          outConstraint = fmgr.makeEqual(
-              outExpr,
-              fmgr.makeVariable(fmgr.getFormulaType(outExpr), abstractDomainElement)
-          );
-
-          logger.log(Level.FINE, "Output constraint = ", outConstraint);
-          constraints.add(outConstraint);
-        }
-        visited.add(prefix);
+        constraintsFromPolicy(
+            template,
+            policyFormula,
+            fromLocation,
+            startPathFormula,
+            currentBound,
+            prefix,
+            toLocation,
+            constraints, types, visited, focusedLocation, updated, policy);
       }
     }
-    return Pair.of(ImmutableMap.copyOf(types), bfmgr.and(constraints));
+
+    return Pair.of(ImmutableMap.copyOf(types), constraints);
   }
 
   /**
-   * Prefix all variables and change the {@code stopIdx}.
-   * NOTE: Changing the {@code stopIdx} probably does not do anything,
-   * the variable is prefixed anyway.
+   * Process and add constraints from a single policy.
+   *
+   * @param template Associated template
+   * @param policyFormula Associated formula
+   * @param startPathFormula Starting {@link PathFormula} for the policy
+   * @param bound Current bound for the policy
+   * @param prefix Unique namespace for the policy
+   * @param toLocation Location associated with the abstracted state
+   * @param fromLocation Backpointer for the policy
    */
-  private PathFormula pathFormulaWithCustomIdxAndPrefix(
-      PathFormula p,
-      int stopIdx,
-      String customPrefix) throws CPATransferException, InterruptedException {
+  private void constraintsFromPolicy(
+      Template template,
+      PathFormula policyFormula,
+      Location fromLocation,
+      PathFormula startPathFormula,
+      Rational bound,
+      String prefix,
+      Location toLocation,
+      List<BooleanFormula> constraints,
+      Map<String, FormulaType<?>> types,
+      Set<String> visited,
+      final Location focusedLocation,
+      final Map<Template, PolicyBound> updated,
+      final Map<Location, PolicyAbstractedState> policy
+  ) {
+    String abstractDomainElement = absDomainVarName(toLocation, template);
+    Formula policyOutTemplate = fmgr.addPrefixToAll(
+        templateManager.toFormula(template, policyFormula), prefix);
+    types.put(abstractDomainElement, fmgr.getFormulaType(policyOutTemplate));
 
-    SSAMap ssa = p.getSsa();
+    // Shortcut: don't follow the nodes not in the policy, as the value
+    // determination does not update them.
+    if (toLocation == focusedLocation && !updated.containsKey(template)) {
 
-    SSAMap.SSAMapBuilder newMapBuilder = ssa.builder();
+      // NOTE: can be replaced by less-or-equal.
+      BooleanFormula outConstraint = fmgr.makeLessOrEqual(
+          fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
+              abstractDomainElement),
+          fmgr.makeNumber(policyOutTemplate, bound),
+          true
+      );
 
-    final BooleanFormula policyConstraint = p.getFormula();
+      constraints.add(outConstraint);
 
-    List<Formula> fromVars = new ArrayList<>();
-    List<Formula> toVars = new ArrayList<>();
+    } else {
+      BooleanFormula namespacedPolicy = (BooleanFormula)
+          fmgr.addPrefixToAll(policyFormula.getFormula(), prefix);
 
-    Set<Triple<Formula, String, Integer>> allVars = fmgr.extractFreeVariables(policyConstraint);
-    for (Triple<Formula, String, Integer> e : allVars) {
-
-      Formula formula = e.getFirst();
-      Integer oldIdx = e.getThird();
-      if (oldIdx == null) {
-        oldIdx = 0;
+      // Optimization.
+      if (!(namespacedPolicy.equals(bfmgr.makeBoolean(true))
+          || visited.contains(prefix))) {
+        constraints.add(namespacedPolicy);
       }
-      String varName = e.getSecond();
 
-      CType type = newMapBuilder.getType(varName);
-      if (type == null) {
-        // A hack. I'm not using types inside the SSAMap, but SSAMap complaints
-        // if it gets null.
-        type = CNumericTypes.DOUBLE;
+      PolicyAbstractedState incomingState = policy.get(fromLocation);
+
+      // Process incoming constraints on the policy start.
+      for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
+        Template incomingTemplate = incomingConstraint.getKey();
+        String prevAbstractDomainElement = absDomainVarName(fromLocation,
+            incomingTemplate);
+
+        // NOTE: different code for focused location?
+        Formula incomingTemplateFormula = fmgr.addPrefixToAll(
+            templateManager.toFormula(
+                incomingTemplate,
+                startPathFormula
+            ),
+            prefix);
+
+        Formula absDomainElementFormula = fmgr.makeVariable(
+            fmgr.getFormulaType(incomingTemplateFormula),
+            prevAbstractDomainElement);
+
+        BooleanFormula constraint = fmgr.makeLessOrEqual(
+            incomingTemplateFormula, absDomainElementFormula, true);
+
+        constraints.add(constraint);
       }
 
-      int newIdx;
-      if (oldIdx == ssa.getIndex(varName)) {
+      // NOTE: experiment with changing to less-or-equal.
+      BooleanFormula outConstraint = fmgr.makeGreaterOrEqual(
+          policyOutTemplate,
+          fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
+              abstractDomainElement), true
+      );
 
-        newIdx = stopIdx;
-        newMapBuilder = newMapBuilder.setIndex(varName, type, newIdx);
-      } else {
-        newIdx = oldIdx;
-      }
-
-      fromVars.add(formula);
-      toVars.add(makeVariable(formula, varName, newIdx, customPrefix));
+      logger.log(Level.FINE, "Output constraint = ", outConstraint);
+      constraints.add(outConstraint);
     }
-
-    BooleanFormula innerFormula = formulaManager.getUnsafeFormulaManager().substitute(
-        policyConstraint, fromVars, toVars
-    );
-
-    return new PathFormula(
-        innerFormula,
-        newMapBuilder.build(),
-        p.getPointerTargetSet(),
-        p.getLength());
-  }
-
-  private Formula makeVariable(
-        Formula pFormula, String variable, int idx, String namespace) {
-    return fmgr.makeVariable(fmgr.getFormulaType(pFormula), namespace + variable, idx);
-  }
-
-  /**
-   * The formula encoding uses separate numbering conventions for variables
-   * associated with the node "input" and the variables associated with the
-   * node "output".
-   * The later numbering starts with <getThreshold>.
-   * The threshold is guaranteed to be a multiple of 10 and bigger than the
-   * number of nodes, and at least a thousand (for readability).
-   */
-  private int getThreshold(CFA cfa) {
-    double magnitude = Math.log10(cfa.getAllNodes().size());
-    return Math.max(
-        10000,
-        (int)Math.pow(10, magnitude)
-    );
-  }
-
-  /**
-   * Convert the number from the "input" numbering convention to the "output"
-   * numbering convention.
-   */
-  private int toPrime(int no) {
-    return threshold + no;
+    visited.add(prefix);
   }
 
   String absDomainVarName(Location pLocation, Template template) {
-    return String.format(BOUND_VAR_NAME, pLocation.toID(), template);
-  }
-
-  private Formula templateWithInitialMap(SSAMap initialMap, Template template,
-      PathFormula p, String prefix) {
-    PathFormula initialFormula = new PathFormula(
-        p.getFormula(), initialMap, p.getPointerTargetSet(),
-        p.getLength()
-    );
-    return templateManager.toFormula(
-        template, initialFormula, prefix
-    );
+    return String.format(
+        BOUND_VAR_NAME,
+        pLocation.toID(),
+        template.linearExpression.toString(
+            new Function<CIdExpression, String>() {
+              public String apply(CIdExpression pCIdExpression) {
+                return pCIdExpression.getDeclaration().getQualifiedName();
+              }
+            }));
   }
 }

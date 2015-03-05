@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.HashSet;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -177,42 +177,47 @@ public class TemplateManager {
     return out.build();
   }
 
-  public Formula toFormula(Template template, PathFormula pPathFormula) {
-    return toFormula(template, pPathFormula, "");
-  }
 
-  public Formula toFormula(
-      Template template, PathFormula pPathFormula, String customPrefix
-  ) {
+  /**
+   * Convert {@code template} to {@link Formula}, using
+   * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
+   * context provided by {@code contextFormula}.
+   *
+   * @return Resulting formula.
+   */
+  public Formula toFormula(Template template, PathFormula contextFormula) {
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
 
-    for (Map.Entry<CIdExpression, Rational> entry : template.linearExpression) {
+    for (Entry<CIdExpression, Rational> entry : template.linearExpression) {
       Rational coeff = entry.getValue();
       CIdExpression declaration = entry.getKey();
 
-      Formula item;
+      final Formula item;
       try {
         item = pfmgr.expressionToFormula(
-            pPathFormula, declaration, dummyEdge);
+            contextFormula, declaration, dummyEdge);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
 
+      final Formula multipliedItem;
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        item = fmgrv.makeNegate(item);
+        multipliedItem = fmgrv.makeNegate(item);
       } else if (coeff != Rational.ONE){
-        item = fmgrv.makeMultiply(
+        multipliedItem = fmgrv.makeMultiply(
             item, fmgrv.makeNumber(item, entry.getValue())
         );
+      } else {
+        multipliedItem = item;
       }
 
       if (sum == null) {
-        sum = item;
+        sum = multipliedItem;
       } else {
-        sum = fmgrv.makePlus(sum, item);
+        sum = fmgrv.makePlus(sum, multipliedItem);
       }
     }
 
@@ -223,11 +228,7 @@ public class TemplateManager {
         return ifmgr.makeNumber(0);
       }
     } else {
-      if (customPrefix.equals("")) {
-        return sum;
-      } else {
-        return fmgrv.addPrefixToAll(sum, customPrefix);
-      }
+      return sum;
     }
   }
 
