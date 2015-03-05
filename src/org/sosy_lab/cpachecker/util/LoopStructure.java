@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -323,6 +324,20 @@ public final class LoopStructure {
     return loopHeads;
   }
 
+  public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
+    return from(loops.values())
+        .transform(new Function<Loop, Loop>() {
+          @Override
+          public Loop apply(Loop loop) {
+            if (loop.getLoopHeads().contains(loopHead)) {
+              return loop;
+            } else {
+              return null;
+            }
+          }})
+        .filter(Predicates.notNull())
+        .toSet();
+  }
 
   /**
    * Return all variables appearing in loop exit conditions.

@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -76,6 +77,8 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -86,13 +89,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 
@@ -148,6 +155,7 @@ public final class InterpolationManager {
     FORWARDS,
     BACKWARDS,
     ZIGZAG,
+    LOOP_FREE_FIRST,
     ;
   }
 
@@ -188,11 +196,12 @@ public final class InterpolationManager {
   private boolean reuseInterpolationEnvironment = false;
 
   private final ExecutorService executor;
-
+  private final LoopStructure loopStructure;
 
   public InterpolationManager(
       PathFormulaManager pPmgr,
       Solver pSolver,
+      Optional<LoopStructure> pLoopStructure,
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) throws InvalidConfigurationException {
@@ -204,6 +213,9 @@ public final class InterpolationManager {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
+
+    assert (direction != CexTraceAnalysisDirection.LOOP_FREE_FIRST || pLoopStructure.isPresent());
+    loopStructure = pLoopStructure.orNull();
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -530,6 +542,18 @@ public final class InterpolationManager {
         orderedFormulas.add(Triple.of(traceFormulas.get(i), pAbstractionStates.get(i), i));
       }
 
+    } else if (direction == CexTraceAnalysisDirection.LOOP_FREE_FIRST) {
+      Multimap<Integer, AbstractState> stateOrdering = LinkedHashMultimap.create();
+      createLoopDrivenStateOrdering(pAbstractionStates, stateOrdering, new ArrayDeque<CFANode>());
+
+      for (int i = 0; stateOrdering.containsKey(i); i++) {
+        Collection<AbstractState> states = stateOrdering.get(i);
+        for (AbstractState state : states) {
+          int id = pAbstractionStates.indexOf(state);
+          orderedFormulas.add(Triple.of(traceFormulas.get(id), state, id));
+        }
+      }
+
     } else {
       final boolean backwards = direction == CexTraceAnalysisDirection.BACKWARDS;
       final int increment = backwards ? -1 : 1;
@@ -548,6 +572,120 @@ public final class InterpolationManager {
             .equals(ImmutableMultiset.copyOf(traceFormulas))
             : "Ordered list does not contain the same formulas with the same count";
     return result;
+  }
+
+  private void createLoopDrivenStateOrdering(final List<AbstractState> pAbstractionStates,
+                       final Multimap<Integer, AbstractState> loopLevelsToStatesMap,
+                       Deque<CFANode> actLevelStack) {
+    ImmutableSet<CFANode> loopHeads = loopStructure.getAllLoopHeads();
+
+    // in the nodeLoopLevel map there has to be for every seen ARGState one
+    // key-value pair therefore we can use this as our index
+    int actARGState = loopLevelsToStatesMap.size();
+
+    AbstractState actState = null;
+    CFANode actCFANode = null;
+
+    boolean isCFANodeALoopHead = false;
+
+    // move on as long as there occurs no loop-head in the ARG path
+    while (!isCFANodeALoopHead
+           && actLevelStack.isEmpty()
+           && actARGState < pAbstractionStates.size()) {
+
+      actState = pAbstractionStates.get(actARGState);
+      actCFANode = AbstractStates.EXTRACT_LOCATION.apply(actState);
+
+      loopLevelsToStatesMap.put(0, actState);
+
+      isCFANodeALoopHead = loopHeads.contains(actCFANode);
+
+      actARGState++;
+    }
+
+    // when not finished with computing the node levels
+    if (actARGState != pAbstractionStates.size()) {
+      actLevelStack.push(actCFANode);
+      createLoopDrivenStateOrdering0(pAbstractionStates, loopLevelsToStatesMap, actLevelStack);
+    }
+  }
+
+  private void createLoopDrivenStateOrdering0(final List<AbstractState> pAbstractionStates,
+                                              final Multimap<Integer, AbstractState> loopLevelsToStatesMap,
+                                              Deque<CFANode> actLevelStack) {
+
+    // we are finished with the computation
+    if (loopLevelsToStatesMap.size() == pAbstractionStates.size()) {
+      return;
+    }
+
+    AbstractState lastState = pAbstractionStates.get(loopLevelsToStatesMap.size()-1);
+    AbstractState actState = pAbstractionStates.get(loopLevelsToStatesMap.size());
+    CFANode actCFANode = AbstractStates.EXTRACT_LOCATION.apply(actState);
+
+    Iterator<CFANode> it = actLevelStack.descendingIterator();
+    while (it.hasNext()) {
+      CFANode lastLoopNode = it.next();
+
+      // check if the functions match, if yes we can simply check if the node
+      // is in the loop on this level, if not we have to check the functions entry
+      // point, in order to know if the current node is in the loop on this
+      // level or on a lower one
+      if (actCFANode.getFunctionName().equals(lastLoopNode.getFunctionName())) {
+        actCFANode = getPrevFunctionNode((ARGState)actState,
+                                         (ARGState)lastState,
+                                         lastLoopNode.getFunctionName());
+      }
+
+      // the lastLoopNode cannot be reached from the actState
+      // so decrease the actLevelStack
+      if (actCFANode == null
+          || !isNodePartOfLoop(lastLoopNode, actCFANode)) {
+        it.remove();
+        continue;
+
+        // we have a valid path to the function of the lastLoopNode
+      } else {
+        loopLevelsToStatesMap.put(actLevelStack.size(), actState);
+
+        // node itself is a loophead, too, so add it also to the levels stack
+        if (loopStructure.getAllLoopHeads().contains(actCFANode)) {
+          actLevelStack.push(actCFANode);
+        }
+        createLoopDrivenStateOrdering0(pAbstractionStates, loopLevelsToStatesMap, actLevelStack);
+        return;
+      }
+    }
+
+    // coming here is possible only if the stack is empty and no matching
+    // loop for the current node was found
+    createLoopDrivenStateOrdering(pAbstractionStates, loopLevelsToStatesMap, actLevelStack);
+  }
+
+  private boolean isNodePartOfLoop(CFANode loopHead, CFANode potentialLoopNode) {
+    for (Loop loop : loopStructure.getLoopsForLoopHead(loopHead)) {
+      if (loop.getLoopNodes().contains(potentialLoopNode)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private CFANode getPrevFunctionNode(ARGState argState, ARGState lastState, String wantedFunction) {
+    CFANode returnNode = AbstractStates.EXTRACT_LOCATION.apply(argState);
+    while (!returnNode.getFunctionName().equals(wantedFunction)) {
+      argState = argState.getParents().iterator().next();
+
+      // the function does not return to the wanted function we can skip the search
+      // here
+      if (argState == lastState.getParents().iterator().next()) {
+        return null;
+      }
+
+      returnNode = AbstractStates.EXTRACT_LOCATION.apply(argState);
+    }
+
+    return returnNode;
   }
 
   /**
