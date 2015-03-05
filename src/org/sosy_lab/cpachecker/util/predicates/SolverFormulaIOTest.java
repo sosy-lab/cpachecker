@@ -27,6 +27,11 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,8 +40,11 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.base.Splitter;
@@ -245,9 +253,45 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     }
   }
 
+  @Test
+  public void funDeclareTest() {
+    IntegerFormula int1 = imgr.makeNumber(1);
+    IntegerFormula int2 = imgr.makeNumber(2);
+    List<IntegerFormula> args1 = new LinkedList<>();
+    List<IntegerFormula> args2 = new LinkedList<>();
+    args1.add(int1);
+    args2.add(int2);
+
+    UninterpretedFunctionDeclaration funA = fmgr.declareUninterpretedFunction("fun_a", FormulaType.IntegerType, FormulaType.IntegerType);
+    UninterpretedFunctionDeclaration funB = fmgr.declareUninterpretedFunction("fun_b", FormulaType.IntegerType, FormulaType.IntegerType);
+    IntegerFormula res1 = (IntegerFormula) fmgr.callUninterpretedFunction(funA, args1);
+    IntegerFormula res2 = (IntegerFormula) fmgr.callUninterpretedFunction(funB, args2);
+
+    IntegerFormula calc = imgr.add(res1, res2);
+    checkThatFunOnlyDeclaredOnce(mgr.dumpFormula(calc).toString());
+  }
+
+  @Test
+  public void funDeclareTest2() {
+    IntegerFormula int1 = imgr.makeNumber(1);
+    IntegerFormula int2 = imgr.makeNumber(2);
+    List<IntegerFormula> args1 = new LinkedList<>();
+    List<IntegerFormula> args2 = new LinkedList<>();
+    args1.add(int1);
+    args2.add(int2);
+
+    UninterpretedFunctionDeclaration funA = fmgr.declareUninterpretedFunction("fun_a", FormulaType.IntegerType, FormulaType.IntegerType);
+    IntegerFormula res1 = (IntegerFormula) fmgr.callUninterpretedFunction(funA, args1);
+    IntegerFormula res2 = (IntegerFormula) fmgr.callUninterpretedFunction(funA, args2);
+
+    IntegerFormula calc = imgr.add(res1, res2);
+    checkThatFunOnlyDeclaredOnce(mgr.dumpFormula(calc).toString());
+  }
+
   private void compareParseWithOrgExprFirst(String textToParse, Supplier<BooleanFormula> fun)
       throws SolverException, InterruptedException {
     requireSMTLibParser();
+    checkThatFunOnlyDeclaredOnce(textToParse);
     BooleanFormula expr = fun.get();
     BooleanFormula parsedForm = mgr.parse(textToParse);
     assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
@@ -256,9 +300,35 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
   private void compareParseWithOrgParseFirst(String textToParse, Supplier<BooleanFormula> fun)
       throws SolverException, InterruptedException {
     requireSMTLibParser();
+    checkThatFunOnlyDeclaredOnce(textToParse);
     BooleanFormula parsedForm = mgr.parse(textToParse);
     BooleanFormula expr = fun.get();
     assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
+  }
+
+  private void checkThatFunOnlyDeclaredOnce(String formDump) {
+    Iterable<String> lines = Splitter.on("\n").split(formDump);
+    List<String> funDeclares = new LinkedList<String>();
+
+    for (String line: lines) {
+      if (line.startsWith("(declare-fun ")) {
+        funDeclares.add(line.replaceAll("\\s+", ""));
+      }
+    }
+
+    assert_().that(findDuplicates(funDeclares)).isEmpty();
+  }
+
+  public <T> List<T> findDuplicates(List<T> list) {
+    List<T> duplicates = new LinkedList<T>();
+    Set<T> set = new HashSet();
+
+    for (T element : list) {
+      if (!set.add(element)) {
+        duplicates.add(element);
+      }
+    }
+    return duplicates;
   }
 
   private BooleanFormula genBoolExpr() {
