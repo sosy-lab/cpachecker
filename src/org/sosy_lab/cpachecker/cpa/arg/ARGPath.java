@@ -100,7 +100,7 @@ public class ARGPath implements Appender {
     assert states.size() == edges.size();
   }
 
-  ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
+  public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     checkArgument(pStates.size() == pEdges.size(), "ARGPaths must have equal number of states and edges");
     CFAEdge lastEdge = pEdges.get(pEdges.size()-1);
