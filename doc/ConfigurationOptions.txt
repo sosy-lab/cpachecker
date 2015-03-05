@@ -1575,6 +1575,10 @@ cpa.stator.policy.encodeTemplatesAsRationals = false
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = Rational.ONE
 
+# Perform formula slicing after abstractions to propagate the pointer
+# information
+cpa.stator.policy.formulaSlicing = true
+
 # Generate templates from assert statements
 cpa.stator.policy.generateFromAsserts = true
 
@@ -1589,10 +1593,6 @@ cpa.stator.policy.generateUpperBound = true
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
-
-# Perform formula slicing after abstractions to propagate the pointer
-# information
-cpa.stator.policy.propagateFormulasPastAbstraction = true
 
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true
