@@ -117,8 +117,6 @@ public class ValueAnalysisEdgeInterpolator {
    * @param pErrorPath the path to check
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
-   * @param useDefRelation the use-def relation, containing the variables relevant for proving the infeasibility
-   * of the target assumption
    * @throws CPAException
    * @throws InterruptedException
    */
@@ -127,8 +125,7 @@ public class ValueAnalysisEdgeInterpolator {
       final CFAEdge pCurrentEdge,
       final Deque<ValueAnalysisState> callstack,
       final int pOffset,
-      final ValueAnalysisInterpolant pInputInterpolant,
-      final Set<MemoryLocation> useDefRelation) throws CPAException, InterruptedException {
+      final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
@@ -153,11 +150,6 @@ public class ValueAnalysisEdgeInterpolator {
     // then return the input interpolant with those renamings
     if (isOnlyVariableRenamingEdge(pCurrentEdge)) {
       return initialSuccessor.createInterpolant();
-    }
-
-    // restrict candidate interpolant to use-def relation, to reduce the number of itp-queries
-    if (!useDefRelation.isEmpty()) {
-      initialSuccessor.retainAll(useDefRelation);
     }
 
     ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);

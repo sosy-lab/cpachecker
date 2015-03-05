@@ -27,11 +27,9 @@ import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -164,15 +162,6 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       ValueAnalysisInterpolant interpolant)
       throws InterruptedException, CPAException {
 
-    // obtain use-def relation, containing variables relevant to the "failing" assumption
-    Set<MemoryLocation> useDefRelation = new HashSet<>();
-    /* TODO: does not work as long as AssumptionUseDefinitionCollector is incomplete (e.g., does not take structs into account)
-    if (prefixPreference != ErrorPathPrefixPreference.DEFAULT) {
-      AssumptionUseDefinitionCollector useDefinitionCollector = new InitialAssumptionUseDefinitionCollector();
-      useDefRelation = from(useDefinitionCollector.obtainUseDefInformation(errorTrace)).
-          transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet();
-    }*/
-
     if (pathSlicing) {
      errorPathPrefix = sliceErrorPath(errorPathPrefix);
 
@@ -196,8 +185,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
             pathIterator.getOutgoingEdge(),
             callstack,
             pathIterator.getIndex(),
-            interpolant,
-            useDefRelation);
+            interpolant);
       }
 
       totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
