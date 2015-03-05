@@ -34,9 +34,12 @@ import java.util.Set;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
+import de.uni_freiburg.informatik.ultimate.logic.LetTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.Unletter;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful functions. */
@@ -263,7 +266,10 @@ class SmtInterpolUtil {
   public static Set<Term> getVarsAndUIFs(Collection<Term> termList) {
     Set<Term> result = new HashSet<>();
     Set<Term> seen = new HashSet<>();
-    Deque<Term> todo = new ArrayDeque<>(termList);
+    Deque<Term> todo = new ArrayDeque<>();
+    for (Term t : termList) {
+      todo.add(new FormulaUnLet().unlet(t));
+    }
 
     while (!todo.isEmpty()) {
       Term t = todo.removeLast();
