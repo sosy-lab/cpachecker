@@ -1494,25 +1494,33 @@ public class FormulaManagerView {
   }
 
   /**
-   * Adds prefix to all variables and UFs present in the formula.
+   * Add {@code prefix} to all variables occurring in a formula.
    */
   public Formula addPrefixToAll(Formula input, String prefix) {
-    Formula formula = unwrap(input);
-    Set<Triple<Formula, String, Integer>> allVars =
-        extractFunctionSymbols(formula);
-    FormulaType<Formula> t = getFormulaType(formula);
+    return recAddPrefixToAll(unwrap(input), prefix, new HashMap<Formula, Formula>());
+  }
 
-    List<Formula> from = new ArrayList<>(allVars.size());
-    List<Formula> to = new ArrayList<>(allVars.size());
-    for (Triple<Formula, String, Integer> e : allVars) {
-      Formula token = e.getFirst();
-
-      String oldName = unsafeManager.getName(token);
-      from.add(token);
-      to.add(makeVariable(t, prefix + oldName));
+  private Formula recAddPrefixToAll(Formula input, String prefix,
+      Map<Formula, Formula> memoization) {
+    Formula out = memoization.get(input);
+    if (out != null) {
+      return out;
     }
-    return unsafeManager.substitute(formula, from, to);
-
+    List<Formula> newArgs = new ArrayList<>(unsafeManager.getArity(input));
+    for (int i=0; i<unsafeManager.getArity(input); i++) {
+      newArgs.add(
+          recAddPrefixToAll(unsafeManager.getArg(input, i), prefix, memoization)
+      );
+    }
+    if (unsafeManager.isUF(input) || unsafeManager.isVariable(input)) {
+      out = unsafeManager.replaceArgsAndName(
+          input, prefix + unsafeManager.getName(input), newArgs
+      );
+    } else {
+      out = unsafeManager.replaceArgs(input, newArgs);
+    }
+    memoization.put(input, out);
+    return out;
   }
 
   /**
