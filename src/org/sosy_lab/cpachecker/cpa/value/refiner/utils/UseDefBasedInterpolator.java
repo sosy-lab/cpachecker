@@ -89,9 +89,9 @@ public class UseDefBasedInterpolator {
 
   /**
    * the flag to determine, if the final (failing, contradicting) assume edge
-   * was already handled (mind, that the traversal proceeds in reverse order)
+   * has already been handled (mind that the traversal proceeds in reverse order)
    */
-  private boolean finalAssumeEdgeAlreadyHandled = false;
+  private boolean hasContradictingAssumeEdgeBeenHandled = false;
 
   /**
    * the set of "uses" that are not yet resolved by a "definition"
@@ -207,11 +207,11 @@ public class UseDefBasedInterpolator {
       break;
 
     case AssumeEdge:
-      if (finalAssumeEdgeAlreadyHandled) {
-        handleOtherAssumption(edge);
+      if (hasContradictingAssumeEdgeBeenHandled) {
+        handleFeasibleAssumption(edge);
       } else {
         addDependency(acceptAll(((CAssumeEdge)edge).getExpression()));
-        finalAssumeEdgeAlreadyHandled = true;
+        hasContradictingAssumeEdgeBeenHandled = true;
       }
 
       break;
@@ -251,7 +251,7 @@ public class UseDefBasedInterpolator {
   }
 
   private ValueAnalysisInterpolant createTrivialInterpolant() {
-    return finalAssumeEdgeAlreadyHandled
+    return hasContradictingAssumeEdgeBeenHandled
         ? ValueAnalysisInterpolant.TRUE
         : ValueAnalysisInterpolant.FALSE;
   }
@@ -275,11 +275,21 @@ public class UseDefBasedInterpolator {
     return new ValueAnalysisInterpolant(values, Collections.<MemoryLocation, Type>emptyMap());
   }
 
-  private void handleOtherAssumption(CFAEdge edge) {
+  private void handleFeasibleAssumption(CFAEdge edge) {
 
     CAssumeEdge assumeEdge = (CAssumeEdge)edge;
     CExpression expr = assumeEdge.getExpression();
 
+    // option 1)
+    // returning here immediately  without doing anything would lead to
+    // actual assignments ending up in the interpolant
+    // this, however, would lead to failing refinements if for a variable
+    // no assignment to a known value exists
+
+
+    // option 2)
+    // treat [a == 1] or [!(a != 1)] like an assignment,
+    // so that such an assume removes an open dependency
     // for an equality with a constant, we can remove the dependency
     // this still could fail if this assume is the "same" as the final, failing one
     if (isEquality(assumeEdge, expr)) {
@@ -298,8 +308,25 @@ public class UseDefBasedInterpolator {
       }
     }
 
-    // for all other binary operations, we keep the dependency,
-    // plus, we add the other one as new dependency
+    // option 3)
+    // in addition to option 2, we can add new dependencies
+    // from all kinds of assumptions (e.g., [a < 1]).
+    // These can never lead to a contradiction, as the given path
+    // is sliced (infeasible) prefix, that must only fail at the
+    // very last assume edge.
+    // However, these extra assumptions might help the SMT solver.
+    // For the value domain, this would only introduce overhead
+    // for interpolation, because it can't deal with anything
+    // but equality-assumptions. However, adding more than one
+    // equality-assumption cannot have a positive effect in the
+    // value domain, because it must be such that it "assigns"
+    // a variable to a value it already is assigned to, because
+    // otherwise, it would be contradicting, which can't be the case
+    // because only the final assumption is contradicting.
+    //
+    // for all other binary operations, we keep/readd/update the dependency,
+    // plus, we add the new dependencies for all variables that occur
+    // in the "other" side of the binary relation
     else {
       CBinaryExpression binExpr = ((CBinaryExpression) expr);
 
