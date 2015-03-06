@@ -221,9 +221,10 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     int i = 0;
     for (CFAEdge currentEdge : edges) {
       // if interpolant of predecessor is false
-      // or if interpolant of successor is true, skip the edge
+      // or if it is equal to the interpolant of the successor,
+      // then skip the edge
       if (interpolants.get(states.get(i)).isFalse()
-          || interpolants.get(states.get(i + 1)).isTrue()) {
+          || interpolants.get(states.get(i)).equals(interpolants.get(states.get(i + 1)))) {
         abstractEdges.add(new BlankEdge("",
             FileLocation.DUMMY,
             currentEdge.getPredecessor(),
