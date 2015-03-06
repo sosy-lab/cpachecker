@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
