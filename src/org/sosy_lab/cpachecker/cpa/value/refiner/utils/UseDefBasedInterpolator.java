@@ -76,8 +76,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.livevar.DeclarationCollectingVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -102,6 +102,11 @@ public class UseDefBasedInterpolator {
    * the mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s.
    */
   private Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
+
+  /**
+   * the mapping from declarations to the number of times it was "used"
+   */
+  private Map<ASimpleDeclaration, Integer> updateCounter = new HashMap<>();
 
   /**
    * This method obtains the mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s.
@@ -226,9 +231,16 @@ public class UseDefBasedInterpolator {
     }
   }
 
-  private void addDependency(Collection<ASimpleDeclaration> decls) {
-    for (ASimpleDeclaration d : decls) {
-      dependencies.add(d);
+  private void addDependency(Collection<ASimpleDeclaration> declarations) {
+    for (ASimpleDeclaration declaration : declarations) {
+      dependencies.add(declaration);
+
+      Integer counter = 0;
+      if(updateCounter.containsKey(declaration)) {
+        counter = updateCounter.get(declaration) + 1;
+      }
+
+      updateCounter.put(declaration, counter);
     }
   }
 
@@ -245,63 +257,75 @@ public class UseDefBasedInterpolator {
   }
 
   private ValueAnalysisInterpolant createNonTrivialInterpolant() {
+
     HashMap<MemoryLocation, Value> values = new HashMap<>();
     for (ASimpleDeclaration declaration : dependencies) {
+
       String qualifiedName = declaration.getQualifiedName();
+      Value value = new NumericValue(updateCounter.get(declaration));
+
       if(qualifiedName.contains("::")) {
         values.put(MemoryLocation.valueOf(qualifiedName.substring(0, qualifiedName.indexOf("::")),
-            declaration.getName(), 0),
-            UnknownValue.getInstance());
+            declaration.getName(), 0), value);
       } else {
-        values.put(MemoryLocation.valueOf(qualifiedName, 0), UnknownValue.getInstance());
+        values.put(MemoryLocation.valueOf(qualifiedName, 0), value);
       }
     }
 
     return new ValueAnalysisInterpolant(values, Collections.<MemoryLocation, Type>emptyMap());
   }
 
-  // TODO: refactor this mess
   private void handleOtherAssumption(CFAEdge edge) {
 
     CAssumeEdge assumeEdge = (CAssumeEdge)edge;
     CExpression expr = assumeEdge.getExpression();
 
-    if(assumeEdge.getTruthAssumption()
-        && expr instanceof CBinaryExpression
-        && ((CBinaryExpression) expr).getOperator() == BinaryOperator.EQUALS) {
+    // for an equality with a constant, we can remove the dependency
+    // this still could fail if this assume is the "same" as the final, failing one
+    if (isEquality(assumeEdge, expr)) {
       CBinaryExpression binExpr = ((CBinaryExpression) expr);
-
-      if(binExpr.getOperand1() instanceof CIdExpression
+      if (binExpr.getOperand1() instanceof CIdExpression
           && binExpr.getOperand2() instanceof CLiteralExpression) {
-        if(dependencies.contains(((CIdExpression)binExpr.getOperand1()).getDeclaration())) {
+        if (dependencies.contains(((CIdExpression)binExpr.getOperand1()).getDeclaration())) {
           dependencies.remove(((CIdExpression)binExpr.getOperand1()).getDeclaration());
         }
       }
-      else if(binExpr.getOperand2() instanceof CIdExpression
+      else if (binExpr.getOperand2() instanceof CIdExpression
           && binExpr.getOperand1() instanceof CLiteralExpression) {
-        if(dependencies.contains(((CIdExpression)binExpr.getOperand2()).getDeclaration())) {
+        if (dependencies.contains(((CIdExpression)binExpr.getOperand2()).getDeclaration())) {
           dependencies.remove(((CIdExpression)binExpr.getOperand2()).getDeclaration());
         }
       }
     }
 
-    else if(!assumeEdge.getTruthAssumption()
-        && expr instanceof CBinaryExpression
-        && ((CBinaryExpression) expr).getOperator() == BinaryOperator.NOT_EQUALS) {
+    // for all other binary operations, we keep the dependency,
+    // plus, we add the other one as new dependency
+    else {
       CBinaryExpression binExpr = ((CBinaryExpression) expr);
-      if(binExpr.getOperand1() instanceof CIdExpression
-          && binExpr.getOperand2() instanceof CLiteralExpression) {
-        if(dependencies.contains(((CIdExpression)binExpr.getOperand1()).getDeclaration())) {
-          dependencies.remove(((CIdExpression)binExpr.getOperand1()).getDeclaration());
+
+      Collection<ASimpleDeclaration> leftSide = acceptAll(binExpr.getOperand1());
+      Collection<ASimpleDeclaration> rightSide = acceptAll(binExpr.getOperand2());
+
+      for(ASimpleDeclaration leftDeclaration : leftSide) {
+        if (dependencies.contains(leftDeclaration)) {
+          addDependency(Collections.singleton(leftDeclaration));
+          addDependency(rightSide);
         }
       }
-      else if(binExpr.getOperand2() instanceof CIdExpression
-          && binExpr.getOperand1() instanceof CLiteralExpression) {
-        if(dependencies.contains(((CIdExpression)binExpr.getOperand2()).getDeclaration())) {
-          dependencies.remove(((CIdExpression)binExpr.getOperand2()).getDeclaration());
+
+      for(ASimpleDeclaration rightDeclaration : rightSide) {
+        if (dependencies.contains(rightDeclaration)) {
+          addDependency(Collections.singleton(rightDeclaration));
+          addDependency(leftSide);
         }
       }
     }
+  }
+
+  private boolean isEquality(CAssumeEdge assumeEdge, CExpression expr) {
+    return expr instanceof CBinaryExpression
+        && ((assumeEdge.getTruthAssumption() && ((CBinaryExpression) expr).getOperator() == BinaryOperator.EQUALS)
+            || (!assumeEdge.getTruthAssumption() && ((CBinaryExpression) expr).getOperator() == BinaryOperator.NOT_EQUALS));
   }
 
 
@@ -384,15 +408,18 @@ public class UseDefBasedInterpolator {
       // to the needed one (e.g. a[i] i is additionally) are added as dependency
       addDependency(additionallyLeftHandSideVariables);
 
+      Collection<ASimpleDeclaration> newDependencies;
       // all variables of the right hand side are "used" afterwards
       if (assignment instanceof AExpressionAssignmentStatement) {
-        addDependency(acceptAll((AExpression) assignment.getRightHandSide()));
+        newDependencies = acceptAll((AExpression) assignment.getRightHandSide());
       } else if (assignment instanceof AFunctionCallAssignmentStatement){
         AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
-        addDependency(getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions()));
+        newDependencies = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions());
       } else {
         throw new AssertionError("Unhandled assignment type.");
       }
+
+      addDependency(newDependencies);
     }
   }
 
