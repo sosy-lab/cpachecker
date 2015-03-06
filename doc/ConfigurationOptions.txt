@@ -1234,11 +1234,14 @@ cpa.predicate.refinement.keepAllPredicates = false
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# whether or not to perform path slicing before interpolation
+cpa.predicate.refinement.pathSlicing = false
+
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
-# prefixPreference
+# which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = DEFAULT
   enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
              DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
