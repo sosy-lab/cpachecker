@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OffsetDescriptor;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginLineDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -357,21 +358,26 @@ public class AutomatonGraphmlParser {
         }
 
         if (matchAssumeCase) {
-          Set<String> assumeCaseTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.NEGATIVECASE);
+          Set<String> assumeCaseTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.CONTROLCASE);
 
-          final boolean assumeCase;
           if (assumeCaseTags.size() > 0) {
             Preconditions.checkArgument(assumeCaseTags.size() <  2, "At most one assume case tag must be provided for each edge.");
-            assumeCase = !Boolean.parseBoolean(assumeCaseTags.iterator().next());
-          } else {
-            assumeCase = true;
+            String assumeCaseStr = assumeCaseTags.iterator().next();
+            final boolean assumeCase;
+            if (assumeCaseStr.equalsIgnoreCase(AssumeCase.THEN.toString())) {
+              assumeCase = true;
+            } else if (assumeCaseStr.equalsIgnoreCase(AssumeCase.ELSE.toString())) {
+              assumeCase = false;
+            } else {
+              throw new IllegalArgumentException("Unrecognized assume case: " + assumeCaseStr);
+            }
+
+            AutomatonBoolExpr assumeCaseMatchingExpr = or(
+                not(AutomatonBoolExpr.MatchAssumeEdge.INSTANCE),
+                new AutomatonBoolExpr.MatchAssumeCase(assumeCase));
+
+            conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
           }
-
-          AutomatonBoolExpr assumeCaseMatchingExpr = or(
-              not(AutomatonBoolExpr.MatchAssumeEdge.INSTANCE),
-              new AutomatonBoolExpr.MatchAssumeCase(assumeCase));
-
-          conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
         }
 
         Collection<AutomatonTransition> matchingTransitions = new ArrayList<>();

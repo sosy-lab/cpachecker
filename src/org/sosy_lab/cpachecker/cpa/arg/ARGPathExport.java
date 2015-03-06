@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -491,9 +492,8 @@ public class ARGPathExport {
       if (exportAssumeCaseInfo) {
         if (pEdge instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) pEdge;
-          if (!a.getTruthAssumption()) {
-            result.put(KeyDef.NEGATIVECASE, "true");
-          }
+          AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
+          result.put(KeyDef.CONTROLCASE, assumeCase.toString());
         }
       }
 
@@ -534,7 +534,7 @@ public class ARGPathExport {
       pDoc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
       pDoc.appendNewKeyDef(KeyDef.SOURCECODE, null);
       pDoc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
-      pDoc.appendNewKeyDef(KeyDef.NEGATIVECASE, "false");
+      pDoc.appendNewKeyDef(KeyDef.CONTROLCASE, null);
       pDoc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
       pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
       pDoc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);

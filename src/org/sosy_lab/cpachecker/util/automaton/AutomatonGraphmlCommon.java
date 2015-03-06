@@ -57,9 +57,30 @@ import com.google.common.io.CharStreams;
 
 public class AutomatonGraphmlCommon {
 
-  public final static String SINK_NODE_ID = "sink";
+  public static final String SINK_NODE_ID = "sink";
 
-  public enum KeyDef {
+  public static enum AssumeCase {
+
+    THEN("condition-true"),
+    ELSE("condition-false");
+
+    private final String name;
+
+    private AssumeCase(String pName) {
+      this.name = pName;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public String toString() {
+      return getName();
+    }
+  }
+
+  public static enum KeyDef {
     INVARIANT("invariant", "node", "invariant", "string"),
     NAMED("named", "node", "namedValue", "string"),
 
@@ -78,7 +99,7 @@ public class AutomatonGraphmlCommon {
     OFFSET("offset", "edge", "offset", "int"),
     ORIGINFILE("originfile", "edge", "originFileName", "string"),
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
-    NEGATIVECASE("negated", "edge", "negativeCase", "string"),
+    CONTROLCASE("control", "edge", "control", "string"),
     ASSUMPTION("assumption", "edge", "assumption", "string"),
     ASSUMPTIONSCOPE("assumption.scope", "edge", "assumption.scope", "string"),
 
