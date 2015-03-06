@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assert_;
+import static com.google.common.truth.Truth.*;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,7 +41,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -50,8 +50,6 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 import com.google.common.base.Splitter;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
-
-import junit.framework.AssertionFailedError;
 
 @RunWith(Parameterized.class)
 public class SolverFormulaIOTest extends SolverBasedTest0 {
@@ -262,10 +260,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     args1.add(int1);
     args2.add(int2);
 
-    UninterpretedFunctionDeclaration funA = fmgr.declareUninterpretedFunction("fun_a", FormulaType.IntegerType, FormulaType.IntegerType);
-    UninterpretedFunctionDeclaration funB = fmgr.declareUninterpretedFunction("fun_b", FormulaType.IntegerType, FormulaType.IntegerType);
-    IntegerFormula res1 = (IntegerFormula) fmgr.callUninterpretedFunction(funA, args1);
-    IntegerFormula res2 = (IntegerFormula) fmgr.callUninterpretedFunction(funB, args2);
+    UninterpretedFunctionDeclaration<IntegerFormula> funA = fmgr.declareUninterpretedFunction("fun_a", FormulaType.IntegerType, FormulaType.IntegerType);
+    UninterpretedFunctionDeclaration<IntegerFormula> funB = fmgr.declareUninterpretedFunction("fun_b", FormulaType.IntegerType, FormulaType.IntegerType);
+    IntegerFormula res1 = fmgr.callUninterpretedFunction(funA, args1);
+    IntegerFormula res2 = fmgr.callUninterpretedFunction(funB, args2);
 
     IntegerFormula calc = imgr.add(res1, res2);
     checkThatFunOnlyDeclaredOnce(mgr.dumpFormula(calc).toString());
@@ -280,9 +278,9 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     args1.add(int1);
     args2.add(int2);
 
-    UninterpretedFunctionDeclaration funA = fmgr.declareUninterpretedFunction("fun_a", FormulaType.IntegerType, FormulaType.IntegerType);
-    IntegerFormula res1 = (IntegerFormula) fmgr.callUninterpretedFunction(funA, args1);
-    IntegerFormula res2 = (IntegerFormula) fmgr.callUninterpretedFunction(funA, args2);
+    UninterpretedFunctionDeclaration<IntegerFormula> funA = fmgr.declareUninterpretedFunction("fun_a", FormulaType.IntegerType, FormulaType.IntegerType);
+    IntegerFormula res1 = fmgr.callUninterpretedFunction(funA, args1);
+    IntegerFormula res2 = fmgr.callUninterpretedFunction(funA, args2);
 
     IntegerFormula calc = imgr.add(res1, res2);
     checkThatFunOnlyDeclaredOnce(mgr.dumpFormula(calc).toString());
@@ -308,7 +306,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
   private void checkThatFunOnlyDeclaredOnce(String formDump) {
     Iterable<String> lines = Splitter.on("\n").split(formDump);
-    List<String> funDeclares = new LinkedList<String>();
+    List<String> funDeclares = new LinkedList<>();
 
     for (String line: lines) {
       if (line.startsWith("(declare-fun ")) {
@@ -320,8 +318,8 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
   }
 
   public <T> List<T> findDuplicates(List<T> list) {
-    List<T> duplicates = new LinkedList<T>();
-    Set<T> set = new HashSet();
+    List<T> duplicates = new LinkedList<>();
+    Set<T> set = new HashSet<>();
 
     for (T element : list) {
       if (!set.add(element)) {
