@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
@@ -37,7 +38,7 @@ public class PolicyBound {
    */
   final PathFormula startPathFormula;
 
-  private static final Map<Triple<Location, PathFormula, Location>, Integer>
+  private static final Map<Triple<Location, BooleanFormula, Location>, Integer>
       serializationMap = new HashMap<>();
   private static int pathCounter = -1;
 
@@ -59,13 +60,13 @@ public class PolicyBound {
   }
 
   /**
-   * @return Unique identifier for the triple
-   * {@code fromLocation, PathFormula, fromLocation}.
-   * Identifies a path in the value determination sub-CFG.
+   * @return Unique identifier for value determination.
+   *
+   * Based on triple (from, to, policy).
    */
   public int serializePolicy(Location toLocation) {
-    Triple<Location, PathFormula, Location> p = Triple.of(
-        predecessor, formula, toLocation);
+    Triple<Location, BooleanFormula, Location> p = Triple.of(
+        predecessor, formula.getFormula(), toLocation);
     Integer serialization = serializationMap.get(p);
     if (serialization == null) {
       serialization = ++pathCounter;

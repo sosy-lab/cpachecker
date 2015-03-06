@@ -1,9 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -12,7 +10,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -22,10 +19,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 
-public class ValueDeterminationFormulaManager {
+public class ValueDeterminationManager {
 
   /** Dependencies */
   private final FormulaManagerView fmgr;
@@ -37,7 +33,7 @@ public class ValueDeterminationFormulaManager {
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
   private static final String VISIT_PREFIX = "[%d]_";
 
-  public ValueDeterminationFormulaManager(
+  public ValueDeterminationManager(
       FormulaManagerView fmgr,
       LogManager logger,
       TemplateManager pTemplateManager) throws InvalidConfigurationException{
@@ -51,7 +47,7 @@ public class ValueDeterminationFormulaManager {
   /**
    * Convert a value determination problem into a single formula.
    *
-   * @param policy Selected policy.
+   * @param globalPolicy Selected globalPolicy.
    * The abstract state associated with the <code>focusedNode</code>
    * is the <b>new</b> state, with <code>updated</code> applied.
    *
@@ -61,15 +57,15 @@ public class ValueDeterminationFormulaManager {
    * @throws org.sosy_lab.cpachecker.exceptions.CPATransferException
    * @throws InterruptedException
    */
-  public Pair<ImmutableMap<String, FormulaType<?>>, List<BooleanFormula>> valueDeterminationFormula(
-      Map<Location, PolicyAbstractedState> policy,
+  public Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>> valueDeterminationFormula(
+      Map<Location, PolicyAbstractedState> globalPolicy,
       final Location focusedLocation,
       final Map<Template, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
-    List<BooleanFormula> constraints = new ArrayList<>();
+    Set<BooleanFormula> constraints = new HashSet<>();
     Map<String, FormulaType<?>> types = new HashMap<>();
 
-    for (Entry<Location, PolicyAbstractedState> stateLocation : policy.entrySet()) {
+    for (Entry<Location, PolicyAbstractedState> stateLocation : globalPolicy.entrySet()) {
       Location toLocation = stateLocation.getKey();
       PolicyAbstractedState state = stateLocation.getValue();
       Set<String> visited = new HashSet<>();
@@ -93,10 +89,9 @@ public class ValueDeterminationFormulaManager {
             currentBound,
             prefix,
             toLocation,
-            constraints, types, visited, focusedLocation, updated, policy);
+            constraints, types, visited, focusedLocation, updated, globalPolicy);
       }
     }
-
     return Pair.of(ImmutableMap.copyOf(types), constraints);
   }
 
@@ -119,7 +114,7 @@ public class ValueDeterminationFormulaManager {
       Rational bound,
       String prefix,
       Location toLocation,
-      List<BooleanFormula> constraints,
+      Set<BooleanFormula> constraints,
       Map<String, FormulaType<?>> types,
       Set<String> visited,
       final Location focusedLocation,
@@ -135,12 +130,10 @@ public class ValueDeterminationFormulaManager {
     // determination does not update them.
     if (toLocation == focusedLocation && !updated.containsKey(template)) {
 
-      // NOTE: can be replaced by less-or-equal.
-      BooleanFormula outConstraint = fmgr.makeLessOrEqual(
+      BooleanFormula outConstraint = fmgr.makeEqual(
           fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
               abstractDomainElement),
-          fmgr.makeNumber(policyOutTemplate, bound),
-          true
+          fmgr.makeNumber(policyOutTemplate, bound)
       );
 
       constraints.add(outConstraint);
@@ -163,7 +156,6 @@ public class ValueDeterminationFormulaManager {
         String prevAbstractDomainElement = absDomainVarName(fromLocation,
             incomingTemplate);
 
-        // NOTE: different code for focused location?
         Formula incomingTemplateFormula = fmgr.addPrefixToAll(
             templateManager.toFormula(
                 incomingTemplate,
@@ -181,11 +173,10 @@ public class ValueDeterminationFormulaManager {
         constraints.add(constraint);
       }
 
-      // NOTE: experiment with changing to less-or-equal.
-      BooleanFormula outConstraint = fmgr.makeGreaterOrEqual(
+      BooleanFormula outConstraint = fmgr.makeEqual(
           policyOutTemplate,
           fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
-              abstractDomainElement), true
+              abstractDomainElement)
       );
 
       logger.log(Level.FINE, "Output constraint = ", outConstraint);
@@ -198,11 +189,6 @@ public class ValueDeterminationFormulaManager {
     return String.format(
         BOUND_VAR_NAME,
         pLocation.toID(),
-        template.linearExpression.toString(
-            new Function<CIdExpression, String>() {
-              public String apply(CIdExpression pCIdExpression) {
-                return pCIdExpression.getDeclaration().getQualifiedName();
-              }
-            }));
+        template.linearExpression);
   }
 }

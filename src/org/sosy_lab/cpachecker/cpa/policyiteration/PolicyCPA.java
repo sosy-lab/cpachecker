@@ -86,8 +86,8 @@ public class PolicyCPA
         realFormulaManager.getUnsafeFormulaManager(),
         realFormulaManager.getBooleanFormulaManager(), pathFormulaManager,
         solver, statistics);
-    ValueDeterminationFormulaManager valueDeterminationFormulaManager =
-        new ValueDeterminationFormulaManager(
+    ValueDeterminationManager valueDeterminationFormulaManager =
+        new ValueDeterminationManager(
             formulaManager, logger, templateManager);
 
     FormulaLinearizationManager formulaLinearizationManager = new

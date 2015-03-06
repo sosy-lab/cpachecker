@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -89,7 +88,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       rfmgr;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
   private final TemplateManager templateManager;
-  private final ValueDeterminationFormulaManager vdfmgr;
+  private final ValueDeterminationManager vdfmgr;
   private final PolicyIterationStatistics statistics;
   private final FormulaSlicingManager formulaSlicingManager;
   private final FormulaLinearizationManager linearizationManager;
@@ -103,7 +102,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       TemplateManager pTemplateManager,
-      ValueDeterminationFormulaManager pValueDeterminationFormulaManager,
+      ValueDeterminationManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics,
       FormulaSlicingManager pFormulaSlicingManager,
       FormulaLinearizationManager pLinearizationManager)
@@ -404,7 +403,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // Note: this formula contains no disjunctions, as the policy entails
       // the edge selection. Hence it can be used safely for the maximization.
-      Pair<ImmutableMap<String, FormulaType<?>>, List<BooleanFormula>>
+      Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>>
           constraints = vdfmgr.valueDeterminationFormula(
           related, stateWithUpdates.getLocation(), updated);
 
@@ -427,7 +426,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Map<Template, PolicyBound> updated,
       Location location,
       Map<String, FormulaType<?>> types,
-      List<BooleanFormula> pValueDeterminationConstraints
+      Set<BooleanFormula> pValueDeterminationConstraints
   )
       throws InterruptedException, CPATransferException {
 
@@ -440,7 +439,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     try (OptEnvironment optSolver = this.solver.newOptEnvironment()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      optSolver.addConstraint(bfmgr.and(pValueDeterminationConstraints));
+      for (BooleanFormula constr : pValueDeterminationConstraints) {
+        optSolver.addConstraint(constr);
+      }
 
       Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
@@ -469,7 +470,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       if (result != OptEnvironment.OptStatus.OPT) {
 
         // Useful for debugging.
-//        showUnsatCore(pValueDeterminationConstraints);
+//        formulaSlicingManager.showUnsatCore(pValueDeterminationConstraints);
         shutdownNotifier.shutdownIfNecessary();
         throw new CPATransferException("Unexpected solver state, " +
             "value determination problem should be feasible");
@@ -499,19 +500,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     return prevState.withUpdates(builder.build(), unbounded, templates);
   }
 
-  @SuppressWarnings("unused")
-  private void showUnsatCore(List<BooleanFormula> pValueDeterminationConstraints)
-      throws SolverException, InterruptedException {
-    try (ProverEnvironment env = solver.newProverEnvironmentWithUnsatCoreGeneration()) {
-      for (BooleanFormula f : pValueDeterminationConstraints) {
-        env.push(f);
-      }
-      boolean out = env.isUnsat();
-      assert out;
-      List<BooleanFormula> unsatCore = env.getUnsatCore();
-      logger.log(Level.FINE, "Unsat core: ", unsatCore);
-    }
-  }
 
   /**
    * @return Whether to perform the value determination on <code>node</code>.
