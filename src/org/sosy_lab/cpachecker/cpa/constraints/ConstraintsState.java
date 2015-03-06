@@ -222,14 +222,15 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     try {
       if (!constraints.isEmpty()) {
         prover = solver.newProverEnvironmentWithModelGeneration();
+        BooleanFormula constraintsAsFormula = getFullFormula();
 
-        prover.push(getFullFormula());
+        prover.push(constraintsAsFormula);
         unsat = prover.isUnsat();
 
         if (!unsat) {
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really requested
-          computeDefiniteAssignment();
+          computeDefiniteAssignment(constraintsAsFormula);
 
         } else {
           definiteAssignment = null;
@@ -250,7 +251,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     }
   }
 
-  private void computeDefiniteAssignment() throws SolverException, InterruptedException, UnrecognizedCCodeException {
+  private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException, UnrecognizedCCodeException {
     Model validAssignment = prover.getModel();
 
     for (Map.Entry<Model.AssignableTerm, Object> entry : validAssignment.entrySet()) {
@@ -264,7 +265,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
 
         assert !definiteAssignment.containsKey(identifier) || definiteAssignment.get(identifier).equals(concreteValue);
         if (!definiteAssignment.containsKey(identifier)
-            && isOnlySatisfyingAssignment(term, termAssignment)) {
+            && isOnlySatisfyingAssignment(term, termAssignment, pFormula)) {
 
           definiteAssignment.put(identifier, concreteValue);
         }
@@ -287,11 +288,12 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm.getName());
   }
 
-  private boolean isOnlySatisfyingAssignment(Model.AssignableTerm pTerm, Object termAssignment)
+  private boolean isOnlySatisfyingAssignment(Model.AssignableTerm pTerm, Object termAssignment, BooleanFormula pFormula)
       throws SolverException, InterruptedException, UnrecognizedCCodeException {
 
+    VariableMap freeVariables = new VariableMap(formulaManager.extractFreeVariableMap(pFormula));
     BooleanFormula prohibitAssignment = solver.getFormulaManager()
-                                       .makeNot(formulaCreator.transformAssignment(pTerm, termAssignment));
+                                       .makeNot(formulaCreator.transformAssignment(pTerm, termAssignment, freeVariables));
 
     prover.push(prohibitAssignment);
     boolean isUnsat = prover.isUnsat();

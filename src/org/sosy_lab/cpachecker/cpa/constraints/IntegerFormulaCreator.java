@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -652,8 +654,8 @@ public class IntegerFormulaCreator
   }
 
   @Override
-  public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment) {
-    Formula variable = createVariable(pTerm);
+  public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment, VariableMap pVariables) {
+    Formula variable = getVariableForTerm(pTerm, pVariables);
 
     final FormulaType<?> type = getFormulaType(pTerm.getType());
     Formula rightFormula;
@@ -682,11 +684,10 @@ public class IntegerFormulaCreator
     return formulaManager.makeEqual(variable, rightFormula);
   }
 
-  private Formula createVariable(Model.AssignableTerm pTerm) {
+  private Formula getVariableForTerm(Model.AssignableTerm pTerm, VariableMap pVariables) {
     final String name = pTerm.getName();
-    final FormulaType<?> type = getFormulaType(pTerm.getType());
 
-    return formulaManager.makeVariable(type, name);
+    return checkNotNull(pVariables.get(name));
   }
 
   private FormulaType<?> getFormulaType(Model.TermType pType) {

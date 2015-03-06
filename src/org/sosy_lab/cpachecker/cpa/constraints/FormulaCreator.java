@@ -58,6 +58,6 @@ public interface FormulaCreator {
    * @param termAssignment the value of the assignment
    * @return a <code>BooleanFormula</code> representing the given assignment
    */
-  BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment)
+  BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment, VariableMap pVariables)
       throws UnrecognizedCCodeException, InterruptedException;
 }
