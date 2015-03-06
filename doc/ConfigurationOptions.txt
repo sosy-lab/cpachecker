@@ -1686,7 +1686,7 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 cpa.value.refiner.doLazyAbstraction = true
 
 # whether or not to perform path slicing before interpolation
-cpa.value.refiner.pathSlicing = true
+cpa.value.refiner.pathSlicing = false
 
 # whether to perform (more precise) edge-based interpolation or (more
 # efficient) path-based interpolation
