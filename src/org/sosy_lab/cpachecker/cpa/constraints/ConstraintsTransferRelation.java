@@ -90,6 +90,7 @@ public class ConstraintsTransferRelation
   private Solver solver;
   private FormulaManagerView formulaManager;
   private CtoFormulaConverter converter;
+  private StateSimplifier simplifier;
 
   public ConstraintsTransferRelation(MachineModel pMachineModel, LogManager pLogger,
       Configuration pConfig, ShutdownNotifier pShutdownNotifier)
@@ -99,6 +100,7 @@ public class ConstraintsTransferRelation
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
+    simplifier = new StateSimplifier(machineModel, logger);
     initializeSolver(pLogger, pConfig, pShutdownNotifier);
     initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
   }
@@ -298,8 +300,6 @@ public class ConstraintsTransferRelation
   }
 
   private ConstraintsState simplify(ConstraintsState pState, ValueAnalysisState pValueState) {
-    StateSimplifier simplifier = new StateSimplifier(machineModel, logger);
-
     return simplifier.simplify(pState, pValueState);
   }
 
