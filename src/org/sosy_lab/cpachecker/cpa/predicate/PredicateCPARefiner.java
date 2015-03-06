@@ -45,6 +45,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -58,13 +60,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -119,8 +124,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
-  @Option(secure=true, description="prefixPreference")
+  @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DEFAULT;
+
+  @Option(secure=true, description="whether or not to perform path slicing before interpolation")
+  private boolean pathSlicing = false;
 
   Configuration config;
 
@@ -307,12 +315,53 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
     List<ARGPath> infeasilbePrefixes = provider.getInfeasilbePrefixes(allStatesTrace);
 
-    if(infeasilbePrefixes.size() > 1) {
+    if(infeasilbePrefixes.size() > 1 || pathSlicing) {
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
 
-      return classifier.obtainSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
+      allStatesTrace = classifier.obtainSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
+
+      if (pathSlicing) {
+        allStatesTrace = sliceErrorPath(allStatesTrace);
+
+        PathFormula formula = pfmgr.makeEmptyPathFormula();
+        PathIterator iterator = allStatesTrace.pathIterator();
+        while (iterator.hasNext()) {
+          formula = pfmgr.makeAnd(formula, iterator.getOutgoingEdge());
+          iterator.advance();
+        }
+        assert(solver.isUnsat(formula.getFormula())) : "sliced path is SAT!\n\n";// + allStatesTrace;
+      }
     }
     return allStatesTrace;
+  }
+
+  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator().obtainInterpolants(errorPathPrefix);
+    interpolants.put(errorPathPrefix.getFirstState(), ValueAnalysisInterpolant.TRUE);
+
+    List<CFAEdge> abstractEdges = new ArrayList<>();
+    ArrayList<CFAEdge> edges = Lists.newArrayList(errorPathPrefix.asEdgesList());
+    ArrayList<ARGState> states = Lists.newArrayList(errorPathPrefix.asStatesList());
+    int i = 0;
+    for (CFAEdge currentEdge : edges) {
+      // if interpolant of predecessor is false
+      // or if interpolant of successor is true, skip the edge
+      if (interpolants.get(states.get(i)).isFalse()
+          || interpolants.get(states.get(i)).equals(interpolants.get(states.get(i + 1)))) {
+        abstractEdges.add(new BlankEdge("",
+            FileLocation.DUMMY,
+            currentEdge.getPredecessor(),
+            currentEdge.getSuccessor(),
+            ErrorPathClassifier.SUFFIX_REPLACEMENT + " for: " + currentEdge.getRawStatement()));
+      }
+
+      else {
+        abstractEdges.add(currentEdge);
+      }
+      i++;
+    }
+
+    return new ARGPath(states, abstractEdges);
   }
 
   /**
