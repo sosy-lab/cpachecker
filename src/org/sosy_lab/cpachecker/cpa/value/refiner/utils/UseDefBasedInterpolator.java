@@ -88,6 +88,11 @@ import com.google.common.collect.Lists;
 public class UseDefBasedInterpolator {
 
   /**
+   * defines how to handle feasible assume edges
+   */
+  private String handleFeasibleAssumeEdges = "NONE";
+
+  /**
    * the flag to determine, if the final (failing, contradicting) assume edge
    * has already been handled (mind that the traversal proceeds in reverse order)
    */
@@ -107,6 +112,10 @@ public class UseDefBasedInterpolator {
    * the mapping from declarations to the number of times it was "used"
    */
   private Map<ASimpleDeclaration, Integer> updateCounter = new HashMap<>();
+
+  public UseDefBasedInterpolator(final String pHandleFeasibleAssumeEdges) {
+    handleFeasibleAssumeEdges = pHandleFeasibleAssumeEdges;
+  }
 
   /**
    * This method obtains the mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s.
@@ -285,6 +294,9 @@ public class UseDefBasedInterpolator {
     // actual assignments ending up in the interpolant
     // this, however, would lead to failing refinements if for a variable
     // no assignment to a known value exists
+    if(handleFeasibleAssumeEdges.equals("NONE")) {
+      return;
+    }
 
 
     // option 2)
@@ -292,7 +304,7 @@ public class UseDefBasedInterpolator {
     // so that such an assume removes an open dependency
     // for an equality with a constant, we can remove the dependency
     // this still could fail if this assume is the "same" as the final, failing one
-    if (isEquality(assumeEdge, expr)) {
+    if (handleFeasibleAssumeEdges.equals("EQUALITY") && isEquality(assumeEdge, expr)) {
       CBinaryExpression binExpr = ((CBinaryExpression) expr);
       if (binExpr.getOperand1() instanceof CIdExpression
           && binExpr.getOperand2() instanceof CLiteralExpression) {
@@ -327,7 +339,7 @@ public class UseDefBasedInterpolator {
     // for all other binary operations, we keep/readd/update the dependency,
     // plus, we add the new dependencies for all variables that occur
     // in the "other" side of the binary relation
-    else {
+    else if (handleFeasibleAssumeEdges.equals("ALL")) {
       CBinaryExpression binExpr = ((CBinaryExpression) expr);
 
       Collection<ASimpleDeclaration> leftSide = acceptAll(binExpr.getOperand1());

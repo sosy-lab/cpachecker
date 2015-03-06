@@ -212,7 +212,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * This method removes, i.e., slices further edges from the error path (prefix).
    */
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator().obtainInterpolants(errorPathPrefix);
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY").obtainInterpolants(errorPathPrefix);
     interpolants.put(errorPathPrefix.getFirstState(), ValueAnalysisInterpolant.TRUE);
 
     List<CFAEdge> abstractEdges = new ArrayList<>();
@@ -255,7 +255,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     : "static path-based interpolation requires a sliced infeasible prefix"
     + " - set cpa.value.refiner.prefixPreference, e.g. to " + ErrorPathPrefixPreference.DOMAIN_BEST_DEEP;
 
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator().obtainInterpolants(errorPathPrefix);
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY").obtainInterpolants(errorPathPrefix);
 
     totalInterpolationQueries.setNextValue(1);
 

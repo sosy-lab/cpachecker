@@ -130,6 +130,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
   private boolean pathSlicing = false;
 
+  @Option(secure=true, description="defines how to handle feasible assume edges during path slicing", values={"NONE", "EQUALITY", "ALL"})
+  private String handleFeasibleAssumeEdges = "NONE";
+
   Configuration config;
 
   // the previously analyzed counterexample to detect repeated counterexamples
@@ -336,7 +339,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator().obtainInterpolants(errorPathPrefix);
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(handleFeasibleAssumeEdges).obtainInterpolants(errorPathPrefix);
     interpolants.put(errorPathPrefix.getFirstState(), ValueAnalysisInterpolant.TRUE);
 
     List<CFAEdge> abstractEdges = new ArrayList<>();
