@@ -677,7 +677,13 @@ public final class InterpolationManager {
       }
     }
 
-    return currentScore / variableNames.size();
+    // this is a true or false formula, return 0 as this is the easiest formula
+    // we can encounter
+    if (variableNames.size() == 0) {
+      return 0;
+    } else {
+      return currentScore / variableNames.size();
+    }
   }
 
   private void createLoopDrivenStateOrdering(final List<AbstractState> pAbstractionStates,
