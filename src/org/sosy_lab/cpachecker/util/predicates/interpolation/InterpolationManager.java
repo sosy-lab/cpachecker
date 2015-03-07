@@ -38,9 +38,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -104,6 +102,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.Ints;
 
 
@@ -602,7 +601,7 @@ public final class InterpolationManager {
       }
 
     } else if (direction == CexTraceAnalysisDirection.LOWEST_AVG_SCORE) {
-      Map<Double, BooleanFormula> sortedFormulas = new TreeMap<>();
+      Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
 
       for (BooleanFormula formula : traceFormulas) {
         Set<String> varNames = from(fmgr.extractVariableNames(formula))
@@ -613,13 +612,14 @@ public final class InterpolationManager {
                                   }})
                                .toSet();
 
-        sortedFormulas.put(getAVGScoreForVariables(varNames), formula);
+        sortedFormulas.put(getAVGScoreForVariables(varNames), traceFormulas.indexOf(formula));
       }
 
       int counter = 0;
-      for (BooleanFormula formula : sortedFormulas.values()) {
-        int oldIndex = traceFormulas.indexOf(formula);
-        orderedFormulas.add(Triple.of(formula, pAbstractionStates.get(oldIndex), counter++));
+      for (Integer index : sortedFormulas.values()) {
+        orderedFormulas.add(Triple.of(traceFormulas.get(index),
+                                      pAbstractionStates.get(index),
+                                      counter++));
       }
 
     } else {
