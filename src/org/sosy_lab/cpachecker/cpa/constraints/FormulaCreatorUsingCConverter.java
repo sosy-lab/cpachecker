@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -109,8 +107,15 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
       } else if (termAssignment instanceof Float || termAssignment instanceof Double) {
         assert variableType.isFloatingPointType();
-        final Double assignmentAsDouble = Double.valueOf((double) termAssignment);
         final FloatingPointFormula variableAsFloat = (FloatingPointFormula) variable;
+        final Double assignmentAsDouble;
+
+        if (termAssignment instanceof Float) {
+          assignmentAsDouble = ((Float) termAssignment).doubleValue();
+        } else {
+          assert termAssignment instanceof Double;
+          assignmentAsDouble = (Double) termAssignment;
+        }
 
         if (assignmentAsDouble.isNaN()) {
           return getNanFormula(variableAsFloat);
@@ -134,10 +139,16 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
       } else {
         assert decimalValue != null;
-        assert variableType.isFloatingPointType();
-        FormulaType.FloatingPointType variableTypeCastToFloatType = (FormulaType.FloatingPointType) variableType;
 
-        rightFormula = formulaManager.getFloatingPointFormulaManager().makeNumber(decimalValue, variableTypeCastToFloatType);
+        if (variableType.isRationalType()) {
+          rightFormula = formulaManager.getRationalFormulaManager().makeNumber(decimalValue);
+        } else {
+          assert variableType.isFloatingPointType();
+          FormulaType.FloatingPointType variableTypeCastToFloatType = (FormulaType.FloatingPointType) variableType;
+
+          rightFormula =
+              formulaManager.getFloatingPointFormulaManager().makeNumber(decimalValue, variableTypeCastToFloatType);
+        }
       }
 
     } else {
