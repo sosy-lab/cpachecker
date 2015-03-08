@@ -66,7 +66,7 @@ import com.google.common.base.Optional;
 public class JExpressionTransformer extends ExpressionTransformer
     implements JRightHandSideVisitor<SymbolicExpression, UnrecognizedCodeException> {
 
-  public JExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
+  public JExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
     super(pFunctionName, pValueState);
   }
 

@@ -67,7 +67,7 @@ public class CExpressionTransformer extends ExpressionTransformer
 
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-  public CExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState,
+  public CExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     super(pFunctionName, pValueState);
 
@@ -232,27 +232,18 @@ public class CExpressionTransformer extends ExpressionTransformer
 
   private SymbolicExpression evaluateToValue(CExpression pExpression) throws UnrecognizedCCodeException {
 
-    if (!valueState.isPresent()) {
-      missingInformation = true;
+    ExpressionValueVisitor valueVisitor = getValueVisitor(valueState);
+    ValueAnalysisState.MemoryLocation memLoc = valueVisitor.evaluateMemoryLocation(pExpression);
+
+    if (memLoc == null) {
       return null;
 
+    } else if (valueState.contains(memLoc)) {
+      Value value = valueState.getValueFor(memLoc);
+
+      return factory.asConstant(value, pExpression.getExpressionType());
     } else {
-      final ValueAnalysisState state = valueState.get();
-      ExpressionValueVisitor valueVisitor = getValueVisitor(state);
-
-      ValueAnalysisState.MemoryLocation memLoc = valueVisitor.evaluateMemoryLocation(pExpression);
-
-      if (memLoc == null) {
-        missingInformation = true;
-        return null;
-
-      } else if (state.contains(memLoc)) {
-        Value value = state.getValueFor(memLoc);
-
-        return factory.asConstant(value, pExpression.getExpressionType());
-      } else {
-        return null;
-      }
+      return null;
     }
   }
 

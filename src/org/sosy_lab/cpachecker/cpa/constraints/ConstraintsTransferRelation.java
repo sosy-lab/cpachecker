@@ -358,7 +358,7 @@ public class ConstraintsTransferRelation
     final AExpression edgeExpression = pCfaEdge.getExpression();
 
     final ConstraintFactory factory =
-        ConstraintFactory.getInstance(functionName, Optional.of(pStrengtheningState), machineModel, logger);
+        ConstraintFactory.getInstance(functionName, pStrengtheningState, machineModel, logger);
     final FileLocation fileLocation = pCfaEdge.getFileLocation();
 
     ConstraintsState newState = null;

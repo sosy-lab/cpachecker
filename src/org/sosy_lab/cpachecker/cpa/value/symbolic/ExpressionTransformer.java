@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import com.google.common.base.Optional;
-
 /**
  * Class for transforming {@link AExpression}s to {@link SymbolicExpression}s.
  *
@@ -54,10 +52,9 @@ public class ExpressionTransformer {
 
   protected final String functionName;
 
-  protected boolean missingInformation = false;
-  protected Optional<ValueAnalysisState> valueState;
+  protected ValueAnalysisState valueState;
 
-  public ExpressionTransformer(String pFunctionName, Optional<ValueAnalysisState> pValueState) {
+  public ExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
     functionName = pFunctionName;
     valueState = pValueState;
   }
@@ -74,31 +71,13 @@ public class ExpressionTransformer {
     return new NumericValue(pValue);
   }
 
-  /**
-   * Returns whether information was missing while transforming the last expression.
-   *
-   * <p>This method always resets after one call. So when calling this method after the creation of a formula,
-   * it will only return <code>true</code> at the first call, if at all.</p>
-   *
-   * @return <code>true</code> if information was missing, <code>false</code> otherwise
-   */
-  public boolean hasMissingInformation() {
-    return missingInformation;
-  }
-
   public SymbolicExpression visit(AIdExpression pIastIdExpression) throws UnrecognizedCodeException {
-    if (!valueState.isPresent()) {
-      missingInformation = true;
-      return null;
-    }
-
-    final ValueAnalysisState state = valueState.get();
     final MemoryLocation memLoc = getMemoryLocation(pIastIdExpression.getDeclaration());
 
     final Type idType = pIastIdExpression.getExpressionType();
 
-    if (state.contains(memLoc)) {
-      final Value idValue = state.getValueFor(memLoc);
+    if (valueState.contains(memLoc)) {
+      final Value idValue = valueState.getValueFor(memLoc);
 
       return SymbolicValueFactory.getInstance().asConstant(idValue, idType);
 

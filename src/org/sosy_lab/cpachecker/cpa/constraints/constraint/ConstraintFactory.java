@@ -47,8 +47,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import com.google.common.base.Optional;
-
 /**
  * Factory for creating {@link org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint} objects.
  */
@@ -57,12 +55,12 @@ public class ConstraintFactory {
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
   private final String functionName;
-  private final Optional<ValueAnalysisState> valueState;
+  private final ValueAnalysisState valueState;
 
   private SymbolicValueFactory expressionFactory;
 
 
-  private ConstraintFactory(String pFunctionName, Optional<ValueAnalysisState> pValueState, MachineModel pMachineModel,
+  private ConstraintFactory(String pFunctionName, ValueAnalysisState pValueState, MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger) {
 
     machineModel = pMachineModel;
@@ -72,7 +70,7 @@ public class ConstraintFactory {
     expressionFactory = SymbolicValueFactory.getInstance();
   }
 
-  public static ConstraintFactory getInstance(String pFunctionName, Optional<ValueAnalysisState> pValueState,
+  public static ConstraintFactory getInstance(String pFunctionName, ValueAnalysisState pValueState,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     return new ConstraintFactory(pFunctionName, pValueState, pMachineModel, pLogger);
   }
