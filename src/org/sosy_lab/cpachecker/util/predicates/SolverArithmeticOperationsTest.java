@@ -55,7 +55,6 @@ public class SolverArithmeticOperationsTest extends SolverBasedTest0 {
   @Test
   public void testUnsat_isZeroAfterShiftLeft() throws Exception {
     BitvectorFormulaManager bvfmgr = mgr.getBitvectorFormulaManager();
-    BitvectorFormula zero = bvfmgr.makeBitvector(32, 0);
     BitvectorFormula one = bvfmgr.makeBitvector(32, 1);
 
     // unsigned char
