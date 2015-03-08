@@ -1476,11 +1476,25 @@ class ASTConverter {
       // struct, union, or enum declaration
       // split type definition from eventual variable declaration
       CComplexType complexType = (CComplexType)type;
-      CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType);
-      result.add(newD);
+
+      // in case of struct declarations with variable declarations we
+      // need to add the struct declaration as sideeffect, so that
+      // we can be sure the variable gets the correct (perhaps renamed) type
+      if (declarators.length > 0 && type instanceof CCompositeType) {
+        addSideEffectDeclarationForType((CCompositeType) complexType, fileLoc);
+        complexType = scope.lookupType(complexType.getQualifiedName());
+
+      } else {
+        result.add(new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType));
+      }
 
       // now replace type with an elaborated type referencing the new type
-      type = new CElaboratedType(type.isConst(), type.isVolatile(), complexType.getKind(), complexType.getName(), complexType.getOrigName(), newD.getType());
+      type = new CElaboratedType(type.isConst(),
+                                 type.isVolatile(),
+                                 complexType.getKind(),
+                                 complexType.getName(),
+                                 complexType.getOrigName(),
+                                 complexType);
 
     } else if (type instanceof CElaboratedType) {
       boolean typeAlreadyKnown = scope.lookupType(((CElaboratedType) type).getQualifiedName()) != null;
@@ -1523,7 +1537,9 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Typedef with initializer", d, niceFileNameFunction);
         }
-        return new CTypeDefDeclaration(fileLoc, isGlobal, type, scope.getRenamedTypeName(name), scope.getRenamedTypeName(scope.createScopedNameOf(name)));
+
+        name = scope.getFileSpecificTypeName(name);
+        return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
       // We need to resolve typedefs, but we cannot call getCanonicalType()
@@ -1960,7 +1976,7 @@ class ASTConverter {
 
     // in cases like struct s { (struct s)* f }
     // we need to fill in the binding from the inner "struct s" type to the outer
-    compositeType.accept(new FillInBindingVisitor(kind, scope.getRenamedTypeName(name), compositeType));
+    compositeType.accept(new FillInBindingVisitor(kind, scope.getFileSpecificTypeName(name), compositeType));
     return compositeType;
   }
 

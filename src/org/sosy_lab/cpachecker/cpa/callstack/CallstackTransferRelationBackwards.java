@@ -48,9 +48,13 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 @Options(prefix="cpa.callstack")
 public class CallstackTransferRelationBackwards extends CallstackTransferRelation {
 
-  public CallstackTransferRelationBackwards(Configuration pConfig, LogManager pLogger)
+  private final CallstackStateFactory callstackStateFactory;
+
+  public CallstackTransferRelationBackwards(Configuration pConfig, LogManager pLogger,
+      CallstackStateFactory pCallstackStateFactory)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger);
+    super(pConfig, pLogger, pCallstackStateFactory);
+    callstackStateFactory = pCallstackStateFactory;
   }
 
   @Override
@@ -105,7 +109,9 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
 
         } else {
           // BACKWARDS: Build the stack on the function-return edge (add element to the stack)
-          return Collections.singleton(new CallstackState(e, nextAnalysisFunction, correspondingCallNode));
+          return Collections.singleton(callstackStateFactory.create(e,
+              nextAnalysisFunction,
+              correspondingCallNode));
         }
       }
 
@@ -118,7 +124,9 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
         CallstackState nextStackState = e.getPreviousState();
         if (nextStackState == null) {
           // BACKWARDS: The analysis might start somewhere in the call tree (and we might have not predecessor state)
-          result = Collections.singleton(new CallstackState(null, nextAnalysisFunction, nextAnalysisLoc));
+          result = Collections.singleton(
+              callstackStateFactory.create(null, nextAnalysisFunction, nextAnalysisLoc)
+          );
 
           // This if clause is needed to check if the correct FunctionCallEdge is taken.
           // Consider a method which is called from different other methods, then

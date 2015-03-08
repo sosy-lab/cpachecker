@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,7 +38,7 @@ public final class CCompositeType implements CComplexType, Serializable {
 
   private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind kind;
-  private List<CCompositeTypeMemberDeclaration> members;
+  private transient List<CCompositeTypeMemberDeclaration> members;
   private final String name;
   private final String origName;
   private boolean   isConst;
@@ -267,6 +269,18 @@ public final class CCompositeType implements CComplexType, Serializable {
   @Override
   public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name, origName);
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+
+    out.writeObject(new ArrayList<>(members));
+  }
+
+  @SuppressWarnings("unchecked")
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    members = ImmutableList.copyOf((ArrayList<CCompositeTypeMemberDeclaration>)in.readObject());
   }
 
 }

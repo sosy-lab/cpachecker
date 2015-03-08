@@ -40,6 +40,8 @@ abstract class Z3Formula implements Formula {
   private final long z3expr;
   private final long z3context;
 
+  private int hashCache = 0;
+
   Z3Formula(long z3context, long z3expr) {
     this.z3expr = z3expr;
     this.z3context = z3context;
@@ -63,7 +65,10 @@ abstract class Z3Formula implements Formula {
 
   @Override
   public int hashCode() {
-    return Z3NativeApi.get_ast_hash(z3context, z3expr);
+    if (hashCache == 0) {
+      hashCache = Z3NativeApi.get_ast_hash(z3context, z3expr);
+    }
+    return hashCache;
   }
 
   public Long getFormulaInfo() {

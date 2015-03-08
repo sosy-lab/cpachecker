@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Objects;
+
 public class LoopstackState implements AbstractState, Partitionable, AvoidanceReportingState {
 
   private final LoopstackState previousState;
@@ -41,6 +43,8 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
   private final int depth;
   private final int iteration;
   private final boolean stop;
+
+  private int hashCache = 0;
 
   public LoopstackState(LoopstackState previousElement, Loop loop, int iteration, boolean stop) {
     this.previousState = checkNotNull(previousElement);
@@ -113,7 +117,10 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
 
   @Override
   public int hashCode() {
-    return iteration * 17 + (loop == null ? 0 : loop.hashCode());
+    if (hashCache == 0) {
+      hashCache = Objects.hashCode(iteration, loop, previousState);
+    }
+    return hashCache;
   }
 
   @Override

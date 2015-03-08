@@ -69,11 +69,15 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "Skip recursion if it happens only by going via a void function (this is unsound).")
   protected boolean skipVoidRecursion = false;
 
+  private final CallstackStateFactory callstackStateFactory;
+
   protected final LogManagerWithoutDuplicates logger;
 
-  public CallstackTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public CallstackTransferRelation(Configuration config, LogManager pLogger,
+      CallstackStateFactory pCallstackStateFactory) throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
+    callstackStateFactory = pCallstackStateFactory;
   }
 
   @Override
@@ -139,7 +143,9 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         } else {
           // regular function call:
           //    add the called function to the current stack
-          return Collections.singleton(new CallstackState(e, calledFunction, callerNode));
+
+          return Collections.singleton(
+              callstackStateFactory.create(e, calledFunction, callerNode));
         }
       }
 

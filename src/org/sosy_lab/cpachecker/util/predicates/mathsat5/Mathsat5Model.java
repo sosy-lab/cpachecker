@@ -138,8 +138,7 @@ class Mathsat5Model {
     }
   }
 
-  static Model createMathsatModel(final long sourceEnvironment,
-       final Mathsat5FormulaManager fmgr) throws SolverException {
+  static Model createMathsatModel(final long sourceEnvironment) throws SolverException {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
     ModelIterator lModelIterator;

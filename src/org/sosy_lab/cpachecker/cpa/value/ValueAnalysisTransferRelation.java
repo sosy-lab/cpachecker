@@ -488,6 +488,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
 
+    Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
+    expression = simplifiedExpression.getFirst();
+    truthValue = simplifiedExpression.getSecond();
+
     final ExpressionValueVisitor evv = getVisitor();
     final Type booleanType = getBooleanType(expression);
 

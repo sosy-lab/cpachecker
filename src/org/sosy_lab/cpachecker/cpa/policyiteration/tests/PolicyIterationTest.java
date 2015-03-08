@@ -4,7 +4,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -77,7 +76,7 @@ public class PolicyIterationTest {
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
 
-  @Ignore // has mostly timeouts in BuildBot
+//  @Ignore // has mostly timeouts in BuildBot -> seems fine now.
   @Test public void pointers_loop_true_assert() throws Exception {
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
@@ -113,12 +112,29 @@ public class PolicyIterationTest {
     check("fixpoint_true_assert.c");
   }
 
+  @Test public void array_false_assert() throws Exception {
+    check("array_false_assert.c");
+  }
+
+  @Test public void classcast_fail_true_assert() throws Exception {
+    check("classcast_fail_true_assert.c");
+  }
 
   @Test public void formula_fail_true_assert() throws Exception {
     check("formula_fail_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateLowerBound", "false",
                         "cpa.stator.policy.generateFromAsserts", "false",
                         "cpa.stator.policy.pathFocusing", "false"));
+  }
+
+  @Test public void unrolling_true_assert() throws Exception {
+    check("unrolling_true_assert.c",
+        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction",
+            "2"));
+  }
+
+  @Test public void timeout_true_assert() throws Exception {
+    check("timeout_true_assert.c");
   }
 
   private void check(String filename) throws Exception {
@@ -138,25 +154,29 @@ public class PolicyIterationTest {
   }
 
   private Map<String, String> getProperties(Map<String, String> extra) {
-    return (ImmutableMap.<String, String>builder()
-        .put("cpa", "cpa.composite.CompositeCPA")
+    Map<String, String> props = new HashMap<>((ImmutableMap.<String, String>builder()
+        .put("cpa", "cpa.arg.ARGCPA")
+        .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
         .put("CompositeCPA.cpas",
             Joiner.on(", ").join(ImmutableList.<String>builder()
                 .add("cpa.location.LocationCPA")
                 .add("cpa.callstack.CallstackCPA")
+                .add("cpa.loopstack.LoopstackCPA")
                 .add("cpa.policyiteration.PolicyCPA")
                 .build()
             ))
         )
-        .putAll(extra)
-        .put("reachedSet.export", "true")
+        .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
         .put("cpa.predicate.solver", "Z3")
-        .put("log.consoleLevel", "FINE")
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
-    .build();
-
+        .put("analysis.summaryEdges", "true")
+        .put("analysis.traveral.order", "bfs")
+        .put("cpa.callstack.produceUniqueStates", "false")
+    .build());
+    props.putAll(extra);
+    return props;
   }
 }

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 """
 CPAchecker is a tool for configurable software verification.
@@ -35,9 +35,12 @@ import os
 import time
 import argparse
 import subprocess
-import tempita
 import json
 
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
+    sys.path.insert(0, egg)
+
+import tempita
 
 def call_dot(infile, outpath):
     (basefilename, ext) = os.path.splitext(os.path.basename(infile))

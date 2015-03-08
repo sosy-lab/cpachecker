@@ -91,7 +91,12 @@ public class DummyScope implements Scope {
   }
 
   @Override
-  public String getRenamedTypeName(String pType) {
+  public String getFileSpecificTypeName(String pType) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean isFileSpecificTypeName(String pType) {
     throw new UnsupportedOperationException();
   }
 

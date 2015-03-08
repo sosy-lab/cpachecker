@@ -66,9 +66,9 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
     enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
 
-    @Option(secure=true, description="with this option enabled, unction calls taht occur"
+    @Option(secure=true, description="With this option enabled, unction calls that occur"
         + " in the CFA are followed. By disabling this option one can traverse a function"
-        + " withou following function calls (in this case FunctionSummaryEdges are used)")
+        + " without following function calls (in this case FunctionSummaryEdges are used)")
     private boolean followFunctionCalls = true;
 
     public LocationStateFactory(CFA pCfa, LocationStateType locationType, Configuration config) throws InvalidConfigurationException {

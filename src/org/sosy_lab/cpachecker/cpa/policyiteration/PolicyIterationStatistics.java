@@ -18,7 +18,8 @@ public class PolicyIterationStatistics implements Statistics {
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
   private final Timer checkSATTimer = new Timer();
-  private final Timer optTimer = new Timer();
+  final Timer optTimer = new Timer();
+  final Timer slicingTimer = new Timer();
 
   public void startCheckSATTimer() {
     checkSATTimer.start();
@@ -65,6 +66,7 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, abstractionTimer, "abstraction");
     printTimer(out, optTimer, "optimization");
     printTimer(out, checkSATTimer, "checking satisfiability");
+    printTimer(out, slicingTimer, "checking inductiveness in formula slicing");
     out.printf("Time spent in %s: %s (Max: %s)%n",
         "SMT solver",
         TimeSpan.sum(

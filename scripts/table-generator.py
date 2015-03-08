@@ -34,9 +34,15 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
     sys.path.insert(0, egg)
 
+# Add ./benchmark/tools to __path__ of benchexec.tools package
+# such that additional tool-wrapper modules can be placed in this directory.
+import benchexec.tools
+benchexec.tools.__path__ += [os.path.join(os.path.dirname(__file__), 'benchmark', 'tools')]
+
 import benchexec.tablegenerator
 
 benchexec.tablegenerator.DEFAULT_OUTPUT_PATH = 'test/results/'
+benchexec.tablegenerator.LIB_URL = 'http://www.sosy-lab.org/lib'
 
 try:
     sys.exit(benchexec.tablegenerator.main())

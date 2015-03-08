@@ -5,7 +5,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
-import com.google.common.base.Objects;
+import com.google.common.base.Function;
 
 /**
  * Wrapper for a template.
@@ -37,17 +37,20 @@ public final class Template {
       return false;
     }
     Template other = (Template) o;
-    return linearExpression.equals(other.linearExpression) &&
-        type.equals(other.type);
+    return linearExpression.equals(other.linearExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(linearExpression, type);
+    return linearExpression.hashCode();
   }
 
   @Override
   public String toString() {
-    return String.format("%s", linearExpression.toString());
+    return String.format("%s", linearExpression.toString(new Function<CIdExpression, String>() {
+      public String apply(CIdExpression pCIdExpression) {
+        return pCIdExpression.getDeclaration().getQualifiedName();
+      }
+    }));
   }
 }

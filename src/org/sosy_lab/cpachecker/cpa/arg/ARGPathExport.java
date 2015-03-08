@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -39,6 +38,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
@@ -88,8 +88,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -101,17 +101,18 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.SortedMapDifference;
 import com.google.common.collect.TreeMultimap;
 
 @Options(prefix="cpa.arg.witness")
@@ -169,8 +170,9 @@ public class ARGPathExport {
     return getStateIdent(pState, String.format("_%d_%d", pSubStateNo, pSubStateCount));
   }
 
-  private static class TransitionCondition {
-    public final Map<KeyDef, String> keyValues = Maps.newHashMap();
+  private static class TransitionCondition implements Comparable<TransitionCondition> {
+
+    public final SortedMap<KeyDef, String> keyValues = Maps.newTreeMap();
 
     public void put(final KeyDef pKey, final String pValue) {
       keyValues.put(pKey, pValue);
@@ -178,6 +180,9 @@ public class ARGPathExport {
 
     @Override
     public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
       if (!(pOther instanceof TransitionCondition)) {
         return false;
       }
@@ -195,20 +200,101 @@ public class ARGPathExport {
     public int hashCode() {
       return keyValues.hashCode();
     }
+
+    @Override
+    public String toString() {
+      return keyValues.toString();
+    }
+
+    public boolean summarizes(TransitionCondition pLabel) {
+      if (equals(pLabel)) {
+        return true;
+      }
+      for (KeyDef keyDef : KeyDef.values()) {
+        if (!keyDef.equals(KeyDef.ASSUMPTION)
+            && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    @Override
+    public int compareTo(TransitionCondition pO) {
+      if (this == pO) {
+        return 0;
+      }
+      SortedMapDifference<KeyDef, String> differences = Maps.difference(keyValues, pO.keyValues);
+      if (differences.areEqual()) {
+        return 0;
+      }
+      if (differences.entriesOnlyOnLeft().isEmpty()) {
+        return -1;
+      } else if (differences.entriesOnlyOnRight().isEmpty()) {
+        return 1;
+      }
+      ValueDifference<String> difference = differences.entriesDiffering().values().iterator().next();
+      return difference.leftValue().compareTo(difference.rightValue());
+    }
   }
 
-  private static class AggregatedEdge {
-    public final String targetRepresentedBy;
-    public final TransitionCondition condition;
-    public final Set<String> aggregatesTargets = Sets.newHashSet();
+  private static class Edge implements Comparable<Edge> {
 
-    public AggregatedEdge(final String pTargetRepresentedBy,
-        final TransitionCondition pCondition) {
+    private final String source;
 
-      this.condition = pCondition;
-      this.targetRepresentedBy = pTargetRepresentedBy;
-      this.aggregatesTargets.add(pTargetRepresentedBy);
+    private final String target;
+
+    private final TransitionCondition label;
+
+    public Edge(String pSource, String pTarget, TransitionCondition pLabel) {
+      Preconditions.checkNotNull(pSource);
+      Preconditions.checkNotNull(pTarget);
+      Preconditions.checkNotNull(pLabel);
+      this.source = pSource;
+      this.target = pTarget;
+      this.label = pLabel;
     }
+
+    @Override
+    public String toString() {
+      return String.format("{%s -- %s --> %s}", source, label, target);
+    }
+
+    @Override
+    public int compareTo(Edge pO) {
+      if (pO == this) {
+        return 0;
+      }
+      int comp = source.compareTo(pO.source);
+      if (comp != 0) {
+        return comp;
+      }
+      comp = target.compareTo(pO.target);
+      if (comp != 0) {
+        return comp;
+      }
+      return label.compareTo(pO.label);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(source, target, label);
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof Edge) {
+        Edge other = (Edge) pOther;
+        return source.equals(other.source)
+            && target.equals(other.target)
+            && label.equals(other.label);
+      }
+      return false;
+    }
+
   }
 
   public void writePath(Appendable pTarget,
@@ -247,29 +333,12 @@ public class ARGPathExport {
 
   private class WitnessWriter {
 
-    private final Map<String, String> mergedNodes = Maps.newHashMap();
-    private final Multimap<String, AggregatedEdge> sourceToTargetMap = HashMultimap.create();
-    private final Multimap<String, AggregatedEdge> targetToSourceMap = HashMultimap.create();
-    private final Multimap<String, NodeFlag> nodeFlags = HashMultimap.create();
-    private final Multimap<String, String> violatedProperties = HashMultimap.create();
-    private final Map<String, Element> delayedNodes = Maps.newHashMap();
+    private final Multimap<String, NodeFlag> nodeFlags = TreeMultimap.create();
+    private final Multimap<String, String> violatedProperties = TreeMultimap.create();
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
-    private final SortedSetMultimap<String, Element> confirmedElements =
-        TreeMultimap.create(Ordering.natural(), new Comparator<Element>() {
 
-          @Override
-          public int compare(Element pO1, Element pO2) {
-            String tagName1 = pO1.getTagName();
-            String tagName2 = pO2.getTagName();
-            if (tagName1.equals(GraphMlTag.NODE.text) && tagName2.equals(GraphMlTag.EDGE.text)) {
-              return -1;
-            } else if (tagName1.equals(GraphMlTag.EDGE.text) && tagName2.equals(GraphMlTag.NODE.text)) {
-              return 1;
-            }
-            return Ordering.arbitrary().compare(pO1, pO2);
-          }
-
-        });
+    private final Multimap<String, Edge> leavingEdges = TreeMultimap.create();
+    private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
 
     private final String defaultSourcefileName;
     private boolean isFunctionScope = false;
@@ -278,125 +347,17 @@ public class ARGPathExport {
       this.defaultSourcefileName = pDefaultSourcefileName;
     }
 
-    private boolean containsRestrictedEdgeTo(Collection<AggregatedEdge> pTargets, String pNodeId) {
-      for (AggregatedEdge t : pTargets) {
-        if (t.targetRepresentedBy.equals(pNodeId)) {
-          if (t.condition.hasTransitionRestrictions()) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
-    private String getMergedNodeId(String pNodeId) {
-      Preconditions.checkNotNull(pNodeId);
-      String nodeId = pNodeId;
-      String mergedNodeId;
-      while ((mergedNodeId = mergedNodes.get(nodeId)) != null) {
-        nodeId = mergedNodeId;
-      }
-      return nodeId;
-    }
-
-    private void mergeNodes(String pOldNodeId, String pMergedNodeId) {
-      Preconditions.checkNotNull(pOldNodeId);
-      Preconditions.checkNotNull(pMergedNodeId);
-      String mergedNodeId = getMergedNodeId(pMergedNodeId);
-      mergedNodes.put(pOldNodeId, mergedNodeId);
-    }
-
-    private boolean shouldMergeNodes(String pFrom, String pTo, TransitionCondition pTransitionCondition) {
-      if (nodeFlags.containsKey(pTo)) {
-        return false; // Never merge if node has flags
-      }
-      if (violatedProperties.containsKey(pTo)) {
-        return false; // Never merge if node has violated properties
-      }
-      if (confirmedElements.containsKey(pTo)) {
-        return false; // Confirmed elements cannot be merged
-      }
-      if (!pTransitionCondition.hasTransitionRestrictions()) {
-        return true;
-      }
-      Collection<AggregatedEdge> edgesToTheSourceNode = targetToSourceMap.get(pFrom);
-      for (AggregatedEdge aggregationEdge : edgesToTheSourceNode) {
-        if (aggregationEdge.condition.equals(pTransitionCondition)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    private void appendNewPathNode(GraphMlBuilder pDoc, String pNodeId) throws IOException {
-      Element result = pDoc.createNodeElement(pNodeId, NodeType.ONPATH);
-      for (NodeFlag f : nodeFlags.get(pNodeId)) {
-        pDoc.addDataElementChild(result, f.key, "true");
-      }
-      for (String violation : violatedProperties.get(pNodeId)) {
-        pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation);
-      }
-
-      // Decide if writing the node should be delayed.
-      // Some nodes might not get referenced by edges later.
-      Collection<AggregatedEdge> existingEdgesTo = targetToSourceMap.get(pNodeId);
-      // -- A node must always be written if it represents a set of aggregated nodes
-      if (containsRestrictedEdgeTo(existingEdgesTo, pNodeId)) {
-        confirmedElements.put(pNodeId, result);
-      } else {
-        delayedNodes.put(pNodeId, result);
-      }
-    }
-
-    private void appendDelayedNode(final GraphMlBuilder pDoc, final String pNodeId) {
-      Element e = delayedNodes.get(pNodeId);
-      if (e != null) {
-        delayedNodes.remove(pNodeId);
-        confirmedElements.put(pNodeId, e);
-      }
-    }
-
     private void appendNewEdge(final GraphMlBuilder pDoc, String pFrom,
         final String pTo, final CFAEdge pEdge, final ARGState pFromState,
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) throws IOException {
 
-      String from = getMergedNodeId(pFrom);
-      String to = getMergedNodeId(pTo);
-
       attemptSwitchToFunctionScope(pEdge);
 
-      TransitionCondition desc = constructTransitionCondition(from, to, pEdge, pFromState, pValueMap);
+      TransitionCondition desc = constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
 
-      if (shouldMergeNodes(from, to, desc)) {
-        mergeNodes(to, from);
-        return;
-      }
+      Edge edge = new Edge(pFrom, pTo, desc);
 
-      boolean confirmed = false;
-
-      AggregatedEdge t = new AggregatedEdge(to, desc);
-
-      if (desc.hasTransitionRestrictions()) {
-        appendDelayedNode(pDoc, from);
-        appendDelayedNode(pDoc, to);
-
-        Element result = pDoc.createEdgeElement(from, to);
-        for (KeyDef k : desc.keyValues.keySet())  {
-          pDoc.addDataElementChild(result, k, desc.keyValues.get(k));
-        }
-        confirmedElements.put(from, result);
-        confirmed = true;
-
-        sourceToTargetMap.put(from, t);
-        targetToSourceMap.put(to, t);
-      }
-
-      // If the edge is not yet confirmed, remember it for later
-      if (!confirmed) {
-        for (AggregatedEdge previousEdge : targetToSourceMap.get(from)) {
-          mergeNodes(previousEdge.targetRepresentedBy, to);
-        }
-      }
+      putEdge(edge);
     }
 
     private void attemptSwitchToFunctionScope(CFAEdge pEdge) {
@@ -424,9 +385,6 @@ public class ARGPathExport {
       if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
       }
-
-      //desc.put(KeyDef.CFAPREDECESSORNODE, edge.getPredecessor().toString());
-      //desc.put(KeyDef.CFASUCCESSORNODE, edge.getSuccessor().toString());
 
       if (exportFunctionCallsAndReturns) {
         if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
@@ -534,9 +492,8 @@ public class ARGPathExport {
       if (exportAssumeCaseInfo) {
         if (pEdge instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) pEdge;
-          if (!a.getTruthAssumption()) {
-            result.put(KeyDef.NEGATIVECASE, "true");
-          }
+          AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
+          result.put(KeyDef.CONTROLCASE, assumeCase.toString());
         }
       }
 
@@ -577,7 +534,7 @@ public class ARGPathExport {
       pDoc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
       pDoc.appendNewKeyDef(KeyDef.SOURCECODE, null);
       pDoc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
-      pDoc.appendNewKeyDef(KeyDef.NEGATIVECASE, "false");
+      pDoc.appendNewKeyDef(KeyDef.CONTROLCASE, null);
       pDoc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
       pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
       pDoc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
@@ -735,17 +692,12 @@ public class ARGPathExport {
         if (sourceStateNodeId.equals(entryStateNodeId)) {
           sourceNodeFlags = EnumSet.of(NodeFlag.ISENTRY);
         }
-        if (s.isTarget()) {
-          sourceNodeFlags.add(NodeFlag.ISVIOLATION);
-        }
         sourceNodeFlags.addAll(extractNodeFlags(s));
         nodeFlags.putAll(sourceStateNodeId, sourceNodeFlags);
         violatedProperties.putAll(sourceStateNodeId, extractViolatedProperties(s));
       }
       // Write the sink node
       nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
-      appendNewPathNode(doc, SINK_NODE_ID);
-      appendDelayedNode(doc, SINK_NODE_ID);
 
       // Build the actual graph
       int multiEdgeCount = 0;
@@ -755,9 +707,7 @@ public class ARGPathExport {
         // Location of the state
         CFANode loc = AbstractStates.extractLocation(s);
 
-        // Write the state
         String sourceStateNodeId = getStateIdent(s);
-        appendNewPathNode(doc, sourceStateNodeId);
 
         // Process child states
         for (ARGState child : argEdges.getSecond()) {
@@ -785,8 +735,7 @@ public class ARGPathExport {
 
               assert (!(innerEdge instanceof AssumeEdge));
 
-              appendNewPathNode(doc, pseudoStateId);
-              appendNewEdge(doc, prevStateId, pseudoStateId, innerEdge, i == 0 ? s : null, valueMap);
+              appendNewEdge(doc, prevStateId, pseudoStateId, innerEdge, null, valueMap);
               prevStateId = pseudoStateId;
             }
 
@@ -805,33 +754,171 @@ public class ARGPathExport {
         }
       }
 
-      // Write all elements
-      for (Element element : confirmedElements.values()) {
-        // TODO: Instead of fixing the Is here in the XML elements,
-        // the XML elements should be built correctly
-        if (element.getTagName().equals(GraphMlTag.NODE.text)) {
-          String id = element.getAttribute("id");
-          if (id != null && mergedNodes.get(id) != null) {
-            continue;
+      // Merge nodes with empty or repeated edges
+      Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier = new Supplier<Iterator<Edge>>() {
+
+        @Override
+        public Iterator<Edge> get() {
+          return FluentIterable
+              .from(leavingEdges.values())
+              .filter(new Predicate<Edge>() {
+
+                @Override
+                public boolean apply(final Edge pEdge) {
+                  // An edge is redundant if it is the only leaving edge of a
+                  // node and it is empty or all its non-assumption contents
+                  // are summarized by a preceding edge
+                  return (!pEdge.label.hasTransitionRestrictions()
+                      || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
+
+                        @Override
+                        public boolean apply(Edge pPrecedingEdge) {
+                          return pPrecedingEdge.label.summarizes(pEdge.label);
+                        }
+
+                      })) && leavingEdges.get(pEdge.source).size() == 1;
+                }
+
+              }).iterator();
+        }
+
+      };
+      Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
+      while (redundantEdgeIterator.hasNext()) {
+        Edge edge = redundantEdgeIterator.next();
+        mergeNodes(edge);
+        redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
+        assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
+      }
+
+      // Write elements
+      {
+        Set<String> visited = Sets.newHashSet();
+        Deque<String> waitlist = Queues.newArrayDeque();
+        waitlist.push(entryStateNodeId);
+        visited.add(entryStateNodeId);
+        appendNewNode(doc, entryStateNodeId);
+        while (!waitlist.isEmpty()) {
+          String source = waitlist.pop();
+          for (Edge edge : leavingEdges.get(source)) {
+            if (visited.add(edge.target)) {
+              appendNewNode(doc, edge.target);
+              waitlist.push(edge.target);
+            }
+            newEdge(doc, edge);
           }
         }
-        if (element.getTagName().equals(GraphMlTag.EDGE.text)) {
-          String source = element.getAttribute("source");
-          if (source != null && mergedNodes.get(source) != null) {
-            source = getMergedNodeId(source);
-            element.setAttribute("source", source);
-            continue;
-          }
-          String target = element.getAttribute("target");
-          if (target != null) {
-            target = getMergedNodeId(target);
-            element.setAttribute("target", target);
-          }
-        }
-        doc.appendToAppendable(element);
       }
 
       doc.appendFooter();
+    }
+
+    private void mergeNodes(final Edge pEdge) {
+      final String source = pEdge.source;
+      final String target = pEdge.target;
+      final TransitionCondition label = pEdge.label;
+      Preconditions.checkArgument((!label.hasTransitionRestrictions()
+          || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
+
+        @Override
+        public boolean apply(Edge pPrecedingEdge) {
+          return pPrecedingEdge.label.summarizes(pEdge.label);
+        }
+
+      })) && leavingEdges.get(pEdge.source).size() == 1);
+      Preconditions.checkArgument(removeEdge(pEdge));
+
+      // Merge the flags
+      nodeFlags.putAll(source, nodeFlags.removeAll(target));
+      // Merge the violated properties
+      violatedProperties.putAll(source, violatedProperties.removeAll(target));
+
+      // Move the leaving edges
+      FluentIterable<Edge> leavingEdges = FluentIterable.from(Lists.newArrayList(this.leavingEdges.get(target)));
+      // Remove the edges from their successors
+      for (Edge leavingEdge : leavingEdges) {
+        boolean removed = removeEdge(leavingEdge);
+        assert removed;
+      }
+      // Create the replacement edges
+      leavingEdges = leavingEdges
+          .transform(new Function<Edge, Edge>() {
+
+            @Override
+            public Edge apply(Edge pOldEdge) {
+              TransitionCondition label = new TransitionCondition();
+              label.keyValues.putAll(pOldEdge.label.keyValues);
+              label.keyValues.putAll(pEdge.label.keyValues);
+              return new Edge(source, pOldEdge.target, label);
+            }
+
+          });
+      // Add them as leaving edges to the source node
+      // and them as entering edges to their target nodes
+      for (Edge leavingEdge : leavingEdges) {
+        putEdge(leavingEdge);
+      }
+
+      // Move the entering edges
+      FluentIterable<Edge> enteringEdges = FluentIterable.from(Lists.newArrayList(this.enteringEdges.get(target)));
+      // Remove the edges from their predecessors
+      for (Edge enteringEdge : enteringEdges) {
+        boolean removed = removeEdge(enteringEdge);
+        assert removed;
+      }
+      // Create the replacement edges
+      enteringEdges = enteringEdges
+          .filter(Predicates.not(Predicates.equalTo(pEdge)))
+          .transform(new Function<Edge, Edge>() {
+
+            @Override
+            public Edge apply(Edge pOldEdge) {
+              TransitionCondition label = new TransitionCondition();
+              label.keyValues.putAll(pOldEdge.label.keyValues);
+              label.keyValues.putAll(pEdge.label.keyValues);
+              return new Edge(pOldEdge.source, source, label);
+            }
+
+          });
+      // Add them as entering edges to the source node
+      // and add them as leaving edges to their source nodes
+      for (Edge enteringEdge : enteringEdges) {
+        putEdge(enteringEdge);
+      }
+
+    }
+
+    private void putEdge(Edge pEdge) {
+      leavingEdges.put(pEdge.source, pEdge);
+      enteringEdges.put(pEdge.target, pEdge);
+    }
+
+    private boolean removeEdge(Edge pEdge) {
+      if (leavingEdges.remove(pEdge.source, pEdge)) {
+        boolean alsoRemoved = enteringEdges.remove(pEdge.target, pEdge);
+        assert alsoRemoved;
+        return true;
+      }
+      return false;
+    }
+
+    private void newEdge(GraphMlBuilder pDoc, Edge pEdge) {
+      Element result = pDoc.createEdgeElement(pEdge.source, pEdge.target);
+      for (KeyDef k : pEdge.label.keyValues.keySet())  {
+        pDoc.addDataElementChild(result, k, pEdge.label.keyValues.get(k));
+      }
+      pDoc.appendToAppendable(result);
+    }
+
+    private void appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) throws IOException {
+      Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
+      for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
+        pDoc.addDataElementChild(result, f.key, "true");
+      }
+      for (String violation : violatedProperties.get(pEntryStateNodeId)) {
+        pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation);
+      }
+      pDoc.appendToAppendable(result);
     }
 
     private Collection<NodeFlag> extractNodeFlags(ARGState pState) {

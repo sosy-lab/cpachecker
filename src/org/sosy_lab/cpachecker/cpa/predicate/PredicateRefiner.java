@@ -31,10 +31,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+
+import com.google.common.base.Optional;
 
 public abstract class PredicateRefiner implements Refiner {
 
@@ -50,10 +54,14 @@ public abstract class PredicateRefiner implements Refiner {
     Solver solver = predicateCpa.getSolver();
     PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
     MachineModel machineModel = predicateCpa.getMachineModel();
+    Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
+    Optional<VariableClassification> variableClassification = predicateCpa.getCfa().getVarClassification();
 
     InterpolationManager manager = new InterpolationManager(
         pfmgr,
         solver,
+        loopStructure,
+        variableClassification,
         config,
         predicateCpa.getShutdownNotifier(),
         logger);

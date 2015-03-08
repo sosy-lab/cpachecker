@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -35,7 +34,6 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -64,7 +62,6 @@ public class ErrorPathClassifier {
 
   public static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this edge in suffix";
   private static final String PREFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in prefix";
-  private static final String INBTWN_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge inbetween";
 
   private static int invocationCounter = 0;
 
@@ -154,7 +151,7 @@ public class ErrorPathClassifier {
     }};
 
   public ErrorPathClassifier(Optional<VariableClassification> pClassification,
-      Optional<LoopStructure> pLoopStructure) throws InvalidConfigurationException {
+                             Optional<LoopStructure> pLoopStructure) {
     classification  = pClassification;
     loopStructure   = pLoopStructure;
   }
@@ -342,7 +339,7 @@ public class ErrorPathClassifier {
     for (int j = 0; j <= bestIndex; j++) {
       List<Pair<ARGState, CFAEdge>> list = pathToList(pPrefixes.get(j));
 
-      errorPath.addAll(/*replaceAssumeEdgesWithBlankEdges*/(list));
+      errorPath.addAll(list);
 
       if (j != bestIndex) {
         replaceAssumeEdgeWithBlankEdge(errorPath);
@@ -367,27 +364,6 @@ public class ErrorPathClassifier {
     }
 
     return errorPath.immutableCopy();
-  }
-
-  private List<Pair<ARGState, CFAEdge>> replaceAssumeEdgesWithBlankEdges(List<Pair<ARGState, CFAEdge>> pList) {
-    ArrayDeque<Pair<ARGState, CFAEdge>> newList = new ArrayDeque<>();
-
-    for(int i = 0; i < pList.size(); i++) {
-      Pair<ARGState, CFAEdge> elem = pList.get(i);
-      if(i < pList.size() - 1 && elem.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge) {
-        newList.addLast(Pair.<ARGState, CFAEdge>of(elem.getFirst(), new BlankEdge("",
-            FileLocation.DUMMY,
-            elem.getSecond().getPredecessor(),
-            elem.getSecond().getSuccessor(),
-            INBTWN_REPLACEMENT)));
-      }
-
-      else {
-        newList.addLast(elem);
-      }
-    }
-
-    return new ArrayList<>(newList);
   }
 
   private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {

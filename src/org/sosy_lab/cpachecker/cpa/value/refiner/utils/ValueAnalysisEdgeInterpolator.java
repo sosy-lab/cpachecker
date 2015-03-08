@@ -106,8 +106,6 @@ public class ValueAnalysisEdgeInterpolator {
    * @param pErrorPath the path to check
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
-   * @param useDefRelation the use-def relation, containing the variables relevant for proving the infeasibility
-   * of the target assumption
    * @throws CPAException
    * @throws InterruptedException
    */
@@ -116,16 +114,15 @@ public class ValueAnalysisEdgeInterpolator {
       final CFAEdge pCurrentEdge,
       final Deque<ValueAnalysisState> callstack,
       final int pOffset,
-      final ValueAnalysisInterpolant pInputInterpolant,
-      final Set<MemoryLocation> useDefRelation) throws CPAException, InterruptedException {
+      final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
+    ValueAnalysisState initialState = pInputInterpolant.createValueAnalysisState();
 
     // TODO callstack-management depends on a forward-iteration on a single path.
     // TODO Thus interpolants have to be computed from front to end. Can we assure this?
-    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pCurrentEdge, callstack);
+    ValueAnalysisState initialSuccessor = getInitialSuccessor(initialState, pCurrentEdge, callstack);
 
     if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
@@ -144,11 +141,6 @@ public class ValueAnalysisEdgeInterpolator {
       return initialSuccessor.createInterpolant();
     }
 
-    // restrict candidate interpolant to use-def relation, to reduce the number of itp-queries
-    if (!useDefRelation.isEmpty()) {
-      initialSuccessor.retainAll(useDefRelation);
-    }
-
     ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
 
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
@@ -156,7 +148,7 @@ public class ValueAnalysisEdgeInterpolator {
       return ValueAnalysisInterpolant.TRUE;
     }
 
-    for (MemoryLocation currentMemoryLocation : initialSuccessor.getTrackedMemoryLocations()) {
+    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(pCurrentEdge, initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate interpolant
@@ -169,6 +161,29 @@ public class ValueAnalysisEdgeInterpolator {
     }
 
     return initialSuccessor.createInterpolant();
+  }
+
+  /**
+   * Interpolation on (long) error paths my be expensive, so it might pay off to limit the set of
+   * memory locations on which to interpolate.
+   *
+   * This method determines those memory locations on which to interpolate.
+   * Memory locations that are in the candidate interpolant but are not returned herewill end up
+   * in the final interpolant, without any effort spent on interpolation.
+   * Memory locations that are returned here are subject for interpolation, and might be eliminated
+   * from the final interpolant (at the cost of doing one interpolation query for each of them).
+   *
+   * Basically, one could return here the intersection of those memory locations that are contained
+   * in the candidate interpolant and those that are referenced in the current edge.
+   * Hence, all memory locations that are in the candidate interpolant but are not referenced in
+   * the current edge would also end up in the final interpolant.
+   * This optimization was removed again in commit r16007 because the payoff did not justify
+   * maintaining the code, esp. as other optimizations work equally well with less code.
+   */
+  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final CFAEdge pCurrentEdge,
+      ValueAnalysisState candidateInterpolant) {
+
+    return candidateInterpolant.getTrackedMemoryLocations();
   }
 
   /**

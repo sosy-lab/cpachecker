@@ -56,8 +56,14 @@ public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
   private Multimap<CFANode, Loop> loopHeads = null;
 
   private final int maxLoopIterations;
+  private final int loopIterationsBeforeAbstraction;
 
-  public LoopstackTransferRelation(int maxLoopIterations, CFA pCfa) throws InvalidCFAException {
+  public LoopstackTransferRelation(
+      int pLoopIterationsBeforeAbstraction,
+      int maxLoopIterations, CFA pCfa)
+      throws InvalidCFAException {
+
+    loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
     this.maxLoopIterations = maxLoopIterations;
     if (!pCfa.getLoopStructure().isPresent()) {
       throw new InvalidCFAException("LoopstackCPA does not work without loop information!");
@@ -127,8 +133,21 @@ public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
     Collection<Loop> loops = loopHeads.get(loc);
     assert loops.size() <= 1;
     if (loops.contains(e.getLoop())) {
-      boolean stop = (maxLoopIterations > 0) && (e.getIteration() >= maxLoopIterations);
-      e = new LoopstackState(e.getPreviousState(), e.getLoop(), e.getIteration()+1, stop);
+      boolean stop = (maxLoopIterations > 0) &&
+          (e.getIteration() >= maxLoopIterations);
+      int newIteration;
+      if (loopIterationsBeforeAbstraction != 0 &&
+          e.getIteration() == loopIterationsBeforeAbstraction) {
+        newIteration = loopIterationsBeforeAbstraction;
+      } else {
+        newIteration = e.getIteration() + 1;
+      }
+
+      e = new LoopstackState(
+          e.getPreviousState(),
+          e.getLoop(),
+          newIteration,
+          stop);
     }
 
     return Collections.singleton(e);

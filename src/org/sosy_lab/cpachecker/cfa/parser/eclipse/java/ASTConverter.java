@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -728,7 +729,7 @@ class ASTConverter {
       params = convert(p);
 
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     String name;
@@ -918,7 +919,7 @@ class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
@@ -1247,7 +1248,7 @@ class ASTConverter {
       params = convert(p);
 
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     String name;
@@ -1542,7 +1543,7 @@ class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(mi.getName());

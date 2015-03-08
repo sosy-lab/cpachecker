@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.HashSet;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -177,42 +177,47 @@ public class TemplateManager {
     return out.build();
   }
 
-  public Formula toFormula(Template template, PathFormula pPathFormula) {
-    return toFormula(template, pPathFormula, "");
-  }
 
-  public Formula toFormula(
-      Template template, PathFormula pPathFormula, String customPrefix
-  ) {
+  /**
+   * Convert {@code template} to {@link Formula}, using
+   * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
+   * context provided by {@code contextFormula}.
+   *
+   * @return Resulting formula.
+   */
+  public Formula toFormula(Template template, PathFormula contextFormula) {
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
 
-    for (Map.Entry<CIdExpression, Rational> entry : template.linearExpression) {
+    for (Entry<CIdExpression, Rational> entry : template.linearExpression) {
       Rational coeff = entry.getValue();
       CIdExpression declaration = entry.getKey();
 
-      Formula item;
+      final Formula item;
       try {
         item = pfmgr.expressionToFormula(
-            pPathFormula, declaration, dummyEdge);
+            contextFormula, declaration, dummyEdge);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
 
+      final Formula multipliedItem;
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        item = fmgrv.makeNegate(item);
+        multipliedItem = fmgrv.makeNegate(item);
       } else if (coeff != Rational.ONE){
-        item = fmgrv.makeMultiply(
+        multipliedItem = fmgrv.makeMultiply(
             item, fmgrv.makeNumber(item, entry.getValue())
         );
+      } else {
+        multipliedItem = item;
       }
 
       if (sum == null) {
-        sum = item;
+        sum = multipliedItem;
       } else {
-        sum = fmgrv.makePlus(sum, item);
+        sum = fmgrv.makePlus(sum, multipliedItem);
       }
     }
 
@@ -223,11 +228,7 @@ public class TemplateManager {
         return ifmgr.makeNumber(0);
       }
     } else {
-      if (customPrefix.equals("")) {
-        return sum;
-      } else {
-        return fmgrv.addPrefixToAll(sum, customPrefix);
-      }
+      return sum;
     }
   }
 
@@ -317,11 +318,11 @@ public class TemplateManager {
 
   private Optional<Template> recExpressionToTemplate(CExpression expression) {
     if (expression instanceof CBinaryExpression) {
-      CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
-      CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
+      CBinaryExpression binaryExpression = (CBinaryExpression)expression;
+      CExpression operand1 = binaryExpression.getOperand1();
+      CExpression operand2 = binaryExpression.getOperand2();
 
-      CBinaryExpression.BinaryOperator operator =
-          ((CBinaryExpression)expression).getOperator();
+      CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
       Optional<Template> templateA = recExpressionToTemplate(operand1);
       Optional<Template> templateB = recExpressionToTemplate(operand2);
 
@@ -347,10 +348,14 @@ public class TemplateManager {
       }
 
       // Otherwise just add/subtract templates.
-      if (templateA.isPresent() && templateB.isPresent()) {
+      if (templateA.isPresent() && templateB.isPresent()
+          && binaryExpression.getCalculationType() instanceof CSimpleType) {
         LinearExpression<CIdExpression> a = templateA.get().linearExpression;
         LinearExpression<CIdExpression> b = templateB.get().linearExpression;
-        CSimpleType type = templateA.get().type;
+
+        // Calculation type is the casting of both types to a suitable "upper"
+        // type.
+        CSimpleType type = (CSimpleType)binaryExpression.getCalculationType();
         Template t;
         if (operator == CBinaryExpression.BinaryOperator.PLUS) {
           t = new Template(a.add(b), type);
