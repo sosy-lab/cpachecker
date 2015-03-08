@@ -274,7 +274,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         throw new AssertionError("Unknown expression: " + exp);
       }
 
-      String paramName = parameters.get(i).getName();
+      AParameterDeclaration param = parameters.get(i);
+      String paramName = param.getName();
+      Type paramType = param.getType();
 
       MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
 
@@ -283,15 +285,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           addMissingInformation(formalParamName, exp);
         }
 
-        if (useSymbolicValues) {
-          value = getSymbolicIdentifier(parameters.get(i).getType(), exp);
-          newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
+        if (useSymbolicValue(paramType)) {
+          value = getSymbolicIdentifier(paramType, exp);
+          newElement.assignConstant(formalParamName, value, paramType);
 
         } else {
           newElement.forget(formalParamName);
         }
       } else {
-        newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
+        newElement.assignConstant(formalParamName, value, paramType);
       }
 
       visitor.reset();
@@ -618,7 +620,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    if (initialValue.isUnknown() && useSymbolicValues && isEligibleForSymbolicValue(declarationType)) {
+    if (initialValue.isUnknown() && useSymbolicValue(declarationType)) {
       initialValue = getSymbolicIdentifier(declarationType, declaration);
     }
 
@@ -638,6 +640,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return newElement;
+  }
+
+  private boolean useSymbolicValue(Type pType) {
+    return useSymbolicValues && isEligibleForSymbolicValue(pType);
   }
 
   private boolean isEligibleForSymbolicValue(Type pDeclarationType) {
@@ -931,7 +937,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown() && missingInformationRightJExpression == null) {
-        if (useSymbolicValues) {
+        if (useSymbolicValue(lType)) {
           value = getSymbolicIdentifier(lType, exp);
         } else {
           newElement.forget(assignedVar);
@@ -1026,13 +1032,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     if (enclosingExpression instanceof JIdExpression) {
       JIdExpression idExpression = (JIdExpression) enclosingExpression;
       MemoryLocation memLoc = getMemoryLocation(idExpression);
-      Value unknownValue;
-
-      if (useSymbolicValues) {
-        unknownValue = getSymbolicIdentifier(idExpression.getExpressionType(), idExpression);
-      } else {
-        unknownValue = UnknownValue.getInstance();
-      }
+      Value unknownValue = UnknownValue.getInstance();
 
       state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
 
