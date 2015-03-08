@@ -27,6 +27,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
@@ -87,7 +89,7 @@ public class ConstraintsStrengthenOperator {
     }
   }
 
-  private Optional<ValueAnalysisState> evaluateAssignment(
+  private @Nullable Optional<ValueAnalysisState> evaluateAssignment(
       IdentifierAssignment pAssignment, ValueAnalysisState pValueState) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
