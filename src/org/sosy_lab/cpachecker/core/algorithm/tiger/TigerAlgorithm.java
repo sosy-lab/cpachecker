@@ -821,7 +821,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                 for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
                   //assert e.getValue() instanceof BigInteger;
                   //inputValues.add((BigInteger)e.getValue());
-                  inputValues.add(BigInteger(e.getValue().toString()));
+                  inputValues.add(new BigInteger(e.getValue().toString()));
                 }
 
                 TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
