@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serializable;
+
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
@@ -31,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  * Each class implementing this interface should provide an <code>equals(Object)</code> method
  * that allows checks for equality of symbolic values.
  */
-public interface SymbolicValue extends Value {
+public interface SymbolicValue extends Value, Serializable {
 
   <T> T accept(SymbolicValueVisitor<T> pVisitor);
 }
