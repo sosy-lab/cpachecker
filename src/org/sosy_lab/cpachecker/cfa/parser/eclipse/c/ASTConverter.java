@@ -171,6 +171,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -961,7 +962,7 @@ class ASTConverter {
     CFunctionDeclaration declaration = null;
 
     if (functionName instanceof CIdExpression) {
-      if (((CIdExpression) functionName).getName().equals("__builtin_types_compatible_p")) {
+      if (BuiltinFunctions.isTypesCompatible(((CIdExpression) functionName).getName())) {
         sideAssignmentStack.enterBlock();
         List<CExpression> params = new ArrayList<>();
         for (IASTInitializerClause i : e.getArguments()) {
@@ -991,9 +992,9 @@ class ASTConverter {
       // a constant value. We can easily provide this functionality by checking
       // if the parameter is a literal expression.
       // We only do check it if the function is not declared.
-      if (((CIdExpression) functionName).getName().equals("__builtin_constant_p")
+      if (((CIdExpression) functionName).getName().equals(BuiltinFunctions.CONSTANT_AT_COMPILE_TIME)
           && params.size() == 1
-          && scope.lookupFunction("__builtin_constant_p") == null) {
+          && scope.lookupFunction(BuiltinFunctions.CONSTANT_AT_COMPILE_TIME) == null) {
         if (params.get(0) instanceof CLiteralExpression) {
           return CIntegerLiteralExpression.ONE;
         } else {
@@ -1007,7 +1008,7 @@ class ASTConverter {
       }
 
       if ((declaration == null)
-          && ((CIdExpression)functionName).getName().equals("__builtin_expect")
+          && BuiltinFunctions.isExpect(((CIdExpression) functionName).getName())
           && params.size() == 2) {
 
         // This is the GCC built-in function __builtin_expect(exp, c)

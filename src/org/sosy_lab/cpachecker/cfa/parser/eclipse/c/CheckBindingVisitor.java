@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 import com.google.common.collect.Sets;
 
@@ -177,7 +178,7 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
     if (e.getFunctionNameExpression() instanceof CIdExpression) {
       CIdExpression f = (CIdExpression) e.getFunctionNameExpression();
       if (f.getDeclaration() == null) {
-        if (!f.getName().startsWith("__builtin_") // GCC builtin functions
+        if (!BuiltinFunctions.isBuiltinFunction(f.getName()) // GCC builtin functions
             && printedWarnings.add(f.getName())) {
           logger.log(Level.WARNING, "Undefined function", f.getName(), "found, first called in", e.getFileLocation());
         }
