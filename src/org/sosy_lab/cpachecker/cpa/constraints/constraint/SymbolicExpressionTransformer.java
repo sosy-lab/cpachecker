@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -190,6 +191,11 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
   @Override
   public CExpression visit(AdditionExpression pExpression) {
     return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.PLUS);
+  }
+
+  @Override
+  public CExpression visit(SubtractionExpression pExpression) {
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.MINUS);
   }
 
   @Override

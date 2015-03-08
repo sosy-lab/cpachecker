@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -152,6 +153,22 @@ public class IntegerFormulaCreator
       @Override
       public IntegerFormula create(Formula pOp1, Formula pOp2) {
         return numeralFormulaManager.add((IntegerFormula) pOp1, (IntegerFormula) pOp2);
+      }
+    };
+
+    return createFormulaWhileTransformingBooleanToInteger(op1, op2, creator);
+  }
+
+  @Override
+  public Formula visit(SubtractionExpression pExpression) {
+    final Formula op1 = pExpression.getOperand1().accept(this);
+    final Formula op2 = pExpression.getOperand2().accept(this);
+
+    final BinaryCreator<IntegerFormula> creator = new BinaryCreator<IntegerFormula>() {
+
+      @Override
+      public IntegerFormula create(Formula pOp1, Formula pOp2) {
+        return numeralFormulaManager.subtract((IntegerFormula) pOp1, (IntegerFormula) pOp2);
       }
     };
 

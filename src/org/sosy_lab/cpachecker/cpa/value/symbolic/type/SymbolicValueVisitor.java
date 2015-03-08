@@ -36,6 +36,8 @@ public interface SymbolicValueVisitor<T> {
 
   T visit(AdditionExpression pExpression);
 
+  T visit(SubtractionExpression pExpression);
+
   T visit(MultiplicationExpression pExpression);
 
   T visit(DivisionExpression pExpression);
