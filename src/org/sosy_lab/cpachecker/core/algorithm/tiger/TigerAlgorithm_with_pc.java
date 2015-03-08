@@ -978,8 +978,9 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
                 List<BigInteger> inputValues = new ArrayList<>(inputs.size());
 
                 for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
-                  assert e.getValue() instanceof BigInteger;
-                  inputValues.add((BigInteger)e.getValue());
+                  //assert e.getValue() instanceof BigInteger;
+                  //inputValues.add((BigInteger)e.getValue());
+                  inputValues.add(new BigInteger(e.getValue().toString()));
                 }
 
                 /* We could determine regions for coverage goals reached earlier during execution of the test case.
