@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -67,6 +68,11 @@ import com.google.common.primitives.Longs;
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
 
+  /**
+   * Singleton for {@link #identifierMap} if symbolic execution is not used.
+   */
+  private static final PersistentMap<SymbolicIdentifier, Value> IDENTIFIER_MAP_SINGLETON = PathCopyingPersistentTreeMap.of();
+
   private static final long serialVersionUID = -3152134511524554357L;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
@@ -82,6 +88,14 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
+  /**
+   * Mapping of {@link SymbolicIdentifier}s to their concrete value.
+   * This map only contains <code>SymbolicIdentifier</code>s for which a concrete value is known.
+   *
+   * If symbolic execution is not in use, this map will remain empty.
+   */
+  private PersistentMap<SymbolicIdentifier, Value> identifierMap = IDENTIFIER_MAP_SINGLETON;
+
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
@@ -91,8 +105,17 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     this.memLocToType = pLocToTypeMap;
   }
 
+  public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap,
+                            PersistentMap<MemoryLocation, Type> pLocToTypeMap,
+                            PersistentMap<SymbolicIdentifier, Value> pIdentifierToValueMap) {
+
+    constantsMap = pConstantsMap;
+    memLocToType = pLocToTypeMap;
+    identifierMap = pIdentifierToValueMap;
+  }
+
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.constantsMap, state.memLocToType);
+    return new ValueAnalysisState(state.constantsMap, state.memLocToType, state.identifierMap);
   }
 
   /**
@@ -122,6 +145,19 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
     constantsMap = constantsMap.putAndCopy(pMemoryLocation, checkNotNull(value));
     memLocToType = memLocToType.putAndCopy(pMemoryLocation, pType);
+  }
+
+  /**
+   * This method assigns a concrete value to the given {@link SymbolicIdentifier}.
+   *
+   * @param pSymbolicIdentifier the <code>SymbolicIdentifier</code> to assign the concrete value to.
+   * @param pValue value to be assigned.
+   */
+  public void assignConstant(SymbolicIdentifier pSymbolicIdentifier, Value pValue) {
+    // the value of an identifier will not change once it's known
+    assert identifierMap.get(pSymbolicIdentifier) == null || identifierMap.get(pSymbolicIdentifier).equals(pValue);
+
+    identifierMap = identifierMap.putAndCopy(pSymbolicIdentifier, pValue);
   }
 
   /**
@@ -200,9 +236,23 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @return the value associated with the given variable
    */
   public Value getValueFor(MemoryLocation variableName) {
-    return checkNotNull(constantsMap.get(variableName));
+    Value value = constantsMap.get(variableName);
+
+    return checkNotNull(value);
   }
 
+  /**
+   * This method returns the value for the given {@link SymbolicIdentifier}.
+   *
+   * <p>A value must exist for the given identifier. Otherwise, an error occurs.
+   * To ensure this, {@link #hasKnownValue(SymbolicIdentifier)} can be called beforehand.</p>
+   *
+   * @param pSymbolicIdentifier the <code>SymbolicIdentifier</code> for which to get the value
+   * @return the value of the given <code>SymbolicIdentifier</code>
+   */
+  public Value getValueFor(SymbolicIdentifier pSymbolicIdentifier) {
+    return checkNotNull(identifierMap.get(pSymbolicIdentifier));
+  }
 
   /**
    * This method returns the type for the given memory location.
@@ -234,6 +284,17 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   public boolean contains(MemoryLocation pMemoryLocation) {
     return constantsMap.containsKey(pMemoryLocation);
+  }
+
+  /**
+   * This method checks whether or not the given {@link SymbolicIdentifier}
+   * has a known concrete value.
+   *
+   * @param pSymbolicIdentifier the <code>SymbolicIdentifier</code> to check for
+   * @return <code>true</code> if the identifier has a known concrete value, else <code>false</code>
+   */
+  public boolean hasKnownValue(SymbolicIdentifier pSymbolicIdentifier) {
+    return identifierMap.containsKey(pSymbolicIdentifier);
   }
 
   /**
@@ -308,8 +369,18 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     // if any one constant's value of the other element differs from the constant's value in this element
     for (Map.Entry<MemoryLocation, Value> otherEntry : other.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
+      Value otherValue = otherEntry.getValue();
+      Value thisValue = constantsMap.get(key);
 
-      if (!otherEntry.getValue().equals(constantsMap.get(key))) {
+      if (thisValue instanceof SymbolicIdentifier && hasKnownValue((SymbolicIdentifier) thisValue)) {
+        thisValue = identifierMap.get(thisValue);
+      }
+
+      if (otherValue instanceof SymbolicIdentifier && other.hasKnownValue((SymbolicIdentifier) otherValue)) {
+        otherValue = other.identifierMap.get(otherValue);
+      }
+
+      if (!otherValue.equals(thisValue)) {
         return false;
       }
     }

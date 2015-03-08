@@ -34,7 +34,7 @@ public interface AbstractDomain {
    *
    * This is an optional method. If a domain is expected to be used only with
    * merge-sep, it does not have to provide an implementation of this method.
-   * This method should then throw an {@link UnsupportedOperationException}.
+   * This method should then throw an {@link UnsupportedOperationExcep2tion}.
    *
    * If {@link MergeJoinOperator} is used,
    * please also follow the note in the documentation of

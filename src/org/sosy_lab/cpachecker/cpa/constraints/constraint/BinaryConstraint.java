@@ -1,5 +1,5 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2014  Dirk Beyer
@@ -21,22 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value;
+package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 
 /**
- * Class for getting the value of the <code>symbolicValues</code> option.
+ * A {@link Constraint} with two operands, like 'equals'.
  */
-@Options(prefix="cpa.value")
-public class SymbolicValuesOption {
+public interface BinaryConstraint extends Constraint {
 
-  @Option(secure=true, name="symbolicValues", description="enables generation of symbolic values")
-  private boolean symbolicValues = false;
+  SymbolicExpression getOperand1();
 
-  public boolean areSymbolicValuesEnabled() {
-    return symbolicValues;
-  }
+  SymbolicExpression getOperand2();
 
+  Type getCalculationType();
 }

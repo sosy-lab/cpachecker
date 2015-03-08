@@ -67,7 +67,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
    * This method returns the type for the 'calculation' of this binary expression.
    *
    * This is not the type of the 'result' of this binary expression.
-   * The result-type is returned from getExpressionType().
+   * The result-type is returned from getType().
    * <p>
    * Before the calculation, if necessary,
    * both operand should be casted to the calculation-type.

@@ -46,6 +46,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -97,9 +98,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -110,21 +114,22 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -141,7 +146,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
-  private boolean symbolicValues = new SymbolicValuesOption().areSymbolicValuesEnabled();
+  @Option(secure=true, name="symbolicExecution",
+      description="Use symbolic execution. This allows tracking of non-deterministic values.")
+  private boolean useSymbolicValues = false;
 
   @Option(secure=true, description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
@@ -226,7 +233,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // but I'm not sure of the behavior of calling strengthen, so
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
-    oldState = ValueAnalysisState.copyOf((ValueAnalysisState) pAbstractState);
+    oldState = ValueAnalysisState.copyOf((ValueAnalysisState)pAbstractState);
   }
 
   @Override
@@ -267,18 +274,26 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         throw new AssertionError("Unknown expression: " + exp);
       }
 
-      String paramName = parameters.get(i).getName();
+      AParameterDeclaration param = parameters.get(i);
+      String paramName = param.getName();
+      Type paramType = param.getType();
 
       MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
 
       if (value.isUnknown()) {
-        newElement.forget(formalParamName);
-
         if (isMissingCExpressionInformation(visitor, exp)) {
           addMissingInformation(formalParamName, exp);
         }
+
+        if (useSymbolicValue(paramType)) {
+          value = getSymbolicIdentifier(paramType, exp);
+          newElement.assignConstant(formalParamName, value, paramType);
+
+        } else {
+          newElement.forget(formalParamName);
+        }
       } else {
-        newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
+        newElement.assignConstant(formalParamName, value, paramType);
       }
 
       visitor.reset();
@@ -305,10 +320,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
-          throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
-    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
+    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
 
     // clone state, because will be changed through removing all variables of current function's scope
     state = ValueAnalysisState.copyOf(state);
@@ -368,7 +383,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (op1 instanceof CLeftHandSide) {
         ExpressionValueVisitor v =
             new ExpressionValueVisitor(state, callerFunctionName,
-                machineModel, logger, symbolicValues);
+                machineModel, logger);
         MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
         if (assignedVarName == null) {
@@ -486,24 +501,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
 
-      // If it's a symbolic formula, try if we can solve it for any of its symbolic values.
-      if (value instanceof SymbolicValueFormula) {
-        Pair<SymbolicValue, Value> replacement = null;
-        replacement = ((SymbolicValueFormula)value).inferAssignment(truthValue, logger);
-        if (replacement != null) {
-          for (MemoryLocation memloc : state.getTrackedMemoryLocations()) {
-            Value trackedValue = state.getValueFor(memloc);
-            if (trackedValue instanceof SymbolicValueFormula) {
-              SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
-              Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond(), logger);
-              if (newValue != trackedValue) {
-                element.assignConstant(memloc, newValue, state.getTypeForMemoryLocation(memloc));
-              }
-            }
-          }
-        }
-      }
-
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue, booleanVariables);
 
       if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
@@ -575,7 +572,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected ValueAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, ADeclaration declaration)
-    throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException {
 
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
@@ -627,8 +624,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    if (initialValue.isUnknown() && declarationType instanceof JType) {
-      initialValue = getSymbolicIdentifier(declarationType);
+    if (initialValue.isUnknown() && useSymbolicValue(declarationType)) {
+      initialValue = getSymbolicIdentifier(declarationType, declaration);
     }
 
     if (isTrackedField(decl, initialValue)) {
@@ -647,6 +644,20 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return newElement;
+  }
+
+  private boolean useSymbolicValue(Type pType) {
+    return useSymbolicValues && isEligibleForSymbolicValue(pType);
+  }
+
+  private boolean isEligibleForSymbolicValue(Type pDeclarationType) {
+    if (pDeclarationType instanceof CType) {
+      CType canonicalType = ((CType) pDeclarationType).getCanonicalType();
+
+      return !(canonicalType instanceof CCompositeType || canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
+    }
+
+    return true;
   }
 
   private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
@@ -704,9 +715,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return !pInitialValue.isUnknown() && (isNoClassType || pInitialValue.equals(NullValue.getInstance()));
   }
 
-  private Value getSymbolicIdentifier(Type pType) {
+  private SymbolicValue getSymbolicIdentifier(Type pType, AAstNode pLocation) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.createIdentifier(pType);
+    return factory.asConstant(factory.newIdentifier(pLocation), pType);
   }
 
   @Override
@@ -714,14 +725,16 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     throws UnrecognizedCodeException {
 
     if (expression instanceof CFunctionCall) {
-      CExpression fn = ((CFunctionCall)expression).getFunctionCallExpression().getFunctionNameExpression();
+      CFunctionCall functionCall = (CFunctionCall) expression;
+      CExpression fn = functionCall.getFunctionCallExpression().getFunctionNameExpression();
+
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+
         } else if (func.equals("free")) {
-          // Needed for erasing values
-          missingInformationList.add(new MissingInformation(((CFunctionCall)expression).getFunctionCallExpression()));
+          return handleCallToFree(functionCall);
         }
       }
     }
@@ -739,6 +752,30 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     } else {
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
+    }
+
+    return state;
+  }
+
+  private ValueAnalysisState handleCallToFree(CFunctionCall pExpression) {
+    // Needed for erasing values
+    missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
+
+    if (useSymbolicValues) {
+      // If the method call's parameter is an identifier, we have to assign a new symbolic identifier
+      CExpression parameter =
+          pExpression.getFunctionCallExpression().getParameterExpressions().get(0);
+      if (parameter instanceof CIdExpression) {
+        MemoryLocation memLoc = getMemoryLocation(((CIdExpression) parameter));
+
+        ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+        Type identifierType = parameter.getExpressionType();
+        assert identifierType.equals(newElement.getTypeForMemoryLocation(memLoc));
+        SymbolicValue newIdentifier = getSymbolicIdentifier(identifierType, pExpression);
+        newElement.assignConstant(memLoc, newIdentifier, identifierType);
+
+        return newElement;
+      }
     }
 
     return state;
@@ -904,8 +941,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown() && missingInformationRightJExpression == null) {
-        if (lType instanceof JType) {
-          value = getSymbolicIdentifier(lType);
+        if (useSymbolicValue(lType)) {
+          value = getSymbolicIdentifier(lType, exp);
         } else {
           newElement.forget(assignedVar);
         }
@@ -993,13 +1030,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   private void assignUnknownValueToEnclosingInstanceOfArray(JArraySubscriptExpression pArraySubscriptExpression) {
+
     JExpression enclosingExpression = pArraySubscriptExpression.getArrayExpression();
 
     if (enclosingExpression instanceof JIdExpression) {
       JIdExpression idExpression = (JIdExpression) enclosingExpression;
       MemoryLocation memLoc = getMemoryLocation(idExpression);
+      Value unknownValue = UnknownValue.getInstance();
 
-      state.assignConstant(memLoc, Value.UnknownValue.getInstance(), JSimpleType.getUnspecified());
+      state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
 
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression = (JArraySubscriptExpression) enclosingExpression;
@@ -1030,7 +1069,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     protected boolean truthValue = false;
 
     public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue, Collection<String> booleanVariables) {
-      super(state, functionName, machineModel, logger, symbolicValues);
+      super(state, functionName, machineModel, logger);
       this.assignableState  = assignableState;
       this.booleans         = booleanVariables;
       this.truthValue       = truthValue;
@@ -1259,7 +1298,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState) {
-      super(state, functionName, machineModel, logger, symbolicValues);
+      super(state, functionName, machineModel, logger);
       jortState = pJortState;
     }
 
@@ -1370,7 +1409,26 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
+      } else if (ae instanceof ConstraintsState) {
+        result.clear();
+
+        ConstraintsStrengthenOperator strengthenOperator = ConstraintsStrengthenOperator
+            .getInstance(machineModel, logger);
+        for (ValueAnalysisState state : toStrengthen) {
+          super.setInfo(element, precision, cfaEdge);
+          Collection<ValueAnalysisState> ret =
+              strengthenOperator.strengthen((ValueAnalysisState) element, (ConstraintsState) ae);
+
+          if (ret == null) {
+            result.add(state);
+          } else {
+            result.addAll(ret);
+          }
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       }
+
     }
 
     // Do post processing
@@ -1392,7 +1450,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(pCfaEdge.getPredecessor().getFunctionName());
+    List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(
+        pCfaEdge.getPredecessor().getFunctionName());
 
     ValueAnalysisState state = pState;
 
@@ -1732,6 +1791,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   }
 
+
   private static class MissingInformation {
 
     /**
@@ -1906,6 +1966,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
+    return new ExpressionValueVisitor(state, functionName, machineModel, logger);
   }
 }

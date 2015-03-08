@@ -21,13 +21,27 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type;
+package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
+
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * Marker interface for symbolic values.
- *
- * Each class implementing this interface should provide an <code>equals(Object)</code> method
- * that allows checks for equality of symbolic values.
+ * {@link BinarySymbolicExpression} representing the 'shift left' operation.
  */
-public interface SymbolicValue extends Value {
+public class ShiftLeftExpression extends BinarySymbolicExpression {
+
+  protected ShiftLeftExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
+      Type pExpressionType, Type pCalculationType) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType);
+  }
+
+  @Override
+  public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public String toString() {
+    return "(" + getOperand1() + " << " + getOperand2() + ")";
+  }
 }
