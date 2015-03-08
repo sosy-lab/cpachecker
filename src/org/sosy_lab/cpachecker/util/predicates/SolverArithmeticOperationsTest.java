@@ -41,7 +41,10 @@ public class SolverArithmeticOperationsTest extends SolverBasedTest0 {
 
   @Parameterized.Parameters(name="{0}")
   public static Object[] getAllSolvers() {
-    return FormulaManagerFactory.Solvers.values();
+    return new FormulaManagerFactory.Solvers[] {
+        FormulaManagerFactory.Solvers.MATHSAT5,
+        FormulaManagerFactory.Solvers.Z3
+    };
   }
 
   @Parameterized.Parameter(0)
