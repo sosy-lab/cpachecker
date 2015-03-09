@@ -305,6 +305,8 @@ public class ConstraintsTransferRelation
       List<AbstractState> pStrengtheningStates, CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     assert pStateToStrengthen instanceof ConstraintsState;
 
+    final String currentFunctionName = pCfaEdge.getPredecessor().getFunctionName();
+
     List<ConstraintsState> newStates = new ArrayList<>();
     boolean nothingChanged = true;
 
@@ -316,10 +318,10 @@ public class ConstraintsTransferRelation
 
       if (currState instanceof ValueAnalysisState) {
         final ConstraintFactory factory =
-            ConstraintFactory.getInstance(functionName, (ValueAnalysisState) currState, machineModel, logger);
+            ConstraintFactory.getInstance(currentFunctionName, (ValueAnalysisState) currState, machineModel, logger);
 
         Optional<Collection<ConstraintsState>> newValueStrengthenedStates =
-            strengthen((ConstraintsState) pStateToStrengthen, factory, (AssumeEdge) pCfaEdge);
+            strengthen((ConstraintsState) pStateToStrengthen, factory, currentFunctionName, (AssumeEdge) pCfaEdge);
 
         if (newValueStrengthenedStates.isPresent()) {
           nothingChanged = false;
@@ -353,10 +355,9 @@ public class ConstraintsTransferRelation
    *    otherwise
    */
   private Optional<Collection<ConstraintsState>> strengthen(ConstraintsState pStateToStrengthen,
-      ConstraintFactory pConstraintFactory, AssumeEdge pCfaEdge) throws UnrecognizedCodeException {
+      ConstraintFactory pConstraintFactory, String pFunctionName, AssumeEdge pCfaEdge) throws UnrecognizedCodeException {
 
     Collection<ConstraintsState> newStates = new ArrayList<>();
-    final String functionName = pCfaEdge.getPredecessor().getFunctionName();
     final boolean truthAssumption = pCfaEdge.getTruthAssumption();
     final AExpression edgeExpression = pCfaEdge.getExpression();
 
@@ -369,7 +370,7 @@ public class ConstraintsTransferRelation
           edgeExpression,
           pConstraintFactory,
           truthAssumption,
-          functionName,
+          pFunctionName,
           fileLocation);
 
     } catch (SolverException | InterruptedException e) {
