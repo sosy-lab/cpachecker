@@ -155,6 +155,18 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    */
   @Override
   public boolean isLessOrEqual(ConstraintsState other) {
+    /* Alternative method: A state s is less or equal another states s', if s' implies s.
+
+    if (solver == null) {
+      // an uninitialized solver means there can be no constraints
+      return true;
+    }
+
+    BooleanFormula thisRepresentingFormula = getFullFormula();
+    BooleanFormula otherRepresentingFormula = other.getFullFormula();
+
+    return solver.implies(otherRepresentingFormula, thisRepresentingFormula);*/
+
     if (other.size() > constraints.size()) {
       return false;
     }
