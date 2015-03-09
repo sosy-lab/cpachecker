@@ -761,23 +761,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // Needed for erasing values
     missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
 
-    if (useSymbolicValues) {
-      // If the method call's parameter is an identifier, we have to assign a new symbolic identifier
-      CExpression parameter =
-          pExpression.getFunctionCallExpression().getParameterExpressions().get(0);
-      if (parameter instanceof CIdExpression) {
-        MemoryLocation memLoc = getMemoryLocation(((CIdExpression) parameter));
-
-        ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-        Type identifierType = parameter.getExpressionType();
-        assert identifierType.equals(newElement.getTypeForMemoryLocation(memLoc));
-        SymbolicValue newIdentifier = getSymbolicIdentifier(identifierType, pExpression);
-        newElement.assignConstant(memLoc, newIdentifier, identifierType);
-
-        return newElement;
-      }
-    }
-
     return state;
   }
 

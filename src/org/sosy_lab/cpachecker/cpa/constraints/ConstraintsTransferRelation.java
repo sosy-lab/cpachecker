@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -163,13 +164,13 @@ public class ConstraintsTransferRelation
     return state;
   }
 
-  private ConstraintsState getNewState(ConstraintsState pOldState, ValueAnalysisState pValueState,
+  private ConstraintsState getNewState(ConstraintsState pOldState,
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
       FileLocation pFileLocation)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     // assume edges with integer literals are created by statements like __VERIFIER_assume(0);
-    // We do not have to create a constraints out of these, as they are always trivial.
+    // We do not have to create constraints out of these, as they are always trivial.
     if (pExpression instanceof CIntegerLiteralExpression) {
       BigInteger valueAsInt = ((CIntegerLiteralExpression) pExpression).getValue();
 
@@ -180,19 +181,19 @@ public class ConstraintsTransferRelation
       }
 
     } else {
-      return computeNewStateByCreatingConstraint(pOldState, pValueState, pExpression, pFactory, pTruthAssumption, pFunctionName, pFileLocation);
+      return computeNewStateByCreatingConstraint(pOldState, pExpression, pFactory, pTruthAssumption, pFunctionName, pFileLocation);
     }
   }
 
   private ConstraintsState computeNewStateByCreatingConstraint(ConstraintsState pOldState,
-      ValueAnalysisState pValueState,
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
       FileLocation pFileLocation) throws UnrecognizedCodeException, SolverException, InterruptedException {
 
     Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
     ConstraintsState newState = pOldState.copyOf();
 
-    newState.initialize(solver, formulaManager, getFormulaCreator(pValueState, pFunctionName));
+    FormulaCreator formulaCreator = getFormulaCreator(pOldState.getDefiniteAssignment(), pFunctionName);
+    newState.initialize(solver, formulaManager, formulaCreator);
 
     if (newConstraint.isPresent()) {
       newState.add(newConstraint.get());
@@ -201,7 +202,7 @@ public class ConstraintsTransferRelation
         return null;
 
       } else {
-        newState = simplify(newState, pValueState);
+        newState = simplify(newState);
 
         return newState;
       }
@@ -211,8 +212,8 @@ public class ConstraintsTransferRelation
     }
   }
 
-  private FormulaCreator getFormulaCreator(ValueAnalysisState pValueState, String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pValueState, pFunctionName);
+  private FormulaCreator getFormulaCreator(IdentifierAssignment pDefiniteAssignment, String pFunctionName) {
+    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pDefiniteAssignment, pFunctionName);
   }
 
   private CtoFormulaConverter getConverter() {
@@ -295,8 +296,8 @@ public class ConstraintsTransferRelation
     return Optional.fromNullable(constraint);
   }
 
-  private ConstraintsState simplify(ConstraintsState pState, ValueAnalysisState pValueState) {
-    return simplifier.simplify(pState, pValueState);
+  private ConstraintsState simplify(ConstraintsState pState) {
+    return simplifier.simplify(pState);
   }
 
   @Override
@@ -312,9 +313,13 @@ public class ConstraintsTransferRelation
     }
 
     for (AbstractState currState : pStrengtheningStates) {
+
       if (currState instanceof ValueAnalysisState) {
+        final ConstraintFactory factory =
+            ConstraintFactory.getInstance(functionName, (ValueAnalysisState) currState, machineModel, logger);
+
         Optional<Collection<ConstraintsState>> newValueStrengthenedStates =
-            strengthen((ConstraintsState) pStateToStrengthen, (ValueAnalysisState) currState, (AssumeEdge) pCfaEdge);
+            strengthen((ConstraintsState) pStateToStrengthen, factory, (AssumeEdge) pCfaEdge);
 
         if (newValueStrengthenedStates.isPresent()) {
           nothingChanged = false;
@@ -348,24 +353,21 @@ public class ConstraintsTransferRelation
    *    otherwise
    */
   private Optional<Collection<ConstraintsState>> strengthen(ConstraintsState pStateToStrengthen,
-      ValueAnalysisState pStrengtheningState, AssumeEdge pCfaEdge) throws UnrecognizedCodeException {
+      ConstraintFactory pConstraintFactory, AssumeEdge pCfaEdge) throws UnrecognizedCodeException {
 
     Collection<ConstraintsState> newStates = new ArrayList<>();
     final String functionName = pCfaEdge.getPredecessor().getFunctionName();
     final boolean truthAssumption = pCfaEdge.getTruthAssumption();
     final AExpression edgeExpression = pCfaEdge.getExpression();
 
-    final ConstraintFactory factory =
-        ConstraintFactory.getInstance(functionName, pStrengtheningState, machineModel, logger);
     final FileLocation fileLocation = pCfaEdge.getFileLocation();
 
     ConstraintsState newState = null;
     try {
 
       newState = getNewState(pStateToStrengthen,
-          pStrengtheningState,
           edgeExpression,
-          factory,
+          pConstraintFactory,
           truthAssumption,
           functionName,
           fileLocation);
@@ -385,4 +387,5 @@ public class ConstraintsTransferRelation
     }
     return Optional.of(newStates);
   }
+
 }

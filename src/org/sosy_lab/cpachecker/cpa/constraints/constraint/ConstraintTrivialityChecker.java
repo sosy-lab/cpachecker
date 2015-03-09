@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -60,15 +59,15 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  */
 public class ConstraintTrivialityChecker implements ConstraintVisitor<Boolean>, SymbolicValueVisitor<Boolean> {
 
-  private final ValueAnalysisState valueState;
+  private final IdentifierAssignment definiteAssignment;
 
-  public ConstraintTrivialityChecker(ValueAnalysisState pValueState) {
-    valueState = pValueState;
+  public ConstraintTrivialityChecker(IdentifierAssignment pDefiniteAssignment) {
+    definiteAssignment = pDefiniteAssignment;
   }
 
   @Override
   public Boolean visit(SymbolicIdentifier pValue) {
-    return valueState.hasKnownValue(pValue);
+    return definiteAssignment.containsKey(pValue);
   }
 
   @Override

@@ -263,9 +263,11 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
         SymbolicIdentifier identifier = toSymbolicIdentifier(term.getName());
         Value concreteValue = convertToValue(termAssignment, term.getType());
 
-        assert !definiteAssignment.containsKey(identifier) || definiteAssignment.get(identifier).equals(concreteValue);
         if (!definiteAssignment.containsKey(identifier)
             && isOnlySatisfyingAssignment(term, termAssignment, pFormula)) {
+
+          assert !definiteAssignment.containsKey(identifier) || definiteAssignment.get(identifier).equals(concreteValue)
+              : "Definite assignment can't be changed from " + definiteAssignment.get(identifier) + " to " + concreteValue;
 
           definiteAssignment.put(identifier, concreteValue);
         }

@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -85,10 +84,10 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
 
   private static final FileLocation DUMMY_LOCATION = FileLocation.DUMMY;
 
-  private final ValueAnalysisState valueState;
+  private final IdentifierAssignment definiteAssignment;
 
-  public SymbolicExpressionTransformer(ValueAnalysisState pValueState) {
-    valueState = pValueState;
+  public SymbolicExpressionTransformer(IdentifierAssignment pDefiniteAssignment) {
+    definiteAssignment = pDefiniteAssignment;
   }
 
   @Override
@@ -229,8 +228,8 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
 
   private CExpression getIdentifierCExpression(SymbolicIdentifier pIdentifier, CType pType) {
 
-    if (valueState.hasKnownValue(pIdentifier)) {
-      Value concreteValue = valueState.getValueFor(pIdentifier);
+    if (definiteAssignment.containsKey(pIdentifier)) {
+      Value concreteValue = definiteAssignment.get(pIdentifier);
       assert !(concreteValue instanceof SymbolicIdentifier);
 
       return transformValue(concreteValue, pType);

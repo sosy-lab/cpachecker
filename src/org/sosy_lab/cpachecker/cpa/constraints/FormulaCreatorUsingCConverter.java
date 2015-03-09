@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
@@ -70,11 +70,11 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   private final String functionName;
 
   public FormulaCreatorUsingCConverter(FormulaManagerView pFormulaManager, CtoFormulaConverter pConverter,
-      ValueAnalysisState pValueState, String pFunctionName) {
+      IdentifierAssignment pDefiniteAssignment, String pFunctionName) {
 
     formulaManager = pFormulaManager;
     toFormulaTransformer = pConverter;
-    toExpressionTransformer = new SymbolicExpressionTransformer(pValueState);
+    toExpressionTransformer = new SymbolicExpressionTransformer(pDefiniteAssignment);
     functionName = pFunctionName;
   }
 

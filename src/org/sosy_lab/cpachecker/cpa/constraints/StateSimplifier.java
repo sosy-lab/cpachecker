@@ -29,6 +29,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 /**
@@ -58,15 +59,15 @@ public class StateSimplifier {
    * @param pState the state to simplify
    * @return the simplified state
    */
-  public ConstraintsState simplify(ConstraintsState pState, ValueAnalysisState pValueState) {
+  public ConstraintsState simplify(ConstraintsState pState) {
     ConstraintsState newState;
 
-    newState = removeTrivialConstraints(pState, pValueState);
+    newState = removeTrivialConstraints(pState, pState.getDefiniteAssignment());
 
     return newState;
   }
 
-  private ConstraintsState removeTrivialConstraints(ConstraintsState pState, ValueAnalysisState pValueState) {
+  private ConstraintsState removeTrivialConstraints(ConstraintsState pState, IdentifierAssignment pAssignment) {
     ConstraintsState newState = pState.copyOf();
 
     Iterator<Constraint> it = newState.iterator();
@@ -74,7 +75,7 @@ public class StateSimplifier {
     while (it.hasNext()) {
       Constraint currConstraint = it.next();
 
-      if (isTrivial(currConstraint, pValueState)) {
+      if (isTrivial(currConstraint, pAssignment)) {
         it.remove();
       }
     }
@@ -83,8 +84,8 @@ public class StateSimplifier {
 
   }
 
-  private boolean isTrivial(Constraint pConstraint, ValueAnalysisState pValueState) {
-    final ConstraintTrivialityChecker trivialityChecker = new ConstraintTrivialityChecker(pValueState);
+  private boolean isTrivial(Constraint pConstraint, IdentifierAssignment pAssignment) {
+    final ConstraintTrivialityChecker trivialityChecker = new ConstraintTrivialityChecker(pAssignment);
 
     return pConstraint.accept(trivialityChecker);
   }
