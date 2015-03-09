@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -41,22 +41,22 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.collect.ForwardingSet;
+import com.google.common.collect.ForwardingList;
 
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState extends ForwardingSet<Constraint> implements LatticeAbstractState<ConstraintsState> {
+public class ConstraintsState extends ForwardingList<Constraint> implements LatticeAbstractState<ConstraintsState> {
 
   /**
    * Stores identifiers and their corresponding constraints
    */
-  private Set<Constraint> constraints;
+  private List<Constraint> constraints;
+  private List<BooleanFormula> constraintFormulas;
 
   private Solver solver;
   private ProverEnvironment prover;
@@ -69,7 +69,8 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    * Creates a new, initial <code>ConstraintsState</code> object.
    */
   public ConstraintsState() {
-    constraints = new HashSet<>();
+    constraints = new ArrayList<>();
+    constraintFormulas = new ArrayList<>();
   }
 
   /**
@@ -84,7 +85,8 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
    * @param pState the state to copy
    */
   protected ConstraintsState(ConstraintsState pState) {
-    constraints = new HashSet<>(pState.constraints);
+    constraints = new ArrayList<>(pState.constraints);
+    constraintFormulas = new ArrayList<>(pState.constraintFormulas);
     solver = pState.solver;
     prover = pState.prover;
     formulaCreator = pState.formulaCreator;
@@ -94,7 +96,7 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
   }
 
   @Override
-  protected Set<Constraint> delegate() {
+  protected List<Constraint> delegate() {
     return constraints;
   }
 
@@ -338,29 +340,39 @@ public class ConstraintsState extends ForwardingSet<Constraint> implements Latti
     }
   }
 
+  /**
+   * Returns the formula representing the conjunction of all constraints of this state.
+   * If no constraints exist, this method will return <code>null</code>.
+   *
+   * @return the formula representing the conjunction of all constraints of this state
+   *
+   * @throws UnrecognizedCCodeException see {@link FormulaCreator#createFormula(Constraint)}
+   * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
+   */
   private BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
-      BooleanFormula completeFormula = null;
-      BooleanFormula currFormula;
+    BooleanFormula completeFormula = null;
 
-      for (Constraint currConstraint : constraints) {
+    createMissingConstraintFormulas();
 
-        currFormula = formulaCreator.createFormula(currConstraint);
-
-        if (completeFormula == null) {
-          completeFormula = currFormula;
-
-        } else {
-          completeFormula = formulaManager.makeAnd(completeFormula, currFormula);
-        }
-      }
-
+    for (BooleanFormula f : constraintFormulas) {
       if (completeFormula == null) {
-        final BooleanFormulaManager manager = formulaManager.getBooleanFormulaManager();
-
-        completeFormula = manager.makeBoolean(true);
+        completeFormula = f;
+      } else {
+        formulaManager.makeAnd(completeFormula, f);
       }
+    }
 
-      return completeFormula;
+    return completeFormula;
+  }
+
+  private void createMissingConstraintFormulas() throws UnrecognizedCCodeException, InterruptedException {
+    int missingConstraints = constraints.size() - constraintFormulas.size();
+
+    for (int i = 1; i <= missingConstraints; i++) {
+      Constraint newConstraint = constraints.get(constraints.size() - i);
+
+      constraintFormulas.add(formulaCreator.createFormula(newConstraint));
+    }
   }
 
   @Override
