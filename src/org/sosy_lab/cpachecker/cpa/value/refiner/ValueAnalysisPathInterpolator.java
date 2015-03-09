@@ -41,7 +41,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -70,6 +72,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -212,19 +215,22 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * This method removes, i.e., slices further edges from the error path (prefix).
    */
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY").obtainInterpolants(errorPathPrefix);
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY", cfa.getVarClassification()).obtainInterpolants(errorPathPrefix);
     interpolants.put(errorPathPrefix.getFirstState(), ValueAnalysisInterpolant.TRUE);
 
     List<CFAEdge> abstractEdges = new ArrayList<>();
     ArrayList<CFAEdge> edges = Lists.newArrayList(errorPathPrefix.asEdgesList());
     ArrayList<ARGState> states = Lists.newArrayList(errorPathPrefix.asStatesList());
     int i = 0;
+
+    ArrayDeque<Pair<FunctionCallEdge, Boolean>> funcCalls = new ArrayDeque<>();
     for (CFAEdge currentEdge : edges) {
       // if interpolant of predecessor is false
       // or if it is equal to the interpolant of the successor,
       // then skip the edge
       if (interpolants.get(states.get(i)).isFalse()
           || interpolants.get(states.get(i)).equals(interpolants.get(states.get(i + 1)))) {
+
         abstractEdges.add(new BlankEdge("",
             FileLocation.DUMMY,
             currentEdge.getPredecessor(),
@@ -234,6 +240,32 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
       else {
         abstractEdges.add(currentEdge);
+      }
+
+      // assure that call stack is valid
+      // add function call to stack
+      if(currentEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        funcCalls.push((Pair.of((FunctionCallEdge)currentEdge, currentEdge.getEdgeType() == Iterables.getLast(abstractEdges).getEdgeType())));
+      }
+
+      // returning from a function
+      if(currentEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        Pair<FunctionCallEdge, Boolean> functionCallInfo = funcCalls.pop();
+        // call was relevant, return not, make return relevant, too
+        if(functionCallInfo.getSecond() && currentEdge.getEdgeType() != Iterables.getLast(abstractEdges).getEdgeType()) {
+          abstractEdges.remove(abstractEdges.size() - 1);
+          abstractEdges.add(currentEdge);
+        }
+
+        // call was irrelevant, return was relevant, make call, relevant, too
+        else if(!functionCallInfo.getSecond() && currentEdge.getEdgeType() == Iterables.getLast(abstractEdges).getEdgeType()) {
+          for(int j = i; j >= 0; j--) {
+            if(functionCallInfo.getFirst() == edges.get(j)) {
+              abstractEdges.set(j, functionCallInfo.getFirst());
+              break;
+            }
+          }
+        }
       }
       i++;
     }
@@ -255,7 +287,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     : "static path-based interpolation requires a sliced infeasible prefix"
     + " - set cpa.value.refiner.prefixPreference, e.g. to " + ErrorPathPrefixPreference.DOMAIN_BEST_DEEP;
 
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY").obtainInterpolants(errorPathPrefix);
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY", cfa.getVarClassification()).obtainInterpolants(errorPathPrefix);
 
     totalInterpolationQueries.setNextValue(1);
 
