@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -59,11 +58,14 @@ public class ValueDeterminationManager {
    */
   public Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>> valueDeterminationFormula(
       Map<Location, PolicyAbstractedState> globalPolicy,
-      final Location focusedLocation,
-      final Map<Template, PolicyBound> updated
+      PolicyAbstractedState stateWithUpdates,
+      final Map<Template, PolicyBound> updated,
+      boolean useUniquePrefix
   ) throws CPATransferException, InterruptedException{
     Set<BooleanFormula> constraints = new HashSet<>();
     Map<String, FormulaType<?>> types = new HashMap<>();
+
+    long uniquePrefix = 0;
 
     for (Entry<Location, PolicyAbstractedState> stateLocation : globalPolicy.entrySet()) {
       Location toLocation = stateLocation.getKey();
@@ -77,19 +79,28 @@ public class ValueDeterminationManager {
         PathFormula startPathFormula = bound.startPathFormula;
         PathFormula policyFormula = bound.formula;
         Location fromLocation = bound.predecessor;
-        Rational currentBound = bound.bound;
-        String prefix = String.format(VISIT_PREFIX,
-            bound.serializePolicy(toLocation));
+
+        String prefix;
+        if (useUniquePrefix) {
+          // This creates A LOT of constraints.
+          // Which is REALLY bad => consequently, everything times out.
+          prefix = String.format(VISIT_PREFIX, ++uniquePrefix);
+        } else {
+          prefix = String.format(VISIT_PREFIX,
+              bound.serializePolicy(toLocation));
+        }
 
         constraintsFromPolicy(
             template,
             policyFormula,
             fromLocation,
             startPathFormula,
-            currentBound,
             prefix,
             toLocation,
-            constraints, types, visited, focusedLocation, updated, globalPolicy);
+            stateWithUpdates,
+            constraints, types, visited,
+            stateWithUpdates.getLocation(),
+            updated, globalPolicy);
       }
     }
     return Pair.of(ImmutableMap.copyOf(types), constraints);
@@ -101,7 +112,6 @@ public class ValueDeterminationManager {
    * @param template Associated template
    * @param policyFormula Associated formula
    * @param startPathFormula Starting {@link PathFormula} for the policy
-   * @param bound Current bound for the policy
    * @param prefix Unique namespace for the policy
    * @param toLocation Location associated with the abstracted state
    * @param fromLocation Backpointer for the policy
@@ -111,9 +121,9 @@ public class ValueDeterminationManager {
       PathFormula policyFormula,
       Location fromLocation,
       PathFormula startPathFormula,
-      Rational bound,
       String prefix,
       Location toLocation,
+      PolicyAbstractedState stateWithUpdates,
       Set<BooleanFormula> constraints,
       Map<String, FormulaType<?>> types,
       Set<String> visited,
@@ -129,66 +139,63 @@ public class ValueDeterminationManager {
     // Shortcut: don't follow the nodes not in the policy, as the value
     // determination does not update them.
     if (toLocation == focusedLocation && !updated.containsKey(template)) {
+      visited.add(prefix);
+      return;
+    }
 
-      BooleanFormula outConstraint = fmgr.makeEqual(
-          fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
-              abstractDomainElement),
-          fmgr.makeNumber(policyOutTemplate, bound)
-      );
+    BooleanFormula namespacedPolicy = (BooleanFormula)
+        fmgr.addPrefixToAll(policyFormula.getFormula(), prefix);
 
-      constraints.add(outConstraint);
+    // Optimization.
+    if (!(namespacedPolicy.equals(bfmgr.makeBoolean(true))
+        || visited.contains(prefix))) {
+      constraints.add(namespacedPolicy);
+    }
 
-    } else {
-      BooleanFormula namespacedPolicy = (BooleanFormula)
-          fmgr.addPrefixToAll(policyFormula.getFormula(), prefix);
+    PolicyAbstractedState incomingState = policy.get(fromLocation);
 
-      // Optimization.
-      if (!(namespacedPolicy.equals(bfmgr.makeBoolean(true))
-          || visited.contains(prefix))) {
-        constraints.add(namespacedPolicy);
-      }
+    // Process incoming constraints on the policy start.
+    for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
 
-      PolicyAbstractedState incomingState = policy.get(fromLocation);
+      Template incomingTemplate = incomingConstraint.getKey();
+      String prevAbstractDomainElement = absDomainVarName(fromLocation,
+          incomingTemplate);
 
-      // Process incoming constraints on the policy start.
-      for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
-        Template incomingTemplate = incomingConstraint.getKey();
-        String prevAbstractDomainElement = absDomainVarName(fromLocation,
-            incomingTemplate);
+      Formula incomingTemplateFormula = fmgr.addPrefixToAll(
+          templateManager.toFormula(
+              incomingTemplate,
+              startPathFormula
+          ), prefix);
 
-        Formula incomingTemplateFormula = fmgr.addPrefixToAll(
-            templateManager.toFormula(
-                incomingTemplate,
-                startPathFormula
-            ),
-            prefix);
+      Formula upperBound;
+      if (fromLocation == focusedLocation && !updated.containsKey(
+          incomingTemplate)) {
 
-        Formula absDomainElementFormula = fmgr.makeVariable(
+        upperBound = fmgr.makeNumber(incomingTemplateFormula,
+            stateWithUpdates.getBound(incomingTemplate).get().bound);
+
+      } else {
+        upperBound = fmgr.makeVariable(
             fmgr.getFormulaType(incomingTemplateFormula),
             prevAbstractDomainElement);
-
-        BooleanFormula constraint = fmgr.makeLessOrEqual(
-            incomingTemplateFormula, absDomainElementFormula, true);
-
-        constraints.add(constraint);
       }
-
-      BooleanFormula outConstraint = fmgr.makeEqual(
-          policyOutTemplate,
-          fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
-              abstractDomainElement)
-      );
-
-      logger.log(Level.FINE, "Output constraint = ", outConstraint);
-      constraints.add(outConstraint);
+      BooleanFormula constraint = fmgr.makeLessOrEqual(
+          incomingTemplateFormula, upperBound, true);
+      constraints.add(constraint);
     }
+
+    BooleanFormula outConstraint = fmgr.makeEqual(
+        policyOutTemplate,
+        fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
+            abstractDomainElement)
+    );
+
+    logger.log(Level.FINE, "Output constraint = ", outConstraint);
+    constraints.add(outConstraint);
     visited.add(prefix);
   }
 
   String absDomainVarName(Location pLocation, Template template) {
-    return String.format(
-        BOUND_VAR_NAME,
-        pLocation.toID(),
-        template.linearExpression);
+    return String.format(BOUND_VAR_NAME, pLocation.toID(), template);
   }
 }

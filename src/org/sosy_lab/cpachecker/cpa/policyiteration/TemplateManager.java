@@ -129,10 +129,10 @@ public class TemplateManager {
       );
       logger.log(Level.FINEST, "Processing variable", varName);
       if (generateUpperBound) {
-        out.add(new Template(LinearExpression.ofVariable(idExpression), type));
+        out.add(Template.of(LinearExpression.ofVariable(idExpression), type));
       }
       if (generateLowerBound) {
-        out.add(new Template(LinearExpression.ofVariable(idExpression).negate(), type));
+        out.add(Template.of(LinearExpression.ofVariable(idExpression).negate(), type));
       }
     }
 
@@ -164,10 +164,10 @@ public class TemplateManager {
           LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
               idExpression2);
 
-          out.add(new Template(expr1.add(expr2), type));
-          out.add(new Template(expr1.negate().sub(expr2), type));
-          out.add(new Template(expr1.sub(expr2), type));
-          out.add(new Template(expr2.sub(expr1), type));
+          out.add(Template.of(expr1.add(expr2), type));
+          out.add(Template.of(expr1.negate().sub(expr2), type));
+          out.add(Template.of(expr1.sub(expr2), type));
+          out.add(Template.of(expr2.sub(expr1), type));
         }
       }
     }
@@ -307,7 +307,7 @@ public class TemplateManager {
           // Add template and its negation.
           templates.add(t);
           templates.add(
-              new Template(t.linearExpression.negate(), t.type)
+              Template.of(t.linearExpression.negate(), t.type)
           );
         }
 
@@ -358,9 +358,9 @@ public class TemplateManager {
         CSimpleType type = (CSimpleType)binaryExpression.getCalculationType();
         Template t;
         if (operator == CBinaryExpression.BinaryOperator.PLUS) {
-          t = new Template(a.add(b), type);
+          t = Template.of(a.add(b), type);
         } else {
-          t = new Template(a.sub(b), type);
+          t = Template.of(a.sub(b), type);
         }
         return Optional.of(t);
       } else {
@@ -368,14 +368,14 @@ public class TemplateManager {
       }
     } else if (expression instanceof CLiteralExpression
         && expression.getExpressionType() instanceof CSimpleType) {
-      return Optional.of(new Template(
+      return Optional.of(Template.of(
           LinearExpression.<CIdExpression>empty(),
           (CSimpleType)(expression).getExpressionType()
       ));
     } else if (expression instanceof CIdExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       CIdExpression idExpression = (CIdExpression)expression;
-      return Optional.of(new Template(
+      return Optional.of(Template.of(
               LinearExpression.ofVariable(idExpression),
               (CSimpleType) expression.getExpressionType()));
     } else {
@@ -386,7 +386,7 @@ public class TemplateManager {
   private Template useCoeff(
       CIntegerLiteralExpression literal, Template other) {
     Rational coeff = Rational.ofBigInteger(literal.getValue());
-    return new Template(other.linearExpression.multByConst(coeff),
+    return Template.of(other.linearExpression.multByConst(coeff),
         other.type
     );
   }

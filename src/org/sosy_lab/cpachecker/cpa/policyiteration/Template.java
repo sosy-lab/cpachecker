@@ -6,23 +6,53 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 
 /**
  * Wrapper for a template.
  */
-public final class Template {
+public class Template {
   final LinearExpression<CIdExpression> linearExpression;
   final CSimpleType type;
+  final Kind kind;
 
-  public Template(LinearExpression<CIdExpression> pLinearExpression,
-      CSimpleType pType) {
-    linearExpression = pLinearExpression;
-    type = pType;
+  /**
+   * Kind of a template.
+   */
+  public static enum Kind {
+    UPPER_BOUND, NEG_LOWER_BOUND, COMPLEX
   }
 
-  public boolean isLowerBound() {
-    return linearExpression.size() == 1 &&
-        linearExpression.iterator().next().getValue() == Rational.NEG_ONE;
+  private Template(LinearExpression<CIdExpression> pLinearExpression,
+      CSimpleType pType, Kind pKind) {
+    linearExpression = pLinearExpression;
+    type = pType;
+    kind = pKind;
+  }
+
+  public Kind getKind() {
+    return kind;
+  }
+
+  /**
+   *
+   */
+  public static Template of(LinearExpression<CIdExpression> expr,
+      CSimpleType pType) {
+    Kind kind;
+    int s = expr.size();
+    if (s == 1 && Iterables.getOnlyElement(expr).getValue() == Rational.ONE) {
+
+      kind = Kind.UPPER_BOUND;
+    } else if (s == 1 && Iterables.getOnlyElement(expr).getValue() ==
+        Rational.NEG_ONE) {
+
+      kind = Kind.NEG_LOWER_BOUND;
+    } else {
+      kind = Kind.COMPLEX;
+    }
+
+    return new Template(expr, pType, kind);
   }
 
   @Override

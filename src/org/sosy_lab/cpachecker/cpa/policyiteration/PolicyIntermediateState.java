@@ -24,22 +24,24 @@ public final class PolicyIntermediateState extends PolicyState {
   private final ImmutableMultimap<Location, Location> trace;
 
   /**
-   * SSAMap for the starting abstraction points.
+   * Abstract states used for generating this state.
    */
-  private final ImmutableMap<Location, PathFormula> startPathFormulas;
+  private final ImmutableMap<Location, PolicyAbstractedState> generatingStates;
+
+  private int hashCache = 0;
 
   private PolicyIntermediateState(
       Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
       Multimap<Location, Location> pTrace,
-      Map<Location, PathFormula> pStartPathFormulas
+      Map<Location, PolicyAbstractedState> generatingStates
       ) {
     super(pLocation, pTemplates);
 
     pathFormula = pPathFormula;
     trace = ImmutableMultimap.copyOf(pTrace);
-    startPathFormulas = ImmutableMap.copyOf(pStartPathFormulas);
+    this.generatingStates = ImmutableMap.copyOf(generatingStates);
   }
 
   public static PolicyIntermediateState of(
@@ -47,17 +49,17 @@ public final class PolicyIntermediateState extends PolicyState {
       Set<Template> pTemplates,
       PathFormula pPathFormula,
       Multimap<Location, Location> pTrace,
-      Map<Location, PathFormula> pStartPathFormula
+      Map<Location, PolicyAbstractedState> generatingStates
   ) {
     return new PolicyIntermediateState(pLocation, pTemplates, pPathFormula,
-        pTrace, pStartPathFormula);
+        pTrace, generatingStates);
   }
 
   /**
    * @return Starting {@link PathFormula} for possible starting locations.
    */
-  public Map<Location, PathFormula> getStartPathFormulaMap() {
-    return startPathFormulas;
+  public Map<Location, PolicyAbstractedState> getGeneratingStates() {
+    return generatingStates;
   }
 
   public PathFormula getPathFormula() {
@@ -85,7 +87,11 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(pathFormula, super.hashCode());
+    if (hashCache == 0) {
+      hashCache = Objects.hashCode(pathFormula, generatingStates,
+          super.hashCode());
+    }
+    return hashCache;
   }
 
   @Override
@@ -97,6 +103,8 @@ public final class PolicyIntermediateState extends PolicyState {
       return false;
     }
     PolicyIntermediateState other = (PolicyIntermediateState)o;
-    return (pathFormula.equals(other.pathFormula) && super.equals(o));
+    return (pathFormula.equals(other.pathFormula)
+        && generatingStates.equals(other.generatingStates)
+        && super.equals(o));
   }
 }
