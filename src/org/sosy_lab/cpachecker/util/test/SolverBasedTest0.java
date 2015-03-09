@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -94,6 +95,7 @@ public abstract class SolverBasedTest0 {
   protected FunctionFormulaManager fmgr;
   protected NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
   protected @Nullable NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
+  protected @Nullable BitvectorFormulaManager bvmgr;
   protected @Nullable QuantifiedFormulaManager qmgr;
   protected @Nullable ArrayFormulaManager amgr;
 
@@ -133,6 +135,11 @@ public abstract class SolverBasedTest0 {
       rmgr = null;
     }
     try {
+      bvmgr = mgr.getBitvectorFormulaManager();
+    } catch (UnsupportedOperationException e) {
+      bvmgr = null;
+    }
+    try {
       qmgr = mgr.getQuantifiedFormulaManager();
     } catch (UnsupportedOperationException e) {
       qmgr = null;
@@ -159,6 +166,13 @@ public abstract class SolverBasedTest0 {
             .that(rmgr).isNotNull();
   }
 
+  /**
+   * Skip test if the solver does not support bitvectors.
+   */
+  protected final void requireBitvectors() {
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of bitvectors")
+            .that(bvmgr).isNotNull();
+  }
   /**
    * Skip test if the solver does not support quantifiers.
    */

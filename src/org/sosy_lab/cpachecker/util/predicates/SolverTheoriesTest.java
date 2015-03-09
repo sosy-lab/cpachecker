@@ -90,6 +90,36 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   }
 
   @Test
+  public void test_BitvectorIsZeroAfterShiftLeft() throws Exception {
+    requireBitvectors();
+
+    BitvectorFormula one = bvmgr.makeBitvector(32, 1);
+
+    // unsigned char
+    BitvectorFormula a = bvmgr.makeVariable(8, "char_a");
+    BitvectorFormula b = bvmgr.makeVariable(8, "char_b");
+    BitvectorFormula rightOp = bvmgr.makeBitvector(32, 7);
+
+    // 'cast' a to unsigned int
+    a = bvmgr.extend(a, 32 - 8, false);
+    b = bvmgr.extend(b, 32 - 8, false);
+    a = bvmgr.or(a, one);
+    b = bvmgr.or(b, one);
+    a = bvmgr.extract(a, 7, 0);
+    b = bvmgr.extract(b, 7, 0);
+    a = bvmgr.extend(a, 32 - 8, false);
+    b = bvmgr.extend(b, 32 - 8, false);
+
+    a = bvmgr.shiftLeft(a, rightOp);
+    b = bvmgr.shiftLeft(b, rightOp);
+    a = bvmgr.extract(a, 7, 0);
+    b = bvmgr.extract(b, 7, 0);
+    BooleanFormula f = bmgr.not(bvmgr.equal(a, b));
+
+    assert_().about(BooleanFormula()).that(f).isUnsatisfiable();
+  }
+
+  @Test
   public void quantifierEliminationTest1() throws Exception {
     requireQuantifiers();
 
