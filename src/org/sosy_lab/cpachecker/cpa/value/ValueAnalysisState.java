@@ -68,11 +68,6 @@ import com.google.common.primitives.Longs;
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
 
-  /**
-   * Singleton for {@link #identifierMap} if symbolic execution is not used.
-   */
-  private static final PersistentMap<SymbolicIdentifier, Value> IDENTIFIER_MAP_SINGLETON = PathCopyingPersistentTreeMap.of();
-
   private static final long serialVersionUID = -3152134511524554357L;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
@@ -94,7 +89,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * If symbolic execution is not in use, this map will remain empty.
    */
-  private transient PersistentMap<SymbolicIdentifier, Value> identifierMap = IDENTIFIER_MAP_SINGLETON;
+  private transient PersistentMap<SymbolicIdentifier, Value> identifierMap = PathCopyingPersistentTreeMap.of();
 
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
