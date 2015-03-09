@@ -78,7 +78,9 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -90,7 +92,12 @@ public class UseDefBasedInterpolator {
   /**
    * defines how to handle feasible assume edges
    */
-  private String handleFeasibleAssumeEdges = "NONE";
+  final private String handleFeasibleAssumeEdges;
+
+  /**
+   * the varaible classification to use
+   */
+  private final Optional<VariableClassification> variableClassification;
 
   /**
    * the flag to determine, if the final (failing, contradicting) assume edge
@@ -113,8 +120,10 @@ public class UseDefBasedInterpolator {
    */
   private Map<ASimpleDeclaration, Integer> updateCounter = new HashMap<>();
 
-  public UseDefBasedInterpolator(final String pHandleFeasibleAssumeEdges) {
+  public UseDefBasedInterpolator(final String pHandleFeasibleAssumeEdges,
+      final Optional<VariableClassification> pVariableClassification) {
     handleFeasibleAssumeEdges = pHandleFeasibleAssumeEdges;
+    variableClassification = pVariableClassification;
   }
 
   /**
@@ -304,18 +313,30 @@ public class UseDefBasedInterpolator {
     // so that such an assume removes an open dependency
     // for an equality with a constant, we can remove the dependency
     // this still could fail if this assume is the "same" as the final, failing one
-    if (handleFeasibleAssumeEdges.equals("EQUALITY") && isEquality(assumeEdge, expr)) {
-      CBinaryExpression binExpr = ((CBinaryExpression) expr);
-      if (binExpr.getOperand1() instanceof CIdExpression
-          && binExpr.getOperand2() instanceof CLiteralExpression) {
-        if (dependencies.contains(((CIdExpression)binExpr.getOperand1()).getDeclaration())) {
-          dependencies.remove(((CIdExpression)binExpr.getOperand1()).getDeclaration());
-        }
+    //
+    // also leave in inequalities like [a != 1] or [!(a )= 1)], as even the
+    // value analysis can deduce valuations of a, if a has boolean character
+    if (handleFeasibleAssumeEdges.equals("EQUALITY")) {
+      CBinaryExpression binaryExpression = ((CBinaryExpression) expr);
+
+      ASimpleDeclaration operand = null;
+      if (binaryExpression.getOperand1() instanceof CIdExpression
+          && binaryExpression.getOperand2() instanceof CLiteralExpression) {
+        operand = ((CIdExpression)binaryExpression.getOperand1()).getDeclaration();
       }
-      else if (binExpr.getOperand2() instanceof CIdExpression
-          && binExpr.getOperand1() instanceof CLiteralExpression) {
-        if (dependencies.contains(((CIdExpression)binExpr.getOperand2()).getDeclaration())) {
-          dependencies.remove(((CIdExpression)binExpr.getOperand2()).getDeclaration());
+
+      else if (binaryExpression.getOperand2() instanceof CIdExpression
+          && binaryExpression.getOperand1() instanceof CLiteralExpression) {
+        operand = ((CIdExpression)binaryExpression.getOperand2()).getDeclaration();
+      }
+
+      if (isEquality(assumeEdge, binaryExpression.getOperator()) && dependencies.contains(operand)) {
+        dependencies.remove(operand);
+      } else {
+        if(isInequality(assumeEdge, binaryExpression.getOperator())
+            && dependencies.contains(operand)
+            && hasBooleanCharacter(operand)) {
+          dependencies.remove(operand);
         }
       }
     }
@@ -361,10 +382,18 @@ public class UseDefBasedInterpolator {
     }
   }
 
-  private boolean isEquality(CAssumeEdge assumeEdge, CExpression expr) {
-    return expr instanceof CBinaryExpression
-        && ((assumeEdge.getTruthAssumption() && ((CBinaryExpression) expr).getOperator() == BinaryOperator.EQUALS)
-            || (!assumeEdge.getTruthAssumption() && ((CBinaryExpression) expr).getOperator() == BinaryOperator.NOT_EQUALS));
+  private boolean hasBooleanCharacter(ASimpleDeclaration operand) {
+    return variableClassification.isPresent() && variableClassification.get().getIntBoolVars().contains(operand.getQualifiedName());
+  }
+
+  private boolean isEquality(CAssumeEdge assumeEdge, BinaryOperator operator) {
+    return ((assumeEdge.getTruthAssumption() && operator == BinaryOperator.EQUALS)
+        || (!assumeEdge.getTruthAssumption() && operator == BinaryOperator.NOT_EQUALS));
+  }
+
+  private boolean isInequality(CAssumeEdge assumeEdge, BinaryOperator operator) {
+    return ((assumeEdge.getTruthAssumption() && operator== BinaryOperator.NOT_EQUALS)
+        || (!assumeEdge.getTruthAssumption() && operator == BinaryOperator.EQUALS));
   }
 
 
@@ -440,6 +469,22 @@ public class UseDefBasedInterpolator {
     if(assignedVariables.size() > 1) {
       return;
     }
+
+/*
+    // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
+    // until is is reassigned, and not only a single field
+    // if assigned variable is resolving a dependency
+    if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
+      // hack to handle assignments of structs (keeps the whole struct in use all the time)
+      if(leftHandSide.toString().contains("->")) {
+        //Syso("NO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
+        addDependency(assignedVariables);
+      }
+      else {
+        //Syso("DO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
+        dependencies.remove(Iterables.getOnlyElement(assignedVariables));
+      }
+*/
 
     // if assigned variable is resolving a dependency
     if (dependencies.remove(Iterables.getOnlyElement(assignedVariables))) {

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -318,28 +319,33 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
     List<ARGPath> infeasilbePrefixes = provider.getInfeasilbePrefixes(allStatesTrace);
 
-    if(infeasilbePrefixes.size() > 1 || pathSlicing) {
+    if(allStatesTrace != infeasilbePrefixes.get(0)) {
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
 
       allStatesTrace = classifier.obtainSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
 
       if (pathSlicing) {
-        allStatesTrace = sliceErrorPath(allStatesTrace);
+        ARGPath slicedAllStatesTrace = sliceErrorPath(allStatesTrace);
 
         PathFormula formula = pfmgr.makeEmptyPathFormula();
-        PathIterator iterator = allStatesTrace.pathIterator();
+        PathIterator iterator = slicedAllStatesTrace.pathIterator();
         while (iterator.hasNext()) {
-          formula = pfmgr.makeAnd(formula, iterator.getOutgoingEdge());
+          if(iterator.getOutgoingEdge().getEdgeType() != CFAEdgeType.BlankEdge) {
+            formula = pfmgr.makeAnd(formula, iterator.getOutgoingEdge());
+          }
           iterator.advance();
         }
-        assert(solver.isUnsat(formula.getFormula())) : "sliced path is SAT!\n\n";// + allStatesTrace;
+
+        if(solver.isUnsat(formula.getFormula())) {
+          allStatesTrace = slicedAllStatesTrace;
+        }
       }
     }
     return allStatesTrace;
   }
 
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(handleFeasibleAssumeEdges).obtainInterpolants(errorPathPrefix);
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(handleFeasibleAssumeEdges, cfa.getVarClassification()).obtainInterpolants(errorPathPrefix);
     interpolants.put(errorPathPrefix.getFirstState(), ValueAnalysisInterpolant.TRUE);
 
     List<CFAEdge> abstractEdges = new ArrayList<>();
