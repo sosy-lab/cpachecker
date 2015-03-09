@@ -146,8 +146,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
-  @Option(secure=true, name="symbolicExecution",
-      description="Use symbolic execution. This allows tracking of non-deterministic values.")
+  @Option(secure=true,
+      description="Uses symbolic values. This allows tracking of non-deterministic values."
+          + " Symbolic values should always be used in conjunction with ConstraintsCPA."
+          + " Otherwise, symbolic values will be created, but not evaluated.")
   private boolean useSymbolicValues = false;
 
   @Option(secure=true, description = "if there is an assumption like (x!=0), "
