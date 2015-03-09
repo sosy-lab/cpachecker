@@ -166,12 +166,10 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       throws InterruptedException, CPAException {
 
     if (pathSlicing) {
-     errorPathPrefix = sliceErrorPath(errorPathPrefix);
+      ARGPath slicedErrorPathPrefix = sliceErrorPath(errorPathPrefix);
 
-      try {
-        assert(!new ValueAnalysisFeasibilityChecker(logger, cfa, config).isFeasible(errorPathPrefix));
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
+      if(!isFeasible(slicedErrorPathPrefix)) {
+        errorPathPrefix = slicedErrorPathPrefix;
       }
     }
 
@@ -179,7 +177,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     PathIterator pathIterator = errorPathPrefix.pathIterator();
     Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
-    while(pathIterator.hasNext()) {
+    while (pathIterator.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
 
       // interpolate at each edge as long the previous interpolant is not false
@@ -203,12 +201,24 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
       pathInterpolants.put(pathIterator.getAbstractState(), interpolant);
 
-      if(!pathIterator.hasNext()) {
+      if (!pathIterator.hasNext()) {
         assert interpolant.isFalse() : "final interpolant is not false: " + interpolant;
       }
     }
 
     return pathInterpolants;
+  }
+
+  /**
+   * This utility method checks if the given path is feasible.
+   */
+  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException,
+      InterruptedException {
+    try {
+       return new ValueAnalysisFeasibilityChecker(logger, cfa, config).isFeasible(slicedErrorPathPrefix);
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
+    }
   }
 
   /**
