@@ -94,8 +94,6 @@ public class ConstraintsTransferRelation
       Configuration pConfig, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    pConfig.inject(this);
-
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(machineModel, logger);
