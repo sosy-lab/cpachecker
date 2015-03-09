@@ -147,7 +147,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       = ImmutableMap.of("pthread_create", "threads");
 
   @Option(secure=true,
-      description="Uses symbolic values. This allows tracking of non-deterministic values."
+      description="Use symbolic values. This allows tracking of non-deterministic values."
           + " Symbolic values should always be used in conjunction with ConstraintsCPA."
           + " Otherwise, symbolic values will be created, but not evaluated.")
   private boolean useSymbolicValues = false;
