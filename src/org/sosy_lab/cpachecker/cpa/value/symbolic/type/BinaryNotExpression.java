@@ -29,6 +29,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * {@link UnarySymbolicExpression} representing the 'binary not' operation.
  */
 public class BinaryNotExpression extends UnarySymbolicExpression {
+
+  private static final long serialVersionUID = -84948336461412258L;
+
   protected BinaryNotExpression(SymbolicExpression pOperand, Type pType) {
     super (pOperand, pType);
   }

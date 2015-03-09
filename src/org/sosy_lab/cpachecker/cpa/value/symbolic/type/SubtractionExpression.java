@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class SubtractionExpression extends BinarySymbolicExpression {
 
+  private static final long serialVersionUID = -2240019127521654817L;
+
   protected SubtractionExpression(SymbolicExpression pOperand1,
       SymbolicExpression pOperand2, Type pExpressionType,
       Type pCalculationType) {

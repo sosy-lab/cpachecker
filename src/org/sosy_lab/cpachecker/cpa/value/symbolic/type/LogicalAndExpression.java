@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class LogicalAndExpression extends BinarySymbolicExpression {
 
+  private static final long serialVersionUID = 8274694737043926521L;
+
   protected LogicalAndExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);

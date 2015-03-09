@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
  */
 public class LessThanOrEqualExpression extends BinarySymbolicExpression implements BinaryConstraint {
 
+  private static final long serialVersionUID = -805938567569160336L;
+
   protected LessThanOrEqualExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);

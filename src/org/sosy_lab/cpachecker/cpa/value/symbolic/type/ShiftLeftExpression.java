@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class ShiftLeftExpression extends BinarySymbolicExpression {
 
+  private static final long serialVersionUID = 3368892481479334943L;
+
   protected ShiftLeftExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);

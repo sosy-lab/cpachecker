@@ -301,7 +301,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     value =  exp.accept(visitor);
     RTTState newElement = visitor.state;
 
-   handleAssignmentToVariable(lParam, exp, value, newElement, visitor.functionName);
+    handleAssignmentToVariable(lParam, exp, value, newElement, visitor.functionName);
   }
 
   private void handleStatement(RTTState newElement,

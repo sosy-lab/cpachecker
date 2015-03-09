@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
  */
 public class EqualsExpression extends BinarySymbolicExpression implements BinaryConstraint {
 
+  private static final long serialVersionUID = 5539278811391062614L;
+
   protected EqualsExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);

@@ -32,7 +32,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class ShiftRightExpression extends BinarySymbolicExpression {
 
-  public enum ShiftType { SIGNED, UNSIGNED };
+  private static final long serialVersionUID = -9068365554036095329L;
+
+  public enum ShiftType { SIGNED, UNSIGNED }
 
   private final ShiftType shiftType;
 

@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  */
 public class ConstantSymbolicExpression extends SymbolicExpression {
 
+  private static final long serialVersionUID = 8720056661933193765L;
+
   private final Value value;
   private final Type type;
 

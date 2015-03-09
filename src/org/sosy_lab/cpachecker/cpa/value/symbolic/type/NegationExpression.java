@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * {@link UnarySymbolicExpression} representing negation of a value.
  */
 public class NegationExpression extends UnarySymbolicExpression {
 
+  private static final long serialVersionUID = 6785934572402802380L;
 
   public NegationExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);

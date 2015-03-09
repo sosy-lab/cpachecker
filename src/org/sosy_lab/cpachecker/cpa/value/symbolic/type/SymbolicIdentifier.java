@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
  */
 public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIdentifier> {
 
+  private static final long serialVersionUID = -3773425414056328601L;
+
   // stores the next usable id
   private static long nextId = 0;
 

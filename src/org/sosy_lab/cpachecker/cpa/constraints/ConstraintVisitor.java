@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 /**
  * Visitor for {@link Constraint} objects.
  *
- * @param T return type of visit methods
+ * @param <T> return type of visit methods
  */
 public interface ConstraintVisitor<T> {
 

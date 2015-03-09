@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class DivisionExpression extends BinarySymbolicExpression {
 
+  private static final long serialVersionUID = -5975310977950553115L;
+
   protected DivisionExpression(SymbolicExpression pOperand1,
       SymbolicExpression pOperand2, Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);

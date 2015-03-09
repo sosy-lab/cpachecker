@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -41,7 +40,6 @@ import com.google.common.base.Optional;
  * All {@link SymbolicExpression}s created with this factory use canonical C types, as provided by
  * {@link CType#getCanonicalType()}.
  */
-@Options(prefix = "cpa.value")
 public class SymbolicValueFactory {
 
   private static final SymbolicValueFactory SINGLETON = new SymbolicValueFactory();
@@ -86,7 +84,6 @@ public class SymbolicValueFactory {
 
     return new SubtractionExpression(pOperand1, pOperand2, getCanonicalType(pType), canonicalCalcType);
   }
-
 
   public SymbolicExpression negate(SymbolicExpression pFormula, Type pType) {
     checkNotNull(pFormula);

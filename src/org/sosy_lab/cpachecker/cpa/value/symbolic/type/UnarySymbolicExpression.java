@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public abstract class UnarySymbolicExpression extends SymbolicExpression {
 
+  private static final long serialVersionUID = -2727356523115713518L;
+
   private final SymbolicExpression operand;
   private final Type type;
 

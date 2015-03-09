@@ -52,10 +52,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
  */
 public class ConstraintsCPA implements ConfigurableProgramAnalysis {
 
-  private final Configuration config;
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfa;
 
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
@@ -68,10 +65,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis {
 
   private ConstraintsCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
-    config = pConfig;
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    cfa = pCfa;
 
     abstractDomain = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     mergeOperator = initializeMergeOperator();

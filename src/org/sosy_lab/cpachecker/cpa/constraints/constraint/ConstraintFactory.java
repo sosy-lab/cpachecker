@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
@@ -259,36 +258,6 @@ public class ConstraintFactory {
 
   private SymbolicExpression getTrueValueConstant() {
     return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.getBoolean());
-  }
-
-  private Type getCalculationType(Type pType) {
-    if (pType instanceof CType) {
-      return getCCalculationType((CType) pType);
-    } else if (pType instanceof JType) {
-      return getJCalculationType((JType) pType);
-    } else {
-      throw new AssertionError("Unexpected type " + pType);
-    }
-  }
-
-  private Type getCCalculationType(CType pType) {
-    CType canonicalType = pType.getCanonicalType();
-
-    if (canonicalType instanceof CSimpleType) {
-      switch (((CSimpleType)canonicalType).getType()) {
-        case CHAR:
-        case INT:
-          return CNumericTypes.SIGNED_INT;
-        default:
-          return pType;
-      }
-    } else {
-      throw new AssertionError("Unexpected type " + pType);
-    }
-  }
-
-  private Type getJCalculationType(JType pType) {
-    return pType;
   }
 
   private Constraint createNot(Constraint pConstraint) {

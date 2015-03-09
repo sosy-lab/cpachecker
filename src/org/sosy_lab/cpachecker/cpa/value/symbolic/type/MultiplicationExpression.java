@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class MultiplicationExpression extends BinarySymbolicExpression {
 
+  private static final long serialVersionUID = -9027583558632727054L;
+
   protected MultiplicationExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);

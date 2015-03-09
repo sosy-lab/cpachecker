@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
  */
 public class LogicalNotExpression extends UnarySymbolicExpression implements UnaryConstraint {
 
+  private static final long serialVersionUID = 1538819641715577876L;
+
   protected LogicalNotExpression(SymbolicExpression pOperand, Type pType) {
     super (pOperand, pType);
   }

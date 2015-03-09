@@ -27,8 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -43,19 +41,11 @@ import com.google.common.base.Optional;
  */
 public class ConstraintsStrengthenOperator {
 
-  private final MachineModel machineModel;
-  private final LogManagerWithoutDuplicates logger;
-  
-  private ConstraintsStrengthenOperator(
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
-    logger = pLogger;
-    machineModel = pMachineModel;
-  }
+  private static final ConstraintsStrengthenOperator SINGLETON =
+      new ConstraintsStrengthenOperator();
 
-  public static ConstraintsStrengthenOperator getInstance(
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
-
-    return new ConstraintsStrengthenOperator(pMachineModel, pLogger);
+  public static ConstraintsStrengthenOperator getInstance() {
+    return SINGLETON;
   }
 
   /**

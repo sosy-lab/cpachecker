@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -78,7 +77,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
@@ -140,6 +138,28 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
 
   private CExpression doubleToExpression(double pValue, CSimpleType pType) {
 
+    if (Double.isNaN(pValue) || Double.isInfinite(pValue)) {
+      CExpression zero = new CIntegerLiteralExpression(DUMMY_LOCATION, CNumericTypes.INT, BigInteger.valueOf(0));
+      CExpression firstOp;
+
+      if (Double.isNaN(pValue)) {
+        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(0));
+
+      } else if (Double.POSITIVE_INFINITY == pValue) {
+        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(1));
+
+      } else {
+        assert Double.NEGATIVE_INFINITY == pValue;
+        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(-1));
+      }
+
+      return new CBinaryExpression(DUMMY_LOCATION, pType, pType, firstOp, zero, CBinaryExpression.BinaryOperator.DIVIDE);
+
+    } else {
+      return new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(pValue));
+    }
+  }
+
 /* We can't use function calls in expressions and they are no CExpressions,
    so we can't use builtin functions to represent NaN and infinity.
    Instead, a hack is used below that _should_ produce the correct values, but is
@@ -161,28 +181,7 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
           new CIdExpression(DUMMY_LOCATION, functionType, functionName, null);
 
       return new CFunctionCallExpression(DUMMY_LOCATION, pType, functionNameExp, Collections.<CExpression>emptyList(),
-          null);*/
-
-    if (Double.isNaN(pValue) || Double.isInfinite(pValue)) {
-      CExpression zero = new CIntegerLiteralExpression(DUMMY_LOCATION, CNumericTypes.INT, BigInteger.valueOf(0));
-      CExpression firstOp;
-
-      if (Double.isNaN(pValue)) {
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(0));
-
-      } else if (Double.POSITIVE_INFINITY == pValue) {
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(1));
-
-      } else {
-        assert Double.NEGATIVE_INFINITY == pValue;
-        firstOp = new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(-1));
-      }
-
-      return new CBinaryExpression(DUMMY_LOCATION, pType, pType, firstOp, zero, CBinaryExpression.BinaryOperator.DIVIDE);
-
-    } else {
-      return new CFloatLiteralExpression(DUMMY_LOCATION, pType, BigDecimal.valueOf(pValue));
-    }
+          null);
   }
 
   private String getInfFunctionName(CSimpleType pType) {
@@ -215,7 +214,7 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
         return BuiltinFunctions.NOT_A_NUMBER;
       }
     }
-  }
+  }*/
 
   private CType getCType(Type pType) {
     if (pType instanceof CType) {
@@ -259,15 +258,15 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
     return new CBinaryExpression(DUMMY_LOCATION,
         getCType(pExpression.getType()),
         getCType(pExpression.getCalculationType()),
-        (CExpression) pExpression.getOperand1().accept(this),
-        (CExpression) pExpression.getOperand2().accept(this),
+        pExpression.getOperand1().accept(this),
+        pExpression.getOperand2().accept(this),
         pOperator);
   }
 
   private CExpression createUnaryExpression(UnarySymbolicExpression pExpression, CUnaryExpression.UnaryOperator pOperator) {
     return new CUnaryExpression(DUMMY_LOCATION,
         getCType(pExpression.getType()),
-        (CExpression) pExpression.getOperand().accept(this),
+        pExpression.getOperand().accept(this),
         pOperator);
   }
 
@@ -380,7 +379,7 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
   @Override
   public CExpression visit(CastExpression pExpression) {
     CType cType = getCType(pExpression.getType());
-    CExpression operandExpression = (CExpression) pExpression.getOperand().accept(this);
+    CExpression operandExpression = pExpression.getOperand().accept(this);
 
     return new CCastExpression(DUMMY_LOCATION, cType, operandExpression);
   }
@@ -388,7 +387,7 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
   @Override
   public CExpression visit(PointerExpression pExpression) {
     CType cType = getCType(pExpression.getType());
-    CExpression operandExpression = (CExpression) pExpression.getOperand().accept(this);
+    CExpression operandExpression = pExpression.getOperand().accept(this);
 
     return new CPointerExpression(DUMMY_LOCATION, cType, operandExpression);
   }

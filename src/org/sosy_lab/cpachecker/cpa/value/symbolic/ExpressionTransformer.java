@@ -28,6 +28,7 @@ import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
@@ -105,7 +106,7 @@ public class ExpressionTransformer {
 
   public SymbolicExpression visit(ACharLiteralExpression pIastCharLiteralExpression)
       throws UnrecognizedCodeException {
-    final long castValue = (long) pIastCharLiteralExpression.getCharacter();
+    final long castValue = pIastCharLiteralExpression.getCharacter();
     final Type charType = pIastCharLiteralExpression.getExpressionType();
 
     return SymbolicValueFactory.getInstance().asConstant(createNumericValue(castValue), charType);

@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
  */
 public abstract class SymbolicExpression implements SymbolicValue {
 
+  private static final long serialVersionUID = 2228733300503173691L;
+
   /**
    * Accepts the given {@link SymbolicExpressionVisitor}.
    *
@@ -39,6 +41,7 @@ public abstract class SymbolicExpression implements SymbolicValue {
    * @param <VisitorReturnT> the return type of the visitor's specific <code>visit</code> method
    * @return the value returned by the visitor's <code>visit</code> method
    */
+  @Override
   public abstract <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor);
 
   /**

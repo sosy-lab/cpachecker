@@ -128,6 +128,8 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
   @Override
   public String toString() {
     return toString(new Function<T, String>() {
+
+      @Override
       public String apply(T pT) {
         return pT.toString();
       }

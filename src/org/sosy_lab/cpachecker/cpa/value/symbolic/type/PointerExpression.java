@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class PointerExpression extends UnarySymbolicExpression {
 
+  private static final long serialVersionUID = -7348176261979912313L;
+
   protected PointerExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
   }

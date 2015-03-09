@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 /**
  * Visitor for {@link SymbolicValue}s.
  *
- * @param T return type of visit methods
+ * @param <T> return type of visit methods
  */
 public interface SymbolicValueVisitor<T> {
 

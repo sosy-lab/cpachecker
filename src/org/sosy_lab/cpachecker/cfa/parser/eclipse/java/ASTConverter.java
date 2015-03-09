@@ -228,10 +228,9 @@ class ASTConverter {
   }
 
   /**
-   * This method returns the number of Pre Side Assignments
-   * of converted Statements.
+   * This method returns the next pre side assignment.
    *
-   * @return number of Pre Side Assignments of converted Statements
+   * @return the next pre side assignment
    */
   public JAstNode getNextPreSideAssignment() {
     return preSideAssignments.removeFirst();

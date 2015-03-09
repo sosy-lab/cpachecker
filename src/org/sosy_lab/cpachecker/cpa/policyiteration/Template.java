@@ -48,6 +48,8 @@ public final class Template {
   @Override
   public String toString() {
     return String.format("%s", linearExpression.toString(new Function<CIdExpression, String>() {
+
+      @Override
       public String apply(CIdExpression pCIdExpression) {
         return pCIdExpression.getDeclaration().getQualifiedName();
       }

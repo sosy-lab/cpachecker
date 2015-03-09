@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class AddressOfExpression extends UnarySymbolicExpression {
 
+  private static final long serialVersionUID = -4583179464566332040L;
+
   protected AddressOfExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
   }

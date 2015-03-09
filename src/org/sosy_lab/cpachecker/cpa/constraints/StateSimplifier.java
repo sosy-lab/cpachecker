@@ -38,7 +38,10 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
  */
 public class StateSimplifier {
 
+  @SuppressWarnings("unused")
   private final MachineModel machineModel;
+
+  @SuppressWarnings("unused")
   private final LogManagerWithoutDuplicates logger;
 
   public StateSimplifier(MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {

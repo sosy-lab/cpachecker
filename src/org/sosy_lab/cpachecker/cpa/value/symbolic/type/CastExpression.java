@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public class CastExpression extends UnarySymbolicExpression {
 
+  private static final long serialVersionUID = 3928318112889309143L;
+
   /**
    * Create a new <code>CastExpression</code> with the given operand and {@link Type}.
    *
