@@ -27,8 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
@@ -80,16 +78,14 @@ public class ConstraintsStrengthenOperator {
     Optional<ValueAnalysisState> newElement =
         evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
 
-    if (newElement == null) {
-      return null;
-    } else if (newElement.isPresent()) {
+    if (newElement.isPresent()) {
       return Collections.singleton(newElement.get());
     } else {
-      return Collections.emptySet();
+      return null;
     }
   }
 
-  private @Nullable Optional<ValueAnalysisState> evaluateAssignment(
+  private Optional<ValueAnalysisState> evaluateAssignment(
       IdentifierAssignment pAssignment, ValueAnalysisState pValueState) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
@@ -109,8 +105,7 @@ public class ConstraintsStrengthenOperator {
     if (somethingChanged) {
       return Optional.of(newElement);
     } else {
-      // null represents 'no change'
-      return null;
+      return Optional.absent();
     }
   }
 }
