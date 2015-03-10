@@ -23,19 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -49,8 +42,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
 
 public class ErrorPathClassifier {
 
@@ -63,8 +54,6 @@ public class ErrorPathClassifier {
 
   public static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this edge in suffix";
   private static final String PREFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in prefix";
-
-  private static int invocationCounter = 0;
 
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
@@ -97,51 +86,51 @@ public class ErrorPathClassifier {
 
     private ErrorPathPrefixPreference () {}
 
-    private ErrorPathPrefixPreference (Function<Triple<Long, Long, Integer>, Boolean> scorer) {
+    private ErrorPathPrefixPreference (Function<Triple<Integer, Integer, Integer>, Boolean> scorer) {
       this.scorer = scorer;
     }
 
-    private Function<Triple<Long, Long, Integer>, Boolean> scorer = INDIFFERENT_SCOREKEEPER;
+    private Function<Triple<Integer, Integer, Integer>, Boolean> scorer = INDIFFERENT_SCOREKEEPER;
   }
 
-  private static final Function<Triple<Long, Long, Integer>, Boolean> INDIFFERENT_SCOREKEEPER = new Function<Triple<Long, Long, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> INDIFFERENT_SCOREKEEPER = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
-    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       return Boolean.TRUE;
     }};
 
-  private static final Function<Triple<Long, Long, Integer>, Boolean> FIRST_HIGHEST_SCORE = new Function<Triple<Long, Long, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FIRST_HIGHEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
-    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       return prefixParameters.getSecond() == null
           || prefixParameters.getFirst() > prefixParameters.getSecond();
     }};
 
-  private static final Function<Triple<Long, Long, Integer>, Boolean> FINAL_HIGHEST_SCORE = new Function<Triple<Long, Long, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FINAL_HIGHEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
-    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       return prefixParameters.getSecond() == null
           || prefixParameters.getFirst() >= prefixParameters.getSecond();
     }};
 
 
-  private static final Function<Triple<Long, Long, Integer>, Boolean> FIRST_LOWEST_SCORE = new Function<Triple<Long, Long, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FIRST_LOWEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
-    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       return prefixParameters.getSecond() == null
           || prefixParameters.getFirst() < prefixParameters.getSecond();
     }};
 
-  private static final Function<Triple<Long, Long, Integer>, Boolean> FINAL_LOWEST_SCORE = new Function<Triple<Long, Long, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FINAL_LOWEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
-    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       return prefixParameters.getSecond() == null
           || prefixParameters.getFirst() <= prefixParameters.getSecond();
     }};
 
-  private static final Function<Triple<Long, Long, Integer>, Boolean> FINAL_LOWEST_SCORE_BOUNDED = new Function<Triple<Long, Long, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FINAL_LOWEST_SCORE_BOUNDED = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
-    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       if (prefixParameters.getSecond() == null) {
         return true;
       } else if (prefixParameters.getThird() < MAX_PREFIX_LENGTH) {
@@ -207,8 +196,8 @@ public class ErrorPathClassifier {
     }
 
     MutableARGPath currentErrorPath = new MutableARGPath();
-    Long bestScore                  = null;
-    int bestIndex                   = 0;
+    Integer bestScore = null;
+    Integer bestIndex = 0;
 
     for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
       assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
@@ -217,7 +206,7 @@ public class ErrorPathClassifier {
 
       Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
-      Long score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
+      int score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
@@ -234,8 +223,8 @@ public class ErrorPathClassifier {
     }
 
     MutableARGPath currentErrorPath = new MutableARGPath();
-    Long bestScore                  = null;
-    int bestIndex                   = 0;
+    Integer bestScore = null;
+    Integer bestIndex = 0;
 
     for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
       assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
@@ -245,7 +234,7 @@ public class ErrorPathClassifier {
       // gets the score for the prefix of how "local" it is
       AssumptionUseDefinitionCollector collector = new InitialAssumptionUseDefinitionCollector();
       collector.obtainUseDefInformation(currentErrorPath);
-      Long score = Long.valueOf(collector.getDependenciesResolvedOffset() * (-1));
+      int score = collector.getDependenciesResolvedOffset() * (-1);
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
@@ -316,14 +305,14 @@ public class ErrorPathClassifier {
     return new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(currentErrorPath);
   }
 
-  public Long obtainDomainTypeScoreForVariables(Set<String> useDefinitionInformation) {
+  public int obtainDomainTypeScoreForVariables(Set<String> useDefinitionInformation) {
 
     if(useDefinitionInformation.isEmpty()) {
-      return Long.valueOf(UNKNOWN_VAR);
+      return UNKNOWN_VAR;
     }
 
-    Long currentScore = 1L;
-    Long previousScore = currentScore;
+    int currentScore = 1;
+    int previousScore = currentScore;
     for (String variableName : useDefinitionInformation) {
       int factor = UNKNOWN_VAR;
 
@@ -338,12 +327,12 @@ public class ErrorPathClassifier {
 
       if (loopStructure.isPresent()
           && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-        return Long.MAX_VALUE;
+        return Integer.MAX_VALUE;
       }
 
       // check for overflow
       if(currentScore < previousScore) {
-        return Long.MAX_VALUE - 1;
+        return Integer.MAX_VALUE - 1;
       }
       previousScore = currentScore;
     }
@@ -425,88 +414,13 @@ public class ErrorPathClassifier {
     return errorPath.immutableCopy();
   }
 
-  /**
-   * This method export the current error path, visualizing the individual prefixes.
-   *
-   * @param errorPath the original error path
-   * @param pPrefixes the list of prefixes
-   */
-  @SuppressWarnings("unused")
-  private void exportToDot(MutableARGPath errorPath, List<MutableARGPath> pPrefixes) {
-    SetMultimap<ARGState, ARGState> successorRelation = buildSuccessorRelation(errorPath.getLast().getFirst());
-
-    Set<ARGState> failingStates = new HashSet<>();
-    for(MutableARGPath path : pPrefixes) {
-      failingStates.add(path.getLast().getFirst());
-    }
-
-    int assertFailCnt = failingStates.size();
-    StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
-    for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
-      result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + "\"]" + "\n");
-      result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");
-
-      CFAEdge edge = current.getKey().getEdgeToChild(current.getValue());
-
-      if(failingStates.contains(current.getValue())) {
-        result.append(current.getKey().getStateId() + " [shape=diamond, style=filled, fillcolor=\"red\"]" + "\n");
-        result.append(current.getKey().getStateId() + " -> stop" + assertFailCnt + "\n");
-        result.append("stop" + assertFailCnt + " [shape=point]\n");
-        assertFailCnt--;
-      }
-
-      else if(edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-        result.append(current.getKey().getStateId() + " [shape=diamond]" + "\n");
-      }
-
-      assert (!current.getKey().isTarget());
-    }
-    result.append("}");
-
-    try {
-      Files.writeFile(Paths.get("output/itpPaths" + (invocationCounter++) + ".dot"), result.toString());
-    } catch (IOException e) {
-      throw new IllegalArgumentException();
-    }
-  }
-
-  /**
-   * This method creates a successor relation from the root to the target state.
-   *
-   * @param target the state to which the successor relation should be built.
-   * @return the successor relation from the root state to the given target state
-   */
-  private SetMultimap<ARGState, ARGState> buildSuccessorRelation(ARGState target) {
-    Deque<ARGState> todo = new ArrayDeque<>();
-    todo.add(target);
-    ARGState itpTreeRoot = null;
-
-    SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
-
-    // build the tree, bottom-up, starting from the target states
-    while (!todo.isEmpty()) {
-      final ARGState currentState = todo.removeFirst();
-
-      if (currentState.getParents().iterator().hasNext()) {
-        ARGState parentState = currentState.getParents().iterator().next();
-        todo.add(parentState);
-        successorRelation.put(parentState, currentState);
-
-      } else if (itpTreeRoot == null) {
-        itpTreeRoot = currentState;
-      }
-    }
-
-    return successorRelation;
-  }
-
-  public long obtainScoreForPrefixes(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
+  public int obtainScoreForPrefixes(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
     if (!classification.isPresent()) {
-      return Long.MAX_VALUE;
+      return Integer.MAX_VALUE;
     }
 
     MutableARGPath currentErrorPath = new MutableARGPath();
-    Long bestScore                  = Long.MAX_VALUE;
+    int bestScore = Integer.MAX_VALUE;
 
     for (ARGPath currentPrefix : pPrefixes) {
 
@@ -514,7 +428,7 @@ public class ErrorPathClassifier {
 
       Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
-      Long score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
+      int score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
