@@ -78,17 +78,18 @@ public class PolicyCPA
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
-    statistics = new PolicyIterationStatistics(config);
     TemplateManager templateManager = new TemplateManager(
         logger, config, cfa, formulaManager, pathFormulaManager);
     FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
         logger, formulaManager,
         realFormulaManager.getUnsafeFormulaManager(),
         realFormulaManager.getBooleanFormulaManager(), pathFormulaManager,
-        solver, statistics);
+        solver);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
             formulaManager, logger, templateManager);
+
+    statistics = new PolicyIterationStatistics(config, formulaSlicingManager);
 
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(

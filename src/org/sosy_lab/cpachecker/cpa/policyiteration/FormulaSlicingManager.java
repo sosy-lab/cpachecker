@@ -14,6 +14,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -39,7 +40,7 @@ public class FormulaSlicingManager {
   private final BooleanFormulaManager bfmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
-  private final PolicyIterationStatistics statistics;
+  private final Timer slicingTime = new Timer();
 
   private static final String NOT_FUNC_NAME = "not";
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
@@ -49,22 +50,24 @@ public class FormulaSlicingManager {
       UnsafeFormulaManager pUnsafeManager,
       BooleanFormulaManager pBfmgr,
       PathFormulaManager pPfmgr,
-      Solver pSolver,
-      PolicyIterationStatistics pStatistics) {
+      Solver pSolver) {
     logger = pLogger;
     fmgr = pFmgr;
     unsafeManager = pUnsafeManager;
     bfmgr = pBfmgr;
     pfmgr = pPfmgr;
     solver = pSolver;
-    statistics = pStatistics;
+  }
+
+  public Timer getSlicingTime() {
+    return slicingTime;
   }
 
   /**
    * @return Over-approximation of the formula {@code f} which deals only
    * with pointers.
    */
-  BooleanFormula pointerFormulaSlice(Location location, PathFormula pf)
+  public BooleanFormula pointerFormulaSlice(CFANode node, PathFormula pf)
       throws InterruptedException, CPATransferException {
     BooleanFormula f = pf.getFormula();
     SSAMap ssa = pf.getSsa();
@@ -105,7 +108,7 @@ public class FormulaSlicingManager {
     }
     BooleanFormula sliceRenamed = (BooleanFormula)unsafeManager.substitute(slice, renames);
 
-    if (isInductive(location.getFinalNode(), outVariables, intermediateVariables,
+    if (isInductive(node, outVariables, intermediateVariables,
         pf.updateFormula(sliceRenamed))) {
       return fmgr.simplify(sliceRenamed);
     } else {
@@ -246,12 +249,12 @@ public class FormulaSlicingManager {
     // Slice is inductive if {@code test} is unsatisfiable.
     boolean isInductive;
     try {
-      statistics.slicingTimer.start();
+      slicingTime.start();
       isInductive = solver.isUnsat(test);
     } catch (SolverException e) {
       throw new CPATransferException("Failed checking unsat", e);
     } finally {
-      statistics.slicingTimer.stop();
+      slicingTime.stop();
     }
     return isInductive;
   }
