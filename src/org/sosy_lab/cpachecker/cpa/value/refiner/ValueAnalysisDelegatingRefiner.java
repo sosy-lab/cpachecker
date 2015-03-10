@@ -29,7 +29,6 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -71,11 +70,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private ShutdownNotifier shutDownNotifier;
 
   /**
-   * refiner used for (optional) initial static refinement, based on information extracted solely from the CFA
-   */
-  private ValueAnalysisStaticRefiner staticRefiner;
-
-  /**
    * refiner used for value-analysis interpolation refinement
    */
   private ValueAnalysisRefiner valueRefiner;
@@ -84,12 +78,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
    * backup-refiner used for predicate refinement, when value-analysis refinement fails (due to lack of expressiveness)
    */
   private PredicateCPARefiner predicatingRefiner;
-
-  /**
-   * the flag to determine whether or not to check for repeated refinements
-   */
-  @Option(secure=true, description="whether or not to check for repeated refinements, to then reset the refinement root")
-  private boolean checkForRepeatedRefinements = true;
 
   private final CFA cfa;
 
@@ -199,7 +187,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     cfa = pCfa;
 
     valueRefiner = new ValueAnalysisRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    staticRefiner = new ValueAnalysisStaticRefiner(pConfig, pLogger);
 
     predicatingRefiner = pBackupRefiner;
   }
@@ -208,8 +195,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    boolean isRefined = staticRefiner.performRefinement(reached, pErrorPath)
-        || valueRefiner.performRefinement(reached);
+    boolean isRefined = valueRefiner.performRefinement(reached);
 
     if(isRefined) {
       return CounterexampleInfo.spurious();
