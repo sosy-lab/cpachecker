@@ -168,12 +168,24 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
 
     return solver.implies(otherRepresentingFormula, thisRepresentingFormula);*/
 
-    if (other.size() > constraints.size()) {
+    if (other.size() > size()) {
       return false;
     }
 
-    for (Constraint c : other) {
-      if (!constraints.contains(c)) {
+    if (other.definiteAssignment.size() > definiteAssignment.size()) {
+      return false;
+    }
+
+    if (!containsAll(other)) {
+      return false;
+    }
+
+    for (Map.Entry<SymbolicIdentifier, Value> e : other.definiteAssignment.entrySet()) {
+      if (!definiteAssignment.containsKey(e.getKey())) {
+        return false;
+      }
+
+      if (!definiteAssignment.get(e.getKey()).equals(e.getValue())) {
         return false;
       }
     }
@@ -382,7 +394,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
       throws SolverException, InterruptedException, UnrecognizedCCodeException {
 
     VariableMap freeVariables = new VariableMap(formulaManager.extractFreeVariableMap(pFormula));
-    BooleanFormula prohibitAssignment = solver.getFormulaManager()
+    BooleanFormula prohibitAssignment = formulaManager
                                        .makeNot(formulaCreator.transformAssignment(pTerm, termAssignment, freeVariables));
 
     prover.push(prohibitAssignment);
