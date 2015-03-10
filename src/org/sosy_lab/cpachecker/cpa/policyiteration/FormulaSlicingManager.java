@@ -42,7 +42,6 @@ public class FormulaSlicingManager {
   private final Solver solver;
   private final Timer slicingTime = new Timer();
 
-  private static final String NOT_FUNC_NAME = "not";
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
 
   public FormulaSlicingManager(LogManager pLogger,
@@ -79,8 +78,8 @@ public class FormulaSlicingManager {
       }
     });
     logger.log(Level.FINE, "Closure =", closure);
-    Formula slice = recSliceFormula(
-        f, ImmutableSet.copyOf(closure), false, new HashMap<Formula, Formula>());
+    BooleanFormula slice = recSliceFormula(
+        f, ImmutableSet.copyOf(closure), false, new HashMap<BooleanFormula, BooleanFormula>());
     logger.log(Level.FINE, "Produced =", slice);
 
     final String renamePrefix = "__SLICE_INTERMEDIATE_";
@@ -106,7 +105,7 @@ public class FormulaSlicingManager {
         outVariables.add(var);
       }
     }
-    BooleanFormula sliceRenamed = (BooleanFormula)unsafeManager.substitute(slice, renames);
+    BooleanFormula sliceRenamed = unsafeManager.substitute(slice, renames);
 
     if (isInductive(node, outVariables, intermediateVariables,
         pf.updateFormula(sliceRenamed))) {
@@ -144,12 +143,12 @@ public class FormulaSlicingManager {
    * Slice of the formula AST containing the variables in
    * {@code closure}
    */
-  private Formula recSliceFormula(
-      Formula f,
+  private BooleanFormula recSliceFormula(
+      BooleanFormula f,
       ImmutableSet<String> closure,
       boolean isInsideNot,
-      Map<Formula, Formula> memoization) throws InterruptedException {
-    Formula out = memoization.get(f);
+      Map<BooleanFormula, BooleanFormula> memoization) throws InterruptedException {
+    BooleanFormula out = memoization.get(f);
     if (out != null) {
       return out;
     }
@@ -180,13 +179,13 @@ public class FormulaSlicingManager {
     } else {
       int count = unsafeManager.getArity(f);
       List<Formula> newArgs = new ArrayList<>(count);
-      String name = unsafeManager.getName(f);
-      if (name.equals(NOT_FUNC_NAME)) {
+      if (bfmgr.isNot(f)) {
         isInsideNot = !isInsideNot;
       }
       for (int i=0; i<count; i++) {
         newArgs.add(recSliceFormula(
-                unsafeManager.getArg(f, i), closure, isInsideNot, memoization));
+            (BooleanFormula)unsafeManager.getArg(f, i),
+            closure, isInsideNot, memoization));
       }
       out = unsafeManager.replaceArgs(f, newArgs);
     }
