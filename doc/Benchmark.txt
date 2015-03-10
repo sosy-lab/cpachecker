@@ -1,14 +1,17 @@
 Benchmarking CPAchecker
 =======================
 
-For benchmarking, it is recommended to use scripts/benchmark.py.
-This script should run with any Python version >= 2.7.
-This script takes as input one or more XML files which specifiy the tool,
+For benchmarking, it is recommended to use BenchExec (https://github.com/dbeyer/benchexec).
+An extended version of BenchExec is bundled with CPAchecker
+and usable by calling scripts/benchmark.py.
+This script should run with any Python version >= 3.2.
+This script takes as input one or more XML files which specify the tool,
 the resource limits, the tool configuration, the input programs
 and the columns that should appear in the output table.
-The scripts puts all the results into the test/results/ directory.
-Commented examples for these XML files are given in
-doc/examples/benchmark*.xml.
+The script puts all the results into the test/results/ directory.
+Commented examples for these XML files are given in the BenchExec documentation
+(https://github.com/dbeyer/benchexec/tree/master/doc)
+and in doc/examples/benchmark*.xml.
 The file doc/examples/benchmark-cpachecker.xml can be used as base for own benchmarks.
 Several useful benchmark configurations are in test/test-sets/*.xml.
 
@@ -43,21 +46,11 @@ the time and memory limits.
 
 - CPU Time
   Firstly, in order to get statistics even in case of a timeout,
-  it is important to use CPAchecker's internal time limit.
-  This can be specified with the "-timelimit" command-line argument
-  or the "limits.time.cpu" option. Example:
-  <option name="-timelimit">900s</option>
-
-  Secondly, it is also important to specify the timelimit a second time
-  such that the benchmark script knows how to interpret the results,
-  and to kill CPAchecker in case the internal timelimit fails.
-  This is done with the "timelimit" and the "hardtimelimit" arguments
-  to the <benchmark> tag.
-  The former should have the same value as CPAchecker's internal limit,
-  and the latter should be somewhat higher in order to allow a clean shutdown
-  and printing of statistics before CPAchecker is killed.
-  Both values are specified in seconds.
-  <benchmark ... timelimit="900" hardtimelimit="1000">
+  is is important to specify different "soft" and "hard" CPU-time limits
+  like in this example:
+  <benchmark timelimit="900" hardtimelimit="1000" ...
+  The soft time limit is automatically passed as parameter to CPAchecker,
+  so there is no need to specify the -timelimit option manually.
 
 - Memory
   The memory limit is specified in Megabytes
@@ -89,7 +82,6 @@ Then specify them as follows:
 
 <benchmark ... timelimit="900" hardtimelimit="1000" memlimit="8000">
   <option name="-heap">7000M</option>
-  <option name="-timelimit">900s</option>
   ...
 </benchmark>
 
@@ -116,9 +108,10 @@ This can be done by adding the command-line argument -disable-java-assertions.
 Result Table Generation
 -----------------------
 In order to combine the results from several benchmark runs into
-a single table the script scripts/table-generator.xml can be used.
-It also takes an XML file as input that gives the table configuration.
-An example for such a file is docs/examples/table-generator.xml.
+a single table the script scripts/table-generator.py can be used.
+It also takes an XML file as input that gives the table configuration
+and is described in the table-generator documentation:
+https://github.com/dbeyer/benchexec/blob/master/doc/table-generator.md
 The output will be tables in HTML and CSV format,
 the former having some additional features like showing the log files
 and being able to plot the results.
