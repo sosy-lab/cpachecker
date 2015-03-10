@@ -314,7 +314,7 @@ public class CFASecondPassBuilder {
 
     CExpression assumeExp = (CExpression)f.getParameterExpressions().get(0);
 
-    if (!(assumeExp instanceof CBinaryExpression && !((CBinaryExpression)assumeExp).getOperator().isLogicalOperator())) {
+    if (!(assumeExp instanceof CBinaryExpression && ((CBinaryExpression)assumeExp).getOperator().isLogicalOperator())) {
       assumeExp = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
                       .buildBinaryExpressionUnchecked(assumeExp,
                                                       CIntegerLiteralExpression.ZERO,
