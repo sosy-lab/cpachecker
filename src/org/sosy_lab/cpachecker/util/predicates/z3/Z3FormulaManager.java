@@ -70,6 +70,9 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   String objectivePrioritizationMode = "box";
 
   private final Z3SmtLogger z3smtLogger;
+
+  // Pointer from class is needed to avoid GC claiming this listener.
+  private final ShutdownNotifier.ShutdownRequestListener interruptListener;
   private Z3AstMatcher z3astMatcher;
 
   private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
@@ -96,7 +99,10 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3BitvectorFormulaManager pBitpreciseManager,
       Z3QuantifiedFormulaManager pQuantifiedManager,
       Z3ArrayFormulaManager pArrayManager,
-      Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
+      Z3SmtLogger smtLogger, Configuration config,
+      ShutdownNotifier.ShutdownRequestListener pInterruptListener,
+      ShutdownNotifier pShutdownNotifier) throws
+        InvalidConfigurationException {
 
     super(pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager,
         pIntegerManager, pRationalManager, pBitpreciseManager, null, pQuantifiedManager, pArrayManager);
@@ -104,6 +110,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     config.inject(this);
     this.z3smtLogger = smtLogger;
     this.z3astMatcher = new Z3AstMatcher(this);
+    interruptListener = pInterruptListener;
+    pShutdownNotifier.register(interruptListener);
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger,
@@ -133,7 +141,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     }
 
     long cfg = mk_config();
-    set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
+    set_param_value(cfg, "MODEL", "true");
 
     if (extraOptions.requireProofs) {
       set_param_value(cfg, "PROOF", "true");
@@ -141,14 +149,13 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     // TODO add some other params, memory-limit?
     final long context = mk_context_rc(cfg);
-    pShutdownNotifier.register(
+    ShutdownNotifier.ShutdownRequestListener interruptListener =
         new ShutdownNotifier.ShutdownRequestListener() {
           @Override
           public void shutdownRequested(String reason) {
             interrupt(context);
           }
-        }
-    );
+        };
     del_config(cfg);
 
     long boolSort = mk_bool_sort(context);
@@ -193,7 +200,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
         creator,
         unsafeManager, functionTheory, booleanTheory,
         integerTheory, rationalTheory, bitvectorTheory, quantifierManager, arrayManager,
-        smtLogger, config);
+        smtLogger, config, interruptListener, pShutdownNotifier);
   }
 
   @Override

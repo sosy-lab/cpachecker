@@ -238,6 +238,13 @@ public final class Z3NativeApi {
   public static native void dec_ref(long context, long ast);
   public static native void update_param_value(long context, String param_id, String param_value);
   public static native boolean get_param_value(long context, String param_id, PointerToString param_value);
+
+  /**
+   * Interrupt the execution of a Z3 procedure.
+   * This procedure can be used to interrupt: solvers, simplifiers and tactics.
+   *
+   * @param context Z3_context
+   */
   public static native void interrupt(long context);
 
 
