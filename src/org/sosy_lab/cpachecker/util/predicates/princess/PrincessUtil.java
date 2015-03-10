@@ -236,7 +236,7 @@ class PrincessUtil {
         // this is a real variable we can skip here
         continue;
 
-      } else if (isUIF(t) && !uifs.add(((IFunApp)t).fun())) {
+      } else if (isUIF(t) && uifs.add(((IFunApp)t).fun())) {
         result.add(t);
       }
 
