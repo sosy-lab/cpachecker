@@ -36,6 +36,7 @@
       <exclude>../programs/ldv-benchmarks/unsafes/129_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-129_1a-fs--nilfs2--nilfs2.ko-ldv_main10_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--scsi--scsi_mod.ko-ldv_main13_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--staging--media--lirc--lirc_imon.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--scsi--mpt2sas--mpt2sas.ko-ldv_main3_false-unreach-label.cil.out.c</exclude>
     </sourcefiles>
   </rundefinition>
 </benchmark>
