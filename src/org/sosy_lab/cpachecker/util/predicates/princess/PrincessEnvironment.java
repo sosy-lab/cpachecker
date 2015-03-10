@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +49,7 @@ import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
 import ap.parser.IAtom;
+import ap.parser.IConstant;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
@@ -176,39 +175,31 @@ class PrincessEnvironment {
 
       @Override
       public void appendTo(Appendable out) throws IOException {
-        Set<IExpression> seen = new HashSet<>();
-        Set<IAtom> declaredFunctions = new HashSet<>();
-        Deque<IExpression> todo = new ArrayDeque<>();
+        Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(formula));
 
-        todo.addLast(formula);
+        for (IExpression var : declaredFunctions) {
+          out.append("(declare-fun ");
+          out.append(getName(var));
 
-        while(!todo.isEmpty()) {
-          IExpression exp = todo.removeLast();
-          Iterator<IExpression> it = JavaConversions.asJavaIterator(exp.iterator());
-          while (it.hasNext()) {
-            IExpression subExpr = it.next();
-            if (seen.add(subExpr)) {
-              if (subExpr instanceof IAtom) {
-                declaredFunctions.add((IAtom) subExpr);
+          // function parameters
+          out.append(" (");
+          if (var instanceof IFunApp) {
+            IFunApp function = (IFunApp) var;
+            Iterator<ITerm> args = JavaConversions.asJavaIterable(function.args()).iterator();
+            while (args.hasNext()) {
+              args.next();
+              // Princess does only support IntegerFormulas in UIFs we don't need
+              // to check the type here separately
+              if (args.hasNext()) {
+                out.append("Int ");
               } else {
-                todo.addLast(subExpr);
+                out.append("Int");
               }
             }
           }
-        }
 
-        for (IAtom var : declaredFunctions) {
-          out.append("(declare-fun ");
-          out.append(var.pred().name());
-          out.append(" (");
-          Iterator<ITerm> args = JavaConversions.asJavaIterable(var.args()).iterator();
-          while (args.hasNext()) {
-            ITerm arg = args.next();
-            out.append(getType(arg.toString()));
-            out.append(" ");
-          }
           out.append(") ");
-          out.append(getType(var.pred().name()));
+          out.append(getType(var));
           out.append(")\n");
         }
 
@@ -219,14 +210,29 @@ class PrincessEnvironment {
     };
   }
 
-  private String getType(String name) {
-    if (boolVariablesCache.containsKey(name)) {
-      return "Bool";
-    } else if (intVariablesCache.containsKey(name)) {
-      return "Int";
-    } else {
-      throw new AssertionError(" should not occur");
+  private String getName(IExpression var) {
+    if (var instanceof IAtom) {
+      return ((IAtom) var).pred().name();
+    } else if (var instanceof IConstant) {
+      return ((IConstant)var).toString();
+    } else if (var instanceof IFunApp) {
+      String fullStr = ((IFunApp)var).fun().toString();
+      return fullStr.substring(0, fullStr.indexOf("/"));
     }
+
+    throw new IllegalArgumentException("The given parameter is no variable or function");
+  }
+
+  private String getType(IExpression var) {
+    if (var instanceof IFormula) {
+      return "Bool";
+
+      // functions are included here, they cannot be handled separate for princess
+    } else if (var instanceof ITerm) {
+      return "Int";
+    }
+
+    throw new IllegalArgumentException("The given parameter is no variable or function");
   }
 
   public IExpression makeVariable(TermType type, String varname) {
