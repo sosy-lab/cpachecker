@@ -609,10 +609,11 @@ public final class InterpolationManager {
                                .transform(new Function<String, String>() {
                                   @Override
                                   public String apply(String pInput) {
-                                    // we want only variables to be in our map
-                                    // and ignore everything without SSA index
-                                    if (pInput.contains("@")) {
-                                      return pInput.substring(0, pInput.indexOf("@"));
+                                    Pair<String, Integer> name = FormulaManagerView.parseName(pInput);
+
+                                   // we want only variables to be in our set, and ignore everything without SSA index
+                                    if (name.getSecond() != null) {
+                                      return name.getFirst();
                                     } else {
                                       return null;
                                     }
