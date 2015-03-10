@@ -59,6 +59,7 @@ public class ErrorPathClassifier {
   private static final int UNKNOWN_VAR   = 16;
 
   private static final int MAX_PREFIX_LENGTH = 1000;
+  private static final int MAX_PREFIX_NUMBER = 1000;
 
   public static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this edge in suffix";
   private static final String PREFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in prefix";
@@ -209,7 +210,7 @@ public class ErrorPathClassifier {
     Long bestScore                  = null;
     int bestIndex                   = 0;
 
-    for (ARGPath currentPrefix : pPrefixes) {
+    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
       assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(pathToList(currentPrefix));
@@ -236,7 +237,7 @@ public class ErrorPathClassifier {
     Long bestScore                  = null;
     int bestIndex                   = 0;
 
-    for (ARGPath currentPrefix : pPrefixes) {
+    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
       assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(pathToList(currentPrefix));
@@ -283,6 +284,32 @@ public class ErrorPathClassifier {
     }
 
     return buildPath(index, pPrefixes, originalErrorPath);
+  }
+
+
+  /**
+   * This method limits the number of prefixes to analyze (in case it is ridiculously high)
+   */
+  private List<ARGPath> limitNumberOfPrefixesToAnalyze(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
+
+    switch (preference) {
+
+    case DOMAIN_BEST_BOUNDED:
+    case DOMAIN_BEST_SHALLOW:
+    case DOMAIN_WORST_SHALLOW:
+    case REFINE_SHALLOW:
+      return pPrefixes.subList(0, MAX_PREFIX_NUMBER);
+
+    case DOMAIN_BEST_DEEP:
+    case DOMAIN_WORST_DEEP:
+    case REFINE_DEEP:
+      return pPrefixes.subList(Math.max(0, pPrefixes.size() - MAX_PREFIX_NUMBER - 1), pPrefixes.size() - 1);
+
+    default:
+      assert (false) : "No need to filter for " + preference;
+    }
+
+    return pPrefixes;
   }
 
   private Set<String> obtainUseDefInformationOfErrorPath(MutableARGPath currentErrorPath) {
