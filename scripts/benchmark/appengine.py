@@ -48,6 +48,8 @@ APPENGINE_SETTINGS = {} # these will be fetched from the server
 
 STOPPED_BY_INTERRUPT = False
 
+FAKE_APPENGINE_EXECUTABLE = '/fake_appengine_executable' # BenchExec needs some file name as executable
+
 def init(config, benchmark):
     # settings must be retrieved here to set the correct tool version
     uri = benchmark.config.appengineURI + '/settings'
@@ -62,7 +64,7 @@ def init(config, benchmark):
         benchmark.tool_version = response['cpacheckerVersion'] \
                                         .split('(')[0] \
                                         .strip()
-        benchmark.executable = ''
+        benchmark.executable = FAKE_APPENGINE_EXECUTABLE
 
         logging.debug('Settings were successfully retrieved.')
     except urllib2.URLError as e:
@@ -136,7 +138,9 @@ def _getBenchmarkDataForAppEngine(benchmark):
 
         for run in runSet.runs:
             if STOPPED_BY_INTERRUPT: break
-            args = {'commandline':' '.join(run.cmdline()), 'programName':run.identifier}
+            cmdline = run.cmdline()
+            assert cmdline[0] == FAKE_APPENGINE_EXECUTABLE
+            args = {'commandline':' '.join(cmdline[1:]), 'programName':run.identifier}
             try:
                 with open(run.propertyfile, 'r') as f:
                     args['properties'] = f.read()
