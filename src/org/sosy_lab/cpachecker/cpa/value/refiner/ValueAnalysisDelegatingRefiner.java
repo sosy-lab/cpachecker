@@ -170,30 +170,22 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     int paScore = 1;
 
     if (useRefinementSelection) {
-      List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
-
-      vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
-      this.avgPrefixesVA.setNextValue(vaPrefixes.size());
-      this.avgScoreVA.setNextValue(vaScore);
-
-
-      List<ARGPath> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
-
-      paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
-      this.avgPrefixesPA.setNextValue(paPrefixes.size());
-      this.avgScorePA.setNextValue(paScore);
+      vaScore = obtainScoreForValueDomain(pErrorPath);
+      paScore = obtainScoreForPredicateDomain(pErrorPath);
     }
 
     CounterexampleInfo cex;
 
     if (vaScore <= paScore) {
       cex = valueCpaRefiner.performRefinement(reached);
+
       if(cex.isSpurious()) {
         totalVaRefinements.inc();
       }
 
       else {
         cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
+
         if(cex.isSpurious()) {
           totalPaRefinementsExtra.inc();
         }
@@ -202,12 +194,14 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     else {
       cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
+
       if (cex.isSpurious()) {
         totalPaRefinements.inc();
       }
 
       else {
         cex = valueCpaRefiner.performRefinement(reached);
+
         if (cex.isSpurious()) {
           totalVaRefinementsExtra.inc();
         }
@@ -215,6 +209,26 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     }
 
     return cex;
+  }
+
+  private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
+    int paScore;
+    List<ARGPath> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
+    this.avgPrefixesPA.setNextValue(paPrefixes.size());
+
+    paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    this.avgScorePA.setNextValue(paScore);
+    return paScore;
+  }
+
+  private int obtainScoreForValueDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
+    int vaScore;
+    List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+    this.avgPrefixesVA.setNextValue(vaPrefixes.size());
+
+    vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    this.avgScoreVA.setNextValue(vaScore);
+    return vaScore;
   }
 
   private List<ARGPath> getPrefixesOfValueDomain(final ARGPath pErrorPath)
