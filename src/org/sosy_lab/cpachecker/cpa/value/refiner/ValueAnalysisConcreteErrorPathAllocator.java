@@ -89,6 +89,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
+  private final MachineModel machineModel;
+
   private MemoryName memoryName = new MemoryName() {
 
     @Override
@@ -97,9 +99,12 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
   };
 
-  public ValueAnalysisConcreteErrorPathAllocator(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+  public ValueAnalysisConcreteErrorPathAllocator(LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    machineModel = pMachineModel;
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
@@ -123,7 +128,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath, MachineModel pMachineModel)
+  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath)
       throws InterruptedException {
 
     pPath.remove(pPath.size() - 1);
@@ -131,7 +136,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
 
     CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath, logger, pMachineModel);
+        CFAPathWithAssumptions.of(concreteStatePath, logger, machineModel);
 
     Model model = Model.empty();
 

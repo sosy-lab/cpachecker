@@ -212,8 +212,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   /**
    * This utility method checks if the given path is feasible.
    */
-  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException,
-      InterruptedException {
+  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException, InterruptedException {
     try {
        return new ValueAnalysisFeasibilityChecker(logger, cfa, config).isFeasible(slicedErrorPathPrefix);
     } catch (InvalidConfigurationException e) {
@@ -222,7 +221,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   }
 
   /**
-   * This method removes, i.e., slices further edges from the error path (prefix).
+   * This method removes further edges from the error path (prefix).
    */
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY", cfa.getVarClassification()).obtainInterpolants(errorPathPrefix);

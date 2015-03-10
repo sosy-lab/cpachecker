@@ -331,7 +331,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
 
     ValueAnalysisConcreteErrorPathAllocator alloc =
-        new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier);
+        new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier, cfa.getMachineModel());
     return alloc.allocateAssignmentsToPath(pPath);
   }
 }

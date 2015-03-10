@@ -137,8 +137,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
                                     valueAnalysisCpa.getCFA(),
                                     argCpa);
 
-    valueAnalysisCpa.getStats().addRefiner(refiner);
-
     return refiner;
   }
 
