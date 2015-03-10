@@ -130,6 +130,31 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     public String getOperator() {
       return op;
     }
+
+    public boolean isLogicalOperator() {
+      switch (this) {
+      case MULTIPLY:
+      case DIVIDE:
+      case MODULO:
+      case PLUS:
+      case MINUS:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+        return false;
+      case LESS_EQUAL:
+      case LESS_THAN:
+      case GREATER_EQUAL:
+      case GREATER_THAN:
+      case EQUALS:
+      case NOT_EQUALS:
+        return true;
+      default:
+        throw new AssertionError("Unhandled case statement");
+      }
+    }
   }
 
   @Override
