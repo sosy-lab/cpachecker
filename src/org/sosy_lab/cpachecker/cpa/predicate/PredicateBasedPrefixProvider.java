@@ -45,6 +45,7 @@ import com.google.common.collect.Lists;
 
 public class PredicateBasedPrefixProvider implements PrefixProvider {
   private final LogManager logger;
+
   private final Solver solver;
 
   private final PathFormulaManager pathFormulaManager;
