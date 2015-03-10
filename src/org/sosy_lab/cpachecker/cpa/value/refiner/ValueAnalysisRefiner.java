@@ -504,6 +504,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
         }
       }
 
+      logger.log(Level.FINEST, "found a feasible counterexample");
       return CounterexampleInfo.feasible(feasiblePath, createModel(feasiblePath));
     }
 
@@ -512,13 +513,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   boolean isErrorPathFeasible(final ARGPath errorPath)
       throws CPAException, InterruptedException {
-    if (checker.isFeasible(errorPath)) {
-      logger.log(Level.FINEST, "found a feasible cex - returning from refinement");
-
-      return true;
-    }
-
-    return false;
+    return checker.isFeasible(errorPath);
   }
 
   /**
