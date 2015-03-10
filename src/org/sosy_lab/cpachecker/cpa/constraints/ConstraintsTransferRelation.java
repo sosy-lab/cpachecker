@@ -347,7 +347,6 @@ public class ConstraintsTransferRelation
    * meaning as the <code>Collection</code> returned by {@link #strengthen(AbstractState, List, CFAEdge, Precision)}.
    *
    * @param pStateToStrengthen the state to strengthen
-   * @param pStrengtheningState the state used for strengthening the given <code>ConstraintsState</code>
    * @param pCfaEdge the current {@link CFAEdge} we are at
    *
    * @return an empty <code>Optional</code> instance, if <code>pStateToStrengthen</code> was not changed after
