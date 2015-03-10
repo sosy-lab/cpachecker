@@ -77,17 +77,15 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     @Override
     protected boolean isToAdd(final ARGState pNode) {
       boolean isToAdd = super.isToAdd(pNode);
-      if (!isToAdd) {
+      if (!isToAdd && !pNode.isCovered()) {
         if (handlePredicateStates) {
           isToAdd = isPredicateAbstractionState(pNode);
         } else {
-          if (!pNode.isCovered()) {
-            for (ARGState parent : pNode.getParents()) {
-              if (!isTransferSuccessor(parent, pNode)) {
-                isToAdd = true;
-              }
-              break;
+          for (ARGState parent : pNode.getParents()) {
+            if (!isTransferSuccessor(parent, pNode)) {
+              isToAdd = true;
             }
+            break;
           }
         }
       }
