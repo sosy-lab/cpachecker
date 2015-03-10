@@ -604,6 +604,7 @@ public final class InterpolationManager {
     } else if (direction == CexTraceAnalysisDirection.LOWEST_AVG_SCORE) {
       Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
 
+      int trCounter = 0;
       for (BooleanFormula formula : traceFormulas) {
         Set<String> varNames = from(fmgr.extractVariableNames(formula))
                                .transform(new Function<String, String>() {
@@ -621,7 +622,9 @@ public final class InterpolationManager {
                                .filter(Predicates.notNull())
                                .toSet();
 
-        sortedFormulas.put(getAVGScoreForVariables(varNames), traceFormulas.indexOf(formula));
+        if (!sortedFormulas.put(getAVGScoreForVariables(varNames), trCounter++)) {
+          throw new AssertionError("Bug in creation of sorted formulas.");
+        }
       }
 
       int counter = 0;
