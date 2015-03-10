@@ -26,8 +26,12 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -45,18 +49,18 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.collect.ForwardingList;
+import com.google.common.collect.Lists;
 
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState extends ForwardingList<Constraint> implements LatticeAbstractState<ConstraintsState> {
+public class ConstraintsState implements LatticeAbstractState<ConstraintsState>, Set<Constraint> {
 
   /**
    * Stores identifiers and their corresponding constraints
    */
   private List<Constraint> constraints;
-  private List<BooleanFormula> constraintFormulas;
+  private Map<Constraint, BooleanFormula> constraintFormulas;
 
   private Solver solver;
   private ProverEnvironment prover;
@@ -70,7 +74,7 @@ public class ConstraintsState extends ForwardingList<Constraint> implements Latt
    */
   public ConstraintsState() {
     constraints = new ArrayList<>();
-    constraintFormulas = new ArrayList<>();
+    constraintFormulas = new HashMap<>();
   }
 
   /**
@@ -86,18 +90,13 @@ public class ConstraintsState extends ForwardingList<Constraint> implements Latt
    */
   protected ConstraintsState(ConstraintsState pState) {
     constraints = new ArrayList<>(pState.constraints);
-    constraintFormulas = new ArrayList<>(pState.constraintFormulas);
+    constraintFormulas = new HashMap<>(pState.constraintFormulas);
     solver = pState.solver;
     prover = pState.prover;
     formulaCreator = pState.formulaCreator;
     formulaManager = pState.formulaManager;
 
     definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
-  }
-
-  @Override
-  protected List<Constraint> delegate() {
-    return constraints;
   }
 
   /**
@@ -189,10 +188,86 @@ public class ConstraintsState extends ForwardingList<Constraint> implements Latt
    * @return <code>true</code> if this state did not already contain the given <code>Constraint</code>,
    *    <code>false</code> otherwise
    */
-  @Override
   public boolean add(Constraint pConstraint) {
     checkNotNull(pConstraint);
-    return super.add(pConstraint);
+
+    return !constraints.contains(pConstraint) && constraints.add(pConstraint);
+  }
+
+  @Override
+  public boolean remove(Object pObject) {
+    boolean changed = constraints.remove(pObject);
+
+    if (changed) {
+      constraintFormulas.remove(pObject);
+      assert constraints.size() >= constraintFormulas.size();
+
+    }
+
+    return changed;
+  }
+
+  @Override
+  public boolean containsAll(Collection<?> pCollection) {
+    return constraints.containsAll(pCollection);
+  }
+
+  @Override
+  public boolean addAll(Collection<? extends Constraint> pCollection) {
+    boolean changed = false;
+    for (Constraint c : pCollection) {
+      changed |= add(c);
+    }
+
+    return changed;
+  }
+
+  @Override
+  public boolean retainAll(Collection<?> pCollection) {
+    List<Constraint> constraintsCopy = new ArrayList<>(constraints);
+    boolean changed = false;
+
+    for (Constraint c : constraintsCopy) {
+      if (!pCollection.contains(c)) {
+        changed |= remove(c);
+      }
+    }
+
+    assert constraints.size() >= constraintFormulas.size();
+    return changed;
+  }
+
+  @Override
+  public boolean removeAll(Collection<?> pCollection) {
+    boolean changed = false;
+
+    for (Object o : pCollection) {
+      changed |= remove(o);
+    }
+    
+    assert constraints.size() >= constraintFormulas.size();
+    return changed;
+  }
+
+  @Override
+  public void clear() {
+    constraints.clear();
+    constraintFormulas.clear();
+  }
+
+  @Override
+  public int size() {
+    return constraints.size();
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return constraints.isEmpty();
+  }
+
+  @Override
+  public boolean contains(Object o) {
+    return constraints.contains(o);
   }
 
   /**
@@ -352,19 +427,25 @@ public class ConstraintsState extends ForwardingList<Constraint> implements Latt
   private BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
     createMissingConstraintFormulas();
 
-    return formulaManager.getBooleanFormulaManager().and(constraintFormulas);
+    return formulaManager.getBooleanFormulaManager().and(Lists.newArrayList(constraintFormulas.values()));
   }
 
   private void createMissingConstraintFormulas() throws UnrecognizedCCodeException, InterruptedException {
+    assert constraints.size() >= constraintFormulas.size()
+        : "More formulas than constraints!";
+
     int missingConstraints = constraints.size() - constraintFormulas.size();
 
-    for (int i = constraints.size() - missingConstraints; i >= 0 && i < constraints.size(); i++) {
+    for (int i = constraints.size() - missingConstraints; i < constraints.size(); i++) {
       Constraint newConstraint = constraints.get(i);
+      assert !constraintFormulas.containsKey(newConstraint)
+          : "Trying to add a formula that already exists!";
 
-      constraintFormulas.add(formulaCreator.createFormula(newConstraint));
+      constraintFormulas.put(newConstraint, formulaCreator.createFormula(newConstraint));
     }
 
-    assert constraints.size() == constraintFormulas.size();
+    assert constraints.size() == constraintFormulas.size()
+        : "More constraints than formulas!";
   }
 
   @Override
@@ -378,5 +459,44 @@ public class ConstraintsState extends ForwardingList<Constraint> implements Latt
     }
 
     return sb.append("] size->  ").append(constraints.size()).toString();
+  }
+
+  @Override
+  public Iterator<Constraint> iterator() {
+    return new ConstraintIterator();
+  }
+
+  @Override
+  public Object[] toArray() {
+    return new Object[0];
+  }
+
+  @Override
+  public <T> T[] toArray(T[] pTs) {
+    return null;
+  }
+
+  private class ConstraintIterator implements Iterator<Constraint> {
+
+    private int index = -1;
+
+    @Override
+    public boolean hasNext() {
+      return constraints.size() - 1 > index;
+    }
+
+    @Override
+    public Constraint next() {
+      index++;
+      return constraints.get(index);
+    }
+
+    @Override
+    public void remove() {
+      Constraint constraintToRemove = constraints.get(index);
+
+      constraints.remove(index);
+      constraintFormulas.remove(constraintToRemove);
+    }
   }
 }
