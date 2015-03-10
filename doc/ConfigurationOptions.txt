@@ -330,6 +330,9 @@ cegar.globalRefinement = false
 # omitted.
 cegar.refiner = no default value
 
+# whether or not to use refinement selection to decide which domain to refine
+cegar.useRefinementSelection = false
+
 # Allow then/else branches to be swapped in order to obtain simpler
 # conditions.
 cfa.allowBranchSwapping = true
@@ -1700,10 +1703,6 @@ cpa.value.refiner.pathSlicing = false
 # whether to perform (more precise) edge-based interpolation or (more
 # efficient) path-based interpolation
 cpa.value.refiner.performEdgeBasedInterpolation = true
-
-# use heuristic to extract a precision from the CFA statically on first
-# refinement
-cpa.value.refiner.performStaticRefinement = no default value
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
