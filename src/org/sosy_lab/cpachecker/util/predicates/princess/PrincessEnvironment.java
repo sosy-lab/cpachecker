@@ -23,13 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,9 +46,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
+import scala.collection.JavaConversions;
 import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
+import ap.parser.IAtom;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
@@ -159,6 +169,64 @@ class PrincessEnvironment {
 
   public List<IExpression> parseStringToTerms(String s) {
     throw new UnsupportedOperationException(); // todo: implement this
+  }
+
+  public Appender dumpFormula(final IExpression formula) {
+    return new Appenders.AbstractAppender() {
+
+      @Override
+      public void appendTo(Appendable out) throws IOException {
+        Set<IExpression> seen = new HashSet<>();
+        Set<IAtom> declaredFunctions = new HashSet<>();
+        Deque<IExpression> todo = new ArrayDeque<>();
+
+        todo.addLast(formula);
+
+        while(!todo.isEmpty()) {
+          IExpression exp = todo.removeLast();
+          Iterator<IExpression> it = JavaConversions.asJavaIterator(exp.iterator());
+          while (it.hasNext()) {
+            IExpression subExpr = it.next();
+            if (seen.add(subExpr)) {
+              if (subExpr instanceof IAtom) {
+                declaredFunctions.add((IAtom) subExpr);
+              } else {
+                todo.addLast(subExpr);
+              }
+            }
+          }
+        }
+
+        for (IAtom var : declaredFunctions) {
+          out.append("(declare-fun ");
+          out.append(var.pred().name());
+          out.append(" (");
+          Iterator<ITerm> args = JavaConversions.asJavaIterable(var.args()).iterator();
+          while (args.hasNext()) {
+            ITerm arg = args.next();
+            out.append(getType(arg.toString()));
+            out.append(" ");
+          }
+          out.append(") ");
+          out.append(getType(var.pred().name()));
+          out.append(")\n");
+        }
+
+        out.append("(assert ");
+        out.append(formula.toString());
+        out.append(")");
+      }
+    };
+  }
+
+  private String getType(String name) {
+    if (boolVariablesCache.containsKey(name)) {
+      return "Bool";
+    } else if (intVariablesCache.containsKey(name)) {
+      return "Int";
+    } else {
+      throw new AssertionError(" should not occur");
+    }
   }
 
   public IExpression makeVariable(TermType type, String varname) {

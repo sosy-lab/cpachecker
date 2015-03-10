@@ -119,8 +119,6 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
   @Test
   public void varDumpTest() {
-    assume().withFailureMessage("Solver does not consistently declare variables yet.")
-        .that(solver).isNotEqualTo(Solvers.PRINCESS);
     BooleanFormula a = bmgr.makeVariable("a");
     BooleanFormula b = bmgr.makeVariable("b");
     BooleanFormula c1 = bmgr.xor(a, b);
@@ -136,8 +134,6 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
   @Test
   public void varDumpTest2() {
-    assume().withFailureMessage("Solver does not consistently declare variables yet.")
-        .that(solver).isNotEqualTo(Solvers.PRINCESS);
     //always true
     BooleanFormula a = bmgr.makeVariable("a");
     BooleanFormula b = bmgr.makeVariable("b");
