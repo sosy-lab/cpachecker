@@ -69,6 +69,11 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private boolean useRefinementSelection = false;
 
   /**
+   * classifier used to score sliced prefixes
+   */
+  private final ErrorPathClassifier classfier;
+
+  /**
    * refiner used for value-analysis refinement
    */
   private ValueAnalysisRefiner valueCpaRefiner;
@@ -87,9 +92,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
    * prefix provider used for predicate-analysis refinement
    */
   private PrefixProvider predicateCpaPrefixProvider;
-
-  private final CFA cfa;
-
 
   StatCounter totalVaRefinements  = new StatCounter("Number of VA refinements");
   StatInt avgPrefixesVA           = new StatInt(StatKind.AVG, "Avg. number of VA-prefixes");
@@ -151,7 +153,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     super(pCpa);
     pConfig.inject(this);
 
-    cfa = pCfa;
+    classfier = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
 
     valueCpaRefiner         = pValueRefiner;
     valueCpaPrefixProvider  = pValueCpaPrefixProvider;
@@ -168,14 +170,15 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     int paScore = 1;
 
     if (useRefinementSelection) {
-      ErrorPathClassifier classfier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
-
       List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+
       vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
       this.avgPrefixesVA.setNextValue(vaPrefixes.size());
       this.avgScoreVA.setNextValue(vaScore);
 
+
       List<ARGPath> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
+
       paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
       this.avgPrefixesPA.setNextValue(paPrefixes.size());
       this.avgScorePA.setNextValue(paScore);
