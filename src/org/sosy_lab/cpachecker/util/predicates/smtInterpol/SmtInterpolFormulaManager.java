@@ -146,9 +146,13 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
               out.append("(declare-fun ");
               out.append(PrintTerm.quoteIdentifier(func.getName()));
               out.append(" (");
+              int counter = 0;
               for (Sort paramSort : func.getParameterSorts()) {
                 termPrinter.append(out, paramSort);
-                out.append(' ');
+
+                if (++counter < func.getParameterSorts().length) {
+                  out.append(' ');
+                }
               }
               out.append(") ");
               termPrinter.append(out, func.getReturnSort());
