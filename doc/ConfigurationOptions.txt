@@ -1222,6 +1222,10 @@ cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
 
+# defines how to handle feasible assume edges during path slicing
+cpa.predicate.refinement.handleFeasibleAssumeEdges = "NONE"
+  allowed values: [NONE, EQUALITY, ALL]
+
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
@@ -1578,6 +1582,9 @@ cpa.stator.policy.encodeTemplatesAsRationals = false
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = Rational.ONE
 
+# Remove redundant constraints from the value determination problem
+cpa.stator.policy.filterValueDeterminationConstraints = true
+
 # Perform formula slicing after abstractions to propagate the pointer
 # information
 cpa.stator.policy.formulaSlicing = true
@@ -1596,6 +1603,9 @@ cpa.stator.policy.generateUpperBound = true
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
+
+# Run naive value determination first, switch to namespaced if it fails.
+cpa.stator.policy.runHopefulValueDetermination = true
 
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true
@@ -1681,10 +1691,6 @@ cpa.value.refinement.useGlobalPrecision = false
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
 
-# whether or not to check for repeated refinements, to then reset the
-# refinement root
-cpa.value.refiner.checkForRepeatedRefinements = true
-
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
@@ -1697,7 +1703,7 @@ cpa.value.refiner.performEdgeBasedInterpolation = true
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
-cpa.value.refiner.performStaticRefinement = false
+cpa.value.refiner.performStaticRefinement = no default value
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
@@ -1710,13 +1716,15 @@ cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
-# enables generation of symbolic values
-cpa.value.symbolicValues = false
-
 # Track Java array values in explicit value analysis. This may be costly if
 # the verified program uses big or lots of arrays. Arrays in C programs will
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
+
+# Use symbolic values. This allows tracking of non-deterministic values.
+# Symbolic values should always be used in conjunction with ConstraintsCPA.
+# Otherwise, symbolic values will be created, but not evaluated.
+cpa.value.useSymbolicValues = false
 
 # Prefix for files containing the custom instruction requirements.
 custominstructions.ciFilePrefix = "ci"
