@@ -45,10 +45,6 @@ import com.google.common.collect.Iterables;
 
 public class ErrorPathClassifier {
 
-  private static final int BOOLEAN_VAR   = 2;
-  private static final int INTEQUAL_VAR  = 4;
-  private static final int UNKNOWN_VAR   = 16;
-
   private static final int MAX_PREFIX_LENGTH = 1000;
   private static final int MAX_PREFIX_NUMBER = 1000;
 
@@ -68,12 +64,12 @@ public class ErrorPathClassifier {
 
     // heuristics based on approximating cost via variable domain types
     DOMAIN_BEST_SHALLOW(FIRST_LOWEST_SCORE),
-    DOMAIN_BEST_BOUNDED(FINAL_LOWEST_SCORE_BOUNDED),
-    DOMAIN_BEST_DEEP(FINAL_LOWEST_SCORE),
+    DOMAIN_BEST_BOUNDED(BOUNDED_LOWEST_SCORE),
+    DOMAIN_BEST_DEEP(LAST_LOWEST_SCORE),
 
     // heuristics based on approximating the depth of the refinement root
     REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
-    REFINE_DEEP(FINAL_LOWEST_SCORE),
+    REFINE_DEEP(LAST_LOWEST_SCORE),
 
     // use these only if you are feeling lucky
     RANDOM(),
@@ -82,7 +78,7 @@ public class ErrorPathClassifier {
 
     // use these if you want to go for a coffee or ten
     DOMAIN_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
-    DOMAIN_WORST_DEEP(FINAL_HIGHEST_SCORE);
+    DOMAIN_WORST_DEEP(LAST_HIGHEST_SCORE);
 
     private ErrorPathPrefixPreference () {}
 
@@ -106,7 +102,7 @@ public class ErrorPathClassifier {
           || prefixParameters.getFirst() > prefixParameters.getSecond();
     }};
 
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FINAL_HIGHEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> LAST_HIGHEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
     public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       return prefixParameters.getSecond() == null
@@ -121,14 +117,14 @@ public class ErrorPathClassifier {
           || prefixParameters.getFirst() < prefixParameters.getSecond();
     }};
 
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FINAL_LOWEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> LAST_LOWEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
     public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       return prefixParameters.getSecond() == null
           || prefixParameters.getFirst() <= prefixParameters.getSecond();
     }};
 
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FINAL_LOWEST_SCORE_BOUNDED = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
+  private static final Function<Triple<Integer, Integer, Integer>, Boolean> BOUNDED_LOWEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
     @Override
     public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
       if (prefixParameters.getSecond() == null) {
@@ -306,38 +302,7 @@ public class ErrorPathClassifier {
   }
 
   public int obtainDomainTypeScoreForVariables(Set<String> useDefinitionInformation) {
-
-    if(useDefinitionInformation.isEmpty()) {
-      return UNKNOWN_VAR;
-    }
-
-    int currentScore = 1;
-    int previousScore = currentScore;
-    for (String variableName : useDefinitionInformation) {
-      int factor = UNKNOWN_VAR;
-
-      if (classification.get().getIntBoolVars().contains(variableName)) {
-        factor = BOOLEAN_VAR;
-
-      } else if (classification.get().getIntEqualVars().contains(variableName)) {
-        factor = INTEQUAL_VAR;
-      }
-
-      currentScore = currentScore * factor;
-
-      if (loopStructure.isPresent()
-          && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-        return Integer.MAX_VALUE;
-      }
-
-      // check for overflow
-      if(currentScore < previousScore) {
-        return Integer.MAX_VALUE - 1;
-      }
-      previousScore = currentScore;
-    }
-
-    return currentScore;
+    return classification.get().obtainDomainTypeScoreForVariables(useDefinitionInformation, loopStructure);
   }
 
   /**
