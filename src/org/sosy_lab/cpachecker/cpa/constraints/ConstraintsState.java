@@ -201,7 +201,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     if (changed) {
       constraintFormulas.remove(pObject);
       assert constraints.size() >= constraintFormulas.size();
-
     }
 
     return changed;
@@ -244,7 +243,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     for (Object o : pCollection) {
       changed |= remove(o);
     }
-    
+
     assert constraints.size() >= constraintFormulas.size();
     return changed;
   }
@@ -449,6 +448,21 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   }
 
   @Override
+  public Iterator<Constraint> iterator() {
+    return new ConstraintIterator();
+  }
+
+  @Override
+  public Object[] toArray() {
+    return constraints.toArray();
+  }
+
+  @Override
+  public <T> T[] toArray(T[] pTs) {
+    return constraints.toArray(pTs);
+  }
+
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("[");
 
@@ -459,21 +473,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     }
 
     return sb.append("] size->  ").append(constraints.size()).toString();
-  }
-
-  @Override
-  public Iterator<Constraint> iterator() {
-    return new ConstraintIterator();
-  }
-
-  @Override
-  public Object[] toArray() {
-    return new Object[0];
-  }
-
-  @Override
-  public <T> T[] toArray(T[] pTs) {
-    return null;
   }
 
   private class ConstraintIterator implements Iterator<Constraint> {
