@@ -298,7 +298,7 @@ public class ErrorPathClassifier {
     case DOMAIN_BEST_SHALLOW:
     case DOMAIN_WORST_SHALLOW:
     case REFINE_SHALLOW:
-      return pPrefixes.subList(0, MAX_PREFIX_NUMBER);
+      return pPrefixes.subList(0, Math.min(pPrefixes.size() - 1, MAX_PREFIX_NUMBER));
 
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_DEEP:
