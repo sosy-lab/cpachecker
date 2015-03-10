@@ -510,7 +510,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return CounterexampleInfo.spurious();
   }
 
-  private boolean isErrorPathFeasible(final ARGPath errorPath)
+  boolean isErrorPathFeasible(final ARGPath errorPath)
       throws CPAException, InterruptedException {
     if (checker.isFeasible(errorPath)) {
       logger.log(Level.FINEST, "found a feasible cex - returning from refinement");

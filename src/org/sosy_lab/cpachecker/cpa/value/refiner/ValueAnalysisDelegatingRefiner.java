@@ -88,8 +88,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
    */
   private PrefixProvider predicateCpaPrefixProvider;
 
-  private final LogManager logger;
-  private final Configuration config;
   private final CFA cfa;
 
   StatInt avgPrefixesVA = new StatInt(StatKind.AVG, "Avg. number of VA-prefixes");
@@ -152,9 +150,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     super(pCpa);
     pConfig.inject(this);
 
-    config  = pConfig;
-    logger  = pLogger;
-    cfa     = pCfa;
+    cfa = pCfa;
 
     valueCpaRefiner         = pValueRefiner;
     valueCpaPrefixProvider  = pValueCpaPrefixProvider;
@@ -219,25 +215,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       throws CPAException, InterruptedException {
 
     return predicateCpaPrefixProvider.getInfeasilbePrefixes(pErrorPath);
-  }
-
-  /**
-   * This method checks if the given path is feasible, when doing a full-precision check.
-   *
-   * @param path the path to check
-   * @return true, if the path is feasible, else false
-   * @throws CPAException if the path check gets interrupted
-   */
-  boolean isPathFeasable(ARGPath path) throws CPAException {
-    try {
-      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
-      return checker.isFeasible(path);
-    }
-    catch (InterruptedException | InvalidConfigurationException e) {
-      throw new CPAException("counterexample-check failed: ", e);
-    }
   }
 
   @Override
