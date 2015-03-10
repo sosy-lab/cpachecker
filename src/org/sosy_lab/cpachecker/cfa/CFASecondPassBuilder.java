@@ -32,14 +32,18 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -309,6 +313,13 @@ public class CFASecondPassBuilder {
     }
 
     CExpression assumeExp = (CExpression)f.getParameterExpressions().get(0);
+
+    if (!(assumeExp instanceof CBinaryExpression && !((CBinaryExpression)assumeExp).getOperator().isLogicalOperator())) {
+      assumeExp = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
+                      .buildBinaryExpressionUnchecked(assumeExp,
+                                                      CIntegerLiteralExpression.ZERO,
+                                                      BinaryOperator.NOT_EQUALS);
+    }
 
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(), edge.getFileLocation(),
         edge.getPredecessor(), edge.getSuccessor(), assumeExp, true);
