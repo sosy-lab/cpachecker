@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -126,7 +126,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
-  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DEFAULT;
+  private PrefixPreference prefixPreference = PrefixPreference.DEFAULT;
 
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
   private boolean pathSlicing = false;
@@ -383,7 +383,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @return true, if refinement selection has to be performed, else false
    */
   private boolean isRefinementSelectionEnabled(ARGPath errorPath) {
-    return prefixPreference != ErrorPathPrefixPreference.DEFAULT
+    return prefixPreference != PrefixPreference.DEFAULT
         && (errorPath.size() - transformPath(errorPath).size()) == 1;
   }
 

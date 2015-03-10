@@ -54,7 +54,7 @@ public class ErrorPathClassifier {
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
 
-  public static enum ErrorPathPrefixPreference {
+  public static enum PrefixPreference {
     // returns the original error path
     DEFAULT(),
 
@@ -80,9 +80,9 @@ public class ErrorPathClassifier {
     DOMAIN_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
     DOMAIN_WORST_DEEP(LAST_HIGHEST_SCORE);
 
-    private ErrorPathPrefixPreference () {}
+    private PrefixPreference () {}
 
-    private ErrorPathPrefixPreference (Function<Triple<Integer, Integer, Integer>, Boolean> scorer) {
+    private PrefixPreference (Function<Triple<Integer, Integer, Integer>, Boolean> scorer) {
       this.scorer = scorer;
     }
 
@@ -142,7 +142,7 @@ public class ErrorPathClassifier {
     loopStructure   = pLoopStructure;
   }
 
-  public ARGPath obtainSlicedPrefix(ErrorPathPrefixPreference preference,
+  public ARGPath obtainSlicedPrefix(PrefixPreference preference,
       ARGPath errorPath,
       List<ARGPath> pPrefixes) {
 
@@ -186,7 +186,7 @@ public class ErrorPathClassifier {
     return buildPath(pPrefixes.size() - 1, pPrefixes, originalErrorPath);
   }
 
-  private ARGPath obtainDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference, ARGPath originalErrorPath) {
+  private ARGPath obtainDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
@@ -213,7 +213,7 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes, originalErrorPath);
   }
 
-  private ARGPath obtainRefinementRootHeuristicBasedPrefix(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference, ARGPath originalErrorPath) {
+  private ARGPath obtainRefinementRootHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
@@ -275,7 +275,7 @@ public class ErrorPathClassifier {
   /**
    * This method limits the number of prefixes to analyze (in case it is ridiculously high)
    */
-  private List<ARGPath> limitNumberOfPrefixesToAnalyze(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
+  private List<ARGPath> limitNumberOfPrefixesToAnalyze(List<ARGPath> pPrefixes, PrefixPreference preference) {
 
     switch (preference) {
 
@@ -379,7 +379,7 @@ public class ErrorPathClassifier {
     return errorPath.immutableCopy();
   }
 
-  public int obtainScoreForPrefixes(List<ARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
+  public int obtainScoreForPrefixes(List<ARGPath> pPrefixes, PrefixPreference preference) {
     if (!classification.isPresent()) {
       return Integer.MAX_VALUE;
     }

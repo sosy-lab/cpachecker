@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -556,8 +556,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
             List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1);
             List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2);
 
-            int score1 = classifier.obtainScoreForPrefixes(prefixes1, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
-            int score2 = classifier.obtainScoreForPrefixes(prefixes2, ErrorPathPrefixPreference.DOMAIN_BEST_BOUNDED);
+            int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_BEST_BOUNDED);
+            int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_BEST_BOUNDED);
 
             if(score1 == score2) {
               return 0;

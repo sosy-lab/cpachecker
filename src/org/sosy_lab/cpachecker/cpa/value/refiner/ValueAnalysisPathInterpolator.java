@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -93,7 +93,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private boolean performEdgeBasedInterpolation = true;
 
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
-  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DOMAIN_BEST_SHALLOW;
+  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_BEST_SHALLOW;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -293,9 +293,9 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 
-    assert(prefixPreference != ErrorPathPrefixPreference.DEFAULT)
+    assert(prefixPreference != PrefixPreference.DEFAULT)
     : "static path-based interpolation requires a sliced infeasible prefix"
-    + " - set cpa.value.refiner.prefixPreference, e.g. to " + ErrorPathPrefixPreference.DOMAIN_BEST_DEEP;
+    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_BEST_DEEP;
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY", cfa.getVarClassification()).obtainInterpolants(errorPathPrefix);
 
