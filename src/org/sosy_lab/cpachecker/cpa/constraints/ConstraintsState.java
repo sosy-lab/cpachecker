@@ -350,29 +350,21 @@ public class ConstraintsState extends ForwardingList<Constraint> implements Latt
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
   private BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
-    BooleanFormula completeFormula = null;
-
     createMissingConstraintFormulas();
 
-    for (BooleanFormula f : constraintFormulas) {
-      if (completeFormula == null) {
-        completeFormula = f;
-      } else {
-        formulaManager.makeAnd(completeFormula, f);
-      }
-    }
-
-    return completeFormula;
+    return formulaManager.getBooleanFormulaManager().and(constraintFormulas);
   }
 
   private void createMissingConstraintFormulas() throws UnrecognizedCCodeException, InterruptedException {
     int missingConstraints = constraints.size() - constraintFormulas.size();
 
-    for (int i = 1; i <= missingConstraints; i++) {
-      Constraint newConstraint = constraints.get(constraints.size() - i);
+    for (int i = constraints.size() - missingConstraints; i >= 0 && i < constraints.size(); i++) {
+      Constraint newConstraint = constraints.get(i);
 
       constraintFormulas.add(formulaCreator.createFormula(newConstraint));
     }
+
+    assert constraints.size() == constraintFormulas.size();
   }
 
   @Override
