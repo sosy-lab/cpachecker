@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -608,8 +609,15 @@ public final class InterpolationManager {
                                .transform(new Function<String, String>() {
                                   @Override
                                   public String apply(String pInput) {
-                                    return pInput.substring(0, pInput.indexOf("@"));
+                                    // we want only variables to be in our map
+                                    // and ignore everything without SSA index
+                                    if (pInput.contains("@")) {
+                                      return pInput.substring(0, pInput.indexOf("@"));
+                                    } else {
+                                      return null;
+                                    }
                                   }})
+                               .filter(Predicates.notNull())
                                .toSet();
 
         sortedFormulas.put(getAVGScoreForVariables(varNames), traceFormulas.indexOf(formula));
