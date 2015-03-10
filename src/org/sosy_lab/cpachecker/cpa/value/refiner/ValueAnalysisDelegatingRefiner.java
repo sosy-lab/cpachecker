@@ -90,16 +90,17 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
   private final CFA cfa;
 
-  StatInt avgPrefixesVA = new StatInt(StatKind.AVG, "Avg. number of VA-prefixes");
-  StatInt avgPrefixesPA = new StatInt(StatKind.AVG, "Avg. number of PA-prefixes");
 
-  StatInt avgScoreVA = new StatInt(StatKind.AVG, "Avg. score of best VA-prefixes");
-  StatInt avgScorePA = new StatInt(StatKind.AVG, "Avg. score of best PA-prefixes");
+  StatCounter totalVaRefinements  = new StatCounter("Number of VA refinements");
+  StatInt avgPrefixesVA           = new StatInt(StatKind.AVG, "Avg. number of VA-prefixes");
+  StatInt avgScoreVA              = new StatInt(StatKind.AVG, "Avg. score of best VA-prefixes");
 
-  StatCounter timesRefinedVA = new StatCounter("Times refined VA");
-  StatCounter timesRefinedVAExtra = new StatCounter("Times refined VA (PA was SAT)");
-  StatCounter timesRefinedPA = new StatCounter("Times refined PA");
-  StatCounter timesRefinedPAExtra = new StatCounter("Times refined PA (VA was SAT)");
+  StatCounter totalPaRefinements  = new StatCounter("Number of PA refinements");
+  StatInt avgScorePA              = new StatInt(StatKind.AVG, "Avg. score of best PA-prefixes");
+  StatInt avgPrefixesPA           = new StatInt(StatKind.AVG, "Avg. number of PA-prefixes");
+
+  StatCounter totalVaRefinementsExtra = new StatCounter("Number of VA refinements (PA was SAT)");
+  StatCounter totalPaRefinementsExtra = new StatCounter("Number of PA refinements (VA was SAT)");
 
   public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -184,21 +185,29 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     if (vaScore <= paScore) {
       cex = valueCpaRefiner.performRefinement(reached);
-      timesRefinedVA.inc();
+      if(cex.isSpurious()) {
+        totalVaRefinements.inc();
+      }
 
-      if(!cex.isSpurious()) {
+      else {
         cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
-        timesRefinedPAExtra.inc();
+        if(cex.isSpurious()) {
+          totalPaRefinementsExtra.inc();
+        }
       }
     }
 
     else {
       cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
-      timesRefinedPA.inc();
+      if (cex.isSpurious()) {
+        totalPaRefinements.inc();
+      }
 
-      if(!cex.isSpurious()) {
+      else {
         cex = valueCpaRefiner.performRefinement(reached);
-        timesRefinedVAExtra.inc();
+        if (cex.isSpurious()) {
+          totalVaRefinementsExtra.inc();
+        }
       }
     }
 
@@ -237,13 +246,15 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   }
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    writer.put(totalVaRefinements);
     writer.put(avgPrefixesVA);
-    writer.put(avgPrefixesPA);
     writer.put(avgScoreVA);
+    writer.put(totalVaRefinementsExtra);
+
+    writer.put(totalPaRefinements);
+    writer.put(avgPrefixesPA);
     writer.put(avgScorePA);
-    writer.put(timesRefinedVA);
-    writer.put(timesRefinedPA);
-    writer.put(timesRefinedPAExtra);
+    writer.put(totalPaRefinementsExtra);
   }
 }
