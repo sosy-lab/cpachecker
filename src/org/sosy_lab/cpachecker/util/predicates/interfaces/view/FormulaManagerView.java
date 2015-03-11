@@ -1441,14 +1441,6 @@ public class FormulaManagerView {
 
   public BooleanFormula createPredicateVariable(String pName) {
     return booleanFormulaManager.makeVariable(pName);
-//    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-//    BooleanFormulaManager rawBooleanManager = manager.getBooleanFormulaManager();
-//
-//    //long t = getTerm(atom);
-//
-//    String repr = unsafeManager.isAtom(atom)
-//        ? unsafeManager.getTermRepr(atom)  : ("#" + unsafeManager.getTermId( atom));
-//    return rawBooleanManager.makeVariable("\"PRED" + repr + "\"");
   }
 
   public BooleanFormula simplify(BooleanFormula input) {
