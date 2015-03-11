@@ -46,14 +46,12 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
   private final List<T> solverAssumptionsFromPush;
   private final List<BooleanFormula> solverAssumptionsAsFormula;
   private final InterpolatingProverEnvironment<T> delegate;
-  private final RemoveAssumptionsFromFormulaVisitor formulaVisitor;
   private final FormulaManagerView formulaManagerView;
 
   public InterpolatingProverWithAssumptionsWrapper(InterpolatingProverEnvironment<T> pDelegate, FormulaManagerView pFmgr) {
     delegate = pDelegate;
     solverAssumptionsFromPush = new ArrayList<>();
     solverAssumptionsAsFormula = new ArrayList<>();
-    formulaVisitor = new RemoveAssumptionsFromFormulaVisitor(pFmgr);
     formulaManagerView = pFmgr;
   }
 
@@ -73,8 +71,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
 
     // remove assumption variables from the rawInterpolant if necessary
     if (!solverAssumptionsAsFormula.isEmpty()) {
-      interpolant = formulaVisitor.visit(interpolant);
-      formulaVisitor.clearSeenFormulas();
+      interpolant = new RemoveAssumptionsFromFormulaVisitor().visit(interpolant);
     }
 
     return interpolant;
@@ -150,13 +147,9 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     private final Set<BooleanFormula> seen = new HashSet<>();
     private final BooleanFormulaManagerView bmgr;
 
-    private RemoveAssumptionsFromFormulaVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr);
-      bmgr = pFmgr.getBooleanFormulaManager();
-    }
-
-    private void clearSeenFormulas() {
-      seen.clear();
+    private RemoveAssumptionsFromFormulaVisitor() {
+      super(formulaManagerView);
+      bmgr = formulaManagerView.getBooleanFormulaManager();
     }
 
     private BooleanFormula visitIfNotSeen(BooleanFormula f) {
