@@ -342,7 +342,7 @@ enum CexTraceAnalysisDirection {
 
       // check for overflow
       if(currentScore < 0) {
-        return Long.MAX_VALUE / varNames.size();
+        return Double.MAX_VALUE / varNames.size();
       }
     }
 
