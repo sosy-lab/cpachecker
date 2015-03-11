@@ -208,6 +208,8 @@ public class ErrorPathClassifier {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
+
+      currentErrorPath.removeLast();
     }
 
     return buildPath(bestIndex, pPrefixes, originalErrorPath);
@@ -236,6 +238,8 @@ public class ErrorPathClassifier {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
+
+      currentErrorPath.removeLast();
     }
 
     return buildPath(bestIndex, pPrefixes, originalErrorPath);
@@ -298,7 +302,27 @@ public class ErrorPathClassifier {
   }
 
   private Set<String> obtainUseDefInformationOfErrorPath(MutableARGPath currentErrorPath) {
-    return new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(currentErrorPath);
+    Set<String> oldSet = new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(currentErrorPath);
+/*
+    Set<String> newSet = new HashSet<>();
+    UseDefBasedInterpolator itp = new UseDefBasedInterpolator("EQUALITY", classification);
+    MutableARGPath cp = currentErrorPath.immutableCopy().mutableCopy();
+    cp.add(Pair.<ARGState, CFAEdge>of(cp.getLast().getFirst(), new BlankEdge("",
+            FileLocation.DUMMY,
+            cp.getLast().getSecond().getPredecessor(),
+            cp.getLast().getSecond().getSuccessor(),
+            SUFFIX_REPLACEMENT)));
+    Map<ARGState, ValueAnalysisInterpolant> itps = itp.obtainInterpolants(cp.immutableCopy());
+
+    for(ValueAnalysisInterpolant i : itps.values()) {
+      newSet.addAll(FluentIterable.from(i.getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
+    }
+
+    if(!old.equals(newSet)) {
+      assert false;
+    }
+*/
+    return oldSet;
   }
 
   public int obtainDomainTypeScoreForVariables(Set<String> useDefinitionInformation) {
