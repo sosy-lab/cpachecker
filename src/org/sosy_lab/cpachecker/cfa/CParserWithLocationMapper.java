@@ -143,22 +143,34 @@ public class CParserWithLocationMapper implements CParser {
           relativeLineNumber += 1;
 
           // Evaluate the preprocessor directive...
-          if (directiveTokens.size() > 0) {
-            String firstTokenImage = directiveTokens.get(0).getImage();
-            if (firstTokenImage.equals("line")) {
+          if (readLineDirectives && directiveTokens.size() > 0) {
+            String firstTokenImage = directiveTokens.get(0).getImage().trim();
 
+            final int lineNumberTokenIndex;
+
+            if (directiveTokens.size() > 1
+                && firstTokenImage.equals("line")
+                && directiveTokens.get(1).getImage().matches("[0-9]+")) {
+              lineNumberTokenIndex = 1;
             } else if (firstTokenImage.matches("[0-9]+")) {
-              if (readLineDirectives) {
-                sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
-              }
+              lineNumberTokenIndex = 0;
+            } else {
+              lineNumberTokenIndex = -1;
+            }
+            if (lineNumberTokenIndex >= 0) {
 
+              sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+
+              final String lineNumberToken = directiveTokens.get(lineNumberTokenIndex).getImage().trim();
               includeStartedWithAbsoluteLine = absoluteLineNumber;
-              relativeLineNumber = Integer.parseInt(firstTokenImage);
-              String file = directiveTokens.get(1).getImage();
-              if (file.charAt(0) == '"' && file.charAt(file.length()-1) == '"') {
-                file = file.substring(1, file.length()-1);
+              relativeLineNumber = Integer.parseInt(lineNumberToken);
+              if (directiveTokens.size() > lineNumberTokenIndex + 1) {
+                String file = directiveTokens.get(lineNumberTokenIndex + 1).getImage().trim();
+                if (file.charAt(0) == '"' && file.charAt(file.length()-1) == '"') {
+                  file = file.substring(1, file.length()-1);
+                }
+                rangeLinesOriginFilename = file;
               }
-              rangeLinesOriginFilename = file;
             }
           }
         } else if (!token.getImage().trim().isEmpty()) {
