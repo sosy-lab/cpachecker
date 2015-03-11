@@ -319,7 +319,7 @@ enum CexTraceAnalysisDirection {
         .filter(Predicates.notNull())
         .toSet();
 
-    long currentScore = 0;
+    double currentScore = 0;
     for (String variableName : varNames) {
 
       // best, easy variables
