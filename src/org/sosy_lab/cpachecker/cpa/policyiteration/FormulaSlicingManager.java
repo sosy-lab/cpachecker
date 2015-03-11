@@ -1,18 +1,15 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -22,10 +19,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -38,7 +35,7 @@ public class FormulaSlicingManager {
   private final LogManager logger;
   private final FormulaManagerView fmgr;
   private final UnsafeFormulaManager unsafeManager;
-  private final BooleanFormulaManager bfmgr;
+  private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
   private final Timer slicingTime = new Timer();
@@ -48,13 +45,12 @@ public class FormulaSlicingManager {
   public FormulaSlicingManager(LogManager pLogger,
       FormulaManagerView pFmgr,
       UnsafeFormulaManager pUnsafeManager,
-      BooleanFormulaManager pBfmgr,
       PathFormulaManager pPfmgr,
       Solver pSolver) {
     logger = pLogger;
     fmgr = pFmgr;
     unsafeManager = pUnsafeManager;
-    bfmgr = pBfmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
     pfmgr = pPfmgr;
     solver = pSolver;
   }
@@ -79,8 +75,7 @@ public class FormulaSlicingManager {
       }
     });
     logger.log(Level.FINE, "Closure =", closure);
-    BooleanFormula slice = recSliceFormula(
-        f, ImmutableSet.copyOf(closure), false, new HashMap<Pair<BooleanFormula, Boolean>, BooleanFormula>());
+    BooleanFormula slice = new RecursiveSliceVisitor(ImmutableSet.copyOf(closure)).visit(f);
     logger.log(Level.FINE, "Produced =", slice);
 
     final String renamePrefix = "__SLICE_INTERMEDIATE_";
@@ -140,26 +135,38 @@ public class FormulaSlicingManager {
     return closure;
   }
 
-  /**
-   * Slice of the formula AST containing the variables in
-   * {@code closure}
-   */
-  private BooleanFormula recSliceFormula(
-      BooleanFormula f,
-      ImmutableSet<String> closure,
-      boolean isInsideNot,
-      Map<Pair<BooleanFormula, Boolean>, BooleanFormula> memoization) throws InterruptedException {
-    Pair<BooleanFormula, Boolean> memoizationKey = Pair.of(f, isInsideNot);
-    BooleanFormula out = memoization.get(memoizationKey);
-    if (out != null) {
-      return out;
+  private class RecursiveSliceVisitor extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
+
+    private final boolean isInsideNot;
+    private final Set<String> closure;
+
+    // We need to handle negated formulas differently from non-negated formulas,
+    // and we need a separate super.cache for negated/non-negated formulas
+    // (Example: in ((a & b) | (!a & c)), "a" needs to be replaced once by "true"
+    // and once by "false").
+    // Thus we need two visitor instances with different settings for isInsideNot,
+    // and they both delegate to the other when encountering a negation.
+    private RecursiveSliceVisitor visitorForNegatedFormula;
+
+    RecursiveSliceVisitor(Set<String> pClosure) {
+      this(false, pClosure);
+
+      visitorForNegatedFormula = new RecursiveSliceVisitor(true, pClosure);
+      visitorForNegatedFormula.visitorForNegatedFormula = this;
     }
 
-    if (unsafeManager.isAtom(f)) {
+    RecursiveSliceVisitor(boolean pIsInsideNot, Set<String> pClosure) {
+      super(fmgr, new HashMap<BooleanFormula, BooleanFormula>());
+      isInsideNot = pIsInsideNot;
+      closure = pClosure;
+    }
+
+    @Override
+    protected BooleanFormula visitAtom(BooleanFormula f) {
       Formula uninstantiatedF = fmgr.uninstantiate(f);
       Set<String> containedVariables = fmgr.extractFunctionNames(uninstantiatedF);
       if (!Sets.intersection(closure, containedVariables).isEmpty()) {
-        out = f;
+        return f;
       } else {
         // Hack to propagate the call variables,
         if (containedVariables.size() == 2) {
@@ -170,29 +177,20 @@ public class FormulaSlicingManager {
               !first.substring(0, first.indexOf("::")).equals(
               second.substring(0, second.indexOf("::"))
           )) {
-            out = f;
+            return f;
           } else {
-            out = bfmgr.makeBoolean(!isInsideNot);
+            return bfmgr.makeBoolean(!isInsideNot);
           }
         } else {
-          out = bfmgr.makeBoolean(!isInsideNot);
+          return bfmgr.makeBoolean(!isInsideNot);
         }
       }
-    } else {
-      int count = unsafeManager.getArity(f);
-      List<Formula> newArgs = new ArrayList<>(count);
-      if (bfmgr.isNot(f)) {
-        isInsideNot = !isInsideNot;
-      }
-      for (int i=0; i<count; i++) {
-        newArgs.add(recSliceFormula(
-            (BooleanFormula)unsafeManager.getArg(f, i),
-            closure, isInsideNot, memoization));
-      }
-      out = unsafeManager.replaceArgs(f, newArgs);
     }
-    memoization.put(memoizationKey, out);
-    return out;
+
+    @Override
+    protected BooleanFormula visitNot(BooleanFormula pOperand) {
+      return bfmgr.not(visitorForNegatedFormula.visitIfNotSeen(pOperand));
+    }
   }
 
   private boolean isInductive(CFANode pNode, Set<Formula> pOutVariables,

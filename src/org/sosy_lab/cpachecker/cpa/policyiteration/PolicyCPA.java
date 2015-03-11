@@ -82,8 +82,7 @@ public class PolicyCPA
         logger, config, cfa, formulaManager, pathFormulaManager);
     FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
         logger, formulaManager,
-        realFormulaManager.getUnsafeFormulaManager(),
-        realFormulaManager.getBooleanFormulaManager(), pathFormulaManager,
+        realFormulaManager.getUnsafeFormulaManager(), pathFormulaManager,
         solver);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
