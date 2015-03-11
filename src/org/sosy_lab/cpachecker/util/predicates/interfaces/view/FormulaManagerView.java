@@ -1085,8 +1085,7 @@ public class FormulaManagerView {
    * All atoms get un-instantiated!!
    */
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
-    return unwrapFormulasOfList(
-        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, true));
+    return myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, true);
   }
 
   public Collection<BooleanFormula> extractAtoms(
@@ -1094,8 +1093,7 @@ public class FormulaManagerView {
       boolean splitArithEqualities,
       boolean conjunctionsOnly,
       boolean uninstanciate) {
-    return unwrapFormulasOfList(
-        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, uninstanciate));
+    return myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, uninstanciate);
   }
 
   public Collection<BooleanFormula> extractLiterals(
@@ -1104,16 +1102,7 @@ public class FormulaManagerView {
       boolean conjunctionsOnly,
       boolean uninstanciate) {
 
-    return unwrapFormulasOfList(
-        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.LITERAL, uninstanciate));
-  }
-
-  private List<BooleanFormula> unwrapFormulasOfList(Collection<BooleanFormula> unwrapped) {
-    List<BooleanFormula> atoms = new ArrayList<>(unwrapped.size());
-    for (BooleanFormula booleanFormula : unwrapped) {
-      atoms.add(booleanFormula);
-    }
-    return atoms;
+    return myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.LITERAL, uninstanciate);
   }
 
   private FormulaStructure getFormulaStructure(Formula f) {
