@@ -834,16 +834,6 @@ public class FormulaManagerView {
   }
 
   /**
-   * (Re-)instantiate the variables in pF with the SSA indices in pSsa.
-   *
-   * Existing instantiations are REPLACED by the
-   * indices that are provided in the SSA map!
-   */
-  public <F extends Formula> F instantiate(F pF, SSAMap pSsa) {
-    return myInstantiate(pSsa, pF);
-  }
-
-  /**
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
    *  @see {@link #instantiate(BooleanFormula, SSAMap)}
    */
@@ -868,21 +858,6 @@ public class FormulaManagerView {
     }));
   }
 
-  /**
-   * Uninstantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see {@link #instantiate(BooleanFormula, SSAMap)}
-   */
-  public <F extends Formula> List<F> uninstantiate(List<F> pFormulas) {
-    return Lists.transform(pFormulas,
-       new Function<F, F>() {
-         @Override
-         public F apply(F pF) {
-           // Apply 'uninstantiate'!
-           return uninstantiate(pF);
-         }
-       });
-  }
-
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
 
@@ -893,8 +868,14 @@ public class FormulaManagerView {
     return name + INDEX_SEPARATOR + idx;
   }
 
-  private <T extends Formula> T myInstantiate(final SSAMap pSsa, T pF) {
 
+  /**
+   * (Re-)instantiate the variables in pF with the SSA indices in pSsa.
+   *
+   * Existing instantiations are REPLACED by the
+   * indices that are provided in the SSA map!
+   */
+  public <F extends Formula> F instantiate(F pF, final SSAMap pSsa) {
     return myFreeVariableNodeTransformer(
         pF,
         new HashMap<Formula, Formula>(),
@@ -921,17 +902,6 @@ public class FormulaManagerView {
     return name.startsWith("*");
   }
 
-  /**
-   * Uninstantiate a given formula.
-   * (remove the SSA indices from its free variables)
-   *
-   * @param pF  Input formula
-   * @return    Uninstantiated formula
-   */
-  public <F extends Formula> F uninstantiate(F pF) {
-    return myUninstantiate(pF);
-  }
-
   // various caches for speeding up expensive tasks
   //
   // cache for splitting arithmetic equalities in extractAtoms
@@ -956,7 +926,14 @@ public class FormulaManagerView {
     }
   }
 
-  private <T extends Formula> T myUninstantiate(T f) {
+  /**
+   * Uninstantiate a given formula.
+   * (remove the SSA indices from its free variables)
+   *
+   * @param pF  Input formula
+   * @return    Uninstantiated formula
+   */
+  public <F extends Formula> F uninstantiate(F f) {
     return myFreeVariableNodeTransformer(f, uninstantiateCache, new Function<String, String>() {
       @Override
       public String apply(String pArg0) {
@@ -1144,7 +1121,7 @@ public class FormulaManagerView {
 
       if (isSmallesConsidered) {
         if (uninstanciate) {
-          tt = myUninstantiate(tt);
+          tt = uninstantiate(tt);
         }
 
         if (splitArithEqualities
@@ -1185,7 +1162,7 @@ public class FormulaManagerView {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
         if (uninstanciate) {
-          tt = myUninstantiate(tt);
+          tt = uninstantiate(tt);
         }
         atoms.add(tt);
 
@@ -1358,10 +1335,6 @@ public class FormulaManagerView {
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    return myIsPurelyConjunctive(t);
-  }
-
-  private boolean myIsPurelyConjunctive(BooleanFormula t) {
     if (unsafeManager.isAtom(t) || unsafeManager.isUF(t)) {
       // term is atom
       return true;
@@ -1372,7 +1345,7 @@ public class FormulaManagerView {
 
     } else if (booleanFormulaManager.isAnd(t)) {
       for (int i = 0; i < unsafeManager.getArity(t); ++i) {
-        if (!myIsPurelyConjunctive((BooleanFormula)unsafeManager.getArg(t, i))) {
+        if (!isPurelyConjunctive((BooleanFormula)unsafeManager.getArg(t, i))) {
           return false;
         }
       }
