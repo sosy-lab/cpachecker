@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public class ArrayValue implements Value {
 
+  private static final long serialVersionUID = -3963825961335658001L;
+
   private final JArrayType arrayType;
 
   /*

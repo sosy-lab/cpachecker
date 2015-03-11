@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
  */
 public class EnumConstantValue implements Value {
 
+  private static final long serialVersionUID = 2745087444102463717L;
+  
   private final Type classType;
   private final String fullyQualifiedName;
 

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * For the future, floats, symbolic values, and SMG nodes should
  * also be supported.
  */
-public interface Value {
+public interface Value extends Serializable {
   public boolean isNumericValue();
 
   /** True if we have no idea about this value(can not track it), false otherwise. */
