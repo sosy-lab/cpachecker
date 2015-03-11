@@ -31,13 +31,11 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-
-import apron.NotImplementedException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -71,23 +69,33 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
   public BooleanFormula getInterpolant(List<T> pFormulasOfA) throws SolverException {
     List<T> completeListOfA = Lists.newArrayList(pFormulasOfA);
     completeListOfA.addAll(solverAssumptionsFromPush);
-    BooleanFormula rawInterpolant = delegate.getInterpolant(completeListOfA);
+    BooleanFormula interpolant = delegate.getInterpolant(completeListOfA);
 
-    // TODO remove variables from solverAssumptions from the interpolant
-    BooleanFormula interpolant = formulaVisitor.visit(rawInterpolant);
-    formulaVisitor.clearSeenFormulas();
+    // remove assumption variables from the rawInterpolant if necessary
+    if (!solverAssumptionsAsFormula.isEmpty()) {
+      interpolant = formulaVisitor.visit(interpolant);
+      formulaVisitor.clearSeenFormulas();
+    }
 
     return interpolant;
   }
 
   @Override
   public List<BooleanFormula> getSeqInterpolants(List<Set<T>> pPartitionedFormulas) {
-    throw new NotImplementedException();
+    if (solverAssumptionsAsFormula.isEmpty()) {
+      return delegate.getSeqInterpolants(pPartitionedFormulas);
+    } else {
+      throw new UnsupportedOperationException();
+    }
   }
 
   @Override
   public List<BooleanFormula> getTreeInterpolants(List<Set<T>> pPartitionedFormulas, int[] pStartOfSubTree) {
-    throw new NotImplementedException();
+    if (solverAssumptionsAsFormula.isEmpty()) {
+      return delegate.getTreeInterpolants(pPartitionedFormulas, pStartOfSubTree);
+    } else {
+      throw new UnsupportedOperationException();
+    }
   }
 
   @Override
@@ -140,7 +148,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
   class RemoveAssumptionsFromFormulaVisitor extends BooleanFormulaVisitor<BooleanFormula> {
 
     private final Set<BooleanFormula> seen = new HashSet<>();
-    private final BooleanFormulaManager bmgr;
+    private final BooleanFormulaManagerView bmgr;
 
     private RemoveAssumptionsFromFormulaVisitor(FormulaManagerView pFmgr) {
       super(pFmgr);
@@ -200,7 +208,9 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
 
     @Override
     protected BooleanFormula visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
-      throw new UnsupportedOperationException("Cannot create implications");
+      BooleanFormula tmp1 = visitIfNotSeen(pOperand1);
+      BooleanFormula tmp2 = visitIfNotSeen(pOperand2);
+      return bmgr.implication(tmp1, tmp2);
     }
 
     @Override
