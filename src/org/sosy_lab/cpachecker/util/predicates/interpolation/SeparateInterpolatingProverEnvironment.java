@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 
 /**
  * This is a class that allows to use a different SMT solver for interpolation
@@ -41,14 +41,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnv
  * Whenever it is used, it copies the formulas to the interpolation SMT solver
  * and back accordingly.
  */
-public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingProverEnvironment<T> {
+public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingProverEnvironmentWithAssumptions<T> {
 
   private final FormulaManager mainFmgr;
   private final FormulaManager itpFmgr;
-  private final InterpolatingProverEnvironment<T> itpEnv;
+  private final InterpolatingProverEnvironmentWithAssumptions<T> itpEnv;
 
   public SeparateInterpolatingProverEnvironment(FormulaManager pMainFmgr, FormulaManager pItpFmgr,
-      InterpolatingProverEnvironment<T> pItpEnv) {
+      InterpolatingProverEnvironmentWithAssumptions<T> pItpEnv) {
     mainFmgr = checkNotNull(pMainFmgr);
     itpFmgr = checkNotNull(pItpFmgr);
     itpEnv = checkNotNull(pItpEnv);
@@ -68,6 +68,11 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   @Override
   public boolean isUnsat() throws InterruptedException, SolverException {
     return itpEnv.isUnsat();
+  }
+
+  @Override
+  public boolean isUnsatWithAssumptions(List<BooleanFormula> assumptions) throws SolverException, InterruptedException {
+    return itpEnv.isUnsatWithAssumptions(assumptions);
   }
 
   @Override

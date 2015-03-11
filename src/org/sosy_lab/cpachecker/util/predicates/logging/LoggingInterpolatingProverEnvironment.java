@@ -31,16 +31,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 
 
-public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingProverEnvironment<T> {
+public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingProverEnvironmentWithAssumptions<T> {
 
-  private final InterpolatingProverEnvironment<T> wrapped;
+  private final InterpolatingProverEnvironmentWithAssumptions<T> wrapped;
   private final LogManager logger;
   int level = 0;
 
-  public LoggingInterpolatingProverEnvironment(LogManager logger, InterpolatingProverEnvironment<T> ipe) {
+  public LoggingInterpolatingProverEnvironment(LogManager logger, InterpolatingProverEnvironmentWithAssumptions<T> ipe) {
     this.wrapped = ipe;
     this.logger = logger;
   }
@@ -64,6 +64,14 @@ public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingPr
   @Override
   public boolean isUnsat() throws InterruptedException, SolverException {
     boolean result = wrapped.isUnsat();
+    logger.log(Level.FINE, "unsat-check returned:", result);
+    return result;
+  }
+
+  @Override
+  public boolean isUnsatWithAssumptions(List<BooleanFormula> pAssumptions) throws SolverException, InterruptedException {
+    logger.log(Level.FINE, "assumptions:", pAssumptions);
+    boolean result = wrapped.isUnsatWithAssumptions(pAssumptions);
     logger.log(Level.FINE, "unsat-check returned:", result);
     return result;
   }

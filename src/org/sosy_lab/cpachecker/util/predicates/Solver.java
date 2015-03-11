@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentVie
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
@@ -176,31 +175,7 @@ public final class Solver implements AutoCloseable {
    * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
-    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(false);
-
-    if (solvingFormulaManager != interpolationFormulaManager) {
-      // If interpolationFormulaManager is not the normal solver,
-      // we use SeparateInterpolatingProverEnvironment
-      // which copies formula back and forth using strings.
-      // We don't need this if the solvers are the same anyway.
-      ipe = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipe);
-    }
-
-    if (useLogger) {
-      return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
-    } else {
-      return ipe;
-    }
-  }
-
-  /**
-   * Direct reference to the underlying SMT solver for interpolation queries.
-   * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
-   * It is recommended to use the try-with-resources syntax.
-   */
-  public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolationAndAssumptions() {
+  public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolation() {
     InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(false);
 
     // in the case we do not already have a prover environment with assumptions
@@ -216,11 +191,11 @@ public final class Solver implements AutoCloseable {
       // we use SeparateInterpolatingProverEnvironment
       // which copies formula back and forth using strings.
       // We don't need this if the solvers are the same anyway.
-      ipe = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipe);
+      ipeA = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipeA);
     }
 
     if (useLogger) {
-      return new LoggingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA);
+      return new LoggingInterpolatingProverEnvironment<>(logger, ipeA);
     } else {
       return ipeA;
     }
