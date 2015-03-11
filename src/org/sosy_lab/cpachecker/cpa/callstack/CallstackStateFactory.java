@@ -78,8 +78,10 @@ public class CallstackStateFactory {
         return false;
       }
       CallstackState other = (CallstackState)o;
-      return (other.previousState == previousState
-          || other.previousState.equals(previousState)) &&
+      return (
+          other.previousState == previousState
+          || (other.previousState != null &&
+              other.previousState.equals(previousState))) &&
           other.currentFunction.equals(currentFunction) &&
           callerNode.equals(other.callerNode);
     }
