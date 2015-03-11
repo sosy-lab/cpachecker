@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -69,10 +68,9 @@ public class CFromPathGenerator {
     this.errorPathStates = pErrorPathStates;
     this.globalDeclarations = new ArrayList<>();
     this.functions = new ArrayList<>();
-    generate();
   }
 
-  private void generate() {
+  public Appender generateSourceCode() {
     Deque<Function> callStack = new LinkedList<>();
     Deque<Edge> waitStack = new LinkedList<>();
 
@@ -89,6 +87,12 @@ public class CFromPathGenerator {
         waitStack.offerFirst(newEdge);
       }
     }
+
+    Appender globals = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.globalDeclarations);
+    Appender emptyLine = Appenders.fromToStringMethod(System.lineSeparator());
+    Appender functions = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.functions);
+
+    return Appenders.concat(globals, emptyLine, functions);
   }
 
   private Function newFunction(ARGState rootState, Deque<Function> callStack) {
@@ -97,7 +101,7 @@ public class CFromPathGenerator {
     callStack.offerFirst(f);
     functions.add(f); // TODO what if function already in list?
 
-      return f;
+    return f;
   }
 
   private Iterable<Edge> handleEdge(Edge edge, Deque<Function> callStack) {
@@ -209,12 +213,5 @@ public class CFromPathGenerator {
         return new Edge(state, pARGState);
       }
     });
-  }
-
-  public Appender getCAppender() {
-    globalDeclarations.add(System.lineSeparator()); // TODO really alter glocalDecl just for formatting purposes?
-    Appender globals = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.globalDeclarations);
-    Appender functions = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.functions);
-    return Appenders.concat(globals, functions);
   }
 }

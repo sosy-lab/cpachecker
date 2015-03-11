@@ -82,7 +82,7 @@ public class ExecutionChecker implements CounterexampleChecker {
     }
 
     try (Writer w = Files.openOutputFile(codeFile)) {
-      gen.getCAppender().appendTo(w);
+      gen.generateSourceCode().appendTo(w);
     } catch (IOException e) {
       throw new CPAException("Could not write the produced C code.", e);
     }
