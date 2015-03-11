@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
@@ -74,6 +73,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   // Pointer from class is needed to avoid GC claiming this listener.
   private final ShutdownNotifier.ShutdownRequestListener interruptListener;
   private Z3AstMatcher z3astMatcher;
+  private final long z3params;
 
   private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
@@ -99,7 +99,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3BitvectorFormulaManager pBitpreciseManager,
       Z3QuantifiedFormulaManager pQuantifiedManager,
       Z3ArrayFormulaManager pArrayManager,
-      Z3SmtLogger smtLogger, Configuration config,
+      Z3SmtLogger smtLogger, Configuration config, long pZ3params,
       ShutdownNotifier.ShutdownRequestListener pInterruptListener,
       ShutdownNotifier pShutdownNotifier) throws
         InvalidConfigurationException {
@@ -108,6 +108,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
         pIntegerManager, pRationalManager, pBitpreciseManager, null, pQuantifiedManager, pArrayManager);
 
     config.inject(this);
+    z3params = pZ3params;
     this.z3smtLogger = smtLogger;
     this.z3astMatcher = new Z3AstMatcher(this);
     interruptListener = pInterruptListener;
@@ -116,7 +117,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   public static synchronized Z3FormulaManager create(LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate solverLogfile)
+      @Nullable PathCounterTemplate solverLogfile, long randomSeed)
       throws InvalidConfigurationException {
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
@@ -180,6 +181,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       smtLogger.logOption("proof", "true");
     }
 
+    long z3params = mk_params(context);
+    params_inc_ref(context, z3params);
+    params_set_uint(context, z3params, mk_string_symbol(context, ":random-seed"), 42);
+    smtLogger.logOption("random-seed", Integer.toString((int)randomSeed));
+
     Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, integerSort, realSort, smtLogger);
 
     // Create managers
@@ -200,17 +206,17 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
         creator,
         unsafeManager, functionTheory, booleanTheory,
         integerTheory, rationalTheory, bitvectorTheory, quantifierManager, arrayManager,
-        smtLogger, config, interruptListener, pShutdownNotifier);
+        smtLogger, config, z3params, interruptListener, pShutdownNotifier);
   }
 
   @Override
   public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
-    return new Z3TheoremProver(this, pGenerateUnsatCore);
+    return new Z3TheoremProver(this, z3params, pGenerateUnsatCore);
   }
 
   @Override
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean pShared) {
-    return new Z3InterpolatingProver(this);
+  public Z3InterpolatingProver newProverEnvironmentWithInterpolation(boolean pShared) {
+    return new Z3InterpolatingProver(this, z3params);
   }
 
   @Override

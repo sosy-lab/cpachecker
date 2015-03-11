@@ -60,11 +60,12 @@ class Z3TheoremProver implements ProverEnvironment {
 
   private final Map<String, BooleanFormula> storedConstraints;
 
-  Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
+  Z3TheoremProver(Z3FormulaManager pMgr, long z3params, boolean generateUnsatCore) {
     mgr = pMgr;
     z3context = mgr.getEnvironment();
     z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
+    solver_set_params(z3context, z3solver, z3params);
     smtLogger = mgr.getSmtLogger();
     if (generateUnsatCore) {
       storedConstraints = new HashMap<>();

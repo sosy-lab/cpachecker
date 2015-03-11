@@ -46,12 +46,12 @@ public class Z3InterpolationTest {
     NativeLibraries.loadLibrary("z3j");
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = TestLogManager.getInstance();
-    mgr = Z3FormulaManager.create(logger, config, ShutdownNotifier.create(), null);
+    mgr = Z3FormulaManager.create(logger, config, ShutdownNotifier.create(), null, 42);
     ifmgr = (Z3IntegerFormulaManager) mgr.getIntegerFormulaManager();
   }
 
   @Test public void testInterpolation() throws Exception {
-    try (Z3InterpolatingProver prover = new Z3InterpolatingProver(mgr)) {
+    try (Z3InterpolatingProver prover = mgr.newProverEnvironmentWithInterpolation(false)) {
       IntegerFormula x, y, z;
       x = ifmgr.makeVariable("x");
       y = ifmgr.makeVariable("y");

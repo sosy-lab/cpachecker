@@ -68,10 +68,11 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile)
+      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile,
+      long randomSeed)
           throws InvalidConfigurationException {
 
-    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile);
+    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile, randomSeed);
     SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env);
 
     // Create managers

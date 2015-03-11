@@ -66,7 +66,7 @@ public class Z3MaximizationTest {
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = TestLogManager.getInstance();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    mgr = Z3FormulaManager.create(logger, config, shutdownNotifier, null);
+    mgr = Z3FormulaManager.create(logger, config, shutdownNotifier, null, 42);
     rfmgr = (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
     ifmgr = (Z3IntegerFormulaManager) mgr.getIntegerFormulaManager();
     bfmgr = (Z3BooleanFormulaManager) mgr.getBooleanFormulaManager();

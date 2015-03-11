@@ -99,7 +99,8 @@ class SmtInterpolEnvironment {
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate pSmtLogfile) throws InvalidConfigurationException {
+      @Nullable PathCounterTemplate pSmtLogfile, long randomSeed)
+          throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = checkNotNull(pShutdownNotifier);
@@ -120,6 +121,7 @@ class SmtInterpolEnvironment {
     }
 
     try {
+      script.setOption(":random-seed", randomSeed);
       script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
       script.setOption(":produce-unsat-cores", true);
@@ -216,6 +218,7 @@ class SmtInterpolEnvironment {
       try {
         PrintWriter out = new PrintWriter(Files.openOutputFile(logfile));
 
+        out.println("(set-option :random-seed " + script.getOption(":random-seed") + ")");
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");
         out.println("(set-option :produce-unsat-cores true)");

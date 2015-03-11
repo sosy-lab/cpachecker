@@ -36,6 +36,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
@@ -53,11 +54,12 @@ class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
   private int level = 0;
   private List<Long> assertedFormulas = new LinkedList<>();
 
-  Z3InterpolatingProver(Z3FormulaManager mgr) {
+  Z3InterpolatingProver(Z3FormulaManager mgr, long z3params) {
     this.mgr = mgr;
     this.z3context = mgr.getEnvironment();
     this.z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
+    solver_set_params(z3context, z3solver, z3params);
     this.smtLogger = mgr.getSmtLogger();
   }
 

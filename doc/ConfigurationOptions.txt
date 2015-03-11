@@ -1328,7 +1328,10 @@ cpa.predicate.solver.logfile = "smtquery.%03d.smt2"
 
 # List of further options which will be passed to Mathsat in addition to the
 # default options. Format is 'key1=value1,key2=value2'
-cpa.predicate.solver.mathsat5.furtherOptions = "random_seed=42"
+cpa.predicate.solver.mathsat5.furtherOptions = ""
+
+# Random seed for SMT solver.
+cpa.predicate.solver.random-seed = 42
 
 # Double check generated results like interpolants and models whether they
 # are correct
