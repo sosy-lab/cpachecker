@@ -12,6 +12,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -79,7 +80,7 @@ public class FormulaSlicingManager {
     });
     logger.log(Level.FINE, "Closure =", closure);
     BooleanFormula slice = recSliceFormula(
-        f, ImmutableSet.copyOf(closure), false, new HashMap<BooleanFormula, BooleanFormula>());
+        f, ImmutableSet.copyOf(closure), false, new HashMap<Pair<BooleanFormula, Boolean>, BooleanFormula>());
     logger.log(Level.FINE, "Produced =", slice);
 
     final String renamePrefix = "__SLICE_INTERMEDIATE_";
@@ -147,8 +148,9 @@ public class FormulaSlicingManager {
       BooleanFormula f,
       ImmutableSet<String> closure,
       boolean isInsideNot,
-      Map<BooleanFormula, BooleanFormula> memoization) throws InterruptedException {
-    BooleanFormula out = memoization.get(f);
+      Map<Pair<BooleanFormula, Boolean>, BooleanFormula> memoization) throws InterruptedException {
+    Pair<BooleanFormula, Boolean> memoizationKey = Pair.of(f, isInsideNot);
+    BooleanFormula out = memoization.get(memoizationKey);
     if (out != null) {
       return out;
     }
@@ -189,7 +191,7 @@ public class FormulaSlicingManager {
       }
       out = unsafeManager.replaceArgs(f, newArgs);
     }
-    memoization.put(f, out);
+    memoization.put(memoizationKey, out);
     return out;
   }
 
