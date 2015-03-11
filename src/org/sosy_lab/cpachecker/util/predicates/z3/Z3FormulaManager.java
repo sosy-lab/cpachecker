@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 @Options(prefix = "cpa.predicate.solver.z3")
-public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
+public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
   @Option(secure=true, description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
@@ -303,4 +303,10 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     return z3smtLogger.cloneWithNewLogfile();
   }
 
+  @Override
+  public void close() {
+    long context = getFormulaCreator().getEnv();
+    params_dec_ref(context, z3params);
+    del_context(context);
+  }
 }
