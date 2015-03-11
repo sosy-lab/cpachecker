@@ -719,7 +719,7 @@ public class IntegerFormulaCreator
     }
   }
 
-  public String getAuxiliaryVariableName() {
+  public static String getAuxiliaryVariableName() {
     return AUXILIARY_NAME + auxiliaryVariableAmount++;
   }
 
