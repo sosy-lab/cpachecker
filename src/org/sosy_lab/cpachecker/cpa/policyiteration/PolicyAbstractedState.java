@@ -131,12 +131,16 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(%s)%s%n%s%n %n %s",
-        version,
+        "(v=%s, loc=%s)%s%n %n %s %n",
+        version, getLocation().toID(),
         (new PolicyDotWriter()).toDOTLabel(abstraction),
-        templates,
         generatingState.getPathFormula()
     );
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return true;
   }
 
   @Override

@@ -83,7 +83,7 @@ public class ValueDeterminationManager {
         String prefix;
         if (useUniquePrefix) {
           // This creates A LOT of constraints.
-          // Which is REALLY bad => consequently, everything times out.
+          // Which is bad => consequently, everything times out.
           prefix = String.format(VISIT_PREFIX, ++uniquePrefix);
         } else {
           prefix = String.format(VISIT_PREFIX,
@@ -100,7 +100,7 @@ public class ValueDeterminationManager {
             stateWithUpdates,
             constraints, types, visited,
             stateWithUpdates.getLocation(),
-            updated, globalPolicy);
+            updated, bound, globalPolicy);
       }
     }
     return Pair.of(ImmutableMap.copyOf(types), constraints);
@@ -129,11 +129,15 @@ public class ValueDeterminationManager {
       Set<String> visited,
       final Location focusedLocation,
       final Map<Template, PolicyBound> updated,
+      PolicyBound bound,
       final Map<Location, PolicyAbstractedState> policy
   ) {
-    String abstractDomainElement = absDomainVarName(toLocation, template);
-    Formula policyOutTemplate = fmgr.addPrefixToAll(
+    final String abstractDomainElement = absDomainVarName(toLocation, template);
+    final Formula policyOutTemplate = fmgr.addPrefixToAll(
         templateManager.toFormula(template, policyFormula), prefix);
+    final Formula abstractDomainFormula =
+        fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
+            abstractDomainElement);
     types.put(abstractDomainElement, fmgr.getFormulaType(policyOutTemplate));
 
     // Shortcut: don't follow the nodes not in the policy, as the value
@@ -142,6 +146,21 @@ public class ValueDeterminationManager {
       visited.add(prefix);
       return;
     }
+
+    // Shortcut: if the bound is not dependent on the initial value,
+    // just add the numeric constraint and don't process the input policies.
+    if (!bound.dependsOnInitial) {
+      logger.log(Level.FINE, "Template does not depend on initial condition,"
+          + "skipping");
+      BooleanFormula constraint = fmgr.makeEqual(abstractDomainFormula,
+              fmgr.makeNumber(policyOutTemplate, bound.bound));
+      constraints.add(constraint);
+      return;
+    }
+
+    BooleanFormula outConstraint = fmgr.makeEqual(
+        policyOutTemplate, abstractDomainFormula);
+    constraints.add(outConstraint);
 
     BooleanFormula namespacedPolicy = (BooleanFormula)
         fmgr.addPrefixToAll(policyFormula.getFormula(), prefix);
@@ -184,14 +203,7 @@ public class ValueDeterminationManager {
       constraints.add(constraint);
     }
 
-    BooleanFormula outConstraint = fmgr.makeEqual(
-        policyOutTemplate,
-        fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
-            abstractDomainElement)
-    );
 
-    logger.log(Level.FINE, "Output constraint = ", outConstraint);
-    constraints.add(outConstraint);
     visited.add(prefix);
   }
 

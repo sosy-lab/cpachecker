@@ -38,25 +38,34 @@ public class PolicyBound {
    */
   final PathFormula startPathFormula;
 
+  /**
+   * Whether the bound can change with changing initial conditions.
+   */
+  final boolean dependsOnInitial;
+
   private static final Map<Triple<Location, BooleanFormula, Location>, Integer>
       serializationMap = new HashMap<>();
   private static int pathCounter = -1;
 
   private PolicyBound(PathFormula pFormula, Rational pBound, Location pPredecessor,
-      PathFormula pStartPathFormula) {
+      PathFormula pStartPathFormula, boolean pDependsOnInitial) {
     formula = pFormula;
     bound = pBound;
     predecessor = pPredecessor;
     startPathFormula = pStartPathFormula;
+    dependsOnInitial = pDependsOnInitial;
   }
 
   public static PolicyBound of(PathFormula pFormula, Rational bound,
-      Location pUpdatedFrom, PathFormula pStartPathFormula) {
-    return new PolicyBound(pFormula, bound, pUpdatedFrom, pStartPathFormula);
+      Location pUpdatedFrom, PathFormula pStartPathFormula,
+      boolean dependsOnInitial) {
+    return new PolicyBound(pFormula, bound, pUpdatedFrom, pStartPathFormula,
+        dependsOnInitial);
   }
 
   public PolicyBound updateValue(Rational newValue) {
-    return new PolicyBound(formula, newValue, predecessor, startPathFormula);
+    return new PolicyBound(formula, newValue, predecessor, startPathFormula,
+        dependsOnInitial);
   }
 
   /**

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -370,7 +371,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
         newState.getTemplates());
     Map<Template, PolicyBound> updated = new HashMap<>();
-    Set<Template> unbounded = new HashSet<>();
+    Set<Template> newUnbounded = new HashSet<>();
 
     // Simple join:
     // Pick the biggest bound, and keep the biggest trace to match.
@@ -387,18 +388,22 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       } else if (!newValue.isPresent()) {
 
         // {@code template} became unbounded.
-        unbounded.add(template);
+        newUnbounded.add(template);
         continue;
       } else if (newValue.get().bound.compareTo(oldValue.get().bound) > 0) {
         updated.put(template, newValue.get());
       }
     }
 
+    if (updated.isEmpty() && newUnbounded.isEmpty()) {
+      return oldState;
+    }
+
     if (filterValueDeterminationConstraints) {
       updated = filterAbstraction(updated);
     }
     PolicyAbstractedState stateWithUpdates =
-        oldState.withUpdates(updated, unbounded, allTemplates);
+        oldState.withUpdates(updated, newUnbounded, allTemplates);
     logger.log(Level.FINE, "# State with updates: ", stateWithUpdates);
 
     if (!shouldPerformValueDetermination(node, updated)) {
@@ -492,6 +497,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         statistics.stopOPTTimer();
       }
       if (result != OptEnvironment.OptStatus.OPT) {
+        shutdownNotifier.shutdownIfNecessary();
 
         // Useful for debugging.
         if (result == OptEnvironment.OptStatus.UNSAT) {
@@ -500,7 +506,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 //          formulaSlicingManager.showUnsatCore(pValueDeterminationConstraints);
           return Optional.absent();
         }
-        shutdownNotifier.shutdownIfNecessary();
         throw new CPATransferException("Unexpected solver state");
       }
 
@@ -575,9 +580,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         state.getPathFormula().getFormula(), startConstraints
     );
 
-    constraint = linearizationManager.enforceChoice(constraint,
-        Collections.<Entry<Model.AssignableTerm, Object>>emptySet(),
-        true);
+    constraint = linearizationManager.enforceInitial(constraint, true);
 
     try {
       statistics.startCheckSATTimer();
@@ -630,7 +633,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       throws CPATransferException, InterruptedException {
     final PathFormula p = state.getPathFormula();
 
-    BooleanFormula transferRelation = bfmgr.and(
+    final BooleanFormula transferRelation = bfmgr.and(
         p.getFormula(),
         bfmgr.or(
             bfmgr.not(bfmgr.makeVariable(INITIAL_CONDITION_FLAG)),
@@ -639,20 +642,25 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     );
 
     // Linearize.
-    BooleanFormula linearizedFormula = linearizationManager.linearize(
+    final BooleanFormula linearizedFormula = linearizationManager.linearize(
         transferRelation);
 
     // Add choice variables.
-    BooleanFormula annotatedFormula = linearizationManager.annotateDisjunctions(
+    final BooleanFormula annotatedFormula = linearizationManager.annotateDisjunctions(
         linearizedFormula);
 
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
 
-    BooleanFormula formulaWithInitial = linearizationManager.enforceChoice(
-        annotatedFormula, Collections.<Entry<Model.AssignableTerm, Object>>emptySet(), true);
+    final BooleanFormula formulaWithInitial = linearizationManager.enforceInitial(
+        annotatedFormula, true);
 
-    try (OptEnvironment solver = this.solver.newOptEnvironment()) {
-      solver.addConstraint(formulaWithInitial);
+    try (
+        OptEnvironment optEnvironment = solver.newOptEnvironment();
+        ProverEnvironment prover = solver.newProverEnvironment()
+    ) {
+      optEnvironment.addConstraint(formulaWithInitial);
+      //noinspection ResultOfMethodCallIgnored
+      prover.push(linearizationManager.enforceInitial(linearizedFormula, false));
 
       shutdownNotifier.shutdownIfNecessary();
 
@@ -664,20 +672,19 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // We can't use multi-objective semantics as we need a separate model
         // for each optimized objective.
-        solver.push();
+        optEnvironment.push();
         logger.log(Level.FINE, "Optimizing for ", objective);
         logger.log(Level.FINE, "Constraints: ", p.getFormula());
-        int handle = solver.maximize(objective);
+        int handle = optEnvironment.maximize(objective);
 
         OptEnvironment.OptStatus status;
         try {
           statistics.startOPTTimer();
-          status = solver.check();
+          status = optEnvironment.check();
         } finally {
           statistics.stopOPTTimer();
 //          long t = statistics.optTimer.getLengthOfLastInterval().asSeconds();
 //          if (t > 2) {
-              // PROBLEM: this can slow down slow systems even more, halting to a grind.
 //            "Long query: optimization took %d seconds (query below) %n"
 //                + "Objective: %s %n Query: %s %n", t, objective, formulaWithInitial;
 //          }
@@ -686,8 +693,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // Generate the trace for the single template.
         switch (status) {
           case OPT:
-            Optional<Rational> bound = solver.upper(handle, EPSILON);
-            Model model = solver.getModel();
+            Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
+            Model model = optEnvironment.getModel();
 
             // Lower bound on unsigned variables is at least zero.
             boolean unsignedAndLower = template.type.isUnsigned() &&
@@ -704,8 +711,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
               // NOTE: it is important to use the formula which does not include
               // the initial condition.
-              PolicyBound policyBound = policyFromModel(
-                  state, p, annotatedFormula, model, boundValue);
+              PolicyBound policyBound = modelToPolicyBound(
+                  objective,
+                  prover, state, p, annotatedFormula, model, boundValue);
               abstraction.put(template, policyBound);
             }
             logger.log(Level.FINE, "Got bound: ", bound);
@@ -717,7 +725,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             shutdownNotifier.shutdownIfNecessary();
             throw new CPATransferException("Solver returned undefined status");
         }
-        solver.pop();
+        optEnvironment.pop();
       }
     } catch (SolverException e) {
       throw new CPATransferException("Solver error: ", e);
@@ -730,7 +738,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             state.getLocation(),
             state));
   }
-
 
   private List<BooleanFormula> abstractStateToConstraints(PolicyAbstractedState
       abstractState, PathFormula inputPath) {
@@ -747,7 +754,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       constraints.add(constraint);
     }
     return constraints;
-
   }
 
   /**
@@ -774,7 +780,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       initialConstraint = bfmgr.and(initialConstraint, pointerData);
     }
 
-    // Does SSA really stay the same?
     PathFormula path = generatingFormula.updateFormula(initialConstraint);
 
     return PolicyIntermediateState.of(
@@ -793,15 +798,33 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    *
    * @return Reconstructed trace
    */
-  private PolicyBound policyFromModel(
+  private PolicyBound modelToPolicyBound(
+      Formula templateObjective,
+      ProverEnvironment prover,
       PolicyIntermediateState inputState,
       PathFormula inputPathFormula,
       BooleanFormula transferRelation,
       Model model,
-      Rational bound) {
+      Rational bound) throws SolverException, InterruptedException {
+
+    // Check whether the bound can change if initial condition is dropped.
+    //noinspection ResultOfMethodCallIgnored
+    prover.push(fmgr.makeGreaterThan(
+        templateObjective,
+        fmgr.makeNumber(templateObjective, bound), true));
+    boolean dependsOnInitial;
+    try {
+      statistics.checkIndependenceTimer.start();
+      dependsOnInitial = !prover.isUnsat();
+    } finally {
+      statistics.checkIndependenceTimer.stop();
+      prover.pop();
+    }
+
+    BooleanFormula transferWithoutInitial =
+        linearizationManager.enforceInitial(transferRelation, false);
     BooleanFormula policyFormula = linearizationManager.enforceChoice(
-        transferRelation, model.entrySet(), false
-    );
+        transferWithoutInitial, model.entrySet());
 
     BigInteger prevLocationID = (BigInteger)model.get(
         new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer));
@@ -810,7 +833,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     return PolicyBound.of(
         inputPathFormula.updateFormula(policyFormula), bound, prevLocation,
-        inputState.getGeneratingStates().get(prevLocation).getPathFormula());
+        inputState.getGeneratingStates().get(prevLocation).getPathFormula(),
+        dependsOnInitial);
   }
 
   /**
@@ -850,7 +874,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyState state;
       if (loc == focusedLocation) {
         state = newState;
-
       } else {
         state = abstractStates.get(loc);
       }
@@ -861,9 +884,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         Template template = entry.getKey();
         PolicyBound bound = entry.getValue();
 
-        // Do not follow the edges which are associated with the focused node
-        // but are not in <updated>.
-        if (state != newState || updated.containsKey(template)) {
+        // Do not follow the edges which are:
+        //  * Associated with the focused node but are not in <updated>.
+        //  * Marked as not [dependsOnInitial]
+        if ((state != newState || updated.containsKey(template))
+            && bound.dependsOnInitial) {
           Location toVisit = bound.predecessor;
 
           if (!visited.contains(toVisit)) {

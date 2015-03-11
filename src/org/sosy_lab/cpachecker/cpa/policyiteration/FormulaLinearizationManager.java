@@ -149,18 +149,10 @@ public class FormulaLinearizationManager {
    * with arguments which were used to generate the {@code model}.
    */
   public BooleanFormula enforceChoice(
-      BooleanFormula input,
-      Iterable<Map.Entry<Model.AssignableTerm, Object>> model,
-      boolean useInitialValue
+      final BooleanFormula input,
+      final Iterable<Map.Entry<Model.AssignableTerm, Object>> model
   ) {
-
-    Map<Formula, Formula> mapping = ImmutableMap.of(
-        (Formula)bfmgr.makeVariable(INITIAL_CONDITION_FLAG),
-        (Formula)bfmgr.makeBoolean(useInitialValue)
-    );
-    BooleanFormula initialSelected = ufmgr.substitute(input, mapping);
-
-    mapping = new HashMap<>();
+    Map<Formula, Formula> mapping = new HashMap<>();
     for (Map.Entry<Model.AssignableTerm, Object> entry : model) {
       String termName = entry.getKey().getName();
       if (termName.contains(CHOICE_VAR_NAME)) {
@@ -168,10 +160,24 @@ public class FormulaLinearizationManager {
         mapping.put(ifmgr.makeVariable(termName), ifmgr.makeNumber(value));
       }
     }
-    BooleanFormula pathSelected = ufmgr.substitute(initialSelected, mapping);
+    BooleanFormula pathSelected = ufmgr.substitute(input, mapping);
     pathSelected = fmgr.simplify(pathSelected);
     return pathSelected;
   }
 
+  /**
+   * Enforce the initial state to be true or false.
+   */
+  public BooleanFormula enforceInitial(final BooleanFormula input,
+      boolean useInitialValue) {
+
+    Map<Formula, Formula> mapping = ImmutableMap.of(
+        (Formula)bfmgr.makeVariable(INITIAL_CONDITION_FLAG),
+        (Formula)bfmgr.makeBoolean(useInitialValue)
+    );
+    BooleanFormula out = ufmgr.substitute(input, mapping);
+    out = fmgr.simplify(out);
+    return out;
+  }
 
 }

@@ -24,6 +24,8 @@ public class PolicyIterationStatistics implements Statistics {
   private final Timer checkSATTimer = new Timer();
   final Timer optTimer = new Timer();
 
+  final Timer checkIndependenceTimer = new Timer();
+
   public void startCheckSATTimer() {
     checkSATTimer.start();
   }
@@ -74,6 +76,7 @@ public class PolicyIterationStatistics implements Statistics {
     if (slicing != null) {
       printTimer(out, slicing.getSlicingTime(), "checking inductiveness in formula slicing");
     }
+    printTimer(out, checkIndependenceTimer, "checking independence");
     out.printf("Time spent in %s: %s (Max: %s)%n",
         "SMT solver",
         TimeSpan.sum(
