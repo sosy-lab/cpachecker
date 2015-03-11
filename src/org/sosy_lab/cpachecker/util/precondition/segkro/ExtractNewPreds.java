@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import static org.sosy_lab.cpachecker.util.precondition.segkro.FormulaUtils.*;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -99,7 +97,14 @@ public class ExtractNewPreds {
         }
 
         for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
-          final boolean tupleContainsOnlyBasePredicates = !containsFormulasNotFrom(tuple, pBasePredicates);
+          boolean containsFormulasNotFrom = false;
+          for (BooleanFormula f: tuple) {
+            if (!pBasePredicates.contains(f)) {
+              containsFormulasNotFrom = true; // TODO: Test this!!
+              break;
+            }
+          }
+          final boolean tupleContainsOnlyBasePredicates = !containsFormulasNotFrom;
 
           // The rules ELIM and EQ are only applied to the base predicates!!
           final boolean isBasicPredicatesOnlyRule = false
@@ -122,7 +127,7 @@ public class ExtractNewPreds {
               List<Integer> positions = Lists.newArrayList();
               for (int posInResult=0; posInResult<resultPredicates.size(); posInResult++) {
                 for (BooleanFormula tf: tuple) {
-                  if (equalFormula(resultPredicates.get(posInResult), tf)) {
+                  if (resultPredicates.get(posInResult).equals(tf)) {
                     positions.add(posInResult);
                   }
                 }
