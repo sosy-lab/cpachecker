@@ -89,7 +89,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * If symbolic execution is not in use, this map will remain empty.
    */
-  private transient PersistentMap<SymbolicIdentifier, Value> identifierMap = PathCopyingPersistentTreeMap.of();
+  private PersistentMap<SymbolicIdentifier, Value> identifierMap = PathCopyingPersistentTreeMap.of();
 
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();

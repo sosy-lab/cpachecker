@@ -97,7 +97,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
@@ -1331,10 +1330,9 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JEnumConstantExpression pJEnumConstantExpression) {
-    JClassType enumType = pJEnumConstantExpression.getExpressionType();
     String fullName = pJEnumConstantExpression.getConstantName();
 
-    return new EnumConstantValue(enumType, fullName);
+    return new EnumConstantValue(fullName);
   }
 
   @Override
@@ -1352,7 +1350,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(JClassInstanceCreation pJClassInstanzeCreation) {
+  public Value visit(JClassInstanceCreation pJClassInstanceCreation) {
     return UnknownValue.getInstance();
   }
 

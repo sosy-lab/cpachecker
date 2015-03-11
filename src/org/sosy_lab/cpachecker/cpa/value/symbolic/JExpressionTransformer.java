@@ -222,11 +222,11 @@ public class JExpressionTransformer extends ExpressionTransformer
       throws UnrecognizedCodeException {
     String enumConstant = pJEnumConstantExpression.getConstantName();
     Type enumType = pJEnumConstantExpression.getExpressionType();
-    return SymbolicValueFactory.getInstance().asConstant(createEnumValue(enumType, enumConstant), enumType);
+    return SymbolicValueFactory.getInstance().asConstant(createEnumValue(enumConstant), enumType);
   }
 
-  private Value createEnumValue(Type pType, String pConstant) {
-    return new EnumConstantValue(pType, pConstant);
+  private Value createEnumValue(String pConstant) {
+    return new EnumConstantValue(pConstant);
   }
 
   @Override

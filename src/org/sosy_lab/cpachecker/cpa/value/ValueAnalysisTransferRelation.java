@@ -991,9 +991,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        // an array enclosing another array can not be one dimensional
-        assert enclosingArray.getArrayType().getDimensions() > 1;
-
         index = maybeIndex.get();
 
       } else {

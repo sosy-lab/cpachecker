@@ -27,14 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -54,13 +52,15 @@ public class ArrayValue implements Value {
 
   private static final long serialVersionUID = -3963825961335658001L;
 
-  private final JArrayType arrayType;
+
+  // Array type and element type are only used for checking correctness of parameters
+  private final transient JArrayType arrayType;
 
   /*
    * The element type of arrayType. We store this separately so we don't have to call
    * arrayType.getElementType() for each value we add to the array
    */
-  private final Type elementType;
+  private final transient Type elementType;
 
   private final int arraySize;
   private final Value[] values;
@@ -82,7 +82,7 @@ public class ArrayValue implements Value {
    */
   public ArrayValue(JArrayType pType, int pArraySize) {
     arrayType = pType;
-    elementType = arrayType.getElementType();
+    elementType = arrayType != null ? arrayType.getElementType() : null;
     arraySize = pArraySize;
     // we can't use concrete Value types because UnknownValue must be allowed
     values = new Value[pArraySize];
@@ -116,7 +116,7 @@ public class ArrayValue implements Value {
    */
   public ArrayValue(JArrayType pType, List<Value> pValues) {
     arrayType = pType;
-    elementType = arrayType.getElementType();
+    elementType = arrayType != null ? arrayType.getElementType() : null;
     arraySize = pValues.size();
 
     for (Value currentValue : pValues) {
@@ -178,7 +178,7 @@ public class ArrayValue implements Value {
 
     final String errorMessage = "Illegal value " + pValue + " to store in array of type " + arrayType;
 
-    if (pValue.isUnknown()) {
+    if (pValue.isUnknown() || arrayType == null) {
       // as we already check for unknown values here, we won't include it in checks below.
       // this is always fine, do nothing
 
@@ -223,29 +223,8 @@ public class ArrayValue implements Value {
   private boolean isValidComplexValue(Value pValue) {
     checkNotNull(pValue);
 
-    if (pValue.isUnknown() || pValue instanceof NullValue) {
-      return true;
-
-    } else if (pValue instanceof EnumConstantValue) {
-      final EnumConstantValue concreteValue = (EnumConstantValue) pValue;
-      final Type enumType = concreteValue.getEnumType();
-
-      if (enumType instanceof JClassType) {
-        if (enumType.equals(elementType)) {
-          return true;
-
-        } else {
-          Set<JClassOrInterfaceType> superTypes = ((JClassType) enumType).getAllSuperTypesOfClass();
-
-          // rely on hash function/equals method for comparison
-          return superTypes.contains(elementType);
-        }
-      } else {
-        throw new AssertionError("Unhandled enum type " + enumType);
-      }
-    } else {
-      return false;
-    }
+    return pValue.isUnknown() || pValue instanceof NullValue || pValue instanceof EnumConstantValue
+        || arrayType == null;
   }
 
   /**
