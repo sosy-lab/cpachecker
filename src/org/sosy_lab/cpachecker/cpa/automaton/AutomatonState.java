@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -168,6 +169,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   public String getViolatedPropertyDescription() throws IllegalStateException {
     checkState(isTarget());
     return checkNotNull(violatedPropertyDescription);
+  }
+
+  Optional<String> getOptionalViolatedPropertyDescription() {
+    return Optional.fromNullable(violatedPropertyDescription);
   }
 
   @Override
