@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
@@ -82,11 +84,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
 
     ConstantSymbolicExpression that = (ConstantSymbolicExpression)o;
 
-    if (type == null && that.type != null) {
-      return false;
-    }
-
-    return type.equals(that.type) && value.equals(that.value);
+    return Objects.equals(type, that.type) && Objects.equals(value, that.value);
 
   }
 
