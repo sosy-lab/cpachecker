@@ -200,6 +200,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
    * @return <code>true</code> if this state did not already contain the given <code>Constraint</code>,
    *    <code>false</code> otherwise
    */
+  @Override
   public boolean add(Constraint pConstraint) {
     checkNotNull(pConstraint);
 

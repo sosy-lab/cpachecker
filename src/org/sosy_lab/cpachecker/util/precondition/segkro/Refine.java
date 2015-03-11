@@ -69,7 +69,6 @@ import com.google.common.collect.Multimap;
 public class Refine implements PreconditionRefiner {
 
   private static enum FormulaMode { INSTANTIATED, UNINSTANTIATED }
-  private static enum PreMode { ELIMINATE_DEAD }
 
   private final InterpolationWithCandidates ipc;
   private final BooleanFormulaManagerView bmgr;
@@ -196,7 +195,6 @@ public class Refine implements PreconditionRefiner {
     while (reverseIt.hasNext()) {
 
       final CFAEdge t = reverseIt.getIncomingEdge();
-      final PathPosition currentPos = reverseIt.getPosition();
       reverseIt.advance();
       final PathPosition nextPos = reverseIt.getPosition();
 

@@ -200,7 +200,7 @@ public class CustomInstruction{
         throws InterruptedException, AppliedCustomInstructionParsingFailedException {
     HashMap<String, String> mapping = new HashMap<>();
     HashMap<String, String> swappedMapping = new HashMap<>(); // same HM as mapping, but key/value are swapped
-    Collection<String> outVariables = new ArrayList<String>();
+    Collection<String> outVariables = new ArrayList<>();
 
 
     Set<CFANode> aciEndNodes = new HashSet<>();

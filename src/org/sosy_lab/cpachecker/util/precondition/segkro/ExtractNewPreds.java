@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 import static org.sosy_lab.cpachecker.util.precondition.segkro.FormulaUtils.*;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -69,12 +68,6 @@ public class ExtractNewPreds {
 
   private Collection<BooleanFormula> extractLiterals(BooleanFormula pInputFormula) {
     return mgrv.extractLiterals(pInputFormula, false, false, false); // TODO: check the argument 'conjunctionsOnly'
-  }
-
-  private void printFormulaCollection(PrintStream pOut, Collection<BooleanFormula> pC) {
-    for (BooleanFormula f: pC) {
-      pOut.println("===" + f);
-    }
   }
 
   public List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {

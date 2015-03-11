@@ -296,8 +296,6 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     BooleanFormula lastIterationPcValid = null;
     PredicatePrecision lastPrecision = null;
 
-    Set<ARGPath> coveredViolationTraces = Sets.newHashSet();
-    Set<ARGPath> coveredValidTraces = Sets.newHashSet();
     Multimap<ARGPath, ARGPath> coveredTracePairs = HashMultimap.create();
 
     PredicatePrecision newPrecision = null;
