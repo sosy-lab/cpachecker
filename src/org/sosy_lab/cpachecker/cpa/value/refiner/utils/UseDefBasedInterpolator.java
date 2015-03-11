@@ -145,15 +145,15 @@ public class UseDefBasedInterpolator {
     List<ARGState> states = path.asStatesList();
 
     for (int i = edges.size() - 1; i >= 0; i--) {
-      addCurrentInterpolant(states.get(i + 1));
-
       CFAEdge edge = edges.get(i);
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
+          joinCurrentInterpolants(states.get(i + 1));
           updateDependencies(singleEdge);
         }
       }
       else {
+        addCurrentInterpolant(states.get(i + 1));
         updateDependencies(edge);
       }
     }
@@ -263,9 +263,24 @@ public class UseDefBasedInterpolator {
   }
 
   private void addCurrentInterpolant(ARGState successor) {
-    interpolants.put(successor, dependencies.isEmpty()
+    interpolants.put(successor, createInterpolant());
+  }
+
+  private void joinCurrentInterpolants(ARGState successor) {
+    ValueAnalysisInterpolant currentItp = createInterpolant();
+
+    if(interpolants.containsKey(successor) && interpolants.get(successor) != ValueAnalysisInterpolant.FALSE) {
+      currentItp = currentItp.join(interpolants.get(successor));
+    }
+
+    interpolants.put(successor, currentItp);
+  }
+
+  private ValueAnalysisInterpolant createInterpolant() {
+    ValueAnalysisInterpolant currentItp = dependencies.isEmpty()
         ? createTrivialInterpolant()
-        : createNonTrivialInterpolant());
+        : createNonTrivialInterpolant();
+    return currentItp;
   }
 
   private ValueAnalysisInterpolant createTrivialInterpolant() {
