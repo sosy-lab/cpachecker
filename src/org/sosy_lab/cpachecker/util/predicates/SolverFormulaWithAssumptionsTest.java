@@ -39,6 +39,8 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
@@ -47,7 +49,7 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 import com.google.common.collect.Lists;
 
 @RunWith(Parameterized.class)
-public class SolverFormulaWithAssignmentsTest extends SolverBasedTest0 {
+public class SolverFormulaWithAssumptionsTest extends SolverBasedTest0 {
 
   @Parameters(name="{0}")
   public static Object[] getAllSolvers() {
@@ -66,14 +68,19 @@ public class SolverFormulaWithAssignmentsTest extends SolverBasedTest0 {
    * @param <T>
    * @throws InvalidConfigurationException */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private <T> InterpolatingProverWithAssumptionsWrapper<T> newEnvironmentForTest() throws InvalidConfigurationException {
+  private <T> InterpolatingProverEnvironmentWithAssumptions<T> newEnvironmentForTest() throws InvalidConfigurationException {
     FormulaManagerView formulaView = new FormulaManagerView(factory,
                                                             Configuration.builder()
                                                                          .copyFrom(config)
                                                                          .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
                                                                          .build(),
                                                             TestLogManager.getInstance());
-    return new InterpolatingProverWithAssumptionsWrapper(mgr.newProverEnvironmentWithInterpolation(false), formulaView);
+    final InterpolatingProverEnvironment<?> proverEnvironment = mgr.newProverEnvironmentWithInterpolation(false);
+    if (proverEnvironment instanceof InterpolatingProverEnvironmentWithAssumptions) {
+      return (InterpolatingProverEnvironmentWithAssumptions<T>) proverEnvironment;
+    } else {
+      return new InterpolatingProverWithAssumptionsWrapper(proverEnvironment, formulaView);
+    }
   }
 
   @Test
@@ -93,7 +100,7 @@ public class SolverFormulaWithAssignmentsTest extends SolverBasedTest0 {
     BooleanFormula term3 = bmgr.or(bmgr.not(imgr.equal(v1, imgr.makeNumber(BigDecimal.ONE))),
                                    suffix3);
 
-    InterpolatingProverWithAssumptionsWrapper<T> env = newEnvironmentForTest();
+    InterpolatingProverEnvironmentWithAssumptions<T> env = newEnvironmentForTest();
 
 
     T firstPartForInterpolant = env.push(term1);
@@ -107,7 +114,9 @@ public class SolverFormulaWithAssignmentsTest extends SolverBasedTest0 {
     assertThat(env.getInterpolant(Collections.singletonList(firstPartForInterpolant)).toString())
               .doesNotContain("suffix");
 
-    env.clearAssumptions();
+    if (env instanceof InterpolatingProverWithAssumptionsWrapper) {
+      ((InterpolatingProverWithAssumptionsWrapper<T>) env).clearAssumptions();
+    }
 
     assertThat(env.isUnsatWithAssumptions(Lists.newArrayList(bmgr.not(suffix1),
                                                              bmgr.not(suffix3),
@@ -115,6 +124,9 @@ public class SolverFormulaWithAssignmentsTest extends SolverBasedTest0 {
                .isTrue();
     assertThat(env.getInterpolant(Collections.singletonList(firstPartForInterpolant)).toString())
               .doesNotContain("suffix");
-    env.clearAssumptions();
+
+    if (env instanceof InterpolatingProverWithAssumptionsWrapper) {
+      ((InterpolatingProverWithAssumptionsWrapper<T>) env).clearAssumptions();
+    }
   }
 }
