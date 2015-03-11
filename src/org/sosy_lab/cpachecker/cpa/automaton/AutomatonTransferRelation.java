@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -265,7 +266,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, "");
+            String violatedPropertyDescription = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
+            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, violatedPropertyDescription);
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }

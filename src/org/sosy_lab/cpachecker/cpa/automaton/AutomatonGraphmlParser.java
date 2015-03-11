@@ -85,9 +85,11 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -98,6 +100,8 @@ import com.google.common.collect.Sets;
 
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
+
+  public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
 
   @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
@@ -160,7 +164,10 @@ public class AutomatonGraphmlParser {
 
       // Extract the information on the automaton ----
       Node nameAttribute = graphNode.getAttributes().getNamedItem("name");
-      String automatonName = nameAttribute == null ? "WitnessAutomaton" : nameAttribute.getTextContent();
+      String automatonName = WITNESS_AUTOMATON_NAME;
+      if (nameAttribute != null) {
+        automatonName += "_" + nameAttribute.getTextContent();
+      }
       String initialStateName = null;
 
       // Create transitions ----
@@ -211,7 +218,8 @@ public class AutomatonGraphmlParser {
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
         final List<AutomatonBoolExpr> assertions;
-        if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
+        boolean leadsToViolationNode = targetNodeFlags.contains(NodeFlag.ISVIOLATION);
+        if (leadsToViolationNode) {
           AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
           assertions = Collections.singletonList(otherAutomataSafe);
         } else {
@@ -344,7 +352,8 @@ public class AutomatonGraphmlParser {
           nonMatchingTransitions.add(createAutomatonSinkTransition(
               not(conjunctedTriggers),
               Collections.<AutomatonBoolExpr>emptyList(),
-              Collections.<AutomatonAction>emptyList()));
+              Collections.<AutomatonAction>emptyList(),
+              leadsToViolationNode));
 
         } else {
           // If we are more lenient, we just wait in the source state until the witness checker catches up with the witness,
@@ -354,7 +363,8 @@ public class AutomatonGraphmlParser {
               assertions,
               Collections.<CStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
-              sourceStateId));
+              sourceStateId,
+              leadsToViolationNode));
         }
 
         if (matchAssumeCase) {
@@ -383,7 +393,13 @@ public class AutomatonGraphmlParser {
         Collection<AutomatonTransition> matchingTransitions = new ArrayList<>();
 
         // If the triggers match, there must be one successor state that moves the automaton forwards
-        matchingTransitions.add(createAutomatonTransition(conjunctedTriggers, assertions, assumptions, actions, targetStateId));
+        matchingTransitions.add(createAutomatonTransition(
+            conjunctedTriggers,
+            assertions,
+            assumptions,
+            actions,
+            targetStateId,
+            leadsToViolationNode));
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
@@ -394,7 +410,8 @@ public class AutomatonGraphmlParser {
               assertions,
               Collections.<CStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
-              sourceStateId));
+              sourceStateId,
+              leadsToViolationNode));
         }
         transitions.addAll(matchingTransitions);
         transitions.addAll(nonMatchingTransitions);
@@ -420,7 +437,8 @@ public class AutomatonGraphmlParser {
                   assertions,
                   Collections.<CStatement>emptyList(),
                   Collections.<AutomatonAction>emptyList(),
-                  stateId));
+                  stateId,
+                  true));
         }
 
         if (nodeFlags.contains(NodeFlag.ISENTRY)) {
@@ -474,9 +492,18 @@ public class AutomatonGraphmlParser {
       List<AutomatonBoolExpr> pAssertions,
       List<CStatement> pAssumptions,
       List<AutomatonAction> pActions,
-      String pTargetStateId) {
+      String pTargetStateId,
+      boolean pLeadsToViolationNode) {
     if (pTargetStateId.equals(AutomatonGraphmlCommon.SINK_NODE_ID)) {
-      return createAutomatonSinkTransition(pTriggers, pAssertions, pActions);
+      return createAutomatonSinkTransition(pTriggers, pAssertions, pActions, pLeadsToViolationNode);
+    }
+    if (pLeadsToViolationNode) {
+      return new ViolationCopyingAutomatonTransition(
+              pTriggers,
+              pAssertions,
+              pAssumptions,
+              pActions,
+              pTargetStateId);
     }
     return new AutomatonTransition(
             pTriggers,
@@ -489,12 +516,62 @@ public class AutomatonGraphmlParser {
   private static AutomatonTransition createAutomatonSinkTransition(
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
-      List<AutomatonAction> pActions) {
+      List<AutomatonAction> pActions,
+      boolean pLeadsToViolationNode) {
+    if (pLeadsToViolationNode) {
+      return new ViolationCopyingAutomatonTransition(
+          pTriggers,
+          pAssertions,
+          pActions,
+          AutomatonInternalState.BOTTOM);
+    }
     return new AutomatonTransition(
         pTriggers,
         pAssertions,
         pActions,
         AutomatonInternalState.BOTTOM);
+  }
+
+  private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
+
+    private ViolationCopyingAutomatonTransition(
+        AutomatonBoolExpr pTriggers,
+        List<AutomatonBoolExpr> pAssertions,
+        List<CStatement> pAssumptions,
+        List<AutomatonAction> pActions,
+        String pTargetStateId) {
+      super(pTriggers, pAssertions, pAssumptions, pActions, pTargetStateId);
+    }
+
+    private ViolationCopyingAutomatonTransition(
+        AutomatonBoolExpr pTriggers,
+        List<AutomatonBoolExpr> pAssertions,
+        List<AutomatonAction> pActions,
+        AutomatonInternalState pTargetState) {
+      super(pTriggers, pAssertions, pActions, pTargetState);
+    }
+
+    @Override
+    public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
+      String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
+      List<String> violatedPropertyDescriptions = new ArrayList<>();
+      if (!Strings.isNullOrEmpty(own)) {
+        violatedPropertyDescriptions.add(own);
+      }
+      for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
+        if (other != pArgs.getState() && other.getInternalState().isTarget()) {
+          Optional<String> violatedPropertyDescription = other.getOptionalViolatedPropertyDescription();
+          if (violatedPropertyDescription.isPresent() && !violatedPropertyDescription.get().isEmpty()) {
+            violatedPropertyDescriptions.add(violatedPropertyDescription.get());
+          }
+        }
+      }
+      if (violatedPropertyDescriptions.isEmpty() && own == null) {
+        return null;
+      }
+      return Joiner.on(',').join(violatedPropertyDescriptions);
+    }
+
   }
 
   /**
