@@ -60,7 +60,7 @@ public class ArrayValue implements Value {
    * The element type of arrayType. We store this separately so we don't have to call
    * arrayType.getElementType() for each value we add to the array
    */
-  private final transient Type elementType;
+  private final transient JType elementType;
 
   private final int arraySize;
   private final Value[] values;
@@ -87,7 +87,12 @@ public class ArrayValue implements Value {
     // we can't use concrete Value types because UnknownValue must be allowed
     values = new Value[pArraySize];
 
-    Arrays.fill(values, getInitialValue(pType.getElementType()));
+
+    if (elementType != null) {
+      Arrays.fill(values, getInitialValue(elementType));
+    } else {
+      Arrays.fill(values, UnknownValue.getInstance());
+    }
   }
 
   /**

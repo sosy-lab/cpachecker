@@ -34,7 +34,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   private static final long serialVersionUID = 8720056661933193765L;
 
   private final Value value;
-  private final Type type;
+  private final transient Type type;
 
   /**
    * Create a new <code>ConstantSymbolicExpression</code> object with the given value and type.
@@ -82,6 +82,10 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
 
     ConstantSymbolicExpression that = (ConstantSymbolicExpression)o;
 
+    if (type == null && that.type != null) {
+      return false;
+    }
+
     return type.equals(that.type) && value.equals(that.value);
 
   }
@@ -89,7 +93,8 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   @Override
   public int hashCode() {
     int result = value.hashCode();
-    result = 31 * result + type.hashCode();
+    result = type != null ? 31 * result + type.hashCode()
+                          : result;
     return result;
   }
 }
