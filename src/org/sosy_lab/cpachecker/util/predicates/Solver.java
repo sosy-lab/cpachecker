@@ -37,13 +37,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
@@ -188,6 +191,38 @@ public final class Solver implements AutoCloseable {
       return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
     } else {
       return ipe;
+    }
+  }
+
+  /**
+   * Direct reference to the underlying SMT solver for interpolation queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
+   */
+  public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolationAndAssumptions() {
+    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(false);
+
+    // in the case we do not already have a prover environment with assumptions
+    // we add a wrapper to it
+    if (!(ipe instanceof InterpolatingProverEnvironmentWithAssumptions)) {
+      ipe = new InterpolatingProverWithAssumptionsWrapper<>(ipe, fmgr);
+    }
+
+    InterpolatingProverEnvironmentWithAssumptions<?> ipeA = (InterpolatingProverEnvironmentWithAssumptions<?>) ipe;
+
+    if (solvingFormulaManager != interpolationFormulaManager) {
+      // If interpolationFormulaManager is not the normal solver,
+      // we use SeparateInterpolatingProverEnvironment
+      // which copies formula back and forth using strings.
+      // We don't need this if the solvers are the same anyway.
+      ipe = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipe);
+    }
+
+    if (useLogger) {
+      return new LoggingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA);
+    } else {
+      return ipeA;
     }
   }
 
