@@ -35,7 +35,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-abstract class Z3Formula implements Formula {
+abstract class Z3Formula implements Formula, Serializable {
+  private static final long serialVersionUID = 8136991922140793632L;
 
   private final long z3expr;
   private final long z3context;
@@ -78,6 +79,7 @@ abstract class Z3Formula implements Formula {
 
 class Z3ArrayFormula<TI extends Formula, TE extends Formula> extends Z3Formula
 implements ArrayFormula<TI, TE> {
+  private static final long serialVersionUID = 5278689262924037046L;
 
   private final FormulaType<TI> indexType;
   private final FormulaType<TE> elementType;
@@ -93,6 +95,7 @@ implements ArrayFormula<TI, TE> {
 }
 
 class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {
+  private static final long serialVersionUID = -2076216864928602817L;
 
   public Z3BitvectorFormula(long z3context, long z3expr) {
     super(z3context, z3expr);
@@ -100,6 +103,7 @@ class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {
 }
 
 class Z3IntegerFormula extends Z3Formula implements IntegerFormula {
+  private static final long serialVersionUID = 5481542434302000348L;
 
   public Z3IntegerFormula(long z3context, long z3expr) {
     super(z3context, z3expr);
@@ -107,13 +111,14 @@ class Z3IntegerFormula extends Z3Formula implements IntegerFormula {
 }
 
 class Z3RationalFormula extends Z3Formula implements RationalFormula {
+  private static final long serialVersionUID = -2440429697996015065L;
 
   public Z3RationalFormula(long z3context, long z3expr) {
     super(z3context, z3expr);
   }
 }
 
-class Z3BooleanFormula extends Z3Formula implements BooleanFormula, Serializable {
+class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
 
   public Z3BooleanFormula(long z3context, long z3expr) {
     super(z3context, z3expr);

@@ -34,7 +34,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-abstract class Mathsat5Formula implements Formula {
+abstract class Mathsat5Formula implements Formula, Serializable {
+  private static final long serialVersionUID = -7760748807521914178L;
 
   private final long msatTerm;
 
@@ -64,30 +65,38 @@ abstract class Mathsat5Formula implements Formula {
 }
 
 class Mathsat5BitvectorFormula extends Mathsat5Formula implements BitvectorFormula {
+  private static final long serialVersionUID = -9036997547725207306L;
+
   public Mathsat5BitvectorFormula(long pTerm) {
     super(pTerm);
   }
 }
 
 class Mathsat5FloatingPointFormula extends Mathsat5Formula implements FloatingPointFormula {
+  private static final long serialVersionUID = 6915758262973153054L;
+
   public Mathsat5FloatingPointFormula(long pTerm) {
     super(pTerm);
   }
 }
 
 class Mathsat5IntegerFormula extends Mathsat5Formula implements IntegerFormula {
+  private static final long serialVersionUID = 2501475166989542012L;
+
   public Mathsat5IntegerFormula(long pTerm) {
     super(pTerm);
   }
 }
 
 class Mathsat5RationalFormula extends Mathsat5Formula implements RationalFormula {
+  private static final long serialVersionUID = 3693501426590823327L;
+
   public Mathsat5RationalFormula(long pTerm) {
     super(pTerm);
   }
 }
 
-class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula, Serializable {
+class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
   private static final long serialVersionUID = -3587393134167404728L;
 
   public Mathsat5BooleanFormula(long pTerm) {
