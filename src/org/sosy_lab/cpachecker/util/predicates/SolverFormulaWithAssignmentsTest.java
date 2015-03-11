@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -66,7 +67,12 @@ public class SolverFormulaWithAssignmentsTest extends SolverBasedTest0 {
    * @throws InvalidConfigurationException */
   @SuppressWarnings({ "unchecked", "rawtypes" })
   private <T> InterpolatingProverWithAssumptionsWrapper<T> newEnvironmentForTest() throws InvalidConfigurationException {
-    FormulaManagerView formulaView = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    FormulaManagerView formulaView = new FormulaManagerView(factory,
+                                                            Configuration.builder()
+                                                                         .copyFrom(config)
+                                                                         .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
+                                                                         .build(),
+                                                            TestLogManager.getInstance());
     return new InterpolatingProverWithAssumptionsWrapper(mgr.newProverEnvironmentWithInterpolation(false), formulaView);
   }
 
