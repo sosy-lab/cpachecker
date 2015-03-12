@@ -324,29 +324,28 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
       throws UnrecognizedCCodeException {
 
-    // visitor must use the initial (previous) state, because there we have all information about variables
     ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
-
-    // clone state, because will be changed through removing all variables of current function's scope
-    state = ValueAnalysisState.copyOf(state);
-    state.dropFrame(functionName);
 
     AExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
 
-    FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
+    final FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
 
+    final Optional<? extends AVariableDeclaration> optionalReturnVarDeclaration
+        = functionEntryNode.getReturnVariable();
     MemoryLocation functionReturnVar = null;
-    if(functionEntryNode.getReturnVariable().isPresent()) {
-      functionReturnVar = MemoryLocation.valueOf(functionEntryNode.getReturnVariable().get().getQualifiedName());
+
+    if(optionalReturnVarDeclaration.isPresent()) {
+      functionReturnVar = MemoryLocation.valueOf(optionalReturnVarDeclaration.get().getQualifiedName());
     }
 
     if (expression != null && functionReturnVar != null) {
+      final Type functionReturnType = functionEntryNode.getFunctionDefinition().getType().getReturnType();
 
       return handleAssignmentToVariable(functionReturnVar,
-          functionEntryNode.getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
+          functionReturnType,
           expression,
           evv);
     } else {
