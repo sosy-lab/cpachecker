@@ -1449,10 +1449,10 @@ public class FormulaManagerView {
    * @param prefix The non-empty prefix to add.
    * @param doAddPrefix A predicate telling whether a given variable/UF should be renamed.
    */
-  public Formula addPrefix(Formula input, String prefix, Predicate<String> doAddPrefix) {
+  public <F extends Formula> F addPrefix(F input, String prefix, Predicate<String> doAddPrefix) {
     checkArgument(!prefix.isEmpty());
-    return
-        myAddPrefix(unwrap(input), prefix, doAddPrefix, new HashMap<Formula, Formula>());
+    return wrap(getFormulaType(input),
+        myAddPrefix(unwrap(input), prefix, doAddPrefix, new HashMap<Formula, Formula>()));
   }
 
   private <F extends Formula> F myAddPrefix(F input, String prefix,

@@ -476,14 +476,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
         Template template = policyValue.getKey();
 
-        NumeralFormula objective;
+        Formula objective;
         String varName = vdfmgr.absDomainVarName(location, template);
         logger.log(Level.FINE, "Var name: ", varName);
         if (templateManager.shouldUseRationals(template)) {
           objective = rfmgr.makeVariable(varName);
         } else {
           FormulaType<?> type = types.get(varName);
-          objective = (NumeralFormula) fmgr.makeVariable(type, varName);
+          objective = fmgr.makeVariable(type, varName);
         }
         int handle = optSolver.maximize(objective);
         objectiveHandles.put(template, handle);

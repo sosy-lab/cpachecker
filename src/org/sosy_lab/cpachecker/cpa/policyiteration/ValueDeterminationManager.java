@@ -164,7 +164,7 @@ public class ValueDeterminationManager {
         policyOutTemplate, abstractDomainFormula);
     constraints.add(outConstraint);
 
-    BooleanFormula namespacedPolicy = (BooleanFormula)
+    BooleanFormula namespacedPolicy =
         fmgr.addPrefix(policyFormula.getFormula(), prefix, Predicates.<String>alwaysTrue());
 
     // Optimization.
