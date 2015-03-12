@@ -67,7 +67,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   private FormulaCreator formulaCreator;
   private FormulaManagerView formulaManager;
 
-  private IdentifierAssignment definiteAssignment = new IdentifierAssignment();
+  private IdentifierAssignment definiteAssignment;
 
   /**
    * Creates a new, initial <code>ConstraintsState</code> object.
@@ -75,6 +75,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   public ConstraintsState() {
     constraints = new ArrayList<>();
     constraintFormulas = new HashMap<>();
+    definiteAssignment = new IdentifierAssignment();
   }
 
   /**
@@ -463,6 +464,27 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   @Override
   public Iterator<Constraint> iterator() {
     return new ConstraintIterator();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    ConstraintsState that = (ConstraintsState) o;
+
+    return constraints.equals(that.constraints) && definiteAssignment.equals(that.definiteAssignment);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = constraints.hashCode();
+    result = 31 * result + definiteAssignment.hashCode();
+    return result;
   }
 
   @Override

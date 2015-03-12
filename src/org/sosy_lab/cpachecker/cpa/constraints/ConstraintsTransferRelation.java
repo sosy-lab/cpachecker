@@ -381,7 +381,7 @@ public class ConstraintsTransferRelation
     if (newState != null) {
       newStates.add(newState);
 
-      if (newState.size() == pStateToStrengthen.size()) {
+      if (newState.equals(pStateToStrengthen)) {
         return Optional.absent();
       }
     }
