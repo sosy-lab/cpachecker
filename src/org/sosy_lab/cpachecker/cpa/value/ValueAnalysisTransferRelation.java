@@ -625,22 +625,26 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
+    if (isTrackedType(declarationType)) {
+      if (missingFieldVariableObject) {
+        fieldNameAndInitialValue = Pair.of(varName, initialValue);
+
+      } else if (missingInformationRightJExpression != null) {
+        missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
+      }
+    } else {
+      // If variable not tracked, its Object is irrelevant
+      missingFieldVariableObject = false;
+    }
+
     if (initialValue.isUnknown() && useSymbolicValue(declarationType)) {
       initialValue = getSymbolicIdentifier(declarationType, declaration);
     }
 
-    if (isTrackedField(decl, initialValue)) {
-      if (missingFieldVariableObject) {
-        fieldNameAndInitialValue = Pair.of(varName, initialValue);
-      } else if (missingInformationRightJExpression == null) {
-        newElement.assignConstant(memoryLocation, initialValue, declarationType);
-      } else {
-        missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
-      }
-    } else {
+    if (!initialValue.isUnknown()) {
+      newElement.assignConstant(memoryLocation, initialValue, declarationType);
 
-      // If variable not tracked, its Object is irrelevant
-      missingFieldVariableObject = false;
+    } else {
       newElement.forget(memoryLocation);
     }
 
@@ -705,15 +709,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       ARightHandSide pExp) {
 
     return pExp instanceof CExpression && (pEvv.hasMissingPointer());
-  }
-
-  private boolean isTrackedField(ADeclaration pDeclaration, Value pInitialValue) {
-    Type declarationType = pDeclaration.getType();
-    boolean isNoClassType = !isComplexJavaType(declarationType)
-        || (trackJavaArrayValues && declarationType instanceof JArrayType);
-
-    // We only track known values and only null values of Java class types.
-    return !pInitialValue.isUnknown() && (isNoClassType || pInitialValue.equals(NullValue.getInstance()));
   }
 
   private SymbolicValue getSymbolicIdentifier(Type pType, AAstNode pLocation) {
@@ -924,16 +919,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
-      if (value.isUnknown() && missingInformationRightJExpression == null) {
-        if (useSymbolicValue(lType)) {
-          value = getSymbolicIdentifier(lType, exp);
-        } else {
-          newElement.forget(assignedVar);
-        }
+      if (value.isUnknown() && missingInformationRightJExpression == null && useSymbolicValue(lType)) {
+        value = getSymbolicIdentifier(lType, exp);
       }
 
       if (!value.isUnknown()) {
         newElement.assignConstant(assignedVar, value, lType);
+
+      } else {
+        newElement.forget(assignedVar);
       }
     }
 
