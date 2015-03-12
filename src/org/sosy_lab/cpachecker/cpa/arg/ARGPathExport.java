@@ -391,7 +391,8 @@ public class ARGPathExport {
           FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
           result.put(KeyDef.FUNCTIONENTRY, in.getFunctionName());
 
-        } else if (pEdge.getSuccessor() instanceof FunctionExitNode) {
+        }
+        if (pEdge.getSuccessor() instanceof FunctionExitNode) {
           FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
           result.put(KeyDef.FUNCTIONEXIT, out.getFunctionName());
         }
@@ -519,7 +520,7 @@ public class ARGPathExport {
         }
       }
 
-      if (exportSourcecode) {
+      if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
         result.put(KeyDef.SOURCECODE, pEdge.getRawStatement());
       }
 
@@ -776,7 +777,9 @@ public class ARGPathExport {
                           return pPrecedingEdge.label.summarizes(pEdge.label);
                         }
 
-                      })) && leavingEdges.get(pEdge.source).size() == 1;
+                      })
+                      || pEdge.label.keyValues.size() == 1 && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
+                      && leavingEdges.get(pEdge.source).size() == 1;
                 }
 
               }).iterator();
@@ -825,7 +828,9 @@ public class ARGPathExport {
           return pPrecedingEdge.label.summarizes(pEdge.label);
         }
 
-      })) && leavingEdges.get(pEdge.source).size() == 1);
+      })
+        || pEdge.label.keyValues.size() == 1 && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
+        && leavingEdges.get(pEdge.source).size() == 1);
       Preconditions.checkArgument(removeEdge(pEdge));
 
       // Merge the flags
