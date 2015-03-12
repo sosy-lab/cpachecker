@@ -132,7 +132,7 @@ public class FormulaSlicingManager {
         Set<String> variableNames = fmgr.extractFunctionNames(atom);
         for (String s : variableNames) {
           if (seedCondition.apply(s) || closure.contains(s)) {
-            changed = closure.addAll(variableNames);
+            changed |= closure.addAll(variableNames);
             break;
           }
         }
