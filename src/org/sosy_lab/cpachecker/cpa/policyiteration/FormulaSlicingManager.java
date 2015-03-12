@@ -4,9 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -17,6 +15,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -268,40 +268,13 @@ public class FormulaSlicingManager {
     // B := DFS backwards (all edges from where we can reach N)
     // return A intersection B
 
-    // DFS forward.
-    HashSet<CFAEdge> reachableEdges = new HashSet<>();
-    Queue<CFAEdge> queue = new LinkedList<>();
-    for (int i=0; i<node.getNumLeavingEdges(); i++) {
-      queue.add(node.getLeavingEdge(i));
-    }
-    while (!queue.isEmpty()) {
-      CFAEdge edge = queue.remove();
-      if (reachableEdges.contains(edge)) {
-        continue;
-      }
-      reachableEdges.add(edge);
-      CFANode toNode = edge.getSuccessor();
-      for (int i=0; i<toNode.getNumLeavingEdges(); i++) {
-        queue.add(toNode.getLeavingEdge(i));
-      }
-    }
+    EdgeCollectingCFAVisitor v = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().ignoreSummaryEdges().traverse(node, v);
+    Set<CFAEdge> reachableEdges = new HashSet<>(v.getVisitedEdges());
 
-    HashSet<CFAEdge> canReachEdges = new HashSet<>();
-    queue = new LinkedList<>();
-    for (int i=0; i<node.getNumEnteringEdges(); i++) {
-      queue.add(node.getEnteringEdge(i));
-    }
-    while (!queue.isEmpty()) {
-      CFAEdge edge = queue.remove();
-      if (canReachEdges.contains(edge)) {
-        continue;
-      }
-      canReachEdges.add(edge);
-      CFANode fromNode = edge.getPredecessor();
-      for (int i=0; i<fromNode.getNumEnteringEdges(); i++) {
-        queue.add(fromNode.getEnteringEdge(i));
-      }
-    }
+    EdgeCollectingCFAVisitor v2 = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().ignoreSummaryEdges().backwards().traverse(node, v2);
+    Set<CFAEdge> canReachEdges = new HashSet<>(v2.getVisitedEdges());
 
     return Sets.intersection(reachableEdges, canReachEdges);
   }
