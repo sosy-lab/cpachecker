@@ -29,6 +29,7 @@ import static com.google.common.collect.Collections2.filter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -197,6 +198,19 @@ public class UseDefRelation {
     }
 
     return uses;
+  }
+
+  public Map<ARGState, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>> getUseDef() {
+    Map<ARGState, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>> useDef = new HashMap<>(relation.size());
+    for(Map.Entry<Pair<ARGState, CFAEdge>, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>> entry : relation.entrySet()) {
+      useDef.put(entry.getKey().getFirst(), entry.getValue());
+    }
+
+    return useDef;
+  }
+
+  public Set<ARGState> getUseDefStates() {
+    return FluentIterable.from(relation.keySet()).transform(Pair.<ARGState>getProjectionToFirst()).toSet();
   }
 
   private void updateUseDefRelation(ARGState state, CFAEdge edge) {

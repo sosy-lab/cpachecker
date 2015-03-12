@@ -31,6 +31,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -55,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -74,7 +75,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -226,68 +226,60 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * This method removes further edges from the error path (prefix).
    */
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
-        errorPathPrefix,
-        new UseDefRelation(errorPathPrefix,
-            cfa.getVarClassification().isPresent()
-              ? cfa.getVarClassification().get().getIntBoolVars()
-              : Collections.<String>emptySet(),
-              "EQUALITY")).obtainInterpolants();
-    interpolants.put(errorPathPrefix.getFirstState(), ValueAnalysisInterpolant.TRUE);
 
-    List<CFAEdge> abstractEdges = new ArrayList<>();
-    ArrayList<CFAEdge> edges = Lists.newArrayList(errorPathPrefix.asEdgesList());
-    ArrayList<ARGState> states = Lists.newArrayList(errorPathPrefix.asStatesList());
-    int i = 0;
+    Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
+        cfa.getVarClassification().isPresent()
+          ? cfa.getVarClassification().get().getIntBoolVars()
+          : Collections.<String>emptySet(),
+        "EQUALITY").getUseDefStates();
 
-    ArrayDeque<Pair<FunctionCallEdge, Boolean>> funcCalls = new ArrayDeque<>();
-    for (CFAEdge currentEdge : edges) {
-      // if interpolant of predecessor is false
-      // or if it is equal to the interpolant of the successor,
-      // then skip the edge
-      if (interpolants.get(states.get(i)).isFalse()
-          || interpolants.get(states.get(i)).equals(interpolants.get(states.get(i + 1)))) {
+    ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
+    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(errorPathPrefix.asEdgesList());
 
-        abstractEdges.add(new BlankEdge("",
+    PathIterator iterator = errorPathPrefix.pathIterator();
+    while (iterator.hasNext()) {
+      CFAEdge originalEdge = iterator.getOutgoingEdge();
+
+      // slice edge if there is neither a use nor a definition at the current state
+      if (!useDefStates.contains(iterator.getAbstractState())) {
+        abstractEdges.set(iterator.getIndex(), new BlankEdge("",
             FileLocation.DUMMY,
-            currentEdge.getPredecessor(),
-            currentEdge.getSuccessor(),
+            originalEdge.getPredecessor(),
+            originalEdge.getSuccessor(),
             ErrorPathClassifier.SUFFIX_REPLACEMENT));
       }
 
-      else {
-        abstractEdges.add(currentEdge);
+      /*************************************/
+      /** assure that call stack is valid **/
+      /*************************************/
+      // when entering into a function, remember if call is relevant or not
+      if(originalEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        functionCalls.push((Pair.of((FunctionCallEdge)originalEdge, abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge)));
       }
 
-      // assure that call stack is valid
-      // add function call to stack
-      if(currentEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-        funcCalls.push((Pair.of((FunctionCallEdge)currentEdge, currentEdge.getEdgeType() == Iterables.getLast(abstractEdges).getEdgeType())));
-      }
-
-      // returning from a function
-      if(currentEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-        Pair<FunctionCallEdge, Boolean> functionCallInfo = funcCalls.pop();
-        // call was relevant, return not, make return relevant, too
-        if(functionCallInfo.getSecond() && currentEdge.getEdgeType() != Iterables.getLast(abstractEdges).getEdgeType()) {
-          abstractEdges.remove(abstractEdges.size() - 1);
-          abstractEdges.add(currentEdge);
+      // when returning from a function, ...
+      if(originalEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        Pair<FunctionCallEdge, Boolean> functionCallInfo = functionCalls.pop();
+        // ... if call is relevant and return edge is now a blank edge, restore the original return edge
+        if(functionCallInfo.getSecond() && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
+          abstractEdges.set(iterator.getIndex(), originalEdge);
         }
 
-        // call was irrelevant, return was relevant, make call, relevant, too
-        else if(!functionCallInfo.getSecond() && currentEdge.getEdgeType() == Iterables.getLast(abstractEdges).getEdgeType()) {
-          for(int j = i; j >= 0; j--) {
-            if(functionCallInfo.getFirst() == edges.get(j)) {
+        // ... if call is irrelevant and return edge is not sliced, restore the call edge
+        else if(!functionCallInfo.getSecond() && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          for(int j = iterator.getIndex(); j >= 0; j--) {
+            if(functionCallInfo.getFirst() == abstractEdges.get(j)) {
               abstractEdges.set(j, functionCallInfo.getFirst());
               break;
             }
           }
         }
       }
-      i++;
+
+      iterator.advance();
     }
 
-    return new ARGPath(states, abstractEdges);
+    return new ARGPath(errorPathPrefix.asStatesList(), abstractEdges);
   }
 
   /**
