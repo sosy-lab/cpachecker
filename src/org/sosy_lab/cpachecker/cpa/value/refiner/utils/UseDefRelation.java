@@ -206,8 +206,13 @@ public class UseDefRelation {
       AFunctionCall summaryExpr = ((FunctionReturnEdge)edge).getSummaryEdge().getExpression();
 
       if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
-        ASimpleDeclaration assignedVariable = Iterables.getOnlyElement(acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide()));
+        Set<ASimpleDeclaration> assignedVariables = acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
 
+        if(assignedVariables.size() > 1) {
+          break;
+        }
+
+        ASimpleDeclaration assignedVariable = Iterables.getOnlyElement(assignedVariables);
         if(hasUnresolvedUse(assignedVariable)) {
           addUseDef(state, edge, assignedVariable, ((FunctionReturnEdge)edge).getFunctionEntry().getReturnVariable().get());
         }
