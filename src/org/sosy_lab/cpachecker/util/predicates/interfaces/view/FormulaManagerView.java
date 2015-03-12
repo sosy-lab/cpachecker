@@ -1425,42 +1425,23 @@ public class FormulaManagerView {
   }
 
   /**
-   * Add {@code prefix} to variables and uninterpreted functions occurring in a formula.
+   * Add {@code prefix} to free variables and uninterpreted functions occurring in a formula.
    * @param input The formula.
    * @param prefix The non-empty prefix to add.
    * @param doAddPrefix A predicate telling whether a given variable/UF should be renamed.
    */
-  public <F extends Formula> F addPrefix(F input, String prefix, Predicate<String> doAddPrefix) {
+  public <F extends Formula> F addPrefix(F input, final String prefix,
+      final Predicate<String> doAddPrefix) {
     checkArgument(!prefix.isEmpty());
     return wrap(getFormulaType(input),
-        myAddPrefix(unwrap(input), prefix, doAddPrefix, new HashMap<Formula, Formula>()));
-  }
-
-  private <F extends Formula> F myAddPrefix(F input, String prefix,
-      Predicate<String> doAddPrefix, Map<Formula, Formula> memoization) {
-    @SuppressWarnings("unchecked")
-    F out = (F)memoization.get(input);
-    if (out != null) {
-      return out;
-    }
-    List<Formula> newArgs = new ArrayList<>(unsafeManager.getArity(input));
-    for (int i=0; i<unsafeManager.getArity(input); i++) {
-      newArgs.add(
-          myAddPrefix(unsafeManager.getArg(input, i), prefix, doAddPrefix, memoization)
-      );
-    }
-    if (unsafeManager.isUF(input) || unsafeManager.isVariable(input)) {
-      String name = unsafeManager.getName(input);
-      if (doAddPrefix.apply(name)) {
-        out = unsafeManager.replaceArgsAndName(input, prefix + name, newArgs);
-      } else {
-        out = unsafeManager.replaceArgs(input, newArgs);
-      }
-    } else {
-      out = unsafeManager.replaceArgs(input, newArgs);
-    }
-    memoization.put(input, out);
-    return out;
+        myFreeVariableNodeTransformer(unwrap(input), new HashMap<Formula, Formula>(),
+            new Function<String, String>() {
+              @Override
+              public String apply(String pInput) {
+                return doAddPrefix.apply(pInput) ? prefix + pInput : pInput;
+              }
+            })
+        );
   }
 
   /**
