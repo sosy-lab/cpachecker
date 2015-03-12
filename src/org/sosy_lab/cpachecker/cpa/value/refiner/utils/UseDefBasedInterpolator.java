@@ -23,23 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -53,77 +55,95 @@ public class UseDefBasedInterpolator {
   private final UseDefRelation useDefRelation;
 
   /**
-   * the path for which to compute the interpolants
+   * the sliced infeasible prefix for which to compute the interpolants
    */
-  private final ARGPath path;
+  private final ARGPath slicedPrefix;
 
-  public UseDefBasedInterpolator(ARGPath pPath, UseDefRelation pUseDefRelation) {
-    path = pPath;
+  /**
+   * This class allows the creation of (fake) interpolants by using the use-def-relation.
+   * This interpolation approach only works if the given path is a sliced prefix,
+   * obtained via {@link ErrorPathClassifier#obtainSlicedPrefix}.
+   *
+   * @param pSlicedPrefix
+   * @param pUseDefRelation
+   */
+  public UseDefBasedInterpolator(ARGPath pSlicedPrefix, UseDefRelation pUseDefRelation) {
+    slicedPrefix   = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
   }
 
   /**
    * This method obtains the mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s.
    *
-   * This method iterates over the path, building a use-def-relation that is seeded by the identifiers
-   * that occur in the last (in iteration order, the first) assume edge of the path. Hence, this
-   * interpolation approach only works if the given path is an (infeasible) sliced prefix, obtained
-   * via {@link ErrorPathClassifier#obtainSlicedPrefix}.
-   *
-   * @param path the path (i.e., infeasible sliced prefix) for which to obtain the interpolants
-   * @return the mapping mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s
+   * @return the (ordered) mapping mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s
    */
   public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolants() {
 
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
-
-    int update = 0;
+    ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new ArrayDeque<>();
     HashMap<MemoryLocation, Value> rawItp = new HashMap<>();
+    ValueAnalysisInterpolant trivialItp = ValueAnalysisInterpolant.FALSE;
 
-    List<CFAEdge> edges = path.getInnerEdges();
-    List<ARGState> states = path.asStatesList();
-    for (int i = edges.size() - 1; i >= 0; i--) {
-      CFAEdge edge = edges.get(i);
-
-      Collection<ASimpleDeclaration> defs;
-      Collection<ASimpleDeclaration> uses;
+    PathIterator iterator = slicedPrefix.reversePathIterator();
+    while (iterator.hasNext()) {
+      ARGState state = iterator.getAbstractState();
+      CFAEdge edge   = iterator.getOutgoingEdge();
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for(CFAEdge singleEdge : ((MultiEdge)edge).getEdges()) {
-          defs = useDefRelation.getDef(states.get(i), singleEdge);
-          uses = useDefRelation.getUses(states.get(i), singleEdge);
-
-          for(ASimpleDeclaration use : uses) {
-            rawItp.put(MemoryLocation.valueOf(use.getQualifiedName()), new NumericValue(update++));
-          }
-
-          for(ASimpleDeclaration def : defs) {
-            rawItp.remove(MemoryLocation.valueOf(def.getQualifiedName()));
-          }
+          updateRawInterpolant(rawItp,
+              useDefRelation.getDef(state, singleEdge),
+              useDefRelation.getUses(state, singleEdge));
         }
       }
       else {
-        defs = useDefRelation.getDef(states.get(i), edge);
-        uses = useDefRelation.getUses(states.get(i), edge);
-
-        for(ASimpleDeclaration use : uses) {
-          rawItp.put(MemoryLocation.valueOf(use.getQualifiedName()), new NumericValue(update++));
-        }
-
-        for(ASimpleDeclaration def : defs) {
-          rawItp.remove(MemoryLocation.valueOf(def.getQualifiedName()));
-        }
+        updateRawInterpolant(rawItp,
+            useDefRelation.getDef(state, edge),
+            useDefRelation.getUses(state, edge));
       }
 
-      if(rawItp.isEmpty()) {
-        interpolants.put(states.get(i), ValueAnalysisInterpolant.TRUE);
+      // create the interpolant after the (multi-)edge,
+      // in-between would make the interpolants stronger then needed
+      interpolants.addFirst(Pair.of(state, rawItp.isEmpty()
+          ? trivialItp
+          : createNonTrivialItp(rawItp)));
+
+      // as the traversal goes backwards, once the (failing) assumption
+      // was passed, then a trivial interpolant has to be TRUE, not FALSE
+      if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+        trivialItp = ValueAnalysisInterpolant.TRUE;
       }
-      else {
-        interpolants.put(states.get(i), new ValueAnalysisInterpolant(new HashMap<>(rawItp), Collections.<MemoryLocation, Type>emptyMap()));
-      }
+
+      iterator.advance();
     }
 
-    interpolants.put(states.get(0), ValueAnalysisInterpolant.TRUE);
+    return convertToLinkedMap(interpolants);
+  }
+
+  private Map<ARGState, ValueAnalysisInterpolant> convertToLinkedMap(
+      ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> itps) {
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
+    for(Pair<ARGState, ValueAnalysisInterpolant> itp : itps) {
+      interpolants.put(itp.getFirst(), itp.getSecond());
+    }
     return interpolants;
+  }
+
+  private ValueAnalysisInterpolant createNonTrivialItp(HashMap<MemoryLocation, Value> rawItp) {
+    return new ValueAnalysisInterpolant(new HashMap<>(rawItp), Collections.<MemoryLocation, Type>emptyMap());
+  }
+
+  /**
+   * This method add uses and removes definition from the incremental raw interpolant.
+   */
+  private void updateRawInterpolant(HashMap<MemoryLocation, Value> rawItp,
+      Collection<ASimpleDeclaration> defs,
+      Collection<ASimpleDeclaration> uses) {
+    for(ASimpleDeclaration use : uses) {
+      rawItp.put(MemoryLocation.valueOf(use.getQualifiedName()), UnknownValue.getInstance());
+    }
+
+    for(ASimpleDeclaration def : defs) {
+      rawItp.remove(MemoryLocation.valueOf(def.getQualifiedName()));
+    }
   }
 }
