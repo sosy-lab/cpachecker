@@ -78,7 +78,7 @@ import com.google.common.collect.Sets;
 public class LiveVariables {
 
   public enum EvaluationStrategy {
-    FUNCTION_WISE, GLOBAL;
+    FUNCTION_WISE, GLOBAL
   }
 
   @Options(prefix="liveVar")

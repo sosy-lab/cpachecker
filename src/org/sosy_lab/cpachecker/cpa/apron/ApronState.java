@@ -60,7 +60,7 @@ public class ApronState implements AbstractState, Serializable {
   private static final long serialVersionUID = -7953805400649927048L;
 
   enum Type {
-    INT, FLOAT;
+    INT, FLOAT
   }
 
   // the Apron state representation

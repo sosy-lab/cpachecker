@@ -184,7 +184,7 @@ public abstract class VariableTrackingPrecision implements Precision {
 
     enum Sharing {
       SCOPE,
-      LOCATION;
+      LOCATION
     }
 
     @Option(secure=true, description = "whether to track relevant variables only at the exact "

@@ -475,7 +475,7 @@ public class CFATraversal {
     /**
      * Completely abort the traversal process (forgetting all nodes and edges which are still to be visited).
      */
-    ABORT;
+    ABORT
   }
 
   /**

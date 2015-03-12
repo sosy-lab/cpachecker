@@ -1068,7 +1068,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     INVALID_READ,
     INVALID_WRITE,
     INVALID_FREE,
-    INVALID_HEAP;
+    INVALID_HEAP
   }
 
   public boolean isInNeq(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {

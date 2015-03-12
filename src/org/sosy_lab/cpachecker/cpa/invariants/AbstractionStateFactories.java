@@ -513,7 +513,7 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
         return Collections.emptySet();
       }
 
-    };
+    }
 
   }
 

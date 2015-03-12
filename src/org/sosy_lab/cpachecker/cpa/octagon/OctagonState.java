@@ -104,7 +104,7 @@ public class OctagonState implements AbstractState {
   }
 
   enum Type {
-    INT, FLOAT;
+    INT, FLOAT
   }
 
 

@@ -65,7 +65,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
     Integer,
     Real,
     FloatingPoint,
-    Bitvector;
+    Bitvector
   }
 
   public static interface AssignableTerm {

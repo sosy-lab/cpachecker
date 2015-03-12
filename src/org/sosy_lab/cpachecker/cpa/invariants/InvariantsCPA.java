@@ -610,7 +610,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return new CompoundConditionAdjuster(pCPA);
       }
 
-    };
+    }
 
   }
 

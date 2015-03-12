@@ -139,7 +139,7 @@ public class PredicateAbstractionManager {
     CARTESIAN,
     BOOLEAN,
     COMBINED,
-    ELIMINATION;
+    ELIMINATION
   }
 
   @Option(secure=true, name = "abstraction.cartesian",

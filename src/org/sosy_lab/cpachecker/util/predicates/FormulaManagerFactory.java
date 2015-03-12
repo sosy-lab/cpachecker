@@ -77,7 +77,6 @@ public class FormulaManagerFactory {
     SMTINTERPOL,
     Z3,
     PRINCESS
-    ;
   }
 
   @Option(secure=true, name="solver.logAllQueries",
