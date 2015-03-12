@@ -41,7 +41,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -1027,6 +1026,7 @@ public class FormulaManagerView {
 
             String newName = pRenameFunction.apply(oldName);
             newt = unsafeManager.replaceArgsAndName(tt, newName, newargs);
+
           } else {
             newt = unsafeManager.replaceArgs(tt, newargs);
           }
@@ -1266,28 +1266,6 @@ public class FormulaManagerView {
     return result;
   }
 
-  /**
-   * Extract variables + UFs from the formula.
-   */
-  public Set<Triple<Formula, String, Integer>> extractFunctionSymbols(Formula f) {
-    return extractSubformulas(f, Predicates.or(FILTER_UF, FILTER_VARIABLES));
-  }
-
-  public Set<Triple<Formula, String, Integer>> extractFreeVariables(Formula f) {
-    return extractSubformulas(f, FILTER_VARIABLES);
-  }
-
-  private Set<Triple<Formula, String, Integer>> extractSubformulas(Formula f, Predicate<Formula> predicate) {
-    Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
-
-    for (Formula varFormula: myExtractSubformulas(unwrap(f), predicate)) {
-      Pair<String, Integer> var = parseName(unsafeManager.getName(varFormula));
-      result.add(Triple.of(varFormula, var.getFirst(), var.getSecond()));
-    }
-
-    return result;
-  }
-
   private Set<Formula> myExtractSubformulas(Formula pExtractFrom,
       Predicate<Formula> filter) {
     // TODO The FormulaType of returned formulas may not be correct,
@@ -1510,14 +1488,12 @@ public class FormulaManagerView {
    * @return
    */
   public List<Formula> getDeadVariables(BooleanFormula pFormula, SSAMap pSsa) {
-    Set<Triple<Formula, String, Integer>> formulaVariables = extractFreeVariables(pFormula);
     List<Formula> result = Lists.newArrayList();
 
-    for (Triple<Formula, String, Integer> var: formulaVariables) {
-
-      Formula varFormula = var.getFirst();
-      String varName = var.getSecond();
-      Integer varSsaIndex = var.getThird();
+    for (Formula varFormula: myExtractSubformulas(unwrap(pFormula), FILTER_VARIABLES)) {
+      Pair<String, Integer> fullName = parseName(unsafeManager.getName(varFormula));
+      String varName = fullName.getFirst();
+      Integer varSsaIndex = fullName.getSecond();
 
       if (varSsaIndex == null) {
         if (pSsa.containsVariable(varName)) {
