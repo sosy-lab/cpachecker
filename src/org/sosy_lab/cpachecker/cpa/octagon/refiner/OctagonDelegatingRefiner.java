@@ -136,7 +136,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   }
 
   private OctagonDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
-      throws CPAException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
     super(pCpa);
     pOctagonCPA.getConfiguration().inject(this);
 

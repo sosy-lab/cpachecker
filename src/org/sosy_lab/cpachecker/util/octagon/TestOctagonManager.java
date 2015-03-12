@@ -33,7 +33,7 @@ public class TestOctagonManager {
   static OctagonManager manager;
 
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     manager = new OctagonFloatManager();
   }
 

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -98,7 +97,7 @@ public interface Value extends Serializable {
       return false;
     }
 
-    protected Object readResolve() throws ObjectStreamException {
+    protected Object readResolve() {
       return instance;
     }
 

@@ -335,7 +335,7 @@ class KInductionProver implements AutoCloseable {
    * @throws InterruptedException if the supporting invariant generation is
    * interrupted.
    */
-  private ProverEnvironment getProver() throws CPAException, InterruptedException {
+  private ProverEnvironment getProver() {
     if (!isProverInitialized()) {
       prover = solver.newProverEnvironmentWithModelGeneration();
     }

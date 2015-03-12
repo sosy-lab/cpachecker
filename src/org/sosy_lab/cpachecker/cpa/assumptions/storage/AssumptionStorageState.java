@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import org.sosy_lab.common.Appender;
@@ -116,7 +115,7 @@ public class AssumptionStorageState implements AbstractState, Serializable {
     return assumption.hashCode() + 17 * stopFormula.hashCode();
   }
 
-  private Object readResolve() throws ObjectStreamException {
+  private Object readResolve() {
     FormulaManagerView fmgr = GlobalInfo.getInstance().getFormulaManager();
     if (fmgr == null) {
       fmgr = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(),

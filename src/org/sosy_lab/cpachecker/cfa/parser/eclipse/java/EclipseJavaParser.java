@@ -220,7 +220,7 @@ class EclipseJavaParser implements Parser {
     return sourceFileToBeParsed;
   }
 
-  private Set<Path> getJavaFilesInPath(String path) throws JParserException {
+  private Set<Path> getJavaFilesInPath(String path) {
 
     Path mainDirectory = Paths.get(path);
 

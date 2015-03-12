@@ -116,7 +116,7 @@ class CFABuilder extends ASTVisitor {
   public CFABuilder(Configuration pConfig, LogManager pLogger,
       Function<String, String> pNiceFileNameFunction,
       CSourceOriginMapping pSourceOriginMapping,
-      MachineModel pMachine) throws InvalidConfigurationException {
+      MachineModel pMachine) {
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     niceFileNameFunction = pNiceFileNameFunction;

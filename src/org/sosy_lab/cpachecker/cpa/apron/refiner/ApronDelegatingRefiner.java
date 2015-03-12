@@ -139,7 +139,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   }
 
   private ApronDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final ApronCPA pApronCPA)
-      throws CPAException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
     super(pCpa);
     pApronCPA.getConfiguration().inject(this);
 

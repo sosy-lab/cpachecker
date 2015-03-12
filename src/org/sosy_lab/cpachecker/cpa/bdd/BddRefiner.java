@@ -119,7 +119,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
-      final CFA pCfa) throws CPAException, InvalidConfigurationException {
+      final CFA pCfa) throws InvalidConfigurationException {
     super(pCpa);
 
     interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);

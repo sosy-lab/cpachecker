@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -191,7 +190,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
     }
   }
 
-  private UnmodifiableReachedSet getResults() throws CPATransferException, InterruptedException {
+  private UnmodifiableReachedSet getResults() {
     if (areNewInvariantsAvailable.getAndSet(false)) {
       ReachedSet currentResults = reachedSetFactory.create();
       currentResults.addAll(FluentIterable.from(cfa.getAllNodes()).transform(new Function<CFANode, Pair<AbstractState, Precision>>() {

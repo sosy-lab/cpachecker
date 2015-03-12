@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.Set;
 
@@ -140,7 +139,7 @@ public class AbstractionFormula implements Serializable {
     return "ABS" + id + abs;
   }
 
-  private Object readResolve() throws ObjectStreamException {
+  private Object readResolve() {
     FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
 
     // get formula from instantiated formula

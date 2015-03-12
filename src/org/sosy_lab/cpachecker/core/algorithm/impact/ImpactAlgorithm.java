@@ -132,7 +132,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   public ImpactAlgorithm(Configuration config, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException, CPAException {
+      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;

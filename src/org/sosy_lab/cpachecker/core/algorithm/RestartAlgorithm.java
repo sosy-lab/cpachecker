@@ -357,7 +357,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(Path singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, InterruptedException, IOException {
+  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(Path singleConfigFileName, CFANode mainFunction, ShutdownNotifier singleShutdownNotifier) throws InvalidConfigurationException, CPAException, IOException {
 
     ReachedSet reached;
     ConfigurableProgramAnalysis cpa;

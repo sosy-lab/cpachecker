@@ -318,8 +318,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
-      throws CPATransferException {
+  protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -352,7 +351,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   protected S handleFunctionCallEdge(JMethodCallEdge cfaEdge,
       List<JExpression> arguments, List<JParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+      String calledFunctionName) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -381,8 +380,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   }
 
   protected S handleFunctionReturnEdge(JMethodReturnEdge cfaEdge,
-      JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName)
-      throws CPATransferException {
+      JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -406,8 +404,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl)
-      throws CPATransferException {
+  protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -431,8 +428,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement)
-      throws CPATransferException {
+  protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -456,8 +452,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge)
-      throws CPATransferException {
+  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -467,7 +462,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    *  A blank edge can also be a default-return-edge for a function "void f()".
    *  In that case the successor-node is a FunctionExitNode. */
   @SuppressWarnings("unchecked")
-  protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
+  protected S handleBlankEdge(BlankEdge cfaEdge) {
     return (S)state;
   }
 
@@ -485,7 +480,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) throws CPATransferException {
+  protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 

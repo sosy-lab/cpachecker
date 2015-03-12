@@ -50,7 +50,7 @@ public class CLangStackFrameTest {
 
   @SuppressWarnings("unchecked")
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
 
     sf = new CLangStackFrame(functionDeclaration, usedMachineModel);
   }

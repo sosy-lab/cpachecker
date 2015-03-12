@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -103,7 +102,7 @@ class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
     super(pTerm);
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     return new SerialProxyFormula(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this).toString());
   }
 
@@ -116,7 +115,7 @@ class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
       formula = pF;
     }
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       return GlobalInfo.getInstance().getFormulaManager().parse(formula);
     }
 

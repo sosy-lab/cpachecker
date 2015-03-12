@@ -193,7 +193,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
   public InvariantsCPA(Configuration pConfig, LogManager pLogManager, InvariantsOptions pOptions,
-      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) {
     this.config = pConfig;
     this.logManager = pLogManager;
     this.shutdownNotifier = pShutdownNotifier;

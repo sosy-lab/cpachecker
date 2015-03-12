@@ -906,7 +906,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean checkCovering(
       PolicyIntermediateState stateA,
       PolicyIntermediateState stateB
-  ) throws CPATransferException, InterruptedException {
+  ) {
 
     for (Entry<Location, Location> e : stateA.getTrace().entries()) {
       if (!stateB.getTrace().containsEntry(e.getKey(), e.getValue())) {

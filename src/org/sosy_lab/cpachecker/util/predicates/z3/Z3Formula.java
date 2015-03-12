@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -124,7 +123,7 @@ class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
     super(z3context, z3expr);
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     return new SerialProxyFormula(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this).toString());
   }
 
@@ -137,7 +136,7 @@ class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
       formula = pF;
     }
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       return GlobalInfo.getInstance().getFormulaManager().parse(formula);
     }
 

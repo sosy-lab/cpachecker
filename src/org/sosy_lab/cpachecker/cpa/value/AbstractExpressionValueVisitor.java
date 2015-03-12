@@ -1474,7 +1474,7 @@ public abstract class AbstractExpressionValueVisitor
     return functionName;
   }
 
-  public long getSizeof(CType pType) throws UnrecognizedCCodeException {
+  public long getSizeof(CType pType) {
     return machineModel.getSizeof(pType);
   }
 

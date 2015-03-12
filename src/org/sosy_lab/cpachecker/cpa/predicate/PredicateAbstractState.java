@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -261,7 +260,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     return pathFormula;
   }
 
-  protected Object readResolve() throws ObjectStreamException {
+  protected Object readResolve() {
     if (this instanceof AbstractionState) {
       // consistency check
       FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();

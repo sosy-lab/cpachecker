@@ -111,8 +111,7 @@ public class SMGConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public Model allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath, MachineModel pMachineModel)
-      throws InterruptedException {
+  public Model allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath, MachineModel pMachineModel) {
 
     pPath.remove(pPath.size() - 1);
 

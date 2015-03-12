@@ -383,7 +383,7 @@ public class CFASingleLoopTransformation {
    */
   private void fixSummaryEdges(FunctionEntryNode pStartNode,
       ImmutableBiMap<Integer, CFANode> pNewSuccessorsToPC,
-      Map<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
+      Map<CFANode, CFANode> pGlobalNewToOld) {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
@@ -745,7 +745,7 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private MutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
-      MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
+      MachineModel pMachineModel, Language pLanguage) throws InterruptedException {
 
     SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
 

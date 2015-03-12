@@ -159,7 +159,7 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
   }
 
   @Override
-  public LiveVariablesState join(LiveVariablesState pOther) throws CPAException {
+  public LiveVariablesState join(LiveVariablesState pOther) {
     return union(pOther);
   }
 

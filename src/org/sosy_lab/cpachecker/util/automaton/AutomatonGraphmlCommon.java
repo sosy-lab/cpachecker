@@ -272,7 +272,7 @@ public class AutomatonGraphmlCommon {
       return result;
     }
 
-    public Element createNodeElement(String nodeId, NodeType nodeType) throws IOException {
+    public Element createNodeElement(String nodeId, NodeType nodeType) {
       Element result = createElement(GraphMlTag.NODE);
       result.setAttribute("id", nodeId);
 

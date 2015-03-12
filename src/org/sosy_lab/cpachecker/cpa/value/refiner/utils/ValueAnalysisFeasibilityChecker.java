@@ -150,7 +150,7 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
   private List<ARGPath> getInfeasilbePrefixes(final ARGPath path,
                                              final ValueAnalysisState pInitial,
                                              final Deque<ValueAnalysisState> callstack)
-      throws CPAException, InterruptedException {
+      throws CPAException {
 
     List<ARGPath> prefixes = new ArrayList<>();
     boolean performAbstraction = precision.allowsAbstraction();
@@ -240,7 +240,7 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
   }
 
   public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)
-      throws CPAException, InterruptedException {
+      throws CPAException {
 
     try {
       List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();

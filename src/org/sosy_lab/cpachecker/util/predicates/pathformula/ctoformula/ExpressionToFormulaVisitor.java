@@ -477,8 +477,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     }
   }
 
-  private Formula handleSizeof(CExpression pExp, CType pCType)
-      throws UnrecognizedCCodeException {
+  private Formula handleSizeof(CExpression pExp, CType pCType) {
     return mgr.makeNumber(
         conv
           .getFormulaTypeFromCType(pExp.getExpressionType()),

@@ -36,14 +36,16 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -72,8 +74,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-
-import javax.annotation.Nonnull;
 
 @Options(prefix = "cpa.bam")
 public class BAMTransferRelation implements TransferRelation {
@@ -845,8 +845,7 @@ public class BAMTransferRelation implements TransferRelation {
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
   ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet,
-                                                 Map<ARGState, ARGState> pPathElementToReachedState)
-          throws InterruptedException, RecursiveAnalysisFailedException {
+                                                 Map<ARGState, ARGState> pPathElementToReachedState) {
     assert reachedSet.asReachedSet().contains(target);
 
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(

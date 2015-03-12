@@ -1730,8 +1730,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return  uniqueObject + "::"+ fieldName;
   }
 
-  private Value handleMissingInformationRightJExpression(RTTState pJortState)
-      throws UnrecognizedCCodeException {
+  private Value handleMissingInformationRightJExpression(RTTState pJortState) {
     return missingInformationRightJExpression.accept(
         new FieldAccessExpressionValueVisitor(pJortState));
   }

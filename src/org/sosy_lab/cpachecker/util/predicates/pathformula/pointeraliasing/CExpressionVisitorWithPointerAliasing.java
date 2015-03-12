@@ -81,7 +81,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       return convert0(value, rhs);
     }
 
-    private Formula convert0(Expression value, CRightHandSide rhs) throws UnrecognizedCCodeException {
+    private Formula convert0(Expression value, CRightHandSide rhs) {
       CType type = CTypeUtils.simplifyType(rhs.getExpressionType());
       return ((CExpressionVisitorWithPointerAliasing)delegate).asValueFormula(value, type);
     }

@@ -38,7 +38,6 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
@@ -117,7 +116,7 @@ class PrincessEnvironment {
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public PrincessEnvironment(Configuration config, final LogManager pLogger,
-      final PathCounterTemplate pBasicLogfile) throws InvalidConfigurationException {
+      final PathCounterTemplate pBasicLogfile) {
     basicLogfile = pBasicLogfile;
     api = getNewApi(false); // this api is only used local in this environment, no need for interpolation
   }

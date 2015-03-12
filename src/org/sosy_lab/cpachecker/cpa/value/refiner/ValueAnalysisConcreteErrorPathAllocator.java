@@ -128,8 +128,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath)
-      throws InterruptedException {
+  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     pPath.remove(pPath.size() - 1);
 

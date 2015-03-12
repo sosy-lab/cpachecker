@@ -79,7 +79,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   private ResultCheckStatistics stats;
 
   public ResultCheckAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, CFA pCfa,
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     analysisAlgorithm = pAlgorithm;
     analyzedProgram = pCfa;
     cpa = pCpa;

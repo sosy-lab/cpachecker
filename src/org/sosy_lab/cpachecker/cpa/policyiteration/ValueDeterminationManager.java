@@ -8,9 +8,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -36,7 +34,7 @@ public class ValueDeterminationManager {
   public ValueDeterminationManager(
       FormulaManagerView fmgr,
       LogManager logger,
-      TemplateManager pTemplateManager) throws InvalidConfigurationException{
+      TemplateManager pTemplateManager) {
 
     this.fmgr = fmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
@@ -62,7 +60,7 @@ public class ValueDeterminationManager {
       PolicyAbstractedState stateWithUpdates,
       final Map<Template, PolicyBound> updated,
       boolean useUniquePrefix
-  ) throws CPATransferException, InterruptedException{
+  ) {
     Set<BooleanFormula> constraints = new HashSet<>();
     Map<String, FormulaType<?>> types = new HashMap<>();
 

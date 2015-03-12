@@ -134,7 +134,7 @@ public class ApronAnalysisFeasabilityChecker {
    * @throws InterruptedException
    */
   private MutableARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final ApronState pInitial)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     try {
       Collection<ApronState> next = Lists.newArrayList(pInitial);
 

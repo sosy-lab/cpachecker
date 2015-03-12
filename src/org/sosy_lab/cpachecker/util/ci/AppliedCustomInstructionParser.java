@@ -137,7 +137,7 @@ public class AppliedCustomInstructionParser {
    * @throws InterruptedException
    */
   private boolean sanityCheckCIApplication (CFANode pNode, Set<CFANode> pSet)
-        throws AppliedCustomInstructionParsingFailedException, InterruptedException {
+        throws InterruptedException {
 
     Set<CFANode> endNodes = new HashSet<>();
     Set<CFANode> visitedNodes = new HashSet<>();

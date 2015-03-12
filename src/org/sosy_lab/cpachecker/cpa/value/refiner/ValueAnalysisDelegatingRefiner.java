@@ -148,7 +148,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final ValueAnalysisRefiner pValueRefiner,
       final PrefixProvider pValueCpaPrefixProvider,
       final PredicateCPARefiner pPredicateRefiner,
-      final PrefixProvider pPredicateCpaPrefixProvider) throws CPAException, InvalidConfigurationException {
+      final PrefixProvider pPredicateCpaPrefixProvider) throws InvalidConfigurationException {
 
     super(pCpa);
     pConfig.inject(this);

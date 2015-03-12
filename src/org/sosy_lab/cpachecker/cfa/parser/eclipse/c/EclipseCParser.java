@@ -296,7 +296,7 @@ class EclipseCParser implements CParser {
     }
   }
 
-  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CParserException, CFAGenerationRuntimeException, CoreException {
+  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CFAGenerationRuntimeException, CoreException {
     return language.getASTTranslationUnit(pCode,
                                           StubScannerInfo.instance,
                                           FileContentProvider.instance,

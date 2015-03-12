@@ -382,7 +382,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         }
       };
 
-    private List<Region> getRegionsForPath(List<ARGState> path) throws CPATransferException {
+    private List<Region> getRegionsForPath(List<ARGState> path) {
       return from(path)
               .transform(toState(PredicateAbstractState.class))
               .transform(GET_REGION)

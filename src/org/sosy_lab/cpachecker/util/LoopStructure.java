@@ -459,7 +459,7 @@ public final class LoopStructure {
    * @param pSingleLoopHead the loop head of the single loop.
    * @return the loop structure of the control flow automaton.
    */
-  public static LoopStructure getLoopStructureForSingleLoop(CFANode pSingleLoopHead) throws InterruptedException {
+  public static LoopStructure getLoopStructureForSingleLoop(CFANode pSingleLoopHead) {
     Predicate<CFAEdge> noFunctionReturnEdge = not(edgeHasType(FunctionReturnEdge));
 
     // First, find all nodes reachable via the loop head

@@ -78,7 +78,7 @@ public class WpTransferRelation extends SingleEdgeTransferRelation {
   }
 
 
-  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException, InterruptedException {
+  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) {
     throw new RuntimeException("Not yet implemented");
   }
 

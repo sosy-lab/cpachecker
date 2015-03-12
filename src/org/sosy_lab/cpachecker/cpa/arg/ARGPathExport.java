@@ -349,7 +349,7 @@ public class ARGPathExport {
 
     private void appendNewEdge(final GraphMlBuilder pDoc, String pFrom,
         final String pTo, final CFAEdge pEdge, final ARGState pFromState,
-        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) throws IOException {
+        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
       attemptSwitchToFunctionScope(pEdge);
 

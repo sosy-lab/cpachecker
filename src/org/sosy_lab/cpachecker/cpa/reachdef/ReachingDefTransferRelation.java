@@ -119,7 +119,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+      CFAEdge pCfaEdge) throws CPATransferException {
 
     logger.log(Level.INFO, "Compute succesor for ", pState, "along edge", pCfaEdge);
 

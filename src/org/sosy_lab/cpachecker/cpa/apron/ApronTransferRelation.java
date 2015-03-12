@@ -255,7 +255,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
   }
 
   @Override
-  protected Set<ApronState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException{
+  protected Set<ApronState> handleBlankEdge(BlankEdge cfaEdge) {
     return Collections.singleton(state);
   }
 

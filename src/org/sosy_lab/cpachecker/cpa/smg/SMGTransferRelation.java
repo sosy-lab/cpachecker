@@ -591,7 +591,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       SMGState state, Precision precision, CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException {
+          throws CPATransferException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
     logger.log(Level.FINEST, "Code:", cfaEdge.getCode());

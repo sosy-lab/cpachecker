@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -128,8 +127,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                    final LogManager logger,
                                    final ShutdownNotifier pShutdownNotifier,
                                    final TypeHandlerWithPointerAliasing pTypeHandler,
-                                   final AnalysisDirection pDirection)
-  throws InvalidConfigurationException {
+                                   final AnalysisDirection pDirection) {
     super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pDirection);
     variableClassification = pVariableClassification;
     options = pOptions;

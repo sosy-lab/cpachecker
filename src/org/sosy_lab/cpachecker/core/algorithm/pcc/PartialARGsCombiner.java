@@ -93,7 +93,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
 
   public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, CFA pCfa) {
     restartAlgorithm = pAlgorithm;
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdown = pShutdownNotifier;

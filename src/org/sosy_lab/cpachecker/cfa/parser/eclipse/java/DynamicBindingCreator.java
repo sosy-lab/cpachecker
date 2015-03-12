@@ -245,7 +245,7 @@ class DynamicBindingCreator {
     return Pair.of(false, null);
   }
 
-  private void insertBindings(FunctionEntryNode initialNode) throws JParserException {
+  private void insertBindings(FunctionEntryNode initialNode) {
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<>();
     Set<CFANode> processed = new HashSet<>();

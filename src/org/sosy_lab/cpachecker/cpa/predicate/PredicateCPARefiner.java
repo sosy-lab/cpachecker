@@ -197,7 +197,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final Solver pSolver,
       final PredicateAssumeStore pAssumesStore,
       final CFA pCfa)
-          throws CPAException, InvalidConfigurationException {
+          throws InvalidConfigurationException {
 
     super(pCpa);
 

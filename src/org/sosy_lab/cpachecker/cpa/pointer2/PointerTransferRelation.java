@@ -106,7 +106,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private PointerState getAbstractSuccessor(PointerState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+      CFAEdge pCfaEdge) throws CPATransferException {
     PointerState resultState = pState;
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge:
@@ -226,7 +226,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return pState.addPointsToInformation(pLhsLocation, asLocations(pRightHandSide, pState, 1));
   }
 
-  private PointerState handleAssignment(PointerState pState, Precision pPrecision, String pLeftHandSide, LocationSet pRightHandSide) throws UnrecognizedCCodeException {
+  private PointerState handleAssignment(PointerState pState, Precision pPrecision, String pLeftHandSide, LocationSet pRightHandSide) {
     return pState.addPointsToInformation(pLeftHandSide, pRightHandSide);
   }
 

@@ -73,7 +73,7 @@ public class PointerCPA extends AbstractCPA {
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
   public PointerCPA(Configuration config, LogManager logger, PointerOptions options,
-      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) {
     super(options.merge, "SEP", PointerDomain.INSTANCE, PointerTransferRelation.INSTANCE);
   }
 

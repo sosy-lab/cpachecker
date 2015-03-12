@@ -57,7 +57,7 @@ public interface Rule {
    * @return
    *        Set of boolean formulas (predicates) that can be concluded based on the rule.
    */
-  public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException;
+  public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates);
 
   public Set<BooleanFormula> applyWithInputRelatingPremises(List<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException;
 

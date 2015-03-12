@@ -247,7 +247,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
   }
 
   @Override
-  protected Set<OctagonState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException{
+  protected Set<OctagonState> handleBlankEdge(BlankEdge cfaEdge) {
     return Collections.singleton(state);
   }
 

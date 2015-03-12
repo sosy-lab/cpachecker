@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /**
@@ -335,8 +334,7 @@ public class BDDVectorCExpressionVisitor
    * @param pTargetType the type of the left side of an assignment
    * @return if evaluation successful, then value, else null
    */
-  public Region[] evaluate(final CExpression pExp, final CType pTargetType)
-          throws UnrecognizedCCodeException {
+  public Region[] evaluate(final CExpression pExp, final CType pTargetType) {
     return castCValue(pExp.accept(this), pTargetType, bvmgr, machineModel);
   }
 

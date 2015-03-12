@@ -260,7 +260,7 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
   private PathFormula computeCounterCondition(
       final CFAEdge pTransition,
       final PathFormula pCounterStatePrecond)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws CPATransferException, InterruptedException {
 
     return pmgrFwd.makeAnd(pCounterStatePrecond, pTransition);
   }

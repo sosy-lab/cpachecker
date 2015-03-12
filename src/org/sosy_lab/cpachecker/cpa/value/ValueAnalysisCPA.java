@@ -171,7 +171,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     }
   }
 
-  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
 
     List<String> contents = null;

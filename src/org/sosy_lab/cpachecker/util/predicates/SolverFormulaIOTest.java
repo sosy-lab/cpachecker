@@ -287,7 +287,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void redundancyTest() throws SolverException, InterruptedException {
+  public void redundancyTest() {
     assume().withFailureMessage("Solver does not support removing multiple occurrences yet.")
         .that(solver).isNotEqualTo(Solvers.PRINCESS);
     String formDump = mgr.dumpFormula(redundancyExprGen()).toString();

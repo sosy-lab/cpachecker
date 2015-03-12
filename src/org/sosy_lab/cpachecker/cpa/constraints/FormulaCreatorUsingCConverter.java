@@ -85,8 +85,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   }
 
   @Override
-  public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment, VariableMap pVariables)
-      throws UnrecognizedCCodeException, InterruptedException {
+  public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment, VariableMap pVariables) {
     Formula variable = getVariableForTerm(pTerm, pVariables);
     FormulaType<?> variableType = formulaManager.getFormulaType(variable);
     Formula rightFormula;

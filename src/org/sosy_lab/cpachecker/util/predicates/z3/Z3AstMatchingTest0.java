@@ -119,7 +119,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     matcher = solver.getSmtAstMatcher();
   }
 
-  public void setupTestFormulas() throws Exception {
+  public void setupTestFormulas() {
     _0 = imgr.makeNumber(0);
     _1 = imgr.makeNumber(1);
     _minus1 = imgr.makeNumber(-1);

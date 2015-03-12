@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import java.io.IOException;
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -302,7 +301,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     return result;
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     if (this==topElement) {
       return proxy;
     } else {
@@ -337,7 +336,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     public SerialProxyReach() {}
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       return topElement;
     }
   }
@@ -363,7 +362,7 @@ public class ReachingDefState implements AbstractState, Serializable,
       return "?";
     }
 
-    private Object writeReplace() throws ObjectStreamException {
+    private Object writeReplace() {
       return writeReplace;
     }
 
@@ -373,7 +372,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
       public SerialProxy() {}
 
-      private Object readResolve() throws ObjectStreamException {
+      private Object readResolve() {
         return instance;
       }
     }
@@ -446,7 +445,7 @@ public class ReachingDefState implements AbstractState, Serializable,
       out.writeInt(exit.getNodeNumber());
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
       CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
       entry = cfaInfo.getNodeByNodeNumber(nodeNumber);

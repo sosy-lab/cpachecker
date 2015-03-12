@@ -169,7 +169,7 @@ public final class PreconditionHelper {
   public PathFormula computePathformulaForArbitraryTrace(
       final ARGPath pAbstractPathToEntryLocation,
       final PathPosition pWpPos)
-    throws CPATransferException, InterruptedException, SolverException {
+    throws CPATransferException, InterruptedException {
 
     Preconditions.checkNotNull(pAbstractPathToEntryLocation);
     Preconditions.checkNotNull(pWpPos);

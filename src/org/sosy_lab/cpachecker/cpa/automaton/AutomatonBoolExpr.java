@@ -154,7 +154,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     private final ASTMatcher patternAST;
 
-    public MatchCFAEdgeASTComparison(ASTMatcher pPatternAST) throws InvalidAutomatonException {
+    public MatchCFAEdgeASTComparison(ASTMatcher pPatternAST) {
       this.patternAST = pPatternAST;
     }
 

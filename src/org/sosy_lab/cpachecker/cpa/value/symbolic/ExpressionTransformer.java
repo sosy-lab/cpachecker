@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Class for transforming {@link AExpression}s to {@link SymbolicExpression}s.
@@ -72,7 +71,7 @@ public class ExpressionTransformer {
     return new NumericValue(pValue);
   }
 
-  public SymbolicExpression visit(AIdExpression pIastIdExpression) throws UnrecognizedCodeException {
+  public SymbolicExpression visit(AIdExpression pIastIdExpression) {
     final MemoryLocation memLoc = getMemoryLocation(pIastIdExpression.getDeclaration());
 
     final Type idType = pIastIdExpression.getExpressionType();
@@ -96,24 +95,21 @@ public class ExpressionTransformer {
     }
   }
 
-  public SymbolicExpression visit(AIntegerLiteralExpression pIastIntegerLiteralExpression)
-      throws UnrecognizedCodeException {
+  public SymbolicExpression visit(AIntegerLiteralExpression pIastIntegerLiteralExpression) {
     final BigInteger value = pIastIntegerLiteralExpression.getValue();
     final Type intType = pIastIntegerLiteralExpression.getExpressionType();
 
     return SymbolicValueFactory.getInstance().asConstant(createNumericValue(value), intType);
   }
 
-  public SymbolicExpression visit(ACharLiteralExpression pIastCharLiteralExpression)
-      throws UnrecognizedCodeException {
+  public SymbolicExpression visit(ACharLiteralExpression pIastCharLiteralExpression) {
     final long castValue = pIastCharLiteralExpression.getCharacter();
     final Type charType = pIastCharLiteralExpression.getExpressionType();
 
     return SymbolicValueFactory.getInstance().asConstant(createNumericValue(castValue), charType);
   }
 
-  public SymbolicExpression visit(AFloatLiteralExpression pIastFloatLiteralExpression)
-      throws UnrecognizedCodeException {
+  public SymbolicExpression visit(AFloatLiteralExpression pIastFloatLiteralExpression) {
     final BigDecimal value = pIastFloatLiteralExpression.getValue();
     final Type floatType = pIastFloatLiteralExpression.getExpressionType();
 
