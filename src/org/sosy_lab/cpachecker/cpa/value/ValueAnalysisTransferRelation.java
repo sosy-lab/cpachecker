@@ -438,10 +438,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    if(returnVarName.isPresent()) {
-      newElement.forget(functionReturnVar);
-    }
+    newElement.dropFrame(functionName);
 
+    assert !returnVarName.isPresent() || !newElement.contains(functionReturnVar);
     return newElement;
   }
 
