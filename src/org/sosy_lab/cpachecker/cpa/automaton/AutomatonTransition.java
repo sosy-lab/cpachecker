@@ -163,7 +163,7 @@ class AutomatonTransition {
    */
   public void executeActions(AutomatonExpressionArguments pArgs) throws CPATransferException {
     for (AutomatonAction action : actions) {
-      ResultValue<? extends Object> res = action.eval(pArgs);
+      ResultValue<?> res = action.eval(pArgs);
       if (res.canNotEvaluate()) {
         pArgs.getLogger().log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
       }
