@@ -56,7 +56,7 @@ public class CFromPathGenerator {
   private final Set<ARGState> errorPathStates;
 
   private List<String> includes;
-  private List<String> globalDeclarations;
+  private List<CDeclarationEdge> globalDeclarations;
   private List<Function> functions;
 
   public CFromPathGenerator(ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates) {
@@ -88,9 +88,18 @@ public class CFromPathGenerator {
 
     Appender includes = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.includes);
     Appender emptyLine = Appenders.fromToStringMethod(System.lineSeparator() + System.lineSeparator());
-    Appender globals = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.globalDeclarations);
+    Appender globals = Appenders.forIterable(Joiner.on(System.lineSeparator()), Lists.transform(this.globalDeclarations,
+        new com.google.common.base.Function<CDeclarationEdge, String>() {
+          
+          @Nullable
+          @Override
+          public String apply(@Nullable CDeclarationEdge pCDeclarationEdge) {
+            assert pCDeclarationEdge != null : "null was added to the globalDeclarations List";
+            return pCDeclarationEdge.getCode();
+          }
+        }));
     Appender functions = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.functions);
-
+    
     return Appenders.concat(includes, emptyLine, globals, emptyLine, functions);
   }
   
@@ -109,7 +118,7 @@ public class CFromPathGenerator {
     ARGState child = edge.getChild();
 
     if (errorState.equals(child)) {
-      currentFunction.add(new SimpleStatement("return -1337;"));
+      currentFunction.add(new SimpleStatement("exit(-1337);"));
     }
 
     if (cfaEdge instanceof CFunctionCallEdge) {
@@ -179,13 +188,14 @@ public class CFromPathGenerator {
         break;
       case DeclarationEdge:
         // TODO global declarations, re-declaration
-        
-        boolean global = ((CDeclarationEdge)edge).getDeclaration().isGlobal();
+
+        CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
+        boolean global = declarationEdge.getDeclaration().isGlobal();
 
         if (global) {
-          globalDeclarations.add(code);
+          globalDeclarations.add(declarationEdge);
         } else {
-          currentFunction.add(new SimpleStatement(code));
+          currentFunction.addDeclaration(declarationEdge, globalDeclarations);
         }
         
         break;

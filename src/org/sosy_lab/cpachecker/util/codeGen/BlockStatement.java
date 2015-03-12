@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.util.codeGen;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+
 public class BlockStatement extends Statement {
+  
+  protected List<CDeclarationEdge> declarations;
   
   protected List<Statement> children;
   protected BlockStatement parent;
@@ -37,11 +41,35 @@ public class BlockStatement extends Statement {
   }
   
   public BlockStatement(BlockStatement parent, String header) {
+    this.declarations = new ArrayList<>();
     this.children = new ArrayList<>();
     this.parent = parent;    
     this.header = header;
   }
 
+  public void addDeclaration(CDeclarationEdge declaration, List<CDeclarationEdge> globalDeclarations) {
+    boolean alreadyExists = globalDeclarations.contains(declaration);
+    BlockStatement currentStatement = this;
+
+    if (!alreadyExists) {
+      
+      do {
+        alreadyExists = currentStatement.declarations.contains(declaration);
+        currentStatement = currentStatement.parent;
+      } while (!(alreadyExists || currentStatement == null));
+    }
+
+    String code = declaration.getCode();
+    
+    if (alreadyExists) {
+      code = code.replaceFirst(declaration.getDeclaration().getType().toString(), "").trim();
+    } else {
+      declarations.add(declaration);
+    }
+    
+    add(new SimpleStatement(code));
+  }
+  
   public void add(SimpleStatement statement) {
     children.add(statement);
   }
