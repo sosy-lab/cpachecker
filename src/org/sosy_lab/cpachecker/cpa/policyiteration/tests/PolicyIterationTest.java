@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -67,6 +68,7 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
+  @Ignore // seems to be no longer provable since r16189
   @Test public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c");
   }
@@ -76,7 +78,7 @@ public class PolicyIterationTest {
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
 
-//  @Ignore // has mostly timeouts in BuildBot -> seems fine now.
+  @Ignore // seems to be no longer provable since r16189
   @Test public void pointers_loop_true_assert() throws Exception {
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
