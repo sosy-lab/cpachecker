@@ -86,7 +86,7 @@ public class PolicyCPA
         new ValueDeterminationManager(
             formulaManager, logger, templateManager);
 
-    statistics = new PolicyIterationStatistics(config, formulaSlicingManager);
+    statistics = new PolicyIterationStatistics(config);
 
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(

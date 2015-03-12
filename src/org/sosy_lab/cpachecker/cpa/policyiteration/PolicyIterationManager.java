@@ -777,9 +777,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     if (formulaSlicing) {
       BooleanFormula pointerData = formulaSlicingManager.pointerFormulaSlice(
           generatingFormula.getFormula());
-      BooleanFormula inductivePointerData = formulaSlicingManager.getInductiveVersionOf(
-          generatingFormula.updateFormula(pointerData), location.getFinalNode());
-      initialConstraint = bfmgr.and(initialConstraint, inductivePointerData);
+      statistics.slicingTimer.start();
+      try {
+        BooleanFormula inductivePointerData = formulaSlicingManager.getInductiveVersionOf(
+            generatingFormula.updateFormula(pointerData), location.getFinalNode());
+        initialConstraint = bfmgr.and(initialConstraint, inductivePointerData);
+      } finally {
+        statistics.slicingTimer.stop();
+      }
     }
 
     PathFormula path = generatingFormula.updateFormula(initialConstraint);

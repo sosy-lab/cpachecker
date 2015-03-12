@@ -12,7 +12,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -39,7 +38,6 @@ public class FormulaSlicingManager {
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
-  private final Timer slicingTime = new Timer();
 
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
   private static final String INTERMEDIATE_VAR_PREFIX = "__SLICE_INTERMEDIATE_";
@@ -52,10 +50,6 @@ public class FormulaSlicingManager {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = pPfmgr;
-  }
-
-  public Timer getSlicingTime() {
-    return slicingTime;
   }
 
   /**
@@ -256,12 +250,9 @@ public class FormulaSlicingManager {
     // Slice is inductive if {@code test} is unsatisfiable.
     boolean isInductive;
     try {
-      slicingTime.start();
       isInductive = solver.isUnsat(test);
     } catch (SolverException e) {
       throw new CPATransferException("Failed checking unsat", e);
-    } finally {
-      slicingTime.stop();
     }
     return isInductive;
   }

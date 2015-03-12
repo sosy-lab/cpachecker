@@ -3,8 +3,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -17,11 +15,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
 
-  private final @Nullable FormulaSlicingManager slicing;
-
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
   private final Timer checkSATTimer = new Timer();
+  final Timer slicingTimer = new Timer();
   final Timer optTimer = new Timer();
 
   final Timer checkIndependenceTimer = new Timer();
@@ -58,11 +55,9 @@ public class PolicyIterationStatistics implements Statistics {
     valueDeterminationTimer.stop();
   }
 
-  public PolicyIterationStatistics(Configuration config,
-      @Nullable FormulaSlicingManager pSlicing)
+  public PolicyIterationStatistics(Configuration config)
       throws InvalidConfigurationException {
     config.inject(this, PolicyIterationStatistics.class);
-    slicing = pSlicing;
   }
 
   @Override
@@ -73,8 +68,8 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, abstractionTimer, "abstraction");
     printTimer(out, optTimer, "optimization");
     printTimer(out, checkSATTimer, "checking satisfiability");
-    if (slicing != null) {
-      printTimer(out, slicing.getSlicingTime(), "checking inductiveness in formula slicing");
+    if (slicingTimer.getNumberOfIntervals() > 0) {
+      printTimer(out, slicingTimer, "checking inductiveness in formula slicing");
     }
     printTimer(out, checkIndependenceTimer, "checking independence");
     out.printf("Time spent in %s: %s (Max: %s)%n",
