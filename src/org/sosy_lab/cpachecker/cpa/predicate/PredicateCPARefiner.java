@@ -67,10 +67,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -345,39 +343,35 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     return allStatesTrace;
   }
 
+  /**
+   * This method removes further edges from the error path (prefix).
+   */
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
-        errorPathPrefix,
-        new UseDefRelation(errorPathPrefix,
-            cfa.getVarClassification().isPresent()
-              ? cfa.getVarClassification().get().getIntBoolVars()
-              : Collections.<String>emptySet(),
-              handleFeasibleAssumeEdges)).obtainInterpolants();
-    interpolants.put(errorPathPrefix.getFirstState(), ValueAnalysisInterpolant.TRUE);
 
-    List<CFAEdge> abstractEdges = new ArrayList<>();
-    ArrayList<CFAEdge> edges = Lists.newArrayList(errorPathPrefix.asEdgesList());
-    ArrayList<ARGState> states = Lists.newArrayList(errorPathPrefix.asStatesList());
-    int i = 0;
-    for (CFAEdge currentEdge : edges) {
-      // if interpolant of predecessor is false
-      // or if interpolant of successor is true, skip the edge
-      if (interpolants.get(states.get(i)).isFalse()
-          || interpolants.get(states.get(i)).equals(interpolants.get(states.get(i + 1)))) {
-        abstractEdges.add(new BlankEdge("",
+    Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
+        cfa.getVarClassification().isPresent()
+          ? cfa.getVarClassification().get().getIntBoolVars()
+          : Collections.<String>emptySet(),
+        handleFeasibleAssumeEdges).getUseDefStates();
+
+    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(errorPathPrefix.asEdgesList());
+
+    PathIterator iterator = errorPathPrefix.pathIterator();
+    while (iterator.hasNext()) {
+
+      // slice edge if there is neither a use nor a definition at the current state
+      if (!useDefStates.contains(iterator.getAbstractState())) {
+        abstractEdges.set(iterator.getIndex(), new BlankEdge("",
             FileLocation.DUMMY,
-            currentEdge.getPredecessor(),
-            currentEdge.getSuccessor(),
-            ErrorPathClassifier.SUFFIX_REPLACEMENT + " for: " + currentEdge.getRawStatement()));
+            iterator.getOutgoingEdge().getPredecessor(),
+            iterator.getOutgoingEdge().getSuccessor(),
+            ErrorPathClassifier.SUFFIX_REPLACEMENT));
       }
 
-      else {
-        abstractEdges.add(currentEdge);
-      }
-      i++;
+      iterator.advance();
     }
 
-    return new ARGPath(states, abstractEdges);
+    return new ARGPath(errorPathPrefix.asStatesList(), abstractEdges);
   }
 
   /**
