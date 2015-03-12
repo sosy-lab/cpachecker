@@ -871,26 +871,26 @@ public class FormulaManagerView {
    * indices that are provided in the SSA map!
    */
   public <F extends Formula> F instantiate(F pF, final SSAMap pSsa) {
-    return myFreeVariableNodeTransformer(
-        pF,
-        new HashMap<Formula, Formula>(),
-        new Function<String, String>() {
+    return wrap(getFormulaType(pF),
+        myFreeVariableNodeTransformer(unwrap(pF), new HashMap<Formula, Formula>(),
+            new Function<String, String>() {
 
-      @Override
-      public String apply(String pFullSymbolName) {
+              @Override
+              public String apply(String pFullSymbolName) {
 
-        final Pair<String, Integer> indexedSymbol = parseName(pFullSymbolName);
-        final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
+                final Pair<String, Integer> indexedSymbol = parseName(pFullSymbolName);
+                final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
 
-        if (reInstantiateWithIndex > 0) {
-          // OK, the variable has ALREADY an instance in the SSA, REPLACE it
-          return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
-        } else {
-          // the variable is not used in the SSA, keep it as is
-          return pFullSymbolName;
-        }
-      }
-    });
+                if (reInstantiateWithIndex > 0) {
+                  // OK, the variable has ALREADY an instance in the SSA, REPLACE it
+                  return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
+                } else {
+                  // the variable is not used in the SSA, keep it as is
+                  return pFullSymbolName;
+                }
+              }
+            })
+        );
   }
 
   // various caches for speeding up expensive tasks
@@ -919,19 +919,22 @@ public class FormulaManagerView {
 
   /**
    * Uninstantiate a given formula.
-   * (remove the SSA indices from its free variables)
+   * (remove the SSA indices from its free variables and UFs)
    *
    * @param pF  Input formula
    * @return    Uninstantiated formula
    */
   public <F extends Formula> F uninstantiate(F f) {
-    return myFreeVariableNodeTransformer(f, uninstantiateCache, new Function<String, String>() {
-      @Override
-      public String apply(String pArg0) {
-        // Un-instantiated variable name
-        return parseName(pArg0).getFirst();
-      }
-    });
+    return wrap(getFormulaType(f),
+        myFreeVariableNodeTransformer(unwrap(f), uninstantiateCache,
+            new Function<String, String>() {
+              @Override
+              public String apply(String pArg0) {
+                // Un-instantiated variable name
+                return parseName(pArg0).getFirst();
+              }
+            })
+        );
   }
 
   /**
