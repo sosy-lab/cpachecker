@@ -36,6 +36,8 @@ import com.google.common.collect.Maps;
  * Assignment for {@link SymbolicIdentifier}s.
  */
 public class IdentifierAssignment extends ForwardingMap<SymbolicIdentifier, Value> {
+  private static final String ERROR_MSG_ASSIGNMENT_REMOVAL =
+      "Definite assignments can't be removed!";
   private Map<SymbolicIdentifier, Value> assignment = new HashMap<>();
 
   public IdentifierAssignment() {
@@ -51,6 +53,21 @@ public class IdentifierAssignment extends ForwardingMap<SymbolicIdentifier, Valu
     assert !pValue.isUnknown();
 
     return super.put(pIdentifier, pValue);
+  }
+
+  @Override
+  public Value remove(Object pKey) {
+    throw new UnsupportedOperationException(ERROR_MSG_ASSIGNMENT_REMOVAL);
+  }
+
+  @Override
+  public Value standardRemove(Object pKey) {
+    throw new UnsupportedOperationException(ERROR_MSG_ASSIGNMENT_REMOVAL);
+  }
+
+  @Override
+  public void clear() {
+    throw new UnsupportedOperationException(ERROR_MSG_ASSIGNMENT_REMOVAL);
   }
 
   @Override
