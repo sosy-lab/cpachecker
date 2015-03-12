@@ -1259,9 +1259,12 @@ public class FormulaManagerView {
    * Extract pairs of <variable name, variable formula>
    *  of all free variables in a formula.
    *
+   * @deprecated The type of the returned Formula objects is incorrect.
+   * Thus consider using {@link #extractVariableNames(Formula)} instead.
    * @param pF The input formula
    * @return Map from variable names to variable formulas.
    */
+  @Deprecated
   public Map<String, Formula> extractFreeVariableMap(Formula pF) {
     Map<String, Formula> result = Maps.newHashMap();
 
@@ -1433,19 +1436,6 @@ public class FormulaManagerView {
   }
 
   /**
-   * @see {@link #getDeadVariables(BooleanFormula, SSAMap)}
-   */
-  public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
-    Set<String> result = Sets.newHashSet();
-    List<Formula> varFormulas = getDeadVariables(pFormula, pSsa);
-    for (Formula f : varFormulas) {
-      result.add(unsafeManager.getName(f));
-    }
-
-    return result;
-  }
-
-  /**
    * Use a SSA map to conclude what variables of a
    *  (instantiated) formula can be considered 'dead'.
    *
@@ -1456,7 +1446,22 @@ public class FormulaManagerView {
    * @param pSsa
    * @return
    */
-  public List<Formula> getDeadVariables(BooleanFormula pFormula, SSAMap pSsa) {
+  public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
+    Set<String> result = Sets.newHashSet();
+    List<Formula> varFormulas = myGetDeadVariables(pFormula, pSsa);
+    for (Formula f : varFormulas) {
+      result.add(unsafeManager.getName(f));
+    }
+
+    return result;
+  }
+
+  /**
+   * Helper method for {@link #getDeadVariableNames(BooleanFormula, SSAMap)}.
+   * Do not make this method public, because the returned formulas have incorrect
+   * types (they are not appropriately wrapped).
+   */
+  private List<Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa) {
     List<Formula> result = Lists.newArrayList();
 
     for (Formula varFormula: myExtractSubformulas(unwrap(pFormula), FILTER_VARIABLES)) {
@@ -1504,7 +1509,7 @@ public class FormulaManagerView {
     Preconditions.checkNotNull(pF);
     Preconditions.checkNotNull(pSsa);
 
-    List<Formula> irrelevantVariables = getDeadVariables(pF, pSsa);
+    List<Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa);
 
     BooleanFormula eliminationResult = pF;
 
