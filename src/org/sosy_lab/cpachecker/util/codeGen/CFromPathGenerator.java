@@ -90,7 +90,7 @@ public class CFromPathGenerator {
 
     return Appenders.concat(globals, emptyLine, functions);
   }
-
+  
   private Function newFunction(ARGState rootState, Deque<Function> callStack) {
     Function f = new Function(rootState);
 
@@ -166,9 +166,8 @@ public class CFromPathGenerator {
       case BlankEdge:
       case StatementEdge:
       case ReturnStatementEdge:
-        if (!code.contains("CPAchecker")) {
           currentFunction.append(new SimpleStatement(code));
-        }
+        
         break;
       case AssumeEdge:
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
@@ -179,7 +178,7 @@ public class CFromPathGenerator {
       case DeclarationEdge:
         // TODO global declarations, re-declaration
 
-        if (!code.contains("CPAchecker")) {
+
           boolean global = ((CDeclarationEdge)edge).getDeclaration().isGlobal();
 
           if (global) {
@@ -187,7 +186,7 @@ public class CFromPathGenerator {
           } else {
             currentFunction.append(new SimpleStatement(code));
           }
-        }
+        
         break;
       case MultiEdge:
 

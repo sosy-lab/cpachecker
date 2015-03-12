@@ -88,11 +88,15 @@ public class ExecutionChecker implements CounterexampleChecker {
     }
 
     try {
-      ProcessExecutor<CounterexampleAnalysisFailed> exec;
+      Exec exec;
       String[] cmd = {"gcc", codeFile.getAbsolutePath(), "-o", executable.getAbsolutePath()};
 
-      exec = new ProcessExecutor<>(logger, CounterexampleAnalysisFailed.class, cmd);
+      exec = new Exec(logger, cmd);
       exec.join();
+
+      if (exec.getExitcode() != 0) {
+        throw new CounterexampleAnalysisFailed("Code could not be compiled.");
+      }
     } catch (IOException e) {
       throw new CPAException("Could not execute the C compiler.", e);
     }
@@ -104,7 +108,7 @@ public class ExecutionChecker implements CounterexampleChecker {
       exec = new Exec(logger, cmd);
       exec.join();
     } catch (IOException e) {
-      throw new CPAException("Could not execute the compiled code..", e);
+      throw new CPAException("Could not execute the compiled code.", e);
     }
 
     if (delCodeFile) {
@@ -122,13 +126,13 @@ public class ExecutionChecker implements CounterexampleChecker {
         logger.log(Level.WARNING, "Could not delete temporary file: " + executable.getPath());
       }
     }
-
-    return exec.getResult();
+    
+    return exec.getExitcode() != 0; 
   }
 
   private static class Exec extends ProcessExecutor<CounterexampleAnalysisFailed> {
 
-    private volatile boolean result;
+    private volatile int exitcode;
 
     public Exec(LogManager logger, String... cmd) throws IOException {
       super(logger, CounterexampleAnalysisFailed.class, cmd);
@@ -136,11 +140,11 @@ public class ExecutionChecker implements CounterexampleChecker {
 
     @Override
     protected synchronized void handleExitCode(int code) throws CounterexampleAnalysisFailed {
-      result = code != 0;
+      exitcode = code;
     }
 
-    public boolean getResult() {
-      return result;
+    public int getExitcode() {
+      return exitcode;
     }
   }
 }
