@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 
 public class ValueDeterminationManager {
@@ -133,8 +134,9 @@ public class ValueDeterminationManager {
       final Map<Location, PolicyAbstractedState> policy
   ) {
     final String abstractDomainElement = absDomainVarName(toLocation, template);
-    final Formula policyOutTemplate = fmgr.addPrefixToAll(
-        templateManager.toFormula(template, policyFormula), prefix);
+    final Formula policyOutTemplate = fmgr.addPrefix(
+        templateManager.toFormula(template, policyFormula), prefix,
+        Predicates.<String>alwaysTrue());
     final Formula abstractDomainFormula =
         fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
             abstractDomainElement);
@@ -163,7 +165,7 @@ public class ValueDeterminationManager {
     constraints.add(outConstraint);
 
     BooleanFormula namespacedPolicy = (BooleanFormula)
-        fmgr.addPrefixToAll(policyFormula.getFormula(), prefix);
+        fmgr.addPrefix(policyFormula.getFormula(), prefix, Predicates.<String>alwaysTrue());
 
     // Optimization.
     if (!(namespacedPolicy.equals(bfmgr.makeBoolean(true))
@@ -180,11 +182,11 @@ public class ValueDeterminationManager {
       String prevAbstractDomainElement = absDomainVarName(fromLocation,
           incomingTemplate);
 
-      Formula incomingTemplateFormula = fmgr.addPrefixToAll(
+      Formula incomingTemplateFormula = fmgr.addPrefix(
           templateManager.toFormula(
               incomingTemplate,
               startPathFormula
-          ), prefix);
+          ), prefix, Predicates.<String>alwaysTrue());
 
       Formula upperBound;
       if (fromLocation == focusedLocation && !updated.containsKey(

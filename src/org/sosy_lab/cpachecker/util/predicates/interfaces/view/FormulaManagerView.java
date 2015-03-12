@@ -1444,28 +1444,37 @@ public class FormulaManagerView {
   }
 
   /**
-   * Add {@code prefix} to all variables occurring in a formula.
+   * Add {@code prefix} to variables and uninterpreted functions occurring in a formula.
+   * @param input The formula.
+   * @param prefix The non-empty prefix to add.
+   * @param doAddPrefix A predicate telling whether a given variable/UF should be renamed.
    */
-  public Formula addPrefixToAll(Formula input, String prefix) {
-    return recAddPrefixToAll(unwrap(input), prefix, new HashMap<Formula, Formula>());
+  public Formula addPrefix(Formula input, String prefix, Predicate<String> doAddPrefix) {
+    checkArgument(!prefix.isEmpty());
+    return
+        myAddPrefix(unwrap(input), prefix, doAddPrefix, new HashMap<Formula, Formula>());
   }
 
-  private Formula recAddPrefixToAll(Formula input, String prefix,
-      Map<Formula, Formula> memoization) {
-    Formula out = memoization.get(input);
+  private <F extends Formula> F myAddPrefix(F input, String prefix,
+      Predicate<String> doAddPrefix, Map<Formula, Formula> memoization) {
+    @SuppressWarnings("unchecked")
+    F out = (F)memoization.get(input);
     if (out != null) {
       return out;
     }
     List<Formula> newArgs = new ArrayList<>(unsafeManager.getArity(input));
     for (int i=0; i<unsafeManager.getArity(input); i++) {
       newArgs.add(
-          recAddPrefixToAll(unsafeManager.getArg(input, i), prefix, memoization)
+          myAddPrefix(unsafeManager.getArg(input, i), prefix, doAddPrefix, memoization)
       );
     }
     if (unsafeManager.isUF(input) || unsafeManager.isVariable(input)) {
-      out = unsafeManager.replaceArgsAndName(
-          input, prefix + unsafeManager.getName(input), newArgs
-      );
+      String name = unsafeManager.getName(input);
+      if (doAddPrefix.apply(name)) {
+        out = unsafeManager.replaceArgsAndName(input, prefix + name, newArgs);
+      } else {
+        out = unsafeManager.replaceArgs(input, newArgs);
+      }
     } else {
       out = unsafeManager.replaceArgs(input, newArgs);
     }
