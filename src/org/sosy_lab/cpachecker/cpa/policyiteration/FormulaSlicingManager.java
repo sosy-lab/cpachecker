@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -24,7 +23,6 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -38,7 +36,6 @@ import com.google.common.collect.Sets;
 public class FormulaSlicingManager {
   private final LogManager logger;
   private final FormulaManagerView fmgr;
-  private final UnsafeFormulaManager unsafeManager;
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
@@ -48,16 +45,13 @@ public class FormulaSlicingManager {
   private static final String INTERMEDIATE_VAR_PREFIX = "__SLICE_INTERMEDIATE_";
 
   public FormulaSlicingManager(LogManager pLogger,
-      FormulaManagerView pFmgr,
-      UnsafeFormulaManager pUnsafeManager,
       PathFormulaManager pPfmgr,
       Solver pSolver) {
     logger = pLogger;
-    fmgr = pFmgr;
-    unsafeManager = pUnsafeManager;
-    bfmgr = pFmgr.getBooleanFormulaManager();
-    pfmgr = pPfmgr;
     solver = pSolver;
+    fmgr = solver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
+    pfmgr = pPfmgr;
   }
 
   public Timer getSlicingTime() {
@@ -87,18 +81,17 @@ public class FormulaSlicingManager {
     final Set<String> intermediateVariables = new HashSet<>();
 
     // Rename all non-final variables.
-    for (Map.Entry<Formula, String> entry : fmgr.extractFunctionsMap(slice).entrySet()) {
-      Formula var = entry.getKey();
-      Pair<String, Integer> fullName = FormulaManagerView.parseName(entry.getValue());
+    for (String var : fmgr.extractFunctionNames(slice)) {
+      Pair<String, Integer> fullName = FormulaManagerView.parseName(var);
       String varName = fullName.getFirst();
       Integer ssaIndex = fullName.getSecond();
 
       // Non-final variable.
       if (ssaIndex != null && (ssa.containsVariable(varName)) &&
           ssaIndex < ssa.getIndex(varName)) {
-        intermediateVariables.add(entry.getValue());
+        intermediateVariables.add(var);
       } else {
-        outVariables.add(entry.getValue());
+        outVariables.add(var);
       }
     }
     BooleanFormula sliceRenamed = fmgr.renameFreeVariablesAndUFs(slice,

@@ -1224,6 +1224,13 @@ public class FormulaManagerView {
     }
   };
 
+  private final Function<Formula, String> GET_NAME = new Function<Formula, String>() {
+    @Override
+    public String apply(Formula pInput) {
+      return unsafeManager.getName(pInput);
+    }
+  };
+
   /**
    * Extract the names of all free variables in a formula.
    *
@@ -1231,11 +1238,9 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractVariableNames(Formula f) {
-    Set<String> result = Sets.newHashSet();
-    for (Formula v: myExtractSubformulas(unwrap(f), FILTER_VARIABLES)) {
-      result.add(unsafeManager.getName(v));
-    }
-    return result;
+    return Sets.newHashSet(Collections2.transform(
+        myExtractSubformulas(unwrap(f), FILTER_VARIABLES),
+        GET_NAME));
   }
 
   /**
@@ -1245,25 +1250,9 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractFunctionNames(Formula f) {
-    return Sets.newHashSet(extractFunctionsMap(f).values());
-  }
-
-  /**
-   * Extract the names of all free variables + UFs in a formula.
-   *
-   * @param f   The input formula
-   * @return    Set of variable names (might be instantiated)
-   */
-  public Map<Formula, String> extractFunctionsMap(Formula f) {
-    return Maps.asMap(
+    return Sets.newHashSet(Collections2.transform(
         myExtractSubformulas(unwrap(f), Predicates.or(FILTER_UF, FILTER_VARIABLES)),
-        new Function<Formula, String>() {
-          @Override
-          public String apply(Formula pInput) {
-            return unsafeManager.getName(pInput);
-          }
-        });
-
+        GET_NAME));
   }
 
   /**
