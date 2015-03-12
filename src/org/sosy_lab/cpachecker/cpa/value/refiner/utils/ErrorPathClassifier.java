@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -202,9 +200,7 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      Collection<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
-
-      int score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
+      int score = obtainDomainTypeScoreForPath(currentErrorPath);
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
@@ -303,19 +299,12 @@ public class ErrorPathClassifier {
     return pPrefixes;
   }
 
-  private Collection<String> obtainUseDefInformationOfErrorPath(MutableARGPath currentErrorPath) {
-
+  private int obtainDomainTypeScoreForPath(MutableARGPath currentErrorPath) {
     UseDefRelation useDefRelation = new UseDefRelation(currentErrorPath.immutableCopy(),
-        classification.isPresent()
-          ? classification.get().getIntBoolVars()
-          : Collections.<String>emptySet(),
+      classification.get().getIntBoolVars(),
       "NONE");
 
-    return useDefRelation.getUsesAsQualifiedName();
-  }
-
-  public int obtainDomainTypeScoreForVariables(Collection<String> useDefinitionInformation) {
-    return classification.get().obtainDomainTypeScoreForVariables(useDefinitionInformation, loopStructure);
+    return classification.get().obtainDomainTypeScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
   }
 
   /**
@@ -404,9 +393,7 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      Collection<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
-
-      int score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
+      int score = obtainDomainTypeScoreForPath(currentErrorPath);
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
