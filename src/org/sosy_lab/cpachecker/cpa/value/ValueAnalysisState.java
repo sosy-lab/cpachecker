@@ -56,14 +56,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.primitives.Longs;
 
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
@@ -659,192 +656,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     return new ValueAnalysisInterpolant(new HashMap<>(constantsMap), new HashMap<>(memLocToType));
   }
 
-  public static class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
-
-    private static final long serialVersionUID = -8910967707373729034L;
-    private final String functionName;
-    private final String identifier;
-    private final long offset;
-
-    /**
-     * This function can be used to {@link Iterables#transform transform}  a collection of {@link String}s
-     * to a collection of {@link MemoryLocation}s, representing the respective memory location of the identifiers.
-     */
-    public static final Function<String, MemoryLocation> FROM_STRING_TO_MEMORYLOCATION =
-        new Function<String, MemoryLocation>() {
-            @Override
-            public MemoryLocation apply(String variableName) { return MemoryLocation.valueOf(variableName); }
-        };
-
-    /**
-     * This function can be used to {@link Iterables#transform transform} a collection of {@link MemoryLocation}s
-     * to a collection of {@link String}s, representing the respective variable identifiers.
-     */
-    public static final Function<MemoryLocation, String> FROM_MEMORYLOCATION_TO_STRING =
-        new Function<MemoryLocation, String>() {
-            @Override
-            public String apply(MemoryLocation memoryLocation) { return memoryLocation.getAsSimpleString(); }
-        };
-
-    private MemoryLocation(String pFunctionName, String pIdentifier,
-        long pOffset) {
-      checkNotNull(pFunctionName);
-      checkNotNull(pIdentifier);
-
-      functionName = pFunctionName;
-      identifier = pIdentifier;
-      offset = pOffset;
-    }
-
-    private MemoryLocation(String pIdentifier, long pOffset) {
-      checkNotNull(pIdentifier);
-
-      functionName = null;
-      identifier = pIdentifier;
-      offset = pOffset;
-    }
-
-    public static MemoryLocation valueOf(String pFunctionName,
-        String pIdentifier, long pOffest) {
-      return new MemoryLocation(pFunctionName, pIdentifier, pOffest);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-
-      if (this == other) {
-        return true;
-      }
-
-      if (!(other instanceof MemoryLocation)) {
-        return false;
-      }
-
-      MemoryLocation otherLocation = (MemoryLocation) other;
-
-      return Objects.equals(functionName, otherLocation.functionName)
-          && Objects.equals(identifier, otherLocation.identifier)
-          && offset == otherLocation.offset;
-    }
-
-    @Override
-    public int hashCode() {
-
-      int hc = 17;
-      int hashMultiplier = 59;
-
-      hc = hc * hashMultiplier + Objects.hashCode(functionName);
-      hc = hc * hashMultiplier + identifier.hashCode();
-      hc = hc * hashMultiplier + Longs.hashCode(offset);
-
-      return hc;
-    }
-
-    public static MemoryLocation valueOf(String pIdentifier, long pOffest) {
-      return new MemoryLocation(pIdentifier, pOffest);
-    }
-
-    public static MemoryLocation valueOf(String pVariableName) {
-
-      String[] nameParts    = pVariableName.split("::");
-      String[] offsetParts  = pVariableName.split("/");
-
-      boolean isScoped  = nameParts.length == 2;
-      boolean hasOffset = offsetParts.length == 2;
-
-      int offset = hasOffset ? Integer.parseInt(offsetParts[1]) : 0;
-
-      if (isScoped) {
-        return new MemoryLocation(nameParts[0], nameParts[1].replace("/" + offset, ""), offset);
-
-      } else {
-        return new MemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
-      }
-    }
-
-    public String getAsSimpleString() {
-      /*
-            String simpleName = identifier + "[" + offset + "]";
-
-      return isOnFunctionStack() ? (functionName + "::" + simpleName) : simpleName;
-      */
-
-      return isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
-    }
-
-    public String serialize() {
-      String simpleName = identifier + "/" + offset;
-
-      return isOnFunctionStack() ? (functionName + "::" + simpleName) : simpleName;
-    }
-
-    public boolean isOnFunctionStack() {
-      return functionName != null;
-    }
-
-    public boolean isOnFunctionStack(String pFunctionName) {
-      return functionName != null && pFunctionName.equals(functionName);
-    }
-
-    public String getFunctionName() {
-      return checkNotNull(functionName);
-    }
-
-    public String getIdentifier() {
-      return identifier;
-    }
-
-    public long getOffset() {
-      return offset;
-    }
-
-    @Override
-    public String toString() {
-      return getAsSimpleString();
-    }
-
-    public static PersistentMap<MemoryLocation, Long> transform(
-        PersistentMap<String, Long> pConstantMap) {
-
-      PersistentMap<MemoryLocation, Long> result = PathCopyingPersistentTreeMap.of();
-
-      for (Map.Entry<String, Long> entry : pConstantMap.entrySet()) {
-        result = result.putAndCopy(valueOf(entry.getKey()), checkNotNull(entry.getValue()));
-      }
-
-      return result;
-    }
-
-    @Override
-    public int compareTo(MemoryLocation other) {
-
-      int result = 0;
-
-      if (isOnFunctionStack()) {
-        if (other.isOnFunctionStack()) {
-          result = functionName.compareTo(other.functionName);
-        } else {
-          result = 1;
-        }
-      } else {
-        if (other.isOnFunctionStack()) {
-          result = -1;
-        } else {
-          result = 0;
-        }
-      }
-
-      if (result != 0) {
-        return result;
-      }
-
-      return ComparisonChain.start()
-          .compare(identifier, other.identifier)
-          .compare(offset, other.offset)
-          .result();
-    }
-  }
-
 
   public Set<MemoryLocation> getMemoryLocationsOnStack(String pFunctionName) {
     Set<MemoryLocation> result = new HashSet<>();
@@ -899,14 +710,14 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     final ValueAnalysisState rebuildState = ValueAnalysisState.copyOf(callState);
 
     // first forget all global information
-    for (final ValueAnalysisState.MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
+    for (final MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
       if (!trackedVar.isOnFunctionStack()) { // global -> delete
         rebuildState.forget(trackedVar);
       }
     }
 
     // second: learn new information
-    for (final ValueAnalysisState.MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
+    for (final MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
 
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
         rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));

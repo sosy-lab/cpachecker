@@ -110,7 +110,7 @@ import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonUniversalCoeffici
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;

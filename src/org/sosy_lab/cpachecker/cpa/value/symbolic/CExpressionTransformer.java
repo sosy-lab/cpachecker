@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
 
@@ -233,7 +234,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   private SymbolicExpression evaluateToValue(CExpression pExpression) throws UnrecognizedCCodeException {
 
     ExpressionValueVisitor valueVisitor = getValueVisitor(valueState);
-    ValueAnalysisState.MemoryLocation memLoc = valueVisitor.evaluateMemoryLocation(pExpression);
+    MemoryLocation memLoc = valueVisitor.evaluateMemoryLocation(pExpression);
 
     if (memLoc == null) {
       return null;
