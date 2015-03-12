@@ -94,7 +94,7 @@ public class FormulaSlicingManager {
       // Non-final variable.
       if (ssaIndex != null && (ssa.containsVariable(varName)) &&
           ssaIndex < ssa.getIndex(varName)) {
-        Formula newVar = fmgr.makeVariable(var, renamePrefix+varName);
+        Formula newVar = fmgr.makeVariable(fmgr.getFormulaType(var), renamePrefix+varName);
         renames.put(var, newVar);
         intermediateVariables.add(newVar);
       } else {
@@ -236,7 +236,7 @@ public class FormulaSlicingManager {
       }
     }
     for (Formula f : intermediateVars) {
-      renames.put(f, fmgr.makeVariable(f, unsafeManager.getName(f)+"'"));
+      renames.put(f, fmgr.makeVariable(fmgr.getFormulaType(f), unsafeManager.getName(f)+"'"));
     }
 
     BooleanFormula formulaSliceSuffix =

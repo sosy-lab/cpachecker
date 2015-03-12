@@ -311,10 +311,6 @@ public class FormulaManagerView {
     }
   }
 
-  public <T extends Formula> T makeVariable(T f, String name) {
-    return makeVariable(getFormulaType(f), name);
-  }
-
   /**
    * Helper method for creating variables of the given type.
    * @param formulaType the type of the variable.
