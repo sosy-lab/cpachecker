@@ -339,7 +339,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return false;
   }
 
-  private final Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
+  private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
     return from(elements).transform(TO_STATE_ID);
   }
 

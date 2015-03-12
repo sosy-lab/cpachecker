@@ -561,7 +561,7 @@ public class ARGUtils {
    * @param s an ARGState
    * @return The children with covered states transparently replaced.
    */
-  public static final Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
+  public static Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
     return new AbstractCollection<ARGState>() {
 
       @Override

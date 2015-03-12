@@ -242,13 +242,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       throw new UnsupportedOperationException("Unknown boolean operator " + f);
     }
 
-    private final BooleanFormula getArg(BooleanFormula pF, int i) {
+    private BooleanFormula getArg(BooleanFormula pF, int i) {
       Formula arg = unsafe.getArg(pF, i);
       assert fmgr.getFormulaType(arg).isBooleanType();
       return (BooleanFormula)arg;
     }
 
-    private final BooleanFormula[] getAllArgs(BooleanFormula pF) {
+    private BooleanFormula[] getAllArgs(BooleanFormula pF) {
       int arity = unsafe.getArity(pF);
       BooleanFormula[] args = new BooleanFormula[arity];
       for (int i = 0; i < arity; i++) {

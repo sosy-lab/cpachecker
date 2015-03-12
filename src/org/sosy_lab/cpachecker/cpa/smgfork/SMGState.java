@@ -147,7 +147,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * {@link SMGRuntimeCheck.HALF} or {@link SMGRuntimeCheck.FULL}
    * @throws SMGInconsistentException
    */
-  static final public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
+  static public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
     runtimeCheckLevel = pLevel;
   }
 

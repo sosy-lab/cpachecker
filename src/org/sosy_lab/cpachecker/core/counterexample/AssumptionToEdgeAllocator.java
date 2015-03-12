@@ -604,7 +604,7 @@ public class AssumptionToEdgeAllocator {
       return addressVisitor.getAddress(dcl);
     }
 
-    private final Number evaluateNumericalValue(CExpression exp) {
+    private Number evaluateNumericalValue(CExpression exp) {
 
       Value addressV;
       try {
@@ -627,7 +627,7 @@ public class AssumptionToEdgeAllocator {
       return addressV.asNumericValue().getNumber();
     }
 
-    private final Address evaluateNumericalValueAsAddress(CExpression exp) {
+    private Address evaluateNumericalValueAsAddress(CExpression exp) {
 
       Number result = evaluateNumericalValue(exp);
 

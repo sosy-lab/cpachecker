@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public final class TestHelpers {
-  static public final Integer createList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
+  static public Integer createList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
     Integer value = null;
     for (int i = 0; i < pLength; i++) {
       SMGObject node = new SMGRegion(pSize, pPrefix + "list_node" + i);
@@ -53,7 +53,7 @@ public final class TestHelpers {
     return value;
   }
 
-  static public final SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
+  static public SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
     Integer value = TestHelpers.createList(pSmg, pLength, pSize, pOffset, pVariable);
     SMGRegion globalVar = new SMGRegion(8, pVariable);
     SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, globalVar, value);

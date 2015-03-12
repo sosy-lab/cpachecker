@@ -114,7 +114,7 @@ public class CFATraversal {
    * Returns a default instance of this class, which iterates forward through
    * the CFA, visiting all nodes and edges in a DFS-like strategy.
    */
-  public static final CFATraversal dfs() {
+  public static CFATraversal dfs() {
     return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAUtils.TO_SUCCESSOR,
         Predicates.<CFAEdge>alwaysFalse());
   }

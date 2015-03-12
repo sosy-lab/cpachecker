@@ -27,11 +27,11 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public class SMGFactory {
   private SMGFactory() {}
-  static public final WritableSMG createWritableSMG(MachineModel pMachineModel) {
+  static public WritableSMG createWritableSMG(MachineModel pMachineModel) {
     return new CLangSMG(pMachineModel);
   }
 
-  static public final WritableSMG createWritableCopy(ReadableSMG pSMG) {
+  static public WritableSMG createWritableCopy(ReadableSMG pSMG) {
     if (pSMG instanceof CLangSMG) {
       return new CLangSMG((CLangSMG)pSMG);
     }

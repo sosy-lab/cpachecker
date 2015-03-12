@@ -206,7 +206,7 @@ public abstract class SolverBasedTest0 {
    */
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormulaOfSolver())")
-  public static final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
+  public static SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
       final FormulaManager mgr) {
     return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
           @Override
@@ -222,7 +222,7 @@ public abstract class SolverBasedTest0 {
    */
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(ProverEnvironment())")
-  public static final SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
+  public static SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
     return new SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>() {
           @Override
           public ProverEnvironmentSubject getSubject(FailureStrategy pFs, BasicProverEnvironment<?> pFormula) {

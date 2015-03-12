@@ -546,7 +546,7 @@ public class CFunctionPointerResolver {
     return declaredType.getCanonicalType().equals(actualType.getCanonicalType());
   }
 
-  private final boolean checkParamSizes(CFunctionCallExpression functionCallExpression,
+  private boolean checkParamSizes(CFunctionCallExpression functionCallExpression,
       CFunctionType functionType) {
     //get the parameter expression
     List<CExpression> parameters = functionCallExpression.getParameterExpressions();

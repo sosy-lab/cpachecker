@@ -122,7 +122,7 @@ class SMGNodeDotVisitor implements SMGObjectVisitor {
 }
 
 public final class SMGPlotter {
-  static final public void debuggingPlot(CLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
+  static public void debuggingPlot(CLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
     PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
     Path outputFile = exportSMGFilePattern.getPath(pId);

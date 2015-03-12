@@ -74,17 +74,17 @@ public class PointerTargetSetManager {
 
   private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
 
-  static final CType getFakeBaseType(int size) {
+  static CType getFakeBaseType(int size) {
     return CTypeUtils.simplifyType(new CArrayType(false, false, CVoidType.VOID, new CIntegerLiteralExpression(FileLocation.DUMMY,
                                                                                         CNumericTypes.SIGNED_CHAR,
                                                                                         BigInteger.valueOf(size))));
   }
 
-  static final boolean isFakeBaseType(final CType type) {
+  static boolean isFakeBaseType(final CType type) {
     return type instanceof CArrayType && ((CArrayType) type).getType() instanceof CVoidType;
   }
 
-  private static final String getUnitedFieldBaseName(final int index) {
+  private static String getUnitedFieldBaseName(final int index) {
     return UNITED_BASE_FIELD_NAME_PREFIX + index;
   }
 

@@ -132,7 +132,7 @@ class EclipseCParser implements CParser {
     return FileContent.create(fixPath(pFileName), pCode.toCharArray());
   }
 
-  private final FileContent wrapFile(String pFileName) throws IOException {
+  private FileContent wrapFile(String pFileName) throws IOException {
     String code = Paths.get(pFileName).asCharSource(Charset.defaultCharset()).read();
     return wrapCode(fixPath(pFileName), code);
   }

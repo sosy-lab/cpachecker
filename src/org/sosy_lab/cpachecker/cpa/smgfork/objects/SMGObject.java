@@ -36,7 +36,7 @@ public abstract class SMGObject {
     }
   };
 
-  static public final SMGObject getNullObject() {
+  static public SMGObject getNullObject() {
     return nullObject;
   }
 
