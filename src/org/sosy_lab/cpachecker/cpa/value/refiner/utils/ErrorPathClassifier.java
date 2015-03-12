@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator.UseDefRelation;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -200,7 +202,7 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
+      Collection<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
       int score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
 
@@ -301,31 +303,18 @@ public class ErrorPathClassifier {
     return pPrefixes;
   }
 
-  private Set<String> obtainUseDefInformationOfErrorPath(MutableARGPath currentErrorPath) {
-    Set<String> oldSet = new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(currentErrorPath);
-/*
-    Set<String> newSet = new HashSet<>();
-    UseDefBasedInterpolator itp = new UseDefBasedInterpolator("EQUALITY", classification);
-    MutableARGPath cp = currentErrorPath.immutableCopy().mutableCopy();
-    cp.add(Pair.<ARGState, CFAEdge>of(cp.getLast().getFirst(), new BlankEdge("",
-            FileLocation.DUMMY,
-            cp.getLast().getSecond().getPredecessor(),
-            cp.getLast().getSecond().getSuccessor(),
-            SUFFIX_REPLACEMENT)));
-    Map<ARGState, ValueAnalysisInterpolant> itps = itp.obtainInterpolants(cp.immutableCopy());
+  private Collection<String> obtainUseDefInformationOfErrorPath(MutableARGPath currentErrorPath) {
 
-    for(ValueAnalysisInterpolant i : itps.values()) {
-      newSet.addAll(FluentIterable.from(i.getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
-    }
+    UseDefRelation useDefRelation = new UseDefRelation(currentErrorPath.immutableCopy(),
+        classification.isPresent()
+          ? classification.get().getIntBoolVars()
+          : Collections.<String>emptySet(),
+      "NONE");
 
-    if(!old.equals(newSet)) {
-      assert false;
-    }
-*/
-    return oldSet;
+    return useDefRelation.getUsesAsQualifiedName();
   }
 
-  public int obtainDomainTypeScoreForVariables(Set<String> useDefinitionInformation) {
+  public int obtainDomainTypeScoreForVariables(Collection<String> useDefinitionInformation) {
     return classification.get().obtainDomainTypeScoreForVariables(useDefinitionInformation, loopStructure);
   }
 
@@ -415,7 +404,7 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
+      Collection<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
       int score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
 

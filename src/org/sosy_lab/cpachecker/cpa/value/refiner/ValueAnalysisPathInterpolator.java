@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCo
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator.UseDefRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -224,7 +226,13 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * This method removes further edges from the error path (prefix).
    */
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY", cfa.getVarClassification()).obtainInterpolants(errorPathPrefix);
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
+        errorPathPrefix,
+        new UseDefRelation(errorPathPrefix,
+            cfa.getVarClassification().isPresent()
+              ? cfa.getVarClassification().get().getIntBoolVars()
+              : Collections.<String>emptySet(),
+              "EQUALITY")).obtainInterpolants();
     interpolants.put(errorPathPrefix.getFirstState(), ValueAnalysisInterpolant.TRUE);
 
     List<CFAEdge> abstractEdges = new ArrayList<>();
@@ -296,7 +304,13 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     : "static path-based interpolation requires a sliced infeasible prefix"
     + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_BEST_DEEP;
 
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator("EQUALITY", cfa.getVarClassification()).obtainInterpolants(errorPathPrefix);
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
+        errorPathPrefix,
+        new UseDefRelation(errorPathPrefix,
+            cfa.getVarClassification().isPresent()
+              ? cfa.getVarClassification().get().getIntBoolVars()
+              : Collections.<String>emptySet(),
+              "EQUALITY")).obtainInterpolants();
 
     totalInterpolationQueries.setNextValue(1);
 

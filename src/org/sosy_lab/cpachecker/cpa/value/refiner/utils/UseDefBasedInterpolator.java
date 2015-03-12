@@ -33,10 +33,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -74,56 +74,456 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.livevar.DeclarationCollectingVisitor;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * This class allows to obtain interpolants statically from a given ARGPath.
  */
 public class UseDefBasedInterpolator {
 
-  /**
-   * defines how to handle feasible assume edges
-   */
-  final private String handleFeasibleAssumeEdges;
+  public static class UseDefRelation {
+
+    /**
+     * the set of variables of boolean character
+     */
+    private Set<String> booleanVariables = new HashSet<>();
+
+    /**
+     * defines how to handle feasible assume edges
+     */
+    private final String handleFeasibleAssumeEdges;
+
+    /**
+     * the use-def relation
+     *
+     * The key of the map has to be the {@link Pair} of {@link ARGState} and {@link CFAEdge}.
+     * {@link ARGState} alone would not be precise enough because of {@link MultiEdge}s,
+     * and {@link CFAEdge}s alone would not be precise enough because one edge may occur
+     * multiple times in a {@link ARGPath}.
+     */
+    private final Map<Pair<ARGState, CFAEdge>, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>> relation = new LinkedHashMap<>();
+
+    /**
+     * the cache for storing uses that are not yet resolved
+     *
+     * This information also contained in the relation, but would require iterating over it
+     * to find such uses. Rather than iterating, a cache is used to store this information.
+     */
+    private final Set<ASimpleDeclaration> unresolvedUses = new HashSet<>();
+
+    /**
+     * the flag to determine, if the final (failing, contradicting) assume edge
+     * has already been handled (mind that the traversal proceeds in reverse order)
+     */
+    private boolean hasContradictingAssumeEdgeBeenHandled = false;
+
+    public UseDefRelation(ARGPath path,
+        Set<String> pBooleanVariables,
+        String pHandleFeasibleAssumeEdges) {
+
+      booleanVariables          = pBooleanVariables;
+      handleFeasibleAssumeEdges = pHandleFeasibleAssumeEdges;
+
+      List<CFAEdge> edges = path.asEdgesList();
+      List<ARGState> states = path.asStatesList();
+
+      for (int i = edges.size() - 1; i >= 0; i--) {
+        CFAEdge edge = edges.get(i);
+
+        if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+          for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
+            updateUseDefRelation(states.get(i), singleEdge);
+          }
+        }
+        else {
+          updateUseDefRelation(states.get(i), edge);
+        }
+      }
+    }
+
+    private boolean hasUnresolvedUse(ASimpleDeclaration use) {
+      return unresolvedUses.contains(use);
+    }
+
+    private void addUseDef(ARGState state, CFAEdge edge, ASimpleDeclaration def, ASimpleDeclaration use) {
+      relation.put(Pair.of(state, edge), Pair.<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>of(Sets.newHashSet(def), Sets.newHashSet(use)));
+
+      unresolvedUses.remove(def);
+      unresolvedUses.add(use);
+    }
+
+    private void addUseDef(ARGState state, CFAEdge edge, ASimpleDeclaration def, Set<ASimpleDeclaration> uses) {
+      relation.put(Pair.of(state, edge), Pair.<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>of(Sets.newHashSet(def), uses));
+
+      unresolvedUses.remove(def);
+      unresolvedUses.addAll(uses);
+    }
+
+    private void addUseDef(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> uses) {
+      relation.put(Pair.of(state, edge), Pair.<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>of(Collections.<ASimpleDeclaration>emptySet(), uses));
+
+      unresolvedUses.addAll(uses);
+    }
+
+    private Collection<ASimpleDeclaration> getDef(ARGState state, CFAEdge edge) {
+      if(relation.containsKey(Pair.of(state, edge))) {
+        return relation.get(Pair.of(state, edge)).getFirst();
+      } else {
+        return Collections.emptySet();
+      }
+    }
+
+    private Collection<ASimpleDeclaration> getUses(ARGState state, CFAEdge edge) {
+      if(relation.containsKey(Pair.of(state, edge))) {
+        return relation.get(Pair.of(state, edge)).getSecond();
+      } else {
+        return Collections.emptySet();
+      }
+    }
+
+    public Collection<ASimpleDeclaration> getUses() {
+      Set<ASimpleDeclaration> uses = new HashSet<>();
+      for (Set<ASimpleDeclaration> useSet : FluentIterable.from(relation.values()).transform(Pair.<Set<ASimpleDeclaration>>getProjectionToSecond()).toSet()) {
+        uses.addAll(useSet);
+      }
+
+      return uses;
+    }
+
+    public Collection<String> getUsesAsQualifiedName() {
+      Set<String> uses = new HashSet<>();
+      for (Set<ASimpleDeclaration> useSet : FluentIterable.from(relation.values()).transform(Pair.<Set<ASimpleDeclaration>>getProjectionToSecond()).toSet()) {
+        for (ASimpleDeclaration use : useSet) {
+          uses.add(use.getQualifiedName());
+        }
+      }
+
+      return uses;
+    }
+
+    private void updateUseDefRelation(ARGState state, CFAEdge edge) {
+      switch (edge.getEdgeType()) {
+
+      case FunctionReturnEdge:
+        AFunctionCall summaryExpr = ((FunctionReturnEdge)edge).getSummaryEdge().getExpression();
+
+        if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
+          ASimpleDeclaration assignedVariable = Iterables.getOnlyElement(acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide()));
+
+          if(hasUnresolvedUse(assignedVariable)) {
+            addUseDef(state, edge, assignedVariable, ((FunctionReturnEdge)edge).getFunctionEntry().getReturnVariable().get());
+          }
+        }
+
+        break;
+
+      case DeclarationEdge:
+        CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
+
+        // only variable declarations are of interest
+        if (declaration instanceof AVariableDeclaration && hasUnresolvedUse(declaration)) {
+          AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
+          if (initializer != null) {
+            addUseDef(state, edge, declaration, getVariablesUsedForInitialization(initializer));
+          }
+        }
+
+        break;
+
+      case ReturnStatementEdge:
+        AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge)edge;
+        if (returnStatementEdge.asAssignment().isPresent()) {
+          handleAssignments(returnStatementEdge.asAssignment().get(), edge, state);
+        }
+
+        break;
+
+      case FunctionCallEdge:
+        final FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
+        final FunctionEntryNode functionEntryNode = functionCallEdge.getSuccessor();
+
+        ArrayList<ASimpleDeclaration> parameters = new ArrayList<>(functionEntryNode.getFunctionParameters().size());
+        for (AParameterDeclaration parameterDeclaration : functionEntryNode.getFunctionParameters()) {
+          parameters.add(parameterDeclaration);
+        }
+
+        for (int parameterIndex = 0; parameterIndex < parameters.size(); parameterIndex++) {
+          if (hasUnresolvedUse(parameters.get(parameterIndex))) {
+            addUseDef(state, edge, parameters.get(parameterIndex), acceptAll(functionCallEdge.getArguments().get(parameterIndex)));
+          }
+        }
+
+        break;
+
+      case AssumeEdge:
+        if (hasContradictingAssumeEdgeBeenHandled) {
+          handleFeasibleAssumption(state, edge);
+        } else {
+          hasContradictingAssumeEdgeBeenHandled = true;
+          addUseDef(state, edge, acceptAll(((CAssumeEdge)edge).getExpression()));
+        }
+
+        break;
+
+      case StatementEdge:
+        CStatement statement = ((CStatementEdge)edge).getStatement();
+
+        if (statement instanceof AExpressionAssignmentStatement
+            || statement instanceof AFunctionCallAssignmentStatement) {
+          handleAssignments((AAssignment) statement, edge, state);
+        }
+        break;
+
+      default:
+        // nothing to do for any other types of edges
+        break;
+      }
+    }
+
+    private void handleFeasibleAssumption(ARGState state, CFAEdge edge) {
+
+      // option 1)
+      // returning here immediately  without doing anything would lead to
+      // actual assignments ending up in the interpolant
+      // this, however, would lead to failing refinements if for a variable
+      // no assignment to a known value exists
+      if(handleFeasibleAssumeEdges.equals("NONE")) {
+        return;
+      }
+
+      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
+      CExpression expression = assumeEdge.getExpression();
+
+      // option 2)
+      // treat [a == 1] or [!(a != 1)] like an assignment,
+      // so that such an assume removes an open dependency
+      // for an equality with a constant, we can remove the dependency
+      // this still could fail if this assume is the "same" as the final, failing one
+      //
+      // also leave in inequalities like [a != 1] or [!(a )= 1)], as even the
+      // value analysis can deduce valuations of a, if a has boolean character
+      if (handleFeasibleAssumeEdges.equals("EQUALITY")) {
+        CBinaryExpression binaryExpression = ((CBinaryExpression) expression);
+
+        ASimpleDeclaration operand = null;
+        if (binaryExpression.getOperand1() instanceof CIdExpression
+            && binaryExpression.getOperand2() instanceof CLiteralExpression) {
+          operand = ((CIdExpression)binaryExpression.getOperand1()).getDeclaration();
+        }
+
+        else if (binaryExpression.getOperand2() instanceof CIdExpression
+            && binaryExpression.getOperand1() instanceof CLiteralExpression) {
+          operand = ((CIdExpression)binaryExpression.getOperand2()).getDeclaration();
+        }
+
+        if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {
+          addUseDef(state, assumeEdge, operand, Collections.<ASimpleDeclaration>emptySet());
+        }
+
+        else {
+          if(isInequality(assumeEdge, binaryExpression.getOperator())
+              && hasUnresolvedUse(operand)
+              && hasBooleanCharacter(operand)) {
+            addUseDef(state, assumeEdge, operand, Collections.<ASimpleDeclaration>emptySet());
+          }
+        }
+      }
+
+      // option 3)
+      // in addition to option 2, we can add new dependencies
+      // from all kinds of assumptions (e.g., [a < 1]).
+      // These can never lead to a contradiction, as the given path
+      // is sliced (infeasible) prefix, that must only fail at the
+      // very last assume edge.
+      // However, these extra assumptions might help the SMT solver.
+      // For the value domain, this would only introduce overhead
+      // for interpolation, because it can't deal with anything
+      // but equality-assumptions. However, adding more than one
+      // equality-assumption cannot have a positive effect in the
+      // value domain, because it must be such that it "assigns"
+      // a variable to a value it already is assigned to, because
+      // otherwise, it would be contradicting, which can't be the case
+      // because only the final assumption is contradicting.
+      //
+      // for all other binary operations, we keep/readd/update the dependency,
+      // plus, we add the new dependencies for all variables that occur
+      // in the "other" side of the binary relation
+      else if (handleFeasibleAssumeEdges.equals("ALL")) {
+        CBinaryExpression binExpr = ((CBinaryExpression) expression);
+
+        Set<ASimpleDeclaration> leftSide = acceptAll(binExpr.getOperand1());
+        Set<ASimpleDeclaration> rightSide = acceptAll(binExpr.getOperand2());
+
+        for(ASimpleDeclaration leftDeclaration : leftSide) {
+          if (hasUnresolvedUse(leftDeclaration)) {
+            addUseDef(state, assumeEdge, Collections.singleton(leftDeclaration));
+            addUseDef(state, assumeEdge, rightSide);
+          }
+        }
+
+        for(ASimpleDeclaration rightDeclaration : rightSide) {
+          if (hasUnresolvedUse(rightDeclaration)) {
+            addUseDef(state, assumeEdge, Collections.singleton(rightDeclaration));
+            addUseDef(state, assumeEdge, leftSide);
+          }
+        }
+      }
+    }
+
+    private boolean hasBooleanCharacter(ASimpleDeclaration operand) {
+      return booleanVariables.contains(operand.getQualifiedName());
+    }
+
+    private boolean isEquality(CAssumeEdge assumeEdge, BinaryOperator operator) {
+      return ((assumeEdge.getTruthAssumption() && operator == BinaryOperator.EQUALS)
+          || (!assumeEdge.getTruthAssumption() && operator == BinaryOperator.NOT_EQUALS));
+    }
+
+    private boolean isInequality(CAssumeEdge assumeEdge, BinaryOperator operator) {
+      return ((assumeEdge.getTruthAssumption() && operator== BinaryOperator.NOT_EQUALS)
+          || (!assumeEdge.getTruthAssumption() && operator == BinaryOperator.EQUALS));
+    }
+
+
+    /**
+     * This is a more specific version of the CIdExpressionVisitor. For ArraySubscriptexpressions
+     * we do only want the IdExpressions inside the ArrayExpression.
+     */
+    private static final class LeftHandSideIdExpressionVisitor extends DeclarationCollectingVisitor {
+      @Override
+      public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) {
+        return pE.getArrayExpression().<Set<ASimpleDeclaration>,
+                                        Set<ASimpleDeclaration>,
+                                        Set<ASimpleDeclaration>,
+                                        RuntimeException,
+                                        RuntimeException,
+                                        LeftHandSideIdExpressionVisitor>accept_(this);
+      }
+    }
+
+    private static Set<ASimpleDeclaration> acceptLeft(AExpression exp) {
+      return exp.<Set<ASimpleDeclaration>,
+                  Set<ASimpleDeclaration>,
+                  Set<ASimpleDeclaration>,
+                  RuntimeException,
+                  RuntimeException,
+                  LeftHandSideIdExpressionVisitor>accept_(new LeftHandSideIdExpressionVisitor());
+    }
+
+    private static Set<ASimpleDeclaration> acceptAll(AExpression exp) {
+      return exp.<Set<ASimpleDeclaration>,
+                  Set<ASimpleDeclaration>,
+                  Set<ASimpleDeclaration>,
+                  RuntimeException,
+                  RuntimeException,
+                  DeclarationCollectingVisitor>accept_(new DeclarationCollectingVisitor());
+    }
+
+    /**
+     * This method computes the variables that are used for initializing an other variable from a given initializer.
+     */
+    private Set<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
+      // e.g. .x=b or .p.x.=1  as part of struct initialization
+      if (initializer instanceof CDesignatedInitializer) {
+        return getVariablesUsedForInitialization(((CDesignatedInitializer) initializer).getRightHandSide());
+      }
+
+      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
+      else if (initializer instanceof CInitializerList) {
+        Set<ASimpleDeclaration> readVars = new HashSet<>();
+
+        for (CInitializer initializerList : ((CInitializerList) initializer).getInitializers()) {
+          readVars.addAll(getVariablesUsedForInitialization(initializerList));
+        }
+
+        return readVars;
+      }
+
+      else if (initializer instanceof AInitializerExpression) {
+        return acceptAll(((AInitializerExpression) initializer).getExpression());
+      }
+
+      else {
+        throw new AssertionError("Missing case for if-then-else statement.");
+      }
+    }
+
+    private void handleAssignments(AAssignment assignment, CFAEdge edge, ARGState state) {
+      final ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+      final Set<ASimpleDeclaration> assignedVariables = acceptLeft(leftHandSide);
+      final Set<ASimpleDeclaration> allLeftHandSideVariables = acceptAll(leftHandSide);
+      final Set<ASimpleDeclaration> leftHandSideUses = new HashSet<>(filter(allLeftHandSideVariables, not(in(assignedVariables))));
+
+      if(assignedVariables.size() > 1) {
+        return;
+      }
+
+  /*
+      // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
+      // until is is reassigned, and not only a single field
+      // if assigned variable is resolving a dependency
+      if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
+        // hack to handle assignments of structs (keeps the whole struct in use all the time)
+        if(leftHandSide.toString().contains("->")) {
+          //Syso("NO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
+          addDependency(assignedVariables);
+        }
+        else {
+          //Syso("DO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
+          dependencies.remove(Iterables.getOnlyElement(assignedVariables));
+        }
+  */
+
+      // if assigned variable is resolving a dependency
+      if (hasUnresolvedUse(Iterables.getOnlyElement(assignedVariables))) {
+        // all variables that occur in combination with the leftHandSide additionally
+        // to the needed one (e.g. a[i] i is additionally) are added as dependency
+
+        Set<ASimpleDeclaration> rightHandSideUses;
+        // all variables of the right hand side are "used" afterwards
+        if (assignment instanceof AExpressionAssignmentStatement) {
+          rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
+        } else if (assignment instanceof AFunctionCallAssignmentStatement){
+          AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
+          rightHandSideUses = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions());
+        } else {
+          throw new AssertionError("Unhandled assignment type.");
+        }
+
+        addUseDef(state, edge, Iterables.getOnlyElement(assignedVariables), Sets.union(leftHandSideUses, rightHandSideUses));
+      }
+    }
+
+    /**
+     * This method returns the variables that are used in a given list of CExpressions.
+     */
+    private Set<ASimpleDeclaration> getVariablesUsedAsParameters(List<? extends AExpression> parameters) {
+      Set<ASimpleDeclaration> usedParameters = new HashSet<>();
+      for (AExpression expression : parameters) {
+        usedParameters.addAll(acceptAll(expression));
+      }
+      return usedParameters;
+    }
+  }
 
   /**
-   * the varaible classification to use
+   * the use-def relation of the final, failing (assume) edge
    */
-  private final Optional<VariableClassification> variableClassification;
+  private final UseDefRelation useDefRelation;
 
-  /**
-   * the flag to determine, if the final (failing, contradicting) assume edge
-   * has already been handled (mind that the traversal proceeds in reverse order)
-   */
-  private boolean hasContradictingAssumeEdgeBeenHandled = false;
+  private final ARGPath path;
 
-  /**
-   * the set of "uses" that are not yet resolved by a "definition"
-   */
-  private final Set<ASimpleDeclaration> dependencies = new HashSet<>();
-
-  /**
-   * the mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s.
-   */
-  private Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
-
-  /**
-   * the mapping from declarations to the number of times it was "used"
-   */
-  private Map<ASimpleDeclaration, Integer> updateCounter = new HashMap<>();
-
-  public UseDefBasedInterpolator(final String pHandleFeasibleAssumeEdges,
-      final Optional<VariableClassification> pVariableClassification) {
-    handleFeasibleAssumeEdges = pHandleFeasibleAssumeEdges;
-    variableClassification = pVariableClassification;
+  public UseDefBasedInterpolator(ARGPath pPath, UseDefRelation pUseDefRelation) {
+    path = pPath;
+    useDefRelation = pUseDefRelation;
   }
 
   /**
@@ -137,399 +537,57 @@ public class UseDefBasedInterpolator {
    * @param path the path (i.e., infeasible sliced prefix) for which to obtain the interpolants
    * @return the mapping mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s
    */
-  public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolants(ARGPath path) {
-    dependencies.clear();
-    interpolants.clear();
+  public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolants() {
+
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
+
+    int update = 0;
+    HashMap<MemoryLocation, Value> rawItp = new HashMap<>();
 
     List<CFAEdge> edges = path.getInnerEdges();
     List<ARGState> states = path.asStatesList();
-
     for (int i = edges.size() - 1; i >= 0; i--) {
       CFAEdge edge = edges.get(i);
+
+      Collection<ASimpleDeclaration> defs;
+      Collection<ASimpleDeclaration> uses;
+
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
-          joinCurrentInterpolants(states.get(i + 1));
-          updateDependencies(singleEdge);
+        for(CFAEdge singleEdge : ((MultiEdge)edge).getEdges()) {
+          defs = useDefRelation.getDef(states.get(i), singleEdge);
+          uses = useDefRelation.getUses(states.get(i), singleEdge);
+
+          for(ASimpleDeclaration use : uses) {
+            rawItp.put(MemoryLocation.valueOf(use.getQualifiedName()), new NumericValue(update++));
+          }
+
+          for(ASimpleDeclaration def : defs) {
+            rawItp.remove(MemoryLocation.valueOf(def.getQualifiedName()));
+          }
         }
       }
       else {
-        addCurrentInterpolant(states.get(i + 1));
-        updateDependencies(edge);
-      }
-    }
+        defs = useDefRelation.getDef(states.get(i), edge);
+        uses = useDefRelation.getUses(states.get(i), edge);
 
-    return orderInterpolants();
-  }
+        for(ASimpleDeclaration use : uses) {
+          rawItp.put(MemoryLocation.valueOf(use.getQualifiedName()), new NumericValue(update++));
+        }
 
-  private Map<ARGState, ValueAnalysisInterpolant> orderInterpolants() {
-    Map<ARGState, ValueAnalysisInterpolant> ordered = new LinkedHashMap<>(interpolants.size());
-    ListIterator<ARGState> iter = new ArrayList<>(interpolants.keySet()).listIterator(interpolants.size());
-    while (iter.hasPrevious()) {
-      ARGState state = iter.previous();
-      ordered.put(state, interpolants.get(state));
-    }
-    return ordered;
-  }
-
-  private void updateDependencies(CFAEdge edge) {
-    switch (edge.getEdgeType()) {
-
-    case FunctionReturnEdge:
-      AFunctionCall summaryExpr = ((FunctionReturnEdge)edge).getSummaryEdge().getExpression();
-
-      if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
-        ASimpleDeclaration assignedVariable = Iterables.getOnlyElement(acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide()));
-        if (dependencies.remove(assignedVariable)) {
-          addDependency(Collections.<ASimpleDeclaration>singleton(((FunctionReturnEdge)edge).getFunctionEntry().getReturnVariable().get()));
+        for(ASimpleDeclaration def : defs) {
+          rawItp.remove(MemoryLocation.valueOf(def.getQualifiedName()));
         }
       }
 
-      break;
-
-    case DeclarationEdge:
-      CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-
-      // only variable declarations are of interest
-      if (declaration instanceof AVariableDeclaration && dependencies.remove(declaration)) {
-        AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
-        if (initializer != null) {
-          addDependency(getVariablesUsedForInitialization(initializer));
-        }
-      }
-
-      break;
-
-    case ReturnStatementEdge:
-      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge)edge;
-      if (returnStatementEdge.asAssignment().isPresent()) {
-        handleAssignments(returnStatementEdge.asAssignment().get());
-      }
-
-      break;
-
-    case FunctionCallEdge:
-      final FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-      final FunctionEntryNode functionEntryNode = functionCallEdge.getSuccessor();
-
-      ArrayList<ASimpleDeclaration> parameters = new ArrayList<>(functionEntryNode.getFunctionParameters().size());
-      for (AParameterDeclaration parameterDeclaration : functionEntryNode.getFunctionParameters()) {
-        parameters.add(parameterDeclaration);
-      }
-
-      for (int parameterIndex = 0; parameterIndex < parameters.size(); parameterIndex++) {
-        if (dependencies.remove(parameters.get(parameterIndex))) {
-          addDependency(acceptAll(functionCallEdge.getArguments().get(parameterIndex)));
-        }
-      }
-
-      break;
-
-    case AssumeEdge:
-      if (hasContradictingAssumeEdgeBeenHandled) {
-        handleFeasibleAssumption(edge);
-      } else {
-        addDependency(acceptAll(((CAssumeEdge)edge).getExpression()));
-        hasContradictingAssumeEdgeBeenHandled = true;
-      }
-
-      break;
-
-    case StatementEdge:
-      CStatement statement = ((CStatementEdge)edge).getStatement();
-
-      if (statement instanceof AExpressionAssignmentStatement
-          || statement instanceof AFunctionCallAssignmentStatement) {
-        handleAssignments((AAssignment) statement);
-      }
-      break;
-
-    default:
-      // nothing to do for any other types of edges
-      break;
-    }
-  }
-
-  private void addDependency(Collection<ASimpleDeclaration> declarations) {
-    for (ASimpleDeclaration declaration : declarations) {
-      dependencies.add(declaration);
-
-      Integer counter = 0;
-      if(updateCounter.containsKey(declaration)) {
-        counter = updateCounter.get(declaration) + 1;
-      }
-
-      updateCounter.put(declaration, counter);
-    }
-  }
-
-  private void addCurrentInterpolant(ARGState successor) {
-    interpolants.put(successor, createInterpolant());
-  }
-
-  private void joinCurrentInterpolants(ARGState successor) {
-    ValueAnalysisInterpolant currentItp = createInterpolant();
-
-    if(interpolants.containsKey(successor) && interpolants.get(successor) != ValueAnalysisInterpolant.FALSE) {
-      currentItp = currentItp.join(interpolants.get(successor));
-    }
-
-    interpolants.put(successor, currentItp);
-  }
-
-  private ValueAnalysisInterpolant createInterpolant() {
-    ValueAnalysisInterpolant currentItp = dependencies.isEmpty()
-        ? createTrivialInterpolant()
-        : createNonTrivialInterpolant();
-    return currentItp;
-  }
-
-  private ValueAnalysisInterpolant createTrivialInterpolant() {
-    return hasContradictingAssumeEdgeBeenHandled
-        ? ValueAnalysisInterpolant.TRUE
-        : ValueAnalysisInterpolant.FALSE;
-  }
-
-  private ValueAnalysisInterpolant createNonTrivialInterpolant() {
-
-    HashMap<MemoryLocation, Value> values = new HashMap<>();
-    for (ASimpleDeclaration declaration : dependencies) {
-
-      String qualifiedName = declaration.getQualifiedName();
-      Value value = new NumericValue(updateCounter.get(declaration));
-
-      if(qualifiedName.contains("::")) {
-        values.put(MemoryLocation.valueOf(qualifiedName.substring(0, qualifiedName.indexOf("::")),
-            declaration.getName(), 0), value);
-      } else {
-        values.put(MemoryLocation.valueOf(qualifiedName, 0), value);
-      }
-    }
-
-    return new ValueAnalysisInterpolant(values, Collections.<MemoryLocation, Type>emptyMap());
-  }
-
-  private void handleFeasibleAssumption(CFAEdge edge) {
-
-    CAssumeEdge assumeEdge = (CAssumeEdge)edge;
-    CExpression expr = assumeEdge.getExpression();
-
-    // option 1)
-    // returning here immediately  without doing anything would lead to
-    // actual assignments ending up in the interpolant
-    // this, however, would lead to failing refinements if for a variable
-    // no assignment to a known value exists
-    if(handleFeasibleAssumeEdges.equals("NONE")) {
-      return;
-    }
-
-
-    // option 2)
-    // treat [a == 1] or [!(a != 1)] like an assignment,
-    // so that such an assume removes an open dependency
-    // for an equality with a constant, we can remove the dependency
-    // this still could fail if this assume is the "same" as the final, failing one
-    //
-    // also leave in inequalities like [a != 1] or [!(a )= 1)], as even the
-    // value analysis can deduce valuations of a, if a has boolean character
-    if (handleFeasibleAssumeEdges.equals("EQUALITY")) {
-      CBinaryExpression binaryExpression = ((CBinaryExpression) expr);
-
-      ASimpleDeclaration operand = null;
-      if (binaryExpression.getOperand1() instanceof CIdExpression
-          && binaryExpression.getOperand2() instanceof CLiteralExpression) {
-        operand = ((CIdExpression)binaryExpression.getOperand1()).getDeclaration();
-      }
-
-      else if (binaryExpression.getOperand2() instanceof CIdExpression
-          && binaryExpression.getOperand1() instanceof CLiteralExpression) {
-        operand = ((CIdExpression)binaryExpression.getOperand2()).getDeclaration();
-      }
-
-      if (isEquality(assumeEdge, binaryExpression.getOperator()) && dependencies.contains(operand)) {
-        dependencies.remove(operand);
-      } else {
-        if(isInequality(assumeEdge, binaryExpression.getOperator())
-            && dependencies.contains(operand)
-            && hasBooleanCharacter(operand)) {
-          dependencies.remove(operand);
-        }
-      }
-    }
-
-    // option 3)
-    // in addition to option 2, we can add new dependencies
-    // from all kinds of assumptions (e.g., [a < 1]).
-    // These can never lead to a contradiction, as the given path
-    // is sliced (infeasible) prefix, that must only fail at the
-    // very last assume edge.
-    // However, these extra assumptions might help the SMT solver.
-    // For the value domain, this would only introduce overhead
-    // for interpolation, because it can't deal with anything
-    // but equality-assumptions. However, adding more than one
-    // equality-assumption cannot have a positive effect in the
-    // value domain, because it must be such that it "assigns"
-    // a variable to a value it already is assigned to, because
-    // otherwise, it would be contradicting, which can't be the case
-    // because only the final assumption is contradicting.
-    //
-    // for all other binary operations, we keep/readd/update the dependency,
-    // plus, we add the new dependencies for all variables that occur
-    // in the "other" side of the binary relation
-    else if (handleFeasibleAssumeEdges.equals("ALL")) {
-      CBinaryExpression binExpr = ((CBinaryExpression) expr);
-
-      Collection<ASimpleDeclaration> leftSide = acceptAll(binExpr.getOperand1());
-      Collection<ASimpleDeclaration> rightSide = acceptAll(binExpr.getOperand2());
-
-      for(ASimpleDeclaration leftDeclaration : leftSide) {
-        if (dependencies.contains(leftDeclaration)) {
-          addDependency(Collections.singleton(leftDeclaration));
-          addDependency(rightSide);
-        }
-      }
-
-      for(ASimpleDeclaration rightDeclaration : rightSide) {
-        if (dependencies.contains(rightDeclaration)) {
-          addDependency(Collections.singleton(rightDeclaration));
-          addDependency(leftSide);
-        }
-      }
-    }
-  }
-
-  private boolean hasBooleanCharacter(ASimpleDeclaration operand) {
-    return variableClassification.isPresent() && variableClassification.get().getIntBoolVars().contains(operand.getQualifiedName());
-  }
-
-  private boolean isEquality(CAssumeEdge assumeEdge, BinaryOperator operator) {
-    return ((assumeEdge.getTruthAssumption() && operator == BinaryOperator.EQUALS)
-        || (!assumeEdge.getTruthAssumption() && operator == BinaryOperator.NOT_EQUALS));
-  }
-
-  private boolean isInequality(CAssumeEdge assumeEdge, BinaryOperator operator) {
-    return ((assumeEdge.getTruthAssumption() && operator== BinaryOperator.NOT_EQUALS)
-        || (!assumeEdge.getTruthAssumption() && operator == BinaryOperator.EQUALS));
-  }
-
-
-  /**
-   * This is a more specific version of the CIdExpressionVisitor. For ArraySubscriptexpressions
-   * we do only want the IdExpressions inside the ArrayExpression.
-   */
-  private static final class LeftHandSideIdExpressionVisitor extends DeclarationCollectingVisitor {
-    @Override
-    public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) {
-      return pE.getArrayExpression().<Set<ASimpleDeclaration>,
-                                      Set<ASimpleDeclaration>,
-                                      Set<ASimpleDeclaration>,
-                                      RuntimeException,
-                                      RuntimeException,
-                                      LeftHandSideIdExpressionVisitor>accept_(this);
-    }
-  }
-
-  private static Set<ASimpleDeclaration> acceptLeft(AExpression exp) {
-    return exp.<Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                RuntimeException,
-                RuntimeException,
-                LeftHandSideIdExpressionVisitor>accept_(new LeftHandSideIdExpressionVisitor());
-  }
-
-  private static Set<ASimpleDeclaration> acceptAll(AExpression exp) {
-    return exp.<Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                RuntimeException,
-                RuntimeException,
-                DeclarationCollectingVisitor>accept_(new DeclarationCollectingVisitor());
-  }
-
-  /**
-   * This method computes the variables that are used for initializing an other variable from a given initializer.
-   */
-  private Collection<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
-    // e.g. .x=b or .p.x.=1  as part of struct initialization
-    if (initializer instanceof CDesignatedInitializer) {
-      return getVariablesUsedForInitialization(((CDesignatedInitializer) initializer).getRightHandSide());
-    }
-
-    // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-    else if (initializer instanceof CInitializerList) {
-      Collection<ASimpleDeclaration> readVars = new ArrayList<>();
-
-      for (CInitializer initializerList : ((CInitializerList) initializer).getInitializers()) {
-        readVars.addAll(getVariablesUsedForInitialization(initializerList));
-      }
-
-      return readVars;
-    }
-
-    else if (initializer instanceof AInitializerExpression) {
-      return acceptAll(((AInitializerExpression) initializer).getExpression());
-    }
-
-    else {
-      throw new AssertionError("Missing case for if-then-else statement.");
-    }
-  }
-
-  private void handleAssignments(AAssignment assignment) {
-    final ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-    final Collection<ASimpleDeclaration> assignedVariables = acceptLeft(leftHandSide);
-    final Collection<ASimpleDeclaration> allLeftHandSideVariables = acceptAll(leftHandSide);
-    final Collection<ASimpleDeclaration> additionallyLeftHandSideVariables = filter(allLeftHandSideVariables, not(in(assignedVariables)));
-
-    if(assignedVariables.size() > 1) {
-      return;
-    }
-
-/*
-    // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
-    // until is is reassigned, and not only a single field
-    // if assigned variable is resolving a dependency
-    if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
-      // hack to handle assignments of structs (keeps the whole struct in use all the time)
-      if(leftHandSide.toString().contains("->")) {
-        //Syso("NO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
-        addDependency(assignedVariables);
+      if(rawItp.isEmpty()) {
+        interpolants.put(states.get(i), ValueAnalysisInterpolant.TRUE);
       }
       else {
-        //Syso("DO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
-        dependencies.remove(Iterables.getOnlyElement(assignedVariables));
+        interpolants.put(states.get(i), new ValueAnalysisInterpolant(new HashMap<>(rawItp), Collections.<MemoryLocation, Type>emptyMap()));
       }
-*/
-
-    // if assigned variable is resolving a dependency
-    if (dependencies.remove(Iterables.getOnlyElement(assignedVariables))) {
-      // all variables that occur in combination with the leftHandSide additionally
-      // to the needed one (e.g. a[i] i is additionally) are added as dependency
-      addDependency(additionallyLeftHandSideVariables);
-
-      Collection<ASimpleDeclaration> newDependencies;
-      // all variables of the right hand side are "used" afterwards
-      if (assignment instanceof AExpressionAssignmentStatement) {
-        newDependencies = acceptAll((AExpression) assignment.getRightHandSide());
-      } else if (assignment instanceof AFunctionCallAssignmentStatement){
-        AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
-        newDependencies = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions());
-      } else {
-        throw new AssertionError("Unhandled assignment type.");
-      }
-
-      addDependency(newDependencies);
     }
-  }
 
-  /**
-   * This method returns the variables that are used in a given list of CExpressions.
-   */
-  private Collection<ASimpleDeclaration> getVariablesUsedAsParameters(List<? extends AExpression> parameters) {
-    Collection<ASimpleDeclaration> usedParameters = new ArrayList<>();
-    for (AExpression expression : parameters) {
-      usedParameters.addAll(acceptAll(expression));
-    }
-    return usedParameters;
+    interpolants.put(states.get(0), ValueAnalysisInterpolant.TRUE);
+    return interpolants;
   }
 }
