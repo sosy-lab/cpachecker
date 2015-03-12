@@ -97,7 +97,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -120,6 +122,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -287,8 +290,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
 
         if (useSymbolicValue(paramType)) {
-          value = getSymbolicIdentifier(paramType);
-          newElement.assignConstant(formalParamName, value, paramType);
+          return addSymbolicTracking(newElement, formalParamName, paramType);
 
         } else {
           newElement.forget(formalParamName);
@@ -302,6 +304,93 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return newElement;
+  }
+
+  private ValueAnalysisState addSymbolicTracking(ValueAnalysisState pState,
+      MemoryLocation pVarLocation, Type pVarType) throws UnrecognizedCCodeException {
+    if (pVarType instanceof JType) {
+      return addSymbolicTracking(pState, pVarLocation, (JType)pVarType);
+
+    } else {
+      assert pVarType instanceof CType : "Unhandled type " + pVarType;
+
+      return addSymbolicTracking(pState, pVarLocation, (CType)pVarType);
+    }
+  }
+
+  private ValueAnalysisState addSymbolicTracking(ValueAnalysisState pState,
+      MemoryLocation pVarLocation, JType pVarType) {
+
+    if (pVarType instanceof JSimpleType) {
+      return assignSymbolicIdentifier(pState, pVarLocation, pVarType);
+
+    } else {
+      return pState;
+    }
+  }
+
+  private ValueAnalysisState addSymbolicTracking(ValueAnalysisState pState,
+      MemoryLocation pVarLocation, CType pVarType) throws UnrecognizedCCodeException {
+
+    final CType canonicalType = pVarType.getCanonicalType();
+
+    if (canonicalType instanceof CCompositeType) {
+      return fillStructWithSymbolicIdentifiers(pState, pVarLocation, (CCompositeType) canonicalType);
+
+    } else if (canonicalType instanceof CArrayType) {
+      return fillArrayWithSymbolicIdentifiers(pState, pVarLocation, (CArrayType) canonicalType);
+
+    } else if (canonicalType instanceof CElaboratedType) {
+      pState.forget(pVarLocation);
+      return pState;
+
+    } else {
+      return assignSymbolicIdentifier(pState, pVarLocation, canonicalType);
+    }
+  }
+
+  private ValueAnalysisState assignSymbolicIdentifier(ValueAnalysisState pState,
+      MemoryLocation pVarLocation, Type pVarType) {
+
+    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+    SymbolicIdentifier newIdentifier = factory.newIdentifier();
+    SymbolicValue newIdentifierWithType = factory.asConstant(newIdentifier, pVarType);
+
+    pState.assignConstant(pVarLocation, newIdentifierWithType, pVarType);
+
+    return pState;
+  }
+
+  private ValueAnalysisState fillStructWithSymbolicIdentifiers(
+      ValueAnalysisState pState, MemoryLocation pStructLocation, CCompositeType pStructType)
+      throws UnrecognizedCCodeException {
+
+    List<CCompositeType.CCompositeTypeMemberDeclaration> memberDeclarations = pStructType.getMembers();
+    ValueAnalysisState newElement = pState;
+
+    for (CCompositeType.CCompositeTypeMemberDeclaration d : memberDeclarations) {
+      String memberName = d.getName();
+      MemoryLocation memberLocation = getVisitor().evaluateRelativeMemLocForStructMember(
+          pStructLocation, memberName, pStructType);
+      CType memberType = d.getType().getCanonicalType();
+
+      if (memberType instanceof CCompositeType) {
+        newElement = fillStructWithSymbolicIdentifiers(newElement, memberLocation,
+            (CCompositeType)memberType);
+
+      } else {
+        newElement = assignSymbolicIdentifier(newElement, memberLocation, memberType);
+      }
+    }
+
+    return newElement;
+  }
+
+  private ValueAnalysisState fillArrayWithSymbolicIdentifiers(ValueAnalysisState pState,
+      MemoryLocation pArrayLocation, CArrayType pArrayType) {
+    pState.forget(pArrayLocation);
+    return pState;
   }
 
   @Override
@@ -635,15 +724,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       missingFieldVariableObject = false;
     }
 
-    if (initialValue.isUnknown() && useSymbolicValue(declarationType)) {
-      initialValue = getSymbolicIdentifier(declarationType);
-    }
+    if (initialValue.isUnknown()) {
+      if (useSymbolicValue(declarationType)) {
+        return addSymbolicTracking(newElement, memoryLocation, declarationType);
 
-    if (!initialValue.isUnknown()) {
-      newElement.assignConstant(memoryLocation, initialValue, declarationType);
-
+      } else {
+        newElement.forget(memoryLocation);
+      }
     } else {
-      newElement.forget(memoryLocation);
+      newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
 
     return newElement;
@@ -657,7 +746,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     if (pDeclarationType instanceof CType) {
       CType canonicalType = ((CType) pDeclarationType).getCanonicalType();
 
-      return !(canonicalType instanceof CCompositeType || canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
+      return !(canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
     }
 
     return true;
@@ -707,11 +796,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       ARightHandSide pExp) {
 
     return pExp instanceof CExpression && (pEvv.hasMissingPointer());
-  }
-
-  private SymbolicValue getSymbolicIdentifier(Type pType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.asConstant(factory.newIdentifier(), pType);
   }
 
   @Override
@@ -917,15 +1001,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
-      if (value.isUnknown() && missingInformationRightJExpression == null && useSymbolicValue(lType)) {
-        value = getSymbolicIdentifier(lType);
-      }
+      if (value.isUnknown()) {
+        if (missingInformationRightJExpression == null && useSymbolicValue(lType)) {
+          return addSymbolicTracking(newElement, assignedVar, lType);
 
-      if (!value.isUnknown()) {
-        newElement.assignConstant(assignedVar, value, lType);
-
+        } else {
+          newElement.forget(assignedVar);
+        }
       } else {
-        newElement.forget(assignedVar);
+        newElement.assignConstant(assignedVar, value, lType);
       }
     }
 
@@ -1734,7 +1818,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         new FieldAccessExpressionValueVisitor(pJortState));
   }
 
-  private ValueAnalysisState handleNotScopedVariable(RTTState rttState, ValueAnalysisState newElement) throws UnrecognizedCCodeException {
+  private ValueAnalysisState handleNotScopedVariable(RTTState rttState, ValueAnalysisState newElement) {
 
    String objectScope = NameProvider.getInstance()
                                     .getObjectScope(rttState, functionName, notScopedField);

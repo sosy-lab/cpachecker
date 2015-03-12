@@ -45,9 +45,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 /**
@@ -157,6 +157,25 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return lValue.accept(new MemoryLocationEvaluator(this));
   }
 
+  /**
+   * Returns the {@link MemoryLocation} of a struct member.
+   * It is assumed that the struct of the given type begins at the given memory location.
+   *
+   * @param pStartLocation the start location of the struct
+   * @param pMemberName the name of the member to return the memory location for
+   * @param pStructType the type of the struct
+   * @return the memory location of the struct member
+   * @throws UnrecognizedCCodeException
+   */
+  public MemoryLocation evaluateRelativeMemLocForStructMember(MemoryLocation pStartLocation,
+      String pMemberName, CCompositeType pStructType) throws UnrecognizedCCodeException {
+
+    MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
+
+    return locationEvaluator.getStructureFieldLocationFromRelativePoint(
+        pStartLocation, pMemberName, pStructType);
+  }
+
   private static class MemoryLocationEvaluator extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCCodeException> {
 
     private final ExpressionValueVisitor evv;
@@ -233,24 +252,30 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      CType ownerType = fieldOwner.getExpressionType().getCanonicalType();
-      String fieldName = pIastFieldReference.getFieldName();
+      return getStructureFieldLocationFromRelativePoint(memLocOfFieldOwner, pIastFieldReference.getFieldName(),
+          fieldOwner.getExpressionType());
+    }
 
-      Integer offset = getFieldOffset(ownerType, fieldName);
+    protected MemoryLocation getStructureFieldLocationFromRelativePoint(MemoryLocation pStartLocation,
+        String pFieldName, CType pOwnerType) throws UnrecognizedCCodeException {
+
+      CType canonicalOwnerType = pOwnerType.getCanonicalType();
+
+      Integer offset = getFieldOffset(canonicalOwnerType, pFieldName);
 
       if (offset == null) {
         return null;
       }
 
-      if (memLocOfFieldOwner.isOnFunctionStack()) {
+      if (pStartLocation.isOnFunctionStack()) {
 
-        return MemoryLocation.valueOf(memLocOfFieldOwner.getFunctionName(),
-            memLocOfFieldOwner.getIdentifier(),
-            memLocOfFieldOwner.getOffset() + offset);
+        return MemoryLocation.valueOf(pStartLocation.getFunctionName(),
+            pStartLocation.getIdentifier(),
+            pStartLocation.getOffset() + offset);
       } else {
 
-        return MemoryLocation.valueOf(memLocOfFieldOwner.getIdentifier(),
-            offset + memLocOfFieldOwner.getOffset());
+        return MemoryLocation.valueOf(pStartLocation.getIdentifier(),
+            offset + pStartLocation.getOffset());
       }
     }
 
@@ -268,7 +293,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       throw new AssertionError();
     }
 
-    private Integer getFieldOffset(CCompositeType ownerType, String fieldName) throws UnrecognizedCCodeException {
+    private Integer getFieldOffset(CCompositeType ownerType, String fieldName) {
 
       List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
