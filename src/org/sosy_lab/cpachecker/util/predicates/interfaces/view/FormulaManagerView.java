@@ -1285,14 +1285,16 @@ public class FormulaManagerView {
 
     while (!toProcess.isEmpty()) {
       Formula t = toProcess.pop();
+      if (unsafeManager.isBoundVariable(t)) {
+        // Do nothing for variables that are bound by a quantifier!
+        continue;
+      }
 
       if (filter.apply(t)) {
         varFormulas.add(t);
+      }
 
-      } else if (unsafeManager.isBoundVariable(t)) {
-        // Do nothing for variables that are bound by a quantifier!
-
-      } else if (unsafeManager.isQuantification(t)) {
+      if (unsafeManager.isQuantification(t)) {
         Formula body = unsafeManager.getQuantifiedBody(t);
         if (seen.add(body)) {
           toProcess.push(body);
