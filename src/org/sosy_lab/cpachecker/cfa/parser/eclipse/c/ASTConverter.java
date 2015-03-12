@@ -1158,14 +1158,15 @@ class ASTConverter {
       // the CDT type is not as we want it, thus we resolve the type on our own.
       CType type;
       if (operandType instanceof CPointerType) {
-        type = ((CPointerType) operand.getExpressionType()).getType();
+        type = ((CPointerType) operandType).getType();
       } else if (operandType instanceof CArrayType) {
-        type = ((CArrayType) operand.getExpressionType()).getType();
+        type = ((CArrayType) operandType).getType();
       } else {
-        logger.logf(Level.WARNING,
-                    "Dereferencing of a non-pointer in expression %s (%s)",
-                    e.getRawSignature(),
-                    operand.getExpressionType().toString());
+        if (!(operandType instanceof CProblemType)) {
+          logger.logf(Level.WARNING,
+                      "%s: Dereferencing of non-pointer type %s in expression %s",
+                      fileLoc, operandType, e.getRawSignature());
+        }
         type = typeConverter.convert(e.getExpressionType());
       }
       return simplifyUnaryPointerExpression(operand, fileLoc, type);
