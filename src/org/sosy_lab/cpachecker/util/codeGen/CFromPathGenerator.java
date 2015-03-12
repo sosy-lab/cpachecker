@@ -27,11 +27,7 @@ import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.*;
 
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.annotation.Nullable;
 
@@ -71,8 +67,8 @@ public class CFromPathGenerator {
   }
 
   public Appender generateSourceCode() {
-    Deque<Function> callStack = new LinkedList<>();
-    Deque<Edge> waitStack = new LinkedList<>();
+    Deque<Function> callStack = new ArrayDeque<>();
+    Deque<Edge> waitStack = new ArrayDeque<>();
 
     newFunction(rootState, callStack);
     for (Edge state : edgesOnErrorPath(rootState)) {
