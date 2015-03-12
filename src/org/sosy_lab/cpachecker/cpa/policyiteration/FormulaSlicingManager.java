@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -41,6 +42,7 @@ public class FormulaSlicingManager {
   private final Timer slicingTime = new Timer();
 
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
+  private static final String INTERMEDIATE_VAR_PREFIX = "__SLICE_INTERMEDIATE_";
 
   public FormulaSlicingManager(LogManager pLogger,
       FormulaManagerView pFmgr,
@@ -78,32 +80,28 @@ public class FormulaSlicingManager {
     BooleanFormula slice = new RecursiveSliceVisitor(ImmutableSet.copyOf(closure)).visit(f);
     logger.log(Level.FINE, "Produced =", slice);
 
-    final String renamePrefix = "__SLICE_INTERMEDIATE_";
-
-    Map<Formula, Formula> renames = new HashMap<>();
-
     Set <Formula> outVariables = new HashSet<>();
-    Set<Formula> intermediateVariables = new HashSet<>();
+    Set<String> intermediateVariables = new HashSet<>();
 
     // Rename all non-final variables.
-    for (Triple<Formula, String, Integer> triple : fmgr.extractFunctionSymbols(slice)) {
-      Formula var = triple.getFirst();
-      String varName = triple.getSecond();
-      Integer ssaIndex = triple.getThird();
+    for (Map.Entry<Formula, String> entry : fmgr.extractFunctionsMap(slice).entrySet()) {
+      Formula var = entry.getKey();
+      Pair<String, Integer> fullName = FormulaManagerView.parseName(entry.getValue());
+      String varName = fullName.getFirst();
+      Integer ssaIndex = fullName.getSecond();
 
       // Non-final variable.
       if (ssaIndex != null && (ssa.containsVariable(varName)) &&
           ssaIndex < ssa.getIndex(varName)) {
-        Formula newVar = fmgr.makeVariable(fmgr.getFormulaType(var), renamePrefix+varName);
-        renames.put(var, newVar);
-        intermediateVariables.add(newVar);
+        intermediateVariables.add(entry.getValue());
       } else {
         outVariables.add(var);
       }
     }
-    BooleanFormula sliceRenamed = unsafeManager.substitute(slice, renames);
+    BooleanFormula sliceRenamed = fmgr.addPrefix(slice, INTERMEDIATE_VAR_PREFIX,
+        Predicates.in(intermediateVariables));
 
-    if (isInductive(node, outVariables, intermediateVariables,
+    if (isInductive(node, outVariables,
         pf.updateFormula(sliceRenamed))) {
       return fmgr.simplify(sliceRenamed);
     } else {
@@ -194,13 +192,13 @@ public class FormulaSlicingManager {
   }
 
   private boolean isInductive(CFANode pNode, Set<Formula> pOutVariables,
-      Set<Formula> pIntermediateVariables, PathFormula formulaSlice)
+      PathFormula formulaSlice)
       throws CPATransferException, InterruptedException {
 
     Set<CFAEdge> edges = getRelated(pNode);
     for (CFAEdge edge : edges) {
       boolean isInductive = testInductivenessUnderEdge(
-        formulaSlice, edge, pOutVariables, pIntermediateVariables
+        formulaSlice, edge, pOutVariables
       );
       if (!isInductive) {
         return false;
@@ -218,8 +216,7 @@ public class FormulaSlicingManager {
   private boolean testInductivenessUnderEdge(
       PathFormula formulaSlice,
       CFAEdge edge,
-      Set<Formula> outVars,
-      Set<Formula> intermediateVars
+      Set<Formula> outVars
   ) throws CPATransferException, InterruptedException {
     PathFormula prefix = pfmgr.makeAnd(formulaSlice, edge);
     SSAMap outSSA = prefix.getSsa();
@@ -235,12 +232,16 @@ public class FormulaSlicingManager {
         renames.put(f, to);
       }
     }
-    for (Formula f : intermediateVars) {
-      renames.put(f, fmgr.makeVariable(fmgr.getFormulaType(f), unsafeManager.getName(f)+"'"));
-    }
-
     BooleanFormula formulaSliceSuffix =
         unsafeManager.substitute(formulaSlice.getFormula(), renames);
+
+    formulaSliceSuffix = fmgr.addPrefix(formulaSliceSuffix, "'",
+        new Predicate<String>() {
+          @Override
+          public boolean apply(String pInput) {
+            return pInput.startsWith(INTERMEDIATE_VAR_PREFIX);
+          }
+        });
 
     BooleanFormula test = fmgr.makeAnd(prefix.getFormula(),
         fmgr.makeNot(formulaSliceSuffix));

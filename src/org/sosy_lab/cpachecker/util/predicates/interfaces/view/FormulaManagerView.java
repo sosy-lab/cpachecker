@@ -1238,12 +1238,25 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractFunctionNames(Formula f) {
-    Set<String> result = Sets.newHashSet();
-    for (Formula v: myExtractSubformulas(unwrap(f), Predicates.or(FILTER_UF,
-        FILTER_VARIABLES))) {
-      result.add(unsafeManager.getName(v));
-    }
-    return result;
+    return Sets.newHashSet(extractFunctionsMap(f).values());
+  }
+
+  /**
+   * Extract the names of all free variables + UFs in a formula.
+   *
+   * @param f   The input formula
+   * @return    Set of variable names (might be instantiated)
+   */
+  public Map<Formula, String> extractFunctionsMap(Formula f) {
+    return Maps.asMap(
+        myExtractSubformulas(unwrap(f), Predicates.or(FILTER_UF, FILTER_VARIABLES)),
+        new Function<Formula, String>() {
+          @Override
+          public String apply(Formula pInput) {
+            return unsafeManager.getName(pInput);
+          }
+        });
+
   }
 
   /**
