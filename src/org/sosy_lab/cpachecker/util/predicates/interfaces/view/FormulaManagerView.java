@@ -894,10 +894,6 @@ public class FormulaManagerView {
     });
   }
 
-  private boolean ufCanBeLvalue(String name) {
-    return name.startsWith("*");
-  }
-
   // various caches for speeding up expensive tasks
   //
   // cache for splitting arithmetic equalities in extractAtoms
@@ -1029,14 +1025,8 @@ public class FormulaManagerView {
             String oldName = unsafeManager.getName(tt);
             assert oldName != null;
 
-            if (ufCanBeLvalue(oldName)) {
-              String newName = pRenameFunction.apply(oldName);
-              newt = unsafeManager.replaceArgsAndName(tt, newName, newargs);
-
-            } else {
-              newt = unsafeManager.replaceArgs(tt, newargs);
-            }
-
+            String newName = pRenameFunction.apply(oldName);
+            newt = unsafeManager.replaceArgsAndName(tt, newName, newargs);
           } else {
             newt = unsafeManager.replaceArgs(tt, newargs);
           }
