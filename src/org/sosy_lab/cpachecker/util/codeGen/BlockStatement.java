@@ -28,13 +28,17 @@ import java.util.List;
 
 public class BlockStatement extends Statement {
   
-  private List<Statement> children;
-  private BlockStatement parent;
-  private String header;
+  protected List<Statement> children;
+  protected BlockStatement parent;
+  protected String header;
 
+  public BlockStatement(BlockStatement parent) {
+    this(parent, "");
+  }
+  
   public BlockStatement(BlockStatement parent, String header) {
     this.children = new ArrayList<>();
-    this.parent = parent;
+    this.parent = parent;    
     this.header = header;
   }
 

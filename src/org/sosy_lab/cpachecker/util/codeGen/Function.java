@@ -32,39 +32,17 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class Function {
+public class Function extends BlockStatement {
 
   private String name;
-  private String header;
-  private Deque<BlockStatement> blocks; // TODO why more than one block?
-
+  
   public Function(ARGState fState) {
+    super(null);
+
     CFunctionEntryNode entryNode = (CFunctionEntryNode) AbstractStates.extractLocation(fState);
 
     this.name = entryNode.getFunctionName();
     this.header = entryNode.getFunctionDefinition().getType().toASTString(name);
-    this.blocks = new LinkedList<>();
-    this.blocks.offerFirst(new BlockStatement(header));
-  }
-
-  public void enterBlock(String header) {
-    BlockStatement stmt = new BlockStatement(header);
-    blocks.peekFirst().append(stmt);
-    blocks.offerFirst(stmt);
-  }
-
-  public void leaveBlock() {
-    assert blocks.size() > 1; // TODO why not > 0?
-
-    blocks.pollFirst();
-  }
-
-  public void append(Statement statement) {
-    if (statement instanceof SimpleStatement && ((SimpleStatement)statement).getStatement().isEmpty()) {
-      return;
-    }
-
-    blocks.peekFirst().append(statement); // TODO isn't this more like a preprend?
   }
 
   public String getName() {
@@ -73,12 +51,5 @@ public class Function {
 
   public String getPrototype() {
     return header + ";";
-  }
-
-  @Override
-  public String toString() {
-    assert blocks.size() == 1; // TODO how does this make sense?
-
-    return blocks.peekFirst().toString();
   }
 }

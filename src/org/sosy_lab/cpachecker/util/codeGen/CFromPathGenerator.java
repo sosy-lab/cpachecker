@@ -55,6 +55,7 @@ public class CFromPathGenerator {
   private final ARGState errorState;
   private final Set<ARGState> errorPathStates;
 
+  private List<String> includes;
   private List<String> globalDeclarations;
   private List<Function> functions;
 
@@ -64,6 +65,7 @@ public class CFromPathGenerator {
     this.errorPathStates = pErrorPathStates;
     this.globalDeclarations = new ArrayList<>();
     this.functions = new ArrayList<>();
+    includes = Arrays.asList("#include <stdlib.h>");
   }
 
   public Appender generateSourceCode() {
@@ -84,11 +86,12 @@ public class CFromPathGenerator {
       }
     }
 
+    Appender includes = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.includes);
+    Appender emptyLine = Appenders.fromToStringMethod(System.lineSeparator() + System.lineSeparator());
     Appender globals = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.globalDeclarations);
-    Appender emptyLine = Appenders.fromToStringMethod(System.lineSeparator());
     Appender functions = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.functions);
 
-    return Appenders.concat(globals, emptyLine, functions);
+    return Appenders.concat(includes, emptyLine, globals, emptyLine, functions);
   }
   
   private Function newFunction(ARGState rootState, Deque<Function> callStack) {
@@ -106,12 +109,12 @@ public class CFromPathGenerator {
     ARGState child = edge.getChild();
 
     if (errorState.equals(child)) {
-      currentFunction.append(new SimpleStatement("return -1337;"));
+      currentFunction.add(new SimpleStatement("return -1337;"));
     }
 
     if (cfaEdge instanceof CFunctionCallEdge) {
       Function newFunc = newFunction(child, callStack);
-      currentFunction.append(functionCall((CFunctionCallEdge) cfaEdge, newFunc.getName()));
+      currentFunction.add(functionCall((CFunctionCallEdge)cfaEdge, newFunc.getName()));
     } else if (cfaEdge instanceof CFunctionReturnEdge) {
       callStack.pollFirst(); // currentFunction is removed from callstack
     } else {
@@ -121,7 +124,7 @@ public class CFromPathGenerator {
     return edgesOnErrorPath(child);
   }
 
-  private Statement functionCall(CFunctionCallEdge fCallEdge, String functionName) {
+  private SimpleStatement functionCall(CFunctionCallEdge fCallEdge, String functionName) {
     List<String> lArguments = Lists.transform(fCallEdge.getArguments(),
 
         new com.google.common.base.Function<CExpression, String>() {
@@ -166,26 +169,24 @@ public class CFromPathGenerator {
       case BlankEdge:
       case StatementEdge:
       case ReturnStatementEdge:
-          currentFunction.append(new SimpleStatement(code));
+        currentFunction.add(new SimpleStatement(code));
         
         break;
       case AssumeEdge:
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
-        currentFunction.enterBlock("if (!(" + assumeEdge.getCode() + "))");
-        currentFunction.append(new SimpleStatement("return 0;"));
-        currentFunction.leaveBlock();
+        SimpleStatement return0 = new SimpleStatement("exit(0);");
+        currentFunction.enterBlock("if (!(" + assumeEdge.getCode() + "))").add(return0);
         break;
       case DeclarationEdge:
         // TODO global declarations, re-declaration
+        
+        boolean global = ((CDeclarationEdge)edge).getDeclaration().isGlobal();
 
-
-          boolean global = ((CDeclarationEdge)edge).getDeclaration().isGlobal();
-
-          if (global) {
-            globalDeclarations.add(code);
-          } else {
-            currentFunction.append(new SimpleStatement(code));
-          }
+        if (global) {
+          globalDeclarations.add(code);
+        } else {
+          currentFunction.add(new SimpleStatement(code));
+        }
         
         break;
       case MultiEdge:
