@@ -934,6 +934,20 @@ public class FormulaManagerView {
     });
   }
 
+  /**
+   * Apply an arbitrary renaming to all free variables and UFs in a formula.
+   * @param pFormula The formula in which the renaming should occur.
+   * @param pRenameFunction The renaming function (may not return null).
+   * @return A formula of the same type and structure as the input.
+   */
+  public <F extends Formula> F renameFreeVariablesAndUFs(F pFormula,
+      Function<String, String> pRenameFunction) {
+
+    return wrap(getFormulaType(pFormula),
+        myFreeVariableNodeTransformer(unwrap(pFormula), new HashMap<Formula, Formula>(),
+            pRenameFunction));
+  }
+
   private <T extends Formula> T myFreeVariableNodeTransformer(
       final T pFormula,
       final Map<Formula, Formula> pCache,
@@ -1422,26 +1436,6 @@ public class FormulaManagerView {
 
   public BooleanFormula simplify(BooleanFormula input) {
     return unsafeManager.simplify(input);
-  }
-
-  /**
-   * Add {@code prefix} to free variables and uninterpreted functions occurring in a formula.
-   * @param input The formula.
-   * @param prefix The non-empty prefix to add.
-   * @param doAddPrefix A predicate telling whether a given variable/UF should be renamed.
-   */
-  public <F extends Formula> F addPrefix(F input, final String prefix,
-      final Predicate<String> doAddPrefix) {
-    checkArgument(!prefix.isEmpty());
-    return wrap(getFormulaType(input),
-        myFreeVariableNodeTransformer(unwrap(input), new HashMap<Formula, Formula>(),
-            new Function<String, String>() {
-              @Override
-              public String apply(String pInput) {
-                return doAddPrefix.apply(pInput) ? prefix + pInput : pInput;
-              }
-            })
-        );
   }
 
   /**

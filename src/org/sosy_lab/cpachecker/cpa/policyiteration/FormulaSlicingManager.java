@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -81,7 +81,7 @@ public class FormulaSlicingManager {
     logger.log(Level.FINE, "Produced =", slice);
 
     Set <Formula> outVariables = new HashSet<>();
-    Set<String> intermediateVariables = new HashSet<>();
+    final Set<String> intermediateVariables = new HashSet<>();
 
     // Rename all non-final variables.
     for (Map.Entry<Formula, String> entry : fmgr.extractFunctionsMap(slice).entrySet()) {
@@ -98,8 +98,16 @@ public class FormulaSlicingManager {
         outVariables.add(var);
       }
     }
-    BooleanFormula sliceRenamed = fmgr.addPrefix(slice, INTERMEDIATE_VAR_PREFIX,
-        Predicates.in(intermediateVariables));
+    BooleanFormula sliceRenamed = fmgr.renameFreeVariablesAndUFs(slice,
+        new Function<String, String>() {
+              @Override
+              public String apply(String pInput) {
+                return intermediateVariables.contains(pInput)
+                    ? INTERMEDIATE_VAR_PREFIX + pInput
+                    : pInput;
+              }
+            }
+        );
 
     if (isInductive(node, outVariables,
         pf.updateFormula(sliceRenamed))) {
@@ -235,11 +243,11 @@ public class FormulaSlicingManager {
     BooleanFormula formulaSliceSuffix =
         unsafeManager.substitute(formulaSlice.getFormula(), renames);
 
-    formulaSliceSuffix = fmgr.addPrefix(formulaSliceSuffix, "'",
-        new Predicate<String>() {
+    formulaSliceSuffix = fmgr.renameFreeVariablesAndUFs(formulaSliceSuffix,
+        new Function<String, String>() {
           @Override
-          public boolean apply(String pInput) {
-            return pInput.startsWith(INTERMEDIATE_VAR_PREFIX);
+          public String apply(String pInput) {
+            return pInput.startsWith(INTERMEDIATE_VAR_PREFIX) ? pInput + "'" : pInput;
           }
         });
 

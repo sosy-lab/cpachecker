@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Predicates;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 
 public class ValueDeterminationManager {
@@ -122,7 +122,7 @@ public class ValueDeterminationManager {
       PathFormula policyFormula,
       Location fromLocation,
       PathFormula startPathFormula,
-      String prefix,
+      final String prefix,
       Location toLocation,
       PolicyAbstractedState stateWithUpdates,
       Set<BooleanFormula> constraints,
@@ -133,10 +133,16 @@ public class ValueDeterminationManager {
       PolicyBound bound,
       final Map<Location, PolicyAbstractedState> policy
   ) {
+    final Function<String, String> addPrefix = new Function<String, String>() {
+          @Override
+          public String apply(String pInput) {
+            return prefix + pInput;
+          }
+        };
+
     final String abstractDomainElement = absDomainVarName(toLocation, template);
-    final Formula policyOutTemplate = fmgr.addPrefix(
-        templateManager.toFormula(template, policyFormula), prefix,
-        Predicates.<String>alwaysTrue());
+    final Formula policyOutTemplate = fmgr.renameFreeVariablesAndUFs(
+        templateManager.toFormula(template, policyFormula), addPrefix);
     final Formula abstractDomainFormula =
         fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
             abstractDomainElement);
@@ -165,7 +171,7 @@ public class ValueDeterminationManager {
     constraints.add(outConstraint);
 
     BooleanFormula namespacedPolicy =
-        fmgr.addPrefix(policyFormula.getFormula(), prefix, Predicates.<String>alwaysTrue());
+        fmgr.renameFreeVariablesAndUFs(policyFormula.getFormula(), addPrefix);
 
     // Optimization.
     if (!(namespacedPolicy.equals(bfmgr.makeBoolean(true))
@@ -182,11 +188,11 @@ public class ValueDeterminationManager {
       String prevAbstractDomainElement = absDomainVarName(fromLocation,
           incomingTemplate);
 
-      Formula incomingTemplateFormula = fmgr.addPrefix(
+      Formula incomingTemplateFormula = fmgr.renameFreeVariablesAndUFs(
           templateManager.toFormula(
               incomingTemplate,
               startPathFormula
-          ), prefix, Predicates.<String>alwaysTrue());
+          ), addPrefix);
 
       Formula upperBound;
       if (fromLocation == focusedLocation && !updated.containsKey(
