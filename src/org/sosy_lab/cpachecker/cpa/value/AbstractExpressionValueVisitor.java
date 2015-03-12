@@ -1192,6 +1192,8 @@ public abstract class AbstractExpressionValueVisitor
     if (decl instanceof JFieldDeclaration
         && !((JFieldDeclaration) decl).isStatic()) {
       missingFieldAccessInformation = true;
+
+      return UnknownValue.getInstance();
     }
 
     return evaluateJIdExpression(idExp);
