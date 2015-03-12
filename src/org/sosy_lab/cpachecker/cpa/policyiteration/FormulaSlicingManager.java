@@ -62,11 +62,7 @@ public class FormulaSlicingManager {
    * @return Over-approximation of the formula {@code f} which deals only
    * with pointers.
    */
-  public BooleanFormula pointerFormulaSlice(CFANode node, PathFormula pf)
-      throws InterruptedException, CPATransferException {
-    BooleanFormula f = pf.getFormula();
-    SSAMap ssa = pf.getSsa();
-
+  public BooleanFormula pointerFormulaSlice(BooleanFormula f) {
     Set<String> closure = findClosure(f, new Predicate<String>() {
       @Override
       public boolean apply(String input) {
@@ -76,41 +72,7 @@ public class FormulaSlicingManager {
     logger.log(Level.FINE, "Closure =", closure);
     BooleanFormula slice = new RecursiveSliceVisitor(ImmutableSet.copyOf(closure)).visit(f);
     logger.log(Level.FINE, "Produced =", slice);
-
-    Set<String> outVariables = new HashSet<>();
-    final Set<String> intermediateVariables = new HashSet<>();
-
-    // Rename all non-final variables.
-    for (String var : fmgr.extractFunctionNames(slice)) {
-      Pair<String, Integer> fullName = FormulaManagerView.parseName(var);
-      String varName = fullName.getFirst();
-      Integer ssaIndex = fullName.getSecond();
-
-      // Non-final variable.
-      if (ssaIndex != null && (ssa.containsVariable(varName)) &&
-          ssaIndex < ssa.getIndex(varName)) {
-        intermediateVariables.add(var);
-      } else {
-        outVariables.add(var);
-      }
-    }
-    BooleanFormula sliceRenamed = fmgr.renameFreeVariablesAndUFs(slice,
-        new Function<String, String>() {
-              @Override
-              public String apply(String pInput) {
-                return intermediateVariables.contains(pInput)
-                    ? INTERMEDIATE_VAR_PREFIX + pInput
-                    : pInput;
-              }
-            }
-        );
-
-    if (isInductive(node, outVariables,
-        pf.updateFormula(sliceRenamed))) {
-      return fmgr.simplify(sliceRenamed);
-    } else {
-      return bfmgr.makeBoolean(true);
-    }
+    return slice;
   }
 
   /**
@@ -192,6 +154,52 @@ public class FormulaSlicingManager {
     @Override
     protected BooleanFormula visitNot(BooleanFormula pOperand) {
       return bfmgr.not(visitorForNegatedFormula.visitIfNotSeen(pOperand));
+    }
+  }
+
+  /**
+   * Check whether a formula is inductive at a given CFANode.
+   * @return A new version of the formula
+   * that only contains current variables (no variables with outdated SSA indices),
+   * or "true" if the formula is not inductive.
+   */
+  public BooleanFormula getInductiveVersionOf(PathFormula formula, CFANode node)
+      throws CPATransferException, InterruptedException {
+    final SSAMap ssa = formula.getSsa();
+    final BooleanFormula slice = formula.getFormula();
+
+    Set<String> outVariables = new HashSet<>();
+    final Set<String> intermediateVariables = new HashSet<>();
+
+    // Rename all non-final variables.
+    for (String var : fmgr.extractFunctionNames(slice)) {
+      Pair<String, Integer> fullName = FormulaManagerView.parseName(var);
+      String varName = fullName.getFirst();
+      Integer ssaIndex = fullName.getSecond();
+
+      // Non-final variable.
+      if (ssaIndex != null && (ssa.containsVariable(varName)) &&
+          ssaIndex < ssa.getIndex(varName)) {
+        intermediateVariables.add(var);
+      } else {
+        outVariables.add(var);
+      }
+    }
+    BooleanFormula sliceRenamed = fmgr.renameFreeVariablesAndUFs(slice,
+        new Function<String, String>() {
+              @Override
+              public String apply(String pInput) {
+                return intermediateVariables.contains(pInput)
+                    ? INTERMEDIATE_VAR_PREFIX + pInput
+                    : pInput;
+              }
+            }
+        );
+
+    if (isInductive(node, outVariables, formula.updateFormula(sliceRenamed))) {
+      return fmgr.simplify(sliceRenamed);
+    } else {
+      return bfmgr.makeBoolean(true);
     }
   }
 
