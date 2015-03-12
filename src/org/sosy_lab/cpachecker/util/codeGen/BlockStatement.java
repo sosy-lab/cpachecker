@@ -28,28 +28,41 @@ import java.util.List;
 
 public class BlockStatement extends Statement {
   
-  private List<Statement> statements;
+  private List<Statement> children;
+  private BlockStatement parent;
   private String header;
 
-  public BlockStatement(String pHeader) {
-    this.header = pHeader;
-    this.statements = new ArrayList<>();
+  public BlockStatement(BlockStatement parent, String header) {
+    this.children = new ArrayList<>();
+    this.parent = parent;
+    this.header = header;
   }
 
-  public void append(Statement pStatement) {
-    statements.add(pStatement);
+  public void add(SimpleStatement statement) {
+    children.add(statement);
+  }
+  
+  public BlockStatement enterBlock(String header) {
+    BlockStatement newBlock = new BlockStatement(this, header);
+    children.add(newBlock);
+    
+    return newBlock;
+  }
+  
+  public BlockStatement leaveBlock() {
+    return parent;
   }
 
   @Override
-  public String toString() {
+  protected String toString(String indentation) {
     StringBuilder b = new StringBuilder();
     String lineSep = System.lineSeparator();
 
-    b.append(header).append(" {").append(lineSep);
-    for (Statement statement : statements) {
-      b.append("  ").append(statement).append(lineSep);
+    b.append(indentation).append(header).append(" {").append(lineSep);
+    for (Statement statement : children) {
+      b.append(statement.toString(indentation + "  ")).append(lineSep);
     }
-    b.append("}").append(lineSep);
+    b.append(indentation).append("}").append(lineSep);
 
     return b.toString();
   }

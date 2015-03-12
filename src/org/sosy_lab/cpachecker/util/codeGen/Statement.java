@@ -24,5 +24,11 @@
 package org.sosy_lab.cpachecker.util.codeGen;
 
 public abstract class Statement {
-  
+ 
+  @Override
+  public String toString() {
+    return toString("");
+  }
+    
+  protected abstract String toString(String indentation);
 }

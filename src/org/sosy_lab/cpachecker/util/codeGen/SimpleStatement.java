@@ -36,7 +36,7 @@ public class SimpleStatement extends Statement {
   }
 
   @Override
-  public String toString() {
-    return statement;
+  protected String toString(String indentation) {
+    return indentation + statement;
   }
 }
