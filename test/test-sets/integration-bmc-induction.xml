@@ -25,7 +25,7 @@
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_3_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/kundu2_false-unreach-call_false-termination.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/token_ring.04_false-unreach-call_false-termination.cil.c/exclude>
+      <exclude>../programs/benchmarks/systemc/token_ring.04_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/toy2_false-unreach-call_false-termination.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
