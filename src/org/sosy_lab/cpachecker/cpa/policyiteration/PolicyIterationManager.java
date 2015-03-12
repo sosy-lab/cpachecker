@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.FormulaInductivenessCheck;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
@@ -779,7 +780,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           generatingFormula.getFormula());
       statistics.slicingTimer.start();
       try {
-        BooleanFormula inductivePointerData = formulaSlicingManager.getInductiveVersionOf(
+        FormulaInductivenessCheck checker = new FormulaInductivenessCheck(pfmgr, solver);
+        BooleanFormula inductivePointerData = checker.getInductiveVersionOf(
             generatingFormula.updateFormula(pointerData), location.getFinalNode());
         initialConstraint = bfmgr.and(initialConstraint, inductivePointerData);
       } finally {
