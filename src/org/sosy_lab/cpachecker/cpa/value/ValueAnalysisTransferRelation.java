@@ -46,7 +46,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -119,7 +118,6 @@ import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -134,6 +132,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -288,7 +287,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
 
         if (useSymbolicValue(paramType)) {
-          value = getSymbolicIdentifier(paramType, exp);
+          value = getSymbolicIdentifier(paramType);
           newElement.assignConstant(formalParamName, value, paramType);
 
         } else {
@@ -638,7 +637,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (initialValue.isUnknown() && useSymbolicValue(declarationType)) {
-      initialValue = getSymbolicIdentifier(declarationType, declaration);
+      initialValue = getSymbolicIdentifier(declarationType);
     }
 
     if (!initialValue.isUnknown()) {
@@ -711,9 +710,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return pExp instanceof CExpression && (pEvv.hasMissingPointer());
   }
 
-  private SymbolicValue getSymbolicIdentifier(Type pType, AAstNode pLocation) {
+  private SymbolicValue getSymbolicIdentifier(Type pType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.asConstant(factory.newIdentifier(pLocation), pType);
+    return factory.asConstant(factory.newIdentifier(), pType);
   }
 
   @Override
@@ -920,7 +919,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown() && missingInformationRightJExpression == null && useSymbolicValue(lType)) {
-        value = getSymbolicIdentifier(lType, exp);
+        value = getSymbolicIdentifier(lType);
       }
 
       if (!value.isUnknown()) {
