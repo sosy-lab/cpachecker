@@ -88,21 +88,30 @@ public class CFromPathGenerator {
 
     Appender includes = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.includes);
     Appender emptyLine = Appenders.fromToStringMethod(System.lineSeparator() + System.lineSeparator());
-    Appender globals = Appenders.forIterable(Joiner.on(System.lineSeparator()), Lists.transform(this.globalDeclarations,
-        new com.google.common.base.Function<CDeclarationEdge, String>() {
-          
-          @Nullable
-          @Override
-          public String apply(@Nullable CDeclarationEdge pCDeclarationEdge) {
-            assert pCDeclarationEdge != null : "null was added to the globalDeclarations List";
-            return pCDeclarationEdge.getCode();
-          }
-        }));
+
+    List<String> globalDeclStrings = new ArrayList<>(globalDeclarations.size());
+
+    for (CDeclarationEdge globalDeclaration : globalDeclarations) {
+      globalDeclStrings.add(globalDeclaration.getCode());
+    }
+
+    List<String> prototypeStrings = new ArrayList<>(functions.size());
+
+    for (Function function : functions) {
+      String prototype = function.getPrototype();
+
+      if (!globalDeclStrings.contains(prototype)) {
+        prototypeStrings.add(prototype);
+      }
+    }
+
+    Appender prototypes = Appenders.forIterable(Joiner.on(System.lineSeparator()), prototypeStrings);
+    Appender globals = Appenders.forIterable(Joiner.on(System.lineSeparator()), globalDeclStrings);
     Appender functions = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.functions);
-    
-    return Appenders.concat(includes, emptyLine, globals, emptyLine, functions);
+
+    return Appenders.concat(includes, emptyLine, globals, emptyLine, prototypes, emptyLine, functions);
   }
-  
+
   private Function newFunction(ARGState rootState, Deque<Function> callStack) {
     Function f = new Function(rootState);
 
@@ -123,7 +132,7 @@ public class CFromPathGenerator {
 
     if (cfaEdge instanceof CFunctionCallEdge) {
       Function newFunc = newFunction(child, callStack);
-      currentFunction.add(functionCall((CFunctionCallEdge)cfaEdge, newFunc.getName()));
+      currentFunction.add(functionCall((CFunctionCallEdge) cfaEdge, newFunc.getName()));
     } else if (cfaEdge instanceof CFunctionReturnEdge) {
       callStack.pollFirst(); // currentFunction is removed from callstack
     } else {
@@ -179,7 +188,7 @@ public class CFromPathGenerator {
       case StatementEdge:
       case ReturnStatementEdge:
         currentFunction.add(new SimpleStatement(code));
-        
+
         break;
       case AssumeEdge:
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
@@ -197,7 +206,7 @@ public class CFromPathGenerator {
         } else {
           currentFunction.addDeclaration(declarationEdge, globalDeclarations);
         }
-        
+
         break;
       case MultiEdge:
 

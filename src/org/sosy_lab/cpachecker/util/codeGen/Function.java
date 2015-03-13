@@ -23,30 +23,38 @@
  */
 package org.sosy_lab.cpachecker.util.codeGen;
 
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Queue;
-
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class Function extends BlockStatement {
 
+  private static int nextId = 0;
+
   private String name;
-  
+  private String id;
+
   public Function(ARGState fState) {
     super(null);
 
     CFunctionEntryNode entryNode = (CFunctionEntryNode) AbstractStates.extractLocation(fState);
 
     this.name = entryNode.getFunctionName();
-    this.header = entryNode.getFunctionDefinition().getType().toASTString(name);
+
+    // don't append id to main method!
+    this.id = ("main".equals(entryNode.getFunctionName()) ? "" : getId());
+    this.header = entryNode.getFunctionDefinition().getType().toASTString(getName());
+  }
+
+  private static synchronized String getId() {
+    String result = "_" + nextId;
+    nextId++;
+
+    return result;
   }
 
   public String getName() {
-    return name;
+    return name + id;
   }
 
   public String getPrototype() {
