@@ -1107,48 +1107,54 @@ public class FormulaManagerView {
         });
   }
 
-  private Collection<BooleanFormula> myExtractAtoms(BooleanFormula f, boolean splitArithEqualities,
+  private Collection<BooleanFormula> myExtractAtoms(BooleanFormula pFormula, boolean splitArithEqualities,
       Predicate<BooleanFormula> isLowestLevel) {
-    Set<BooleanFormula> handled = new HashSet<>();
-    List<BooleanFormula> atoms = new ArrayList<>();
+    Set<BooleanFormula> seen = new HashSet<>();
+    List<BooleanFormula> result = new ArrayList<>();
 
     Deque<BooleanFormula> toProcess = new ArrayDeque<>();
-    toProcess.push(f);
-    handled.add(f);
+    toProcess.push(pFormula);
+    seen.add(pFormula);
 
     while (!toProcess.isEmpty()) {
-      BooleanFormula tt = toProcess.pop();
-      assert handled.contains(tt);
+      BooleanFormula f = toProcess.pop();
+      assert seen.contains(f);
 
-      if (booleanFormulaManager.isTrue(tt) || booleanFormulaManager.isFalse(tt)) {
+      if (unsafeManager.isBoundVariable(f)) {
+        // Do nothing for variables that are bound by a quantifier!
         continue;
       }
 
-      if (isLowestLevel.apply(tt)) {
-        if (splitArithEqualities
-            && myIsPurelyArithmetic(tt)) {
-          BooleanFormula split = unsafeManager.splitNumeralEqualityIfPossible(tt);
+      if (isLowestLevel.apply(f)) {
+        if (splitArithEqualities && myIsPurelyArithmetic(f)) {
+          BooleanFormula split = unsafeManager.splitNumeralEqualityIfPossible(f);
           // some solvers might produce non-atomic formulas for split,
-          // thus push it instead of adding it directly to atoms
-          if (handled.add(split)) {
+          // thus push it instead of adding it directly to result
+          if (seen.add(split)) {
             toProcess.push(split);
           }
         }
-        atoms.add(tt);
+        result.add(f);
+
+      } else if (unsafeManager.isQuantification(f)) {
+        BooleanFormula body = unsafeManager.getQuantifiedBody(f);
+        if (seen.add(body)) {
+          toProcess.push(body);
+        }
 
       } else {
-        // ok, go into this formula
-        for (int i = 0; i < unsafeManager.getArity(tt); ++i) {
-          Formula c = unsafeManager.getArg(tt, i);
+        // Go into this formula.
+        for (int i = 0; i < unsafeManager.getArity(f); ++i) {
+          Formula c = unsafeManager.getArg(f, i);
           assert getRawFormulaType(c).isBooleanType();
-          if (handled.add((BooleanFormula)c)) {
+          if (seen.add((BooleanFormula)c)) {
             toProcess.push((BooleanFormula)c);
           }
         }
       }
     }
 
-    return atoms;
+    return result;
   }
 
   public boolean isPurelyArithmetic(Formula f) {
@@ -1242,38 +1248,41 @@ public class FormulaManagerView {
     return result;
   }
 
-  private Set<Formula> myExtractSubformulas(Formula pExtractFrom,
+  private Collection<Formula> myExtractSubformulas(final Formula pFormula,
       Predicate<Formula> filter) {
     // TODO The FormulaType of returned formulas may not be correct,
     // because we cannot determine if for example a Rational formula
     // is really rational, or should be wrapped as a Bitvector formula
     Set<Formula> seen = new HashSet<>();
-    Set<Formula> varFormulas = new HashSet<>();
+    List<Formula> result = new ArrayList<>();
 
     Deque<Formula> toProcess = new ArrayDeque<>();
-    toProcess.push(pExtractFrom);
+    toProcess.push(pFormula);
+    seen.add(pFormula);
 
     while (!toProcess.isEmpty()) {
-      Formula t = toProcess.pop();
-      if (unsafeManager.isBoundVariable(t)) {
+      Formula f = toProcess.pop();
+      assert seen.contains(f);
+
+      if (unsafeManager.isBoundVariable(f)) {
         // Do nothing for variables that are bound by a quantifier!
         continue;
       }
 
-      if (filter.apply(t)) {
-        varFormulas.add(t);
+      if (filter.apply(f)) {
+        result.add(f);
       }
 
-      if (unsafeManager.isQuantification(t)) {
-        Formula body = unsafeManager.getQuantifiedBody(t);
+      if (unsafeManager.isQuantification(f)) {
+        Formula body = unsafeManager.getQuantifiedBody(f);
         if (seen.add(body)) {
           toProcess.push(body);
         }
 
       } else {
         // Go into this formula.
-        for (int i = 0; i < unsafeManager.getArity(t); ++i) {
-          Formula c = unsafeManager.getArg(t, i);
+        for (int i = 0; i < unsafeManager.getArity(f); ++i) {
+          Formula c = unsafeManager.getArg(f, i);
 
           if (seen.add(c)) {
             toProcess.push(c);
@@ -1282,7 +1291,7 @@ public class FormulaManagerView {
       }
     }
 
-    return varFormulas;
+    return result;
   }
 
   public Appender dumpFormula(Formula pT) {
