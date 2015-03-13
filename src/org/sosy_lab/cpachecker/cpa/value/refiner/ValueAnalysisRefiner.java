@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -76,6 +75,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -552,8 +552,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    *
    * @param pReached the set of reached states
    * @return the target states
+   * @throws RefinementFailedException
    */
-  private Collection<ARGState> getTargetStates(final ARGReachedSet pReached) {
+  private Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
 
     // sort the list, to either favor shorter paths or better interpolants
     Comparator<ARGState> comparator = new Comparator<ARGState>() {
@@ -599,7 +600,16 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
         .transform(AbstractStates.toState(ARGState.class))
         .filter(AbstractStates.IS_TARGET_STATE)
         .filter(Predicates.not(Predicates.in(feasibleTargets))).toSortedList(comparator);
-    assert !targets.isEmpty();
+
+    // set of targets may only be empty, if all of them were found feasible previously
+    if(targets.isEmpty()) {
+      assert feasibleTargets.containsAll(from(pReached.asReachedSet())
+      .transform(AbstractStates.toState(ARGState.class))
+      .filter(AbstractStates.IS_TARGET_STATE).toSet());
+
+      throw new RefinementFailedException(Reason.RepeatedCounterexample,
+          ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
+    }
 
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
 
