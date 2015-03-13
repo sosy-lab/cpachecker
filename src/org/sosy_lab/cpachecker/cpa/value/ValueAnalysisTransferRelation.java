@@ -97,14 +97,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -122,9 +117,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -136,6 +129,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -147,12 +141,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   // the value of the map entry is the explanation for the user
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
-
-  @Option(secure=true,
-      description="Use symbolic values. This allows tracking of non-deterministic values."
-          + " Symbolic values should always be used in conjunction with ConstraintsCPA."
-          + " Otherwise, symbolic values will be created, but not evaluated.")
-  private boolean useSymbolicValues = false;
 
   @Option(secure=true, description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
@@ -186,6 +174,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private boolean missingAssumeInformation;
 
   /**
+   * This class assigns symbolic values, if they are enabled.
+   * Otherwise it forgets the memory location.
+   */
+  private MemoryLocationValueHandler unknownValueHandler;
+
+  /**
    * This List is used to communicate the missing
    * Information needed from other cpas.
    * (at the moment specifically SMG)
@@ -214,6 +208,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       addressedVariables = ImmutableSet.of();
       booleanVariables   = ImmutableSet.of();
     }
+
+    unknownValueHandler = new SymbolicValueAssigner(config);
   }
 
   @Override
@@ -289,12 +285,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           addMissingInformation(formalParamName, exp);
         }
 
-        if (useSymbolicValue(paramType)) {
-          return addSymbolicTracking(newElement, formalParamName, paramType);
+        unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
 
-        } else {
-          newElement.forget(formalParamName);
-        }
       } else {
         newElement.assignConstant(formalParamName, value, paramType);
       }
@@ -304,93 +296,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return newElement;
-  }
-
-  private ValueAnalysisState addSymbolicTracking(ValueAnalysisState pState,
-      MemoryLocation pVarLocation, Type pVarType) throws UnrecognizedCCodeException {
-    if (pVarType instanceof JType) {
-      return addSymbolicTracking(pState, pVarLocation, (JType)pVarType);
-
-    } else {
-      assert pVarType instanceof CType : "Unhandled type " + pVarType;
-
-      return addSymbolicTracking(pState, pVarLocation, (CType)pVarType);
-    }
-  }
-
-  private ValueAnalysisState addSymbolicTracking(ValueAnalysisState pState,
-      MemoryLocation pVarLocation, JType pVarType) {
-
-    if (pVarType instanceof JSimpleType) {
-      return assignSymbolicIdentifier(pState, pVarLocation, pVarType);
-
-    } else {
-      return pState;
-    }
-  }
-
-  private ValueAnalysisState addSymbolicTracking(ValueAnalysisState pState,
-      MemoryLocation pVarLocation, CType pVarType) throws UnrecognizedCCodeException {
-
-    final CType canonicalType = pVarType.getCanonicalType();
-
-    if (canonicalType instanceof CCompositeType) {
-      return fillStructWithSymbolicIdentifiers(pState, pVarLocation, (CCompositeType) canonicalType);
-
-    } else if (canonicalType instanceof CArrayType) {
-      return fillArrayWithSymbolicIdentifiers(pState, pVarLocation, (CArrayType) canonicalType);
-
-    } else if (canonicalType instanceof CElaboratedType) {
-      pState.forget(pVarLocation);
-      return pState;
-
-    } else {
-      return assignSymbolicIdentifier(pState, pVarLocation, canonicalType);
-    }
-  }
-
-  private ValueAnalysisState assignSymbolicIdentifier(ValueAnalysisState pState,
-      MemoryLocation pVarLocation, Type pVarType) {
-
-    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
-    SymbolicIdentifier newIdentifier = factory.newIdentifier();
-    SymbolicValue newIdentifierWithType = factory.asConstant(newIdentifier, pVarType);
-
-    pState.assignConstant(pVarLocation, newIdentifierWithType, pVarType);
-
-    return pState;
-  }
-
-  private ValueAnalysisState fillStructWithSymbolicIdentifiers(
-      ValueAnalysisState pState, MemoryLocation pStructLocation, CCompositeType pStructType)
-      throws UnrecognizedCCodeException {
-
-    List<CCompositeType.CCompositeTypeMemberDeclaration> memberDeclarations = pStructType.getMembers();
-    ValueAnalysisState newElement = pState;
-
-    for (CCompositeType.CCompositeTypeMemberDeclaration d : memberDeclarations) {
-      String memberName = d.getName();
-      MemoryLocation memberLocation = getVisitor().evaluateRelativeMemLocForStructMember(
-          pStructLocation, memberName, pStructType);
-      CType memberType = d.getType().getCanonicalType();
-
-      if (memberType instanceof CCompositeType) {
-        newElement = fillStructWithSymbolicIdentifiers(newElement, memberLocation,
-            (CCompositeType)memberType);
-
-      } else {
-        newElement = assignSymbolicIdentifier(newElement, memberLocation, memberType);
-      }
-    }
-
-    return newElement;
-  }
-
-  private ValueAnalysisState fillArrayWithSymbolicIdentifiers(ValueAnalysisState pState,
-      MemoryLocation pArrayLocation, CArrayType pArrayType) {
-    pState.forget(pArrayLocation);
-    return pState;
   }
 
   @Override
@@ -725,31 +630,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (initialValue.isUnknown()) {
-      if (useSymbolicValue(declarationType)) {
-        return addSymbolicTracking(newElement, memoryLocation, declarationType);
-
-      } else {
-        newElement.forget(memoryLocation);
-      }
+      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
 
     return newElement;
-  }
-
-  private boolean useSymbolicValue(Type pType) {
-    return useSymbolicValues && isEligibleForSymbolicValue(pType);
-  }
-
-  private boolean isEligibleForSymbolicValue(Type pDeclarationType) {
-    if (pDeclarationType instanceof CType) {
-      CType canonicalType = ((CType) pDeclarationType).getCanonicalType();
-
-      return !(canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
-    }
-
-    return true;
   }
 
   private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
@@ -1002,12 +888,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown()) {
-        if (missingInformationRightJExpression == null && useSymbolicValue(lType)) {
-          return addSymbolicTracking(newElement, assignedVar, lType);
+        unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
 
-        } else {
-          newElement.forget(assignedVar);
-        }
       } else {
         newElement.assignConstant(assignedVar, value, lType);
       }
