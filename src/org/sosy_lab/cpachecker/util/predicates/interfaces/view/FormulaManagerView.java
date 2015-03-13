@@ -1157,10 +1157,6 @@ public class FormulaManagerView {
     return result;
   }
 
-  public boolean isPurelyArithmetic(Formula f) {
-    return myIsPurelyArithmetic(unwrap(f));
-  }
-
   // returns true if the given term is a pure arithmetic term
   private boolean myIsPurelyArithmetic(Formula f) {
     Boolean result = arithCache.get(f);
@@ -1320,10 +1316,10 @@ public class FormulaManagerView {
     }
   }
 
-  public static final String BitwiseAndUfName = "_&_";
-  public static final String BitwiseOrUfName ="_!!_"; // SMTInterpol does not allow "|" to be used
-  public static final String BitwiseXorUfName ="_^_";
-  public static final String BitwiseNotUfName ="_~_";
+  static final String BitwiseAndUfName = "_&_";
+  static final String BitwiseOrUfName ="_!!_"; // SMTInterpol does not allow "|" to be used
+  static final String BitwiseXorUfName ="_^_";
+  static final String BitwiseNotUfName ="_~_";
 
   // returns a formula with some "static learning" about some bitwise
   // operations, so that they are (a bit) "less uninterpreted"
