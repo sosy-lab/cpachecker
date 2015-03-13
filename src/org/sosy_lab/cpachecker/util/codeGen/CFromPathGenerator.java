@@ -65,7 +65,7 @@ public class CFromPathGenerator {
     this.errorPathStates = pErrorPathStates;
     this.globalDeclarations = new ArrayList<>();
     this.functions = new ArrayList<>();
-    includes = Arrays.asList("#include <stdlib.h>");
+    this.includes = new ArrayList<>(Arrays.asList("#include <stdlib.h>"));
   }
 
   public Appender generateSourceCode() {
@@ -85,6 +85,8 @@ public class CFromPathGenerator {
         waitStack.offerFirst(newEdge);
       }
     }
+
+    postprocessing();
 
     Appender includes = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.includes);
     Appender emptyLine = Appenders.fromToStringMethod(System.lineSeparator() + System.lineSeparator());
@@ -110,6 +112,51 @@ public class CFromPathGenerator {
     Appender functions = Appenders.forIterable(Joiner.on(System.lineSeparator()), this.functions);
 
     return Appenders.concat(includes, emptyLine, globals, emptyLine, prototypes, emptyLine, functions);
+  }
+
+  private void postprocessing() {
+    Map<String, List<Function>> equivClasses = new HashMap<>();
+
+    for (Function f : functions) {
+      String name = f.getName(false);
+
+      if (equivClasses.containsKey(name)) {
+        equivClasses.get(name).add(f);
+      } else {
+        equivClasses.put(name, new ArrayList<>(Arrays.asList(f)));
+      }
+    }
+
+    for (Map.Entry<String, List<Function>> entry : equivClasses.entrySet()) {
+      Map<String, List<Function>> bodyToFunctions = new HashMap<>();
+
+      for (Function f : entry.getValue()) {
+        String body = f.getBody("");
+
+        if (bodyToFunctions.containsKey(body)) {
+          bodyToFunctions.get(body).add(f);
+        } else {
+          bodyToFunctions.put(body, new ArrayList<>(Arrays.asList(f)));
+        }
+      }
+
+      for (Map.Entry<String, List<Function>> toMerge : bodyToFunctions.entrySet()) {
+        if (toMerge.getValue().size() == 1) {
+          continue;
+        }
+
+        List<Function> fToMerge = toMerge.getValue();
+        Function keep = fToMerge.remove(0);
+
+        functions.removeAll(fToMerge);
+
+        for (Function function : functions) {
+          for (Function toReplace : fToMerge) {
+            function.replaceFunction(toReplace, keep);
+          }
+        }
+      }
+    }
   }
 
   private Function newFunction(ARGState rootState, Deque<Function> callStack) {

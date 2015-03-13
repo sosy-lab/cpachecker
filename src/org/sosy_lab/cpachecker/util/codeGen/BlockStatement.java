@@ -29,22 +29,22 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 
 public class BlockStatement extends Statement {
-  
+
   protected List<CDeclarationEdge> declarations;
-  
+
   protected List<Statement> children;
   protected BlockStatement parent;
-  protected String header;
+  protected SimpleStatement header;
 
   public BlockStatement(BlockStatement parent) {
     this(parent, "");
   }
-  
+
   public BlockStatement(BlockStatement parent, String header) {
     this.declarations = new ArrayList<>();
     this.children = new ArrayList<>();
-    this.parent = parent;    
-    this.header = header;
+    this.parent = parent;
+    this.header = new SimpleStatement(header);
   }
 
   public void addDeclaration(CDeclarationEdge declaration, List<CDeclarationEdge> globalDeclarations) {
@@ -52,7 +52,7 @@ public class BlockStatement extends Statement {
     BlockStatement currentStatement = this;
 
     if (!alreadyExists) {
-      
+
       do {
         alreadyExists = currentStatement.declarations.contains(declaration);
         currentStatement = currentStatement.parent;
@@ -60,27 +60,27 @@ public class BlockStatement extends Statement {
     }
 
     String code = declaration.getCode();
-    
+
     if (alreadyExists) {
       code = code.replaceFirst(declaration.getDeclaration().getType().toString(), "").trim();
     } else {
       declarations.add(declaration);
     }
-    
+
     add(new SimpleStatement(code));
   }
-  
+
   public void add(SimpleStatement statement) {
     children.add(statement);
   }
-  
+
   public BlockStatement enterBlock(String header) {
     BlockStatement newBlock = new BlockStatement(this, header);
     children.add(newBlock);
-    
+
     return newBlock;
   }
-  
+
   public BlockStatement leaveBlock() {
     return parent;
   }
@@ -91,10 +91,28 @@ public class BlockStatement extends Statement {
     String lineSep = System.lineSeparator();
 
     b.append(indentation).append(header).append(" {").append(lineSep);
-    for (Statement statement : children) {
-      b.append(statement.toString(indentation + "  ")).append(lineSep);
-    }
+    b.append(getBody(indentation));
     b.append(indentation).append("}").append(lineSep);
+
+    return b.toString();
+  }
+
+  @Override
+  public void replaceFunction(Function oldFunction, Function newFunction) {
+
+    header.replaceFunction(oldFunction, newFunction);
+
+    for (Statement child : children) {
+      child.replaceFunction(oldFunction, newFunction);
+    }
+  }
+
+  public String getBody(String indentation) {
+    StringBuilder b = new StringBuilder();
+
+    for (Statement statement : children) {
+      b.append(statement.toString(indentation + "  ")).append(System.lineSeparator());
+    }
 
     return b.toString();
   }

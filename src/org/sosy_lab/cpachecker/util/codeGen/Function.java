@@ -43,7 +43,7 @@ public class Function extends BlockStatement {
 
     // don't append id to main method!
     this.id = ("main".equals(entryNode.getFunctionName()) ? "" : getId());
-    this.header = entryNode.getFunctionDefinition().getType().toASTString(getName());
+    this.header = new SimpleStatement(entryNode.getFunctionDefinition().getType().toASTString(getName()));
   }
 
   private static synchronized String getId() {
@@ -54,7 +54,16 @@ public class Function extends BlockStatement {
   }
 
   public String getName() {
-    return name + id;
+    return getName(true);
+  }
+
+  public String getName(boolean addId) {
+
+    if (addId) {
+      return name + id;
+    } else {
+      return name;
+    }
   }
 
   public String getPrototype() {

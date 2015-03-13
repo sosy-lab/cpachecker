@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.util.codeGen;
 
 public class SimpleStatement extends Statement {
-  
+
   private String statement;
 
-  public SimpleStatement(String pStatement) {
-    statement = pStatement;
+  public SimpleStatement(String statement) {
+    this.statement = statement;
   }
 
   public String getStatement() {
@@ -38,5 +38,16 @@ public class SimpleStatement extends Statement {
   @Override
   protected String toString(String indentation) {
     return indentation + statement;
+  }
+
+  @Override
+  public void replaceFunction(Function oldFunction, Function newFunction) {
+    if (!statement.contains(oldFunction.getName())) {
+      return;
+    }
+
+    String searchRegex = "(.*\\s+|\\s*)(" + oldFunction.getName() + ")(\\s*\\()";
+    String replacement = "$1" + newFunction.getName() + "$3";
+    statement = statement.replaceAll(searchRegex, replacement);
   }
 }
