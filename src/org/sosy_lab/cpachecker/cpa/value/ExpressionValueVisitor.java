@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -38,15 +39,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
@@ -87,7 +92,91 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   @Override
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+    CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
+
+    // We only handle builtin functions
+    if (functionNameExp instanceof CIdExpression) {
+      String functionName = ((CIdExpression) functionNameExp).getName();
+
+      if (BuiltinFunctions.isBuiltinFunction(functionName)) {
+        CType functionReturnType = BuiltinFunctions.getFunctionType(functionName);
+
+        if (isUnspecifiedType(functionReturnType)) {
+          // unsupported formula
+          return Value.UnknownValue.getInstance();
+        }
+
+        assert functionReturnType.equals(pIastFunctionCallExpression.getExpressionType())
+            : "Builtin function's return type is false. " + functionName
+            + " has return type " + pIastFunctionCallExpression.getExpressionType();
+        List<CExpression> parameterExpressions = pIastFunctionCallExpression.getParameterExpressions();
+        List<Value> parameterValues = new ArrayList<>(parameterExpressions.size());
+
+        for (CExpression currParamExp : parameterExpressions) {
+          Value newValue = currParamExp.accept(this);
+
+          parameterValues.add(newValue);
+        }
+
+        if (BuiltinFunctions.isAbsolute(functionName)) {
+          assert parameterValues.size() == 1;
+
+          final CType parameterType = parameterExpressions.get(0).getExpressionType();
+          final Value parameter = parameterValues.get(0);
+
+          if (parameterType instanceof CSimpleType && !((CSimpleType) parameterType).isSigned()) {
+            return parameter;
+
+          } else if (parameter.isExplicitlyKnown()) {
+            assert parameter.isNumericValue();
+            final double absoluteValue = Math.abs(((NumericValue) parameter).doubleValue());
+
+            // absolute value for INT_MIN is undefined behaviour, so we do not bother handling it
+            // in any specific way
+            return new NumericValue(absoluteValue);
+          }
+
+        } else if (BuiltinFunctions.isHugeVal(functionName)
+            || BuiltinFunctions.isInfinity(functionName)) {
+
+          assert parameterValues.isEmpty();
+          if (BuiltinFunctions.isHugeValFloat(functionName)
+              || BuiltinFunctions.isInfinityFloat(functionName)) {
+
+            return new NumericValue(Float.POSITIVE_INFINITY);
+
+          } else {
+            assert BuiltinFunctions.isInfinityDouble(functionName)
+                || BuiltinFunctions.isInfinityLongDouble(functionName)
+                || BuiltinFunctions.isHugeValDouble(functionName)
+                || BuiltinFunctions.isHugeValLongDouble(functionName)
+                : " Unhandled builtin function for infinity: " + functionName;
+
+            return new NumericValue(Double.POSITIVE_INFINITY);
+          }
+
+        } else if (BuiltinFunctions.isNaN(functionName)) {
+          assert parameterValues.isEmpty();
+
+          if (BuiltinFunctions.isNaNFloat(functionName)) {
+            return new NumericValue(Float.NaN);
+          } else {
+            assert BuiltinFunctions.isNaNDouble(functionName)
+                || BuiltinFunctions.isNaNLongDouble(functionName)
+                : "Unhandled builtin function for NaN: " + functionName;
+
+            return new NumericValue(Double.NaN);
+          }
+        }
+      }
+    }
+
     return Value.UnknownValue.getInstance();
+  }
+
+  private boolean isUnspecifiedType(CType pType) {
+    return pType instanceof CSimpleType
+        && ((CSimpleType) pType).getType() == CBasicType.UNSPECIFIED;
   }
 
   @Override

@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
  * This class provides constants for builtin function's names and methods for checking whether
@@ -61,10 +64,15 @@ public class BuiltinFunctions {
   private static final String FLOAT_CLASSIFY_DOUBLE = "__fpclassifyd";
   private static final String FLOAT_CLASSIFY_LONG_DOUBLE = "__fpclassifyl";
 
+  private static final String FREE = "free";
+
+  private static final CType UNSPECIFIED_TYPE = new CSimpleType(false, false, CBasicType.UNSPECIFIED,
+      false, false, false, false, false, false, false);
+
   private static String[] possiblePrefixes = { INFINITY, HUGE_VAL, NOT_A_NUMBER, ABSOLUTE_VAL, FLOAT_CLASSIFY };
 
   public static boolean isBuiltinFunction(String pFunctionName) {
-    return pFunctionName.startsWith("__builtin_");
+    return pFunctionName.startsWith("__builtin_") || pFunctionName.equals(FREE);
   }
 
   public static boolean isInfinityFloat(String pFunctionName) {
@@ -180,6 +188,13 @@ public class BuiltinFunctions {
         || FLOAT_CLASSIFY_LONG_DOUBLE.equals(pFunctionName);
   }
 
+  /**
+   * Returns the function type of the specified function, if known.
+   * Returns the type <code>UNSPECIFIED</code> otherwise.
+   *
+   * @param pFunctionName function name to get the return type for
+   * @return the return type of the specified function, if known
+   */
   public static CType getFunctionType(String pFunctionName) {
 
     for (String p : possiblePrefixes) {
@@ -205,6 +220,10 @@ public class BuiltinFunctions {
       }
     }
 
-    throw new IllegalArgumentException("Unhandled function " + pFunctionName);
+    if (pFunctionName.equals(FREE)) {
+      return CVoidType.VOID;
+    }
+
+    return UNSPECIFIED_TYPE;
   }
 }

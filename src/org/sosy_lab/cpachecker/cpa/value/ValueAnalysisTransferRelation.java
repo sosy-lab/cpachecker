@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -128,6 +129,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -690,7 +692,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (expression instanceof CFunctionCall) {
       CFunctionCall functionCall = (CFunctionCall) expression;
-      CExpression fn = functionCall.getFunctionCallExpression().getFunctionNameExpression();
+      CFunctionCallExpression functionCallExp = functionCall.getFunctionCallExpression();
+      CExpression fn = functionCallExp.getFunctionNameExpression();
 
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
@@ -699,6 +702,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         } else if (func.equals("free")) {
           return handleCallToFree(functionCall);
+
+        } else if (BuiltinFunctions.isBuiltinFunction(func)
+            && expression instanceof CFunctionCallAssignmentStatement) {
+
+          return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
         }
       }
     }
@@ -719,6 +727,31 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return state;
+  }
+
+  private ValueAnalysisState handleFunctionAssignment(
+      CFunctionCallAssignmentStatement pFunctionCallAssignment)
+      throws UnrecognizedCCodeException {
+
+    final CFunctionCallExpression functionCallExp = pFunctionCallAssignment.getFunctionCallExpression();
+    final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
+    final CType leftSideType = leftSide.getExpressionType();
+    final ExpressionValueVisitor evv = getVisitor();
+
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+
+    Value newValue = evv.evaluate(functionCallExp, leftSideType);
+
+    final MemoryLocation memLoc = evv.evaluateMemoryLocation(leftSide);
+
+    if (!newValue.isUnknown()) {
+      newElement.assignConstant(memLoc, newValue, leftSideType);
+
+    } else {
+      newElement.forget(memLoc);
+    }
+
+    return newElement;
   }
 
   private ValueAnalysisState handleCallToFree(CFunctionCall pExpression) {
@@ -1476,7 +1509,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       pointerExp = functionCall.getParameterExpressions().get(0);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Bulit in function free has no parameter", edge, functionCall);
+      throw new UnrecognizedCCodeException("Built in function free has no parameter", edge, functionCall);
     }
 
     ValueAnalysisSMGCommunicator cc = new ValueAnalysisSMGCommunicator(pNewElement, functionName, pSmgState,
