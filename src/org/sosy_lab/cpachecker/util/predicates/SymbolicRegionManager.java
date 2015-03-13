@@ -187,7 +187,7 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Set<Region> extractPredicates(Region f) {
-    return from(fmgr.extractAtoms(toFormula(f), false, false))
+    return from(fmgr.extractAtoms(toFormula(f), false))
         .transform(new Function<BooleanFormula, Region>() {
           @Override
           public Region apply(BooleanFormula input) {

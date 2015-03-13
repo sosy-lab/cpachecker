@@ -95,7 +95,7 @@ public class Refine implements PreconditionRefiner {
   }
 
   private Collection<BooleanFormula> literals(BooleanFormula pF, FormulaMode pMode) {
-    return mgrv.extractLiterals(pF, false, pMode == FormulaMode.UNINSTANTIATED);
+    return mgrv.extractLiterals(pF, pMode == FormulaMode.UNINSTANTIATED);
   }
 
   @VisibleForTesting

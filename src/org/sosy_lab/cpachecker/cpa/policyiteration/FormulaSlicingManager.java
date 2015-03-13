@@ -54,7 +54,7 @@ public class FormulaSlicingManager {
    */
   private Set<String> findClosure(BooleanFormula f, Predicate<String> seedCondition) {
     Set<String> closure = new HashSet<>();
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(f, false, false);
+    Collection<BooleanFormula> atoms = fmgr.extractAtoms(f, false);
     boolean changed = true;
     while (changed) {
       changed = false;

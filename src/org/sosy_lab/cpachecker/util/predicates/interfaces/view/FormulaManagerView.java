@@ -100,14 +100,6 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView {
 
-  public static enum FormulaStructure {
-    ATOM,
-    LITERAL,
-    DISJUNCTIVE_CLAUSE,
-    CONJUNCTIVE_CLAUSE,
-    FORMULA
-  }
-
   public static enum Theory {
     INTEGER,
     RATIONAL,
@@ -1064,54 +1056,52 @@ public class FormulaManagerView {
    * Extract all atoms of a given boolean formula.
    * All atoms get un-instantiated!!
    */
-  public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
-    return myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, true);
+  public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities) {
+    return myExtractAtoms(f, splitArithEqualities,
+        new Predicate<BooleanFormula>() {
+          @Override
+          public boolean apply(BooleanFormula pInput) {
+            return unsafeManager.isAtom(pInput);
+          }
+        }, true);
   }
 
-  public Collection<BooleanFormula> extractAtoms(
-      BooleanFormula f,
-      boolean splitArithEqualities,
-      boolean conjunctionsOnly,
-      boolean uninstanciate) {
-    return myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM, uninstanciate);
+  /**
+   * Extract all disjuncts of a given boolean formula.
+   * It removes the top-level "and" and "not" operators and returns the rest.
+   */
+  public Collection<BooleanFormula> extractDisjuncts(BooleanFormula f) {
+    return myExtractAtoms(f, false /*splitArithEqualities not supported for disjuncts */,
+        new Predicate<BooleanFormula>() {
+          @Override
+          public boolean apply(BooleanFormula pInput) {
+            // treat as atomic if formula is neither "not" nor "and"
+            return !(booleanFormulaManager.isNot(pInput) || booleanFormulaManager.isAnd(pInput));
+          }
+        }, false);
   }
 
   public Collection<BooleanFormula> extractLiterals(
       BooleanFormula f,
-      boolean conjunctionsOnly,
       boolean uninstanciate) {
 
     return myExtractAtoms(f, false /*splitArithEqualities not supported for literals */,
-        conjunctionsOnly, FormulaStructure.LITERAL, uninstanciate);
-  }
-
-  private boolean isLiteral(BooleanFormula f) {
-    // TODO: description of UnsafeManager.isLiteral said "atom or negation of atom"
-    // The implementation only checked for "atom or negation".
-    // This method currently does the latter.
-    return unsafeManager.isAtom(f)
-        || booleanFormulaManager.isNot(f);
-  }
-
-  private FormulaStructure getFormulaStructure(BooleanFormula f) {
-    if (unsafeManager.isAtom(f)) {
-      return FormulaStructure.ATOM;
-    } else if (isLiteral(f)) {
-      return FormulaStructure.LITERAL;
-    } else {
-      return FormulaStructure.FORMULA;
-    }
+        new Predicate<BooleanFormula>() {
+          @Override
+          public boolean apply(BooleanFormula pInput) {
+            // TODO: description of UnsafeManager.isLiteral said "atom or negation of atom"
+            // The implementation only checked for "atom or negation".
+            // This method currently does the latter.
+            return unsafeManager.isAtom(pInput)
+                || booleanFormulaManager.isNot(pInput);
+          }
+        }, uninstanciate);
   }
 
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula f, boolean splitArithEqualities,
-      boolean conjunctionsOnly, FormulaStructure breakdownTo, boolean uninstanciate) {
+      Predicate<BooleanFormula> isLowestLevel, boolean uninstanciate) {
     Set<BooleanFormula> handled = new HashSet<>();
     List<BooleanFormula> atoms = new ArrayList<>();
-
-    if (breakdownTo != FormulaStructure.ATOM
-        && breakdownTo != FormulaStructure.LITERAL) {
-      throw new UnsupportedOperationException("Formulas cannot be splitted onto the requested level!");
-    }
 
     Deque<BooleanFormula> toProcess = new ArrayDeque<>();
     toProcess.push(f);
@@ -1125,12 +1115,7 @@ public class FormulaManagerView {
         continue;
       }
 
-      final FormulaStructure ttStructure = getFormulaStructure(tt);
-      final boolean isSmallesConsidered = (ttStructure == breakdownTo)
-          || ((breakdownTo == FormulaStructure.LITERAL)
-              && (ttStructure == FormulaStructure.ATOM));
-
-      if (isSmallesConsidered) {
+      if (isLowestLevel.apply(tt)) {
         if (uninstanciate) {
           tt = uninstantiate(tt);
         }
@@ -1143,15 +1128,6 @@ public class FormulaManagerView {
           if (handled.add(split)) {
             toProcess.push(split);
           }
-        }
-        atoms.add(tt);
-
-      } else if (conjunctionsOnly
-          && !(booleanFormulaManager.isNot(tt) || booleanFormulaManager.isAnd(tt))) {
-        // conjunctions only, but formula is neither "not" nor "and"
-        // treat this as atomic
-        if (uninstanciate) {
-          tt = uninstantiate(tt);
         }
         atoms.add(tt);
 
