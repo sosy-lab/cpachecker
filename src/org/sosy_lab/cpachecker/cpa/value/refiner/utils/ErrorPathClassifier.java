@@ -284,12 +284,12 @@ public class ErrorPathClassifier {
     case DOMAIN_BEST_SHALLOW:
     case DOMAIN_WORST_SHALLOW:
     case REFINE_SHALLOW:
-      return pPrefixes.subList(0, Math.min(pPrefixes.size() - 1, MAX_PREFIX_NUMBER));
+      return pPrefixes.subList(0, Math.min(pPrefixes.size(), MAX_PREFIX_NUMBER));
 
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_DEEP:
     case REFINE_DEEP:
-      return pPrefixes.subList(Math.max(0, pPrefixes.size() - MAX_PREFIX_NUMBER - 1), pPrefixes.size() - 1);
+      return pPrefixes.subList(Math.max(0, pPrefixes.size() - MAX_PREFIX_NUMBER), pPrefixes.size());
 
     default:
       assert (false) : "No need to filter for " + preference;
