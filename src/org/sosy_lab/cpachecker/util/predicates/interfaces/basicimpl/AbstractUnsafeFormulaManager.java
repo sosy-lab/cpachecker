@@ -230,6 +230,13 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     return getFormulaCreator().encapsulate(type, newExpression);
   }
 
+  @Override
+  public <T extends Formula> T splitNumeralEqualityIfPossible(T pF) {
+    return encapsulateWithTypeOf(pF, splitNumeralEqualityIfPossible(extractInfo(pF)));
+  }
+
+  protected abstract TFormulaInfo splitNumeralEqualityIfPossible(TFormulaInfo pF);
+
   protected abstract TFormulaInfo substitute(
       TFormulaInfo expr,
       List<TFormulaInfo> substituteFrom,

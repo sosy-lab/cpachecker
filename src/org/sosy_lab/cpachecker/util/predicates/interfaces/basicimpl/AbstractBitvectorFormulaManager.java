@@ -202,14 +202,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isEqual(param);
-  }
-  protected abstract boolean isEqual(TFormulaInfo pParam) ;
-
-
-  @Override
   public BitvectorFormula not(BitvectorFormula pBits) {
     TFormulaInfo param1 = extractInfo(pBits);
     return wrap(not(param1));

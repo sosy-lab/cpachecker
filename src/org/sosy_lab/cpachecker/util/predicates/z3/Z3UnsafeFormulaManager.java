@@ -180,6 +180,23 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
     }
   }
 
+  @Override
+  protected Long splitNumeralEqualityIfPossible(Long pF) {
+    if (isOP(z3context, pF, Z3_OP_EQ)
+        && get_app_num_args(z3context, pF) == 2) {
+      long arg0 = get_app_arg(z3context, pF, 0);
+      long arg1 = get_app_arg(z3context, pF, 1);
+      long sortKind = get_sort_kind(z3context, get_sort(z3context, arg0));
+      assert sortKind == get_sort_kind(z3context, get_sort(z3context, arg1));
+      if (sortKind == Z3_BV_SORT) {
+        return mk_bvule(z3context, arg0, arg1);
+      } else if (sortKind == Z3_INT_SORT || sortKind == Z3_REAL_SORT) {
+        return mk_le(z3context, arg0, arg1);
+      }
+    }
+    return pF;
+  }
+
   public long createUIFCallImpl(long pNewFunc, long[] args) {
     long ufc = mk_app(z3context, pNewFunc, args);
     uifs.add(pNewFunc);

@@ -305,12 +305,4 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   }
 
   protected abstract TFormulaInfo lessOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2);
-
-
-  @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isEqual(param);
-  }
-  protected abstract boolean isEqual(TFormulaInfo pParam) ;
 }

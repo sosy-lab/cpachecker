@@ -39,9 +39,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   extends BaseManagerView implements BitvectorFormulaManager {
@@ -208,11 +208,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
-  }
-
-  @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    return numericFormulaManager.isEqual(pNumber);
   }
 
   @Override

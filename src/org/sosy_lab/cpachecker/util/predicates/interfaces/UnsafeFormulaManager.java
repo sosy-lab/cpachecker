@@ -168,6 +168,12 @@ public interface UnsafeFormulaManager {
   <T extends Formula> T replaceName(T f, String newName);
 
   /**
+   * If the given formula is a numeral (i.e., non-boolean) equality "x = y",
+   * return an inequality "x <= y". Otherwise return the unchanged formula.
+   */
+  <T extends Formula> T splitNumeralEqualityIfPossible(T f);
+
+  /**
    * Substitute every occurrence of any item from {@code changeFrom}
    * in formula {@code f} to the corresponding occurrence from {@code changeTo}.
    *

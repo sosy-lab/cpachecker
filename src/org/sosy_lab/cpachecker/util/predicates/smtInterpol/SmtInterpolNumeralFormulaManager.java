@@ -100,11 +100,6 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public boolean isEqual(Term pNumber) {
-    return SmtInterpolUtil.isNumeralEqual(pNumber);
-  }
-
-  @Override
   public Term greaterThan(Term pNumber1, Term pNumber2) {
     return env.term(">", pNumber1, pNumber2);
   }

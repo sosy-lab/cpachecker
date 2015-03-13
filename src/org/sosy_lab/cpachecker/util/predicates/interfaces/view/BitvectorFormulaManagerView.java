@@ -121,12 +121,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
 
 
   @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    return manager.isEqual(pNumber);
-  }
-
-
-  @Override
   public BitvectorFormula not(BitvectorFormula pBits) {
     return manager.not(pBits);
   }

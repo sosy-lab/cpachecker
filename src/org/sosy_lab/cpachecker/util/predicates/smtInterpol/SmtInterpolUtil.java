@@ -197,11 +197,6 @@ class SmtInterpolUtil {
     return isFunction(t, "=") && getArity(t) == 2 && isBoolean(getArg(t, 0)) && isBoolean(getArg(t, 1));
   }
 
-  /** num1 = num2, non-boolean version */
-  public static boolean isNumeralEqual(Term t) {
-    return isFunction(t, "=") && getArity(t) == 2 && !isBoolean(getArg(t, 0)) && !isBoolean(getArg(t, 1));
-  }
-
   public static boolean isFunction(Term t, String name) {
     return (t instanceof ApplicationTerm)
         && name.equals(((ApplicationTerm) t).getFunction().getName());

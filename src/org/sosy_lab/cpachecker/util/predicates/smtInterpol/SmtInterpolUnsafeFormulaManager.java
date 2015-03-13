@@ -117,6 +117,19 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
     }
   }
 
+  @Override
+  protected Term splitNumeralEqualityIfPossible(Term pF) {
+    if (SmtInterpolUtil.isFunction(pF, "=") && SmtInterpolUtil.getArity(pF) == 2) {
+      Term arg0 = SmtInterpolUtil.getArg(pF, 0);
+      Term arg1 = SmtInterpolUtil.getArg(pF, 1);
+      assert arg0.getSort().equals(arg1.getSort());
+      if (!SmtInterpolUtil.isBoolean(arg0)) {
+        return getFormulaCreator().getEnv().term("<=", arg0, arg1);
+      }
+    }
+    return pF;
+  }
+
   Term createUIFCallImpl(String funcDecl, Term[] args) {
     Term ufc = getFormulaCreator().getEnv().term(funcDecl, args);
     assert SmtInterpolUtil.isUIF(ufc);

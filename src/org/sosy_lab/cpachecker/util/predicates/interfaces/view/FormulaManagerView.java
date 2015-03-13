@@ -1129,36 +1129,14 @@ public class FormulaManagerView {
 
         if (splitArithEqualities
             && myIsPurelyArithmetic(tt)) {
-          BooleanFormula tt1 = null;
-          if (rationalFormulaManager == null && getIntegerFormulaManager().isEqual(tt)) {
-            // If solver does not support Rationals, rationalFormulaManager is Null.
-            // Otherwise we assume, that rationalFormulaManager was used before (for creating formulas) and is initialized (!= Null).
-            IntegerFormula a0 = unsafeManager.typeFormula(FormulaType.IntegerType, unsafeManager.getArg(tt, 0));
-            IntegerFormula a1 = unsafeManager.typeFormula(FormulaType.IntegerType, unsafeManager.getArg(tt, 1));
-            tt1 = getIntegerFormulaManager().lessOrEquals(a0, a1);
-          } else if (rationalFormulaManager != null && rationalFormulaManager.isEqual(tt)) {
-            RationalFormula a0 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 0));
-            RationalFormula a1 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 1));
-            tt1 = rationalFormulaManager.lessOrEquals(a0, a1);
-          } else if (bitvectorFormulaManager.isEqual(tt)) {
-            // NOTE: the type doesn't matter in the current implementations under this situation,
-            // however if it does in the future we will have to add an (unsafe) api to read the bitlength (at least)
-            FormulaType<BitvectorFormula> type = FormulaType.getBitvectorTypeWithSize(32);
-            BitvectorFormula a0 = unsafeManager.typeFormula(type, unsafeManager.getArg(tt, 0));
-            BitvectorFormula a1 = unsafeManager.typeFormula(type, unsafeManager.getArg(tt, 1));
-            tt1 = bitvectorFormulaManager.lessOrEquals(a0, a1, true);
+          BooleanFormula split = unsafeManager.splitNumeralEqualityIfPossible(tt);
+          // some solvers might produce non-atomic formulas for split,
+          // thus push it instead of adding it directly to atoms
+          if (handled.add(split)) {
+            toProcess.push(split);
           }
-          if (tt1 != null) {
-            //SymbolicFormula tt2 = encapsulate(t2);
-            handled.add(tt1);
-            //cache.add(tt2);
-            atoms.add(tt1);
-            //atoms.add(tt2);
-            atoms.add(tt);
-          }
-        } else {
-          atoms.add(tt);
         }
+        atoms.add(tt);
 
       } else if (conjunctionsOnly
           && !(booleanFormulaManager.isNot(tt) || booleanFormulaManager.isAnd(tt))) {

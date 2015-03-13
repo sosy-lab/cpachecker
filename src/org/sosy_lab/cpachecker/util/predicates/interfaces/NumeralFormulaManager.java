@@ -86,7 +86,6 @@ public interface NumeralFormulaManager
   // ----------------- Numeric relations, return type BooleanFormula -----------------
 
   public BooleanFormula equal(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isEqual(BooleanFormula number);
 
   public BooleanFormula greaterThan(ParamFormulaType number1, ParamFormulaType number2);
 

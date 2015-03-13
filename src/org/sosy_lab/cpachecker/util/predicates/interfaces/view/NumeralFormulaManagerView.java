@@ -50,10 +50,6 @@ public class NumeralFormulaManagerView
     return pFormula;
   }
 
-  private BooleanFormula extractFromView(BooleanFormula pCast) {
-    return pCast;
-  }
-
   @Override
   public ResultFormulaType negate(ParamFormulaType pNumber) {
     return manager.negate(pNumber);
@@ -108,12 +104,6 @@ public class NumeralFormulaManagerView
   @Override
   public BooleanFormula lessOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return wrapInView(manager.lessOrEquals(pNumber1, pNumber2));
-  }
-
-
-  @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    return manager.isEqual(extractFromView(pNumber));
   }
 
 
