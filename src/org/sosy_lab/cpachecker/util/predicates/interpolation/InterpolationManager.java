@@ -884,12 +884,10 @@ public final class InterpolationManager {
       assert Iterables.elementsEqual(from(traceFormulas).transform(Triple.getProjectionToFirst()),
               from(currentlyAssertedFormulas).transform(Triple.getProjectionToFirst()));
 
-      if (incrementalCheck) {
-        // we did unsat checks
-        return !isStillFeasible;
-      } else {
-        return itpProver.isUnsat();
-      }
+      // we have to do the sat check every time, as it could be that also
+      // with incremental checking it was missing (when the path is infeasible
+      // and formulas get pushed afterwards)
+      return itpProver.isUnsat();
     }
 
     private void close() {
