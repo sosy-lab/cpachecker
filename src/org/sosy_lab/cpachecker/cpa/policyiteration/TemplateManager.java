@@ -116,7 +116,7 @@ public class TemplateManager {
   public ImmutableSet<Template> templatesForNode(CFANode node) {
     ImmutableSet.Builder<Template> out = ImmutableSet.builder();
     LiveVariables liveVariables = cfa.getLiveVariables().get();
-    Set<ASimpleDeclaration> liveVars = liveVariables.getLiveVariablesForNode(node);
+    Iterable<ASimpleDeclaration> liveVars = liveVariables.getLiveVariablesForNode(node);
     for (ASimpleDeclaration s : liveVars) {
 
       if (!shouldProcessVariable(s)) {

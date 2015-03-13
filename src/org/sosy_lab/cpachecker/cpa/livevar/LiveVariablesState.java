@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
@@ -173,7 +172,7 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    Joiner.on(", ").appendTo(sb, from(liveVars).transform(DECL_TO_QUALIFIED_NAME));
+    Joiner.on(", ").appendTo(sb, from(liveVars).transform(ASimpleDeclaration.GET_QUALIFIED_NAME));
     sb.append("]");
 
     return sb.toString();
@@ -187,10 +186,4 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
   public Iterable<? extends ASimpleDeclaration> getLiveVariables() {
     return liveVars;
   }
-
-  private static Function<ASimpleDeclaration, String> DECL_TO_QUALIFIED_NAME = new Function<ASimpleDeclaration, String>() {
-    @Override
-    public String apply(ASimpleDeclaration pInput) {
-      return pInput.getQualifiedName();
-    }};
 }

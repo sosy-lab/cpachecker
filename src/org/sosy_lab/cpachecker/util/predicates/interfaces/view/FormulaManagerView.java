@@ -836,14 +836,14 @@ public class FormulaManagerView {
        });
   }
 
-  public Set<String> instantiate(Set<String> pVariableNames, final SSAMap pSsa) {
-    return Sets.newHashSet(Collections2.transform(pVariableNames, new Function<String, String>() {
+  public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
+    return from(pVariableNames).transform(new Function<String, String>() {
       @Override
       public String apply(String pArg0) {
         Pair<String, Integer> parsedVar = parseName(pArg0);
         return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
       }
-    }));
+    }).toSet();
   }
 
   // the character for separating name and index of a value
