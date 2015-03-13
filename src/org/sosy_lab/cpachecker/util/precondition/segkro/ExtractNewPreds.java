@@ -65,7 +65,7 @@ public class ExtractNewPreds {
   }
 
   private Collection<BooleanFormula> extractLiterals(BooleanFormula pInputFormula) {
-    return mgrv.extractLiterals(pInputFormula, false, false, false); // TODO: check the argument 'conjunctionsOnly'
+    return mgrv.extractLiterals(pInputFormula, false, false); // TODO: check the argument 'conjunctionsOnly'
   }
 
   public List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {

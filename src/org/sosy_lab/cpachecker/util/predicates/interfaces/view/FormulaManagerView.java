@@ -1078,11 +1078,11 @@ public class FormulaManagerView {
 
   public Collection<BooleanFormula> extractLiterals(
       BooleanFormula f,
-      boolean splitArithEqualities,
       boolean conjunctionsOnly,
       boolean uninstanciate) {
 
-    return myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.LITERAL, uninstanciate);
+    return myExtractAtoms(f, false /*splitArithEqualities not supported for literals */,
+        conjunctionsOnly, FormulaStructure.LITERAL, uninstanciate);
   }
 
   private FormulaStructure getFormulaStructure(Formula f) {

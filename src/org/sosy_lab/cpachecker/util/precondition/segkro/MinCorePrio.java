@@ -139,7 +139,7 @@ public class MinCorePrio implements InterpolationWithCandidates {
     Preconditions.checkNotNull(pPhiPlus);
 
     Set<BooleanFormula> resultPredicates = Sets.newHashSet(
-        mgrv.extractLiterals(pPhiMinus, false, false, false));
+        mgrv.extractLiterals(pPhiMinus, false, false));
 
     if (!isInconsistent(pPhiMinus, pPhiPlus)) {
       logger.log(Level.WARNING, "MinCorePrio: Formulas not inconsistent! The over-approximation of the system might be insufficient!");
