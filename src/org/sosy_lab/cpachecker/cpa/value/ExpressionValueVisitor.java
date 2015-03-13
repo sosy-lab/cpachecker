@@ -331,7 +331,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (isGlobal) {
         return MemoryLocation.valueOf(idExp.getName(), 0);
       } else {
-        return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName(), 0);
+        return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName(), 0);
       }
     }
 
