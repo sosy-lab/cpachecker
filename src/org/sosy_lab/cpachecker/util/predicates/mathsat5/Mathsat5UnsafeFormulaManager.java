@@ -49,12 +49,6 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   }
 
   @Override
-  public boolean isLiteral(Long t) {
-    return msat_term_is_not(msatEnv, t)
-        || isAtom(t);
-  }
-
-  @Override
   public int getArity(Long pT) {
     return msat_term_arity(pT);
   }

@@ -67,17 +67,6 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
   }
 
   @Override
-  public boolean isLiteral(Long t) {
-    long decl = get_app_decl(z3context, t);
-    int declKind = get_decl_kind(z3context, decl);
-    if (declKind == Z3_OP_NOT) {
-      return true;
-    } else {
-      return !nonAtomicOpTypes.contains(declKind);
-    }
-  }
-
-  @Override
   public int getArity(Long t) {
     return get_app_num_args(z3context, t);
   }

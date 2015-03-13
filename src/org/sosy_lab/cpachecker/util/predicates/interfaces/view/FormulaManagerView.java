@@ -1085,10 +1085,18 @@ public class FormulaManagerView {
         conjunctionsOnly, FormulaStructure.LITERAL, uninstanciate);
   }
 
-  private FormulaStructure getFormulaStructure(Formula f) {
+  private boolean isLiteral(BooleanFormula f) {
+    // TODO: description of UnsafeManager.isLiteral said "atom or negation of atom"
+    // The implementation only checked for "atom or negation".
+    // This method currently does the latter.
+    return unsafeManager.isAtom(f)
+        || booleanFormulaManager.isNot(f);
+  }
+
+  private FormulaStructure getFormulaStructure(BooleanFormula f) {
     if (unsafeManager.isAtom(f)) {
       return FormulaStructure.ATOM;
-    } else if (unsafeManager.isLiteral(f)) {
+    } else if (isLiteral(f)) {
       return FormulaStructure.LITERAL;
     } else {
       return FormulaStructure.FORMULA;

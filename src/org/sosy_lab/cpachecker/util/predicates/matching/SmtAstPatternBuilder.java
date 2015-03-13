@@ -284,7 +284,8 @@ public class SmtAstPatternBuilder {
           @Override
           public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
             // TODO: Switch from FormulaManager to FormulaManagerView
-            return !pMgr.getUnsafeFormulaManager().isLiteral(pF);
+            //return !pMgr.getUnsafeFormulaManager().isLiteral(pF);
+            throw new UnsupportedOperationException();
           }
         }),
         Optional.<String>absent(),

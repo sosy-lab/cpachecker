@@ -81,13 +81,6 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   protected abstract boolean isAtom(TFormulaInfo pT) ;
 
   @Override
-  public boolean isLiteral(Formula pF) {
-    TFormulaInfo t = extractInfo(pF);
-    return isLiteral(t);
-  }
-  protected abstract boolean isLiteral(TFormulaInfo pT) ;
-
-  @Override
   public int getArity(Formula pF) {
     TFormulaInfo t = extractInfo(pF);
     return getArity(t);

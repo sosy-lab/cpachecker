@@ -64,13 +64,6 @@ public interface UnsafeFormulaManager {
   boolean isAtom(Formula f);
 
   /**
-   * Checks if the given Formula is a literal (atom or the negation of an atom).
-   * @param f
-   * @return
-   */
-  boolean isLiteral(Formula pF);
-
-  /**
    * Checks if the given Formula is a variable.
    * (either free or quantified)
    * @param f
