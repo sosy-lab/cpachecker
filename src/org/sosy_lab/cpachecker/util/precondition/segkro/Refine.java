@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -94,8 +95,8 @@ public class Refine implements PreconditionRefiner {
     helper = new PreconditionHelper(mgrv, pConfig, pLogger, pShutdownNotifier, pCfa);
   }
 
-  private Collection<BooleanFormula> literals(BooleanFormula pF, FormulaMode pMode) {
-    return mgrv.extractLiterals(pF, pMode == FormulaMode.UNINSTANTIATED);
+  private Set<BooleanFormula> uninstantiatedLiterals(BooleanFormula pF) {
+    return mgrv.uninstantiate(mgrv.extractLiterals(pF));
   }
 
   @VisibleForTesting
@@ -242,7 +243,7 @@ public class Refine implements PreconditionRefiner {
                 mgrv.instantiate(predsNew, instantiateWith),
                 t.getSuccessor()));
 
-        result.putAll(t.getSuccessor(), literals(preAtK.getFormula(), FormulaMode.UNINSTANTIATED));
+        result.putAll(t.getSuccessor(), uninstantiatedLiterals(preAtK.getFormula()));
       }
     }
 
@@ -294,8 +295,8 @@ public class Refine implements PreconditionRefiner {
     Builder<BooleanFormula> globalPreds = ImmutableList.builder();
     ImmutableMultimap.Builder<CFANode, BooleanFormula> localPreds = ImmutableMultimap.builder();
 
-    globalPreds.addAll(literals(pcViolation.getFormula(), FormulaMode.UNINSTANTIATED));
-    globalPreds.addAll(literals(pcValid.getFormula(), FormulaMode.UNINSTANTIATED));
+    globalPreds.addAll(uninstantiatedLiterals(pcViolation.getFormula()));
+    globalPreds.addAll(uninstantiatedLiterals(pcValid.getFormula()));
 
     // Get additional predicates from the states along the trace
     //    (or the WPs along the trace)...

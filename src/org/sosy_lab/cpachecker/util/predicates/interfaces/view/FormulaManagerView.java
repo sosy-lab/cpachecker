@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -929,6 +930,17 @@ public class FormulaManagerView {
         );
   }
 
+  public Set<BooleanFormula> uninstantiate(Collection<BooleanFormula> formulas) {
+    return from(formulas)
+        .transform(new Function<BooleanFormula, BooleanFormula>() {
+          @Override
+          public BooleanFormula apply(BooleanFormula pInput) {
+            return uninstantiate(pInput);
+          }
+        })
+        .toSet();
+  }
+
   /**
    * Apply an arbitrary renaming to all free variables and UFs in a formula.
    * @param pFormula The formula in which the renaming should occur.
@@ -1054,7 +1066,6 @@ public class FormulaManagerView {
 
   /**
    * Extract all atoms of a given boolean formula.
-   * All atoms get un-instantiated!!
    */
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities) {
     return myExtractAtoms(f, splitArithEqualities,
@@ -1063,7 +1074,7 @@ public class FormulaManagerView {
           public boolean apply(BooleanFormula pInput) {
             return unsafeManager.isAtom(pInput);
           }
-        }, true);
+        });
   }
 
   /**
@@ -1078,12 +1089,10 @@ public class FormulaManagerView {
             // treat as atomic if formula is neither "not" nor "and"
             return !(booleanFormulaManager.isNot(pInput) || booleanFormulaManager.isAnd(pInput));
           }
-        }, false);
+        });
   }
 
-  public Collection<BooleanFormula> extractLiterals(
-      BooleanFormula f,
-      boolean uninstanciate) {
+  public Collection<BooleanFormula> extractLiterals(BooleanFormula f) {
 
     return myExtractAtoms(f, false /*splitArithEqualities not supported for literals */,
         new Predicate<BooleanFormula>() {
@@ -1095,11 +1104,11 @@ public class FormulaManagerView {
             return unsafeManager.isAtom(pInput)
                 || booleanFormulaManager.isNot(pInput);
           }
-        }, uninstanciate);
+        });
   }
 
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula f, boolean splitArithEqualities,
-      Predicate<BooleanFormula> isLowestLevel, boolean uninstanciate) {
+      Predicate<BooleanFormula> isLowestLevel) {
     Set<BooleanFormula> handled = new HashSet<>();
     List<BooleanFormula> atoms = new ArrayList<>();
 
@@ -1116,10 +1125,6 @@ public class FormulaManagerView {
       }
 
       if (isLowestLevel.apply(tt)) {
-        if (uninstanciate) {
-          tt = uninstantiate(tt);
-        }
-
         if (splitArithEqualities
             && myIsPurelyArithmetic(tt)) {
           BooleanFormula split = unsafeManager.splitNumeralEqualityIfPossible(tt);

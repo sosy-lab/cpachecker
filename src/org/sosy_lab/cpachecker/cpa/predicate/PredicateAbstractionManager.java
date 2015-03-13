@@ -1075,7 +1075,7 @@ public class PredicateAbstractionManager {
       return ImmutableList.of(amgr.makeFalsePredicate());
     }
 
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
+    Set<BooleanFormula> atoms = fmgr.uninstantiate(fmgr.extractAtoms(pFormula, splitItpAtoms));
 
     List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
 

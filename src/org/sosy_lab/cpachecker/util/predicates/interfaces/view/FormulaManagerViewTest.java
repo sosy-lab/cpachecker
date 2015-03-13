@@ -110,7 +110,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     BooleanFormula f = bmgrv.and(ImmutableList.of(
         bmgrv.or(atom1, atom2), bmgrv.not(bmgrv.or(atom1, atom3)), atom4, atom5));
 
-    assertThat(mgrv.extractLiterals(f, false))
+    assertThat(mgrv.extractLiterals(f))
         .containsExactly(atom1, atom2, bmgrv.not(bmgrv.or(atom1, atom3)), atom4, atom5);
 
     // TODO: this should really be the following (c.f. FormulaManagerView.extractLiterals)

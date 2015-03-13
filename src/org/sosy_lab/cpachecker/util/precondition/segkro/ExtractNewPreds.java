@@ -64,10 +64,6 @@ public class ExtractNewPreds {
     this.mgrv = pSolver.getFormulaManager();
   }
 
-  private Collection<BooleanFormula> extractLiterals(BooleanFormula pInputFormula) {
-    return mgrv.extractLiterals(pInputFormula, false); // TODO: check whether to use extractDisjuncts instead
-  }
-
   public List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
     final List<BooleanFormula> resultPredicates = Lists.newArrayList();
     final LinkedList<BooleanFormula> resultPredicatesPrime = Lists.newLinkedList();
@@ -171,7 +167,8 @@ public class ExtractNewPreds {
   public List<BooleanFormula> extractNewPreds(BooleanFormula pConjunctiveFormula) throws SolverException, InterruptedException {
     // Start with the list of basic predicates
     //  (extracted from the conjunctive formula)
-    Collection<BooleanFormula> literals = extractLiterals(pConjunctiveFormula);
+    // TODO: check whether to use extractDisjuncts instead
+    Collection<BooleanFormula> literals = mgrv.extractLiterals(pConjunctiveFormula);
     return extractNewPreds(literals);
   }
 

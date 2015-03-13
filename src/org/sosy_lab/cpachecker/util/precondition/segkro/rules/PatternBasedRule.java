@@ -98,7 +98,7 @@ public abstract class PatternBasedRule extends AbstractRule {
 
   @Override
   public Set<BooleanFormula> apply(BooleanFormula pInput) throws SolverException, InterruptedException {
-    return apply(fmv.extractLiterals(pInput, false), HashMultimap.<String, Formula>create());
+    return apply(fmv.extractLiterals(pInput), HashMultimap.<String, Formula>create());
   }
 
   protected Formula substituteInParent(

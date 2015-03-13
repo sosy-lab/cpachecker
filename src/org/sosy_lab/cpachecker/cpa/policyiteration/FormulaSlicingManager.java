@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -54,7 +53,7 @@ public class FormulaSlicingManager {
    */
   private Set<String> findClosure(BooleanFormula f, Predicate<String> seedCondition) {
     Set<String> closure = new HashSet<>();
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(f, false);
+    Set<BooleanFormula> atoms = fmgr.uninstantiate(fmgr.extractAtoms(f, false));
     boolean changed = true;
     while (changed) {
       changed = false;
