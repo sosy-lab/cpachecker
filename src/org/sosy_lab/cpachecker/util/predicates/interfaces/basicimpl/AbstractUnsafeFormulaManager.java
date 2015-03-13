@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -72,15 +71,6 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   final <T extends Formula> T typeFormula(FormulaType<T> type, TFormulaInfo formulaInfo) {
     return getFormulaCreator().encapsulate(type, formulaInfo);
-  }
-
-  protected List<TFormulaInfo> getArguments(TFormulaInfo pT) {
-    int arity = getArity(pT);
-    List<TFormulaInfo> rets = new ArrayList<>(arity);
-    for (int i = 0; i < arity; i++) {
-      rets.add(getArg(pT, i));
-    }
-    return rets;
   }
 
   @Override
