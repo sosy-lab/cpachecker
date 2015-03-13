@@ -81,8 +81,14 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   private MemoryLocation(String pIdentifier, long pOffset) {
     checkNotNull(pIdentifier);
 
-    functionName = null;
-    identifier = pIdentifier;
+    int separatorIndex = pIdentifier.indexOf("::");
+    if (separatorIndex >= 0) {
+      functionName = pIdentifier.substring(0, separatorIndex);
+      identifier = pIdentifier.substring(separatorIndex + 2);
+    } else {
+      functionName = null;
+      identifier = pIdentifier;
+    }
     offset = pOffset;
   }
 

@@ -103,9 +103,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   /** This method returns the value of a variable from the current state. */
   private Value evaluateAIdExpression(AIdExpression varName) {
 
-    MemoryLocation memLoc;
+    final MemoryLocation memLoc;
 
-    if (!ForwardingTransferRelation.isGlobal(varName)) {
+    if (varName.getDeclaration() != null) {
+      memLoc = MemoryLocation.valueOf(varName.getDeclaration().getQualifiedName(), 0);
+    } else if (!ForwardingTransferRelation.isGlobal(varName)) {
       memLoc = MemoryLocation.valueOf(getFunctionName(), varName.getName(), 0);
     } else {
       memLoc = MemoryLocation.valueOf(varName.getName(), 0);
@@ -320,12 +322,16 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     @Override
     public MemoryLocation visit(CIdExpression idExp) throws UnrecognizedCCodeException {
 
+      if (idExp.getDeclaration() != null) {
+        return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName(), 0);
+      }
+
       boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
       if (isGlobal) {
         return MemoryLocation.valueOf(idExp.getName(), 0);
       } else {
-        return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName(), 0);
+        return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName(), 0);
       }
     }
 
