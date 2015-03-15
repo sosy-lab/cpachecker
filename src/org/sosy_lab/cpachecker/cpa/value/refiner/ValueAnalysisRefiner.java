@@ -101,6 +101,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       description = "heuristic to sort targets based on the quality of interpolants deriveable from them")
   private boolean itpSortedTargets = false;
 
+  @Option(
+      secure = true,
+      description = "whether or not to use heuristic to avoid similar, repeated refinements")
+  private boolean avoidSimilarRepeatedRefinement = false;
+
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
       + "\nFINAL:   export the interpolation tree once after each refinement"
@@ -382,7 +387,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
     // a refinement is a similar, repeated refinement
     // if the (sorted) precision increment was already added in a previous refinement
-    return !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
+    return avoidSimilarRepeatedRefinement && !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
   }
 
   /**
