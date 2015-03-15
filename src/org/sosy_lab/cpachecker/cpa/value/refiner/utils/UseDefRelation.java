@@ -141,7 +141,7 @@ public class UseDefRelation {
       }
 
       // stop the traversal once a fix-point is reached
-      if(unresolvedUses.isEmpty()) {
+      if(hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {
         break;
       }
 
