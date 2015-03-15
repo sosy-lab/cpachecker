@@ -30,11 +30,15 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
+import ap.basetypes.IdealInt;
 import ap.parser.BooleanCompactifier;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
+import ap.parser.IIntFormula;
+import ap.parser.IIntLit;
+import ap.parser.IIntRelation;
 import ap.parser.PartialEvaluator;
 
 import com.google.common.collect.ImmutableList;
@@ -48,11 +52,6 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   @Override
   public boolean isAtom(IExpression t) {
     return PrincessUtil.isAtom(t);
-  }
-
-  @Override
-  public boolean isLiteral(IExpression t) {
-    return PrincessUtil.isNot(t) || isAtom(t);
   }
 
   @Override
@@ -106,6 +105,16 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }
+  }
+
+  @Override
+  protected IExpression splitNumeralEqualityIfPossible(IExpression pF) {
+    // Princess does not support Equal.
+    // Formulas are converted from "a==b" to "a+(-b)==0".
+    if (pF instanceof IIntFormula && ((IIntFormula)pF).rel() == IIntRelation.EqZero()) {
+      return ((IIntFormula)pF).t().$less$eq(new IIntLit(IdealInt.ZERO()));
+    }
+    return pF;
   }
 
   IExpression createUIFCallImpl(IFunction funcDecl, TermType resultType, List<IExpression> args) {

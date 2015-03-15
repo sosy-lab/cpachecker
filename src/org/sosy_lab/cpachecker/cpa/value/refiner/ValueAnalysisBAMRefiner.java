@@ -36,11 +36,11 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
 
-  private ValueAnalysisDelegatingRefiner refiner;
+  private ValueAnalysisRefiner refiner;
 
-  protected ValueAnalysisBAMRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
+  protected ValueAnalysisBAMRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     super(pCpa);
-    refiner = ValueAnalysisDelegatingRefiner.create(pCpa);
+    refiner = ValueAnalysisRefiner.create(pCpa);
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
@@ -50,9 +50,9 @@ public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
   @Override
   protected CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException,
       InterruptedException {
-    CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
+    CounterexampleInfo refineResult = refiner.performRefinement(pReached/*, pPath*/);
     if (!refineResult.isSpurious()) {
-      if (refiner.isPathFeasable(pPath)) {
+      if (refiner.isErrorPathFeasible(pPath)) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
     }

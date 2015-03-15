@@ -40,14 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public interface PathFormulaManager {
 
-  public class CheckInfeasibleException extends Exception {
-    private static final long serialVersionUID = -1;
-
-    public CheckInfeasibleException(String message) {
-      super (message);
-    }
-  }
-
   PathFormula makeEmptyPathFormula();
 
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);
@@ -113,4 +105,19 @@ public interface PathFormulaManager {
   public Formula expressionToFormula(PathFormula pFormula,
       CIdExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException;
+
+  /**
+   * Builds test for PCC that pF1 is covered by more abstract path formula pF2.
+   * Assumes that the SSA indices of pF1 are smaller or equal than those of pF2.
+   * Since pF1 may be merged with other path formulas resulting in pF2, needs to
+   * add assumptions about the connection between indexed variables as included by
+   * {@link PathFormulaManager#makeOr(PathFormula, PathFormula)}. Returns negation of
+   * implication to check if it is unsatisfiable (implication is valid).
+   *
+   * @param pF1 path formula which should be covered
+   * @param pF2 path formula which covers
+   * @return pF1.getFormula() and assumptions and not pF2.getFormula()
+   * @throws InterruptedException
+   */
+  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 }

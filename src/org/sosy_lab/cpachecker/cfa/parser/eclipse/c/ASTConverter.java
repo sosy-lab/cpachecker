@@ -101,6 +101,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -170,6 +171,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -215,7 +217,6 @@ class ASTConverter {
   // more than one file (which get parsed with different AstConverters, although
   // they are in the same run) unique
   private static int anonTypeCounter = 0;
-  private static int anonTypeMemberCounter = 0;
 
 
   private final Sideassignments sideAssignmentStack;
@@ -317,12 +318,12 @@ class ASTConverter {
   }
 
 
-  private CComplexTypeDeclaration addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
+  private void addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
     CComplexTypeDeclaration decl = new CComplexTypeDeclaration(loc, scope.isGlobalScope(), type);
 
-    scope.registerTypeDeclaration(decl);
-    sideAssignmentStack.addPreSideAssignment(decl);
-    return decl;
+    if (scope.registerTypeDeclaration(decl)) {
+      sideAssignmentStack.addPreSideAssignment(decl);
+    }
   }
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
@@ -437,8 +438,18 @@ class ASTConverter {
       return convertExpressionWithSideEffects(e.getNegativeResultExpression());
     case NORMAL:
       CIdExpression tmp = createTemporaryVariable(e);
-      sideAssignmentStack.addConditionalExpression(e, tmp);
-      return tmp;
+
+      // this means the return value (if there could be one) of the conditional
+      // expression is not used
+      if (tmp.getExpressionType() instanceof CVoidType) {
+        sideAssignmentStack.addConditionalExpression(e, null);
+        // TODO we should not return a variable here, however null cannot be returned
+        // perhaps we need a dummyexpression here
+        return CIntegerLiteralExpression.ZERO;
+      } else {
+        sideAssignmentStack.addConditionalExpression(e, tmp);
+        return tmp;
+      }
     default:
       throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
@@ -572,7 +583,12 @@ class ASTConverter {
 //            "Cannot create temporary variable for expression with type void",
 //            e, niceFileNameFunction);
       }
+
+      // workaround for strange CDT behaviour
+    } else if (type instanceof CProblemType && e instanceof IASTConditionalExpression) {
+      type = typeConverter.convert(((IASTConditionalExpression)e).getNegativeResultExpression().getExpressionType());
     }
+
     return createInitializedTemporaryVariable(
         getLocation(e), type, (CInitializer)null);
   }
@@ -591,7 +607,7 @@ class ASTConverter {
       final FileLocation loc, final CType pType, @Nullable CInitializer initializer) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
-    while (scope.variableNameInUse(name + i, name + i)) {
+    while (scope.variableNameInUse(name + i)) {
       i++;
     }
     name += i;
@@ -740,7 +756,7 @@ class ASTConverter {
   private static class ContainsProblemTypeVisitor extends DefaultCTypeVisitor<Boolean, RuntimeException> {
 
     @Override
-    public Boolean visitDefault(CType pT) throws RuntimeException {
+    public Boolean visitDefault(CType pT) {
       return Boolean.FALSE;
     }
 
@@ -946,7 +962,7 @@ class ASTConverter {
     CFunctionDeclaration declaration = null;
 
     if (functionName instanceof CIdExpression) {
-      if (((CIdExpression) functionName).getName().equals("__builtin_types_compatible_p")) {
+      if (BuiltinFunctions.isTypesCompatible(((CIdExpression) functionName).getName())) {
         sideAssignmentStack.enterBlock();
         List<CExpression> params = new ArrayList<>();
         for (IASTInitializerClause i : e.getArguments()) {
@@ -976,9 +992,9 @@ class ASTConverter {
       // a constant value. We can easily provide this functionality by checking
       // if the parameter is a literal expression.
       // We only do check it if the function is not declared.
-      if (((CIdExpression) functionName).getName().equals("__builtin_constant_p")
+      if (((CIdExpression) functionName).getName().equals(BuiltinFunctions.CONSTANT_AT_COMPILE_TIME)
           && params.size() == 1
-          && scope.lookupFunction("__builtin_constant_p") == null) {
+          && scope.lookupFunction(BuiltinFunctions.CONSTANT_AT_COMPILE_TIME) == null) {
         if (params.get(0) instanceof CLiteralExpression) {
           return CIntegerLiteralExpression.ONE;
         } else {
@@ -992,7 +1008,7 @@ class ASTConverter {
       }
 
       if ((declaration == null)
-          && ((CIdExpression)functionName).getName().equals("__builtin_expect")
+          && BuiltinFunctions.isExpect(((CIdExpression) functionName).getName())
           && params.size() == 2) {
 
         // This is the GCC built-in function __builtin_expect(exp, c)
@@ -1113,7 +1129,7 @@ class ASTConverter {
       // e.g. like this: "enum { e1, e2 = e1 }"
       if (enumType != null) {
         type = new CElaboratedType(type.isConst(), type.isVolatile(), ComplexTypeKind.ENUM,
-            enumType.getName(), enumType);
+            enumType.getName(), enumType.getOrigName(), enumType);
       }
     }
 
@@ -1128,7 +1144,6 @@ class ASTConverter {
 
     final CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
     final FileLocation fileLoc = getLocation(e);
-    CType type = typeConverter.convert(e.getExpressionType());
     final CType operandType = operand.getExpressionType();
 
     switch (e.getOperator()) {
@@ -1137,23 +1152,26 @@ class ASTConverter {
     case IASTUnaryExpression.op_plus:
       return operand;
 
-    case IASTUnaryExpression.op_star:
+    case IASTUnaryExpression.op_star: {
 
-      if (containsProblemType(type)) {
-        if (operandType instanceof CPointerType) {
-          type = ((CPointerType) operand.getExpressionType()).getType();
-        } else if (operandType instanceof CArrayType) {
-          type = ((CArrayType) operand.getExpressionType()).getType();
-        } else {
+      // In case of pointers inside field references that refer to inner fields
+      // the CDT type is not as we want it, thus we resolve the type on our own.
+      CType type;
+      if (operandType instanceof CPointerType) {
+        type = ((CPointerType) operandType).getType();
+      } else if (operandType instanceof CArrayType) {
+        type = ((CArrayType) operandType).getType();
+      } else {
+        if (!(operandType instanceof CProblemType)) {
           logger.logf(Level.WARNING,
-                      "Dereferencing of a non-pointer in expression %s (%s)",
-                      e.getRawSignature(),
-                      operand.getExpressionType().toString());
+                      "%s: Dereferencing of non-pointer type %s in expression %s",
+                      fileLoc, operandType, e.getRawSignature());
         }
+        type = typeConverter.convert(e.getExpressionType());
       }
       return simplifyUnaryPointerExpression(operand, fileLoc, type);
-
-    case IASTUnaryExpression.op_amper:
+    }
+    case IASTUnaryExpression.op_amper: {
 
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       // in case of *& both can be left out
@@ -1161,12 +1179,24 @@ class ASTConverter {
         return ((CPointerExpression)operand).getOperand();
       }
 
+      CType type = typeConverter.convert(e.getExpressionType());
       if (containsProblemType(type)) {
         type = new CPointerType(true, false, operandType);
       }
 
       // if none of the special cases before fits the default unaryExpression is created
       return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.AMPER);
+    }
+    case IASTUnaryExpression.op_labelReference:
+      // L: void * addressOfLabel = && L;
+
+      if (!(operand instanceof CIdExpression)) {
+        throw new CFAGenerationRuntimeException("Invalid operand for address-of-label operator", e, niceFileNameFunction);
+      }
+      String labelName = ((CIdExpression)operand).getName();
+
+      // type given by CDT is problem type
+      return new CAddressOfLabelExpression(fileLoc, CPointerType.POINTER_TO_VOID, labelName);
 
     case IASTUnaryExpression.op_prefixIncr:
     case IASTUnaryExpression.op_prefixDecr:
@@ -1221,6 +1251,7 @@ class ASTConverter {
       return simplifyUnaryNotExpression(operand);
 
     default:
+      CType type = typeConverter.convert(e.getExpressionType());
       return new CUnaryExpression(fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
     }
   }
@@ -1356,6 +1387,9 @@ class ASTConverter {
     } else if (node instanceof CExpression) {
       return new CExpressionStatement(getLocation(e), (CExpression)node);
 
+    } else if (node == null) {
+      return null;
+
     } else {
       throw new AssertionError();
     }
@@ -1443,11 +1477,25 @@ class ASTConverter {
       // struct, union, or enum declaration
       // split type definition from eventual variable declaration
       CComplexType complexType = (CComplexType)type;
-      CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType);
-      result.add(newD);
+
+      // in case of struct declarations with variable declarations we
+      // need to add the struct declaration as sideeffect, so that
+      // we can be sure the variable gets the correct (perhaps renamed) type
+      if (declarators.length > 0 && type instanceof CCompositeType) {
+        addSideEffectDeclarationForType((CCompositeType) complexType, fileLoc);
+        complexType = scope.lookupType(complexType.getQualifiedName());
+
+      } else {
+        result.add(new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType));
+      }
 
       // now replace type with an elaborated type referencing the new type
-      type = new CElaboratedType(type.isConst(), type.isVolatile(), complexType.getKind(), complexType.getName(), newD.getType());
+      type = new CElaboratedType(type.isConst(),
+                                 type.isVolatile(),
+                                 complexType.getKind(),
+                                 complexType.getName(),
+                                 complexType.getOrigName(),
+                                 complexType);
 
     } else if (type instanceof CElaboratedType) {
       boolean typeAlreadyKnown = scope.lookupType(((CElaboratedType) type).getQualifiedName()) != null;
@@ -1490,6 +1538,8 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Typedef with initializer", d, niceFileNameFunction);
         }
+
+        name = scope.getFileSpecificTypeName(name);
         return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
@@ -1537,10 +1587,10 @@ class ASTConverter {
         cStorageClass = CStorageClass.AUTO;
       }
 
-      if (!isGlobal && scope.variableNameInUse(name, name)) {
+      if (!isGlobal && scope.variableNameInUse(name)) {
         String sep = "__";
         int index = 1;
-        while (scope.variableNameInUse(name + sep + index, origName)) {
+        while (scope.variableNameInUse(name + sep + index)) {
           ++index;
         }
         name = name + sep + index;
@@ -1566,7 +1616,7 @@ class ASTConverter {
 
   }
 
-  private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final IASTDeclaration d) {
+  private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final IASTDeclaration d, int nofMember) {
     if (d instanceof IASTProblemDeclaration) {
       throw new CFAGenerationRuntimeException((IASTProblemDeclaration)d, niceFileNameFunction);
     }
@@ -1587,32 +1637,32 @@ class ASTConverter {
       CCompositeType compositeType = (CCompositeType)type;
       addSideEffectDeclarationForType(compositeType, getLocation(d));
       type = new CElaboratedType(compositeType.isConst(), compositeType.isVolatile(),
-          compositeType.getKind(), compositeType.getName(), compositeType);
+          compositeType.getKind(), compositeType.getName(), compositeType.getOrigName(), compositeType);
     }
 
     List<CCompositeTypeMemberDeclaration> result;
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, null);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, null, nofMember);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, declarators[0]);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, declarators[0], nofMember);
       result = Collections.singletonList(newD);
 
     } else {
       result = new ArrayList<>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
-        result.add(createDeclarationForCompositeType(type, c));
+        result.add(createDeclarationForCompositeType(type, c, nofMember));
       }
     }
 
     return result;
   }
 
-  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CType type, IASTDeclarator d) {
+  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CType type, IASTDeclarator d, int nofMember) {
     String name = null;
 
     if (d != null) {
@@ -1628,7 +1678,7 @@ class ASTConverter {
     }
 
     if (name == null) {
-      name = "__anon_type_member_" + anonTypeMemberCounter++;
+      name = "__anon_type_member_" + nofMember;
     }
 
     return new CCompositeTypeMemberDeclaration(type, name);
@@ -1887,8 +1937,10 @@ class ASTConverter {
   private CCompositeType convert(IASTCompositeTypeSpecifier d) {
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(d.getMembers().length);
 
+    int nofMember = 0;
     for (IASTDeclaration c : d.getMembers()) {
-      List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c);
+      List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c, nofMember);
+      nofMember++;
       assert !newCs.isEmpty();
       list.addAll(newCs);
     }
@@ -1906,15 +1958,26 @@ class ASTConverter {
     }
 
     String name = convert(d.getName());
+    String origName = name;
     if (Strings.isNullOrEmpty(name)) {
-      name = "__anon_type_" + anonTypeCounter++;
+      name = "__anon_type_";
+      if (d.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+        name += ((IASTSimpleDeclaration)d.getParent()).getDeclarators()[0].getName().getRawSignature();
+      } else {
+        name += anonTypeCounter++;
+      }
     }
 
-    CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name);
+    // if the origName is null we want it to be empty
+    if (origName == null) {
+      origName = "";
+    }
+
+    CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name, origName);
 
     // in cases like struct s { (struct s)* f }
     // we need to fill in the binding from the inner "struct s" type to the outer
-    compositeType.accept(new FillInBindingVisitor(kind, name, compositeType));
+    compositeType.accept(new FillInBindingVisitor(kind, scope.getFileSpecificTypeName(name), compositeType));
     return compositeType;
   }
 
@@ -1933,6 +1996,7 @@ class ASTConverter {
 
 
     String name = convert(d.getName());
+    String origName = name;
 
     // when the enum has no name we create one
     // (this may be the case when the enum declaration is surrounded by a typedef)
@@ -1940,7 +2004,7 @@ class ASTConverter {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
-    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name);
+    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name, origName);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
     }

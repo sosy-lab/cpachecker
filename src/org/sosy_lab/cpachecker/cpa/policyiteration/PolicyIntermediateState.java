@@ -1,34 +1,65 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 public final class PolicyIntermediateState extends PolicyState {
+
+  /**
+   * Formula + SSA associated with the state.
+   */
   private final PathFormula pathFormula;
+
+  /**
+   * Trace to determine the coverage relation.
+   * Format: to-node -> set of from_nodes explored.
+   */
   private final ImmutableMultimap<Location, Location> trace;
+
+  /**
+   * Abstract states used for generating this state.
+   */
+  private final ImmutableMap<Location, PolicyAbstractedState> generatingStates;
+
+  private int hashCache = 0;
 
   private PolicyIntermediateState(
       Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Multimap<Location, Location> pTrace) {
+      Multimap<Location, Location> pTrace,
+      Map<Location, PolicyAbstractedState> generatingStates
+      ) {
     super(pLocation, pTemplates);
+
     pathFormula = pPathFormula;
     trace = ImmutableMultimap.copyOf(pTrace);
+    this.generatingStates = ImmutableMap.copyOf(generatingStates);
   }
 
   public static PolicyIntermediateState of(
       Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Multimap<Location, Location> pTrace
+      Multimap<Location, Location> pTrace,
+      Map<Location, PolicyAbstractedState> generatingStates
   ) {
-    return new PolicyIntermediateState(pLocation, pTemplates, pPathFormula, pTrace);
+    return new PolicyIntermediateState(pLocation, pTemplates, pPathFormula,
+        pTrace, generatingStates);
+  }
+
+  /**
+   * @return Starting {@link PathFormula} for possible starting locations.
+   */
+  public Map<Location, PolicyAbstractedState> getGeneratingStates() {
+    return generatingStates;
   }
 
   public PathFormula getPathFormula() {
@@ -56,7 +87,11 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(pathFormula, super.hashCode());
+    if (hashCache == 0) {
+      hashCache = Objects.hashCode(pathFormula, generatingStates,
+          super.hashCode());
+    }
+    return hashCache;
   }
 
   @Override
@@ -67,7 +102,9 @@ public final class PolicyIntermediateState extends PolicyState {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIntermediateState other = (org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIntermediateState)o;
-    return (pathFormula.equals(other.pathFormula) && super.equals(o));
+    PolicyIntermediateState other = (PolicyIntermediateState)o;
+    return (pathFormula.equals(other.pathFormula)
+        && generatingStates.equals(other.generatingStates)
+        && super.equals(o));
   }
 }

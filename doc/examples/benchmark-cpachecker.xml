@@ -35,9 +35,6 @@
        Note that Java does not use SI units, but IEC units (factor 1024). -->
   <option name="-heap">7000M</option>
 
-  <!-- Set the time limit equal to the above value. -->
-  <option name="-timelimit">900s</option>
-
   <!--
     Always use property files as specification
     to guarantee correct interpretation of the results.

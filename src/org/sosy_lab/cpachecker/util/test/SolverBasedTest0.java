@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.test;
 
 import static com.google.common.truth.TruthJUnit.assume;
 
-import java.util.Collection;
-
 import javax.annotation.Nullable;
 
 import org.junit.After;
@@ -41,6 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -51,8 +50,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.SubjectFactory;
 
@@ -98,6 +95,7 @@ public abstract class SolverBasedTest0 {
   protected FunctionFormulaManager fmgr;
   protected NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
   protected @Nullable NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
+  protected @Nullable BitvectorFormulaManager bvmgr;
   protected @Nullable QuantifiedFormulaManager qmgr;
   protected @Nullable ArrayFormulaManager amgr;
 
@@ -137,6 +135,11 @@ public abstract class SolverBasedTest0 {
       rmgr = null;
     }
     try {
+      bvmgr = mgr.getBitvectorFormulaManager();
+    } catch (UnsupportedOperationException e) {
+      bvmgr = null;
+    }
+    try {
       qmgr = mgr.getQuantifiedFormulaManager();
     } catch (UnsupportedOperationException e) {
       qmgr = null;
@@ -163,6 +166,13 @@ public abstract class SolverBasedTest0 {
             .that(rmgr).isNotNull();
   }
 
+  /**
+   * Skip test if the solver does not support bitvectors.
+   */
+  protected final void requireBitvectors() {
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of bitvectors")
+            .that(bvmgr).isNotNull();
+  }
   /**
    * Skip test if the solver does not support quantifiers.
    */
@@ -196,7 +206,7 @@ public abstract class SolverBasedTest0 {
    */
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormulaOfSolver())")
-  public static final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
+  public static SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
       final FormulaManager mgr) {
     return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
           @Override
@@ -212,25 +222,13 @@ public abstract class SolverBasedTest0 {
    */
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(ProverEnvironment())")
-  public static final SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
+  public static SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
     return new SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>() {
           @Override
           public ProverEnvironmentSubject getSubject(FailureStrategy pFs, BasicProverEnvironment<?> pFormula) {
             return new ProverEnvironmentSubject(pFs, pFormula);
           }
         };
-  }
-
-  /**
-   * Helper function.
-   * Used in combination with assertThat(toStringList(...a..list...)).contains(...
-   */
-  protected Collection<String> toStringList(Collection<?> pList) {
-    return Collections2.transform(pList, new Function<Object, String>() {
-      @Override
-      public String apply(Object pArg0) {
-        return pArg0.toString();
-      }});
   }
 
 }

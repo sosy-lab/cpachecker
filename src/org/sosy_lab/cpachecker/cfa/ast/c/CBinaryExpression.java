@@ -67,7 +67,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
    * This method returns the type for the 'calculation' of this binary expression.
    *
    * This is not the type of the 'result' of this binary expression.
-   * The result-type is returned from getExpressionType().
+   * The result-type is returned from getType().
    * <p>
    * Before the calculation, if necessary,
    * both operand should be casted to the calculation-type.
@@ -129,6 +129,31 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
     @Override
     public String getOperator() {
       return op;
+    }
+
+    public boolean isLogicalOperator() {
+      switch (this) {
+      case MULTIPLY:
+      case DIVIDE:
+      case MODULO:
+      case PLUS:
+      case MINUS:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+        return false;
+      case LESS_EQUAL:
+      case LESS_THAN:
+      case GREATER_EQUAL:
+      case GREATER_THAN:
+      case EQUALS:
+      case NOT_EQUALS:
+        return true;
+      default:
+        throw new AssertionError("Unhandled case statement");
+      }
     }
   }
 

@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginDescriptor;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 import com.google.common.base.Optional;
@@ -154,7 +154,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     private final ASTMatcher patternAST;
 
-    public MatchCFAEdgeASTComparison(ASTMatcher pPatternAST) throws InvalidAutomatonException {
+    public MatchCFAEdgeASTComparison(ASTMatcher pPatternAST) {
       this.patternAST = pPatternAST;
     }
 
@@ -247,7 +247,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static class MatchAssumeEdge implements AutomatonBoolExpr {
+  static enum MatchAssumeEdge implements AutomatonBoolExpr {
+
+    INSTANCE;
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -263,28 +265,21 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   static class MatchAssumeCase implements AutomatonBoolExpr {
 
-    private final Optional<Boolean> matchPositiveCase;
+    private final boolean matchPositiveCase;
 
-    public MatchAssumeCase(Optional<Boolean> pMatchPositiveCase) {
+    public MatchAssumeCase(boolean pMatchPositiveCase) {
       matchPositiveCase = pMatchPositiveCase;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (matchPositiveCase.isPresent()) {
-        if (pArgs.getCfaEdge() instanceof AssumeEdge) {
-          AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
-          if (matchPositiveCase.get() == a.getTruthAssumption()) {
-            return CONST_TRUE;
-          }
+      if (pArgs.getCfaEdge() instanceof AssumeEdge) {
+        AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
+        if (matchPositiveCase == a.getTruthAssumption()) {
+          return CONST_TRUE;
         }
       }
-
       return CONST_FALSE;
-    }
-
-    public Optional<Boolean> getMatchNegativeCase() {
-      return matchPositiveCase;
     }
 
     @Override
@@ -381,9 +376,6 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (FileLocation.DUMMY.equals(pArgs.getCfaEdge().getFileLocation())) {
-        return CONST_FALSE;
-      }
       return AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge()) ? CONST_FALSE : CONST_TRUE;
     }
 
@@ -504,41 +496,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static class MatchStartingLineInOrigin implements AutomatonBoolExpr {
+  static class MatchLocationDescriptor implements AutomatonBoolExpr {
 
-    private final Optional<String> matchOriginFileName;
-    private final int matchStartingLineInOrigin;
-    private final boolean matchExtractedBaseName;
-    private final OriginDescriptor matchOriginDescriptor;
+    private final LocationDescriptor matchDescriptor;
 
-    public MatchStartingLineInOrigin(OriginDescriptor pOriginDescriptor, boolean bMatchExtractedBaseName) {
+    public MatchLocationDescriptor(LocationDescriptor pOriginDescriptor) {
       Preconditions.checkNotNull(pOriginDescriptor);
 
-      this.matchExtractedBaseName = bMatchExtractedBaseName;
-      this.matchOriginDescriptor = pOriginDescriptor;
-      this.matchStartingLineInOrigin = pOriginDescriptor.originLineNumber;
-
-      if (pOriginDescriptor.originFileName.isPresent()) {
-        this.matchOriginFileName = Optional.of(bMatchExtractedBaseName ? getBaseName(pOriginDescriptor.originFileName.get()) : pOriginDescriptor.originFileName.get());
-      } else {
-        this.matchOriginFileName = Optional.absent();
-      }
-    }
-
-    public Comparable<OriginDescriptor> getMatchOriginDescriptor() {
-      return matchOriginDescriptor;
-    }
-
-    public String getBaseName(String pOf) {
-      int index = pOf.lastIndexOf('/');
-      if (index == -1) {
-        index = pOf.lastIndexOf('\\');
-      }
-      if (index == -1) {
-        return pOf;
-      } else {
-        return pOf.substring(index + 1);
-      }
+      this.matchDescriptor = pOriginDescriptor;
     }
 
     @Override
@@ -549,14 +514,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     protected boolean eval(CFAEdge edge) {
       Set<FileLocation> fileLocs = SourceLocationMapper.getFileLocationsFromCfaEdge(edge);
       for (FileLocation l: fileLocs) {
-        boolean matches = true;
-        if (matchOriginFileName.isPresent()) {
-          String edgeFileName = matchExtractedBaseName ? getBaseName(l.getFileName()) : l.getFileName();
-          if (!matchOriginFileName.get().equals(edgeFileName)) {
-            matches = false;
-          }
-        }
-        if (matches && l.getStartingLineNumber() <= matchStartingLineInOrigin && l.getEndingLineNumber() >= matchStartingLineInOrigin) {
+        if (matchDescriptor.matches(l)) {
           return true;
         }
       }
@@ -565,76 +523,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      return "MATCH ORIGIN STARTING LINE " + matchStartingLineInOrigin;
+      return "MATCH " + matchDescriptor;
     }
 
-  }
-
-  static class MatchEdgeLinesInOrigin implements AutomatonBoolExpr {
-    MatchStartingLineInOrigin start;
-    MatchStartingLineInOrigin end;
-
-    public MatchEdgeLinesInOrigin(OriginDescriptor startingLine, OriginDescriptor endingLine, boolean pBMatchExtractedBaseName) {
-      start = new MatchStartingLineInOrigin(startingLine, pBMatchExtractedBaseName);
-      end = new MatchStartingLineInOrigin(endingLine, pBMatchExtractedBaseName);
-    }
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
-      return eval(pArgs.getCfaEdge())?CONST_TRUE:CONST_FALSE;
-    }
-
-    protected boolean eval(CFAEdge edge) {
-      boolean startMatched = start.eval(edge);
-      if(startMatched) {
-        CFANode next = edge.getSuccessor();
-        boolean endMatched = false;
-        for (CFAEdge e : CFAUtils.leavingEdges(next)) {
-          if(end.eval(e)) {
-            endMatched = true;
-            break;
-          }
-        }
-        return endMatched;
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH EDGE ORIGIN STARTING LINE " + start.matchStartingLineInOrigin
-          + ", ENDING LINE " + end.matchStartingLineInOrigin;
-    }
-  }
-
-  static class ExistsMatchingEdgeLinesInOrigin implements AutomatonBoolExpr {
-    MatchEdgeLinesInOrigin matchEdge;
-
-    public ExistsMatchingEdgeLinesInOrigin(OriginDescriptor startingLine, OriginDescriptor endingLine, boolean pBMatchExtractedBaseName) {
-      matchEdge = new MatchEdgeLinesInOrigin(startingLine, endingLine, pBMatchExtractedBaseName);
-    }
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
-      return eval(pArgs.getCfaEdge())?CONST_TRUE:CONST_FALSE;
-    }
-
-    protected boolean eval(CFAEdge edge) {
-      CFANode curr = edge.getPredecessor();
-      for (CFAEdge e : CFAUtils.leavingEdges(curr)) {
-        if(matchEdge.eval(e)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    @Override
-    public String toString() {
-      return "EXISTS MATCHING EDGE ORIGIN STARTING LINE " + matchEdge.start.matchStartingLineInOrigin
-          + ", ENDING LINE " + matchEdge.end.matchStartingLineInOrigin;
-    }
   }
 
   /**

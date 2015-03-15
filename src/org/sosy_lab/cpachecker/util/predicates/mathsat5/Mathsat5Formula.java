@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import java.io.Serializable;
+
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
@@ -83,8 +86,29 @@ class Mathsat5RationalFormula extends Mathsat5Formula implements RationalFormula
   }
 }
 
-class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
+class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula, Serializable {
+  private static final long serialVersionUID = -3587393134167404728L;
+
   public Mathsat5BooleanFormula(long pTerm) {
     super(pTerm);
+  }
+
+  private Object writeReplace() {
+    return new SerialProxyFormula(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this).toString());
+  }
+
+  private static class SerialProxyFormula implements Serializable {
+
+    private static final long serialVersionUID = -1670677113148700321L;
+    private final String formula;
+
+    public SerialProxyFormula(final String pF) {
+      formula = pF;
+    }
+
+    private Object readResolve() {
+      return GlobalInfo.getInstance().getFormulaManager().parse(formula);
+    }
+
   }
 }

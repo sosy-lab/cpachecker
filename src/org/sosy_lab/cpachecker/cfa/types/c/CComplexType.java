@@ -43,6 +43,21 @@ public interface CComplexType extends CType {
    */
   String getQualifiedName();
 
+  /**
+   * Returns the unqualified original name, e.g. for the type "struct s", this
+   * returns "."
+   * @returnA name string or the empty string if the type has no name.
+   */
+  String getOrigName();
+
+  /**
+   * Returns true if the compared objects are equal regarding the common
+   * rules for the equals method. The only difference is, that if a CComplexType
+   * is anonymous (thus, the origName is an empty string) the name comparison
+   * is left out.
+   */
+  boolean equalsWithOrigName(Object obj);
+
   public static enum ComplexTypeKind {
     ENUM,
     STRUCT,

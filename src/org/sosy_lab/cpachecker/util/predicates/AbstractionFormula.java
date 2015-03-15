@@ -31,6 +31,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -57,7 +58,7 @@ public class AbstractionFormula implements Serializable {
 
   private static final long serialVersionUID = -7756517128231447936L;
   private @Nullable transient final Region region; // Null after de-serializing from proof
-  private final BooleanFormula formula;
+  private transient final BooleanFormula formula;
   private final BooleanFormula instantiatedFormula;
 
   /**
@@ -67,9 +68,9 @@ public class AbstractionFormula implements Serializable {
   private final PathFormula blockFormula;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
-  private final int id = idGenerator.getFreshId();
-  private final BooleanFormulaManager mgr;
-  private final ImmutableSet<Integer> idsOfStoredAbstractionReused;
+  private final transient int id = idGenerator.getFreshId();
+  private final transient BooleanFormulaManager mgr;
+  private final transient ImmutableSet<Integer> idsOfStoredAbstractionReused;
 
   public AbstractionFormula(
       FormulaManagerView mgr,
@@ -136,5 +137,16 @@ public class AbstractionFormula implements Serializable {
       abs = ": false";
     }
     return "ABS" + id + abs;
+  }
+
+  private Object readResolve() {
+    FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
+
+    // get formula from instantiated formula
+    BooleanFormula notInstantiated = mgr.uninstantiate(instantiatedFormula);
+
+    return new AbstractionFormula(mgr, GlobalInfo.getInstance().getAbstractionManager()
+        .buildRegionFromFormulaWithUnknownAtoms(notInstantiated), notInstantiated,
+        instantiatedFormula, blockFormula, ImmutableSet.<Integer> of());
   }
 }

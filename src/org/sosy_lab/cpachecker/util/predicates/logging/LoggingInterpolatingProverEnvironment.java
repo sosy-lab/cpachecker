@@ -31,16 +31,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 
 
-public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingProverEnvironment<T> {
+public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingProverEnvironmentWithAssumptions<T> {
 
-  private final InterpolatingProverEnvironment<T> wrapped;
+  private final InterpolatingProverEnvironmentWithAssumptions<T> wrapped;
   private final LogManager logger;
   int level = 0;
 
-  public LoggingInterpolatingProverEnvironment(LogManager logger, InterpolatingProverEnvironment<T> ipe) {
+  public LoggingInterpolatingProverEnvironment(LogManager logger, InterpolatingProverEnvironmentWithAssumptions<T> ipe) {
     this.wrapped = ipe;
     this.logger = logger;
   }
@@ -69,6 +69,14 @@ public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingPr
   }
 
   @Override
+  public boolean isUnsatWithAssumptions(List<BooleanFormula> pAssumptions) throws SolverException, InterruptedException {
+    logger.log(Level.FINE, "assumptions:", pAssumptions);
+    boolean result = wrapped.isUnsatWithAssumptions(pAssumptions);
+    logger.log(Level.FINE, "unsat-check returned:", result);
+    return result;
+  }
+
+  @Override
   public BooleanFormula getInterpolant(List<T> formulasOfA) throws SolverException {
     logger.log(Level.FINE, "formulasOfA:", formulasOfA);
     BooleanFormula bf = wrapped.getInterpolant(formulasOfA);
@@ -77,9 +85,18 @@ public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingPr
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> formulas) {
-    logger.log(Level.FINE, "formulasOfA:", formulas);
-    List<BooleanFormula> bf = wrapped.getSeqInterpolants(formulas);
+  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas) {
+    logger.log(Level.FINE, "formulasOfA:", partitionedFormulas);
+    List<BooleanFormula> bf = wrapped.getSeqInterpolants(partitionedFormulas);
+    logger.log(Level.FINE, "interpolants:", bf);
+    return bf;
+  }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree) {
+    logger.log(Level.FINE, "formulasOfA:", partitionedFormulas);
+    logger.log(Level.FINE, "startOfSubTree:", startOfSubTree);
+    List<BooleanFormula> bf = wrapped.getTreeInterpolants(partitionedFormulas, startOfSubTree);
     logger.log(Level.FINE, "interpolants:", bf);
     return bf;
   }

@@ -64,13 +64,6 @@ public interface UnsafeFormulaManager {
   boolean isAtom(Formula f);
 
   /**
-   * Checks if the given Formula is a literal (atom or the negation of an atom).
-   * @param f
-   * @return
-   */
-  boolean isLiteral(Formula pF);
-
-  /**
    * Checks if the given Formula is a variable.
    * (either free or quantified)
    * @param f
@@ -166,6 +159,12 @@ public interface UnsafeFormulaManager {
    * @return
    */
   <T extends Formula> T replaceName(T f, String newName);
+
+  /**
+   * If the given formula is a numeral (i.e., non-boolean) equality "x = y",
+   * return an inequality "x <= y". Otherwise return the unchanged formula.
+   */
+  <T extends Formula> T splitNumeralEqualityIfPossible(T f);
 
   /**
    * Substitute every occurrence of any item from {@code changeFrom}

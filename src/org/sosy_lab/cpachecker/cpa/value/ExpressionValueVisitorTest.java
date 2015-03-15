@@ -94,7 +94,7 @@ public class ExpressionValueVisitorTest {
     logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
 
     evv = new ExpressionValueVisitor(
-        new ValueAnalysisState(), "dummy_function", machineModel, logger, symbolicValues);
+        new ValueAnalysisState(), "dummy_function", machineModel, logger);
   }
 
   /**

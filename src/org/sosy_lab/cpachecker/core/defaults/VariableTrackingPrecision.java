@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Joiner;
@@ -184,7 +184,7 @@ public abstract class VariableTrackingPrecision implements Precision {
 
     enum Sharing {
       SCOPE,
-      LOCATION;
+      LOCATION
     }
 
     @Option(secure=true, description = "whether to track relevant variables only at the exact "

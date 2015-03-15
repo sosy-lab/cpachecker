@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -76,7 +75,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
   private final LDDAbstractState initialState;
 
-  public LDDAbstractionCPA(CFA cfa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public LDDAbstractionCPA(CFA cfa, Configuration config, LogManager logger) {
     Map<String, Integer> variables = new HashMap<>();
 
     for (CFANode node : cfa.getAllNodes()) {

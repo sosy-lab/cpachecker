@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
 
 public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
@@ -190,6 +190,7 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
     return wrap(type, numericFormulaManager.makeNumber(pN));
   }
 
+  @Override
   public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
     return wrap(type, numericFormulaManager.makeNumber(pN));
   }

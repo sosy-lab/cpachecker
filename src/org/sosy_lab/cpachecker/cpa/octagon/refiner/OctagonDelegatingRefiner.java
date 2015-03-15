@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -136,7 +136,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   }
 
   private OctagonDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
-      throws CPAException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
     super(pCpa);
     pOctagonCPA.getConfiguration().inject(this);
 

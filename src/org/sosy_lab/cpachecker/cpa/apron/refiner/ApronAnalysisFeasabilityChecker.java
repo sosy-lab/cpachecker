@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.apron.ApronTransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -70,7 +70,7 @@ public class ApronAnalysisFeasabilityChecker {
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new ApronTransferRelation(logger, cfa);
+    transfer  = new ApronTransferRelation(logger, cfa, cpa.isSplitDisequalites());
     checkedPath = path;
 
     // use a new configuration which only has a static precision
@@ -134,7 +134,7 @@ public class ApronAnalysisFeasabilityChecker {
    * @throws InterruptedException
    */
   private MutableARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final ApronState pInitial)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     try {
       Collection<ApronState> next = Lists.newArrayList(pInitial);
 

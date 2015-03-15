@@ -117,7 +117,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     @Override
     protected org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula makeDeclaration(CDeclarationEdge pEdge,
         String pFunction, SSAMapBuilder pSsa, PointerTargetSetBuilder pPts, Constraints pConstraints,
-        ErrorConditions pErrorConditions) throws CPATransferException, InterruptedException {
+        ErrorConditions pErrorConditions) throws UnrecognizedCCodeException, InterruptedException {
       return super.makeDeclaration(pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
     }
 

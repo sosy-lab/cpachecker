@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 import java.math.BigInteger;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -72,7 +71,7 @@ public class ExpandFunctionPointerArrayAssignments {
 
   private final LogManager logger;
 
-  public ExpandFunctionPointerArrayAssignments(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  public ExpandFunctionPointerArrayAssignments(LogManager pLogger, Configuration config) {
     logger = pLogger;
   }
 
@@ -98,7 +97,7 @@ public class ExpandFunctionPointerArrayAssignments {
     }
   }
 
-  private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) throws CParserException {
+  private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) {
     if (!(edge instanceof CStatementEdge)) {
       return;
     }

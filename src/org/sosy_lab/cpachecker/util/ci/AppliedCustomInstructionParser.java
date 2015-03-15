@@ -24,16 +24,18 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayDeque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -62,27 +64,29 @@ public class AppliedCustomInstructionParser {
       throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
 
     Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
+    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
 
-    try (BufferedReader br = new BufferedReader(new FileReader(file.toFile()))) {
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
+
       String line = "";
+      CFANode firstNode;
+      ImmutableSet<CFANode> secNodes;
 
       while(br.ready()) {
         notifier.shutdownIfNecessary();
 
-        line = br.readLine();
-        if (line==null) {
+        if ((line = br.readLine())==null) {
           break;
         }
         String firstLine = line.trim();
 
         if ((line = br.readLine())==null){
-          throw new AppliedCustomInstructionParsingFailedException("The number of lines is incorrect. There is a second line missing!");
+          throw new AppliedCustomInstructionParsingFailedException("Wrong format, specification of end nodes not found. Expect that a custom instruction is specified in two lines. First line contains the start node and second line the end nodes.");
         }
         String[] secLine = line.trim().split("(\\w)+");
 
-        CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
-        CFANode firstNode = getCFANode(firstLine, cfaInfo);
-        ImmutableSet<CFANode> secNodes = getCFANodes(secLine, cfaInfo);
+        firstNode = getCFANode(firstLine, cfaInfo);
+        secNodes = getCFANodes(secLine, cfaInfo);
 
         if (sanityCheckCIApplication(firstNode, secNodes)) {
           map.put(firstNode, new AppliedCustomInstruction(firstNode, secNodes));
@@ -133,31 +137,34 @@ public class AppliedCustomInstructionParser {
    * @throws InterruptedException
    */
   private boolean sanityCheckCIApplication (CFANode pNode, Set<CFANode> pSet)
-        throws AppliedCustomInstructionParsingFailedException, InterruptedException {
+        throws InterruptedException {
 
     Set<CFANode> endNodes = new HashSet<>();
     Set<CFANode> visitedNodes = new HashSet<>();
-    Queue<CFANode> queue = new LinkedList<>();
+    Queue<CFANode> queue = new ArrayDeque<>();
+
     queue.add(pNode);
+    visitedNodes.add(pNode);
+
+    CFANode pred;
 
     while (!queue.isEmpty()) {
       notifier.shutdownIfNecessary();
-      CFANode tmp = queue.poll();
-      visitedNodes.add(tmp);
+      pred = queue.poll();
 
       // If tmp is endNode and in pSet => save that tmp is in pSet.
       // At the end of the method we compare the given pSet and the set of endNodes we visited,
       // to decide if all nodes of pSet are contained in the graph of pNode.
-      if (pSet.contains(tmp)) {
-        endNodes.add(tmp);
+      if (pSet.contains(pred)) {
+        endNodes.add(pred);
+        continue;
       }
 
       // breadth-first-search
-      int numLeavingEdges = tmp.getNumLeavingEdges();
-      for (int i=0; i<numLeavingEdges; i++) {
-        CFANode x = tmp.getLeavingEdge(i).getSuccessor();
-        if (!visitedNodes.contains(x)){
-          queue.add(x);
+      for (CFANode succ : CFAUtils.successorsOf(pred)) {
+        if (!visitedNodes.contains(succ)){
+          queue.add(succ);
+          visitedNodes.add(succ);
         }
       }
     }

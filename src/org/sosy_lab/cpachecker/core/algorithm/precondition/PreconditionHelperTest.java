@@ -60,6 +60,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 @Ignore
+@SuppressWarnings("unused")
 public class PreconditionHelperTest extends SolverBasedTest0 {
 
   private PreconditionHelper helper;

@@ -244,5 +244,10 @@ public class BAMCEXSubgraphComputer {
     void updateDecreaseId() {
       decreasingStateID = nextDecreaseID--;
     }
+
+    @Override
+    public String toString() {
+      return "BackwardARGState {{" + super.toString() + "}}";
+    }
   }
 }

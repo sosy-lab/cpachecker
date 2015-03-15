@@ -220,7 +220,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final PredicateAbstractionManager pPredAbsMgr,
       final PredicateStaticRefiner pStaticRefiner, final Solver pSolver)
-          throws CPAException, InvalidConfigurationException {
+          throws InvalidConfigurationException {
     super(pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);

@@ -18,9 +18,6 @@ There are four possibilities to retrieve the source code:
 - Our Git mirror:
   https://svn.sosy-lab.org/software/cpachecker.git
 
-- A SVN mirror at Google Code:
-  http://cpachecker.googlecode.com/svn
-
 - A Git mirror at GitHub:
   https://github.com/dbeyer/cpachecker
 
@@ -34,7 +31,6 @@ For browsing through the code online,
 there are these possibilities:
 - https://svn.sosy-lab.org/trac/cpachecker/browser/CPAchecker
   (with an SVN account)
-- https://code.google.com/p/cpachecker/source/browse/
 - https://github.com/dbeyer/cpachecker/tree/trunk/
 
 For bug tracking, we use our Trac:
@@ -66,9 +62,8 @@ Develop CPAchecker from within Eclipse
 
 2. Install an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org,
    Eclipse update site: http://subclipse.tigris.org/update_1.6.x)
-   Create new project from SVN repository
+   Create new project from SVN repository (or use GIT as described above).
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
-   URL (read-only mirror): http://cpachecker.googlecode.com/svn/trunk
 
 3. Copy the file .factorypath.template to .factorypath,
    and (if necessary) adjust the path to the CPAchecker directory within it.

@@ -27,9 +27,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -60,11 +60,12 @@ class Z3TheoremProver implements ProverEnvironment {
 
   private final Map<String, BooleanFormula> storedConstraints;
 
-  Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
+  Z3TheoremProver(Z3FormulaManager pMgr, long z3params, boolean generateUnsatCore) {
     mgr = pMgr;
     z3context = mgr.getEnvironment();
     z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
+    solver_set_params(z3context, z3solver, z3params);
     smtLogger = mgr.getSmtLogger();
     if (generateUnsatCore) {
       storedConstraints = new HashMap<>();
@@ -139,15 +140,16 @@ class Z3TheoremProver implements ProverEnvironment {
       );
     }
 
-    List<BooleanFormula> constraints = new LinkedList<>();
+    List<BooleanFormula> constraints = new ArrayList<>();
     long ast_vector = solver_get_unsat_core(z3context, z3solver);
     ast_vector_inc_ref(z3context, ast_vector);
     for (int i=0; i<ast_vector_size(z3context, ast_vector); i++) {
       long ast = ast_vector_get(z3context, ast_vector, i);
       BooleanFormula f = mgr.encapsulateBooleanFormula(ast);
 
-      // TODO: a proper way to get a variable name.
-      constraints.add(storedConstraints.get(f.toString()));
+      constraints.add(storedConstraints.get(
+          mgr.getUnsafeFormulaManager().getName(f)
+      ));
     }
     ast_vector_dec_ref(z3context, ast_vector);
     return constraints;

@@ -74,6 +74,11 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   private final LogManager logger;
 
+  @Option(secure=true,
+      description="Number of loop iterations before the loop counter is"
+          + " abstracted. Zero is equivalent to no limit.")
+  private int loopIterationsBeforeAbstraction = 0;
+
   @Option(secure=true, description="threshold for unrolling loops of the program (0 is infinite)\n"
   + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
   private int maxLoopIterations = 0;
@@ -101,7 +106,8 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     super("sep", "sep", pDelegatingTransferRelation);
     config.inject(this);
     this.transferRelation = pDelegatingTransferRelation;
-    this.transferRelation.setDelegate(new LoopstackTransferRelation(maxLoopIterations, pCfa));
+    this.transferRelation.setDelegate(new LoopstackTransferRelation(
+        loopIterationsBeforeAbstraction, maxLoopIterations, pCfa));
     this.logger = pLogger;
     cfa = pCfa;
   }
@@ -256,7 +262,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
       }
 
 
-    };
+    }
 
   }
 
@@ -359,7 +365,9 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     int maximumLoopIterationReached = 0;
     for (AbstractState state : pReached) {
       LoopstackState loopstackState = AbstractStates.extractStateByType(state, LoopstackState.class);
-      maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getIteration());
+      if (loopstackState != null) {
+        maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getIteration());
+      }
     }
     pOut.print("Maximum loop iteration reached:" + maximumLoopIterationReached);
   }
@@ -371,7 +379,9 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   public void setMaxLoopIterations(int pMaxLoopIterations) throws InvalidCFAException {
     this.maxLoopIterations = pMaxLoopIterations;
-    this.transferRelation.setDelegate(new LoopstackTransferRelation(maxLoopIterations, this.cfa));
+    this.transferRelation.setDelegate(new LoopstackTransferRelation(
+        loopIterationsBeforeAbstraction,
+        maxLoopIterations, this.cfa));
   }
 
   public int getMaxLoopIterations() {

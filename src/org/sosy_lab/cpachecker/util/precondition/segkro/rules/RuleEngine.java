@@ -60,6 +60,7 @@ public class RuleEngine implements Concluding, StatisticsProvider, Canonicalizer
           put(pOut, 3, pr.conclusionTimer.getTitle(), pr.conclusionTimer.toString());
           put(pOut, 3, pr.constraintCheckTimer.getTitle(), pr.constraintCheckTimer.toString());
           put(pOut, 3, pr.matchingTimer.getTitle(), pr.matchingTimer.toString());
+          put(pOut, 3, pr.conclusionValidationTimer.getTitle(), pr.conclusionValidationTimer.toString());
         }
       }
     }

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableSet;
 
 public class UniversalizeRule extends PatternBasedRule {
 
@@ -70,13 +70,9 @@ public class UniversalizeRule extends PatternBasedRule {
     final Formula parentOfI = Preconditions.checkNotNull(pAssignment.get(parentOf("i")));
 
     final IntegerFormula x = ifm.makeVariable("x");
-    final BooleanFormula xConstraint =  bfm.and(
-        ifm.greaterOrEquals(x, i),
-        ifm.lessOrEquals(x, i));
 
     final BooleanFormula fPrime = (BooleanFormula) substituteInParent(parentOfI, i, x, f);
 
-    return Lists.newArrayList(
-        qfm.forall(Lists.newArrayList(x), bfm.and(fPrime, xConstraint)));
+    return ImmutableSet.of(qfm.forall(x, i, i, fPrime));
   }
 }

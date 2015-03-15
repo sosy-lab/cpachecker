@@ -92,7 +92,35 @@ import com.google.common.collect.Sets;
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
 
-  private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
+  static class Stats {
+
+    public int numCallsAbstraction = 0; // total calls
+    public int numAbstractionReuses = 0; // total reuses
+
+    public int numSymbolicAbstractions = 0; // precision completely empty, no computation
+    public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
+    public int numCallsAbstractionCached = 0; // result was cached, no computation
+
+    public int numTotalPredicates = 0;
+    public int maxPredicates = 0;
+    public int numIrrelevantPredicates = 0;
+    public int numTrivialPredicates = 0;
+    public int numCartesianAbsPredicates = 0;
+    public int numCartesianAbsPredicatesCached = 0;
+    public int numBooleanAbsPredicates = 0;
+    public final Timer abstractionReuseTime = new Timer();
+    public final StatTimer abstractionReuseImplicationTime = new StatTimer("Time for checking reusability of abstractions");
+    public final Timer trivialPredicatesTime = new Timer();
+    public final Timer cartesianAbstractionTime = new Timer();
+    public final Timer quantifierEliminationTime = new Timer();
+    public final Timer booleanAbstractionTime = new Timer();
+    public final NestedTimer abstractionEnumTime = new NestedTimer(); // outer: solver time, inner: bdd time
+    public final Timer abstractionSolveTime = new Timer(); // only the time for solving, not for model enumeration
+
+    public long allSatCount = 0;
+    public int maxAllSatCount = 0;
+  }
+
   final Stats stats = new Stats();
 
   private final LogManager logger;
@@ -101,49 +129,73 @@ public class PredicateAbstractionManager {
   private final RegionCreator rmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
-  private final Map<Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
-  // Cache for satisfiability queries: if formula is contained, it is unsat
-  private final Set<BooleanFormula> unsatisfiabilityCache;
-  //cache for cartesian abstraction queries. For each predicate, the values
-  // are -1: predicate is false, 0: predicate is don't care,
-  // 1: predicate is true
-  private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
-  private final BooleanFormulaManagerView bfmgr;
-  private final PredicateAbstractionsStorage abstractionStorage;
-  private int counter = 0;
-  @Option(secure = true, name = "abstraction.cartesian",
+
+  private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
+
+  private static enum AbstractionType {
+    CARTESIAN,
+    BOOLEAN,
+    COMBINED,
+    ELIMINATION;
+  }
+
+  @Option(secure=true, name = "abstraction.cartesian",
       description = "whether to use Boolean (false) or Cartesian (true) abstraction")
   @Deprecated
   private boolean cartesianAbstraction = false;
-  @Option(secure = true, name = "abstraction.computation",
+
+  @Option(secure=true, name = "abstraction.computation",
       description = "whether to use Boolean or Cartesian abstraction or both")
   private AbstractionType abstractionType = AbstractionType.BOOLEAN;
-  @Option(secure = true, name = "abstraction.dumpHardQueries",
+
+  @Option(secure=true, name = "abstraction.dumpHardQueries",
       description = "dump the abstraction formulas if they took to long")
   private boolean dumpHardAbstractions = false;
-  @Option(secure = true, name = "abstraction.reuseAbstractionsFrom",
-      description = "An initial set of comptued abstractions that might be reusable")
+
+  @Option(secure=true, name = "abstraction.reuseAbstractionsFrom",
+      description="An initial set of comptued abstractions that might be reusable")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path reuseAbstractionsFrom;
-  @Option(secure = true, description = "Max. number of edge of the abstraction tree to prescan for reuse")
+
+  @Option(secure=true, description = "Max. number of edge of the abstraction tree to prescan for reuse")
   private int maxAbstractionReusePrescan = 1;
-  @Option(secure = true, name = "abs.useCache", description = "use caching of abstractions")
+
+  @Option(secure=true, name = "abs.useCache", description = "use caching of abstractions")
   private boolean useCache = true;
-  @Option(secure = true, name = "refinement.splitItpAtoms",
-      description = "split each arithmetic equality into two inequalities when extracting predicates from interpolants")
+
+  @Option(secure=true, name="refinement.splitItpAtoms",
+      description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
-  @Option(secure = true, name = "abstraction.identifyTrivialPredicates",
-      description = "Identify those predicates where the result is trivially known before abstraction computation and omit them.")
+
+  @Option(secure=true, name = "abstraction.identifyTrivialPredicates",
+      description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
   private boolean identifyTrivialPredicates = false;
-  @Option(secure = true, name = "abstraction.simplify",
-      description = "Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
+
+  @Option(secure=true, name = "abstraction.simplify",
+      description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
+
   @Option(secure=true, name = "abstraction.elimDeadVariablePreds",
       description="Eliminate propositions about dead variables in abstraction predicates by running a generalization procedure.")
   private boolean elimDeadVariablePredsByGeneralization = false;
 
   private boolean warnedOfCartesianAbstraction = false;
+
   private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;
+
+  private final Map<Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+
+  // Cache for satisfiability queries: if formula is contained, it is unsat
+  private final Set<BooleanFormula> unsatisfiabilityCache;
+
+  //cache for cartesian abstraction queries. For each predicate, the values
+  // are -1: predicate is false, 0: predicate is don't care,
+  // 1: predicate is true
+  private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
+
+  private final BooleanFormulaManagerView bfmgr;
+
+  private final PredicateAbstractionsStorage abstractionStorage;
 
   private Optional<LiveVariables> liveVars;
 
@@ -200,12 +252,11 @@ public class PredicateAbstractionManager {
    * Compute an abstraction of the conjunction of an AbstractionFormula and
    * a PathFormula. The AbstractionFormula will be used in its instantiated form,
    * so the indices there should match those from the PathFormula.
-   *
    * @param abstractionFormula An AbstractionFormula that is used as input.
    * @param pathFormula A PathFormula that is used as input.
    * @param predicates The set of predicates used for abstraction.
    * @return An AbstractionFormula instance representing an abstraction of
-   * "abstractionFormula & pathFormula" with pathFormula as the block formula.
+   *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
    * @throws InterruptedException
    */
   public AbstractionFormula buildAbstraction(CFANode location,
@@ -214,8 +265,7 @@ public class PredicateAbstractionManager {
 
     stats.numCallsAbstraction++;
 
-    logger.log(Level.FINEST, "Computing abstraction", stats.numCallsAbstraction, "with", pPredicates.size(),
-        "predicates");
+    logger.log(Level.FINEST, "Computing abstraction", stats.numCallsAbstraction, "with", pPredicates.size(), "predicates");
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula.asFormula());
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", pPredicates);
@@ -237,7 +287,7 @@ public class PredicateAbstractionManager {
 
         Deque<Pair<Integer, Integer>> tryReuseBasedOnPredecessors = new ArrayDeque<>();
         Set<Integer> idsOfStoredAbstractionReused = abstractionFormula.getIdsOfStoredAbstractionReused();
-        for (Integer id : idsOfStoredAbstractionReused) {
+        for (Integer id: idsOfStoredAbstractionReused) {
           tryReuseBasedOnPredecessors.add(Pair.of(id, 0));
         }
 
@@ -281,8 +331,7 @@ public class PredicateAbstractionManager {
           //logger.log(Level.WARNING, "Filtered candidates", "location", location.getNodeNumber(), "abstraction", tryBasedOnAbstractionId, ":", candidateAbstractions);
 
           if (candidateAbstractions.size() > 1) {
-            logger.log(Level.WARNING, "Too many abstraction candidates on location", location, "for abstraction",
-                tryBasedOnAbstractionId, ". Disabling abstraction reuse!");
+            logger.log(Level.WARNING, "Too many abstraction candidates on location", location, "for abstraction", tryBasedOnAbstractionId, ". Disabling abstraction reuse!");
             this.abstractionReuseDisabledBecauseOfAmbiguity = true;
             tryReuseBasedOnPredecessors.clear();
             continue;
@@ -290,7 +339,7 @@ public class PredicateAbstractionManager {
 
           Set<Integer> reuseIds = Sets.newTreeSet();
           BooleanFormula reuseFormula = bfmgr.makeBoolean(true);
-          for (AbstractionNode an : candidateAbstractions) {
+          for (AbstractionNode an: candidateAbstractions) {
             reuseFormula = bfmgr.and(reuseFormula, an.getFormula());
             abstractionStorage.markAbstractionBeingReused(an.getId());
             reuseIds.add(an.getId());
@@ -347,17 +396,17 @@ public class PredicateAbstractionManager {
       }
 
       boolean unsatisfiable = unsatisfiabilityCache.contains(symbFormula)
-          || unsatisfiabilityCache.contains(f);
+                            || unsatisfiabilityCache.contains(f);
       if (unsatisfiable) {
         // block is infeasible
-        logger.log(Level.FINEST, "Block feasibility of abstraction", stats.numCallsAbstraction,
-            "was cached and is false.");
+        logger.log(Level.FINEST, "Block feasibility of abstraction", stats.numCallsAbstraction, "was cached and is false.");
         stats.numCallsAbstractionCached++;
         return new AbstractionFormula(fmgr, rmgr.makeFalse(),
             bfmgr.makeBoolean(false), bfmgr.makeBoolean(false),
             pathFormula, noAbstractionReuse);
       }
     }
+
 
 
     // We update statistics here because we want to ignore calls
@@ -375,8 +424,8 @@ public class PredicateAbstractionManager {
 
       // Calculate the set of predicates we still need to use for abstraction.
       predicates = from(predicates)
-          .filter(not(in(amgr.extractPredicates(abs))))
-          .toSet();
+                     .filter(not(in(amgr.extractPredicates(abs))))
+                     .toSet();
       stats.trivialPredicatesTime.stop();
     }
 
@@ -421,8 +470,8 @@ public class PredicateAbstractionManager {
         if (abstractionType == AbstractionType.COMBINED) {
           // Calculate the set of predicates that cartesian abstraction couldn't handle.
           predicates = from(predicates)
-              .filter(not(in(amgr.extractPredicates(abs))))
-              .toSet();
+                         .filter(not(in(amgr.extractPredicates(abs))))
+                         .toSet();
         }
 
         if (abstractionType != AbstractionType.CARTESIAN
@@ -454,8 +503,8 @@ public class PredicateAbstractionManager {
     }
 
     long abstractionTime = TimeSpan.sum(stats.abstractionSolveTime.getLengthOfLastInterval(),
-        stats.abstractionEnumTime.getLengthOfLastOuterInterval())
-        .asMillis();
+                                        stats.abstractionEnumTime.getLengthOfLastOuterInterval())
+                                   .asMillis();
     logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
     logger.log(Level.ALL, "Abstraction result is", result.asFormula());
 
@@ -481,18 +530,17 @@ public class PredicateAbstractionManager {
   }
 
   private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
-      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates)
-      throws InterruptedException, SolverException {
+      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) throws InterruptedException, SolverException {
 
     BooleanFormula eliminationResult = fmgr.uninstantiate(
         fmgr.eliminateDeadVariables(pF, pSsa));
 
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(eliminationResult, false, false);
-    for (BooleanFormula atom : atoms) {
+    Collection<BooleanFormula> atoms = fmgr.extractAtoms(eliminationResult, false);
+    for (BooleanFormula atom: atoms) {
       amgr.makePredicate(atom);
       extractPredicates(atom);
     }
-
+    
     return amgr.buildRegionFromFormula(eliminationResult);
 
   }
@@ -500,11 +548,11 @@ public class PredicateAbstractionManager {
   /**
    * Extract all relevant predicates (with respect to a given formula)
    * from a given set of predicates.
-   * <p/>
+   *
    * Currently the check is syntactically, i.e.,
    * a predicate is relevant if it refers to at least one variable
    * that also occurs in f.
-   * <p/>
+   *
    * A predicate that is just "false" or "true" is also filtered out.
    *
    * @param pPredicates The set of predicates.
@@ -645,8 +693,7 @@ public class PredicateAbstractionManager {
           // we can just copy it to the output
           region = regionCreator.makeAnd(region, predicateVar);
           stats.numTrivialPredicates++;
-          logger.log(Level.FINEST, "Predicate", predicate,
-              "is unconditionally true in old abstraction and can be copied to the result.");
+          logger.log(Level.FINEST, "Predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
         } else {
           final Region negatedPredicateVar = regionCreator.makeNot(predicateVar);
@@ -655,8 +702,7 @@ public class PredicateAbstractionManager {
             // we can just copy it to the output
             region = regionCreator.makeAnd(region, negatedPredicateVar);
             stats.numTrivialPredicates++;
-            logger.log(Level.FINEST, "Negation of predicate", predicate,
-                "is unconditionally true in old abstraction and can be copied to the result.");
+            logger.log(Level.FINEST, "Negation of predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
           } else {
             // predicate is used in old abs and there is no easy way to handle it
@@ -673,21 +719,20 @@ public class PredicateAbstractionManager {
 
   /**
    * Compute an abstraction of a single boolean formula.
-   *
    * @param f The formula to be abstracted. Needs to be instantiated
-   * with the indices from <code>blockFormula.getSssa()</code>.
+   *         with the indices from <code>blockFormula.getSssa()</code>.
    * @param blockFormula A path formula that is not used for the abstraction,
-   * but will be used as the block formula in the resulting AbstractionFormula instance.
+   *         but will be used as the block formula in the resulting AbstractionFormula instance.
    * @param predicates The set of predicates used for abstraction.
    * @return An AbstractionFormula instance representing an abstraction of f
-   * with blockFormula as the block formula.
+   *          with blockFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(
       final CFANode location,
       final BooleanFormula f,
       final PathFormula blockFormula,
       final Collection<AbstractionPredicate> predicates)
-      throws SolverException, InterruptedException {
+          throws SolverException, InterruptedException {
 
     PathFormula pf = new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
 
@@ -706,13 +751,12 @@ public class PredicateAbstractionManager {
    * region, but the result is equivalent to the input.
    * This can be used to simply view the formula as a region.
    * If BDDs are used, the result of this method is a minimized form of the input.
-   *
    * @param f The formula to be converted to a region. Must NOT be instantiated!
    * @param blockFormula A path formula that is not used for the abstraction,
-   * but will be used as the block formula in the resulting AbstractionFormula instance.
-   * Also it's SSAMap will be used for instantiating the result.
+   *         but will be used as the block formula in the resulting AbstractionFormula instance.
+   *         Also it's SSAMap will be used for instantiating the result.
    * @return An AbstractionFormula instance representing f
-   * with blockFormula as the block formula.
+   *          with blockFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(final BooleanFormula f,
       final PathFormula blockFormula) {
@@ -722,7 +766,7 @@ public class PredicateAbstractionManager {
 
   private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,
       ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates)
-      throws SolverException, InterruptedException {
+          throws SolverException, InterruptedException {
 
     stats.abstractionSolveTime.start();
     boolean feasibility = !thmProver.isUnsat();
@@ -736,7 +780,7 @@ public class PredicateAbstractionManager {
     if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
       logger.log(Level.WARNING,
           "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
-              + "This might lead to failing refinements.");
+          + "This might lead to failing refinements.");
       warnedOfCartesianAbstraction = true;
     }
 
@@ -901,7 +945,6 @@ public class PredicateAbstractionManager {
 
   /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.
-   *
    * @param pAbstractionFormula the abstraction formula
    * @param pPathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
@@ -923,8 +966,7 @@ public class PredicateAbstractionManager {
       pPreviousBlockFormula = pfmgr.makeEmptyPathFormula();
     }
 
-    return new AbstractionFormula(fmgr, amgr.getRegionCreator().makeTrue(), bfmgr.makeBoolean(true),
-        bfmgr.makeBoolean(true),
+    return new AbstractionFormula(fmgr, amgr.getRegionCreator().makeTrue(), bfmgr.makeBoolean(true), bfmgr.makeBoolean(true),
         pPreviousBlockFormula, noAbstractionReuse);
   }
 
@@ -956,7 +998,6 @@ public class PredicateAbstractionManager {
 
   /**
    * Remove a set of predicates from an abstraction.
-   *
    * @param oldAbstraction The abstraction to start from.
    * @param removePredicates The predicate to remove.
    * @param ssaMap The SSAMap to use for instantiating the new abstraction.
@@ -976,7 +1017,6 @@ public class PredicateAbstractionManager {
 
   /**
    * Extend an abstraction by a set of predicates.
-   *
    * @param reducedAbstraction The abstraction to extend.
    * @param sourceAbstraction The abstraction where to take the predicates from.
    * @param relevantPredicates The predicates to add.
@@ -991,7 +1031,6 @@ public class PredicateAbstractionManager {
 
   /**
    * Extend an abstraction by a set of predicates.
-   *
    * @param reducedAbstraction The abstraction to extend.
    * @param sourceAbstraction The abstraction where to take the predicates from.
    * @param relevantPredicates The predicates to add.
@@ -1015,7 +1054,6 @@ public class PredicateAbstractionManager {
 
   /**
    * Extract all atoms from a formula and create predicates for them.
-   *
    * @param pFormula The formula with the atoms (with SSA indices).
    * @return A (possibly empty) collection of AbstractionPredicates.
    */
@@ -1032,14 +1070,11 @@ public class PredicateAbstractionManager {
       preds.add(amgr.makePredicate(atom));
     }
 
-    amgr.reorderPredicates();
-
     return preds;
   }
 
   /**
    * Create a single AbstractionPredicate representing a formula.
-   *
    * @param pFormula The formula to use (without SSA indices!), may not simply be "true".
    * @return A single abstraction predicate.
    */
@@ -1049,6 +1084,8 @@ public class PredicateAbstractionManager {
     return amgr.makePredicate(pFormula);
   }
 
+  // delegate methods
+
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
@@ -1057,45 +1094,9 @@ public class PredicateAbstractionManager {
     return amgr.buildRegionFromFormula(pF);
   }
 
-  // delegate methods
-
   private Set<AbstractionNode> getSuccessorsInAbstractionTree(int pIdOfLastAbstractionReused) {
     Preconditions.checkNotNull(reuseAbstractionsFrom);
     return abstractionStorage.getSuccessorAbstractions(pIdOfLastAbstractionReused);
-  }
-
-  private static enum AbstractionType {
-    CARTESIAN,
-    BOOLEAN,
-    COMBINED,
-    ELIMINATION;
-  }
-
-  static class Stats {
-
-    public final Timer abstractionReuseTime = new Timer();
-    public final StatTimer abstractionReuseImplicationTime =
-        new StatTimer("Time for checking reusability of abstractions");
-    public final Timer trivialPredicatesTime = new Timer();
-    public final Timer cartesianAbstractionTime = new Timer();
-    public final Timer quantifierEliminationTime = new Timer();
-    public final Timer booleanAbstractionTime = new Timer();
-    public final NestedTimer abstractionEnumTime = new NestedTimer(); // outer: solver time, inner: bdd time
-    public final Timer abstractionSolveTime = new Timer(); // only the time for solving, not for model enumeration
-    public int numCallsAbstraction = 0; // total calls
-    public int numAbstractionReuses = 0; // total reuses
-    public int numSymbolicAbstractions = 0; // precision completely empty, no computation
-    public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
-    public int numCallsAbstractionCached = 0; // result was cached, no computation
-    public int numTotalPredicates = 0;
-    public int maxPredicates = 0;
-    public int numIrrelevantPredicates = 0;
-    public int numTrivialPredicates = 0;
-    public int numCartesianAbsPredicates = 0;
-    public int numCartesianAbsPredicatesCached = 0;
-    public int numBooleanAbsPredicates = 0;
-    public long allSatCount = 0;
-    public int maxAllSatCount = 0;
   }
 
 }

@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -79,7 +79,7 @@ import com.google.common.collect.Multimap;
 public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsProvider {
 
   @Option(secure=true, description="whether or not to do lazy-abstraction", name="restart", toUppercase = true)
-  private RestartStrategy restartStrategy = RestartStrategy.TOP;
+  private RestartStrategy restartStrategy = RestartStrategy.ROOT;
 
   @Option(secure=true, description="whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
   private boolean useTopDownInterpolationStrategy = true;
@@ -136,8 +136,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
                                     valueAnalysisCpa.getShutdownNotifier(),
                                     valueAnalysisCpa.getCFA(),
                                     argCpa);
-
-    valueAnalysisCpa.getStats().addRefiner(refiner);
 
     return refiner;
   }
@@ -267,7 +265,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   }
 
   private void createGlobalPrecision(final ReachedSet pReached, ValueAnalysisInterpolationTree interpolationTree) {
-    for (ARGState root : interpolationTree.obtainRefinementRoots(RestartStrategy.BOTTOM)) {
+    for (ARGState root : interpolationTree.obtainRefinementRoots(RestartStrategy.PIVOT)) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision

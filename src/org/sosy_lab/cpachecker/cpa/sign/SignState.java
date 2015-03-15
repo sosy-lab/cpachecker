@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.sign;
 
 import java.io.IOException;
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.List;
 
@@ -167,7 +166,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     return signMap.hashCode();
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     if (this == TOP) {
       return proxy;
     } else {
@@ -189,7 +188,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
 
     public SerialProxySign() {}
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       return TOP;
     }
   }

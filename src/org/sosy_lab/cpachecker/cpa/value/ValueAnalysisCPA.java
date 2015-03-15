@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -171,7 +171,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     }
   }
 
-  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
 
     List<String> contents = null;
@@ -331,7 +331,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
 
     ValueAnalysisConcreteErrorPathAllocator alloc =
-        new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier);
+        new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier, cfa.getMachineModel());
     return alloc.allocateAssignmentsToPath(pPath);
   }
 }

@@ -49,6 +49,10 @@ public class CFACreationUtils {
    * if the edge does not contain dead code
    */
   public static void addEdgeToCFA(CFAEdge edge, LogManager logger) {
+    addEdgeToCFA(edge, logger, true);
+  }
+
+  public static void addEdgeToCFA(CFAEdge edge, LogManager logger, boolean warnForDeadCode) {
     CFANode predecessor = edge.getPredecessor();
 
     // check control flow branching at predecessor
@@ -76,7 +80,9 @@ public class CFACreationUtils {
       if (!edge.getDescription().isEmpty()) {
         // warn user, but not if its due to dead code produced by CIL
         Level level = Level.INFO;
-        if (edge.getDescription().matches("^Goto: (switch|while|ldv)_\\d+(_[a-z0-9]+)?$")) {
+        if (!warnForDeadCode) {
+          level = Level.FINER;
+        } else if (edge.getDescription().matches("^Goto: (switch|while|ldv)_\\d+(_[a-z0-9]+)?$")) {
           // don't mention dead code produced by CIL/LDV on normal log levels
           level = Level.FINER;
         } else if (edge.getPredecessor().getNodeNumber() == lastDetectedDeadCode) {

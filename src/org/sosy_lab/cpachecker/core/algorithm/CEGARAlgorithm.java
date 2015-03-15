@@ -216,7 +216,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InvalidConfigurationException
    * @throws CPAException
    */
-  public CEGARAlgorithm(Algorithm algorithm, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CEGARAlgorithm(Algorithm algorithm, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;

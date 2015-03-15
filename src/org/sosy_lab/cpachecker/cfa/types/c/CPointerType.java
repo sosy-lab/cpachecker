@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 
-public final class CPointerType implements CType {
+public final class CPointerType implements CType, Serializable {
 
+  private static final long serialVersionUID = -6423006826454509009L;
   public static final CPointerType POINTER_TO_VOID = new CPointerType(false, false, CVoidType.VOID);
   public static final CPointerType POINTER_TO_CONST_CHAR = new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false));
 

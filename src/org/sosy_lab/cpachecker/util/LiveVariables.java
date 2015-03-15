@@ -30,7 +30,6 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -69,16 +68,19 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 public class LiveVariables {
 
   public enum EvaluationStrategy {
-    FUNCTION_WISE, GLOBAL;
+    FUNCTION_WISE, GLOBAL
   }
 
   @Options(prefix="liveVar")
@@ -96,8 +98,9 @@ public class LiveVariables {
     }
   }
 
-  private final Multimap<CFANode, ASimpleDeclaration> liveVariables;
-  private final Set<ASimpleDeclaration> globalVariables;
+  // For ensuring deterministic behavior, all collections should be sorted!
+  private final ImmutableSetMultimap<CFANode, ASimpleDeclaration> liveVariables; // sorted by construction
+  private final ImmutableSortedSet<ASimpleDeclaration> globalVariables;
   private final VariableClassification variableClassification;
   private final EvaluationStrategy evaluationStrategy;
   private final Language language;
@@ -105,30 +108,35 @@ public class LiveVariables {
   /** For efficient access to the string representation of the declarations
    * we use these maps additionally.
    */
-  private final Multimap<CFANode, String> liveVariablesStrings;
-  private final Set<String> globalVariablesStrings;
+  private final ImmutableSetMultimap<CFANode, String> liveVariablesStrings; // sorted by construction
+  private final ImmutableSortedSet<String> globalVariablesStrings;
 
   private LiveVariables(Multimap<CFANode, ASimpleDeclaration> pLiveVariables,
                         VariableClassification pVariableClassification,
                         Set<ASimpleDeclaration> pGlobalVariables,
                         EvaluationStrategy pEvaluationStrategy,
                         Language pLanguage) {
-    liveVariables = pLiveVariables;
-    globalVariables = pGlobalVariables;
+    Ordering<ASimpleDeclaration> declarationOrdering = Ordering.natural().onResultOf(ASimpleDeclaration.GET_QUALIFIED_NAME);
+
+    // ImmutableSortedSetMultimap does not exist, in order to create a sorted immutable Multimap
+    // we sort it and create an immutable copy (Guava's Immutable* classes guarantee to keep the order).
+    SortedSetMultimap<CFANode, ASimpleDeclaration> sortedLiveVariables =
+        TreeMultimap.create(Ordering.natural(), declarationOrdering);
+    sortedLiveVariables.putAll(pLiveVariables);
+    liveVariables = ImmutableSetMultimap.copyOf(sortedLiveVariables);
+    assert pLiveVariables.size() == liveVariables.size() : "ASimpleDeclarations with identical qualified names";
+
+    globalVariables = ImmutableSortedSet.copyOf(declarationOrdering, pGlobalVariables);
+    assert pGlobalVariables.size() == globalVariables.size() : "Global ASimpleDeclarations with identical qualified names";
+
     variableClassification = pVariableClassification;
     evaluationStrategy = pEvaluationStrategy;
     language = pLanguage;
 
-    globalVariablesStrings = FluentIterable.from(globalVariables).transform(new Function<ASimpleDeclaration, String>() {
-      @Override
-      public String apply(ASimpleDeclaration pInput) {
-        return pInput.getQualifiedName();
-      }}).toSet();
-
-    liveVariablesStrings = HashMultimap.<CFANode, String>create();
-    for (Entry<CFANode, ASimpleDeclaration> e : liveVariables.entries()) {
-      liveVariablesStrings.put(e.getKey(), e.getValue().getQualifiedName());
-    }
+    globalVariablesStrings = ImmutableSortedSet.copyOf(
+        Collections2.transform(globalVariables, ASimpleDeclaration.GET_QUALIFIED_NAME));
+    liveVariablesStrings = ImmutableSetMultimap.copyOf(
+        Multimaps.transformValues(liveVariables, ASimpleDeclaration.GET_QUALIFIED_NAME));
   }
 
   public boolean isVariableLive(ASimpleDeclaration variable, CFANode location) {
@@ -159,18 +167,20 @@ public class LiveVariables {
     return liveVariablesStrings.containsEntry(location, varName);
   }
 
-  public Set<ASimpleDeclaration> getLiveVariablesForNode(CFANode node) {
-    return ImmutableSet.<ASimpleDeclaration>builder().addAll(liveVariables.get(node)).addAll(globalVariables).build();
+  /**
+   * Return an iterable of all live variables at a given CFANode
+   * without duplicates and with deterministic iteration order.
+   */
+  public FluentIterable<ASimpleDeclaration> getLiveVariablesForNode(CFANode pNode) {
+    return from(liveVariables.get(pNode)).append(globalVariables);
   }
 
-  public Set<String> getLiveVariableNamesForNode(CFANode pNode) {
-    return Sets.newHashSet(
-      Collections2.transform(getLiveVariablesForNode(pNode), new Function<ASimpleDeclaration, String>() {
-        @Override
-        public String apply(ASimpleDeclaration pDecl) {
-          return pDecl.getQualifiedName();
-        }
-      }));
+  /**
+   * Return an iterable of all names of live variables at a given CFANode
+   * without duplicates and with deterministic iteration order.
+   */
+  public FluentIterable<String> getLiveVariableNamesForNode(CFANode pNode) {
+    return from(liveVariablesStrings.get(pNode)).append(globalVariablesStrings);
   }
 
   public static Optional<LiveVariables> create(final Optional<VariableClassification> variableClassification,
@@ -253,7 +263,6 @@ public class LiveVariables {
         public ASimpleDeclaration apply(Pair<ADeclaration, String> pInput) {
           return pInput.getFirst();
       }};
-
 
   private static Multimap<CFANode, ASimpleDeclaration> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
                                               AnalysisParts analysisParts, EvaluationStrategy evaluationStrategy) {

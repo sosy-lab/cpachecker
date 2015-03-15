@@ -132,7 +132,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   public ImpactAlgorithm(Configuration config, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException, CPAException {
+      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;
@@ -141,7 +141,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
-    imgr = new InterpolationManager(pfmgr, solver, config, pShutdownNotifier, logger);
+    imgr = new InterpolationManager(pfmgr, solver, cfa.getLoopStructure(), cfa.getVarClassification(), config, pShutdownNotifier, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {

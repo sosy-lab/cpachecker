@@ -130,6 +130,7 @@ public class BAMCache {
     final Collection<AbstractState> returnStates = pair.getSecond();
 
     if (reached != null && returnStates != null) { // we have reached-set and elements
+      assert allStatesContainedInReachedSet(returnStates, reached) : "output-states must be in reached-set";
       fullCacheHits++;
     } else if (reached != null) { // we have cached a partly computed reached-set
       partialCacheHits++;

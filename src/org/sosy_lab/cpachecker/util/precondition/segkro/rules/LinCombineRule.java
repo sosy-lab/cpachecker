@@ -59,55 +59,60 @@ public class LinCombineRule extends PatternBasedRule {
     // ------------>
     //     b > a
 
+    // b >= e
+    //      e >= a
+    // ------------>
+    //     b >= a
+
+    // b >= e
+    //      e > a
+    // ------------>
+    //     b > a
+
     // b - e > 0
     //     e - a >= 0
     // ------------>
     //     b > a
 
+    //ATTENTION: We assume that we operate on canonicalized predicates!!
+
     premises.add(new PatternBasedPremise(
         or (
-          match("not", // not (e < a)
-            match("<",
-                matchAnyWithAnyArgsBind("e"),
-                matchAnyWithAnyArgsBind("a"))),
-          match(">=", // e >= a
+          matchBind(">=", "geq1", // e >= a
               matchAnyWithAnyArgsBind("e"),
               matchAnyWithAnyArgsBind("a")),
-          match("not", // not (e - a) < 0)
-              match("<",
-                  and(
-                      GenericPatterns.substraction("e", "a"),
-                      matchAnyWithAnyArgsBind("zero")))),
-          match(">=", // e - a >= 0
+
+          matchBind(">=", "geq1", // e - a >= 0
+              and(
+                  GenericPatterns.substraction("e", "a"),
+                  matchAnyWithAnyArgsBind("zero"))),
+
+          match(">", // e > a
+              matchAnyWithAnyArgsBind("e"),
+              matchAnyWithAnyArgsBind("a")),
+
+          match(">",  // e - a >= 0
               and(
                   GenericPatterns.substraction("e", "a"),
                   matchAnyWithAnyArgsBind("zero")))
+
           )));
 
     premises.add(new PatternBasedPremise(
         or (
-          match(">", // b > e
+          match(">",  // b > e
               matchAnyWithAnyArgsBind("b"),
               matchAnyWithAnyArgsBind("e")),
-          match("not", // b <= e
-              match("<=",
-                  matchAnyWithAnyArgsBind("b"),
-                  matchAnyWithAnyArgsBind("e"))),
+
           match(">", // b - e > 0
               and(
                   GenericPatterns.substraction("b", "e"),
                   matchAnyWithAnyArgsBind("zero"))),
-          match("not", // not (b - e <= 0)
-              match("<=",
-                  and (
-                      GenericPatterns.substraction("b", "e"),
-                      matchAnyWithAnyArgsBind("zero")))),
-          match(">=", // b >= e - 1
-              matchAnyWithAnyArgsBind("b"),
-              matchAnyWithAnyArgsBind("eMinusOne")),
-          match(">=", // not (b < e - 1)
+
+          matchBind(">=", "geq2", // b >= e - 1
               matchAnyWithAnyArgsBind("b"),
               matchAnyWithAnyArgsBind("eMinusOne"))
+
           )));
   }
 
@@ -166,6 +171,13 @@ public class LinCombineRule extends PatternBasedRule {
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
     final IntegerFormula a = (IntegerFormula) pAssignment.get("a");
     final IntegerFormula b = (IntegerFormula) pAssignment.get("b");
+
+    if (pAssignment.containsKey("geq1")
+     && pAssignment.containsKey("geq2")) {
+
+      return Lists.newArrayList(
+          ifm.lessOrEquals(a, b));
+    }
 
     return Lists.newArrayList(
         ifm.lessThan(a, b));

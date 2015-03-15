@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -64,9 +65,14 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
 
   @Override
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
-      reachedSet = new AbstractState[pReached.size()];
-      pReached.asCollection().toArray(reachedSet);
-      orderReachedSetByLocation(reachedSet);
+    reachedSet = new AbstractState[pReached.size()];
+    pReached.asCollection().toArray(reachedSet);
+    if (reachedSet.length > 0 && reachedSet[0] instanceof ARGState) {
+      for (int i = 0; i < reachedSet.length; i++) {
+        reachedSet[i] = ((ARGState) reachedSet[i]).getWrappedState();
+      }
+    }
+    orderReachedSetByLocation(reachedSet);
   }
 
   @Override

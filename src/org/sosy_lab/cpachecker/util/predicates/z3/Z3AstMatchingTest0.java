@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,7 +45,10 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressWarnings("unused")
+@SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
 public class Z3AstMatchingTest0 extends SolverBasedTest0 {
 
   private IntegerFormula _0;
@@ -60,6 +64,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   private BooleanFormula _c1_times_ex_plus_e1_GEQ_0;
   private BooleanFormula _minus_c2_times_ex_plus_e2_GEQ_0;
 
+  private Solver solver;
   private SmtAstMatcher matcher;
 
   private IntegerFormula _i1;
@@ -100,16 +105,21 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     setupTestPatterns();
   }
 
+  @After
+  public void closeEnvironment() throws Exception {
+    solver.close();
+  }
+
   public void setupMatcher() throws InvalidConfigurationException {
 
     FormulaManagerView fmv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
-    Solver solver = new Solver(fmv, factory, config, TestLogManager.getInstance());
+    solver = new Solver(fmv, factory, config, TestLogManager.getInstance());
     Z3FormulaManager zfm =(Z3FormulaManager) mgr;
 
     matcher = solver.getSmtAstMatcher();
   }
 
-  public void setupTestFormulas() throws Exception {
+  public void setupTestFormulas() {
     _0 = imgr.makeNumber(0);
     _1 = imgr.makeNumber(1);
     _minus1 = imgr.makeNumber(-1);

@@ -45,7 +45,7 @@ public class AssignmentToPathAllocatorTest {
   private AssignmentToPathAllocator allocator;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     this.allocator = new AssignmentToPathAllocator(
         TestLogManager.getInstance(),
         ShutdownNotifier.create());

@@ -25,12 +25,18 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 
 public class CallstackReducer implements Reducer {
+  private final CallstackStateFactory callstackStateFactory;
+
+  public CallstackReducer(CallstackStateFactory pCallstackStateFactory) {
+    callstackStateFactory = pCallstackStateFactory;
+  }
 
   @Override
   public AbstractState getVariableReducedState(
@@ -44,11 +50,13 @@ public class CallstackReducer implements Reducer {
 
   private CallstackState copyCallstackUpToCallNode(CallstackState element, CFANode callNode) {
     if (element.getCurrentFunction().equals(callNode.getFunctionName())) {
-      return new CallstackState(null, element.getCurrentFunction(), callNode);
+      return callstackStateFactory.create(null, element.getCurrentFunction(), callNode);
     } else {
       assert element.getPreviousState() != null;
       CallstackState recursiveResult = copyCallstackUpToCallNode(element.getPreviousState(), callNode);
-      return new CallstackState(recursiveResult, element.getCurrentFunction(), element.getCallNode());
+      return callstackStateFactory.create(recursiveResult,
+          element.getCurrentFunction(),
+          element.getCallNode());
     }
   }
 
@@ -74,7 +82,11 @@ public class CallstackReducer implements Reducer {
       return target;
     } else {
       CallstackState recursiveResult = copyCallstackExceptLast(target, source.getPreviousState());
-      return new CallstackState(recursiveResult, source.getCurrentFunction(), source.getCallNode());
+
+      return callstackStateFactory.create(
+          recursiveResult,
+          source.getCurrentFunction(),
+          source.getCallNode());
     }
   }
 
@@ -147,7 +159,8 @@ public class CallstackReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState, CFANode exitLocation) {
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
+      AbstractState expandedState, FunctionExitNode exitLocation) {
     return expandedState;
   }
 }

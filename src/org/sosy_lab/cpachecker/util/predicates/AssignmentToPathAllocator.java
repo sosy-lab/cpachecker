@@ -64,6 +64,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.math.IntMath;
 
 
 public class AssignmentToPathAllocator {
@@ -597,10 +598,7 @@ public class AssignmentToPathAllocator {
         return result;
       }
 
-      int index = lower + ((upper-lower) / 2);
-      assert index >= lower;
-      assert index <= upper;
-
+      int index = IntMath.mean(lower, upper);
       int ssaIndex = pSsaMaps.get(index).getIndex(pVar.getName());
 
       if (ssaIndex < pVar.getSSAIndex()) {
@@ -639,10 +637,7 @@ public class AssignmentToPathAllocator {
         return result;
       }
 
-      int index = lower + ((upper-lower) / 2);
-      assert index >= lower;
-      assert index <= upper;
-
+      int index = IntMath.mean(lower, upper);
       int ssaIndex = pSsaMaps.get(index).getIndex(getName(pTerm));
 
       if (ssaIndex < getSSAIndex(pTerm)) {

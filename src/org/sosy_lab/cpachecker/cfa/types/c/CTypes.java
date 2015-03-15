@@ -151,17 +151,17 @@ public final class CTypes {
 
     @Override
     public CCompositeType visit(CCompositeType t) {
-      return new CCompositeType(constValue, t.isVolatile(), t.getKind(), t.getMembers(), t.getName());
+      return new CCompositeType(constValue, t.isVolatile(), t.getKind(), t.getMembers(), t.getName(), t.getOrigName());
     }
 
     @Override
     public CElaboratedType visit(CElaboratedType t) {
-      return new CElaboratedType(constValue, t.isVolatile(), t.getKind(), t.getName(), t.getRealType());
+      return new CElaboratedType(constValue, t.isVolatile(), t.getKind(), t.getName(), t.getOrigName(), t.getRealType());
     }
 
     @Override
     public CEnumType visit(CEnumType t) {
-      return new CEnumType(constValue, t.isVolatile(), t.getEnumerators(), t.getName());
+      return new CEnumType(constValue, t.isVolatile(), t.getEnumerators(), t.getName(), t.getOrigName());
     }
 
     @Override
@@ -214,17 +214,17 @@ public final class CTypes {
 
     @Override
     public CCompositeType visit(CCompositeType t) {
-      return new CCompositeType(t.isConst(), volatileValue, t.getKind(), t.getMembers(), t.getName());
+      return new CCompositeType(t.isConst(), volatileValue, t.getKind(), t.getMembers(), t.getName(), t.getOrigName());
     }
 
     @Override
     public CElaboratedType visit(CElaboratedType t) {
-      return new CElaboratedType(t.isConst(), volatileValue, t.getKind(), t.getName(), t.getRealType());
+      return new CElaboratedType(t.isConst(), volatileValue, t.getKind(), t.getName(), t.getOrigName(), t.getRealType());
     }
 
     @Override
     public CEnumType visit(CEnumType t) {
-      return new CEnumType(t.isConst(), volatileValue, t.getEnumerators(), t.getName());
+      return new CEnumType(t.isConst(), volatileValue, t.getEnumerators(), t.getName(), t.getOrigName());
     }
 
     @Override

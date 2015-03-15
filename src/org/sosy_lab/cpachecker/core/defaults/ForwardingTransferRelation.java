@@ -23,21 +23,25 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -293,6 +297,11 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * If the assumption is not fulfilled, NULL should be returned. */
   protected S handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
+
+    Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthAssumption);
+    expression = simplifiedExpression.getFirst();
+    truthAssumption = simplifiedExpression.getSecond();
+
     if (cfaEdge instanceof CAssumeEdge) {
       return handleAssumption((CAssumeEdge) cfaEdge, (CExpression) expression, truthAssumption);
 
@@ -309,8 +318,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
-      throws CPATransferException {
+  protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -343,7 +351,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   protected S handleFunctionCallEdge(JMethodCallEdge cfaEdge,
       List<JExpression> arguments, List<JParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+      String calledFunctionName) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -372,8 +380,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   }
 
   protected S handleFunctionReturnEdge(JMethodReturnEdge cfaEdge,
-      JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName)
-      throws CPATransferException {
+      JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -397,8 +404,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl)
-      throws CPATransferException {
+  protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -422,8 +428,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement)
-      throws CPATransferException {
+  protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -447,8 +452,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge)
-      throws CPATransferException {
+  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -458,7 +462,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    *  A blank edge can also be a default-return-edge for a function "void f()".
    *  In that case the successor-node is a FunctionExitNode. */
   @SuppressWarnings("unchecked")
-  protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
+  protected S handleBlankEdge(BlankEdge cfaEdge) {
     return (S)state;
   }
 
@@ -476,7 +480,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) throws CPATransferException {
+  protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -513,5 +517,60 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   /**  */
   protected static String buildVarName(@Nullable final String function, final String var) {
     return (function == null) ? var : function + "::" + var;
+  }
+
+  protected static Pair<AExpression, Boolean> simplifyAssumption(AExpression pExpression, boolean pAssumeTruth) {
+    if (isBooleanExpression(pExpression)) {
+      if (pExpression instanceof CBinaryExpression) {
+        CBinaryExpression binExp = (CBinaryExpression) pExpression;
+        if (isBooleanExpression(binExp.getOperand1())
+            && binExp.getOperand2().equals(CIntegerLiteralExpression.ZERO)) {
+          return simplifyAssumption(binExp.getOperand1(), !pAssumeTruth);
+        } else if (isBooleanExpression(binExp.getOperand2())
+            && binExp.getOperand1().equals(CIntegerLiteralExpression.ZERO)) {
+          return simplifyAssumption(binExp.getOperand2(), !pAssumeTruth);
+        }
+      }
+    }
+    return Pair.of(pExpression, pAssumeTruth);
+  }
+
+  private static boolean isBooleanExpression(AExpression pExpression) {
+    if (pExpression instanceof CExpression) {
+      return isBooleanExpression((CExpression) pExpression);
+    } else if (pExpression instanceof JExpression) {
+      return isBooleanExpression(((JExpression) pExpression));
+    }
+    return false;
+  }
+
+  private static boolean isBooleanExpression(CExpression pExpression) {
+    if (pExpression instanceof CBinaryExpression) {
+      return Arrays.asList(
+          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS,
+          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.NOT_EQUALS,
+          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL,
+          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_THAN,
+          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL,
+          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN)
+          .contains(((CBinaryExpression)pExpression).getOperator());
+    } else {
+      return false;
+    }
+  }
+
+  private static boolean isBooleanExpression(JExpression pExpression) {
+    if (pExpression instanceof CBinaryExpression) {
+      return Arrays.asList(
+          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS,
+          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS,
+          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.GREATER_EQUAL,
+          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.GREATER_THAN,
+          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_EQUAL,
+          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_THAN)
+          .contains(((CBinaryExpression)pExpression).getOperator());
+    } else {
+      return false;
+    }
   }
 }

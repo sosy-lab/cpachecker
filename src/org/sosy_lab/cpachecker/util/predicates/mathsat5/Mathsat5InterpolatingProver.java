@@ -110,4 +110,10 @@ class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements Inte
     throw new UnsupportedOperationException("directly receiving an inductive sequence of interpolants is not supported." +
             "Use another solver or another strategy for interpolants.");
   }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<Integer>> partitionedFormulas, int[] startOfSubTree) {
+    throw new UnsupportedOperationException("directly receiving of tree interpolants is not supported." +
+            "Use another solver or another strategy for interpolants.");
+  }
 }

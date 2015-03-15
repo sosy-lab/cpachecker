@@ -56,30 +56,30 @@ public class EliminationRuleTest0 extends AbstractRuleTest0 {
     IntegerFormula _e1 = mgrv.makeVariable(NumeralType.IntegerType, "e1");
     IntegerFormula _e2 = mgrv.makeVariable(NumeralType.IntegerType, "e2");
     IntegerFormula _eX = mgrv.makeVariable(NumeralType.IntegerType, "eX");
-    IntegerFormula _0 = imgr.makeNumber(0);
+    IntegerFormula _0 = ifm.makeNumber(0);
 
     // Formulas for the premise
-    BooleanFormula _c1_times_ex_plus_e1_GEQ_0
-      = imgr.greaterOrEquals(
-          imgr.add(
-              imgr.multiply(_c1, _eX),
+    BooleanFormula _c1_times_ex_plus_e1_GEQ_0 // c1*ex + e1 >= 0
+      = ifm.greaterOrEquals(
+          ifm.add(
+              ifm.multiply(_c1, _eX),
               _e1),
           _0);
-    BooleanFormula _minus_c2_times_ex_plus_e2_GEQ_0
-      = imgr.greaterOrEquals(
-          imgr.add(
-              imgr.multiply(
-                  imgr.subtract(_0, _c2),
+    BooleanFormula _minus_c2_times_ex_plus_e2_GEQ_0 // -c2*ex + e2 >= 0
+      = ifm.greaterOrEquals(
+          ifm.add(
+              ifm.multiply(
+                  ifm.subtract(_0, _c2),
                   _eX),
               _e2),
           _0);
 
     // The formula that is expected as conclusion
     BooleanFormula expectedConclusion
-      = imgr.greaterOrEquals(
-          imgr.add(
-              imgr.multiply(_c2, _e1),
-              imgr.multiply(_c1, _e2)),
+      = ifm.greaterOrEquals(
+          ifm.add(
+              ifm.multiply(_c2, _e1),
+              ifm.multiply(_c1, _e2)),
           _0);
 
     // Check if the expected conclusion is implied by the conjunction of the premises
@@ -89,6 +89,6 @@ public class EliminationRuleTest0 extends AbstractRuleTest0 {
             _minus_c2_times_ex_plus_e2_GEQ_0));
 
     assertThat(concluded).isNotEmpty();
-    assertThat(concluded.iterator().next().toString()).isEqualTo(expectedConclusion.toString());
+    assertThat(concluded).contains(expectedConclusion);
   }
 }

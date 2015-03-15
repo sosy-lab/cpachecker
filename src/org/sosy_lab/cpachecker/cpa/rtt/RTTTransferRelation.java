@@ -301,7 +301,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     value =  exp.accept(visitor);
     RTTState newElement = visitor.state;
 
-   handleAssignmentToVariable(lParam, exp, value, newElement, visitor.functionName);
+    handleAssignmentToVariable(lParam, exp, value, newElement, visitor.functionName);
   }
 
   private void handleStatement(RTTState newElement,
@@ -555,7 +555,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private class FunctionExitValueVisitor extends ExpressionValueVisitor {
+  private static class FunctionExitValueVisitor extends ExpressionValueVisitor {
 
     public FunctionExitValueVisitor(CFAEdge pEdge, RTTState pElement, String pFunctionName) {
       super(pEdge, pElement, pFunctionName);
@@ -571,10 +571,10 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
 
 
-  private class AssigningValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> {
+  private static class AssigningValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> {
 
-    final private boolean truthAssumption;
-    final private RTTState newState;
+    private final boolean truthAssumption;
+    private final RTTState newState;
     private final String methodName;
 
 
@@ -606,14 +606,14 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
       JClassOrInterfaceType assignableType = pE.getTypeDef();
 
-      String referenz  = pE.getRunTimeTypeExpression().accept(this);
+      String reference  = pE.getRunTimeTypeExpression().accept(this);
 
-      if (referenz == null) {
+      if (reference == null) {
         return null;
       }
 
-      if (truthAssumption == true) {
-        newState.assignAssumptionType(referenz, assignableType);
+      if (truthAssumption) {
+        newState.assignAssumptionType(reference, assignableType);
       }
 
       return null;
@@ -623,7 +623,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
 
 
-  private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
+  private static class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
 
     protected final CFAEdge edge;
     protected final RTTState state;
@@ -649,7 +649,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public String visit(JCharLiteralExpression pPaCharLiteralExpression) throws UnrecognizedCCodeException {
-      return "Charackter";
+      return "Character";
     }
 
     @Override
@@ -752,8 +752,8 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
 
     @Override
-    public String visit(JArrayCreationExpression pJBooleanLiteralExpression) throws UnrecognizedCCodeException {
-      // TODO Support Boolean Class
+    public String visit(JArrayCreationExpression pJArrayCreationExpression) throws UnrecognizedCCodeException {
+      // TODO Support Array Class
       return null;
     }
 

@@ -68,10 +68,11 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile)
+      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile,
+      long randomSeed)
           throws InvalidConfigurationException {
 
-    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile);
+    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile, randomSeed);
     SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env);
 
     // Create managers
@@ -117,6 +118,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
       @Override
       public void appendTo(Appendable out) throws IOException {
         Set<Term> seen = new HashSet<>();
+        Set<FunctionSymbol> declaredFunctions = new HashSet<>();
         Deque<Term> todo = new ArrayDeque<>();
         PrintTerm termPrinter = new PrintTerm();
 
@@ -141,17 +143,22 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
           }
 
           if (func.getDefinition() == null) {
-            out.append("(declare-fun ");
-            out.append(PrintTerm.quoteIdentifier(func.getName()));
-            out.append(" (");
-            for (Sort paramSort : func.getParameterSorts()) {
-              termPrinter.append(out, paramSort);
-              out.append(' ');
-            }
-            out.append(") ");
-            termPrinter.append(out, func.getReturnSort());
-            out.append(")\n");
+            if (declaredFunctions.add(func)) {
+              out.append("(declare-fun ");
+              out.append(PrintTerm.quoteIdentifier(func.getName()));
+              out.append(" (");
+              int counter = 0;
+              for (Sort paramSort : func.getParameterSorts()) {
+                termPrinter.append(out, paramSort);
 
+                if (++counter < func.getParameterSorts().length) {
+                  out.append(' ');
+                }
+              }
+              out.append(") ");
+              termPrinter.append(out, func.getReturnSort());
+              out.append(")\n");
+            }
           } else {
             // We would have to print a (define-fun) command and
             // recursively traverse into func.getDefinition() (in post-order!).

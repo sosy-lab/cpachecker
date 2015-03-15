@@ -208,7 +208,7 @@ public class SolverStackTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void stackTest() throws Exception {
+  public void stackTest() {
     BasicProverEnvironment<?> stack = newEnvironmentForTest(true);
     thrown.expect(RuntimeException.class);
     stack.pop();

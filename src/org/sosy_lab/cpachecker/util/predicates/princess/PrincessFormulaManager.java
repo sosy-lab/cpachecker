@@ -25,10 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
 
-import java.io.IOException;
-
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
@@ -103,16 +100,7 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
 
   @Override
   public Appender dumpFormula(final IExpression formula) {
-    return new Appenders.AbstractAppender() {
-
-      @Override
-      public void appendTo(Appendable out) throws IOException {
-        // TODO declare variables
-        out.append("(assert ");
-        out.append(formula.toString());
-        out.append(")");
-      }
-    };
+    return getEnvironment().dumpFormula(formula);
   }
 
   @Override

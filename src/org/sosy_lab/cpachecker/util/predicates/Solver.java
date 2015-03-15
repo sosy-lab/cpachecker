@@ -37,11 +37,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
@@ -173,21 +175,29 @@ public final class Solver implements AutoCloseable {
    * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
+  public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolation() {
     InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(false);
+
+    // in the case we do not already have a prover environment with assumptions
+    // we add a wrapper to it
+    if (!(ipe instanceof InterpolatingProverEnvironmentWithAssumptions)) {
+      ipe = new InterpolatingProverWithAssumptionsWrapper<>(ipe, fmgr);
+    }
+
+    InterpolatingProverEnvironmentWithAssumptions<?> ipeA = (InterpolatingProverEnvironmentWithAssumptions<?>) ipe;
 
     if (solvingFormulaManager != interpolationFormulaManager) {
       // If interpolationFormulaManager is not the normal solver,
       // we use SeparateInterpolatingProverEnvironment
       // which copies formula back and forth using strings.
       // We don't need this if the solvers are the same anyway.
-      ipe = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipe);
+      ipeA = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipeA);
     }
 
     if (useLogger) {
-      return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
+      return new LoggingInterpolatingProverEnvironment<>(logger, ipeA);
     } else {
-      return ipe;
+      return ipeA;
     }
   }
 

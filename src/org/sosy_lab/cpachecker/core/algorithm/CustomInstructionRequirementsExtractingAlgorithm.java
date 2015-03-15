@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -41,40 +40,55 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParser;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications;
+import org.sosy_lab.cpachecker.util.ci.CustomInstructionRequirementsWriter;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
-@Options(prefix="customInstructions")
+@Options(prefix="custominstructions")
 public class CustomInstructionRequirementsExtractingAlgorithm implements Algorithm {
 
   private final Algorithm analysis;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  @Option(secure=true, name="definitionFile", description = "") //TODO
+  @Option(secure=true, name="definitionFile", description = "File to be parsed")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path appliedCustomInstructionsDefinition;
 
+  @Option(secure=true, description="Prefix for files containing the custom instruction requirements.")
+  private String ciFilePrefix = "ci";
+
+  @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
+  private String requirementsStateClassName;
+
+  private Class<AbstractState> requirementsStateClass;
+
   /**
-   * TODO
-   * @param analysisAlgorithm
-   * @param cpa
-   * @param config
-   * @param logger
-   * @param sdNotifier
-   * @throws InvalidConfigurationException
+   * Constructor of CustomInstructionRequirementsExtractingAlgorithm
+   * @param analysisAlgorithm Algorithm
+   * @param cpa ConfigurableProgramAnalysis
+   * @param config Configuration
+   * @param logger LogManager
+   * @param sdNotifier ShutdownNotifier
+   * @throws InvalidConfigurationException if the given Path not exists
    */
   public CustomInstructionRequirementsExtractingAlgorithm(final Algorithm analysisAlgorithm,
       final ConfigurableProgramAnalysis cpa, final Configuration config, final LogManager logger,
-      final ShutdownNotifier sdNotifier) throws InvalidConfigurationException {
+      final ShutdownNotifier sdNotifier, final CFA cfa) throws InvalidConfigurationException {
 
     config.inject(this);
 
@@ -82,18 +96,34 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     this.logger = logger;
     this.shutdownNotifier = sdNotifier;
 
-    if (!appliedCustomInstructionsDefinition.toFile().exists()) {
-      throw new InvalidConfigurationException("The given path " + appliedCustomInstructionsDefinition + "is not a valid path to a file.");
+    if (cpa instanceof ARGCPA) {
+      throw new InvalidConfigurationException("The given cpa " + cpa + "is not an instance of ARGCPA");
     }
 
-    // TODO cpa spaeter
+    if (!appliedCustomInstructionsDefinition.toFile().exists()) {
+      throw new InvalidConfigurationException("The given path '" + appliedCustomInstructionsDefinition + "' is not a valid path to a file.");
+    }
+
+    try {
+      // TODO warning?
+      requirementsStateClass = (Class<AbstractState>) Class.forName(requirementsStateClassName);
+    } catch (ClassNotFoundException e) {
+      throw new InvalidConfigurationException("The abstract state " + requirementsStateClassName + " is unknown.");
+    }
+
+    if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+                                          requirementsStateClass) == null) {
+      throw new InvalidConfigurationException(requirementsStateClassName + "is not an abstract state.");
+    }
+
+    // TODO to be continued: CFA integration
   }
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
 
-    logger.log(Level.INFO);
+    logger.log(Level.INFO, " Start analysing to compute requirements.");
 
     // analysis was unsound
     if (!analysis.run(pReachedSet)) {
@@ -102,12 +132,12 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     }
 
     shutdownNotifier.shutdownIfNecessary();
-    logger.log(Level.INFO, "Get custom instruction application in program.");
+    logger.log(Level.INFO, "Get custom instruction applications in program.");
 
-    try (BufferedReader br = new BufferedReader(new FileReader(appliedCustomInstructionsDefinition.toFile()))) {
-
-      // TODO file parsen mit geschriebenen parser
-
+    CustomInstructionApplications aci = null;
+    try {
+      aci = new CustomInstructionApplications(new AppliedCustomInstructionParser(shutdownNotifier)
+                  .parse(appliedCustomInstructionsDefinition));
     } catch (FileNotFoundException ex) {
       logger.log(Level.SEVERE, "The file '" + appliedCustomInstructionsDefinition + "' was not found", ex);
       return false;
@@ -117,22 +147,34 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     }
 
     shutdownNotifier.shutdownIfNecessary();
-    logger.log(Level.INFO);
+    logger.log(Level.INFO, "Start extracting requirements for applied custom instructions");
 
-    // TODO welche parameter?
-//    extractRequirements(root, pCustomIA);
+    extractRequirements((ARGState)pReachedSet.getFirstState(), aci);
 
     return true;
   }
 
   /**
-   * TODO
-   * @param root
-   * @param pCustomIA
+   * Extracts all start and end nodes of the ARGState root and writes them via
+   * CustomInstrucionRequirementsWriter.
+   * @param root ARGState
+   * @param cia CustomInstructionApplications
+   * @throws InterruptedException if a shutdown was requested
    */
-  private void extractRequirements(final ARGState root, final CustomInstructionApplications pCustomIA) {
-    // TODO was genau? spaeter
-//    getCustomInstructionState(root, pCustomIA); ?
+  private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
+      throws InterruptedException, CPAException {
+
+    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix, requirementsStateClass);
+    Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
+
+    for (ARGState node : ciStartNodes) {
+      shutdownNotifier.shutdownIfNecessary();
+      try {
+        writer.writeCIRequirement(node, findEndStatesFor(node, cia), cia.getAppliedCustomInstructionFor(node));
+      } catch (IOException e) {
+        logger.log(Level.SEVERE, "Writing  the CIRequirement failed at node " + node + ".", e);
+      }
+    }
   }
 
   /**
@@ -144,29 +186,32 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @throws InterruptedException
    * @throws CPAException
    */
-  private ImmutableSet<ARGState> getCustomInstructionState(
-      final ARGState root, final CustomInstructionApplications pCustomIA)
+  private Collection<ARGState> getCustomInstructionStartNodes(final ARGState root, final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException{
 
     Builder<ARGState> set = new ImmutableSet.Builder<>();
     Set<ARGState> visitedNodes = new HashSet<>();
-    Queue<ARGState> queue = new LinkedList<>();
+    Queue<ARGState> queue = new ArrayDeque<>();
+
     queue.add(root);
+    visitedNodes.add(root);
+
+    ARGState tmp;
 
     while (!queue.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
-      ARGState tmp = queue.poll();
+      tmp = queue.poll();
       visitedNodes.add(tmp);
 
-        if (pCustomIA.isEndState(tmp, root)) {
-          set.add(tmp);
-        }
+      if (pCustomIA.isStartState(tmp)) {
+        set.add(tmp);
+      }
 
       // breadth-first-search
-      Collection<ARGState> children = tmp.getChildren();
-      for (ARGState child : children) {
+      for (ARGState child : tmp.getChildren()) {
         if (!visitedNodes.contains(child)) {
           queue.add(child);
+          visitedNodes.add(child);
         }
       }
     }
@@ -174,4 +219,40 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     return set.build();
   }
 
+  /**
+   * Returns a Collection of ARGState of all EndStates which are in the tree of ciStart
+   * @param ciStart ARGState
+   * @return Collection of ARGState
+   * @throws InterruptedException if a shutdown was requested
+   * @throws CPAException
+   */
+  private Collection<ARGState> findEndStatesFor(final ARGState ciStart, final CustomInstructionApplications pCustomIA)
+      throws InterruptedException, CPAException {
+    ArrayList<ARGState> list = new ArrayList<>();
+    Queue<ARGState> queue = new ArrayDeque<>();
+    Set<ARGState> visitedNodes = new HashSet<>();
+
+    queue.add(ciStart);
+    visitedNodes.add(ciStart);
+
+    while (!queue.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
+      ARGState tmp = queue.poll();
+
+      if (pCustomIA.isEndState(tmp, ciStart)) {
+        list.add(tmp);
+        continue;
+      }
+
+      // breadth-first-search
+      for (ARGState child : tmp.getChildren()) {
+        if (!visitedNodes.contains(child)) {
+          queue.add(child);
+          visitedNodes.add(child);
+        }
+      }
+    }
+
+    return list;
+  }
 }

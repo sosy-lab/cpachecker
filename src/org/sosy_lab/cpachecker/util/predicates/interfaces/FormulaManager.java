@@ -100,6 +100,9 @@ public interface FormulaManager {
   /**
    * Create a fresh new {@link InterpolatingProverEnvironment} which encapsulates an assertion stack
    * and allows to generate and retrieve interpolants for unsatisfiable formulas.
+   * If the SMT solver is able to handle satisfiability tests with assumptions please consider
+   * implementing the {@link InterpolatingProverEnvironmentWithAssumptions} interface, and return
+   * an Object of this type here.
    * @param shared Whether the solver should share as much as possible with other environments.
    */
   InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared);

@@ -1,93 +1,99 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.List;
+import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
+import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
+import com.google.common.base.Predicates;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 /**
  * Object uniquely identifying the location in the stack trace.
  */
 public final class Location {
-  final CFANode node;
+  private final CFANode node;
 
-  /**
-   * Sequence of caller nodes.
-   * Analysis should add one for each
-   * {@link org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge} seen.
-   */
-  final ImmutableList<CFANode> callerNodes;
+  // Use other CPA states for partitioning.
+  private final ImmutableSet<AbstractState> otherStates;
+  private Integer locationID = null;
+  private final int hashCache;
 
+  // Serializing to and from integer.
   private static int locationCounter = -1;
   private static final BiMap<Integer, Location> serializationMap = HashBiMap.create();
-  private final int locationID;
 
-  private Location(CFANode pNode, List<CFANode> pCallerNodes) {
+  private Location(CFANode pNode, Iterable<AbstractState> pOtherStates) {
     node = pNode;
-    callerNodes = ImmutableList.copyOf(pCallerNodes);
+    otherStates = ImmutableSet.copyOf(pOtherStates);
+    hashCache = Objects.hashCode(node, otherStates);
+  }
 
-    // Making sure that equal location will have the same identifier.
-    if (serializationMap.inverse().containsKey(this)) {
+  public static Location of(
+      CFANode pNode, Collection<AbstractState> otherStates
+  ) {
+    @SuppressWarnings("unchecked")
+    Iterable<AbstractState> filteredStates = Iterables.filter(otherStates,
+        Predicates.<AbstractState>or(
+            Predicates.instanceOf(CallstackState.class),
+            Predicates.instanceOf(LoopstackState.class),
+            Predicates.instanceOf(FunctionPointerState.class)
+        ));
+    return new Location(pNode, filteredStates);
+  }
 
-      // NOTE: check how dangerous this is.
-      // Normally we shouldn't let {@code this} reference escape during the
-      // construction, but in this case it appears fine.
-      locationID = serializationMap.inverse().get(this);
-    } else {
-      locationID = ++locationCounter;
-      serializationMap.put(locationID, this);
-    }
+  public CFANode getFinalNode() {
+    return node;
   }
 
   /**
    * Initial Location.
    */
   public static Location initial(CFANode initial) {
-    return new Location(initial, ImmutableList.<CFANode>of());
+    return new Location(initial, ImmutableList.<AbstractState>of());
   }
 
-  public static Location withCallsite(Location old,
-      CFANode pCallsite,
-      CFANode node) {
-    return new Location(
-        node,
-        ImmutableList.<CFANode>builder()
-        .addAll(old.callerNodes)
-        .add(pCallsite)
-        .build());
-  }
-
-  public static Location popCallsite(Location old, CFANode node) {
-    return new Location(
-        node,
-        old.callerNodes.subList(0, old.callerNodes.size() - 1));
-  }
-
+  /**
+   * De-serialize location from an identifier.
+   */
   public static Location ofID(int l) {
     return serializationMap.get(l);
   }
 
+  /**
+   * Serialize location to an identifier.
+   */
   public int toID() {
-    return locationID;
-  }
+    if (locationID != null) {
+      return locationID;
+    }
 
-  public static Location withNode(Location old, CFANode node) {
-    return new Location(node, old.callerNodes);
+    // Making sure that equal location will have the same identifier.
+    if (serializationMap.inverse().containsKey(this)) {
+      locationID = serializationMap.inverse().get(this);
+    } else {
+      locationID = ++locationCounter;
+      serializationMap.put(locationID, this);
+    }
+    return locationID;
   }
 
   @Override
   public String toString() {
-    return String.format("%s(%s)", node, Joiner.on(",").join(callerNodes));
+    return String.format("%s(%s)", node, locationID);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(node, callerNodes);
+    return hashCache;
   }
 
   @Override
@@ -99,6 +105,6 @@ public final class Location {
       return false;
     }
     Location other = (Location) o;
-    return node == other.node && callerNodes.equals(other.callerNodes);
+    return node == other.node && otherStates.equals(other.otherStates);
   }
 }

@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -57,8 +56,6 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   private final ValueAnalysisCPA cpa;
 
-  private Refiner refiner = null;
-
   public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config) throws InvalidConfigurationException {
     this.cpa = cpa;
 
@@ -68,10 +65,6 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   @Override
   public String getName() {
     return "ValueAnalysisCPA";
-  }
-
-  public void addRefiner(Refiner refiner) {
-    this.refiner = refiner;
   }
 
   @Override
@@ -90,7 +83,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     writer.put(numberOfVariables);
     writer.put(numberOfGlobalVariables);
 
-    if (refiner != null && precisionFile != null) {
+    if (precisionFile != null) {
       exportPrecision(reached);
     }
   }

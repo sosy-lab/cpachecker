@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -95,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
@@ -104,6 +107,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -441,36 +447,79 @@ public class AssumptionToEdgeAllocator {
 
     List<AExpressionStatement> statements = new ArrayList<>(subValues.size() + 1);
 
+    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+
     if (!pValueLiterals.hasUnknownValueLiteral()) {
 
-      CExpression leftAssumption = getLeftAssumptionFromLhs(pLValue);
-
-      CBinaryExpression assumption =
-          new CBinaryExpression(leftAssumption.getFileLocation(), CNumericTypes.BOOL, leftAssumption.getExpressionType(), leftAssumption,
-              pValueLiterals.getExpressionValueLiteralAsCExpression(), CBinaryExpression.BinaryOperator.EQUALS);
+      CExpression leftSide = getLeftAssumptionFromLhs(pLValue);
+      CExpression rightSide = pValueLiterals.getExpressionValueLiteralAsCExpression();
 
       AExpressionStatement statement =
-          new CExpressionStatement(leftAssumption.getFileLocation(), assumption);
-
+          buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       statements.add(statement);
     }
 
     for (SubExpressionValueLiteral subValueLiteral : subValues) {
 
-      CExpression leftAssumption = getLeftAssumptionFromLhs(subValueLiteral.getSubExpression());
-
-      CBinaryExpression assumption =
-          new CBinaryExpression(pLValue.getFileLocation(), CNumericTypes.BOOL, pLValue.getExpressionType(),
-              leftAssumption,
-              subValueLiteral.getValueLiteralAsCExpression(), CBinaryExpression.BinaryOperator.EQUALS);
+      CExpression leftSide = getLeftAssumptionFromLhs(subValueLiteral.getSubExpression());
+      CExpression rightSide = subValueLiteral.getValueLiteralAsCExpression();
 
       AExpressionStatement statement =
-          new CExpressionStatement(pLValue.getFileLocation(), assumption);
-
+          buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       statements.add(statement);
     }
 
-    return statements;
+    return FluentIterable.from(statements).filter(Predicates.notNull()).toList();
+  }
+
+  private static @Nullable AExpressionStatement buildEquationExpressionStatement(
+      CBinaryExpressionBuilder pBuilder,
+      CExpression pLeftSide,
+      CExpression pRightSide) {
+    CExpression leftSide = pLeftSide;
+    CExpression rightSide = pRightSide;
+
+    final CType leftType = leftSide.getExpressionType().getCanonicalType();
+    final CType rightType = rightSide.getExpressionType().getCanonicalType();
+
+    if (leftType instanceof CVoidType && rightType instanceof CVoidType) {
+      return null;
+    }
+
+    FluentIterable<Class<? extends CType>> acceptedTypes = FluentIterable.from(Arrays.asList(
+        CSimpleType.class,
+        CArrayType.class,
+        CPointerType.class));
+
+    boolean leftIsAccepted = acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
+
+      @Override
+      public boolean apply(Class<? extends CType> pArg0) {
+        return pArg0.isAssignableFrom(leftType.getClass());
+      }
+    });
+
+    boolean rightIsAccepted = acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
+
+      @Override
+      public boolean apply(Class<? extends CType> pArg0) {
+        return pArg0.isAssignableFrom(rightType.getClass());
+      }
+    });
+
+    if (leftType instanceof CSimpleType && !rightIsAccepted) {
+      rightSide = new CCastExpression(rightSide.getFileLocation(), leftType, rightSide);
+    } else if (!leftIsAccepted && rightType instanceof CSimpleType) {
+      leftSide = new CCastExpression(leftSide.getFileLocation(), rightType, leftSide);
+    }
+
+    CBinaryExpression assumption =
+        pBuilder.buildBinaryExpressionUnchecked(
+            leftSide,
+            rightSide,
+            CBinaryExpression.BinaryOperator.EQUALS);
+
+    return new CExpressionStatement(assumption.getFileLocation(), assumption);
   }
 
   private CExpression getLeftAssumptionFromLhs(CLeftHandSide pLValue) {
@@ -555,7 +604,7 @@ public class AssumptionToEdgeAllocator {
       return addressVisitor.getAddress(dcl);
     }
 
-    private final Number evaluateNumericalValue(CExpression exp) {
+    private Number evaluateNumericalValue(CExpression exp) {
 
       Value addressV;
       try {
@@ -578,7 +627,7 @@ public class AssumptionToEdgeAllocator {
       return addressV.asNumericValue().getNumber();
     }
 
-    private final Address evaluateNumericalValueAsAddress(CExpression exp) {
+    private Address evaluateNumericalValueAsAddress(CExpression exp) {
 
       Number result = evaluateNumericalValue(exp);
 
@@ -1118,12 +1167,12 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visitDefault(CType pT) throws RuntimeException {
+    public ValueLiterals visitDefault(CType pT) {
       return createUnknownValueLiterals();
     }
 
     @Override
-    public ValueLiterals visit(CPointerType pointerType) throws RuntimeException {
+    public ValueLiterals visit(CPointerType pointerType) {
 
       Address address = Address.valueOf(value);
 
@@ -1143,7 +1192,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visit(CArrayType arrayType) throws RuntimeException {
+    public ValueLiterals visit(CArrayType arrayType) {
       Address address = Address.valueOf(value);
 
       ValueLiteral valueLiteral;
@@ -1164,7 +1213,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visit(CElaboratedType pT) throws RuntimeException {
+    public ValueLiterals visit(CElaboratedType pT) {
 
       CType realType = pT.getRealType();
 
@@ -1176,36 +1225,36 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visit(CEnumType pT) throws RuntimeException {
+    public ValueLiterals visit(CEnumType pT) {
 
       /*We don't need to resolve enum types */
       return createUnknownValueLiterals();
     }
 
     @Override
-    public ValueLiterals visit(CFunctionType pT) throws RuntimeException {
+    public ValueLiterals visit(CFunctionType pT) {
 
       // TODO Implement function resolving for comments
       return createUnknownValueLiterals();
     }
 
     @Override
-    public ValueLiterals visit(CSimpleType simpleType) throws RuntimeException {
+    public ValueLiterals visit(CSimpleType simpleType) {
       return new ValueLiterals(getValueLiteral(simpleType, value));
     }
 
     @Override
-    public ValueLiterals visit(CProblemType pT) throws RuntimeException {
+    public ValueLiterals visit(CProblemType pT) {
       return createUnknownValueLiterals();
     }
 
     @Override
-    public ValueLiterals visit(CTypedefType pT) throws RuntimeException {
+    public ValueLiterals visit(CTypedefType pT) {
       return pT.getRealType().accept(this);
     }
 
     @Override
-    public ValueLiterals visit(CCompositeType compType) throws RuntimeException {
+    public ValueLiterals visit(CCompositeType compType) {
 
       if (compType.getKind() == ComplexTypeKind.ENUM) {
         return createUnknownValueLiterals();
@@ -1384,17 +1433,17 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visitDefault(CType pT) throws RuntimeException {
+      public Void visitDefault(CType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CTypedefType pT) throws RuntimeException {
+      public Void visit(CTypedefType pT) {
         return pT.getRealType().accept(this);
       }
 
       @Override
-      public Void visit(CElaboratedType pT) throws RuntimeException {
+      public Void visit(CElaboratedType pT) {
 
         CType realType = pT.getRealType();
 
@@ -1406,12 +1455,12 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CEnumType pT) throws RuntimeException {
+      public Void visit(CEnumType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CCompositeType compType) throws RuntimeException {
+      public Void visit(CCompositeType compType) {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
           // TODO Enum
@@ -1517,7 +1566,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CArrayType arrayType) throws RuntimeException {
+      public Void visit(CArrayType arrayType) {
 
         CType expectedType = arrayType.getType().getCanonicalType();
 
@@ -1608,7 +1657,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CPointerType pointerType) throws RuntimeException {
+      public Void visit(CPointerType pointerType) {
 
         CType expectedType = pointerType.getType().getCanonicalType();
 
@@ -1692,12 +1741,12 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visitDefault(CType pT) throws RuntimeException {
+      public Void visitDefault(CType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CElaboratedType type) throws RuntimeException {
+      public Void visit(CElaboratedType type) {
 
         CType realType = type.getRealType();
 
@@ -1709,12 +1758,12 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CTypedefType pType) throws RuntimeException {
+      public Void visit(CTypedefType pType) {
         return pType.getRealType().accept(this);
       }
 
       @Override
-      public Void visit(CCompositeType compType) throws RuntimeException {
+      public Void visit(CCompositeType compType) {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
           return null;

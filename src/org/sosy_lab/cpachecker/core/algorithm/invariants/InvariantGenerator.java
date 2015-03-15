@@ -67,10 +67,14 @@ public interface InvariantGenerator {
    */
   UnmodifiableReachedSet get() throws CPAException, InterruptedException;
 
-  /*
+  /**
    * Returns a Timer from which the time that was necessary to generate
    * the invariants can be read.
    * For correct measurements, the caller should not modify the Timer.
    */
   Timer getTimeOfExecution();
+
+  void addUpdateListener(UpdateListener pUpdateListener);
+
+  void removeUpdateListener(UpdateListener pUpdateListener);
 }

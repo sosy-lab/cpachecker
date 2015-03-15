@@ -12,7 +12,7 @@
     <property name="class.format" value="1.7"/>
     <property name="class.dir" value="bin"/>
 
-    <!-- If available, we use error-prone as the compiler, cf. https://code.google.com/p/error-prone/ -->
+    <!-- If available, we use error-prone as the compiler, cf. https://github.com/google/error-prone -->
     <available classname="com.google.errorprone.ErrorProneAntCompilerAdapter"
                property="javac.compiler"
                value="com.google.errorprone.ErrorProneAntCompilerAdapter"/>
@@ -35,6 +35,7 @@
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg value="-Xlint"/>
+            <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Werror"/>
         </javac>
     </target>

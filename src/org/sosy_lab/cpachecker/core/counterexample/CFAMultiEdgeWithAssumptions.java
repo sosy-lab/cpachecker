@@ -91,7 +91,7 @@ public final class CFAMultiEdgeWithAssumptions extends CFAEdgeWithAssumptions im
    * @return A edge {@link CFAMultiEdgeWithAssumptions} that contain the assumptions of
    * the edges that are contained in the given multi edge.
    */
-  public static final CFAMultiEdgeWithAssumptions valueOf(MultiEdge pEdge, List<CFAEdgeWithAssumptions> pEdges) {
+  public static CFAMultiEdgeWithAssumptions valueOf(MultiEdge pEdge, List<CFAEdgeWithAssumptions> pEdges) {
     // In MultiEdges, it is possible to write the same variable multiple times.
     // This would produce illegal assumptions,
     // thus we filter out assignments which write to the same Address.

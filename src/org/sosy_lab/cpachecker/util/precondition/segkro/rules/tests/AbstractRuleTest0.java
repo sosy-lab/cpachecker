@@ -40,8 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormula
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
-import com.google.common.collect.Lists;
-
 
 public abstract class AbstractRuleTest0 extends SolverBasedTest0 {
 
@@ -55,17 +53,15 @@ public abstract class AbstractRuleTest0 extends SolverBasedTest0 {
   protected Solver solver;
 
   protected BooleanFormula rangePredicate(boolean pForall, IntegerFormula pLowerLimit, IntegerFormula pUpperLimit) {
+
     IntegerFormula _x = ifm.makeVariable("x");
     ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
-    BooleanFormula _range = bfm.and(Lists.newArrayList(
-        bfm.not(ifm.equal(afm.select(_b, _x), ifm.makeNumber(0))),
-        ifm.greaterOrEquals(_x, pLowerLimit),
-        ifm.lessOrEquals(_x, pUpperLimit)));
+    BooleanFormula _body = bfm.not(ifm.equal(afm.select(_b, _x), ifm.makeNumber(0)));
 
     if (pForall) {
-      return qfm.forall(Lists.newArrayList(_x), _range);
+      return qfm.forall(_x, pLowerLimit, pUpperLimit, _body);
     } else {
-      return qfm.exists(Lists.newArrayList(_x), _range);
+      return qfm.exists(_x, pLowerLimit, pUpperLimit, _body);
     }
   }
 

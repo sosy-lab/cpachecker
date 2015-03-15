@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -289,7 +289,7 @@ class ValueAnalysisInterpolationTree {
    * @return the set of refinement roots
    */
   Collection<ARGState> obtainRefinementRoots(RestartStrategy strategy) {
-    if (strategy == RestartStrategy.TOP) {
+    if (strategy == RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
       return new HashSet<>(Collections.singleton(successorRelation.get(root).iterator().next()));
     }

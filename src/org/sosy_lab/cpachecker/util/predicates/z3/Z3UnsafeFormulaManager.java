@@ -67,17 +67,6 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
   }
 
   @Override
-  public boolean isLiteral(Long t) {
-    long decl = get_app_decl(z3context, t);
-    int declKind = get_decl_kind(z3context, decl);
-    if (declKind == Z3_OP_NOT) {
-      return true;
-    } else {
-      return !nonAtomicOpTypes.contains(declKind);
-    }
-  }
-
-  @Override
   public int getArity(Long t) {
     return get_app_num_args(z3context, t);
   }
@@ -178,6 +167,23 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
       throw new IllegalArgumentException("Cannot replace name '" + pNewName
               + "' in term '" + ast_to_string(z3context, t) + "'.");
     }
+  }
+
+  @Override
+  protected Long splitNumeralEqualityIfPossible(Long pF) {
+    if (isOP(z3context, pF, Z3_OP_EQ)
+        && get_app_num_args(z3context, pF) == 2) {
+      long arg0 = get_app_arg(z3context, pF, 0);
+      long arg1 = get_app_arg(z3context, pF, 1);
+      long sortKind = get_sort_kind(z3context, get_sort(z3context, arg0));
+      assert sortKind == get_sort_kind(z3context, get_sort(z3context, arg1));
+      if (sortKind == Z3_BV_SORT) {
+        return mk_bvule(z3context, arg0, arg1);
+      } else if (sortKind == Z3_INT_SORT || sortKind == Z3_REAL_SORT) {
+        return mk_le(z3context, arg0, arg1);
+      }
+    }
+    return pF;
   }
 
   public long createUIFCallImpl(long pNewFunc, long[] args) {

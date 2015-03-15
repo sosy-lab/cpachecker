@@ -23,24 +23,32 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
+import scala.collection.JavaConversions;
 import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
+import ap.parser.IAtom;
+import ap.parser.IConstant;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
@@ -108,7 +116,7 @@ class PrincessEnvironment {
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public PrincessEnvironment(Configuration config, final LogManager pLogger,
-      final PathCounterTemplate pBasicLogfile) throws InvalidConfigurationException {
+      final PathCounterTemplate pBasicLogfile) {
     basicLogfile = pBasicLogfile;
     api = getNewApi(false); // this api is only used local in this environment, no need for interpolation
   }
@@ -159,6 +167,71 @@ class PrincessEnvironment {
 
   public List<IExpression> parseStringToTerms(String s) {
     throw new UnsupportedOperationException(); // todo: implement this
+  }
+
+  public Appender dumpFormula(final IExpression formula) {
+    return new Appenders.AbstractAppender() {
+
+      @Override
+      public void appendTo(Appendable out) throws IOException {
+        Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(formula));
+
+        for (IExpression var : declaredFunctions) {
+          out.append("(declare-fun ");
+          out.append(getName(var));
+
+          // function parameters
+          out.append(" (");
+          if (var instanceof IFunApp) {
+            IFunApp function = (IFunApp) var;
+            Iterator<ITerm> args = JavaConversions.asJavaIterable(function.args()).iterator();
+            while (args.hasNext()) {
+              args.next();
+              // Princess does only support IntegerFormulas in UIFs we don't need
+              // to check the type here separately
+              if (args.hasNext()) {
+                out.append("Int ");
+              } else {
+                out.append("Int");
+              }
+            }
+          }
+
+          out.append(") ");
+          out.append(getType(var));
+          out.append(")\n");
+        }
+
+        out.append("(assert ");
+        out.append(formula.toString());
+        out.append(")");
+      }
+    };
+  }
+
+  private String getName(IExpression var) {
+    if (var instanceof IAtom) {
+      return ((IAtom) var).pred().name();
+    } else if (var instanceof IConstant) {
+      return ((IConstant)var).toString();
+    } else if (var instanceof IFunApp) {
+      String fullStr = ((IFunApp)var).fun().toString();
+      return fullStr.substring(0, fullStr.indexOf("/"));
+    }
+
+    throw new IllegalArgumentException("The given parameter is no variable or function");
+  }
+
+  private String getType(IExpression var) {
+    if (var instanceof IFormula) {
+      return "Bool";
+
+      // functions are included here, they cannot be handled separate for princess
+    } else if (var instanceof ITerm) {
+      return "Int";
+    }
+
+    throw new IllegalArgumentException("The given parameter is no variable or function");
   }
 
   public IExpression makeVariable(TermType type, String varname) {

@@ -9,6 +9,10 @@
   <option name="-heap">25000M</option>
   <option name="-ldv"/>
 
+  <sourcefiles name="Validator">
+    <include>../programs/ldv-benchmarks/validator/*/*.c</include>
+    <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
+  </sourcefiles>
   <sourcefiles name="Unsafes">
     <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
     <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>

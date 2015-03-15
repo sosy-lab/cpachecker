@@ -69,7 +69,7 @@ abstract class Mathsat5AbstractProver {
 
   public Model getModel() throws SolverException {
     Preconditions.checkState(curEnv != 0);
-    return Mathsat5Model.createMathsatModel(curEnv, mgr);
+    return Mathsat5Model.createMathsatModel(curEnv);
   }
 
   public void pop() {

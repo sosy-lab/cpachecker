@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -119,7 +119,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
-      final CFA pCfa) throws CPAException, InvalidConfigurationException {
+      final CFA pCfa) throws InvalidConfigurationException {
     super(pCpa);
 
     interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);

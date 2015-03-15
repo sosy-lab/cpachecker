@@ -124,8 +124,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException,
-      CPAException {
+      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);

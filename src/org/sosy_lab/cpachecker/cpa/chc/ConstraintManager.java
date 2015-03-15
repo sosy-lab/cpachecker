@@ -312,8 +312,7 @@ public class ConstraintManager {
   }
 
 
-  public static Constraint getConstraint(AReturnStatementEdge aRetEdge)
-    throws UnrecognizedCCodeException {
+  public static Constraint getConstraint(AReturnStatementEdge aRetEdge) {
 
     AExpression expression = aRetEdge.getExpression().isPresent()
         ? aRetEdge.getExpression().get()

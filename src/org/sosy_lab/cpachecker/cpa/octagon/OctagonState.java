@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
@@ -104,7 +104,7 @@ public class OctagonState implements AbstractState {
   }
 
   enum Type {
-    INT, FLOAT;
+    INT, FLOAT
   }
 
 

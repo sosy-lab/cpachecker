@@ -2,13 +2,9 @@
 
 int main() {
   int sum = 0;
-  /*int *p = &sum;*/
-  /*if (sum == 0) {*/
-    /*sum += 1;*/
-  /*}*/
   int* p = &sum;
-  for (int i=0; i<10; i++) {
+  for (int i=0; i<1000; i++) {
     (*p)++;
   }
-  assert(sum == 10);
+  assert(sum == 1000);
 }

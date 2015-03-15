@@ -23,17 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 /**
  * Stores an enum constant that can be tracked by the ValueAnalysisCPA.
  */
 public class EnumConstantValue implements Value {
 
-  private final Type classType;
+  private static final long serialVersionUID = 2745087444102463717L;
+
   private final String fullyQualifiedName;
 
   /**
@@ -42,20 +40,8 @@ public class EnumConstantValue implements Value {
    * @param pEnumType the type of the enum constant.
    * @param pFullyQualifiedName the fully qualified name of this constant
    */
-  public EnumConstantValue(Type pEnumType, String pFullyQualifiedName) {
-    assert pEnumType instanceof JClassType || pEnumType instanceof CComplexType;
-
-    classType = pEnumType;
+  public EnumConstantValue(String pFullyQualifiedName) {
     fullyQualifiedName = pFullyQualifiedName;
-  }
-
-  /**
-   * Returns the enum type of this value.
-   *
-   * @return the enum type of this value
-   */
-  public Type getEnumType() {
-    return classType;
   }
 
   /**
@@ -122,8 +108,7 @@ public class EnumConstantValue implements Value {
     if (other instanceof EnumConstantValue) {
       EnumConstantValue concreteOther = (EnumConstantValue) other;
 
-      return concreteOther.classType.equals(classType)
-          && concreteOther.fullyQualifiedName.equals(fullyQualifiedName);
+      return concreteOther.fullyQualifiedName.equals(fullyQualifiedName);
 
     } else {
       return false;
@@ -132,7 +117,7 @@ public class EnumConstantValue implements Value {
 
   @Override
   public int hashCode() {
-    return classType.hashCode() ^ fullyQualifiedName.hashCode();
+    return fullyQualifiedName.hashCode();
   }
 
   @Override

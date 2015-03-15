@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -227,10 +228,9 @@ class ASTConverter {
   }
 
   /**
-   * This method returns the number of Pre Side Assignments
-   * of converted Statements.
+   * This method returns the next pre side assignment.
    *
-   * @return number of Pre Side Assignments of converted Statements
+   * @return the next pre side assignment
    */
   public JAstNode getNextPreSideAssignment() {
     return preSideAssignments.removeFirst();
@@ -728,7 +728,7 @@ class ASTConverter {
       params = convert(p);
 
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     String name;
@@ -918,7 +918,7 @@ class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
@@ -1247,7 +1247,7 @@ class ASTConverter {
       params = convert(p);
 
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     String name;
@@ -1542,7 +1542,7 @@ class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(mi.getName());

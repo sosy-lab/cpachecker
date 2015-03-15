@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -47,8 +45,6 @@ public class CtoFormulaTypeHandler {
   private final BaseSizeofVisitor sizeofVisitor;
 
   private final FormulaType<?> pointerType;
-
-  private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
 
   public CtoFormulaTypeHandler(LogManager pLogger,
       FormulaEncodingOptions pOptions,
@@ -88,15 +84,6 @@ public class CtoFormulaTypeHandler {
   }
 
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    FormulaType<?> result = typeCache.get(type);
-    if (result == null) {
-      result = getFormulaTypeFromCType0(type);
-      typeCache.put(type, result);
-    }
-    return result;
-  }
-
-  protected FormulaType<?> getFormulaTypeFromCType0(CType type) {
     if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType)type;
       switch (simpleType.getType()) {

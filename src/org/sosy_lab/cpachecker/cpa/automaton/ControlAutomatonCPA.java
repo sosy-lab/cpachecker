@@ -201,7 +201,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       }
     }
 
-    GlobalInfo.getInstance().storeAutomaton(automaton);
+    GlobalInfo.getInstance().storeAutomaton(automaton, this);
   }
 
   Automaton getAutomaton() {

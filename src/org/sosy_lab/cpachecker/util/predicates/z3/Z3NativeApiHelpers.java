@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 public class Z3NativeApiHelpers {
 
-  public static long applyTactic(long z3context, Long pF, String pTactic) throws InterruptedException, SolverException {
+  public static long applyTactic(long z3context, Long pF, String pTactic) {
     long tactic_qe = mk_tactic(z3context, pTactic);
     tactic_inc_ref(z3context, tactic_qe);
 

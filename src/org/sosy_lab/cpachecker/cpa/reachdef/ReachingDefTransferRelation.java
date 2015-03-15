@@ -119,7 +119,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+      CFAEdge pCfaEdge) throws CPATransferException {
 
     logger.log(Level.INFO, "Compute succesor for ", pState, "along edge", pCfaEdge);
 
@@ -160,6 +160,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
       break;
     }
     case BlankEdge:
+      // TODO still correct?
       // special case entering the main method for the first time (no local variables known)
       logger.log(Level.FINE, "Start of main function. ",
           "Add undefined position for local variables of main function. ",

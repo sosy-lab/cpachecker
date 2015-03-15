@@ -361,7 +361,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     assertEquals(expected, empty);
   }
 
-  private PathFormula makePathFormulaWithVariable(String var, int index) throws Exception {
+  private PathFormula makePathFormulaWithVariable(String var, int index) {
     NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
         fmgr.getRationalFormulaManager();
 
@@ -372,7 +372,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     return new PathFormula(f, s, PointerTargetSet.emptyPointerTargetSet(), 1);
   }
 
-  private BooleanFormula makeVariableEquality(String var, int index1, int index2) throws Exception {
+  private BooleanFormula makeVariableEquality(String var, int index1, int index2) {
     NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
         fmgr.getRationalFormulaManager();
 

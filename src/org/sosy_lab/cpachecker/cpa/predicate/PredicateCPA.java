@@ -97,6 +97,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
+  @Option(secure=true, name="stop", values={"SEP", "SEPPCC"}, toUppercase=true,
+      description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
+  private String stopType = "SEP";
+
   @Option(secure=true, name="refinement.performInitialStaticRefinement",
       description="use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
@@ -124,12 +128,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
-  private final MachineModel machineModel;
+  private final CFA cfa;
   private final PredicateAssumeStore assumesStore;
   private final AbstractionManager abstractionManager;
 
   protected PredicateCPA(Configuration config, LogManager logger,
-      BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory,
+      BlockOperator blk, CFA pCfa, ReachedSetFactory reachedSetFactory,
       ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
@@ -137,6 +141,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
+
+    cfa = pCfa;
 
     if (enableBlockreducer) {
       BlockComputer blockComputer = new BlockedCFAReducer(config, logger);
@@ -211,11 +217,17 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         cfa, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
-
-    machineModel = cfa.getMachineModel();
+    GlobalInfo.getInstance().storeAbstractionManager(abstractionManager);
 
     prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
-    stop = new PredicateStopOperator(domain);
+
+    if (stopType.equals("SEP")) {
+      stop = new PredicateStopOperator(domain);
+    } else if (stopType.equals("SEPPCC")) {
+      stop = new PredicatePCCStopOperator(this);
+    } else {
+      throw new InternalError("Update list of allowed stop operators");
+    }
   }
 
   public PredicateAssumeStore getAssumesStore() {
@@ -321,8 +333,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
   }
 
+  public CFA getCfa() {
+    return cfa;
+  }
+
   public MachineModel getMachineModel() {
-    return machineModel;
+    return cfa.getMachineModel();
   }
 
   public AbstractionManager getAbstractionManager() {

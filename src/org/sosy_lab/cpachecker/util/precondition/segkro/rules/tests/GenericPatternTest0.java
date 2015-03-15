@@ -24,12 +24,15 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.GenericPatterns;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
 
 public class GenericPatternTest0 extends AbstractRuleTest0 {
@@ -79,6 +82,40 @@ public class GenericPatternTest0 extends AbstractRuleTest0 {
 
     SmtAstPatternSelection pattern = GenericPatterns.substraction("x", "y");
     SmtAstMatchResult result = matcher.perform(pattern, subst1);
+
+    assertThat(result.matches()).isTrue();
+  }
+
+  @Test
+  public void testExistsRangePredicate() {
+    // (exists ((x Int)) (and (>= x 10) (<= x 20) (= x 10)))
+    IntegerFormula _x = ifm.makeVariable("x");
+    BooleanFormula _exists = qfm.exists(_x, ifm.makeNumber(10), ifm.makeNumber(20), ifm.equal(_x, ifm.makeNumber(10)));
+
+    SmtAstPatternSelection pattern = and(GenericPatterns.range_predicate_matcher("exists",
+        QuantifierType.EXISTS,
+        "f",
+        "i", "j",
+        and(matchAnyWithAnyArgs())));
+
+    SmtAstMatchResult result = matcher.perform(pattern, _exists);
+
+    assertThat(result.matches()).isTrue();
+  }
+
+  @Test
+  public void testForallRangePredicate() {
+    // (forall ((x Int)) (and (>= x 10) (<= x 20) (= x 10)))
+    IntegerFormula _x = ifm.makeVariable("x");
+    BooleanFormula _forall = qfm.forall(_x, ifm.makeNumber(10), ifm.makeNumber(20), ifm.equal(_x, ifm.makeNumber(10)));
+
+    SmtAstPatternSelection pattern = and(GenericPatterns.range_predicate_matcher("forall",
+        QuantifierType.FORALL,
+        "f",
+        "i", "j",
+        and(matchAnyWithAnyArgs())));
+
+    SmtAstMatchResult result = matcher.perform(pattern, _forall);
 
     assertThat(result.matches()).isTrue();
   }

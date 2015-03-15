@@ -39,7 +39,7 @@ import com.google.common.base.Joiner;
 /**
  * Represents one abstract state of the FunctionPointer CPA.
  */
-class FunctionPointerState implements LatticeAbstractState<FunctionPointerState>,
+public class FunctionPointerState implements LatticeAbstractState<FunctionPointerState>,
     Serializable {
 
   private static final long serialVersionUID = -1951853216031911649L;

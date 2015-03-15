@@ -48,19 +48,58 @@ import com.google.common.base.Function;
  */
 public class SymbolicRegionManager implements RegionManager {
 
+  private static class SymbolicRegion implements Region {
+
+    private final BooleanFormula f;
+    private final BooleanFormulaManager bfmgr;
+
+    private SymbolicRegion(BooleanFormulaManager bfmgr, BooleanFormula pF) {
+      f = checkNotNull(pF);
+      this.bfmgr = bfmgr;
+    }
+
+    @Override
+    public boolean isTrue() {
+      return bfmgr.isTrue(f);
+    }
+
+    @Override
+    public boolean isFalse() {
+      return bfmgr.isFalse(f);
+    }
+
+    @Override
+    public String toString() {
+      return f.toString();
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      return pObj instanceof SymbolicRegion
+          && f.equals(((SymbolicRegion)pObj).f);
+    }
+
+    @Override
+    public int hashCode() {
+      return f.hashCode();
+    }
+  }
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
+
   private final SymbolicRegion trueRegion;
   private final SymbolicRegion falseRegion;
+
   private int predicateCount = 0;
 
   public SymbolicRegionManager(FormulaManagerView pFmgr, Solver pSolver) {
     solver = pSolver;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
-    trueRegion = new SymbolicRegion(bfmgr, bfmgr.makeBoolean(true));
-    falseRegion = new SymbolicRegion(bfmgr, bfmgr.makeBoolean(false));
+    trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(true));
+    falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(false));
   }
 
   @Override
@@ -75,8 +114,7 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) throws SolverException,
-      InterruptedException {
+  public boolean entails(Region pF1, Region pF2) throws SolverException, InterruptedException {
     SymbolicRegion r1 = (SymbolicRegion)pF1;
     SymbolicRegion r2 = (SymbolicRegion)pF2;
 
@@ -139,8 +177,8 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region createPredicate() {
-    return new SymbolicRegion(bfmgr, bfmgr.makeVariable("__PREDICATE__"
-        + predicateCount++));
+    return new SymbolicRegion(bfmgr,
+        bfmgr.makeVariable("__PREDICATE__" + predicateCount++));
   }
 
   @Override
@@ -150,8 +188,8 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Set<Region> extractPredicates(Region f) {
-    return from(fmgr.extractAtoms(toFormula(f), false, false)).transform(
-        new Function<BooleanFormula, Region>() {
+    return from(fmgr.extractAtoms(toFormula(f), false))
+        .transform(new Function<BooleanFormula, Region>() {
           @Override
           public Region apply(BooleanFormula input) {
             return new SymbolicRegion(bfmgr, input);
@@ -162,63 +200,6 @@ public class SymbolicRegionManager implements RegionManager {
   @Override
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
     return new SymbolicRegionBuilder();
-  }
-
-  @Override
-  public void setVarOrder(ArrayList<Integer> pOrder) {
-
-  }
-
-  @Override
-  public void reorder() {
-
-  }
-
-  @Override
-  public void printStatistics(PrintStream out) {
-    // do nothing
-  }
-
-  @Override
-  public String getVersion() {
-    return fmgr.getVersion();
-  }
-
-  private static class SymbolicRegion implements Region {
-
-    private final BooleanFormula f;
-    private final BooleanFormulaManager bfmgr;
-
-    private SymbolicRegion(BooleanFormulaManager bfmgr, BooleanFormula pF) {
-      f = checkNotNull(pF);
-      this.bfmgr = bfmgr;
-    }
-
-    @Override
-    public boolean isTrue() {
-      return bfmgr.isTrue(f);
-    }
-
-    @Override
-    public boolean isFalse() {
-      return bfmgr.isFalse(f);
-    }
-
-    @Override
-    public String toString() {
-      return f.toString();
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      return pObj instanceof SymbolicRegion
-          && f.equals(((SymbolicRegion)pObj).f);
-    }
-
-    @Override
-    public int hashCode() {
-      return f.hashCode();
-    }
   }
 
   private class SymbolicRegionBuilder implements RegionBuilder {
@@ -241,8 +222,7 @@ public class SymbolicRegionManager implements RegionManager {
     @Override
     public void addNegativeRegion(Region r) {
       checkState(currentCube != null);
-      currentCube =
-          bfmgr.and(bfmgr.not(((SymbolicRegion)r).f), currentCube);
+      currentCube = bfmgr.and(bfmgr.not(((SymbolicRegion)r).f), currentCube);
     }
 
     @Override
@@ -260,5 +240,23 @@ public class SymbolicRegionManager implements RegionManager {
     @Override
     public void close() {
     }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out) {
+    // do nothing
+  }
+
+  @Override
+  public String getVersion() {
+    return fmgr.getVersion();
+  }
+
+  public void reorder() {
+
+  }
+
+  public void setVarOrder(ArrayList<Integer> pOrder) {
+
   }
 }

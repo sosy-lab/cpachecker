@@ -74,6 +74,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
@@ -560,7 +561,7 @@ public class ARGUtils {
    * @param s an ARGState
    * @return The children with covered states transparently replaced.
    */
-  public static final Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
+  public static Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
     return new AbstractCollection<ARGState>() {
 
       @Override
@@ -835,7 +836,7 @@ public class ARGUtils {
 
     int multiEdgeCount = 0; // see below
 
-    for (ARGState s : pPathStates) {
+    for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
 
       CFANode loc = AbstractStates.extractLocation(s);
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");

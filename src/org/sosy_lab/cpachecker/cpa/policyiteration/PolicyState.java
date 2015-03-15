@@ -46,7 +46,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
   }
 
   public CFANode getNode() {
-    return location.node;
+    return location.getFinalNode();
   }
 
   public Location getLocation() {

@@ -503,7 +503,7 @@ private boolean classifyNodes = false;
   /** This method parses the program from the String and builds a CFA for each function.
    * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
   private ParseResult parseToCFAs(final String program)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, ParserException {
     final ParseResult parseResult;
 
     final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();

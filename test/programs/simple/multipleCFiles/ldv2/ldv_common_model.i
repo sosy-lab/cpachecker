@@ -10359,7 +10359,7 @@ int __attribute__((warn_unused_result)) sysfs_init(void);
 
 static inline __attribute__((no_instrument_function)) void sysfs_enable_ns(struct kernfs_node *kn)
 {
- return kernfs_enable_ns(kn);
+ kernfs_enable_ns(kn);
 }
 # 431 "include/linux/sysfs.h"
 static inline __attribute__((no_instrument_function)) int __attribute__((warn_unused_result)) sysfs_create_file(struct kobject *kobj,

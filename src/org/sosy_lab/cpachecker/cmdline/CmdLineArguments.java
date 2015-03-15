@@ -95,6 +95,7 @@ class CmdLineArguments {
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
   private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
   private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE = "config/specification/sv-comp-memorysafety.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -117,8 +118,7 @@ class CmdLineArguments {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-cbmc",    "analysis.checkCounterexamples", "true", arg, properties)
-          || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
+      if (   handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
           || handleArgument0("-java",    "language",         "JAVA",            arg, properties)
           || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
@@ -146,6 +146,10 @@ class CmdLineArguments {
         } else {
           throw new InvalidCmdlineArgumentException("-cpas argument missing.");
         }
+
+      } else if (arg.equals("-cbmc")) {
+        putIfNotExistent(properties, "analysis.checkCounterexamples", "true");
+        putIfNotExistent(properties, "counterexample.checker", "CBMC");
 
       } else if (arg.equals("-nolog")) {
         putIfNotExistent(properties, "log.level", "off");
@@ -373,7 +377,7 @@ class CmdLineArguments {
                                                PropertyType.VALID_FREE,
                                                PropertyType.VALID_MEMTRACK))) {
                 putIfNotExistent(options, "memorysafety.check", "true");
-                newValue = null;
+                newValue = MEMORYSAFETY_SPECIFICATION_FILE;
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
                 newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;

@@ -144,42 +144,6 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
 
 
   @Test
-  public void testConclusion9() throws SolverException, InterruptedException {
-
-    //    (not (= (select M i|) 0))
-    //    (not (<= n i))
-    //     ----- should result in -----
-    //    (not (= (select M n|) 0))
-
-    ArrayList<BooleanFormula> input = Lists.newArrayList(
-        bfm.not(ifm.equal(afm.select(_b, _i), _0)),
-        bfm.not(ifm.lessOrEquals(_n, _i))
-        );
-
-    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
-
-    assertThat(result).isNotEmpty();
-  }
-
-  @Test
-  public void testConclusion13() throws SolverException, InterruptedException {
-
-    //    (not (= (select M i|) 0))
-    //    (>= n i)
-    //     ----- should result in -----
-    //    (not (= (select M n|) 0))
-
-    ArrayList<BooleanFormula> input = Lists.newArrayList(
-        bfm.not(ifm.equal(afm.select(_b, _i), _0)),
-        ifm.greaterOrEquals(_n, _i)
-        );
-
-    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
-
-    assertThat(result).isNotEmpty();
-  }
-
-  @Test
   public void testConclusion11() throws SolverException, InterruptedException {
     // IMPORTANT! To correct range-predicates later !
 

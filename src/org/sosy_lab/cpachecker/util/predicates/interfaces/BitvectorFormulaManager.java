@@ -59,7 +59,6 @@ public interface BitvectorFormulaManager {
   // ----------------- Numeric relations -----------------
 
   public BooleanFormula equal(BitvectorFormula number1, BitvectorFormula number2);
-  public boolean isEqual(BooleanFormula number);
 
   public BooleanFormula greaterThan(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
 

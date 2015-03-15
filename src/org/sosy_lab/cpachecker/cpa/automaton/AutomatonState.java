@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -108,7 +109,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     }
   }
 
-  private transient final ControlAutomatonCPA automatonCPA;
+  private transient ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<AStatement> assumptions;
@@ -168,6 +169,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   public String getViolatedPropertyDescription() throws IllegalStateException {
     checkState(isTarget());
     return checkNotNull(violatedPropertyDescription);
+  }
+
+  Optional<String> getOptionalViolatedPropertyDescription() {
+    return Optional.fromNullable(violatedPropertyDescription);
   }
 
   @Override
@@ -424,15 +429,21 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
    return vars;
   }
 
+  ControlAutomatonCPA getAutomatonCPA() {
+    return automatonCPA;
+  }
+
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(internalState.getStateId());
+    out.writeObject(automatonCPA.getAutomaton().getName());
   }
 
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int stateId = in.readInt();
     internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
+    automatonCPA = GlobalInfo.getInstance().getAutomatonInfo().getCPAForAutomaton((String)in.readObject());
   }
 
   public int getMatches() {

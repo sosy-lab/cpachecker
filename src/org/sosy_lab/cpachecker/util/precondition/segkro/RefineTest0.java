@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
-
+@SuppressWarnings("unused")
 public class RefineTest0 extends SolverBasedTest0 {
 
   private Refine refine;

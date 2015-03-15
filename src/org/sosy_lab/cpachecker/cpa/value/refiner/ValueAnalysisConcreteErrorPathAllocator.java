@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -89,6 +89,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
+  private final MachineModel machineModel;
+
   private MemoryName memoryName = new MemoryName() {
 
     @Override
@@ -97,9 +99,12 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
   };
 
-  public ValueAnalysisConcreteErrorPathAllocator(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+  public ValueAnalysisConcreteErrorPathAllocator(LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    machineModel = pMachineModel;
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
@@ -123,15 +128,14 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath, MachineModel pMachineModel)
-      throws InterruptedException {
+  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     pPath.remove(pPath.size() - 1);
 
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
 
     CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath, logger, pMachineModel);
+        CFAPathWithAssumptions.of(concreteStatePath, logger, machineModel);
 
     Model model = Model.empty();
 
@@ -259,44 +263,44 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
 
     @Override
-    protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
+    protected Boolean visitDefault(CExpression pExp) {
       return true;
     }
 
     @Override
-    public Boolean visit(CArraySubscriptExpression pE) throws RuntimeException {
+    public Boolean visit(CArraySubscriptExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CBinaryExpression pE) throws RuntimeException {
+    public Boolean visit(CBinaryExpression pE) {
       return pE.getOperand1().accept(this)
           && pE.getOperand2().accept(this);
     }
 
     @Override
-    public Boolean visit(CCastExpression pE) throws RuntimeException {
+    public Boolean visit(CCastExpression pE) {
       return pE.getOperand().accept(this);
     }
 
     //TODO Complex Cast
     @Override
-    public Boolean visit(CFieldReference pE) throws RuntimeException {
+    public Boolean visit(CFieldReference pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CIdExpression pE) throws RuntimeException {
+    public Boolean visit(CIdExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CPointerExpression pE) throws RuntimeException {
+    public Boolean visit(CPointerExpression pE) {
       return !alreadyAssigned.contains(pE);
     }
 
     @Override
-    public Boolean visit(CUnaryExpression pE) throws RuntimeException {
+    public Boolean visit(CUnaryExpression pE) {
       return pE.getOperand().accept(this);
     }
   }

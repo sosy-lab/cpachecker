@@ -56,7 +56,7 @@ public class PreconditionToSmtlibWriter implements PreconditionWriter {
   }
 
   public void writePrecondition(@Nonnull Appendable pWriteTo, @Nonnull BooleanFormula pPrecondition)
-      throws IOException, CPATransferException, InterruptedException {
+      throws IOException {
     Preconditions.checkNotNull(pWriteTo);
 
     final BooleanFormula precondition = fmgr.simplify(pPrecondition);

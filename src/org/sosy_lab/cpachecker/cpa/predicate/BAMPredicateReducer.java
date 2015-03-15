@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,6 +37,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -303,6 +304,12 @@ public class BAMPredicateReducer implements Reducer {
     }
 
     @Override
+    public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
+      // TODO this should be reduced/expanded
+      return rootPredicatePrecision.getFunctionPredicates();
+    }
+
+    @Override
     public Set<AbstractionPredicate> getGlobalPredicates() {
       if (evaluatedGlobalPredicates != null) {
         return evaluatedGlobalPredicates;
@@ -322,7 +329,7 @@ public class BAMPredicateReducer implements Reducer {
         if (result.isEmpty()) {
           result = evaluatedGlobalPredicates;
         }
-        String functionName = context.getCallNode().getFunctionName();
+        String functionName = loc.getFunctionName();
         return Sets.union(result, rootPredicatePrecision.getFunctionPredicates().get(functionName))
             .immutableCopy();
       } else {
@@ -345,14 +352,15 @@ public class BAMPredicateReducer implements Reducer {
         return false;
       } else {
         computeView();
-        return evaluatedPredicateMap.equals(((ReducedPredicatePrecision) pObj).evaluatedPredicateMap);
+        return evaluatedPredicateMap.equals(((ReducedPredicatePrecision) pObj).evaluatedPredicateMap) &&
+            getFunctionPredicates().equals(((ReducedPredicatePrecision) pObj).getFunctionPredicates());
       }
     }
 
     @Override
     public int hashCode() {
       computeView();
-      return evaluatedPredicateMap.hashCode();
+      return 31 * evaluatedPredicateMap.hashCode() + getFunctionPredicates().hashCode();
     }
 
     @Override
@@ -434,7 +442,7 @@ public class BAMPredicateReducer implements Reducer {
   @Override
   public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
                                                      AbstractState pExpandedState,
-                                                     CFANode exitLocation) {
+                                                     FunctionExitNode exitLocation) {
     final PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     final PredicateAbstractState entryState = (PredicateAbstractState) pEntryState;
     final PredicateAbstractState expandedState = (PredicateAbstractState) pExpandedState;
@@ -467,8 +475,9 @@ public class BAMPredicateReducer implements Reducer {
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
         setFreshValueBasis(summSsa, var, newIndex);
 
-      } else if (var.startsWith(calledFunction + "::")
-              && var.endsWith(RETURN_VARIABLE_NAME)) {
+      } else if (exitLocation.getEntryNode().getReturnVariable().isPresent() &&
+          exitLocation.getEntryNode().getReturnVariable().get().getQualifiedName().equals(var)) {
+        // var.startsWith(calledFunction + "::") && var.endsWith(RETURN_VARIABLE_NAME)
         final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRetBuilder.getFreshIndex(var));
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
         summSsa.setIndex(var, type, newIndex);
@@ -490,7 +499,6 @@ public class BAMPredicateReducer implements Reducer {
     final SSAMap newSummSsa = summSsa.build();
 
     // function-call needs have new retvars-indices.
-    // TODO called function only?
     PathFormula functionCallWithSSA = new PathFormula(functionCall.getFormula(), newEntrySsaWithRet,
             functionCall.getPointerTargetSet(), functionCall.getLength());
 
@@ -534,9 +542,11 @@ public class BAMPredicateReducer implements Reducer {
    *
    * @param rootSSA SSA before function-call
    * @param expandedSSA SSA before function-return
+   * @param functionExitNode the function-return-location
    * @return new SSAMap
    */
-  protected static SSAMap updateIndices(final SSAMap rootSSA, final SSAMap expandedSSA) {
+  protected static SSAMap updateIndices(final SSAMap rootSSA, final SSAMap expandedSSA,
+      FunctionExitNode functionExitNode) {
 
     final SSAMapBuilder rootBuilder = rootSSA.builder();
 
@@ -545,7 +555,7 @@ public class BAMPredicateReducer implements Reducer {
 
       if (expandedSSA.containsVariable(var)) { // var was used and maybe overridden inside the block
         final CType type = expandedSSA.getType(var);
-        if (var.contains("::") && !isReturnVar(var)) { // var is scoped -> not global
+        if (var.contains("::") && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 
           if (!rootSSA.containsVariable(var)) { // inner local variable, never seen before, use fresh index as basis for further assignments
             rootBuilder.setIndex(var, type, expandedSSA.builder().getFreshIndex(var));
@@ -574,8 +584,9 @@ public class BAMPredicateReducer implements Reducer {
     return rootBuilder.build();
   }
 
-  private static boolean isReturnVar(String var) {
-      return var.contains("::") && RETURN_VARIABLE_NAME.equals(var.substring(var.indexOf("::") + 2));
+  private static boolean isReturnVar(String var, FunctionExitNode functionExitNode) {
+    return functionExitNode.getEntryNode().getReturnVariable().isPresent()
+        && functionExitNode.getEntryNode().getReturnVariable().get().getQualifiedName().equals(var);
   }
 
   /**

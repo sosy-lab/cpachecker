@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.ComponentTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
  */
 @Options(prefix="cpa.policy")
 public class PolicyCPA
-    extends SingleEdgeTransferRelation
+    extends ComponentTransferRelation
     implements ConfigurableProgramAnalysis, StatisticsProvider, AbstractDomain {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -78,22 +78,22 @@ public class PolicyCPA
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
-    statistics = new PolicyIterationStatistics(config);
     TemplateManager templateManager = new TemplateManager(
         logger, config, cfa, formulaManager, pathFormulaManager);
-    ValueDeterminationFormulaManager valueDeterminationFormulaManager =
-        new ValueDeterminationFormulaManager(
-            pathFormulaManager, formulaManager, logger,
-            cfa,
-            realFormulaManager,
-            templateManager
-        );
     FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
-        logger, formulaManager,
-        realFormulaManager.getUnsafeFormulaManager(),
-        realFormulaManager.getBooleanFormulaManager(),
-        shutdownNotifier);
+        logger, formulaManager);
+    ValueDeterminationManager valueDeterminationFormulaManager =
+        new ValueDeterminationManager(
+            formulaManager, logger, templateManager);
 
+    statistics = new PolicyIterationStatistics(config);
+
+    FormulaLinearizationManager formulaLinearizationManager = new
+        FormulaLinearizationManager(
+          realFormulaManager.getUnsafeFormulaManager(),
+          formulaManager.getBooleanFormulaManager(),
+          formulaManager,
+        formulaManager.getIntegerFormulaManager());
     policyIterationManager = new PolicyIterationManager(
         config,
         formulaManager,
@@ -101,7 +101,8 @@ public class PolicyCPA
         solver, logger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
         statistics,
-        formulaSlicingManager);
+        formulaSlicingManager,
+        formulaLinearizationManager);
     mergeOperator = new MergeJoinOperator(this);
     stopOperator = new StopSepOperator(this);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
@@ -134,13 +135,16 @@ public class PolicyCPA
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state, Precision precision, CFAEdge cfaEdge)
-      throws CPATransferException, InterruptedException {
-    return policyIterationManager.getAbstractSuccessors(
-        (PolicyState) state, cfaEdge
-    );
-  }
+  public Collection<? extends AbstractState> getComponentAbstractSuccessors(
+      AbstractState pState,
+      Precision pPrecision,
+      List<AbstractState> otherStates,
+      CFAEdge pEdge
+  ) throws CPATransferException, InterruptedException {
+  return policyIterationManager.getAbstractSuccessors(
+      (PolicyState) pState, otherStates, pEdge
+  );
+}
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState state,

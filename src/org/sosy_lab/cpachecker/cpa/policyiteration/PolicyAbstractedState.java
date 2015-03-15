@@ -9,9 +9,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multiset;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>> {
@@ -31,13 +33,29 @@ public final class PolicyAbstractedState extends PolicyState
    */
   private final PolicyIntermediateState generatingState;
 
+  /**
+   * Version per location. Starts from zero, incremented with each update.
+   */
+  private final int version;
+  private int hashCache = 0;
+
+  private static final Multiset<Location> updateCounter = HashMultiset.create();
+
   private PolicyAbstractedState(Location pLocation,
       Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
       PolicyIntermediateState pGeneratingState) {
     super(pLocation, pTemplates);
+
+    version = updateCounter.count(pLocation);
+    updateCounter.add(pLocation);
+
     abstraction = ImmutableMap.copyOf(pAbstraction);
     generatingState = pGeneratingState;
+  }
+
+  public int getVersion() {
+    return version;
   }
 
   public static PolicyAbstractedState of(
@@ -94,7 +112,8 @@ public final class PolicyAbstractedState extends PolicyState
       PathFormula initial) {
     PolicyIntermediateState Iinitial = PolicyIntermediateState.of(
         pLocation, ImmutableSet.<Template>of(),
-        initial, ImmutableMultimap.<Location, Location>of()
+        initial, ImmutableMultimap.<Location, Location>of(),
+        ImmutableMap.<Location, PolicyAbstractedState>of()
     );
     return PolicyAbstractedState.of(
         ImmutableMap.<Template, PolicyBound>of(),
@@ -112,16 +131,21 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "%s%n%s%n %n %s",
+        "(v=%s, loc=%s)%s%n %n %s %n",
+        version, getLocation().toID(),
         (new PolicyDotWriter()).toDOTLabel(abstraction),
-        templates,
         generatingState.getPathFormula()
     );
   }
 
   @Override
+  public boolean shouldBeHighlighted() {
+    return true;
+  }
+
+  @Override
   public String toString() {
-    return String.format("%s: %s", getLocation(), abstraction);
+    return String.format("%s(%s): %s", getLocation(), version, abstraction);
   }
 
   @Override
@@ -131,7 +155,13 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(generatingState, abstraction, super.hashCode());
+    if (hashCache == 0) {
+      hashCache = Objects.hashCode(
+          generatingState,
+          abstraction,
+          super.hashCode());
+    }
+    return hashCache;
   }
 
   @Override

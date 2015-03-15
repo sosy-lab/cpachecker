@@ -120,8 +120,8 @@ public class ARGSubtreeRemover {
         newPrecisions = pNewPrecisions;
       } else {
         ReachedSet nextReachedSet = abstractStateToReachedSet.get(removeCachedSubtreeArguments.getSecond());
-        assert nextReachedSet != null : "call-state does not match reachedset";
-        if (target.getParents().contains(nextReachedSet.getFirstState())) {
+        // assert nextReachedSet != null : "call-state does not match reachedset";
+        if (nextReachedSet != null && target.getParents().contains(nextReachedSet.getFirstState())) {
           newPrecisions = pNewPrecisions;
         } else {
           newPrecisions = null; // ignore newPrecisions for all iterations except the last one

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -74,28 +73,12 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     return getFormulaCreator().encapsulate(type, formulaInfo);
   }
 
-  protected List<TFormulaInfo> getArguments(TFormulaInfo pT) {
-    int arity = getArity(pT);
-    List<TFormulaInfo> rets = new ArrayList<>(arity);
-    for (int i = 0; i < arity; i++) {
-      rets.add(getArg(pT, i));
-    }
-    return rets;
-  }
-
   @Override
   public boolean isAtom(Formula pF) {
     TFormulaInfo t = extractInfo(pF);
     return isAtom(t);
   }
   protected abstract boolean isAtom(TFormulaInfo pT) ;
-
-  @Override
-  public boolean isLiteral(Formula pF) {
-    TFormulaInfo t = extractInfo(pF);
-    return isLiteral(t);
-  }
-  protected abstract boolean isLiteral(TFormulaInfo pT) ;
 
   @Override
   public int getArity(Formula pF) {
@@ -239,6 +222,13 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     FormulaType<ResultFormulaType> type = getFormulaCreator().getFormulaType(f);
     return getFormulaCreator().encapsulate(type, newExpression);
   }
+
+  @Override
+  public <T extends Formula> T splitNumeralEqualityIfPossible(T pF) {
+    return encapsulateWithTypeOf(pF, splitNumeralEqualityIfPossible(extractInfo(pF)));
+  }
+
+  protected abstract TFormulaInfo splitNumeralEqualityIfPossible(TFormulaInfo pF);
 
   protected abstract TFormulaInfo substitute(
       TFormulaInfo expr,

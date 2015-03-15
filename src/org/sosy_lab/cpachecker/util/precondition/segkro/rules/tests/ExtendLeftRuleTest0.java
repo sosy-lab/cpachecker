@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
@@ -76,17 +75,8 @@ public class ExtendLeftRuleTest0 extends AbstractRuleTest0 {
   @Test
   public void testConclusion1() throws SolverException, InterruptedException {
 
-    BooleanFormula _x_range = bfm.and(
-        ifm.greaterOrEquals(_x, _i),
-        ifm.lessOrEquals(_x, _j));
-
+    BooleanFormula _EXISTS_x = qfm.exists(_x, _i, _j, _b_at_x_NOTEQ_0);
     BooleanFormula _right_ext = ifm.lessOrEquals(_j, _k);
-
-    BooleanFormula _EXISTS_x = qmgr.exists(
-        Lists.newArrayList(_x),
-        bfm.and(Lists.newArrayList(
-            _b_at_x_NOTEQ_0,
-            _x_range)));
 
     Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(
         Lists.newArrayList(
@@ -99,17 +89,8 @@ public class ExtendLeftRuleTest0 extends AbstractRuleTest0 {
   @Test
   public void testConclusion2() throws SolverException, InterruptedException {
 
-    BooleanFormula _x_range = bfm.and(
-        ifm.greaterOrEquals(_x, _i),
-        ifm.lessOrEquals(_x, _j));
-
+    BooleanFormula _EXISTS_x = qfm.exists(_x, _i, _j, _b_at_x_NOTEQ_0);
     BooleanFormula _right_ext = ifm.lessOrEquals(_k, _j);
-
-    BooleanFormula _EXISTS_x = qmgr.exists(
-        Lists.newArrayList(_x),
-        bfm.and(Lists.newArrayList(
-            _b_at_x_NOTEQ_0,
-            _x_range)));
 
     Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(
         Lists.newArrayList(
@@ -122,39 +103,27 @@ public class ExtendLeftRuleTest0 extends AbstractRuleTest0 {
   @Test
   public void testConclusion3() throws SolverException, InterruptedException {
 
-    BooleanFormula _x_range = bfm.and(
-        ifm.greaterOrEquals(_x, _i),
-        ifm.lessOrEquals(_x, _j));
-
-    BooleanFormula _right_ext = ifm.lessThan(_k, _i);
-
-    BooleanFormula _EXISTS_x = qmgr.exists(
-        Lists.newArrayList(_x),
-        bfm.and(Lists.newArrayList(
-            _b_at_x_NOTEQ_0,
-            _x_range)));
+    BooleanFormula _EXISTS_x = qfm.exists(_x, _i, _j, _b_at_x_NOTEQ_0);
+    BooleanFormula _ext = ifm.lessThan(_k, _i);
 
     Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(
         Lists.newArrayList(
             _EXISTS_x,
-            _right_ext));
+            _ext));
 
     assertThat(result).isNotEmpty();
   }
 
   @Test
   public void testConclusion4() throws SolverException, InterruptedException {
-    IntegerFormula boundVar = ifm.makeVariable("x");
-    List<BooleanFormula> input = Lists.newArrayList(
-        qfm.exists(
-            Lists.newArrayList(boundVar),
-            bfm.and(Lists.newArrayList(
-                bfm.not(ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0))),
-                ifm.greaterOrEquals(boundVar, _i),
-                ifm.lessOrEquals(boundVar, _i)))),
-        ifm.lessOrEquals(_k, _i));
 
-    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(input);
+    BooleanFormula _EXISTS_x = qfm.exists(_x, _i, _i, bfm.not(ifm.equal(afm.select(_b, _x), ifm.makeNumber(0))));
+    BooleanFormula _ext = ifm.lessThan(_k, _i);
+
+    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            _EXISTS_x,
+            _ext));
 
     assertThat(result).isNotEmpty();
   }
@@ -166,17 +135,18 @@ public class ExtendLeftRuleTest0 extends AbstractRuleTest0 {
     // ----- should result in ------
     // exists x in {0..i+1} . b[x] = 0
 
-    IntegerFormula boundVar = ifm.makeVariable("x");
-    List<BooleanFormula> input = Lists.newArrayList(
-        qfm.exists(
-            Lists.newArrayList(boundVar),
-            bfm.and(Lists.newArrayList(
-                ifm.equal(afm.select(_b, boundVar), ifm.makeNumber(0)),
-                ifm.greaterOrEquals(boundVar, _i),
-                ifm.lessOrEquals(boundVar, ifm.add(_i, ifm.makeNumber(1)))))),
-        ifm.equal(_i, _0));
+    BooleanFormula _EXISTS_x = qfm.exists(
+        _x,
+        _i,
+        ifm.add(_i, ifm.makeNumber(1)),
+        bfm.not(ifm.equal(afm.select(_b, _x), ifm.makeNumber(0))));
 
-    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(input);
+    BooleanFormula _ext = ifm.equal(_i, _0);
+
+    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            _EXISTS_x,
+            _ext));
 
     assertThat(result).isNotEmpty();
   }

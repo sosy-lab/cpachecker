@@ -14,10 +14,14 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
+
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
   private final Timer checkSATTimer = new Timer();
-  private final Timer optTimer = new Timer();
+  final Timer slicingTimer = new Timer();
+  final Timer optTimer = new Timer();
+
+  final Timer checkIndependenceTimer = new Timer();
 
   public void startCheckSATTimer() {
     checkSATTimer.start();
@@ -53,18 +57,21 @@ public class PolicyIterationStatistics implements Statistics {
 
   public PolicyIterationStatistics(Configuration config)
       throws InvalidConfigurationException {
-
     config.inject(this, PolicyIterationStatistics.class);
   }
 
   @Override
-  public void printStatistics(PrintStream out, CPAcheckerResult.Result result,
-      ReachedSet reached) {
+  public void printStatistics(
+      PrintStream out, CPAcheckerResult.Result result, ReachedSet reached) {
 
     printTimer(out, valueDeterminationTimer, "value determination");
     printTimer(out, abstractionTimer, "abstraction");
     printTimer(out, optTimer, "optimization");
     printTimer(out, checkSATTimer, "checking satisfiability");
+    if (slicingTimer.getNumberOfIntervals() > 0) {
+      printTimer(out, slicingTimer, "checking inductiveness in formula slicing");
+    }
+    printTimer(out, checkIndependenceTimer, "checking independence");
     out.printf("Time spent in %s: %s (Max: %s)%n",
         "SMT solver",
         TimeSpan.sum(

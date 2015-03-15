@@ -43,6 +43,7 @@ import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFormulaITE;
 import ap.parser.IFunApp;
+import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.INot;
 import ap.parser.ITerm;
@@ -221,6 +222,7 @@ class PrincessUtil {
   public static Set<IExpression> getVarsAndUIFs(Collection<IExpression> exprList) {
     Set<IExpression> result = new HashSet<>();
     Set<IExpression> seen = new HashSet<>();
+    Set<IFunction> uifs = new HashSet<>();
     Deque<IExpression> todo = new ArrayDeque<>(exprList);
 
     while (!todo.isEmpty()) {
@@ -229,9 +231,16 @@ class PrincessUtil {
         continue;
       }
 
-      if (isVariable(t) || isUIF(t)) {
+      if (isVariable(t)) {
         result.add(t);
-      } else if (t.length() > 0) {
+        // this is a real variable we can skip here
+        continue;
+
+      } else if (isUIF(t) && uifs.add(((IFunApp)t).fun())) {
+        result.add(t);
+      }
+
+      if (t.length() > 0) {
         Iterator<IExpression> it = t.iterator();
         while (it.hasNext()) {
           todo.add(it.next());

@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
@@ -240,13 +242,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       throw new UnsupportedOperationException("Unknown boolean operator " + f);
     }
 
-    private final BooleanFormula getArg(BooleanFormula pF, int i) {
+    private BooleanFormula getArg(BooleanFormula pF, int i) {
       Formula arg = unsafe.getArg(pF, i);
       assert fmgr.getFormulaType(arg).isBooleanType();
       return (BooleanFormula)arg;
     }
 
-    private final BooleanFormula[] getAllArgs(BooleanFormula pF) {
+    private BooleanFormula[] getAllArgs(BooleanFormula pF) {
       int arity = unsafe.getArity(pF);
       BooleanFormula[] args = new BooleanFormula[arity];
       for (int i = 0; i < arity; i++) {
@@ -388,7 +390,98 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       visitIfNotSeen(pElseFormula);
       return null;
     }
+  }
 
+  /**
+   * Base class for visitors for boolean formulas that traverse recursively
+   * through the formula and somehow transform it (i.e., return a boolean formula).
+   * This class ensures that each identical subtree of the formula
+   * is visited only once to avoid the exponential explosion.
+   * When a subclass wants to traverse into a subtree of the formula,
+   * it needs to call {@link #visitIfNotSeen(BooleanFormula)} or
+   * {@link #visitIfNotSeen(BooleanFormula...)} to ensure this.
+   *
+   * By default this class implements the identity function.
+   *
+   * No guarantee on iteration order is made.
+   */
+  public static abstract class BooleanFormulaTransformationVisitor extends BooleanFormulaManagerView.BooleanFormulaVisitor<BooleanFormula> {
 
+    private final BooleanFormulaManagerView bfmgr;
+
+    private final Map<BooleanFormula, BooleanFormula> cache;
+
+    protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr,
+        Map<BooleanFormula, BooleanFormula> pCache) {
+      super(pFmgr);
+      bfmgr = pFmgr.getBooleanFormulaManager();
+      cache = pCache;
+    }
+
+    protected final BooleanFormula visitIfNotSeen(BooleanFormula f) {
+      BooleanFormula out = cache.get(f);
+      if (out == null) {
+        out = super.visit(f);
+        cache.put(f, out);
+      }
+      return out;
+    }
+
+    protected final List<BooleanFormula> visitIfNotSeen(BooleanFormula... pOperands) {
+      List<BooleanFormula> args = new ArrayList<>(pOperands.length);
+      for (BooleanFormula arg : pOperands) {
+        args.add(visitIfNotSeen(arg));
+      }
+      return args;
+    }
+
+    @Override
+    protected BooleanFormula visitTrue() {
+      return bfmgr.makeBoolean(true);
+    }
+
+    @Override
+    protected BooleanFormula visitFalse() {
+      return bfmgr.makeBoolean(false);
+    }
+
+    @Override
+    protected BooleanFormula visitAtom(BooleanFormula pAtom) {
+      return pAtom;
+    }
+
+    @Override
+    protected BooleanFormula visitNot(BooleanFormula pOperand) {
+      return bfmgr.not(visitIfNotSeen(pOperand));
+    }
+
+    @Override
+    protected BooleanFormula visitAnd(BooleanFormula... pOperands) {
+      return bfmgr.and(visitIfNotSeen(pOperands));
+    }
+
+    @Override
+    protected BooleanFormula visitOr(BooleanFormula... pOperands) {
+      return bfmgr.or(visitIfNotSeen(pOperands));
+    }
+
+    @Override
+    protected BooleanFormula visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return bfmgr.equivalence(visitIfNotSeen(pOperand1), visitIfNotSeen(pOperand2));
+    }
+
+    @Override
+    protected BooleanFormula visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return bfmgr.implication(visitIfNotSeen(pOperand1), visitIfNotSeen(pOperand2));
+    }
+
+    @Override
+    protected BooleanFormula visitIfThenElse(BooleanFormula pCondition,
+        BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      return bfmgr.ifThenElse(
+          visitIfNotSeen(pCondition),
+          visitIfNotSeen(pThenFormula),
+          visitIfNotSeen(pElseFormula));
+    }
   }
 }

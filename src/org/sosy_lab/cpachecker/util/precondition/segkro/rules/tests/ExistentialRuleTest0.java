@@ -124,7 +124,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
             ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)
           ));
 
-    assertThat(result).isNotEmpty();
+    assertThat(result).contains(rangePredicate(false, _i,  ifm.add(_i, _1)));
   }
 
   @Test
@@ -134,6 +134,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
             bfm.not(ifm.equal(afm.select(_b, _0), _0)),
             ifm.equal(afm.select(_b, _0), _0)
           ));
+
     assertThat(result).isEmpty();
   }
 
@@ -147,7 +148,8 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
             bfm.not(ifm.equal(afm.select(_b, _i), _0)),
             ifm.equal(afm.select(_b, ifm.add(_1, _i)), _0)
           ));
-    assertThat(result).isNotEmpty();
+
+    assertThat(result).contains(rangePredicate(false, _i,  ifm.add(_1, _i)));
   }
 
   @Test
@@ -157,11 +159,9 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
     Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
         Lists.newArrayList(
             bfm.not(ifm.equal(afm.select(_b, _i), _0)),
-            ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)));
+            ifm.equal(afm.select(_b, ifm.add(_1, _i)), _0)));
 
-    assertThat(toStringList(result)).containsAllIn(
-        toStringList(Lists.newArrayList(
-            rangePredicate(false, _i,  ifm.add(_i, _1)))));
+    assertThat(result).contains(rangePredicate(false, _i,  ifm.add(_1, _i)));
   }
 
   @Test
@@ -170,9 +170,10 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
 
     Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
         Lists.newArrayList(
-            bfm.not(ifm.equal(_0, afm.select(_b, _0))),
+            bfm.not(ifm.equal(afm.select(_b, _0), _0)),
             ifm.equal(_0, afm.select(_b, _1))));
-    assertThat(result).isNotEmpty();
+
+    assertThat(result).contains(rangePredicate(false, _0,  _1));
   }
 
 }

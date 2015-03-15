@@ -146,9 +146,10 @@ class DynamicMemoryHandler {
             conv.machineModel, conv.logger).asLong(multiplication.getExpressionType());
 
         CExpression newParam = new CIntegerLiteralExpression(param0.getFileLocation(),
-                                                 multiplication.getExpressionType(),
-                                                 BigInteger.valueOf(result));
+            multiplication.getExpressionType(),
+            BigInteger.valueOf(result));
         parameters = Collections.singletonList(newParam);
+
       } else {
         parameters = Collections.<CExpression>singletonList(multiplication);
       }

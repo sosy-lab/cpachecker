@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
@@ -116,27 +117,20 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
 
-    Path automatonFile;
-    try {
-      automatonFile = Paths.createTempPath("counterexample-automaton", ".txt");
-    } catch (IOException e1) {
-      throw new CPAException("Failed while creating a temp file for the counterexample automaton.", e1);
-    }
-
     try {
       if (specFile != null) {
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates, specFile);
       }
 
-      try {
-        return checkCounterexample(pRootState, pErrorState, pErrorPathStates, automatonFile);
-      } finally {
-        automatonFile.delete();
+      // This temp file will be automatically deleted when the try block terminates.
+      try (DeleteOnCloseFile automatonFile = Files.createTempFile("counterexample-automaton", ".txt")) {
+
+        return checkCounterexample(pRootState, pErrorState, pErrorPathStates,
+            automatonFile.toPath());
       }
 
     } catch (IOException e) {
-      throw new CounterexampleAnalysisFailed("Could not write path automaton to file " +
-          automatonFile.toAbsolutePath() + " " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
   }
 
