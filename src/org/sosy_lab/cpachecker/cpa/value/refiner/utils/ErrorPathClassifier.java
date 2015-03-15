@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -206,7 +207,7 @@ public class ErrorPathClassifier {
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
 
-      currentErrorPath.removeLast();
+      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
     }
 
     return buildPath(bestIndex, pPrefixes, originalErrorPath);
@@ -226,20 +227,36 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      // gets the score for the prefix of how "local" it is
-      AssumptionUseDefinitionCollector collector = new InitialAssumptionUseDefinitionCollector();
-      collector.obtainUseDefInformation(currentErrorPath);
-      int score = collector.getDependenciesResolvedOffset() * (-1);
+      int score = getDepthOfRefinementRoot(currentErrorPath.immutableCopy()) * (-1);
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
 
-      currentErrorPath.removeLast();
+      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
     }
 
     return buildPath(bestIndex, pPrefixes, originalErrorPath);
+  }
+
+  private int getDepthOfRefinementRoot(ARGPath slicedPrefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars(), "EQUALITY");
+
+    int depth = 0;
+    PathIterator iterator = slicedPrefix.pathIterator();
+    while(iterator.hasNext()) {
+      if(useDefRelation.getDef(iterator.getAbstractState(), iterator.getOutgoingEdge()).isEmpty()) {
+        depth++;
+      }
+
+      else {
+        break;
+      }
+
+      iterator.advance();
+    }
+    return depth;
   }
 
   // not really a sensible heuristic at all, just here for comparison reasons
