@@ -1670,6 +1670,9 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# whether or not to use heuristic to avoid similar, repeated refinements
+cpa.value.refinement.avoidSimilarRepeatedRefinement = false
+
 # when to export the interpolation tree
 # NEVER:   never export the interpolation tree
 # FINAL:   export the interpolation tree once after each refinement
