@@ -96,8 +96,8 @@ public class AutomatonGraphmlCommon {
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
 
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
-    ORIGINLINE("originline", "edge", "lineNumberInOrigin", "int"),
-    OFFSET("offset", "edge", "offset", "int"),
+    ORIGINLINE("startline", "edge", "startline", "int"),
+    OFFSET("startoffset", "edge", "startoffset", "int"),
     ORIGINFILE("originfile", "edge", "originFileName", "string"),
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
     CONTROLCASE("control", "edge", "control", "string"),
