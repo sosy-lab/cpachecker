@@ -1295,9 +1295,9 @@ public class FormulaManagerView {
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    if (unsafeManager.isAtom(t) || unsafeManager.isUF(t)) {
+    if (unsafeManager.isAtom(t)) {
       // term is atom
-      return true;
+      return !containsIfThenElse(t);
 
     } else if (booleanFormulaManager.isNot(t)) {
       t = (BooleanFormula)unsafeManager.getArg(t, 0);
@@ -1314,6 +1314,18 @@ public class FormulaManagerView {
     } else {
       return false;
     }
+  }
+
+  private boolean containsIfThenElse(Formula f) {
+    if (booleanFormulaManager.isIfThenElse(f)) {
+      return true;
+    }
+    for (int i = 0; i < unsafeManager.getArity(f); ++i) {
+      if (containsIfThenElse(unsafeManager.getArg(f, i))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static final String BitwiseAndUfName = "_&_";
