@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.ApronException;
 
@@ -244,7 +245,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
                           apronPrecision.withIncrement(increment),
                           VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
 
-    logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
+    logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + new TreeSet<>(increment.values()));
 
     return true;
   }
