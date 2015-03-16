@@ -11,7 +11,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 
@@ -34,7 +33,8 @@ public final class PolicyAbstractedState extends PolicyState
   private final PolicyIntermediateState generatingState;
 
   /**
-   * Version per location. Starts from zero, incremented with each update.
+   * Version per location. Starts from zero, incremented with each update
+   * to the location.
    */
   private final int version;
   private int hashCache = 0;
@@ -112,14 +112,13 @@ public final class PolicyAbstractedState extends PolicyState
       PathFormula initial) {
     PolicyIntermediateState Iinitial = PolicyIntermediateState.of(
         pLocation, ImmutableSet.<Template>of(),
-        initial, ImmutableMultimap.<Location, Location>of(),
-        ImmutableMap.<Location, PolicyAbstractedState>of()
+        initial,  ImmutableMap.<Location, PolicyAbstractedState>of()
     );
     return PolicyAbstractedState.of(
-        ImmutableMap.<Template, PolicyBound>of(),
+        ImmutableMap.<Template, PolicyBound>of(), // abstraction
         ImmutableSet.<Template>of(), // templates
         pLocation, // node
-        Iinitial
+        Iinitial // generating state
     );
   }
 
@@ -173,7 +172,8 @@ public final class PolicyAbstractedState extends PolicyState
       return false;
     }
     PolicyAbstractedState other = (PolicyAbstractedState)o;
-    return (generatingState.equals(other.generatingState) &&
+    return (
+        generatingState.equals(other.generatingState) &&
         abstraction.equals(other.abstraction) && super.equals(o));
   }
 }

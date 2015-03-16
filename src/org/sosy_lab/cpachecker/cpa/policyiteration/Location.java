@@ -35,6 +35,8 @@ public final class Location {
     node = pNode;
     otherStates = ImmutableSet.copyOf(pOtherStates);
     hashCache = Objects.hashCode(node, otherStates);
+    //noinspection ResultOfMethodCallIgnored
+    toID();
   }
 
   public static Location of(
@@ -70,6 +72,7 @@ public final class Location {
 
   /**
    * Serialize location to an identifier.
+   * Guarantees: identifier is always non-negative.
    */
   public int toID() {
     if (locationID != null) {

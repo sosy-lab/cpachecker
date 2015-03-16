@@ -7,8 +7,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
 
 public final class PolicyIntermediateState extends PolicyState {
 
@@ -18,41 +16,43 @@ public final class PolicyIntermediateState extends PolicyState {
   private final PathFormula pathFormula;
 
   /**
-   * Trace to determine the coverage relation.
-   * Format: to-node -> set of from_nodes explored.
-   */
-  private final ImmutableMultimap<Location, Location> trace;
-
-  /**
    * Abstract states used for generating this state.
    */
   private final ImmutableMap<Location, PolicyAbstractedState> generatingStates;
 
+  private transient PolicyIntermediateState mergedInto;
+
   private int hashCache = 0;
+
 
   private PolicyIntermediateState(
       Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Multimap<Location, Location> pTrace,
-      Map<Location, PolicyAbstractedState> generatingStates
+      Map<Location, PolicyAbstractedState> pGeneratingStates
       ) {
     super(pLocation, pTemplates);
 
     pathFormula = pPathFormula;
-    trace = ImmutableMultimap.copyOf(pTrace);
-    this.generatingStates = ImmutableMap.copyOf(generatingStates);
+    generatingStates = ImmutableMap.copyOf(pGeneratingStates);
   }
 
   public static PolicyIntermediateState of(
       Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Multimap<Location, Location> pTrace,
       Map<Location, PolicyAbstractedState> generatingStates
   ) {
     return new PolicyIntermediateState(pLocation, pTemplates, pPathFormula,
-        pTrace, generatingStates);
+        generatingStates);
+  }
+
+  public void setMergedInto(PolicyIntermediateState other) {
+    mergedInto = other;
+  }
+
+  public boolean isMergedInto(PolicyIntermediateState other) {
+    return other == mergedInto;
   }
 
   /**
@@ -66,10 +66,6 @@ public final class PolicyIntermediateState extends PolicyState {
     return pathFormula;
   }
 
-  public ImmutableMultimap<Location, Location> getTrace() {
-    return trace;
-  }
-
   @Override
   public boolean isAbstract() {
     return false;
@@ -77,7 +73,9 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toDOTLabel() {
-    return pathFormula.toString() + "\n" + pathFormula.getSsa().toString();
+    return String.format(
+        "(loc=%s)%n%s%n%s%n", getLocation(), pathFormula, pathFormula.getSsa()
+    );
   }
 
   @Override

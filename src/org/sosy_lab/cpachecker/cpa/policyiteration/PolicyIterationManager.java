@@ -53,10 +53,8 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -171,8 +169,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * Constants
    */
-  private static final String INITIAL_CONDITION_FLAG =
-      "__INITIAL_CONDITION_TRUE";
   private static final String START_LOCATION_FLAG = "__INITIAL_LOCATION";
 
   /**
@@ -195,7 +191,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       CFAEdge edge) throws CPATransferException, InterruptedException {
 
     CFANode node = edge.getSuccessor();
-    Location oldLocation = oldState.getLocation();
     Location newLocation = Location.of(node, otherStates);
 
     PolicyIntermediateState iOldState;
@@ -205,12 +200,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else {
       iOldState = oldState.asIntermediate();
     }
-
-    Multimap<Location, Location> trace =
-        HashMultimap.create(iOldState.getTrace());
-
-    // Serialize the choice to trace.
-    trace.put(newLocation, oldLocation);
 
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
 
@@ -228,9 +217,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         Sets.union(templateManager.templatesForNode(node),
             oldState.getTemplates()),
         outPath,
-
-        // Redundant variable for path identification.
-        trace,
         iOldState.getGeneratingStates());
 
     // NOTE: the abstraction computation and the global update is delayed
@@ -247,7 +233,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     statistics.startAbstractionTimer();
     try {
       // Perform the abstraction, if necessary.
-      if (!state.isAbstract() && shouldPerformAbstraction(cfaEdge.getSuccessor())) {
+      if (!state.isAbstract() && shouldPerformAbstraction(state.asIntermediate(),
+          cfaEdge.getSuccessor())) {
         PolicyIntermediateState iState = state.asIntermediate();
 
         logger.log(Level.FINE, ">>> Abstraction from formula",
@@ -289,8 +276,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Override
   public PolicyState join(PolicyState newState, PolicyState oldState)
       throws CPATransferException, InterruptedException, SolverException {
-    PolicyState out;
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
+    Preconditions
+        .checkState(newState.getLocation().equals(oldState.getLocation()));
+    PolicyState out;
 
     if (oldState.isAbstract()) {
       out = joinAbstractedStates(
@@ -312,26 +301,29 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private PolicyIntermediateState joinIntermediateStates(
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
-  ) throws CPATransferException, InterruptedException {
+  ) throws CPATransferException, InterruptedException, SolverException {
     // NOTE: possible optimization before join:
     // check satisfiability, if one of the paths is unsatisfiable =>
     // throw it away (avoid unnecessary diamonds, better get rid of them
     // early).
 
-    Preconditions
-        .checkState(newState.getLocation().equals(oldState.getLocation()));
     Location location = newState.getLocation();
 
-    // Special logic for checking after the value determination:
-    // if two states utilize the same traces (come from the same parent nodes)
-    // AND the version of the new parent is older,
-    // the new state after the value determination will strictly dominate
-    // the old one.
-    // Note that the comparison order is reverse of the usual
-    // (in #isLessOrEqual).
+    if (newState.isMergedInto(oldState)) {
+      return oldState;
+    } else if (oldState.isMergedInto(newState)) {
+      return newState;
+    }
 
-    // oldState <= newState
-    if (checkCovering(oldState, newState)) {
+    if (oldState.getPathFormula().equals(newState.getPathFormula())
+        && checkParentCovering(oldState, newState)) {
+
+      // Special logic for checking after the value determination:
+      // if two states utilize the same traces (come from the same parent
+      // nodes)
+      // AND the version of the new parent is older,
+      // the new state after the value determination will strictly dominate
+      // the old one.
       return newState;
     }
 
@@ -341,11 +333,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PathFormula newPath = newState.getPathFormula();
     PathFormula oldPath = oldState.getPathFormula();
 
-    // Join trace.
-    Multimap<Location, Location> trace = HashMultimap.create();
-    trace.putAll(newState.getTrace());
-    trace.putAll(oldState.getTrace());
-
     PathFormula mergedPath = pfmgr.makeOr(newPath, oldPath);
     if (simplifyFormulas) {
       mergedPath = mergedPath.updateFormula(
@@ -354,12 +341,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // No value determination, no abstraction, simply join incoming edges
     // and the tracked templates.
-    return PolicyIntermediateState.of(
+    PolicyIntermediateState out = PolicyIntermediateState.of(
         location, allTemplates,
-        mergedPath, trace,
+        mergedPath,
         mergeStartMaps(oldState, newState)
     );
+
+    newState.setMergedInto(out);
+    oldState.setMergedInto(out);
+    return out;
   }
+
 
   private PolicyAbstractedState joinAbstractedStates(
       PolicyAbstractedState newState,
@@ -469,8 +461,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     try (OptEnvironment optSolver = this.solver.newOptEnvironment()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      for (BooleanFormula constr : pValueDeterminationConstraints) {
-        optSolver.addConstraint(constr);
+      for (BooleanFormula constraint : pValueDeterminationConstraints) {
+        optSolver.addConstraint(constraint);
       }
 
       Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
@@ -581,8 +573,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         state.getPathFormula().getFormula(), startConstraints
     );
 
-    constraint = linearizationManager.enforceInitial(constraint, true);
-
     try {
       statistics.startCheckSATTimer();
       return !solver.isUnsat(constraint);
@@ -607,14 +597,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           startingState, startPath
       );
 
-      // (START_LOCATION_FLAG = loc) => input_constraints
-      BooleanFormula startConstraint;
-      startConstraint = bfmgr.and(
+      BooleanFormula startConstraint = bfmgr.and(
           ifmgr.equal(
               ifmgr.makeVariable(START_LOCATION_FLAG),
-              ifmgr.makeNumber(loc.toID())
-          ),
-          bfmgr.and(constraints)
+              ifmgr.makeNumber(loc.toID())), bfmgr.and(constraints)
       );
 
       inputConstraints.add(startConstraint);
@@ -634,34 +620,30 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       throws CPATransferException, InterruptedException {
     final PathFormula p = state.getPathFormula();
 
-    final BooleanFormula transferRelation = bfmgr.and(
-        p.getFormula(),
-        bfmgr.or(
-            bfmgr.not(bfmgr.makeVariable(INITIAL_CONDITION_FLAG)),
-            getStartConstraints(state)
-        )
-    );
-
     // Linearize.
     final BooleanFormula linearizedFormula = linearizationManager.linearize(
-        transferRelation);
+        p.getFormula());
 
     // Add choice variables.
     final BooleanFormula annotatedFormula = linearizationManager.annotateDisjunctions(
         linearizedFormula);
 
+    final BooleanFormula formulaWithInitial = bfmgr.and(
+        annotatedFormula, getStartConstraints(state));
+
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
 
-    final BooleanFormula formulaWithInitial = linearizationManager.enforceInitial(
-        annotatedFormula, true);
-
     try (
+        // Optimizing environment to get the final value.
         OptEnvironment optEnvironment = solver.newOptEnvironment();
+
+        // Prover environment to perform meta-queries.
         ProverEnvironment prover = solver.newProverEnvironment()
     ) {
       optEnvironment.addConstraint(formulaWithInitial);
+
       //noinspection ResultOfMethodCallIgnored
-      prover.push(linearizationManager.enforceInitial(linearizedFormula, false));
+      prover.push(linearizedFormula);
 
       shutdownNotifier.shutdownIfNecessary();
 
@@ -684,11 +666,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           status = optEnvironment.check();
         } finally {
           statistics.stopOPTTimer();
-//          long t = statistics.optTimer.getLengthOfLastInterval().asSeconds();
-//          if (t > 2) {
-//            "Long query: optimization took %d seconds (query below) %n"
-//                + "Objective: %s %n Query: %s %n", t, objective, formulaWithInitial;
-//          }
+          long t = statistics.optTimer.getLengthOfLastInterval().asSeconds();
+          if (t > 2) {
+            logger.log(Level.INFO, "Long query: optimization took %d seconds (query below) %n"
+                + "Objective: %s %n Query: %s %n", t, objective, formulaWithInitial);
+          }
         }
 
         // Generate the trace for the single template.
@@ -767,13 +749,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Location location = abstractState.getLocation();
     PathFormula generatingFormula = abstractState.getPathFormula();
 
-    // INITIAL_CONDITION_FLAG => metaInfo
-    BooleanFormula initialConstraint = bfmgr.or(
-        bfmgr.not(bfmgr.makeVariable(INITIAL_CONDITION_FLAG)),
-        ifmgr.equal(
-            ifmgr.makeVariable(START_LOCATION_FLAG),
-            ifmgr.makeNumber(location.toID()))
-    );
+    BooleanFormula initialConstraint =  ifmgr.equal(
+        ifmgr.makeVariable(START_LOCATION_FLAG),
+        ifmgr.makeNumber(location.toID()));
 
     if (formulaSlicing) {
       BooleanFormula pointerData = formulaSlicingManager.pointerFormulaSlice(
@@ -795,7 +773,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         location,
         abstractState.getTemplates(),
         path,
-        HashMultimap.<Location, Location>create(),
         ImmutableMap.of(location, abstractState)
     );
   }
@@ -812,7 +789,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       ProverEnvironment prover,
       PolicyIntermediateState inputState,
       PathFormula inputPathFormula,
-      BooleanFormula transferRelation,
+      BooleanFormula annotatedFormula,
       Model model,
       Rational bound) throws SolverException, InterruptedException {
 
@@ -830,10 +807,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       prover.pop();
     }
 
-    BooleanFormula transferWithoutInitial =
-        linearizationManager.enforceInitial(transferRelation, false);
     BooleanFormula policyFormula = linearizationManager.enforceChoice(
-        transferWithoutInitial, model.entrySet());
+        annotatedFormula, model.entrySet());
 
     BigInteger prevLocationID = (BigInteger)model.get(
         new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer));
@@ -850,13 +825,18 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Whether to compute the abstraction when creating a new
    * state associated with <code>node</code>.
    */
-  private boolean shouldPerformAbstraction(CFANode pNode) {
+  private boolean shouldPerformAbstraction(PolicyIntermediateState state, CFANode pNode) {
     if (!pathFocusing) {
       return true;
     }
     if (pNode.isLoopStart()) {
       return true;
     }
+    // todo: benchmark the code below.
+//    if (state.getPathFormula().getLength() > 1000) {
+//      return true;
+//    }
+
     return false;
   }
 
@@ -909,34 +889,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     return out;
   }
 
-  /**
-   * @return {@code stateA <= stateB}
-   */
-  private boolean checkCovering(
-      PolicyIntermediateState stateA,
-      PolicyIntermediateState stateB
+  private boolean checkParentCovering(
+      PolicyIntermediateState stateA, PolicyIntermediateState stateB
   ) {
 
-    for (Entry<Location, Location> e : stateA.getTrace().entries()) {
-      if (!stateB.getTrace().containsEntry(e.getKey(), e.getValue())) {
-        return false;
-      }
-    }
-
-    Map<Location, PolicyAbstractedState> parentsB, parentsA;
-    parentsB = stateB.getGeneratingStates();
+    Map<Location, PolicyAbstractedState> parentsA, parentsB;
     parentsA = stateA.getGeneratingStates();
+    parentsB = stateB.getGeneratingStates();
 
-    for (Location loc : Sets.union(parentsB.keySet(), parentsA.keySet())) {
-      PolicyAbstractedState parentB = parentsB.get(loc);
+    for (Location loc : Sets.union(parentsA.keySet(), parentsB.keySet())) {
       PolicyAbstractedState parentA = parentsA.get(loc);
+      PolicyAbstractedState parentB = parentsB.get(loc);
 
-      if (parentB == null) {
-        return false;
-      } else if (parentA == null) {
+      if (parentA == null) {
         continue;
+      } else if (parentB == null) {
+        return false;
       } else {
-        if (parentB.getVersion() < parentA.getVersion()) {
+        if (parentA.getVersion() > parentB.getVersion()) {
           return false;
         }
       }
