@@ -29,6 +29,7 @@ import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -94,11 +95,6 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   @Option(
       secure = true,
-      description = "whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
-  private boolean useTopDownInterpolationStrategy = true;
-
-  @Option(
-      secure = true,
       description = "heuristic to sort targets based on the quality of interpolants deriveable from them")
   private boolean itpSortedTargets = false;
 
@@ -118,7 +114,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
   private ValueAnalysisPathInterpolator interpolator;
 
@@ -271,8 +267,12 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return interpolationTree;
   }
 
-  private ValueAnalysisInterpolationTree createInterpolationTree(Collection<ARGState> targets) {
-    return new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+  /**
+   * This method creates the interpolation tree. As there is only a single target, it is irrelevant
+   * whether to use top-down or bottom-up interpolation, as the tree is degenerated to a list.
+   */
+  protected ValueAnalysisInterpolationTree createInterpolationTree(Collection<ARGState> targets) {
+    return new ValueAnalysisInterpolationTree(logger, targets, true);
   }
 
   private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached) {
@@ -602,9 +602,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       }
     };
 
-    // obtain all target locations, excluding feasible ones
-    // this filtering is needed to distinguish between multiple targets being available
-    // because of stopAfterError=false (feasible) versus globalRefinement=true (new)
+    // extract target locations from and exclude those found to be feasible before,
+    // e.g., when analysis.stopAfterError is set to false
     List<ARGState> targets = extractTargetStatesFromArg(pReached)
         .filter(Predicates.not(Predicates.in(feasibleTargets))).toSortedList(comparator);
 
@@ -623,10 +622,15 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return targets;
   }
 
-  private FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
-    return from(pReached.asReachedSet())
-        .transform(AbstractStates.toState(ARGState.class))
-        .filter(AbstractStates.IS_TARGET_STATE);
+  /**
+   * This method extracts the last state from the ARG, which has to be a target state.
+   */
+  protected FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
+    ARGState lastState = ((ARGState)pReached.asReachedSet().getLastState());
+
+    assert (lastState.isTarget()) : "Last state is not a target state";
+
+    return from(Collections.singleton(lastState));
   }
 
   @Override
@@ -635,7 +639,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public String getName() {
-        return ValueAnalysisRefiner.class.getSimpleName();
+        return ValueAnalysisRefiner.this.getClass().getSimpleName();
       }
 
       @Override
