@@ -10,6 +10,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Predicate;
@@ -58,7 +59,7 @@ public class FormulaSlicingManager {
     while (changed) {
       changed = false;
       for (BooleanFormula atom : atoms) {
-        Set<String> variableNames = fmgr.extractFunctionNames(atom);
+        Set<String> variableNames = fmgr.extractFunctionNames(atom, false);
         for (String s : variableNames) {
           if (seedCondition.apply(s) || closure.contains(s)) {
             changed |= closure.addAll(variableNames);
@@ -70,7 +71,7 @@ public class FormulaSlicingManager {
     return closure;
   }
 
-  private class RecursiveSliceVisitor extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
+  private class RecursiveSliceVisitor extends BooleanFormulaTransformationVisitor {
 
     private final boolean isInsideNot;
     private final Set<String> closure;
@@ -99,7 +100,8 @@ public class FormulaSlicingManager {
     @Override
     protected BooleanFormula visitAtom(BooleanFormula f) {
       Formula uninstantiatedF = fmgr.uninstantiate(f);
-      Set<String> containedVariables = fmgr.extractFunctionNames(uninstantiatedF);
+      Set<String> containedVariables = fmgr.extractFunctionNames(
+          uninstantiatedF, false);
       if (!Sets.intersection(closure, containedVariables).isEmpty()) {
         return f;
       } else {
