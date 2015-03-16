@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
@@ -284,8 +283,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
   /**
    * This method performs interpolation on the complete path, based on the
-   * use-def-relation obtained by {@link AssumptionUseDefinitionCollector} or
-   * its subclass. It creates fake interpolants that are not inductive.
+   * use-def-relation. It creates fake interpolants that are not inductive.
    *
    * @param errorPathPrefix the error path prefix to interpolate
    * @return
