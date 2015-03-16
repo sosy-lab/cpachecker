@@ -114,7 +114,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
       CFA pCFA,
       PathFormulaManager pClientPFM,
       boolean pAsync) throws InvalidConfigurationException {
-    Preconditions.checkNotNull(pBMCAlgorithm);
+    bmcAlgorithm = checkNotNull(pBMCAlgorithm);
     PredicateCPA predicateCPA = CPAs.retrieveCPA(pCPA, PredicateCPA.class);
     if (predicateCPA == null) {
       throw new InvalidConfigurationException("Predicate CPA required");
@@ -122,7 +122,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
     if (async && !predicateCPA.getSolver().getFormulaManager().getVersion().toLowerCase().contains("smtinterpol")) {
       throw new InvalidConfigurationException("Solver does not support concurrent execution, use SMTInterpol instead.");
     }
-    bmcAlgorithm = pBMCAlgorithm;
     cpa = pCPA;
     reachedSetFactory = pReachedSetFactory;
     logger = pLogger;

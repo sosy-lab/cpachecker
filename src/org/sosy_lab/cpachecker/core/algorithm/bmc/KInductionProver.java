@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
@@ -173,25 +174,16 @@ class KInductionProver implements AutoCloseable {
       boolean pHavocLoopTerminationConditionVariablesOnly,
       Supplier<Integer> pBMCKAccessor,
       ShutdownNotifier pShutdownNotifier) {
-    Preconditions.checkNotNull(pCFA);
-    Preconditions.checkNotNull(pLogger);
-    Preconditions.checkNotNull(pAlgorithm);
-    Preconditions.checkNotNull(pCPA);
-    Preconditions.checkNotNull(pInvariantGenerator);
-    Preconditions.checkNotNull(pStats);
-    Preconditions.checkNotNull(pReachedSetFactory);
-    Preconditions.checkNotNull(pBMCKAccessor);
-    Preconditions.checkNotNull(pShutdownNotifier);
-    cfa = pCFA;
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    algorithm = pAlgorithm;
-    cpa = pCPA;
-    invariantGenerator = pInvariantGenerator;
-    stats = pStats;
-    reachedSetFactory = pReachedSetFactory;
+    cfa = checkNotNull(pCFA);
+    logger = checkNotNull(pLogger);
+    algorithm = checkNotNull(pAlgorithm);
+    cpa = checkNotNull(pCPA);
+    invariantGenerator  = checkNotNull(pInvariantGenerator);
+    stats = checkNotNull(pStats);
+    reachedSetFactory = checkNotNull(pReachedSetFactory);
+    bmcKAccessor = checkNotNull(pBMCKAccessor);
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
     havocLoopTerminationConditionVariablesOnly = pHavocLoopTerminationConditionVariablesOnly;
-    bmcKAccessor = pBMCKAccessor;
     List<CFAEdge> incomingEdges = null;
     ReachedSet reachedSet = null;
     Loop loop = null;
