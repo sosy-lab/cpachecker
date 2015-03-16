@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -128,7 +127,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
     Configuration invariantConfig;
     try {
-      ConfigurationBuilder configBuilder = extractOptionFrom(config, "specification");
+      ConfigurationBuilder configBuilder = Configuration.builder().copyOptionFrom(config, "specification");
       configBuilder.loadFromFile(configFile);
       invariantConfig = configBuilder.build();
     } catch (IOException e) {
@@ -376,26 +375,6 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       return true;
     }
 
-  }
-
-  private static ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
-    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
-    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
-      pairScanner.useDelimiter("\\s+");
-      while (pairScanner.hasNext()) {
-        String pair = pairScanner.next();
-        try (Scanner keyScanner = new Scanner(pair)) {
-          keyScanner.useDelimiter("\\s*=\\s*.*");
-          if (keyScanner.hasNext()) {
-            String key = keyScanner.next();
-            if (!key.equals(pKey)) {
-              builder.clearOption(key);
-            }
-          }
-        }
-      }
-    }
-    return builder;
   }
 
 }
