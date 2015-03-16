@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
@@ -257,8 +258,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   private ValueAnalysisInterpolationTree obtainInterpolants(Collection<ARGState> targets) throws CPAException,
       InterruptedException {
-    ValueAnalysisInterpolationTree interpolationTree =
-        new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    ValueAnalysisInterpolationTree interpolationTree = createInterpolationTree(targets);
 
     while (interpolationTree.hasNextPathForInterpolation()) {
       performPathInterpolation(interpolationTree);
@@ -269,6 +269,10 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
     }
     return interpolationTree;
+  }
+
+  private ValueAnalysisInterpolationTree createInterpolationTree(Collection<ARGState> targets) {
+    return new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
   }
 
   private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached) {
@@ -601,16 +605,12 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     // obtain all target locations, excluding feasible ones
     // this filtering is needed to distinguish between multiple targets being available
     // because of stopAfterError=false (feasible) versus globalRefinement=true (new)
-    List<ARGState> targets = from(pReached.asReachedSet())
-        .transform(AbstractStates.toState(ARGState.class))
-        .filter(AbstractStates.IS_TARGET_STATE)
+    List<ARGState> targets = extractTargetStatesFromArg(pReached)
         .filter(Predicates.not(Predicates.in(feasibleTargets))).toSortedList(comparator);
 
     // set of targets may only be empty, if all of them were found feasible previously
     if(targets.isEmpty()) {
-      assert feasibleTargets.containsAll(from(pReached.asReachedSet())
-      .transform(AbstractStates.toState(ARGState.class))
-      .filter(AbstractStates.IS_TARGET_STATE).toSet());
+      assert feasibleTargets.containsAll(extractTargetStatesFromArg(pReached).toSet());
 
       throw new RefinementFailedException(Reason.RepeatedCounterexample,
           ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
@@ -621,6 +621,12 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     targetCounter = targetCounter + targets.size();
 
     return targets;
+  }
+
+  private FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
+    return from(pReached.asReachedSet())
+        .transform(AbstractStates.toState(ARGState.class))
+        .filter(AbstractStates.IS_TARGET_STATE);
   }
 
   @Override
