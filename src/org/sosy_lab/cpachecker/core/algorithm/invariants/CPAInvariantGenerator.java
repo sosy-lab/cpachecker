@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -102,15 +103,12 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
-  private volatile boolean cancelled = false;
-
   private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
 
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
     @Override
     public void shutdownRequested(String pReason) {
-      cancelled = true;
       invariantGenerationFuture.cancel(true);
     }
   };
@@ -170,7 +168,6 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
-    cancelled = true;
     shutdownNotifier.requestShutdown("Invariant generation cancel requested.");
   }
 
@@ -179,16 +176,16 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     checkState(invariantGenerationFuture != null);
     shutdownNotifier.shutdownIfNecessary();
 
-    if (cancelled) {
-      throw new InterruptedException("Invariant generation was interrupted.");
-    }
-
     try {
       return invariantGenerationFuture.get();
 
     } catch (ExecutionException e) {
       Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
       throw new UnexpectedCheckedException("invariant generation", e.getCause());
+    } catch (CancellationException e) {
+      InterruptedException ie = new InterruptedException();
+      ie.initCause(e);
+      throw ie;
     }
   }
 
