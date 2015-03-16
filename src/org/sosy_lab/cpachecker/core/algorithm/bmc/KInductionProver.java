@@ -101,6 +101,7 @@ class KInductionProver implements AutoCloseable {
   private final CFA cfa;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final Algorithm algorithm;
 
@@ -183,6 +184,7 @@ class KInductionProver implements AutoCloseable {
     Preconditions.checkNotNull(pShutdownNotifier);
     cfa = pCFA;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     algorithm = pAlgorithm;
     cpa = pCPA;
     invariantGenerator = pInvariantGenerator;
@@ -343,18 +345,20 @@ class KInductionProver implements AutoCloseable {
     return prover;
   }
 
-  public UnmodifiableReachedSet getCurrentInvariantsReachedSet() {
+  public UnmodifiableReachedSet getCurrentInvariantsReachedSet() throws InterruptedException {
     if (!invariantGenerationRunning) {
       return invariantsReachedSet;
     }
     try {
       return invariantGenerator.get();
     } catch (CPAException e) {
-      logger.log(Level.FINE, "Invariant generation encountered an exception.", e);
+      logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;
       return invariantsReachedSet;
     } catch (InterruptedException e) {
-      logger.log(Level.FINE, "Invariant generation has terminated:", e);
+      shutdownNotifier.shutdownIfNecessary();
+      logger.log(Level.FINE, "Invariant generation was cancelled.");
+      logger.logDebugException(e);
       invariantGenerationRunning = false;
       return invariantsReachedSet;
     }

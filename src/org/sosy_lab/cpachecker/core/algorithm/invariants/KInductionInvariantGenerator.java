@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 
 /**
@@ -218,7 +219,8 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
       try {
         return invariantGenerationFuture.get();
       } catch (ExecutionException e) {
-        return reachedSetFactory.create();
+        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+        throw Throwables.propagate(e);
       }
     }
   }
