@@ -41,9 +41,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -229,15 +227,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       ShutdownNotifier invGenBMCShutdownNotfier = ShutdownNotifier.createWithParent(pShutdownNotifier);
-      ConfigurationBuilder invGenBMCConfigBuilder = new Builder().copyFrom(pConfig);
-      if (pLogger.wouldBeLogged(Level.INFO)) {
-        invGenBMCConfigBuilder.setOption("log.consoleLevel", Level.FINE.getName());
-      }
-      Configuration invGenBMCConfig = invGenBMCConfigBuilder.build();
-      CPABuilder invGenBMCBuilder = new CPABuilder(invGenBMCConfig, pLogger, invGenBMCShutdownNotfier, pReachedSetFactory);
+      CPABuilder invGenBMCBuilder = new CPABuilder(pConfig, pLogger, invGenBMCShutdownNotfier, pReachedSetFactory);
       ConfigurableProgramAnalysis invGenBMCCPA = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
-      Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, pLogger, invGenBMCConfig, invGenBMCShutdownNotfier);
-      BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, invGenBMCConfig, pLogger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
+      Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, pLogger, pConfig, invGenBMCShutdownNotfier);
+      BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, pLogger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
 
       PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(stepCaseCPA, PredicateCPA.class);
 
