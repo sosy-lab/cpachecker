@@ -66,18 +66,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -571,7 +567,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected ValueAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, ADeclaration declaration)
-      throws UnrecognizedCodeException {
+      throws UnrecognizedCCodeException {
 
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
@@ -613,7 +609,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       ValueAnalysisState.addToBlacklist(memoryLocation);
     }
 
-    boolean isHandledInitializerList = false;
     if (init instanceof AInitializerExpression) {
       ExpressionValueVisitor evv = getVisitor();
       AExpression exp = ((AInitializerExpression) init).getExpression();
@@ -622,14 +617,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (isMissingCExpressionInformation(evv, exp)) {
         addMissingInformation(memoryLocation, exp);
       }
-    } else if (init instanceof CInitializerList) {
-      isHandledInitializerList = true;
-      List<CExpressionAssignmentStatement> assignments
-        = CInitializers.convertToAssignments((CVariableDeclaration) decl, declarationEdge);
-      for (CExpressionAssignmentStatement stmt : assignments) {
-        state = handleAssignment(stmt, declarationEdge);
-      }
-      newElement = state;
     }
 
     if (isTrackedType(declarationType)) {
@@ -644,12 +631,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       missingFieldVariableObject = false;
     }
 
-    if (!isHandledInitializerList) {
-      if (initialValue.isUnknown()) {
-        unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
-      } else {
-        newElement.assignConstant(memoryLocation, initialValue, declarationType);
-      }
+    if (initialValue.isUnknown()) {
+      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
+    } else {
+      newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
 
     return newElement;
