@@ -853,10 +853,10 @@ public final class InterpolationManager {
 
       boolean isStillFeasible = true;
 
+      // we do only need this unsat call here if we are using the incremental
+      // checking option, otherwise it is anyway done later on
       if (incrementalCheck && !currentlyAssertedFormulas.isEmpty()) {
-        if (itpProver.isUnsat()) {
-          isStillFeasible = false;
-        }
+        isStillFeasible = !itpProver.isUnsat();
       }
 
       // add remaining formulas to the solver stack
@@ -872,12 +872,11 @@ public final class InterpolationManager {
         formulasWithStatesAndGroupdIds.set(index, assertedFormula);
         currentlyAssertedFormulas.add(assertedFormula);
 
+
+        // We need to iterate through the full loop
+        // to add all formulas, but this prevents us from doing further sat checks.
         if (incrementalCheck && isStillFeasible && !bfmgr.isTrue(f)) {
-          if (itpProver.isUnsat()) {
-            // We need to iterate through the full loop
-            // to add all formulas, but this prevents us from doing further sat checks.
-            isStillFeasible = false;
-          }
+          isStillFeasible = !itpProver.isUnsat();
         }
       }
 
