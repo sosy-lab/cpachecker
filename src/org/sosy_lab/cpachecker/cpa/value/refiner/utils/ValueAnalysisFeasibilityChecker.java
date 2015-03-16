@@ -47,12 +47,12 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -147,7 +147,7 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private List<ARGPath> getInfeasilbePrefixes(final ARGPath path,
+  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path,
                                              final ValueAnalysisState pInitial,
                                              final Deque<ValueAnalysisState> callstack)
       throws CPAException {
