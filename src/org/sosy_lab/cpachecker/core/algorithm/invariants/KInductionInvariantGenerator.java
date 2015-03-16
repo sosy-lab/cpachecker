@@ -85,7 +85,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
 
   private final ShutdownNotifier shutdownNotifier;
 
-  private boolean async = true;
+  private final boolean async;
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
@@ -115,6 +115,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
       PathFormulaManager pClientPFM,
       boolean pAsync) throws InvalidConfigurationException {
     bmcAlgorithm = checkNotNull(pBMCAlgorithm);
+    async = pAsync;
     PredicateCPA predicateCPA = CPAs.retrieveCPA(pCPA, PredicateCPA.class);
     if (predicateCPA == null) {
       throw new InvalidConfigurationException("Predicate CPA required");
