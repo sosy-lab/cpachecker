@@ -71,6 +71,9 @@ public class ErrorPathClassifier {
     REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
     REFINE_DEEP(LAST_LOWEST_SCORE),
 
+    // heuristic that combines refinement-root depth and domain-type score
+    REFINE_DEEP_DOMAIN(LAST_LOWEST_SCORE),
+
     // use these only if you are feeling lucky
     RANDOM(),
     MEDIAN(),
@@ -164,6 +167,9 @@ public class ErrorPathClassifier {
     case REFINE_DEEP:
       return obtainRefinementRootHeuristicBasedPrefix(pPrefixes, preference, errorPath);
 
+    case REFINE_DEEP_DOMAIN:
+      return obtainRefinementRootAndDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
+
     case RANDOM:
       return obtainRandomPrefix(pPrefixes, errorPath);
 
@@ -227,10 +233,37 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      int score = getDepthOfRefinementRoot(currentErrorPath.immutableCopy()) * (-1);
+      int depth = getDepthOfRefinementRoot(currentErrorPath.immutableCopy()) * (-1);
 
-      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
-        bestScore = score;
+      if (preference.scorer.apply(Triple.of(depth, bestScore, currentErrorPath.size()))) {
+        bestScore = depth;
+        bestIndex = pPrefixes.indexOf(currentPrefix);
+      }
+
+      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
+    }
+
+    return buildPath(bestIndex, pPrefixes, originalErrorPath);
+  }
+
+  private ARGPath obtainRefinementRootAndDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Integer bestScore = null;
+    Integer bestIndex = 0;
+
+    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
+      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(pathToList(currentPrefix));
+
+      int depthAndScore = getDepthAndScoreOfRefinementRoot(currentErrorPath.immutableCopy()) * (-1);
+
+      if (preference.scorer.apply(Triple.of(depthAndScore, bestScore, currentErrorPath.size()))) {
+        bestScore = depthAndScore;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
 
@@ -257,6 +290,28 @@ public class ErrorPathClassifier {
       iterator.advance();
     }
     return depth;
+  }
+
+  private int getDepthAndScoreOfRefinementRoot(ARGPath slicedPrefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars(), "EQUALITY");
+
+    int depth = 0;
+    PathIterator iterator = slicedPrefix.pathIterator();
+    while(iterator.hasNext()) {
+      if(useDefRelation.getDef(iterator.getAbstractState(), iterator.getOutgoingEdge()).isEmpty()) {
+        depth++;
+      }
+
+      else {
+        break;
+      }
+
+      iterator.advance();
+    }
+
+    int score = classification.get().obtainDomainTypeScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
+
+    return depth - score;
   }
 
   // not really a sensible heuristic at all, just here for comparison reasons
@@ -306,6 +361,7 @@ public class ErrorPathClassifier {
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_DEEP:
     case REFINE_DEEP:
+    case REFINE_DEEP_DOMAIN:
       return pPrefixes.subList(Math.max(0, pPrefixes.size() - MAX_PREFIX_NUMBER), pPrefixes.size());
 
     default:
