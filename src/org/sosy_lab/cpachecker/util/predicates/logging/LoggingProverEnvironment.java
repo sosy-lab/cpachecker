@@ -86,7 +86,7 @@ public class LoggingProverEnvironment implements ProverEnvironment {
 
   @Override
   public AllSatResult allSat(Collection<BooleanFormula> important,
-      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException {
+      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException, SolverException {
     AllSatResult asr = wrapped.allSat(important, mgr, solveTime, enumTime);
     logger.log(Level.FINE, "allsat-result:", asr);
     return asr;

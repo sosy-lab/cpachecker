@@ -893,7 +893,7 @@ public class PredicateAbstractionManager {
   }
 
   private Region buildBooleanAbstraction(SSAMap ssa,
-      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) throws InterruptedException {
+      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) throws InterruptedException, SolverException {
 
     // build the definition of the predicates, and instantiate them
     // also collect all predicate variables so that the solver knows for which
