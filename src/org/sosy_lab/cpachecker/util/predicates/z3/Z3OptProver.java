@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -43,13 +45,15 @@ class Z3OptProver implements OptEnvironment {
   private static final String Z3_INFINITY_REPRESENTATION = "oo";
   private long z3context;
   private long z3optContext;
+  private final ShutdownNotifier shutdownNotifier;
 
-  Z3OptProver(Z3FormulaManager pMgr) {
+  Z3OptProver(Z3FormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
     mgr = pMgr;
     rfmgr = (Z3RationalFormulaManager)pMgr.getRationalFormulaManager();
     z3context = mgr.getEnvironment();
     z3optContext = mk_optimize(z3context);
     optimize_inc_ref(z3context, z3optContext);
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
   }
 
   @Override
@@ -74,13 +78,19 @@ class Z3OptProver implements OptEnvironment {
 
   @Override
   public OptStatus check() throws InterruptedException, SolverException {
-    int status = optimize_check(z3context, z3optContext);
-    if (status == Z3_LBOOL.Z3_L_FALSE.status) {
-      return OptStatus.UNSAT;
-    } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
-      return OptStatus.UNDEF;
-    } else {
-      return OptStatus.OPT;
+    try {
+      int status = optimize_check(z3context, z3optContext);
+      if (status == Z3_LBOOL.Z3_L_FALSE.status) {
+        return OptStatus.UNSAT;
+      } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
+        return OptStatus.UNDEF;
+      } else {
+        return OptStatus.OPT;
+      }
+    } catch (Z3SolverException e) {
+      // check if it's a timeout
+      shutdownNotifier.shutdownIfNecessary();
+      throw e;
     }
   }
 

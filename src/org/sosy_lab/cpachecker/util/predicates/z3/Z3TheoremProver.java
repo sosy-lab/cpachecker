@@ -117,7 +117,7 @@ class Z3TheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public boolean isUnsat() {
+  public boolean isUnsat() throws Z3SolverException {
     int result = solver_check(z3context, z3solver);
     Preconditions.checkArgument(result != Z3_LBOOL.Z3_L_UNDEF.status);
 
@@ -173,7 +173,7 @@ class Z3TheoremProver implements ProverEnvironment {
 
   @Override
   public AllSatResult allSat(Collection<BooleanFormula> formulas,
-      RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
+      RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) throws Z3SolverException {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);

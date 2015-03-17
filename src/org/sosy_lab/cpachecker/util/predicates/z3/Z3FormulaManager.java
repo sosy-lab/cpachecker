@@ -74,6 +74,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
   private final ShutdownNotifier.ShutdownRequestListener interruptListener;
   private Z3AstMatcher z3astMatcher;
   private final long z3params;
+  private final ShutdownNotifier shutdownNotfier;
 
   private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
@@ -113,6 +114,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     this.z3astMatcher = new Z3AstMatcher(this);
     interruptListener = pInterruptListener;
     pShutdownNotifier.register(interruptListener);
+    shutdownNotfier = pShutdownNotifier;
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger,
@@ -226,7 +228,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
   @Override
   public OptEnvironment newOptEnvironment() {
-    Z3OptProver out = new Z3OptProver(this);
+    Z3OptProver out = new Z3OptProver(this, shutdownNotfier);
     out.setParam(OPT_ENGINE_CONFIG_KEY, this.optimizationEngine);
     out.setParam(OPT_PRIORITY_CONFIG_KEY, this.objectivePrioritizationMode);
     return out;

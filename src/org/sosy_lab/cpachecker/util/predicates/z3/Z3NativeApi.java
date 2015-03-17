@@ -114,7 +114,7 @@ public final class Z3NativeApi {
    * @return status as {@link Z3NativeApiConstants.Z3_LBOOL}:
    *   false, undefined or true.
    */
-  public static native int optimize_check(long context, long optimize);
+  public static native int optimize_check(long context, long optimize) throws Z3SolverException;
 
   /**
    * \brief Retrieve the model for the last #Z3_optimize_check
@@ -858,7 +858,7 @@ public final class Z3NativeApi {
   public static native void solver_assert(long context, long solver, long ast);
   public static native void solver_assert_and_track(long context, long solver, long ast, long p);
   public static native long solver_get_assertions(long context, long solver);
-  public static native int solver_check(long context, long solver);
+  public static native int solver_check(long context, long solver) throws Z3SolverException;
   public static native int solver_check_assumptions(long context, long solver, int len, long[] assumptions);
   public static native long solver_get_model(long context, long solver);
   public static native long solver_get_proof(long context, long solver);
