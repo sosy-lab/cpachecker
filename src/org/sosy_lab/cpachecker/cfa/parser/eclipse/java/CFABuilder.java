@@ -118,6 +118,16 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public boolean visit(AnonymousClassDeclaration pClassDeclaration) {
+    ITypeBinding classBinding = pClassDeclaration.resolveBinding();
+
+    if (classBinding == null) {
+      logger.logf(Level.WARNING,
+          "Binding for anonymous class %s can't be resolved. Skipping class body.",
+          pClassDeclaration.toString());
+
+      return SKIP_CHILDREN;
+    }
+
     scope.enterClass(astCreator.convertClassOrInterfaceType(pClassDeclaration.resolveBinding()));
 
     return super.visit(pClassDeclaration);
@@ -125,19 +135,10 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public void endVisit(AnonymousClassDeclaration pClassDeclaration) {
-    ITypeBinding classBinding = pClassDeclaration.resolveBinding();
 
-    if (classBinding == null) {
-      logger.logf(Level.WARNING, "Binding for anonymous class %s can't be resolved",
-          pClassDeclaration.toString());
-      // continue. at this point, the only problem with an unresolvable binding is
-      //
-    } else {
-
-      // Create possible constructors of anonymous class. This is either a default constructor
-      // or all constructors inherited of a direct super class.
-      createConstructors(pClassDeclaration);
-    }
+    // Create possible constructors of anonymous class. This is either a default constructor
+    // or all constructors inherited of a direct super class.
+    createConstructors(pClassDeclaration);
 
     scope.leaveClass();
   }
