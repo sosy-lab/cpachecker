@@ -250,8 +250,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     });
 
-    stats.invariantGeneration = invariantGenerator.getTimeOfExecution();
-
     PredicateCPA predCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predCpa == null) {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");

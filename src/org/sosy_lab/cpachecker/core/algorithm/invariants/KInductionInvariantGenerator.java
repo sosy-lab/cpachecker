@@ -265,11 +265,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   }
 
   @Override
-  public Timer getTimeOfExecution() {
-    return invariantGeneration;
-  }
-
-  @Override
   public void addUpdateListener(UpdateListener pUpdateListener) {
     Preconditions.checkNotNull(pUpdateListener);
     updateListeners.add(pUpdateListener);

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -66,13 +65,6 @@ public interface InvariantGenerator {
    * @throws InterruptedException If the invariant generation was interrupted.
    */
   UnmodifiableReachedSet get() throws CPAException, InterruptedException;
-
-  /**
-   * Returns a Timer from which the time that was necessary to generate
-   * the invariants can be read.
-   * For correct measurements, the caller should not modify the Timer.
-   */
-  Timer getTimeOfExecution();
 
   void addUpdateListener(UpdateListener pUpdateListener);
 

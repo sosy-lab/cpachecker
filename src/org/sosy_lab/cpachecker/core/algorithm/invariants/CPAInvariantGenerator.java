@@ -220,11 +220,6 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   }
 
   @Override
-  public Timer getTimeOfExecution() {
-    return stats.invariantGeneration;
-  }
-
-  @Override
   public void addUpdateListener(UpdateListener pUpdateListener) {
     Preconditions.checkNotNull(pUpdateListener);
     updateListeners.add(pUpdateListener);
