@@ -122,7 +122,6 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
 
   IExpression createUIFCallImpl(IFunction fun, List<IExpression> args) {
     IExpression ufc = getFormulaCreator().getEnv().makeFunction(fun, args);
-    assert PrincessUtil.isUIF(ufc);
     return ufc;
   }
 
