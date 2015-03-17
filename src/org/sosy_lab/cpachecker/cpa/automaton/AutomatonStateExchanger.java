@@ -25,8 +25,13 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 
@@ -71,6 +76,21 @@ public class AutomatonStateExchanger {
 
   public boolean considersAutomaton(final String pAutomatonName) {
     return nameToCPA.containsKey(pAutomatonName);
+  }
+
+  public static boolean endsInAssumptionTrueState(final AutomatonState pPredecessor, final CFAEdge pEdge) {
+    Preconditions.checkNotNull(pPredecessor);
+    try {
+      for (AbstractState successor : pPredecessor.getAutomatonCPA().getTransferRelation()
+          .getAbstractSuccessorsForEdge(pPredecessor, SingletonPrecision.getInstance(), pEdge)) {
+        if (!((AutomatonState) successor).getInternalStateName().equals("__TRUE")) {
+          return false;
+        }
+      }
+    } catch (CPATransferException e) {
+      return false;
+    }
+    return true;
   }
 
 }

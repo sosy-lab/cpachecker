@@ -87,7 +87,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
   private final Configuration config;
-  private final AutomatonStateExchanger stateReplace;
+  private final AutomatonStateExchanger automatonARGBuilderSupport;
 
   private final ARGCombinerStatistics stats = new ARGCombinerStatistics();
 
@@ -99,7 +99,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     shutdown = pShutdownNotifier;
     config = pConfig;
 
-    stateReplace = new AutomatonStateExchanger();
+    automatonARGBuilderSupport = new AutomatonStateExchanger();
   }
 
   @Override
@@ -230,7 +230,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
       // identify possible successor edges
       locPred = AbstractStates.extractLocation(composedState);
-      for (CFAEdge succEdge : CFAUtils.allLeavingEdges(locPred)) {
+      nextEdge: for (CFAEdge succEdge : CFAUtils.allLeavingEdges(locPred)) {
         shutdown.shutdownIfNecessary();
 
         successorsForEdge.clear();
@@ -240,6 +240,11 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           // get the successors of ARG state for this edge succEdge
           edgeSuccessorIdentifier.setPredecessor(component);
           successorsForEdge.add(Lists.newArrayList(Iterables.filter(component.getChildren(), edgeSuccessorIdentifier)));
+          // check if stopped because no concrete successors exists, then do not
+          if (successorsForEdge.get(successorsForEdge.size() - 1).isEmpty()
+              && noConcreteSuccessorExist(component, succEdge)) {
+            continue nextEdge;
+          }
         }
 
         // construct successors for each identified combination
@@ -256,6 +261,19 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
             // add successor for further exploration
             toVisit.add(Pair.of(combinedSuccessor.getSecond(), composedSuccessor));
           }
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean noConcreteSuccessorExist(final ARGState pPredecessor, final CFAEdge pSuccEdge) {
+    // check if analysis stopped exploration due to true state in automaton --> concrete successors may exist
+    for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
+      if (state instanceof AutomatonState
+          && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
+        if (AutomatonStateExchanger.endsInAssumptionTrueState((AutomatonState) state, pSuccEdge)) {
+          return false;
         }
       }
     }
@@ -317,7 +335,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     for (int i = 1, j = 0; i < automataStateNames.size(); i++) {
       assert (j < i && j >= 0);
       if (automataStateNames.get(j).equals(automataStateNames.get(i))) {
-        if (j + numRootStates - 1 == i && stateReplace.considersAutomaton(automataStateNames.get(j))) {
+        if (j + numRootStates - 1 == i && automatonARGBuilderSupport.considersAutomaton(automataStateNames.get(j))) {
           // automaton states commonly used
           commonAutomataStates.add(automataStateNames.get(j));
         }
@@ -343,12 +361,12 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         assert (initialState.size() == nextId);
 
         stateToPos.put(name, nextId);
-        if (!stateReplace.registerAutomaton((AutomatonState) innerWrapped)) {
+        if (!automatonARGBuilderSupport.registerAutomaton((AutomatonState) innerWrapped)) {
           logger.log(Level.SEVERE, "Property specification, given by automata specification, is ambigous.");
           throw new CPAException(
               "Ambigious property specification,  automata specification contains automata with same name or same state names");
         }
-        initialState.add(stateReplace.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
+        initialState.add(automatonARGBuilderSupport.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
         nextId++;
       }
     }
@@ -465,7 +483,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         if (pInitialStates.get(index)==result.get(index)) {
           if (result.get(index) instanceof AutomatonState) {
             result.set(index,
-                   stateReplace.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
+                   automatonARGBuilderSupport.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
           } else {
             result.set(index, innerWrapped);
           }
