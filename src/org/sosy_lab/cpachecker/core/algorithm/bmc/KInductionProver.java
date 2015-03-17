@@ -293,19 +293,6 @@ class KInductionProver implements AutoCloseable {
   }
 
   /**
-   * Gets the single loop of the program. This loop is only available if no
-   * trivial constant result for the k-induction check was determined by the
-   * constructor, as can be checked by calling {@link isTrivial}.
-   *
-   * @return the single loop of the program.
-   */
-  Loop getLoop() {
-    Preconditions.checkState(!isTrivial(), "No loop computed, because the proof is trivial.");
-    assert loop != null;
-    return loop;
-  }
-
-  /**
    * Checks if the prover is already initialized.
    *
    * @return {@code true} if the prover is initialized, {@code false}
@@ -337,7 +324,7 @@ class KInductionProver implements AutoCloseable {
     return prover;
   }
 
-  public UnmodifiableReachedSet getCurrentInvariantsReachedSet() throws InterruptedException {
+  private UnmodifiableReachedSet getCurrentInvariantsReachedSet() throws InterruptedException {
     if (!invariantGenerationRunning) {
       return invariantsReachedSet;
     }
@@ -365,7 +352,7 @@ class KInductionProver implements AutoCloseable {
    */
   private BooleanFormula getCurrentLoopHeadInvariants() throws CPATransferException, InterruptedException {
     if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
-      CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+      CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
       loopHeadInvariants = getCurrentLocationInvariants(loopHead, fmgr, pfmgr);
     }
     return loopHeadInvariants;
@@ -619,7 +606,7 @@ class KInductionProver implements AutoCloseable {
     if (pReachedSet.size() > 1) {
       return;
     }
-    CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+    CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
     if (havocLoopTerminationConditionVariablesOnly) {
       CFANode mainEntryNode = cfa.getMainFunction();
       Precision precision = cpa.getInitialPrecision(mainEntryNode, StateSpacePartition.getDefaultPartition());

@@ -214,7 +214,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
   private class InvariantGenerationTask implements Callable<UnmodifiableReachedSet> {
 
-    private ReachedSet taskReached;
+    private final ReachedSet taskReached;
 
     public InvariantGenerationTask(ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation) {
       taskReached = pReachedSetFactory.create();
