@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -55,6 +56,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -82,6 +84,21 @@ import com.google.common.base.Throwables;
 @Options(prefix="invariantGeneration")
 public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProvider {
 
+  private static class CPAInvariantGeneratorStatistics implements Statistics {
+
+    final Timer invariantGeneration = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("Time for invariant generation:   " + invariantGeneration);
+    }
+
+    @Override
+    public String getName() {
+      return "CPA-based invariant generator";
+    }
+  }
+
   @Option(secure=true, name="config",
           required=true,
           description="configuration file for invariant generation")
@@ -94,8 +111,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   @Option(secure=true, description="adjust invariant generation conditions if supported by the analysis")
   private boolean adjustConditions = false;
 
-  private final Timer invariantGeneration = new Timer();
-
+  private final CPAInvariantGeneratorStatistics stats = new CPAInvariantGeneratorStatistics();
   private final LogManager logger;
   private final Algorithm invariantAlgorithm;
   private final ConfigurableProgramAnalysis invariantCPAs;
@@ -200,11 +216,12 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     if (invariantAlgorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)invariantAlgorithm).collectStatistics(pStatsCollection);
     }
+    pStatsCollection.add(stats);
   }
 
   @Override
   public Timer getTimeOfExecution() {
-    return invariantGeneration;
+    return stats.invariantGeneration;
   }
 
   @Override
@@ -241,7 +258,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     public UnmodifiableReachedSet call() throws CPAException, InterruptedException {
       checkState(taskReached.hasWaitingState());
 
-      invariantGeneration.start();
+      stats.invariantGeneration.start();
       logger.log(Level.INFO, "Finding invariants");
 
       try {
@@ -252,7 +269,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
         return new UnmodifiableReachedSetWrapper(taskReached);
 
       } finally {
-        invariantGeneration.stop();
+        stats.invariantGeneration.stop();
       }
     }
 
