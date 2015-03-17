@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.isBoolean;
 import static scala.collection.JavaConversions.asJavaCollection;
 
 import java.util.List;
@@ -94,14 +95,16 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   public IExpression replaceName(IExpression t, String pNewName) {
 
     if (isVariable(t)) {
-      boolean isBoolean = t instanceof IFormula;
-      TermType type = isBoolean ? TermType.Boolean : TermType.Integer;
-      return getFormulaCreator().makeVariable(type, pNewName);
+      return getFormulaCreator().makeVariable(isBoolean(t) ? TermType.Boolean : TermType.Integer,
+                                              pNewName);
+
     } else if (isUF(t)) {
       IFunApp fun = (IFunApp) t;
-      PrincessEnvironment.FunctionType funcDecl = getFormulaCreator().getEnv().getFunctionDeclaration(fun.fun());
       List<IExpression> args = ImmutableList.<IExpression>copyOf(asJavaCollection(fun.args()));
-      return createUIFCallImpl(fun.fun(), funcDecl.getResultType(), args);
+      PrincessEnvironment env = getFormulaCreator().getEnv();
+      TermType returnType = env.getReturnTypeForFunction(fun.fun());
+      return createUIFCallImpl(env.declareFun(pNewName, args.size(), returnType), args);
+
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }
@@ -117,8 +120,8 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
     return pF;
   }
 
-  IExpression createUIFCallImpl(IFunction funcDecl, TermType resultType, List<IExpression> args) {
-    IExpression ufc = getFormulaCreator().getEnv().makeFunction(funcDecl, resultType, args);
+  IExpression createUIFCallImpl(IFunction fun, List<IExpression> args) {
+    IExpression ufc = getFormulaCreator().getEnv().makeFunction(fun, args);
     assert PrincessUtil.isUIF(ufc);
     return ufc;
   }

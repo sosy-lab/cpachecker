@@ -29,8 +29,12 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import ap.parser.IExpression;
+import ap.parser.IFunction;
 
-class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, PrincessEnvironment.FunctionType, TermType, PrincessEnvironment> {
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+
+class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, IFunction, TermType, PrincessEnvironment> {
 
   private final PrincessUnsafeFormulaManager unsafeManager;
 
@@ -43,15 +47,21 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
 
   @Override
   protected IExpression createUninterpretedFunctionCallImpl(
-      PrincessEnvironment.FunctionType pFuncDecl, List<IExpression> pArgs) {
-    assert pArgs.size() == pFuncDecl.getArgs().size() : "functiontype has different number of args.";
-    return unsafeManager.createUIFCallImpl(
-        pFuncDecl.getFuncDecl(), pFuncDecl.getResultType(), pArgs);
+      IFunction pFuncDecl, List<IExpression> pArgs) {
+    assert pArgs.size() == pFuncDecl.arity() : "functiontype has different number of args.";
+    return unsafeManager.createUIFCallImpl(pFuncDecl, pArgs);
   }
 
   @Override
-  protected PrincessEnvironment.FunctionType declareUninterpretedFunctionImpl(
-        String pName, TermType pReturnType, List<TermType> pArgTypes) {
-    return getFormulaCreator().getEnv().declareFun(pName, pReturnType, pArgTypes);
+  protected IFunction declareUninterpretedFunctionImpl(
+        String pName, TermType pReturnType, List<TermType> args) {
+    assert pReturnType == TermType.Integer || pReturnType == TermType.Boolean : "Princess does not support return types other than Integer";
+    assert FluentIterable.<TermType>from(args).filter(new Predicate<TermType>() {
+      @Override
+      public boolean apply(TermType pInput) {
+        return pInput == TermType.Integer || pInput == TermType.Boolean;
+      }}).size() == args.size() : "Princess does not support functions with variables, that have types other than integers, as parameters";
+
+    return getFormulaCreator().getEnv().declareFun(pName, args.size(), pReturnType);
   }
 }
