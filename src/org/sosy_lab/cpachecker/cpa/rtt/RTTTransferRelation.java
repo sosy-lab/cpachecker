@@ -387,7 +387,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
       RTTState element,
       FunctionReturnEdge functionReturnEdge) throws UnrecognizedCodeException {
 
-    FunctionSummaryEdge summaryEdge    = functionReturnEdge.getSummaryEdge();
+    FunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     JMethodOrConstructorInvocation exprOnSummary  = (JMethodOrConstructorInvocation) summaryEdge.getExpression();
 
     RTTState newElement  = RTTState.copyOf(element);
@@ -467,8 +467,10 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
       value = exp.accept(visitor);
 
       String formalParamName = NameProvider.getInstance()
-                                           .getScopedVariableName(paramNames.get(i), calledFunctionName,
-                                               newElement.getClassObjectScope(), newElement);
+                                           .getScopedVariableName(paramNames.get(i),
+                                                                  calledFunctionName,
+                                                                  newElement.getClassObjectScope(),
+                                                                  newElement);
 
       if (value == null || !(exp.getExpressionType() instanceof JReferenceType)) {
         newElement.forget(formalParamName);
@@ -477,7 +479,8 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    JMethodInvocationExpression functionCall = (JMethodInvocationExpression) callEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
+    JMethodInvocationExpression functionCall =
+        (JMethodInvocationExpression) callEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
 
 
     // There are five possibilities when assigning this and the new object Scope.
