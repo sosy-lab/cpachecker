@@ -28,7 +28,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
 /**
  *
@@ -52,10 +52,13 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
 
   //TODO Type Variables , AnonymousClassDeclaration
 
-  public JClassInstanceCreation(FileLocation pFileLocation, JClassType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
-    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
+  public JClassInstanceCreation(FileLocation pFileLocation,
+                                JClassOrInterfaceType pType,
+                                JExpression pFunctionName,
+                                List<? extends JExpression> pParameters,
+                                JConstructorDeclaration pDeclaration) {
 
+    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
   }
 
   @Override
@@ -65,8 +68,8 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
   }
 
   @Override
-  public JClassType getExpressionType() {
-    return (JClassType) super.getExpressionType();
+  public JClassOrInterfaceType getExpressionType() {
+    return (JClassOrInterfaceType) super.getExpressionType();
   }
 
   @Override

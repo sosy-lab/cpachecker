@@ -35,15 +35,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.eclipse.jdt.core.dom.IMethodBinding;
-import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
@@ -64,6 +62,8 @@ import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 import com.google.common.collect.SortedSetMultimap;
@@ -121,20 +121,25 @@ class DynamicBindingCreator {
 
   private void trackOverridenMethods(Map<String, FunctionEntryNode> cfAs) {
 
-    Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
+    Map<String, JMethodDeclaration> allParsedMethodDeclaration
+        = cfaBuilder.getAllParsedMethodDeclaration();
 
     for (Map.Entry<String, FunctionEntryNode> entry : cfAs.entrySet()) {
       String functionName = entry.getKey();
       FunctionEntryNode currEntryNode = entry.getValue();
-      MethodDeclaration currMethod = allParsedMethodDeclaration.get(functionName);
+      JMethodDeclaration currMethod = allParsedMethodDeclaration.get(functionName);
 
       assert allParsedMethodDeclaration.containsKey(functionName);
 
       // Constructors and default Constructors can't be overriden
-      if (!(currMethod == null || currMethod.isConstructor()) ) {
+      if (!(currMethod == null || isConstructor(currMethod)) ) {
         trackOverridenMethods(currMethod, currEntryNode);
       }
     }
+  }
+
+  private boolean isConstructor(JMethodDeclaration pFunction) {
+    return pFunction instanceof JConstructorDeclaration;
   }
 
   private void completeMethodBindings() {
@@ -152,24 +157,20 @@ class DynamicBindingCreator {
     }
 
 
-    Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
+    Map<String, JMethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
 
     for (String methodName : workMap.keySet()) {
-      MethodDeclaration methodDeclaration = allParsedMethodDeclaration.get(methodName);
-      if (methodDeclaration != null && !methodDeclaration.isConstructor()) {
+      JMethodDeclaration methodDeclaration = allParsedMethodDeclaration.get(methodName);
+      if (methodDeclaration != null && !isConstructor(methodDeclaration)) {
 
-        completeBindingsOfMethod(allParsedMethodDeclaration.get(methodName), methodName);
+        completeBindingsOfMethod(methodDeclaration, methodName);
       }
     }
   }
 
-  private void completeBindingsOfMethod(MethodDeclaration methodDeclaration,
-      String methodName) {
+  private void completeBindingsOfMethod(JMethodDeclaration methodDeclaration, String methodName) {
 
-    final ITypeBinding bindingOfDeclaringClass = methodDeclaration.resolveBinding().getDeclaringClass();
-
-    JClassOrInterfaceType methodDeclaringType =
-        astCreator.convertClassOrInterfaceType(bindingOfDeclaringClass);
+    JClassOrInterfaceType methodDeclaringType = methodDeclaration.getDeclaringClass();
 
     if (methodDeclaringType instanceof JClassType) {
       completeBindingsForDeclaringClassType((JClassType)methodDeclaringType, methodName);
@@ -588,7 +589,7 @@ class DynamicBindingCreator {
 
   //TODO Change the way this Methods builds the methods, so any given Path
   // through the Type tree has only to be traversed once
-  private void trackOverridenMethods(MethodDeclaration declaration, FunctionEntryNode entryNode) {
+  private void trackOverridenMethods(JMethodDeclaration declaration, FunctionEntryNode entryNode) {
 
     String functionName = entryNode.getFunctionDefinition().getName();
 
@@ -600,30 +601,10 @@ class DynamicBindingCreator {
     }
 
     final MethodDefinition toBeRegistered = getMethodDefinition(declaration, entryNode);
-    final IMethodBinding methodBinding = declaration.resolveBinding();
-    final ITypeBinding declaringClassType = methodBinding.getDeclaringClass();
-    final ITypeBinding declaringClassesSuperClass = declaringClassType.getSuperclass();
-    final ITypeBinding[] declaringClassesInterfaces = declaringClassType.getInterfaces();
+    final JClassOrInterfaceType declaringClassType = declaration.getDeclaringClass();
+    final List<JClassOrInterfaceType> declaringClassesSuperTypes = declaringClassType.getAllSuperTypesOfType();
 
-    registerForSuperClass(declaringClassesSuperClass, toBeRegistered, methodBinding);
-    registerForSuperIntefaces(declaringClassesInterfaces, toBeRegistered, methodBinding);
-  }
-
-  // Go Recursively through all SuperInterfaces, and register that the method toBeRegistered overrides
-  // this function
-  private void registerForSuperIntefaces(ITypeBinding[] interfaces, MethodDefinition toBeRegistered,
-      IMethodBinding bindingToBeRegistered) {
-    if (interfaces.length > 0) {
-      for (ITypeBinding inface : interfaces) {
-        IMethodBinding[] methodsBinding = inface.getDeclaredMethods();
-        for (IMethodBinding methodBinding : methodsBinding) {
-          if (bindingToBeRegistered.overrides(methodBinding)) {
-            registerMethod(methodBinding, toBeRegistered);
-          }
-        }
-        registerForSuperIntefaces(inface.getInterfaces(), toBeRegistered, bindingToBeRegistered);
-      }
-    }
+    registerForSuperClass(declaringClassesSuperTypes, toBeRegistered, declaration);
   }
 
   // Go Recursively through all SuperClasses,
@@ -631,35 +612,88 @@ class DynamicBindingCreator {
   // and register that the method toBeRegistered overrides
   // this function
   private void registerForSuperClass(
-      ITypeBinding superClass, MethodDefinition toBeRegistered, IMethodBinding bindingToBeRegistered) {
+      List<JClassOrInterfaceType> pSuperClasses, MethodDefinition pToBeRegistered,
+      JMethodDeclaration pBindingToBeRegistered) {
 
-    if (superClass != null) {
-      IMethodBinding[] methodsBinding = superClass.getDeclaredMethods();
-      for (IMethodBinding methodBinding : methodsBinding) {
-        if (bindingToBeRegistered.overrides(methodBinding)) {
-          registerMethod(methodBinding, toBeRegistered);
-        }
+    final TypeHierarchy typeHierarchy = cfaBuilder.getScope().getTypeHierarchy();
+
+    for (JClassOrInterfaceType t : pSuperClasses) {
+      if (typeHierarchy.isExternType(t)) {
+        continue;
       }
-      registerForSuperIntefaces(superClass.getInterfaces(), toBeRegistered, bindingToBeRegistered);
-      registerForSuperClass(superClass.getSuperclass(), toBeRegistered, bindingToBeRegistered);
+
+      Set<JMethodDeclaration> methods = typeHierarchy.getMethodDeclarations(t);
+
+        for (JMethodDeclaration m : methods) {
+          if (overrides(m, pBindingToBeRegistered)) {
+            registerMethod(m, pToBeRegistered);
+          }
+        }
     }
   }
 
-  private void registerMethod(IMethodBinding overriddenMethod, MethodDefinition toBeRegistered) {
-   String overridenMethodName = NameConverter.convertName(overriddenMethod);
+  /**
+   * Returns whether the first given method overrides the second one.
+   * It is assumed that the first method is declared in a subtype of the second one.
+   */
+  private boolean overrides(
+      JMethodDeclaration pPossiblyOverwriting, JMethodDeclaration pPossiblyOverwritten) {
+
+    final JMethodType firstType = pPossiblyOverwriting.getType();
+    final JMethodType sndType = pPossiblyOverwritten.getType();
+
+    if (!pPossiblyOverwriting.getSimpleName()
+          .equals(
+              pPossiblyOverwritten.getSimpleName())) {
+      return false;
+    }
+
+    final JType firstReturnType = (JType) firstType.getReturnType();
+    final JType sndReturnType = (JType) sndType.getReturnType();
+
+    if (!firstReturnType.equals(sndReturnType)) {
+
+      if (!(firstReturnType instanceof JClassOrInterfaceType
+            && sndReturnType instanceof JClassOrInterfaceType)
+          || !isSubType((JClassOrInterfaceType) firstReturnType, (JClassOrInterfaceType) sndReturnType)) {
+        return false;
+      }
+    }
+
+    final List<JType> firstParameters = firstType.getParameters();
+    final List<JType> secondParameters = sndType.getParameters();
+
+    if (firstParameters.size() != secondParameters.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < firstParameters.size(); i++) {
+      if (!firstParameters.get(i).equals(secondParameters.get(i))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private boolean isSubType(JClassOrInterfaceType pPossibleSubtype, JClassOrInterfaceType pPossibleSuperType) {
+     return pPossibleSubtype.getAllSuperTypesOfType().contains(pPossibleSuperType);
+  }
+
+  private void registerMethod(JMethodDeclaration pMethodDeclaration, MethodDefinition pToBeRegistered) {
+   String overridenMethodName = pMethodDeclaration.getQualifiedName();
 
    // If Method not yet parsed, it needs to be added
    if (!subMethodsOfMethod.containsKey(overridenMethodName)) {
      subMethodsOfMethod.put(overridenMethodName, new LinkedList<MethodDefinition>());
    }
-     subMethodsOfMethod.get(overridenMethodName).add(toBeRegistered);
+     subMethodsOfMethod.get(overridenMethodName).add(pToBeRegistered);
   }
 
   private MethodDefinition getMethodDefinition(
-      MethodDeclaration declaration, FunctionEntryNode entryNode) {
+      JMethodDeclaration declaration, FunctionEntryNode entryNode) {
 
-    final ITypeBinding declaringClass = declaration.resolveBinding().getDeclaringClass();
-    JClassOrInterfaceType classType = astCreator.convertClassOrInterfaceType(declaringClass);
+    JClassOrInterfaceType classType = declaration.getDeclaringClass();
 
     return new MethodDefinition(entryNode, classType);
   }
