@@ -36,7 +36,6 @@ import ap.parser.BooleanCompactifier;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
-import ap.parser.IFunction;
 import ap.parser.IIntFormula;
 import ap.parser.IIntLit;
 import ap.parser.IIntRelation;
@@ -103,7 +102,7 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
       List<IExpression> args = ImmutableList.<IExpression>copyOf(asJavaCollection(fun.args()));
       PrincessEnvironment env = getFormulaCreator().getEnv();
       TermType returnType = env.getReturnTypeForFunction(fun.fun());
-      return createUIFCallImpl(env.declareFun(pNewName, args.size(), returnType), args);
+      return env.makeFunction(env.declareFun(pNewName, args.size(), returnType), args);
 
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
@@ -118,11 +117,6 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
       return ((IIntFormula)pF).t().$less$eq(new IIntLit(IdealInt.ZERO()));
     }
     return pF;
-  }
-
-  IExpression createUIFCallImpl(IFunction fun, List<IExpression> args) {
-    IExpression ufc = getFormulaCreator().getEnv().makeFunction(fun, args);
-    return ufc;
   }
 
   @Override

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -255,6 +257,9 @@ class PrincessEnvironment {
     return functionsReturnTypes.get(fun);
   }
   public IExpression makeFunction(IFunction funcDecl, List<IExpression> args) {
+    checkArgument(args.size() == funcDecl.arity(),
+        "functiontype has different number of args.");
+
     final ArrayBuffer<ITerm> argsBuf = new ArrayBuffer<>();
     for (IExpression arg : args) {
       ITerm termArg;
