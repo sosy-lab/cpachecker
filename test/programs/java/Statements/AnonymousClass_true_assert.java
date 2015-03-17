@@ -16,9 +16,12 @@ public class AnonymousClass_true_assert {
     };
 
     SimpleInterface2 other = new SimpleInterface2() {
+
+      private int n = 2;
+
       @Override
       public int addOne(int x) {
-        return minusOne(x) + 2;
+        return minusOne(x) + n;
       }
 
       private int minusOne(int x) {
