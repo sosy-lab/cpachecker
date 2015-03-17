@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -60,6 +61,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -77,7 +80,7 @@ import com.google.common.base.Throwables;
  * Supports synchronous and asynchronous execution.
  */
 @Options(prefix="invariantGeneration")
-public class CPAInvariantGenerator implements InvariantGenerator {
+public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProvider {
 
   @Option(secure=true, name="config",
           required=true,
@@ -186,6 +189,16 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       InterruptedException ie = new InterruptedException();
       ie.initCause(e);
       throw ie;
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (invariantCPAs instanceof StatisticsProvider) {
+      ((StatisticsProvider)invariantCPAs).collectStatistics(pStatsCollection);
+    }
+    if (invariantAlgorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)invariantAlgorithm).collectStatistics(pStatsCollection);
     }
   }
 

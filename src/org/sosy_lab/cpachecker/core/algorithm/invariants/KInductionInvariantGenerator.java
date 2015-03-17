@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -58,6 +59,8 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -77,7 +80,7 @@ import com.google.common.collect.FluentIterable;
 /**
  * Generate invariants using k-induction.
  */
-public class KInductionInvariantGenerator implements InvariantGenerator {
+public class KInductionInvariantGenerator implements InvariantGenerator, StatisticsProvider {
 
   private final BMCAlgorithm bmcAlgorithm;
 
@@ -254,6 +257,11 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
         throw Throwables.propagate(e);
       }
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    bmcAlgorithm.collectStatistics(pStatsCollection);
   }
 
   @Override

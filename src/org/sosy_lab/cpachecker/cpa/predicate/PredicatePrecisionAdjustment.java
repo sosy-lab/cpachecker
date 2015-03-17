@@ -59,7 +59,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   // statistics
   final Timer totalPrecTime = new Timer();
-  final Timer invariantGenerationTime = new Timer();
   final Timer computingAbstractionTime = new Timer();
 
   int numAbstractions = 0;
@@ -174,7 +173,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       return; // already done
     }
 
-    invariantGenerationTime.start();
     try {
 
       UnmodifiableReachedSet reached = invariantGenerator.get();
@@ -207,7 +205,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     } finally {
       invariantGenerator = null; // to allow GC'ing it and the ReachedSet
-      invariantGenerationTime.stop();
     }
   }
 

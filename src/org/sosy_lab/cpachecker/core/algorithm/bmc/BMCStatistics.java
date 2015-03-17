@@ -41,6 +41,12 @@ class BMCStatistics implements Statistics {
   Timer invariantGeneration;
   private int inductionCutPoints = 0;
 
+  private final boolean isInvariantGenerator;
+
+  BMCStatistics(boolean pIsInvariantGenerator) {
+    isInvariantGenerator = pIsInvariantGenerator;
+  }
+
   @Override
   public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
     if (satCheck.getNumberOfIntervals() > 0) {
@@ -64,6 +70,6 @@ class BMCStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return "BMC algorithm";
+    return isInvariantGenerator ? "k-Induction-based invariant generator" : "BMC algorithm";
   }
 }

@@ -158,7 +158,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
-  private final BMCStatistics stats = new BMCStatistics();
+  private final BMCStatistics stats;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
 
@@ -210,6 +210,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
+    stats = new BMCStatistics(pIsInvariantGenerator);
     algorithm = pAlgorithm;
     cpa = pCPA;
     config = pConfig;
@@ -683,6 +684,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
+    if (invariantGenerator instanceof StatisticsProvider) {
+      ((StatisticsProvider)invariantGenerator).collectStatistics(pStatsCollection);
+    }
   }
 
   private KInductionProver createInductionProver() {
