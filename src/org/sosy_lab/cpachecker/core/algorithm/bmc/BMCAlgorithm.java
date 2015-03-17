@@ -226,24 +226,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         && induction
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
-      ShutdownNotifier invGenBMCShutdownNotfier = ShutdownNotifier.createWithParent(pShutdownNotifier);
-      CPABuilder invGenBMCBuilder = new CPABuilder(pConfig, pLogger, invGenBMCShutdownNotfier, pReachedSetFactory);
-      ConfigurableProgramAnalysis invGenBMCCPA = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
-      Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, pLogger, pConfig, invGenBMCShutdownNotfier);
-      BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, pLogger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
-
-      PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(stepCaseCPA, PredicateCPA.class);
-
-      KInductionInvariantGenerator kIndInvGen =
-          new KInductionInvariantGenerator(
-              invGenBMC,
-              pReachedSetFactory,
-              invGenBMCCPA, pLogger,
-              invGenBMCShutdownNotfier,
-              pCFA,
-              stepCasePredicateCPA.getPathFormulaManager(),
-              true);
-      invariantGenerator = kIndInvGen;
+      invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
+          pShutdownNotifier, pCFA, pReachedSetFactory, stepCaseCPA);
       invariantGenerator.addUpdateListener(new UpdateListener() {
 
         @Override

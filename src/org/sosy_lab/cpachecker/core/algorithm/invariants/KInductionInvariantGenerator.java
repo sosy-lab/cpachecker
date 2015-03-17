@@ -37,14 +37,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.concurrency.Threads;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -105,7 +109,33 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
 
   private final AtomicBoolean areNewInvariantsAvailable = new AtomicBoolean(true);
 
-  public KInductionInvariantGenerator(
+  public static KInductionInvariantGenerator create(final Configuration pConfig,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory,
+      final ConfigurableProgramAnalysis pStepCaseCPA)
+      throws InvalidConfigurationException, CPAException {
+
+    ShutdownNotifier invGenBMCShutdownNotfier = ShutdownNotifier.createWithParent(pShutdownNotifier);
+    CPABuilder invGenBMCBuilder = new CPABuilder(pConfig, pLogger, invGenBMCShutdownNotfier, pReachedSetFactory);
+    ConfigurableProgramAnalysis invGenBMCCPA = invGenBMCBuilder.buildCPAWithSpecAutomatas(pCFA);
+    Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, pLogger, pConfig, invGenBMCShutdownNotfier);
+    BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, pLogger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
+
+    PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(pStepCaseCPA, PredicateCPA.class);
+
+    KInductionInvariantGenerator kIndInvGen =
+        new KInductionInvariantGenerator(
+            invGenBMC,
+            pReachedSetFactory,
+            invGenBMCCPA, pLogger,
+            invGenBMCShutdownNotfier,
+            pCFA,
+            stepCasePredicateCPA.getPathFormulaManager(),
+            true);
+    return kIndInvGen;
+  }
+
+  private KInductionInvariantGenerator(
       BMCAlgorithm pBMCAlgorithm,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
