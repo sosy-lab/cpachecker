@@ -36,6 +36,7 @@
   <sourcefiles>
     <requiredfiles>../programs/java/Statements</requiredfiles>
     <option name="-cp">test/programs/java/Statements</option>
+    <withoutfile>AnonymousClass_true_assert</withoutfile>
     <withoutfile>Arrays_true_assert</withoutfile>
     <withoutfile>Assert1_true_assert</withoutfile>
     <withoutfile>Assert2_true_assert</withoutfile>
