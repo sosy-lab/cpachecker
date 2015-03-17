@@ -115,11 +115,12 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
       final ConfigurableProgramAnalysis pStepCaseCPA)
       throws InvalidConfigurationException, CPAException {
 
+    LogManager logger = pLogger.withComponentName("KInductionInvariantGenerator");
     ShutdownNotifier invGenBMCShutdownNotfier = ShutdownNotifier.createWithParent(pShutdownNotifier);
-    CPABuilder invGenBMCBuilder = new CPABuilder(pConfig, pLogger, invGenBMCShutdownNotfier, pReachedSetFactory);
+    CPABuilder invGenBMCBuilder = new CPABuilder(pConfig, logger, invGenBMCShutdownNotfier, pReachedSetFactory);
     ConfigurableProgramAnalysis invGenBMCCPA = invGenBMCBuilder.buildCPAWithSpecAutomatas(pCFA);
-    Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, pLogger, pConfig, invGenBMCShutdownNotfier);
-    BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, pLogger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
+    Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, logger, pConfig, invGenBMCShutdownNotfier);
+    BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, logger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
 
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(pStepCaseCPA, PredicateCPA.class);
 
@@ -127,7 +128,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
         new KInductionInvariantGenerator(
             invGenBMC,
             pReachedSetFactory,
-            invGenBMCCPA, pLogger,
+            invGenBMCCPA, logger,
             invGenBMCShutdownNotfier,
             pCFA,
             stepCasePredicateCPA.getPathFormulaManager(),

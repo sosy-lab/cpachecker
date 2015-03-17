@@ -120,7 +120,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   public CPAInvariantGenerator(Configuration config, LogManager pLogger,
       ReachedSetFactory reachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
-    logger = pLogger;
+    logger = pLogger.withComponentName("CPAInvariantGenerator");
     shutdownNotifier = ShutdownNotifier.createWithParent(pShutdownNotifier);
 
     Configuration invariantConfig;
