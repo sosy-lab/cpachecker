@@ -36,12 +36,10 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import scala.collection.JavaConversions;
 import scala.collection.mutable.ArrayBuffer;
@@ -59,9 +57,6 @@ import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
  * // TODO logfile is only available as tmpfile in /tmp, perhaps it is not closed?
@@ -76,17 +71,7 @@ class PrincessEnvironment {
   private final Map<String, IFunction> functionsCache = new HashMap<>();
   private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
-  // order is important for abbreviations, because a abbreviation might depend on another one.
-  private final List<Pair<IFormula, IFormula>> abbrevFormulas = new ArrayList<>();
-  // for faster lookup, key: abbreviation, entry: long formula.
-  private final BiMap<IFormula, IFormula> abbrevFormulasMap = HashBiMap.create();
-
   private final @Nullable PathCounterTemplate basicLogfile;
-
-  /** formulas can be simplified through replacing them with an abbrev-formula. */
-  // TODO do we have to check, that no other symbol equals an abbreviation-symbol?
-  private static final String ABBREV = "ABBREV_";
-  private static final UniqueIdGenerator abbrevIndex = new UniqueIdGenerator();
 
   /** the wrapped api is the first created api.
    * It will never be used outside of this class and never be closed.
@@ -120,9 +105,7 @@ class PrincessEnvironment {
     for (IFunction s : functionsCache.values()) {
       stack.addSymbol(s);
     }
-    for (Pair<IFormula, IFormula> abbrev : abbrevFormulas) {
-      stack.addAbbrev(abbrev.getFirst(), abbrev.getSecond());
-    }
+
     registeredStacks.add(stack);
     return stack;
   }
@@ -296,22 +279,6 @@ class PrincessEnvironment {
     }
 
     return returnFormula;
-  }
-
-  /** create a short replacement/abbreviation function for a long formula. */
-  public IFormula abbrev(IFormula longFormula) {
-    if (abbrevFormulasMap.inverse().containsKey(longFormula)) {
-      return abbrevFormulasMap.inverse().get(longFormula);
-    } else {
-      final String abbrevName = ABBREV + abbrevIndex.getFreshId();
-      final IFormula abbrev = api.abbrev(longFormula, abbrevName);
-      abbrevFormulas.add(Pair.of(abbrev, longFormula));
-      abbrevFormulasMap.put(abbrev, longFormula);
-      for (SymbolTrackingPrincessStack stack : registeredStacks) {
-        stack.addAbbrev(abbrev, longFormula);
-      }
-      return abbrev;
-    }
   }
 
   public String getVersion() {
