@@ -1705,15 +1705,11 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 cpa.value.refiner.doLazyAbstraction = true
 
 # whether or not to perform path slicing before interpolation
-cpa.value.refiner.pathSlicing = false
+cpa.value.refiner.pathSlicing = true
 
 # whether to perform (more precise) edge-based interpolation or (more
 # efficient) path-based interpolation
 cpa.value.refiner.performEdgeBasedInterpolation = true
-
-# use heuristic to extract a precision from the CFA statically on first
-# refinement
-cpa.value.refiner.performStaticRefinement = no default value
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
@@ -1740,9 +1736,6 @@ cpa.value.symbolic.handleStructs = false
 # Symbolic values should always be used in conjunction with ConstraintsCPA.
 # Otherwise, symbolic values will be created, but not evaluated.
 cpa.value.symbolic.useSymbolicValues = false
-
-# enables generation of symbolic values
-cpa.value.symbolicValues = no default value
 
 # Track Java array values in explicit value analysis. This may be costly if
 # the verified program uses big or lots of arrays. Arrays in C programs will
