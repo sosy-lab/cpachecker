@@ -41,7 +41,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -203,26 +202,6 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     String formDump = mgr.dumpFormula(formula).toString();
     String[] lines = formDump.split("\n");
     assert_().that(formDump).contains("(declare-fun fun_a (Int Int) Int)");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
-  }
-
-  @Test
-  public void funcsDumpTest2() {
-    requireBooleanUIFs();
-
-    BooleanFormula bool1 = bmgr.makeBoolean(true);
-    IntegerFormula var = imgr.makeVariable("var_a");
-    List<Formula> args1 = new LinkedList<>();
-    args1.add(bool1);
-    args1.add(var);
-
-    UninterpretedFunctionDeclaration<BooleanFormula> funA = fmgr.declareUninterpretedFunction("fun_a", FormulaType.BooleanType, FormulaType.BooleanType, FormulaType.IntegerType);
-    BooleanFormula res1 = fmgr.callUninterpretedFunction(funA, args1);
-    BooleanFormula formula = bmgr.and(res1, bool1);
-
-    String formDump = mgr.dumpFormula(formula).toString();
-    String[] lines = formDump.split("\n");
-    assert_().that(formDump).contains("(declare-fun fun_a (Bool Int) Bool)");
     assert_().that(lines[lines.length - 1]).startsWith("(assert ");
   }
 
@@ -413,13 +392,5 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
   private void requireSMTLibParser() {
     assume().withFailureMessage("Solver does not support parsing yet.")
         .that(solver).isNotEqualTo(Solvers.PRINCESS);
-  }
-
-  private void requireBooleanUIFs() {
-    String message = "Solver " + solverToUse() + " does not support the combination of"
-                   + " uninterpreted functions and boolean variables / return types";
-
-    assume().withFailureMessage(message).that(solverToUse()).isNotEqualTo(Solvers.MATHSAT5);
-    assume().withFailureMessage(message).that(solverToUse()).isNotEqualTo(Solvers.PRINCESS);
   }
 }
