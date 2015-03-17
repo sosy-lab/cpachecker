@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateExchanger;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateARGCombiningHelper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -87,7 +87,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
   private final Configuration config;
-  private final AutomatonStateExchanger automatonARGBuilderSupport;
+  private final AutomatonStateARGCombiningHelper automatonARGBuilderSupport;
 
   private final ARGCombinerStatistics stats = new ARGCombinerStatistics();
 
@@ -99,7 +99,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     shutdown = pShutdownNotifier;
     config = pConfig;
 
-    automatonARGBuilderSupport = new AutomatonStateExchanger();
+    automatonARGBuilderSupport = new AutomatonStateARGCombiningHelper();
   }
 
   @Override
@@ -272,7 +272,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
       if (state instanceof AutomatonState
           && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
-        if (AutomatonStateExchanger.endsInAssumptionTrueState((AutomatonState) state, pSuccEdge)) {
+        if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState((AutomatonState) state, pSuccEdge)) {
           return false;
         }
       }

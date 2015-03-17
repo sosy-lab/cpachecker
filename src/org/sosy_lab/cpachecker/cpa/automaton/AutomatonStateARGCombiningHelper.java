@@ -35,12 +35,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 
-public class AutomatonStateExchanger {
+public class AutomatonStateARGCombiningHelper {
 
   private final Map<String, AutomatonInternalState> qualifiedAutomatonStateNameToInternalState;
   private final Map<String, ControlAutomatonCPA> nameToCPA;
 
-  public AutomatonStateExchanger() {
+  public AutomatonStateARGCombiningHelper() {
     qualifiedAutomatonStateNameToInternalState = Maps.newHashMap();
     nameToCPA = Maps.newHashMap();
   }
