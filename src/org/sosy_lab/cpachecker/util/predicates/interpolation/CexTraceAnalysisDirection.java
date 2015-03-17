@@ -169,7 +169,7 @@ enum CexTraceAnalysisDirection {
       for (int i = 0; i < traceFormulas.size(); i++) {
         AbstractState state = stateList.get(i);
         int oldIndex = abstractionStates.indexOf(state);
-        orderedFormulas.add(Triple.of(traceFormulas.get(oldIndex), state, i));
+        orderedFormulas.add(Triple.of(traceFormulas.get(oldIndex), state, oldIndex));
       }
       return orderedFormulas.build();
     }
@@ -190,22 +190,20 @@ enum CexTraceAnalysisDirection {
       Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
       Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
 
-      int trCounter = 0;
       for (BooleanFormula formula : traceFormulas) {
         if (!sortedFormulas.put(getAVGScoreForVariables(formula,
                                                         checkNotNull(pVariableClassification),
                                                         checkNotNull(pFmgr),
                                                         checkNotNull(pLoopStructure)),
-                                trCounter++)) {
+                                traceFormulas.indexOf(formula))) {
           throw new AssertionError("Bug in creation of sorted formulas.");
         }
       }
 
-      int counter = 0;
       for (Integer index : sortedFormulas.values()) {
         orderedFormulas.add(Triple.of(traceFormulas.get(index),
                                       abstractionStates.get(index),
-                                      counter++));
+                                      index));
       }
       return orderedFormulas.build();
     }
@@ -226,22 +224,20 @@ enum CexTraceAnalysisDirection {
       Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
       Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
 
-      int trCounter = 0;
       for (BooleanFormula formula : traceFormulas) {
         if (!sortedFormulas.put(Double.MAX_VALUE - getAVGScoreForVariables(formula,
                                                                            checkNotNull(pVariableClassification),
                                                                            checkNotNull(pFmgr),
                                                                            checkNotNull(pLoopStructure)),
-                                trCounter++)) {
+                                traceFormulas.indexOf(formula))) {
           throw new AssertionError("Bug in creation of sorted formulas.");
         }
       }
 
-      int counter = 0;
       for (Integer index : sortedFormulas.values()) {
         orderedFormulas.add(Triple.of(traceFormulas.get(index),
                                       abstractionStates.get(index),
-                                      counter++));
+                                      index));
       }
       return orderedFormulas.build();
     }
