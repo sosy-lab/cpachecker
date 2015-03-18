@@ -32,6 +32,7 @@
       <option name="-skipRecursion"/>
       <option name="-64"/>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
+      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
     </sourcefiles>
     <option name="-predicateAnalysis-bam"/>
