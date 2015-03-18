@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -45,7 +46,7 @@ public class PolicyBound {
 
   private static final Map<Triple<Location, BooleanFormula, Location>, Integer>
       serializationMap = new HashMap<>();
-  private static int pathCounter = -1;
+  private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
 
   private PolicyBound(PathFormula pFormula, Rational pBound, Location pPredecessor,
       PathFormula pStartPathFormula, boolean pDependsOnInitial) {
@@ -78,7 +79,7 @@ public class PolicyBound {
         predecessor, formula.getFormula(), toLocation);
     Integer serialization = serializationMap.get(p);
     if (serialization == null) {
-      serialization = ++pathCounter;
+      serialization = pathCounter.getFreshId();
       serializationMap.put(p, serialization);
     }
     return serialization;
@@ -96,9 +97,15 @@ public class PolicyBound {
 
   @Override
   public boolean equals(Object other) {
-    if (this == other) return true;
-    if (other == null) return false;
-    if (other.getClass() != this.getClass()) return false;
+    if (this == other) {
+      return true;
+    }
+    if (other == null) {
+      return false;
+    }
+    if (other.getClass() != this.getClass()) {
+      return false;
+    }
     PolicyBound o = (PolicyBound) other;
     return predecessor.equals(o.predecessor) && bound.equals(o.bound) && formula.equals(o.formula);
   }

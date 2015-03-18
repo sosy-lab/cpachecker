@@ -7,6 +7,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
@@ -28,7 +29,7 @@ public final class Location {
   private final int hashCache;
 
   // Serializing to and from integer.
-  private static int locationCounter = -1;
+  private static final UniqueIdGenerator locationCounter = new UniqueIdGenerator();
   private static final BiMap<Integer, Location> serializationMap = HashBiMap.create();
 
   private Location(CFANode pNode, Iterable<AbstractState> pOtherStates) {
@@ -83,7 +84,7 @@ public final class Location {
     if (serializationMap.inverse().containsKey(this)) {
       locationID = serializationMap.inverse().get(this);
     } else {
-      locationID = ++locationCounter;
+      locationID = locationCounter.getFreshId();
       serializationMap.put(locationID, this);
     }
     return locationID;
