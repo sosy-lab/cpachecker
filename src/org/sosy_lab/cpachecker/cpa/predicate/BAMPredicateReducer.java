@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 
@@ -223,83 +222,63 @@ public class BAMPredicateReducer implements Reducer {
 
   private class ReducedPredicatePrecision extends PredicatePrecision {
 
+    /* the top-level-precision of the main-block */
     private final PredicatePrecision rootPredicatePrecision;
 
-    private final PredicatePrecision expandedPredicatePrecision;
+    /* the current block for this precision */
     private final Block context;
 
     private ImmutableSetMultimap<CFANode, AbstractionPredicate> evaluatedPredicateMap;
     private ImmutableSet<AbstractionPredicate> evaluatedGlobalPredicates;
 
 
-    public ReducedPredicatePrecision(PredicatePrecision expandedPredicatePrecision, Block context) {
+    private ReducedPredicatePrecision(PredicatePrecision expandedPredicatePrecision, Block pContext) {
       super(
           ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate> of(),
           ImmutableSetMultimap.<CFANode, AbstractionPredicate> of(),
           ImmutableSetMultimap.<String, AbstractionPredicate> of(),
           ImmutableSet.<AbstractionPredicate> of());
 
-      assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() : "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
+      assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
+        "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
 
-      this.expandedPredicatePrecision = expandedPredicatePrecision;
-      this.context = context;
+      this.context = pContext;
 
+      Set<CFANode> keySet;
       if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
-        this.rootPredicatePrecision =
-            ((ReducedPredicatePrecision) expandedPredicatePrecision).getRootPredicatePrecision();
+        final ReducedPredicatePrecision rpp = (ReducedPredicatePrecision) expandedPredicatePrecision;
+        rootPredicatePrecision = rpp.getRootPredicatePrecision();
+        keySet = rpp.evaluatedPredicateMap.keySet();
       } else {
-        this.rootPredicatePrecision = expandedPredicatePrecision;
+        rootPredicatePrecision = expandedPredicatePrecision;
+        keySet = rootPredicatePrecision.getLocalPredicates().keySet();
       }
       assert !(rootPredicatePrecision instanceof ReducedPredicatePrecision);
 
-      this.evaluatedPredicateMap = null;
-      this.evaluatedGlobalPredicates = null;
+      // create reduced view
+      evaluatedGlobalPredicates =
+          ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(context,
+              rootPredicatePrecision.getGlobalPredicates()));
+
+      ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+      for (CFANode node : keySet) {
+        if (context.getNodes().contains(node)) {
+          // TODO handle location-instance-specific predicates
+          // Without support for them, we can just pass 0 as locInstance parameter
+          Collection<AbstractionPredicate> set =
+              relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node, 0));
+          pmapBuilder.putAll(node, set);
+        }
+      }
+      evaluatedPredicateMap = pmapBuilder.build();
     }
 
-    public PredicatePrecision getRootPredicatePrecision() {
+    private PredicatePrecision getRootPredicatePrecision() {
       return rootPredicatePrecision;
-    }
-
-    private void computeView() {
-      if (evaluatedPredicateMap == null) {
-        ReducedPredicatePrecision lExpandedPredicatePrecision = null;
-        if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
-          lExpandedPredicatePrecision = (ReducedPredicatePrecision) expandedPredicatePrecision;
-        }
-
-        evaluatedGlobalPredicates =
-            ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(context,
-                rootPredicatePrecision.getGlobalPredicates()));
-
-        ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-        Set<CFANode> keySet =
-            lExpandedPredicatePrecision == null ? rootPredicatePrecision.getLocalPredicates().keySet()
-                : lExpandedPredicatePrecision.approximatePredicateMap().keySet();
-        for (CFANode node : keySet) {
-          if (context.getNodes().contains(node)) {
-            // TODO handle location-instance-specific predicates
-            // Without support for them, we can just pass 0 as locInstance parameter
-            Collection<AbstractionPredicate> set =
-                relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node, 0));
-            pmapBuilder.putAll(node, set);
-          }
-        }
-
-        evaluatedPredicateMap = pmapBuilder.build();
-      }
-    }
-
-    private SetMultimap<CFANode, AbstractionPredicate> approximatePredicateMap() {
-      if (evaluatedPredicateMap == null) {
-        return rootPredicatePrecision.getLocalPredicates();
-      } else {
-        return evaluatedPredicateMap;
-      }
     }
 
     @Override
     public ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
-      computeView();
       return evaluatedPredicateMap;
     }
 
@@ -311,11 +290,7 @@ public class BAMPredicateReducer implements Reducer {
 
     @Override
     public Set<AbstractionPredicate> getGlobalPredicates() {
-      if (evaluatedGlobalPredicates != null) {
-        return evaluatedGlobalPredicates;
-      } else {
-        return relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates());
-      }
+      return evaluatedGlobalPredicates;
     }
 
     @Override
@@ -324,22 +299,12 @@ public class BAMPredicateReducer implements Reducer {
         logger.log(Level.WARNING, context, "was left in an unexpected way. Analysis might be unsound.");
       }
 
-      if (evaluatedPredicateMap != null) {
-        Set<AbstractionPredicate> result = evaluatedPredicateMap.get(loc);
-        if (result.isEmpty()) {
-          result = evaluatedGlobalPredicates;
-        }
-        String functionName = loc.getFunctionName();
-        return Sets.union(result, rootPredicatePrecision.getFunctionPredicates().get(functionName))
-            .immutableCopy();
-      } else {
-        Set<AbstractionPredicate> result =
-            relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(loc, locInstance));
-        if (result.isEmpty()) {
-          result = relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates());
-        }
-        return result;
+      Set<AbstractionPredicate> result = evaluatedPredicateMap.get(loc);
+      if (result.isEmpty()) {
+        result = evaluatedGlobalPredicates;
       }
+      String functionName = loc.getFunctionName();
+      return Sets.union(result, rootPredicatePrecision.getFunctionPredicates().get(functionName)).immutableCopy();
     }
 
     @Override
@@ -351,7 +316,6 @@ public class BAMPredicateReducer implements Reducer {
       } else if (!(pObj.getClass().equals(this.getClass()))) {
         return false;
       } else {
-        computeView();
         return evaluatedPredicateMap.equals(((ReducedPredicatePrecision) pObj).evaluatedPredicateMap) &&
             getFunctionPredicates().equals(((ReducedPredicatePrecision) pObj).getFunctionPredicates());
       }
@@ -359,17 +323,12 @@ public class BAMPredicateReducer implements Reducer {
 
     @Override
     public int hashCode() {
-      computeView();
       return 31 * evaluatedPredicateMap.hashCode() + getFunctionPredicates().hashCode();
     }
 
     @Override
     public String toString() {
-      if (evaluatedPredicateMap != null) {
-        return evaluatedPredicateMap.toString();
-      } else {
-        return "ReducedPredicatePrecision (view not computed yet)";
-      }
+      return "ReducedPredicatePrecision (" + evaluatedPredicateMap.toString() + ")";
     }
 
   }
