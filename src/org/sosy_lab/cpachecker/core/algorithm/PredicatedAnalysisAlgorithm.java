@@ -85,7 +85,6 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Predicates;
@@ -270,7 +269,6 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
-      FormulaManagerView fm = predCPA.getSolver().getFormulaManager();
       PathFormula pf;
       PredicateAbstractState fakePred = errorPred;
       int i=1;
@@ -294,7 +292,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
           abstractionLocations = abstractionLocations.putAndCopy(assumeEdge.getSuccessor(), newLocInstance);
 
           // create fake abstraction predicate state
-          fakePred = PredicateAbstractState.mkAbstractionState(fm.getBooleanFormulaManager(), pf, abf,
+          fakePred = PredicateAbstractState.mkAbstractionState(pf, abf,
                   abstractionLocations);
         } else {
           // create fake non abstraction predicate state

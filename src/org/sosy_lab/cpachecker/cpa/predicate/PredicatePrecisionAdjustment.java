@@ -164,7 +164,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // update abstraction locations map
     abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
-    return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
+    return PredicateAbstractState.mkAbstractionState(newPathFormula,
         newAbstractionFormula, abstractionLocations);
   }
 

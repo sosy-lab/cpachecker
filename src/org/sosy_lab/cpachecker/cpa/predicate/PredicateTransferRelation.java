@@ -448,7 +448,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
       abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
-      return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
+      return PredicateAbstractState.mkAbstractionState(newPathFormula,
           abs, abstractionLocations);
     }
   }
