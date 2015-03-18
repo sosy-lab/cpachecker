@@ -267,7 +267,7 @@ public class BAMPredicateReducer implements Reducer {
         globalPredicates);
   }
 
-  private class ReducedPredicatePrecision extends PredicatePrecision {
+  private static class ReducedPredicatePrecision extends PredicatePrecision {
 
     /* the top-level-precision of the main-block */
     private final PredicatePrecision rootPredicatePrecision;
@@ -284,6 +284,13 @@ public class BAMPredicateReducer implements Reducer {
 
     private PredicatePrecision getRootPredicatePrecision() {
       return rootPredicatePrecision;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      return super.equals(pObj)
+          && pObj instanceof ReducedPredicatePrecision
+          && rootPredicatePrecision.equals(((ReducedPredicatePrecision)pObj).getRootPredicatePrecision());
     }
   }
 
