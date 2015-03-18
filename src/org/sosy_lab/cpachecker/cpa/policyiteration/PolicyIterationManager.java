@@ -194,7 +194,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Override
   public Collection<PolicyState> getAbstractSuccessors(PolicyState oldState,
-      List<AbstractState> otherStates,
       CFAEdge edge) throws CPATransferException, InterruptedException {
 
     CFANode node = edge.getSuccessor();
