@@ -1234,10 +1234,6 @@ cpa.predicate.refinement.handleFeasibleAssumeEdges = "NONE"
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
-# During refinement, keep predicates from all removed parts of the ARG.
-# Otherwise, only predicates from the error path are kept.
-cpa.predicate.refinement.keepAllPredicates = false
-
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
@@ -1248,6 +1244,13 @@ cpa.predicate.refinement.pathSlicing = false
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
+
+# Which predicates should be used as basis for a new precision.ALL: During
+# refinement, keep predicates from all removed parts of the ARG.CUTPOINT:
+# Only predicates from the cut-point's precision are kept.TARGET: Only
+# predicates from the target state's precision are kept.
+cpa.predicate.refinement.predicateBasisStrategy = TARGET
+  enum:     [ALL, TARGET, CUTPOINT]
 
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = DEFAULT
@@ -1616,6 +1619,10 @@ cpa.stator.policy.runHopefulValueDetermination = true
 
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true
+
+# Use the optimized abstraction, which takes into the account the previously
+# obtained bound at the location.
+cpa.stator.policy.usePreviousBounds = true
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
