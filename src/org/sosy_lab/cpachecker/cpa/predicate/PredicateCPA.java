@@ -215,7 +215,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
         cfa, config);
 
-    GlobalInfo.getInstance().storeFormulaManager(formulaManager);
+    GlobalInfo.getInstance().storeFormulaManagerView(formulaManager);
     GlobalInfo.getInstance().storeAbstractionManager(abstractionManager);
 
     prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
