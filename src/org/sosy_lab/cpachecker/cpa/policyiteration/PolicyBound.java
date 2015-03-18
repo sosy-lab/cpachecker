@@ -8,6 +8,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import com.google.common.base.Objects;
 
