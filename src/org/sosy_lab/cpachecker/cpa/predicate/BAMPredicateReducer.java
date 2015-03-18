@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Sets;
 
 
 public class BAMPredicateReducer implements Reducer {
@@ -228,9 +227,10 @@ public class BAMPredicateReducer implements Reducer {
     /* the current block for this precision */
     private final Block context;
 
-    private ImmutableSetMultimap<CFANode, AbstractionPredicate> evaluatedPredicateMap;
-    private ImmutableSet<AbstractionPredicate> evaluatedGlobalPredicates;
-
+    /* the predicates of the precision */
+    private final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates;
+    private final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates;
+    private final ImmutableSet<AbstractionPredicate> globalPredicates;
 
     private ReducedPredicatePrecision(PredicatePrecision expandedPredicatePrecision, Block pContext) {
       super(
@@ -244,33 +244,45 @@ public class BAMPredicateReducer implements Reducer {
 
       this.context = pContext;
 
-      Set<CFANode> keySet;
       if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
         final ReducedPredicatePrecision rpp = (ReducedPredicatePrecision) expandedPredicatePrecision;
         rootPredicatePrecision = rpp.getRootPredicatePrecision();
-        keySet = rpp.evaluatedPredicateMap.keySet();
       } else {
         rootPredicatePrecision = expandedPredicatePrecision;
-        keySet = rootPredicatePrecision.getLocalPredicates().keySet();
       }
       assert !(rootPredicatePrecision instanceof ReducedPredicatePrecision);
 
       // create reduced view
-      evaluatedGlobalPredicates =
-          ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(context,
-              rootPredicatePrecision.getGlobalPredicates()));
 
-      ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-      for (CFANode node : keySet) {
+      // we only need global predicates with used variables
+      globalPredicates = ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(
+          context, rootPredicatePrecision.getGlobalPredicates()));
+
+      // we only need function predicates with used variables
+      final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
+      for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
+        functionPredicatesBuilder.putAll(functionname, relevantComputer.getRelevantPredicates(
+            context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
+      }
+      functionPredicates = functionPredicatesBuilder.build();
+
+      // we only need local predicates with used variables and with nodes from the block
+      final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder = ImmutableSetMultimap.builder();
+      for (CFANode node : expandedPredicatePrecision.getLocalPredicates().keySet()) {
         if (context.getNodes().contains(node)) {
           // TODO handle location-instance-specific predicates
           // Without support for them, we can just pass 0 as locInstance parameter
-          Collection<AbstractionPredicate> set =
-              relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node, 0));
-          pmapBuilder.putAll(node, set);
+          localPredicatesBuilder.putAll(node, relevantComputer.getRelevantPredicates(
+              context, rootPredicatePrecision.getPredicates(node, 0)));
         }
       }
-      evaluatedPredicateMap = pmapBuilder.build();
+      localPredicates = localPredicatesBuilder.build();
+
+      /* LocationInstancePredicates is useless, because a block can be visited
+       * several times along a error path and the index would always start from 0 again.
+       * Thus we ignore LocationInstancePredicates and hope nobody is using them.
+       * TODO can we assure this?
+       */
     }
 
     private PredicatePrecision getRootPredicatePrecision() {
@@ -279,58 +291,32 @@ public class BAMPredicateReducer implements Reducer {
 
     @Override
     public ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
-      return evaluatedPredicateMap;
+      return localPredicates;
     }
 
     @Override
     public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
-      // TODO this should be reduced/expanded
-      return rootPredicatePrecision.getFunctionPredicates();
+      return functionPredicates;
     }
 
     @Override
     public Set<AbstractionPredicate> getGlobalPredicates() {
-      return evaluatedGlobalPredicates;
+      return globalPredicates;
     }
 
     @Override
     public Set<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
       if (!context.getNodes().contains(loc)) {
-        logger.log(Level.WARNING, context, "was left in an unexpected way. Analysis might be unsound.");
+        logger.log(Level.WARNING, "Accessing predicates for nodes out of current block.",
+            context, "was left in an unexpected way. Analysis might be unsound.");
       }
-
-      Set<AbstractionPredicate> result = evaluatedPredicateMap.get(loc);
-      if (result.isEmpty()) {
-        result = evaluatedGlobalPredicates;
-      }
-      String functionName = loc.getFunctionName();
-      return Sets.union(result, rootPredicatePrecision.getFunctionPredicates().get(functionName)).immutableCopy();
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (pObj == this) {
-        return true;
-      } else if (pObj == null) {
-        return false;
-      } else if (!(pObj.getClass().equals(this.getClass()))) {
-        return false;
-      } else {
-        return evaluatedPredicateMap.equals(((ReducedPredicatePrecision) pObj).evaluatedPredicateMap) &&
-            getFunctionPredicates().equals(((ReducedPredicatePrecision) pObj).getFunctionPredicates());
-      }
-    }
-
-    @Override
-    public int hashCode() {
-      return 31 * evaluatedPredicateMap.hashCode() + getFunctionPredicates().hashCode();
+      return super.getPredicates(loc, locInstance);
     }
 
     @Override
     public String toString() {
-      return "ReducedPredicatePrecision (" + evaluatedPredicateMap.toString() + ")";
+      return "ReducedPredicatePrecision (" + super.toString() + ")";
     }
-
   }
 
   @Override
