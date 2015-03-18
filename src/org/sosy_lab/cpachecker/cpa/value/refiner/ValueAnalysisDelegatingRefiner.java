@@ -76,22 +76,22 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   /**
    * refiner used for value-analysis refinement
    */
-  private ValueAnalysisRefiner valueCpaRefiner;
+  private final ValueAnalysisRefiner valueCpaRefiner;
 
   /**
    * prefix provider used for value-analysis refinement
    */
-  private PrefixProvider valueCpaPrefixProvider;
+  private final PrefixProvider valueCpaPrefixProvider;
 
   /**
    * predicate-analysis refiner used for predicate refinement
    */
-  private PredicateCPARefiner predicateCpaRefiner;
+  private final PredicateCPARefiner predicateCpaRefiner;
 
   /**
    * prefix provider used for predicate-analysis refinement
    */
-  private PrefixProvider predicateCpaPrefixProvider;
+  private final PrefixProvider predicateCpaPrefixProvider;
 
   StatCounter totalVaRefinements  = new StatCounter("Number of VA refinements");
   StatInt avgPrefixesVA           = new StatInt(StatKind.AVG, "Avg. number of VA-prefixes");
