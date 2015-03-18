@@ -110,6 +110,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   @Override
   protected final ARGPath computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
+    assert pReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
 
     subgraphStatesToReachedState.clear();
 
