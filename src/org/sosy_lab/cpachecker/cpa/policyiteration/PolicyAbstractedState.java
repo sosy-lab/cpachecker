@@ -11,6 +11,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 
@@ -52,6 +53,10 @@ public final class PolicyAbstractedState extends PolicyState
 
     abstraction = ImmutableMap.copyOf(pAbstraction);
     generatingState = pGeneratingState;
+  }
+
+  public static ImmutableMultiset<Location> getUpdateCounter() {
+    return ImmutableMultiset.copyOf(updateCounter);
   }
 
   public int getVersion() {

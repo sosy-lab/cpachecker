@@ -74,13 +74,13 @@ public final class PolicyIntermediateState extends PolicyState {
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(loc=%s)%n%s%n%s%n", getLocation(), pathFormula, pathFormula.getSsa()
+        "%n%s%n%s%n", pathFormula, pathFormula.getSsa()
     );
   }
 
   @Override
   public String toString() {
-    return String.format("%s: %s", getLocation(), pathFormula);
+    return pathFormula.toString();
   }
 
   @Override
