@@ -26,25 +26,22 @@ public final class PolicyIntermediateState extends PolicyState {
 
 
   private PolicyIntermediateState(
-      Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
       Map<Location, PolicyAbstractedState> pGeneratingStates
       ) {
-    super(pLocation, pTemplates);
+    super(pTemplates);
 
     pathFormula = pPathFormula;
     generatingStates = ImmutableMap.copyOf(pGeneratingStates);
   }
 
   public static PolicyIntermediateState of(
-      Location pLocation,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
       Map<Location, PolicyAbstractedState> generatingStates
   ) {
-    return new PolicyIntermediateState(pLocation, pTemplates, pPathFormula,
-        generatingStates);
+    return new PolicyIntermediateState(pTemplates, pPathFormula, generatingStates);
   }
 
   public void setMergedInto(PolicyIntermediateState other) {

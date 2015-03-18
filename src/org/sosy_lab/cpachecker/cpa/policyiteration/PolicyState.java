@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
@@ -17,13 +16,11 @@ import com.google.common.collect.ImmutableSet;
  */
 public abstract class PolicyState implements AbstractState, Graphable {
 
-  private final Location location;
 
   /** Templates tracked. */
   protected final ImmutableSet<Template> templates;
 
-  protected PolicyState(Location pLocation, Set<Template> pTemplates) {
-    location = pLocation;
+  protected PolicyState(Set<Template> pTemplates) {
     templates = ImmutableSet.copyOf(pTemplates);
   }
 
@@ -45,14 +42,6 @@ public abstract class PolicyState implements AbstractState, Graphable {
     return templates;
   }
 
-  public CFANode getNode() {
-    return location.getFinalNode();
-  }
-
-  public Location getLocation() {
-    return location;
-  }
-
   @Override
   public boolean shouldBeHighlighted() {
     return false;
@@ -67,11 +56,11 @@ public abstract class PolicyState implements AbstractState, Graphable {
       return false;
     }
     PolicyState other = (PolicyState)o;
-    return (templates.equals(other.templates) && location.equals(other.location));
+    return (templates.equals(other.templates));
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(location, templates);
+    return Objects.hashCode(templates);
   }
 }

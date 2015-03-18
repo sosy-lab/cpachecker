@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Objects;
@@ -17,16 +18,16 @@ import com.google.common.collect.Multiset;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>> {
+
+  /**
+   * Location associated with abstracted state.
+   */
+  private final Location location;
+
   /**
    * Finite bounds for templates.
    */
   private final ImmutableMap<Template, PolicyBound> abstraction;
-
-  /**
-   * Non-abstracted section of the formula.
-   *
-   * NOTE: contains {@code PointerTargetSet} inside.
-   */
 
   /**
    * State used to generate the abstraction.
@@ -46,8 +47,9 @@ public final class PolicyAbstractedState extends PolicyState
       Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
       PolicyIntermediateState pGeneratingState) {
-    super(pLocation, pTemplates);
+    super(pTemplates);
 
+    location = pLocation;
     version = updateCounter.count(pLocation);
     updateCounter.add(pLocation);
 
@@ -61,6 +63,14 @@ public final class PolicyAbstractedState extends PolicyState
 
   public int getVersion() {
     return version;
+  }
+
+  public CFANode getNode() {
+    return location.getFinalNode();
+  }
+
+  public Location getLocation() {
+    return location;
   }
 
   public static PolicyAbstractedState of(
@@ -116,7 +126,7 @@ public final class PolicyAbstractedState extends PolicyState
   public static PolicyAbstractedState empty(Location pLocation,
       PathFormula initial) {
     PolicyIntermediateState Iinitial = PolicyIntermediateState.of(
-        pLocation, ImmutableSet.<Template>of(),
+        ImmutableSet.<Template>of(),
         initial,  ImmutableMap.<Location, PolicyAbstractedState>of()
     );
     return PolicyAbstractedState.of(
