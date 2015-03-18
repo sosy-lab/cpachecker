@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -195,7 +194,7 @@ public class BAMPredicateReducer implements Reducer {
     Precision result = reduceCache.get(key);
     if (result != null) { return result; }
 
-    result = new ReducedPredicatePrecision(precision, pContext);
+    result = reducePrecision(precision, pContext);
     reduceCache.put(key, result);
     return result;
   }
@@ -219,103 +218,72 @@ public class BAMPredicateReducer implements Reducer {
     return getVariableReducedPrecision(mergedToplevelPrecision, pRootContext);
   }
 
+  private PredicatePrecision reducePrecision(PredicatePrecision expandedPredicatePrecision, Block context) {
+
+    assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
+      "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
+    /* LocationInstancePredicates is useless, because a block can be visited
+     * several times along a error path and the index would always start from 0 again.
+     * Thus we ignore LocationInstancePredicates and hope nobody is using them.
+     * TODO can we assure this?
+     */
+
+    // create reduced precision
+
+    // we only need global predicates with used variables
+    final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(
+        context, expandedPredicatePrecision.getGlobalPredicates()));
+
+    // we only need function predicates with used variables
+    final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
+    for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
+      // TODO only add vars if functionname is used in block?
+      functionPredicatesBuilder.putAll(functionname, relevantComputer.getRelevantPredicates(
+          context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
+    }
+    final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates = functionPredicatesBuilder.build();
+
+    // we only need local predicates with used variables and with nodes from the block
+    final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder = ImmutableSetMultimap.builder();
+    for (CFANode node : expandedPredicatePrecision.getLocalPredicates().keySet()) {
+      if (context.getNodes().contains(node)) {
+        // TODO handle location-instance-specific predicates
+        // Without support for them, we can just pass 0 as locInstance parameter
+        localPredicatesBuilder.putAll(node, relevantComputer.getRelevantPredicates(
+            context, expandedPredicatePrecision.getPredicates(node, 0)));
+      }
+    }
+    final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates = localPredicatesBuilder.build();
+
+    PredicatePrecision rootPredicatePrecision = expandedPredicatePrecision;
+    if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
+      rootPredicatePrecision = ((ReducedPredicatePrecision)expandedPredicatePrecision).getRootPredicatePrecision();
+    }
+
+    return new ReducedPredicatePrecision(rootPredicatePrecision,
+        ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate> of(),
+        localPredicates,
+        functionPredicates,
+        globalPredicates);
+  }
+
   private class ReducedPredicatePrecision extends PredicatePrecision {
 
     /* the top-level-precision of the main-block */
     private final PredicatePrecision rootPredicatePrecision;
 
-    /* the current block for this precision */
-    private final Block context;
-
-    /* the predicates of the precision */
-    private final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates;
-    private final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates;
-    private final ImmutableSet<AbstractionPredicate> globalPredicates;
-
-    private ReducedPredicatePrecision(PredicatePrecision expandedPredicatePrecision, Block pContext) {
-      super(
-          ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate> of(),
-          ImmutableSetMultimap.<CFANode, AbstractionPredicate> of(),
-          ImmutableSetMultimap.<String, AbstractionPredicate> of(),
-          ImmutableSet.<AbstractionPredicate> of());
-
-      assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
-        "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
-
-      this.context = pContext;
-
-      if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
-        final ReducedPredicatePrecision rpp = (ReducedPredicatePrecision) expandedPredicatePrecision;
-        rootPredicatePrecision = rpp.getRootPredicatePrecision();
-      } else {
-        rootPredicatePrecision = expandedPredicatePrecision;
-      }
-      assert !(rootPredicatePrecision instanceof ReducedPredicatePrecision);
-
-      // create reduced view
-
-      // we only need global predicates with used variables
-      globalPredicates = ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(
-          context, rootPredicatePrecision.getGlobalPredicates()));
-
-      // we only need function predicates with used variables
-      final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
-      for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
-        functionPredicatesBuilder.putAll(functionname, relevantComputer.getRelevantPredicates(
-            context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
-      }
-      functionPredicates = functionPredicatesBuilder.build();
-
-      // we only need local predicates with used variables and with nodes from the block
-      final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder = ImmutableSetMultimap.builder();
-      for (CFANode node : expandedPredicatePrecision.getLocalPredicates().keySet()) {
-        if (context.getNodes().contains(node)) {
-          // TODO handle location-instance-specific predicates
-          // Without support for them, we can just pass 0 as locInstance parameter
-          localPredicatesBuilder.putAll(node, relevantComputer.getRelevantPredicates(
-              context, rootPredicatePrecision.getPredicates(node, 0)));
-        }
-      }
-      localPredicates = localPredicatesBuilder.build();
-
-      /* LocationInstancePredicates is useless, because a block can be visited
-       * several times along a error path and the index would always start from 0 again.
-       * Thus we ignore LocationInstancePredicates and hope nobody is using them.
-       * TODO can we assure this?
-       */
+    private ReducedPredicatePrecision(PredicatePrecision pRootPredicatePrecision,
+        ImmutableSetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocalInstPredicates,
+        ImmutableSetMultimap<CFANode, AbstractionPredicate> pLocalPredicates,
+        ImmutableSetMultimap<String, AbstractionPredicate> pFunctionPredicates,
+        ImmutableSet<AbstractionPredicate> pGlobalPredicates) {
+      super(pLocalInstPredicates, pLocalPredicates, pFunctionPredicates, pGlobalPredicates);
+      assert !(pRootPredicatePrecision instanceof ReducedPredicatePrecision);
+      this.rootPredicatePrecision = pRootPredicatePrecision;
     }
 
     private PredicatePrecision getRootPredicatePrecision() {
       return rootPredicatePrecision;
-    }
-
-    @Override
-    public ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
-      return localPredicates;
-    }
-
-    @Override
-    public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
-      return functionPredicates;
-    }
-
-    @Override
-    public Set<AbstractionPredicate> getGlobalPredicates() {
-      return globalPredicates;
-    }
-
-    @Override
-    public Set<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
-      if (!context.getNodes().contains(loc)) {
-        logger.log(Level.WARNING, "Accessing predicates for nodes out of current block.",
-            context, "was left in an unexpected way. Analysis might be unsound.");
-      }
-      return super.getPredicates(loc, locInstance);
-    }
-
-    @Override
-    public String toString() {
-      return "ReducedPredicatePrecision (" + super.toString() + ")";
     }
   }
 
