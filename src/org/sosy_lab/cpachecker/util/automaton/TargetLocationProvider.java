@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
-import java.util.HashSet;
-import java.util.Set;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -94,19 +93,23 @@ public class TargetLocationProvider {
           cpa.getInitialState(pRootNode, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(pRootNode, StateSpacePartition.getDefaultPartition()));
       CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
+      try {
 
-      Set<CFANode> result = new HashSet<>();
+        while (reached.hasWaitingState()) {
+          targetFindingAlgorithm.run(reached);
+        }
 
-      boolean changed = true;
-      while (changed) {
-        targetFindingAlgorithm.run(reached);
-        changed = result.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
+      } finally {
+        CPAs.closeCpaIfPossible(cpa, logManager);
+        CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
       }
 
-      CPAs.closeCpaIfPossible(cpa, logManager);
-      CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
-
-      return ImmutableSet.copyOf(result);
+      // Order of reached is the order in which states were created,
+      // toSet() keeps ordering, so the result is deterministic.
+      return from(reached)
+          .filter(AbstractStates.IS_TARGET_STATE)
+          .transform(AbstractStates.EXTRACT_LOCATION)
+          .toSet();
 
     } catch (CPAException e) {
 
