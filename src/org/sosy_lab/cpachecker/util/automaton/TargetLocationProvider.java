@@ -64,7 +64,7 @@ public class TargetLocationProvider {
     super();
     reachedSetFactory = pReachedSetFactory;
     shutdownNotifier = pShutdownNotifier;
-    logManager = pLogManager;
+    logManager = pLogManager.withComponentName("TargetLocationProvider");
     config = pConfig;
     cfa = pCfa;
   }
@@ -111,24 +111,23 @@ public class TargetLocationProvider {
           .transform(AbstractStates.EXTRACT_LOCATION)
           .toSet();
 
-    } catch (CPAException e) {
+    } catch (InvalidConfigurationException | CPAException e) {
 
-      if (!shutdownNotifier.shouldShutdown()) {
-        if ((pSkipRecursion || !pSkipRecursion && !e.toString().toLowerCase().contains("recursion"))) {
-          logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
-        } else {
-          logManager.logException(Level.FINEST, e, "Recursion detected. Defaulting to selecting all locations.");
-        }
+      if ((pSkipRecursion || !pSkipRecursion && !e.toString().toLowerCase().contains("recursion"))) {
+        logManager.logUserException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+      } else {
+        logManager.log(Level.INFO, e, "Recursion detected. Defaulting to selecting all locations.");
+        logManager.logDebugException(e);
       }
 
       return null;
 
-    } catch (InvalidConfigurationException | InterruptedException e) {
-
+    } catch (InterruptedException e) {
       if (!shutdownNotifier.shouldShutdown()) {
         logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+      } else {
+        logManager.logDebugException(e);
       }
-
       return null;
     }
   }
