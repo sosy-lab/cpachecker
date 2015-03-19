@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -107,7 +108,6 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 @Options(prefix="bmc")
 public class BMCAlgorithm implements Algorithm, StatisticsProvider {
@@ -390,7 +390,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * @return the candidate invariants to be checked.
    */
   private Set<CandidateInvariant> getCandidateInvariants() {
-    Set<CandidateInvariant> result = Sets.newHashSet();
+    final Set<CandidateInvariant> result = new LinkedHashSet<>();
 
     Collection<CFANode> targetLocations;
     if (isProgramConcurrent) {
@@ -424,7 +424,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * @return the relevant assume edges.
    */
   private Set<CFAEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<CFAEdge> assumeEdges = new HashSet<>();
+    final Set<CFAEdge> assumeEdges = new LinkedHashSet<>();
     Set<CFANode> visited = new HashSet<>(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
