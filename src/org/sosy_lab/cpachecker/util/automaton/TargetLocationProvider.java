@@ -70,10 +70,6 @@ public class TargetLocationProvider {
   }
 
   public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
-    return tryGetAutomatonTargetLocations(pRootNode, true);
-  }
-
-  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode, boolean pSkipRecursion) {
     try {
       // Create new configuration with default set of CPAs
       ConfigurationBuilder configurationBuilder = Configuration.builder();
@@ -82,7 +78,7 @@ public class TargetLocationProvider {
       }
       configurationBuilder.setOption("output.disable", "true");
       configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
-      configurationBuilder.setOption("cpa.callstack.skipRecursion", Boolean.toString(pSkipRecursion));
+      configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
 
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
@@ -113,7 +109,7 @@ public class TargetLocationProvider {
 
     } catch (InvalidConfigurationException | CPAException e) {
 
-      if ((pSkipRecursion || !pSkipRecursion && !e.toString().toLowerCase().contains("recursion"))) {
+      if (!e.toString().toLowerCase().contains("recursion")) {
         logManager.logUserException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
       } else {
         logManager.log(Level.INFO, e, "Recursion detected. Defaulting to selecting all locations.");

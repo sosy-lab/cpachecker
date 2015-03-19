@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
@@ -120,13 +119,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                            },
                        AbstractStates.toState(AssumptionStorageState.class));
 
-  /**
-   * If these functions appear in the program, we must assume that the program
-   * contains concurrency and we cannot rule out error locations that appear to
-   * be syntactically unreachable.
-   */
-  private static final Set<String> CONCURRENT_FUNCTIONS = ImmutableSet.of("pthread_create");
-
   @Option(secure=true, description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
       + "(this is similar to CBMC's unwinding assertions).")
@@ -180,8 +172,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final ShutdownNotifier shutdownNotifier;
 
   private final TargetLocationProvider targetLocationProvider;
-
-  private final boolean isProgramConcurrent;
 
   private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
 
@@ -261,8 +251,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     machineModel = predCpa.getMachineModel();
 
     targetLocationProvider = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
-
-    isProgramConcurrent = from(cfa.getAllFunctionNames()).anyMatch(in(CONCURRENT_FUNCTIONS));
   }
 
   public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) {
@@ -384,15 +372,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private Set<CandidateInvariant> getCandidateInvariants() {
     final Set<CandidateInvariant> result = new LinkedHashSet<>();
 
-    Collection<CFANode> targetLocations;
-    if (isProgramConcurrent) {
+    Collection<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
+    if (targetLocations == null) {
       targetLocations = cfa.getAllNodes();
-    } else {
-      boolean skipRecursion = Boolean.parseBoolean(config.getProperty("cpa.callstack.skipRecursion"));
-      targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction(), skipRecursion);
-      if (targetLocations == null) {
-        targetLocations = cfa.getAllNodes();
-      }
     }
 
     if (!isInvariantGenerator) {
