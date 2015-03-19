@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGener
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.UpdateListener;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -271,10 +270,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-
-    final ReachedSet reachedSet = pReachedSet;
-
+  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     CFANode initialLocation = extractLocation(reachedSet.getFirstState());
 
     invariantGenerator.start(initialLocation);
@@ -376,10 +372,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       if (!isInvariantGenerator) {
         invariantGenerator.cancel();
-      }
-      if (reachedSet != pReachedSet) {
-        pReachedSet.clear();
-        ReachedSetUtils.addReachedStatesToOtherReached(reachedSet, pReachedSet);
       }
     }
   }
