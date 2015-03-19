@@ -74,6 +74,9 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     PrecisionAdjustmentResult result = wrappedPrecisionAdjustment.prec(pElement, validPrecision, pElements, fullState);
+    if (result.isBottom()) {
+      return result;
+    }
 
     result = result.withAbstractState(trans.attachAdditionalInfoToCallNode(result.abstractState()));
 
