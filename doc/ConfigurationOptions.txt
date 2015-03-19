@@ -1226,10 +1226,6 @@ cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
 
-# defines how to handle feasible assume edges during path slicing
-cpa.predicate.refinement.handleFeasibleAssumeEdges = "NONE"
-  allowed values: [NONE, EQUALITY, ALL]
-
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
@@ -1237,9 +1233,6 @@ cpa.predicate.refinement.incrementalCexTraceCheck = false
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
-
-# whether or not to perform path slicing before interpolation
-cpa.predicate.refinement.pathSlicing = false
 
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
