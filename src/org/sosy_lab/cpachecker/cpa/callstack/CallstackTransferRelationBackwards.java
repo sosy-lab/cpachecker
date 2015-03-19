@@ -33,6 +33,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCount
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 @Options(prefix="cpa.callstack")
@@ -75,6 +80,19 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
 
     switch (pEdge.getEdgeType()) {
     case StatementEdge: {
+      AStatementEdge edge = (AStatementEdge)pEdge;
+      if (edge.getStatement() instanceof AFunctionCall) {
+        AExpression functionNameExp = ((AFunctionCall)edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          String functionName = ((AIdExpression)functionNameExp).getName();
+          if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+            throw new UnrecognizedCodeException(
+                "Unsupported feature: " + UNSUPPORTED_FUNCTIONS.get(functionName),
+                edge, edge.getStatement());
+          }
+        }
+      }
+
       if (pEdge instanceof CFunctionSummaryStatementEdge) {
         if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
           // should go by function call and skip the current edge

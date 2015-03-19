@@ -99,13 +99,13 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState.Type;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.DoubleScalar;
 import apron.Interval;
@@ -136,7 +136,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
    * the value of the map entry is the explanation for the user
    */
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("pthread_create", "threads");
+      = ImmutableMap.of();
 
   private final LogManager logger;
   private final boolean splitDisequalities;
