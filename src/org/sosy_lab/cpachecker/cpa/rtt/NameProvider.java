@@ -34,7 +34,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 public class NameProvider {
 
   private static final NameProvider SINGLETON = new NameProvider();
-  private static final String DELIMITER = "::";
+  private static final String VARIABLE_DELIMITER = "::";
+  private static final String INSTANCE_DELIMITER = "_";
 
   private NameProvider() {
     // DO NOTHING
@@ -90,10 +91,10 @@ public class NameProvider {
     }
 
     if (pState.isKnownAsDynamic(pVariableName)) {
-      return pUniqueObject + DELIMITER + pVariableName;
+      return pUniqueObject + VARIABLE_DELIMITER + pVariableName;
     }
 
-    return pFunctionName + DELIMITER + pVariableName;
+    return pFunctionName + VARIABLE_DELIMITER + pVariableName;
   }
 
 
@@ -105,9 +106,13 @@ public class NameProvider {
       return variableName;
 
     } else if (pDeclaration instanceof JFieldDeclaration) {
-      return uniqueObject + DELIMITER + variableName;
+      return uniqueObject + VARIABLE_DELIMITER + variableName;
     } else {
-      return functionName + DELIMITER + variableName;
+      return functionName + VARIABLE_DELIMITER + variableName;
     }
+  }
+
+  public String getUniqueObjectName(String pJavaRunTimeClassName, String pId) {
+    return pJavaRunTimeClassName + INSTANCE_DELIMITER + pId;
   }
 }
