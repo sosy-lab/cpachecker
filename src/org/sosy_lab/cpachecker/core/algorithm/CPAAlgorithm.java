@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -287,6 +287,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet, successor);
         } finally {
           stats.precisionTimer.stop();
+        }
+
+        if (precAdjustmentResult.isBottom()) {
+
+          // PrecisionAdjustment may strengthen the state to BOTTOM: in that
+          // case it is equivalent to as if this state was never returned.
+          continue;
         }
 
         successor = precAdjustmentResult.abstractState();

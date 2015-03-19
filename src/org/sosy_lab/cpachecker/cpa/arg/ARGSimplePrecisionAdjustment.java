@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ARGSimplePrecisionAdjustment extends SimplePrecisionAdjustment {

@@ -27,8 +27,7 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 
 import com.google.common.testing.ClassSanityTester;
 
