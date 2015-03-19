@@ -80,7 +80,7 @@ public abstract class PrecisionAdjustmentResult {
 
 
   @Immutable
-  public static final class PrecisionAdjustmentResultImpl extends
+  private static final class PrecisionAdjustmentResultImpl extends
       PrecisionAdjustmentResult {
 
     private final AbstractState abstractState;
@@ -151,7 +151,7 @@ public abstract class PrecisionAdjustmentResult {
   }
 
   @Immutable
-  public static class BottomPrecisionAdjustmentResult extends PrecisionAdjustmentResult {
+  private static class BottomPrecisionAdjustmentResult extends PrecisionAdjustmentResult {
     private final static BottomPrecisionAdjustmentResult INSTANCE =
         new BottomPrecisionAdjustmentResult();
 
