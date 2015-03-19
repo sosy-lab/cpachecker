@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -113,7 +112,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
   private final CPAInvariantGeneratorStatistics stats = new CPAInvariantGeneratorStatistics();
   private final LogManager logger;
-  private final Algorithm invariantAlgorithm;
+  private final CPAAlgorithm invariantAlgorithm;
   private final ConfigurableProgramAnalysis invariantCPAs;
   private final ReachedSetFactory reachedSetFactory;
   private final ReachedSet reached;
@@ -213,9 +212,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     if (invariantCPAs instanceof StatisticsProvider) {
       ((StatisticsProvider)invariantCPAs).collectStatistics(pStatsCollection);
     }
-    if (invariantAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)invariantAlgorithm).collectStatistics(pStatsCollection);
-    }
+    invariantAlgorithm.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
   }
 
