@@ -442,16 +442,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InterruptedException
    */
   private void createErrorPath(final ReachedSet pReachedSet, final ProverEnvironment pProver) throws CPATransferException, InterruptedException {
-    addCounterexampleTo(pReachedSet, pProver, new CounterexampleStorage() {
-
-      @Override
-      public void addCounterexample(ARGState pTargetState, CounterexampleInfo pCounterexample) {
-        ((ARGCPA) cpa).addCounterexample(pTargetState, pCounterexample);
-      }
-    });
-  }
-
-  private void addCounterexampleTo(final ReachedSet pReachedSet, final ProverEnvironment pProver, CounterexampleStorage pCounterexampleStorage) throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
       return;
@@ -572,7 +562,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
         counterexample = CounterexampleInfo.feasible(targetPath, model);
       }
-      pCounterexampleStorage.addCounterexample(targetPath.getLastState(), counterexample);
+      ((ARGCPA) cpa).addCounterexample(targetPath.getLastState(), counterexample);
 
     } finally {
       stats.errorPathCreation.stop();
@@ -700,12 +690,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     for (UpdateListener updateListener : updateListeners) {
       updateListener.updated();
     }
-  }
-
-  private static interface CounterexampleStorage {
-
-    void addCounterexample(ARGState pTargetState, CounterexampleInfo pCounterexample);
-
   }
 
   static List<BooleanFormula> transform(Collection<EdgeFormulaNegation> pCandidates, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
