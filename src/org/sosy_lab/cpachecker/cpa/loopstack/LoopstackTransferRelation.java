@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -60,15 +58,10 @@ public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
 
   public LoopstackTransferRelation(
       int pLoopIterationsBeforeAbstraction,
-      int maxLoopIterations, CFA pCfa)
-      throws InvalidCFAException {
+      int maxLoopIterations, LoopStructure loops) {
 
     loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
     this.maxLoopIterations = maxLoopIterations;
-    if (!pCfa.getLoopStructure().isPresent()) {
-      throw new InvalidCFAException("LoopstackCPA does not work without loop information!");
-    }
-    LoopStructure loops = pCfa.getLoopStructure().get();
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();

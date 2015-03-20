@@ -35,9 +35,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -111,7 +109,6 @@ import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -146,19 +143,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
 
   private final Set<CFANode> loopHeads;
 
-  /**
-   * Class constructor.
-   * @throws InvalidCFAException
-   * @throws InvalidConfigurationException
-   */
-  public OctagonTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
+  public OctagonTransferRelation(LogManager log, LoopStructure loops) {
     logger = log;
-
-    if (!cfa.getLoopStructure().isPresent()) {
-      throw new InvalidCFAException("OctagonCPA does not work without loop information!");
-    }
-
-    LoopStructure loops = cfa.getLoopStructure().get();
 
     Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (Loop l : loops.getAllLoops()) {

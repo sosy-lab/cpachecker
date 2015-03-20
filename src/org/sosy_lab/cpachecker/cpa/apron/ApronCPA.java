@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import apron.ApronException;
@@ -85,7 +84,10 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
 
   private ApronCPA(Configuration config, LogManager log,
                      ShutdownNotifier shutdownNotifier, CFA cfa)
-                     throws InvalidConfigurationException, InvalidCFAException {
+                     throws InvalidConfigurationException, CPAException {
+    if (!cfa.getLoopStructure().isPresent()) {
+      throw new CPAException("ApronCPA cannot work without loop-structure information in CFA.");
+    }
     config.inject(this);
     logger = log;
     ApronDomain apronDomain = new ApronDomain(logger);
@@ -93,7 +95,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
     apronManager = new ApronManager(config);
     GlobalInfo.getInstance().storeApronManager(apronManager);
 
-    this.transferRelation = new ApronTransferRelation(logger, cfa, splitDisequalities);
+    this.transferRelation = new ApronTransferRelation(logger, cfa.getLoopStructure().get(), splitDisequalities);
 
     MergeOperator apronMergeOp = ApronMergeOperator.getInstance(apronDomain, config);
 
