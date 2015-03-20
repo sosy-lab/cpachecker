@@ -268,6 +268,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
 
       if (candidateInvariants.isEmpty()) {
+        logger.log(Level.INFO, "No specification violation is syntactically reachable in the program.");
         for (AbstractState state : from(reachedSet.getWaitlist()).toList()) {
           reachedSet.removeOnlyFromWaitlist(state);
         }

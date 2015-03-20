@@ -230,6 +230,12 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   protected boolean skipRecursiveFunctionCall(final CallstackState element,
       final FunctionCallEdge callEdge) {
+    // Cannot skip if there is no edge for skipping
+    // (this would just terminate the path here -> unsound).
+    if (leavingEdges(callEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class).isEmpty()) {
+      return false;
+    }
+
     if (skipRecursion) {
       return true;
     }
