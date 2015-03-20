@@ -669,7 +669,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         invariantGenerator,
         stats,
         reachedSetFactory,
-        targetLocationProvider,
         havocLoopTerminationConditionVariablesOnly,
         bmcKAccessor,
         shutdownNotifier) : null;
