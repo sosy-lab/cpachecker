@@ -101,7 +101,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -343,7 +342,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             // try to prove program safety via induction
             if (induction) {
               kInductionProver.setCandidateInvariants(candidateInvariants);
-              sound = sound || kInductionProver.check();
+              final int k = CPAs.retrieveCPA(cpa, LoopstackCPA.class).getMaxLoopIterations();
+              sound = sound || kInductionProver.check(k);
               if (candidateInvariants.removeAll(kInductionProver.getConfirmedCandidates())) {
                 notifyUpdateListeners();
               }
@@ -652,16 +652,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private KInductionProver createInductionProver() {
-    Supplier<Integer> bmcKAccessor = new Supplier<Integer> () {
-
-      @Override
-      public Integer get() {
-        LoopstackCPA loopstackCPA = CPAs.retrieveCPA(cpa, LoopstackCPA.class);
-        return loopstackCPA.getMaxLoopIterations();
-      }
-
-    };
-    return induction ? new KInductionProver(
+     return induction ? new KInductionProver(
         cfa,
         logger,
         stepCaseAlgorithm,
@@ -670,7 +661,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         stats,
         reachedSetFactory,
         havocLoopTerminationConditionVariablesOnly,
-        bmcKAccessor,
         shutdownNotifier) : null;
   }
 
