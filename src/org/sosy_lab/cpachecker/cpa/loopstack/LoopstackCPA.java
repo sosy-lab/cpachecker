@@ -104,7 +104,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   private LoopstackCPA(Configuration config, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
     super("sep", "sep", pDelegatingTransferRelation);
-    if (pCfa.getLoopStructure().isPresent()) {
+    if (!pCfa.getLoopStructure().isPresent()) {
       throw new CPAException("LoopstackCPA cannot work without loop-structure information in CFA.");
     }
     loopStructure = pCfa.getLoopStructure().get();
