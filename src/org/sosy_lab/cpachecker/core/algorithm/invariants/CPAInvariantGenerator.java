@@ -135,8 +135,9 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     return invariantCPAs;
   }
 
-  public CPAInvariantGenerator(Configuration config, LogManager pLogger,
-      ReachedSetFactory reachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException, CPAException {
+  public CPAInvariantGenerator(final Configuration config, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final CFA cfa)
+          throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger.withComponentName("CPAInvariantGenerator");
     shutdownNotifier = ShutdownNotifier.createWithParent(pShutdownNotifier);
@@ -150,9 +151,9 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
+    reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     invariantCPAs = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAWithSpecAutomatas(cfa);
     invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, shutdownNotifier);
-    this.reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     reached = reachedSetFactory.create();
   }
 
