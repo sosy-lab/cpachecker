@@ -323,11 +323,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
               if (!safe) {
                 candidateInvariantIterator.remove();
-                if (candidateInvariant.violationIndicatesError()) {
-                  return soundInner;
-                }
               }
             }
+          }
+          if (candidateInvariants.isEmpty()) {
+            // no remaining invariants to be proven
+            return soundInner;
           }
 
           // second check soundness
