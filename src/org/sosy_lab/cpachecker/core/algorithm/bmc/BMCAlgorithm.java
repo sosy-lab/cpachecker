@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTE
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -691,15 +690,4 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       updateListener.updated();
     }
   }
-
-  static List<BooleanFormula> transform(Collection<EdgeFormulaNegation> pCandidates, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-
-    List<BooleanFormula> formulas = new ArrayList<>(pCandidates.size());
-    for (EdgeFormulaNegation candidate : pCandidates) {
-      formulas.add(candidate.getCandidate(pFMGR, pPFMGR));
-    }
-    return formulas;
-
-  }
-
 }
