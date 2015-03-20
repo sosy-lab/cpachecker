@@ -1315,6 +1315,11 @@ cpa.predicate.revealAllocationTypeFromLhs = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
+# Enables sat checks at abstraction location.
+# Infeasible paths are already excluded by transfer relation and not later by
+# precision adjustment. This property is required in proof checking.
+cpa.predicate.satCheckAtAbstraction = false
+
 # Which SMT solver to use.
 cpa.predicate.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
