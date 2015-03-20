@@ -48,11 +48,13 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -129,13 +131,24 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     LogManager logger         = valueCpa.getLogger();
     CFA controlFlowAutomaton  = valueCpa.getCFA();
 
+    StrongestPostOperator strongestPost =
+        new ValueAnalysisTransferRelation(config, logger, controlFlowAutomaton);
+
+    ValueAnalysisFeasibilityChecker feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(strongestPost, logger, controlFlowAutomaton, config);
+
+    ValueAnalysisRefiner valueAnalysisRefiner =
+        new ValueAnalysisRefiner(feasibilityChecker, strongestPost, config, logger,
+                                 predicateCpa.getShutdownNotifier(),
+                                 controlFlowAutomaton);
+
     return new ValueAnalysisDelegatingRefiner(
         config,
         logger,
         controlFlowAutomaton,
         cpa,
-        ValueAnalysisRefiner.create(cpa),
-        new ValueAnalysisFeasibilityChecker(logger, controlFlowAutomaton, config),
+        valueAnalysisRefiner,
+        feasibilityChecker,
         PredicateRefiner.create(cpa),
         new PredicateBasedPrefixProvider(logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
   }

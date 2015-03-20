@@ -125,20 +125,25 @@ import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 
 @Options(prefix="cpa.value")
-public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
+public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
+  implements StrongestPostOperator {
+
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
@@ -1026,6 +1031,25 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       else {
         assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
       }
+    }
+  }
+
+  @Override
+  public Optional<? extends AbstractState> getStrongestPost(
+      AbstractState pOrigin, Precision pPrecision, CFAEdge pOperation) throws CPAException {
+
+    try {
+      Collection<ValueAnalysisState> computedStates =
+          getAbstractSuccessorsForEdge(pOrigin, pPrecision, pOperation);
+
+      if (computedStates.isEmpty()) {
+        return Optional.absent();
+      } else {
+        return Optional.<AbstractState>of(Iterators.getOnlyElement(computedStates.iterator()));
+      }
+
+    } catch (CPATransferException e) {
+      throw new CPAException("Error while computing strongest post-operator", e);
     }
   }
 

@@ -61,11 +61,12 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.Prefi
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -106,6 +107,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    */
   private UniqueAssignmentsInPathConditionState assignments = null;
 
+  private FeasibilityChecker checker;
+
   // statistics
   private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
@@ -120,7 +123,10 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
   private final ValueAnalysisEdgeInterpolator interpolator;
 
-  public ValueAnalysisPathInterpolator(Configuration pConfig,
+  public ValueAnalysisPathInterpolator(
+      final FeasibilityChecker pFeasibilityChecker,
+      final StrongestPostOperator pStrongestPostOperator,
+      final Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
@@ -130,7 +136,13 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     logger           = pLogger;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
-    interpolator     = new ValueAnalysisEdgeInterpolator(pConfig, logger, shutdownNotifier, cfa);
+    checker = pFeasibilityChecker;
+    interpolator     = new ValueAnalysisEdgeInterpolator(pFeasibilityChecker,
+                                                         pStrongestPostOperator,
+                                                         config,
+                                                         logger,
+                                                         shutdownNotifier,
+                                                         cfa);
   }
 
   protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
@@ -209,12 +221,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   /**
    * This utility method checks if the given path is feasible.
    */
-  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException, InterruptedException {
-    try {
-       return new ValueAnalysisFeasibilityChecker(logger, cfa, config).isFeasible(slicedErrorPathPrefix);
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
-    }
+  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException {
+    return checker.isFeasible(slicedErrorPathPrefix);
   }
 
   /**
@@ -388,25 +396,16 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
    * @return a (sub)path of the error path which is given to the interpolation procedure
    * @throws CPAException
-   * @throws InterruptedException
    */
   private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
-          throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
 
-    try {
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
-          interpolant.createValueAnalysisState(),
-          new ArrayDeque<ValueAnalysisState>());
+    List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath);
 
-      totalPrefixes.setNextValue(prefixes.size());
+    totalPrefixes.setNextValue(prefixes.size());
 
-      ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
-      errorPath = classifier.obtainSlicedPrefix(prefixPreference, errorPath, prefixes);
-
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
-    }
+    ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
+    errorPath = classifier.obtainSlicedPrefix(prefixPreference, errorPath, prefixes);
 
     return errorPath;
   }

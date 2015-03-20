@@ -24,7 +24,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.Collection;
 import java.util.Deque;
 import java.util.Set;
 
@@ -39,17 +38,18 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Iterables;
+import com.google.common.base.Optional;
 
 public class ValueAnalysisEdgeInterpolator {
   /**
@@ -58,9 +58,9 @@ public class ValueAnalysisEdgeInterpolator {
   private final ShutdownNotifier shutdownNotifier;
 
   /**
-   * the transfer relation in use
+   * the strongest post-operator in use
    */
-  private final ValueAnalysisTransferRelation transfer;
+  private final StrongestPostOperator strongestPostOp;
 
   /**
    * the precision in use
@@ -75,7 +75,7 @@ public class ValueAnalysisEdgeInterpolator {
   /**
    * the error path checker to be used for feasibility checks
    */
-  private final ValueAnalysisFeasibilityChecker checker;
+  private final FeasibilityChecker checker;
 
   /**
    * constant to denote that a transition did not yield a successor
@@ -85,14 +85,17 @@ public class ValueAnalysisEdgeInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ValueAnalysisEdgeInterpolator(final Configuration pConfig,final LogManager pLogger,
+  public ValueAnalysisEdgeInterpolator(
+      final FeasibilityChecker pFeasibilityChecker,
+      final StrongestPostOperator pStrongestPostOperator,
+      final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
     try {
       shutdownNotifier  = pShutdownNotifier;
-      checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
-      transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
+      checker           = pFeasibilityChecker;
+      strongestPostOp   = pStrongestPostOperator;
       precision         = VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     }
     catch (InvalidConfigurationException e) {
@@ -122,7 +125,7 @@ public class ValueAnalysisEdgeInterpolator {
 
     // TODO callstack-management depends on a forward-iteration on a single path.
     // TODO Thus interpolants have to be computed from front to end. Can we assure this?
-    ValueAnalysisState initialSuccessor = getInitialSuccessor(initialState, pCurrentEdge, callstack);
+    ValueAnalysisState initialSuccessor = (ValueAnalysisState) getInitialSuccessor(initialState, pCurrentEdge, callstack);
 
     if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
@@ -191,10 +194,9 @@ public class ValueAnalysisEdgeInterpolator {
    *
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
-   * @throws InterruptedException
    * @throws CPAException
    */
-  private boolean isSuffixContradicting(ARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean isSuffixContradicting(ARGPath errorPath) throws CPAException {
     return !isRemainingPathFeasible(errorPath, new ValueAnalysisState());
   }
 
@@ -213,11 +215,10 @@ public class ValueAnalysisEdgeInterpolator {
    * @param initialState the initial state, i.e. the state represented by the input interpolant.
    * @param initialEdge the initial edge of the error path
    * @return the initial successor
-   * @throws CPATransferException
+   * @throws CPAException
    */
-  private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState,
-      final CFAEdge initialEdge, final Deque<ValueAnalysisState> callstack)
-      throws CPATransferException {
+  private AbstractState getInitialSuccessor(ValueAnalysisState initialState,
+      final CFAEdge initialEdge, final Deque<ValueAnalysisState> callstack) throws CPAException {
 
     // we enter a function, so lets add the previous state to the stack
     if (initialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
@@ -231,12 +232,12 @@ public class ValueAnalysisEdgeInterpolator {
       initialState = initialState.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)initialEdge.getPredecessor());
     }
 
-    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
+    Optional<? extends AbstractState> successor = strongestPostOp.getStrongestPost(
         initialState,
         precision,
         initialEdge);
 
-    return Iterables.getOnlyElement(successors, NO_SUCCESSOR);
+    return successor.isPresent() ? successor.get() : NO_SUCCESSOR;
   }
 
   /**
@@ -245,11 +246,10 @@ public class ValueAnalysisEdgeInterpolator {
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
    * @return true, it the path is feasible, else false
-   * @throws InterruptedException
    * @throws CPAException
    */
   private boolean isRemainingPathFeasible(ARGPath remainingErrorPath, ValueAnalysisState state)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     numberOfInterpolationQueries++;
     return checker.isFeasible(remainingErrorPath, state);
   }

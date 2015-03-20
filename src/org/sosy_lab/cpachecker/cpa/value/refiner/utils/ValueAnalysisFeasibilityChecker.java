@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
@@ -39,28 +38,29 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import com.google.common.base.Optional;
 
-public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
+public class ValueAnalysisFeasibilityChecker implements PrefixProvider, FeasibilityChecker {
 
   private final LogManager logger;
-  private final ValueAnalysisTransferRelation transfer;
+  private final StrongestPostOperator strongestPostOp;
   private final VariableTrackingPrecision precision;
 
   /**
@@ -71,10 +71,16 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
    * @param pInitial the initial state for starting the exploration
    * @throws InvalidConfigurationException
    */
-  public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa, Configuration config) throws InvalidConfigurationException {
+  public ValueAnalysisFeasibilityChecker(
+      StrongestPostOperator pTransferRelation,
+      LogManager pLogger,
+      CFA pCfa,
+      Configuration config
+  ) throws InvalidConfigurationException {
+
     logger    = pLogger;
 
-    transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
+    strongestPostOp = pTransferRelation;
     precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
   }
 
@@ -84,10 +90,10 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
    * @param path the path to check
    * @return true, if the path is feasible, else false
    * @throws CPAException
-   * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
-    return isFeasible(path, new ValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
+  @Override
+  public boolean isFeasible(final ARGPath path) throws CPAException {
+    return isFeasible(path, new ValueAnalysisState(), new ArrayDeque<AbstractState>());
   }
 
   /**
@@ -98,11 +104,11 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
    * @param pCallstack the initial callstack
    * @return true, if the path is feasible, else false
    * @throws CPAException
-   * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial)
-          throws CPAException, InterruptedException {
-    return isFeasible(path, pInitial, new ArrayDeque<ValueAnalysisState>());
+  @Override
+  public boolean isFeasible(final ARGPath path, final AbstractState pInitial)
+      throws CPAException {
+    return isFeasible(path, pInitial, new ArrayDeque<AbstractState>());
   }
 
   /**
@@ -113,10 +119,9 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
    * @param pCallstack the initial callstack
    * @return true, if the path is feasible, else false
    * @throws CPAException
-   * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial, final Deque<ValueAnalysisState> pCallstack)
-      throws CPAException, InterruptedException {
+  public boolean isFeasible(final ARGPath path, final AbstractState pInitial, final Deque<AbstractState> pCallstack)
+      throws CPAException {
 
     return path.size() == getInfeasilbePrefixes(path, pInitial, pCallstack).get(0).size();
   }
@@ -127,13 +132,10 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
    *
    * @param path the path to check
    * @return the list of prefix of the path that are feasible by themselves
-   * @throws CPAException
-   * @throws InterruptedException
    */
   @Override
-  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path)
-      throws CPAException, InterruptedException {
-    return getInfeasilbePrefixes(path, new ValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
+  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path) throws CPAException {
+    return getInfeasilbePrefixes(path, new ValueAnalysisState(), new ArrayDeque<AbstractState>());
   }
 
   /**
@@ -145,71 +147,41 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
    * @param callstack callstack used for functioncalls (this allows to handle recursion in some analyses)
    * @return the list of prefix of the path that are feasible by themselves
    * @throws CPAException
-   * @throws InterruptedException
    */
   public List<ARGPath> getInfeasilbePrefixes(final ARGPath path,
-                                             final ValueAnalysisState pInitial,
-                                             final Deque<ValueAnalysisState> callstack)
+                                             final AbstractState pInitial,
+                                             final Deque<AbstractState> callstack)
       throws CPAException {
 
     List<ARGPath> prefixes = new ArrayList<>();
     boolean performAbstraction = precision.allowsAbstraction();
 
-    Set<MemoryLocation> exceedingMemoryLocations = obtainExceedingMemoryLocations(path);
-
     try {
       MutableARGPath currentPrefix = new MutableARGPath();
-      ValueAnalysisState next = ValueAnalysisState.copyOf(pInitial);
+      AbstractState next = pInitial;
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {
         final CFAEdge edge = iterator.getOutgoingEdge();
 
-        // we enter a function, so lets add the previous state to the stack
-        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          callstack.addLast(next);
-        }
-
-        // we leave a function, so rebuild return-state before assigning the return-value.
-        if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          // rebuild states with info from previous state
-          final ValueAnalysisState callState = callstack.removeLast();
-          next = next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)edge.getPredecessor());
-        }
-
-        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
-            next,
-            precision,
-            edge);
+        Optional<? extends AbstractState> successor = getSuccessor(next, edge, callstack);
 
         currentPrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
 
         // no successors => path is infeasible
-        if (successors.isEmpty()) {
+        if (!successor.isPresent()) {
           logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " did not yield a successor");
           prefixes.add(currentPrefix.immutableCopy());
 
           currentPrefix = new MutableARGPath();
-          successors    = Sets.newHashSet(next);
+          successor     = Optional.of(next);
         }
 
         // extract singleton successor state
-        next = Iterables.getOnlyElement(successors);
+        next = successor.get();
 
-        // some variables might be blacklisted or tracked by BDDs
-        // so perform abstraction computation here
-        if(performAbstraction) {
-          for (MemoryLocation memoryLocation : next.getTrackedMemoryLocations()) {
-            if (!precision.isTracking(memoryLocation,
-                next.getTypeForMemoryLocation(memoryLocation),
-                iterator.getOutgoingEdge().getSuccessor())) {
-              next.forget(memoryLocation);
-            }
-          }
-        }
-
-        for(MemoryLocation exceedingMemoryLocation : exceedingMemoryLocations) {
-          next.forget(exceedingMemoryLocation);
+        if (performAbstraction) {
+          next = performAbstractions(next, edge.getSuccessor(), path);
         }
 
         iterator.advance();
@@ -222,9 +194,83 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
       }
 
       return prefixes;
-    } catch (CPATransferException e) {
+    } catch (CPAException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
+  }
+
+  private Optional<? extends AbstractState> getSuccessor(final AbstractState pNext,
+                                               final CFAEdge pEdge,
+                                               final Deque<AbstractState> pCallstack)
+      throws CPAException {
+
+    AbstractState next = pNext;
+
+    if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      next = handleFunctionCall(next, pEdge, pCallstack);
+    }
+
+    if (!pCallstack.isEmpty() && pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      next = handleFunctionReturn(next, pEdge, pCallstack);
+    }
+
+    return strongestPostOp.getStrongestPost(next, precision, pEdge);
+  }
+
+  private AbstractState handleFunctionCall(AbstractState pNext,
+                                           CFAEdge pEdge,
+                                           Deque<AbstractState> pCallstack) {
+
+    // we enter a function, so lets add the previous state to the stack
+    pCallstack.addLast(pNext);
+    return pNext;
+  }
+
+  private AbstractState handleFunctionReturn(AbstractState pNext,
+                                             CFAEdge pEdge,
+                                             Deque<AbstractState> pCallstack) {
+
+    if (pNext instanceof ValueAnalysisState) {
+      // we leave a function, so rebuild return-state before assigning the return-value.
+      final ValueAnalysisState valueState = (ValueAnalysisState) pNext;
+
+      // rebuild states with info from previous state
+      final ValueAnalysisState callState = (ValueAnalysisState)pCallstack.removeLast();
+
+      return valueState.rebuildStateAfterFunctionCall(callState,
+          (FunctionExitNode)pEdge.getPredecessor());
+
+    } else {
+      return pNext;
+    }
+  }
+
+  private AbstractState performAbstractions(AbstractState pNext, CFANode pLocation, ARGPath pPath) {
+    AbstractState abstractedState = pNext;
+
+    if (pNext instanceof ValueAnalysisState) {
+      final ValueAnalysisState valueState =
+          ValueAnalysisState.copyOf((ValueAnalysisState) abstractedState);
+
+      final Set<MemoryLocation> exceedingMemoryLocations = obtainExceedingMemoryLocations(pPath);
+
+      // some variables might be blacklisted or tracked by BDDs
+      // so perform abstraction computation here
+      for (MemoryLocation memoryLocation : valueState.getTrackedMemoryLocations()) {
+        if (!precision.isTracking(memoryLocation,
+            valueState.getTypeForMemoryLocation(memoryLocation), pLocation)) {
+          valueState.forget(memoryLocation);
+        }
+      }
+
+      for(MemoryLocation exceedingMemoryLocation : exceedingMemoryLocations) {
+        valueState.forget(exceedingMemoryLocation);
+      }
+
+      abstractedState = valueState;
+    }
+
+    return abstractedState;
   }
 
   private Set<MemoryLocation> obtainExceedingMemoryLocations(ARGPath path) {
@@ -248,17 +294,19 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {
-        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
-            next,
-            precision,
-            iterator.getOutgoingEdge());
+        Optional<? extends AbstractState> successor =
+            getSuccessor(next, iterator.getOutgoingEdge(), new ArrayDeque<AbstractState>());
 
-        if(successors.isEmpty()) {
+        if(!successor.isPresent()) {
           return reevaluatedPath;
         }
 
+        assert successor.get() instanceof ValueAnalysisState
+            : "ValueAnalysisFeasibilityChecker.evaluate(ARGPath) currently only works with"
+            + " ValueAnalysisStates";
+
         // extract singleton successor state
-        next = Iterables.getOnlyElement(successors);
+        next = (ValueAnalysisState) successor.get();
 
         reevaluatedPath.add(Pair.of(next, iterator.getOutgoingEdge()));
 
@@ -266,7 +314,7 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
       }
 
       return reevaluatedPath;
-    } catch (CPATransferException e) {
+    } catch (CPAException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }

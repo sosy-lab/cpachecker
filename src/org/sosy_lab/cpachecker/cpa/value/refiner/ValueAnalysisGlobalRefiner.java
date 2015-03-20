@@ -38,8 +38,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 
 import com.google.common.collect.FluentIterable;
 
@@ -61,19 +64,35 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
 
     valueAnalysisCpa.injectRefinablePrecision();
 
-    ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(valueAnalysisCpa.getConfiguration(),
-        valueAnalysisCpa.getLogger(),
+    final LogManager logger = valueAnalysisCpa.getLogger();
+    final CFA cfa = valueAnalysisCpa.getCFA();
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+
+    final StrongestPostOperator strongestPostOperator = new ValueAnalysisTransferRelation(
+        Configuration.builder().build(), logger, cfa);
+
+    final ValueAnalysisFeasibilityChecker feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
+
+    ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(
+        feasibilityChecker,
+        strongestPostOperator,
+        config,
+        logger,
         valueAnalysisCpa.getShutdownNotifier(),
-        valueAnalysisCpa.getCFA());
+        cfa);
 
     return refiner;
   }
 
-  ValueAnalysisGlobalRefiner(final Configuration pConfig, final LogManager pLogger,
+  ValueAnalysisGlobalRefiner(
+      final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
+      final StrongestPostOperator pStrongestPostOperator,
+      final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
-    super(pConfig, pLogger, pShutdownNotifier, pCfa);
+    super(pFeasibilityChecker, pStrongestPostOperator, pConfig, pLogger, pShutdownNotifier, pCfa);
 
     pConfig.inject(this, ValueAnalysisGlobalRefiner.class);
   }

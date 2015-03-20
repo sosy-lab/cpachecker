@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -76,6 +77,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
@@ -153,15 +155,32 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     valueAnalysisCpa.injectRefinablePrecision();
 
-    ValueAnalysisRefiner refiner = new ValueAnalysisRefiner(valueAnalysisCpa.getConfiguration(),
-        valueAnalysisCpa.getLogger(),
+    final LogManager logger = valueAnalysisCpa.getLogger();
+    final CFA cfa = valueAnalysisCpa.getCFA();
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+
+    final StrongestPostOperator strongestPostOperator =
+        new ValueAnalysisTransferRelation(Configuration.builder().build(),
+                                          logger, cfa);
+
+    ValueAnalysisFeasibilityChecker feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
+
+    ValueAnalysisRefiner refiner = new ValueAnalysisRefiner(
+        feasibilityChecker,
+        strongestPostOperator,
+        config,
+        logger,
         valueAnalysisCpa.getShutdownNotifier(),
-        valueAnalysisCpa.getCFA());
+        cfa);
 
     return refiner;
   }
 
-  ValueAnalysisRefiner(final Configuration pConfig, final LogManager pLogger,
+  ValueAnalysisRefiner(
+      final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
+      final StrongestPostOperator pStrongestPostOperator,
+      final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
@@ -169,8 +188,13 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     logger = pLogger;
 
-    interpolator  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker       = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
+    checker       = pFeasibilityChecker;
+    interpolator  = new ValueAnalysisPathInterpolator(checker,
+                                                      pStrongestPostOperator,
+                                                      pConfig,
+                                                      pLogger,
+                                                      pShutdownNotifier,
+                                                      pCfa);
     classifier    = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
 
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(logger, pShutdownNotifier, pCfa.getMachineModel());
@@ -490,7 +514,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   }
 
   private CounterexampleInfo isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
-      throws CPAException, InterruptedException {
+      throws CPAException {
 
     ARGPath feasiblePath = null;
     for (ARGPath currentPath : errorPaths) {
@@ -520,8 +544,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return CounterexampleInfo.spurious();
   }
 
-  boolean isErrorPathFeasible(final ARGPath errorPath)
-      throws CPAException, InterruptedException {
+  boolean isErrorPathFeasible(final ARGPath errorPath) throws CPAException {
     return checker.isFeasible(errorPath);
   }
 
@@ -530,11 +553,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    *
    * @param errorPath the error path for which to create the model
    * @return the model for the given error path
-   * @throws InvalidConfigurationException
-   * @throws InterruptedException
    * @throws CPAException
    */
-  private Model createModel(ARGPath errorPath) throws InterruptedException, CPAException {
+  private Model createModel(ARGPath errorPath) throws CPAException {
     return concreteErrorPathAllocator.allocateAssignmentsToPath(checker.evaluate(errorPath));
   }
 
@@ -596,7 +617,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           else {
             return path1.size() - path2.size();
           }
-        } catch (CPAException | InterruptedException e) {
+        } catch (CPAException e) {
           throw new AssertionError(e);
         }
       }

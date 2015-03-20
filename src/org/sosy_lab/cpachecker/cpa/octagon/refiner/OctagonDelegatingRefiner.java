@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -58,10 +59,13 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -81,6 +85,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * refiner used for value-analysis interpolation refinement
    */
   private ValueAnalysisPathInterpolator interpolatingRefiner;
+  private final FeasibilityChecker valueAnalysisChecker;
 
   /**
    * the hash code of the previous error path
@@ -145,7 +150,27 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     logger                = pOctagonCPA.getLogger();
     shutdownNotifier      = pOctagonCPA.getShutdownNotifier();
     octagonCPA            = pOctagonCPA;
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pOctagonCPA.getConfiguration(), logger, shutdownNotifier, cfa);
+    valueAnalysisChecker  = createValueAnalysisFeasibilityChecker();
+    interpolatingRefiner  =
+        new ValueAnalysisPathInterpolator(valueAnalysisChecker,
+                                          getStrongestPostOperatorForInterpolation(),
+                                          pOctagonCPA.getConfiguration(),
+                                          logger, shutdownNotifier, cfa);
+  }
+
+  private FeasibilityChecker createValueAnalysisFeasibilityChecker()
+      throws InvalidConfigurationException {
+
+    return new ValueAnalysisFeasibilityChecker(getStrongestPostOperatorForInterpolation(),
+                                               logger, cfa,
+                                               octagonCPA.getConfiguration());
+  }
+
+  private StrongestPostOperator getStrongestPostOperatorForInterpolation()
+      throws InvalidConfigurationException {
+
+    return new ValueAnalysisTransferRelation(Configuration.builder().build(),
+                                             logger, cfa);
   }
 
   @Override
@@ -183,7 +208,6 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @param errorPath the current error path
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
-   * @throws InvalidConfigurationException
    */
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
@@ -303,15 +327,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @throws CPAException if the path check gets interrupted
    */
   boolean isPathFeasable(ARGPath path) throws CPAException {
-    try {
-      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, octagonCPA.getConfiguration());
-
-      return checker.isFeasible(path);
-    }
-    catch (InterruptedException | InvalidConfigurationException e) {
-      throw new CPAException("counterexample-check failed: ", e);
-    }
+    return valueAnalysisChecker.isFeasible(path);
   }
 
   /**
