@@ -110,9 +110,9 @@ public class TargetLocationProvider {
     } catch (InvalidConfigurationException | CPAException e) {
 
       if (!e.toString().toLowerCase().contains("recursion")) {
-        logManager.logUserException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        logManager.logUserException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
       } else {
-        logManager.log(Level.INFO, e, "Recursion detected. Defaulting to selecting all locations.");
+        logManager.log(Level.INFO, "Recursion detected. Defaulting to selecting all locations as potential target locations.");
         logManager.logDebugException(e);
       }
 
@@ -120,7 +120,7 @@ public class TargetLocationProvider {
 
     } catch (InterruptedException e) {
       if (!shutdownNotifier.shouldShutdown()) {
-        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
       } else {
         logManager.logDebugException(e);
       }
