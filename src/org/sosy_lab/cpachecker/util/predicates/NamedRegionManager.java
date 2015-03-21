@@ -250,12 +250,15 @@ public class NamedRegionManager implements RegionManager {
 
   @Override
   public void setVarOrder(ArrayList<Integer> pOrder) {
-
   }
 
   @Override
-  public void reorder() {
+  public void reorder(String strategy) {
+  }
 
+  @Override
+  public String[] getReorderStrategies() {
+    return new String[0];
   }
 
   @Override

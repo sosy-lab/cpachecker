@@ -72,6 +72,15 @@ import net.sf.javabdd.BDDFactory;
 @Options(prefix = "bdd.javabdd")
 class JavaBDDRegionManager implements RegionManager {
   private static final Level LOG_LEVEL = Level.FINE;
+  private static final String FRAMEWORK_RANDOMLY = "FRAMEWORK_RANDOMLY";
+  private static final String FRAMEWORK_SIFT = "FRAMEWORK_SIFT";
+  private static final String FRAMEWORK_SIFTITE = "FRAMEWORK_SIFTITE";
+  private static final String FRAMEWORK_WIN2 = "FRAMEWORK_WIN2";
+  private static final String FRAMEWORK_WIN2ITE = "FRAMEWORK_WIN2ITE";
+  private static final String FRAMEWORK_WIN3 = "FRAMEWORK_WIN3";
+  private static final String FRAMEWORK_WIN3ITE = "FRAMEWORK_WIN3ITE";
+  private static final String[] FRAMEWORK_ORDERINGS = {FRAMEWORK_RANDOMLY, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE,
+      FRAMEWORK_WIN2, FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE};
   // Statistics
   private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
   private final StatTimer cleanupTimer = new StatTimer("Time for BDD node cleanup");
@@ -445,14 +454,37 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder() {
-    // factory.reorder(BDDFactory.REORDER_WIN3ITE);
-   //  factory.reorder(BDDFactory.REORDER_WIN3);
-   // factory.reorder(BDDFactory.REORDER_RANDOM);
-   // factory.reorder(BDDFactory.REORDER_WIN2ITE);
-    //factory.reorder(BDDFactory.REORDER_WIN2);
-   //factory.reorder(BDDFactory.REORDER_SIFTITE);
-    factory.reorder(BDDFactory.REORDER_SIFT);
+  public void reorder(String strategy) {
+    switch (strategy) {
+      case FRAMEWORK_RANDOMLY:
+        factory.reorder(BDDFactory.REORDER_RANDOM);
+        break;
+      case FRAMEWORK_SIFT:
+        factory.reorder(BDDFactory.REORDER_SIFT);
+        break;
+      case FRAMEWORK_SIFTITE:
+        factory.reorder(BDDFactory.REORDER_SIFTITE);
+        break;
+      case FRAMEWORK_WIN2:
+        factory.reorder(BDDFactory.REORDER_WIN2);
+        break;
+      case FRAMEWORK_WIN2ITE:
+        factory.reorder(BDDFactory.REORDER_WIN2ITE);
+        break;
+      case FRAMEWORK_WIN3:
+        factory.reorder(BDDFactory.REORDER_WIN3);
+        break;
+      case FRAMEWORK_WIN3ITE:
+        factory.reorder(BDDFactory.REORDER_WIN3ITE);
+        break;
+      default:
+        break;
+    }
+  }
+
+  @Override
+  public String[] getReorderStrategies() {
+    return FRAMEWORK_ORDERINGS;
   }
 
   private class BDDRegionBuilder implements RegionBuilder {

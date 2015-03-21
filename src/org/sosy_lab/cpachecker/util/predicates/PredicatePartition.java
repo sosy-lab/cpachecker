@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * represents a predicate.
  */
 public abstract class PredicatePartition {
-  // the different methods available for inserting a new predicate
   private static int partitionCounter = 0;
 
   final LogManager logger;

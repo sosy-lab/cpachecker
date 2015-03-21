@@ -128,5 +128,4 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
 
     similarityRelation.put(varIDNewPredicate, similarities);
   }
-
 }

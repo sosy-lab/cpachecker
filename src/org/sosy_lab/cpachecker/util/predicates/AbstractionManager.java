@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,6 +69,11 @@ import com.google.common.collect.Maps;
  */
 @Options(prefix = "cpa.predicate")
 public final class AbstractionManager {
+  private static final String SIMILARITY = "SIMILARITY";
+  private static final String FREQUENCY = "FREQUENCY";
+  private static final String IMPLICATION = "IMPLICATION";
+  private static final String REV_IMPLICATION = "REV_IMPLICATION";
+  private static final String RANDOMLY = "RANDOMLY";
 
   private final LogManager logger;
   private final RegionManager rmgr;
@@ -83,14 +89,15 @@ public final class AbstractionManager {
   private final Map<Integer, AbstractionPredicate> varIDToPredicate = Maps.newHashMap();
 
   // Properties for BDD variable ordering:
+  private String varOrderMethod = "";
   // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
   private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
   private PredicatePartition partition;
-  private final boolean reorderWithFrameworkStrategy = true;
-  private final boolean insertRandomly = false;
-  private final boolean singlePartitionOnly = false;
+  private boolean reorderWithFrameworkStrategy;
+  private boolean insertRandomly;
+  private boolean singlePartitionOnly;
   private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
@@ -108,7 +115,11 @@ public final class AbstractionManager {
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     solver = pSolver;
-    this.partition = new PredicatePartitionFrequency(fmgr, solver, logger);
+    this.varOrderMethod = config.getProperty("bdd.variable.ordering.method");
+    this.singlePartitionOnly = Boolean.parseBoolean(config.getProperty("bdd.variable.ordering.single.partition"));
+    this.reorderWithFrameworkStrategy = Arrays.asList(rmgr.getReorderStrategies()).contains(this.varOrderMethod);
+    this.insertRandomly = this.varOrderMethod.equals(RANDOMLY);
+    this.partition = createNewPredicatePartition();
 
     if (useCache) {
       toConcreteCache = new HashMap<>();
@@ -117,6 +128,26 @@ public final class AbstractionManager {
     }
 
     new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
+  }
+
+  /**
+   * Creates a new predicate partition based on the property varOrderMethod.
+   *
+   * @return a new predicate partition.
+   */
+  private PredicatePartition createNewPredicatePartition() {
+    switch (this.varOrderMethod) {
+      case SIMILARITY:
+        return new PredicatePartitionSimilarity(fmgr, solver, logger);
+      case FREQUENCY:
+        return new PredicatePartitionFrequency(fmgr, solver, logger);
+      case IMPLICATION:
+        return new PredicatePartitionImplication(fmgr, solver, logger);
+      case REV_IMPLICATION:
+        return new PredicatePartitionRevImplication(fmgr, solver, logger);
+      default:
+        return null;
+    }
   }
 
   public int getNumberOfPredicates() {
@@ -173,7 +204,7 @@ public final class AbstractionManager {
     // this is the case if the new predicate contains just "false" or "true"
     // create an own partition for that
     if (predVars.isEmpty()) {
-      firstPartition = new PredicatePartitionRevImplication(fmgr, solver, logger);
+      firstPartition = createNewPredicatePartition();
       predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
       partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<String>());
     } else {
@@ -195,7 +226,7 @@ public final class AbstractionManager {
           predVarsCoveredByPartition.addAll(partitionIDToPredVars.get(nextPartition.getPartitionID()));
         }
       } else {
-        firstPartition = new PredicatePartitionRevImplication(fmgr, solver, logger);
+        firstPartition = createNewPredicatePartition();
       }
 
       // update predicate variables covered by the new partition
@@ -214,7 +245,7 @@ public final class AbstractionManager {
    */
   public void reorderPredicates() {
     if (reorderWithFrameworkStrategy) {
-      rmgr.reorder();
+      rmgr.reorder(this.varOrderMethod);
     } else {
       ArrayList<Integer> predicateOrdering = new ArrayList<>(numberOfPredicates);
       if (insertRandomly) {

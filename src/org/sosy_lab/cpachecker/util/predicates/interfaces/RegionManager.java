@@ -164,9 +164,26 @@ public interface RegionManager {
    */
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
 
+  /**
+   * Sets the bdd variable ordering.
+   *
+   * @param pOrder the new order of the variables.
+   */
   public void setVarOrder(ArrayList<Integer> pOrder);
 
-  public void reorder();
+  /**
+   * Reorders the bdd variables with the provided strategy.
+   *
+   * @param strategy the reorder strategy that should be applied.
+   */
+  public void reorder(String strategy);
+
+  /**
+   * Returns the possible reorder strategies.
+   *
+   * @return the reorder strategies as string array.
+   */
+  public String[] getReorderStrategies();
 
   /**
    * A stateful region builder for regions that are disjunctions

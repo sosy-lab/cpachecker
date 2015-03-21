@@ -84,5 +84,4 @@ public class PredicatePartitionFrequency extends PredicatePartition {
     }
     return predicates;
   }
-
 }

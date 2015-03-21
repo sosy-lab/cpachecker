@@ -252,11 +252,16 @@ public class SymbolicRegionManager implements RegionManager {
     return fmgr.getVersion();
   }
 
-  public void reorder() {
-
+  @Override
+  public void reorder(String strategy) {
   }
 
+  @Override
   public void setVarOrder(ArrayList<Integer> pOrder) {
+  }
 
+  @Override
+  public String[] getReorderStrategies() {
+    return new String[0];
   }
 }

@@ -87,7 +87,6 @@ public class PredicatePartitionRevImplication extends PredicatePartition {
        this.insertPredicate(newPred);
       }
     }
-
     return this;
   }
 }
