@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -54,12 +56,14 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -77,7 +81,22 @@ import com.google.common.base.Throwables;
  * Supports synchronous and asynchronous execution.
  */
 @Options(prefix="invariantGeneration")
-public class CPAInvariantGenerator implements InvariantGenerator {
+public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProvider {
+
+  private static class CPAInvariantGeneratorStatistics implements Statistics {
+
+    final Timer invariantGeneration = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("Time for invariant generation:   " + invariantGeneration);
+    }
+
+    @Override
+    public String getName() {
+      return "CPA-based invariant generator";
+    }
+  }
 
   @Option(secure=true, name="config",
           required=true,
@@ -91,10 +110,9 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   @Option(secure=true, description="adjust invariant generation conditions if supported by the analysis")
   private boolean adjustConditions = false;
 
-  private final Timer invariantGeneration = new Timer();
-
+  private final CPAInvariantGeneratorStatistics stats = new CPAInvariantGeneratorStatistics();
   private final LogManager logger;
-  private final Algorithm invariantAlgorithm;
+  private final CPAAlgorithm invariantAlgorithm;
   private final ConfigurableProgramAnalysis invariantCPAs;
   private final ReachedSetFactory reachedSetFactory;
   private final ReachedSet reached;
@@ -103,15 +121,12 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
-  private volatile boolean cancelled = false;
-
   private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
 
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
     @Override
     public void shutdownRequested(String pReason) {
-      cancelled = true;
       invariantGenerationFuture.cancel(true);
     }
   };
@@ -120,24 +135,25 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     return invariantCPAs;
   }
 
-  public CPAInvariantGenerator(Configuration config, LogManager pLogger,
-      ReachedSetFactory reachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException, CPAException {
+  public CPAInvariantGenerator(final Configuration config, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final CFA cfa)
+          throws InvalidConfigurationException, CPAException {
     config.inject(this);
-    logger = pLogger;
+    logger = pLogger.withComponentName("CPAInvariantGenerator");
     shutdownNotifier = ShutdownNotifier.createWithParent(pShutdownNotifier);
 
     Configuration invariantConfig;
     try {
-      ConfigurationBuilder configBuilder = extractOptionFrom(config, "specification");
+      ConfigurationBuilder configBuilder = Configuration.builder().copyOptionFrom(config, "specification");
       configBuilder.loadFromFile(configFile);
       invariantConfig = configBuilder.build();
     } catch (IOException e) {
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
+    reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     invariantCPAs = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAWithSpecAutomatas(cfa);
     invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, shutdownNotifier);
-    this.reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     reached = reachedSetFactory.create();
   }
 
@@ -171,7 +187,6 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
-    cancelled = true;
     shutdownNotifier.requestShutdown("Invariant generation cancel requested.");
   }
 
@@ -180,22 +195,26 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     checkState(invariantGenerationFuture != null);
     shutdownNotifier.shutdownIfNecessary();
 
-    if (cancelled) {
-      throw new InterruptedException("Invariant generation was interrupted.");
-    }
-
     try {
       return invariantGenerationFuture.get();
 
     } catch (ExecutionException e) {
       Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
       throw new UnexpectedCheckedException("invariant generation", e.getCause());
+    } catch (CancellationException e) {
+      InterruptedException ie = new InterruptedException();
+      ie.initCause(e);
+      throw ie;
     }
   }
 
   @Override
-  public Timer getTimeOfExecution() {
-    return invariantGeneration;
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (invariantCPAs instanceof StatisticsProvider) {
+      ((StatisticsProvider)invariantCPAs).collectStatistics(pStatsCollection);
+    }
+    invariantAlgorithm.collectStatistics(pStatsCollection);
+    pStatsCollection.add(stats);
   }
 
   @Override
@@ -218,7 +237,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
   private class InvariantGenerationTask implements Callable<UnmodifiableReachedSet> {
 
-    private ReachedSet taskReached;
+    private final ReachedSet taskReached;
 
     public InvariantGenerationTask(ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation) {
       taskReached = pReachedSetFactory.create();
@@ -232,7 +251,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     public UnmodifiableReachedSet call() throws CPAException, InterruptedException {
       checkState(taskReached.hasWaitingState());
 
-      invariantGeneration.start();
+      stats.invariantGeneration.start();
       logger.log(Level.INFO, "Finding invariants");
 
       try {
@@ -243,7 +262,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
         return new UnmodifiableReachedSetWrapper(taskReached);
 
       } finally {
-        invariantGeneration.stop();
+        stats.invariantGeneration.stop();
       }
     }
 
@@ -376,26 +395,6 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       return true;
     }
 
-  }
-
-  private static ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
-    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
-    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
-      pairScanner.useDelimiter("\\s+");
-      while (pairScanner.hasNext()) {
-        String pair = pairScanner.next();
-        try (Scanner keyScanner = new Scanner(pair)) {
-          keyScanner.useDelimiter("\\s*=\\s*.*");
-          if (keyScanner.hasNext()) {
-            String key = keyScanner.next();
-            if (!key.equals(pKey)) {
-              builder.clearOption(key);
-            }
-          }
-        }
-      }
-    }
-    return builder;
   }
 
 }

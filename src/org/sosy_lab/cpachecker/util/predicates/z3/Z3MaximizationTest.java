@@ -73,7 +73,7 @@ public class Z3MaximizationTest {
   }
 
   @Test public void testUnbounded() throws Exception {
-    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+    try (OptEnvironment prover = mgr.newOptEnvironment()) {
       RationalFormula x, obj;
       x = rfmgr.makeVariable("x");
       obj = rfmgr.makeVariable("obj");
@@ -90,7 +90,7 @@ public class Z3MaximizationTest {
   }
 
   @Test public void testUnfeasible() throws Exception {
-    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+    try (OptEnvironment prover = mgr.newOptEnvironment()) {
       RationalFormula x, y;
       x = rfmgr.makeVariable("x");
       y = rfmgr.makeVariable("y");
@@ -108,7 +108,7 @@ public class Z3MaximizationTest {
   }
 
   @Test public void testOptimal() throws Exception {
-    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+    try (OptEnvironment prover = mgr.newOptEnvironment()) {
 
       RationalFormula x, y, obj;
       x = rfmgr.makeVariable("x");
@@ -147,7 +147,7 @@ public class Z3MaximizationTest {
   }
 
   @Test public void testNonlinearity() throws Exception {
-    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+    try (OptEnvironment prover = mgr.newOptEnvironment()) {
       NumeralFormula.IntegerFormula x, y, z, one;
       x = ifmgr.makeVariable("x");
       y = ifmgr.makeVariable("y");
@@ -163,7 +163,7 @@ public class Z3MaximizationTest {
   }
 
   @Test public void testSwitchingObjectives() throws Exception {
-    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+    try (OptEnvironment prover = mgr.newOptEnvironment()) {
       RationalFormula x, y, obj;
       x = rfmgr.makeVariable("x");
       y = rfmgr.makeVariable("y");

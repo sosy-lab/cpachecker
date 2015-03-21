@@ -29,6 +29,7 @@ import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -79,6 +80,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
@@ -93,13 +95,13 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   @Option(
       secure = true,
-      description = "whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
-  private boolean useTopDownInterpolationStrategy = true;
+      description = "heuristic to sort targets based on the quality of interpolants deriveable from them")
+  private boolean itpSortedTargets = false;
 
   @Option(
       secure = true,
-      description = "heuristic to sort targets based on the quality of interpolants deriveable from them")
-  private boolean itpSortedTargets = false;
+      description = "whether or not to use heuristic to avoid similar, repeated refinements")
+  private boolean avoidSimilarRepeatedRefinement = false;
 
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -112,7 +114,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
   private ValueAnalysisPathInterpolator interpolator;
 
@@ -252,8 +254,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   private ValueAnalysisInterpolationTree obtainInterpolants(Collection<ARGState> targets) throws CPAException,
       InterruptedException {
-    ValueAnalysisInterpolationTree interpolationTree =
-        new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    ValueAnalysisInterpolationTree interpolationTree = createInterpolationTree(targets);
 
     while (interpolationTree.hasNextPathForInterpolation()) {
       performPathInterpolation(interpolationTree);
@@ -264,6 +265,14 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
     }
     return interpolationTree;
+  }
+
+  /**
+   * This method creates the interpolation tree. As there is only a single target, it is irrelevant
+   * whether to use top-down or bottom-up interpolation, as the tree is degenerated to a list.
+   */
+  protected ValueAnalysisInterpolationTree createInterpolationTree(Collection<ARGState> targets) {
+    return new ValueAnalysisInterpolationTree(logger, targets, true);
   }
 
   private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached) {
@@ -382,7 +391,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
     // a refinement is a similar, repeated refinement
     // if the (sorted) precision increment was already added in a previous refinement
-    return !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
+    return avoidSimilarRepeatedRefinement && !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
   }
 
   /**
@@ -593,19 +602,14 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       }
     };
 
-    // obtain all target locations, excluding feasible ones
-    // this filtering is needed to distinguish between multiple targets being available
-    // because of stopAfterError=false (feasible) versus globalRefinement=true (new)
-    List<ARGState> targets = from(pReached.asReachedSet())
-        .transform(AbstractStates.toState(ARGState.class))
-        .filter(AbstractStates.IS_TARGET_STATE)
+    // extract target locations from and exclude those found to be feasible before,
+    // e.g., when analysis.stopAfterError is set to false
+    List<ARGState> targets = extractTargetStatesFromArg(pReached)
         .filter(Predicates.not(Predicates.in(feasibleTargets))).toSortedList(comparator);
 
     // set of targets may only be empty, if all of them were found feasible previously
     if(targets.isEmpty()) {
-      assert feasibleTargets.containsAll(from(pReached.asReachedSet())
-      .transform(AbstractStates.toState(ARGState.class))
-      .filter(AbstractStates.IS_TARGET_STATE).toSet());
+      assert feasibleTargets.containsAll(extractTargetStatesFromArg(pReached).toSet());
 
       throw new RefinementFailedException(Reason.RepeatedCounterexample,
           ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
@@ -618,13 +622,24 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return targets;
   }
 
+  /**
+   * This method extracts the last state from the ARG, which has to be a target state.
+   */
+  protected FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
+    ARGState lastState = ((ARGState)pReached.asReachedSet().getLastState());
+
+    assert (lastState.isTarget()) : "Last state is not a target state";
+
+    return from(Collections.singleton(lastState));
+  }
+
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Statistics() {
 
       @Override
       public String getName() {
-        return ValueAnalysisRefiner.class.getSimpleName();
+        return ValueAnalysisRefiner.this.getClass().getSimpleName();
       }
 
       @Override

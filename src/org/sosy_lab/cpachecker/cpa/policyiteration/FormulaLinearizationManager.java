@@ -15,8 +15,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
-import com.google.common.collect.ImmutableMap;
-
 public class FormulaLinearizationManager {
   private final UnsafeFormulaManager ufmgr;
   private final BooleanFormulaManager bfmgr;
@@ -29,11 +27,6 @@ public class FormulaLinearizationManager {
   private static final String OR_FUNC_NAME = "or";
 
   public static final String CHOICE_VAR_NAME = "__POLICY_CHOICE_";
-
-
-  // TODO: code duplication.
-  private static final String INITIAL_CONDITION_FLAG = "__INITIAL_CONDITION_TRUE";
-
   private int choiceVarCounter = -1;
 
   public FormulaLinearizationManager(UnsafeFormulaManager pUfmgr,
@@ -103,32 +96,21 @@ public class FormulaLinearizationManager {
       return out;
     }
 
-    BooleanFormula specVar = bfmgr.not(bfmgr.makeVariable(INITIAL_CONDITION_FLAG));
-
     if (ufmgr.getName(input).equals(OR_FUNC_NAME)) {
-      // Hack not to annotate the formulas I create.
-      if (ufmgr.getArity(input) == 2 &&
-          (ufmgr.getArg(input, 0).equals(specVar)
-              || ufmgr.getArg(input, 1).equals(specVar))) {
-        out = input;
-
-      } else {
-
-        String freshVarName = CHOICE_VAR_NAME + (++choiceVarCounter);
-        IntegerFormula var = ifmgr.makeVariable(freshVarName);
-        List<Formula> newArgs = new ArrayList<>();
-        for (int choice = 0; choice < ufmgr.getArity(input); choice++) {
-          newArgs.add(
-              bfmgr.and(
-                  (BooleanFormula)
-                      recAnnotateDisjunction(ufmgr.getArg(input, choice),
-                          memoization),
-                  fmgr.makeEqual(var, ifmgr.makeNumber(choice))
-              )
-          );
-        }
-        out = ufmgr.replaceArgs(input, newArgs);
+      String freshVarName = CHOICE_VAR_NAME + (++choiceVarCounter);
+      IntegerFormula var = ifmgr.makeVariable(freshVarName);
+      List<Formula> newArgs = new ArrayList<>();
+      for (int choice = 0; choice < ufmgr.getArity(input); choice++) {
+        newArgs.add(
+            bfmgr.and(
+                (BooleanFormula)
+                    recAnnotateDisjunction(ufmgr.getArg(input, choice),
+                        memoization),
+                fmgr.makeEqual(var, ifmgr.makeNumber(choice))
+            )
+        );
       }
+      out = ufmgr.replaceArgs(input, newArgs);
 
     } else {
       List<Formula> newArgs = new ArrayList<>();
@@ -164,20 +146,4 @@ public class FormulaLinearizationManager {
     pathSelected = fmgr.simplify(pathSelected);
     return pathSelected;
   }
-
-  /**
-   * Enforce the initial state to be true or false.
-   */
-  public BooleanFormula enforceInitial(final BooleanFormula input,
-      boolean useInitialValue) {
-
-    Map<Formula, Formula> mapping = ImmutableMap.of(
-        (Formula)bfmgr.makeVariable(INITIAL_CONDITION_FLAG),
-        (Formula)bfmgr.makeBoolean(useInitialValue)
-    );
-    BooleanFormula out = ufmgr.substitute(input, mapping);
-    out = fmgr.simplify(out);
-    return out;
-  }
-
 }

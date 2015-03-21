@@ -38,8 +38,13 @@ class BMCStatistics implements Statistics {
 
   final Timer inductionPreparation = new Timer();
   final Timer inductionCheck = new Timer();
-  Timer invariantGeneration;
   private int inductionCutPoints = 0;
+
+  private final boolean isInvariantGenerator;
+
+  BMCStatistics(boolean pIsInvariantGenerator) {
+    isInvariantGenerator = pIsInvariantGenerator;
+  }
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
@@ -55,15 +60,12 @@ class BMCStatistics implements Statistics {
     if (inductionCheck.getNumberOfIntervals() > 0) {
       out.println("Number of cut points for induction:  " + inductionCutPoints);
       out.println("Time for induction formula creation: " + inductionPreparation);
-      if (invariantGeneration.getNumberOfIntervals() > 0) {
-        out.println("  Time for invariant generation:     " + invariantGeneration);
-      }
       out.println("Time for induction check:            " + inductionCheck);
     }
   }
 
   @Override
   public String getName() {
-    return "BMC algorithm";
+    return isInvariantGenerator ? "k-Induction-based invariant generator" : "BMC algorithm";
   }
 }

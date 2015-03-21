@@ -109,7 +109,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   //set of functions that may not appear in the source code
  // the value of the map entry is the explanation for the user
  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-     = ImmutableMap.of("pthread_create", "threads");
+     = ImmutableMap.of();
 
   static final InvariantsTransferRelation INSTANCE = new InvariantsTransferRelation();
 

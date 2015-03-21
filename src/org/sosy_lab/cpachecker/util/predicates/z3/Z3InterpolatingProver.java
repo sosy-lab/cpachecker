@@ -95,7 +95,7 @@ class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
   }
 
   @Override
-  public boolean isUnsat() {
+  public boolean isUnsat() throws Z3SolverException {
     Preconditions.checkState(z3context != 0);
     Preconditions.checkState(z3solver != 0);
     int result = solver_check(z3context, z3solver);

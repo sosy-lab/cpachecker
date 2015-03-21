@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.FileLocationCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -395,7 +396,7 @@ public class SourceLocationMapper {
   }
 
   public static synchronized Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
-    final Set<FileLocation> result = Sets.newHashSet();
+    Set<FileLocation> result = Sets.newHashSet();
 
     final Set<CAstNode> astNodes = getAstNodesFromCfaEdge(pEdge);
     for (CAstNode n: astNodes) {
@@ -404,7 +405,15 @@ public class SourceLocationMapper {
 
     result.add(pEdge.getFileLocation());
 
-    return FluentIterable.from(result).filter(Predicates.not(Predicates.equalTo(FileLocation.DUMMY))).toSet();
+    result = FluentIterable.from(result).filter(Predicates.not(Predicates.equalTo(FileLocation.DUMMY))).toSet();
+
+    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
+      FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();
+      if (!functionEntryNode.getFileLocation().equals(FileLocation.DUMMY)) {
+        return Collections.singleton(functionEntryNode.getFileLocation());
+      }
+    }
+    return result;
   }
 
   public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {

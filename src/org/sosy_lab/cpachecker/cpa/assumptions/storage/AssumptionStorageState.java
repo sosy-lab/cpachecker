@@ -116,11 +116,11 @@ public class AssumptionStorageState implements AbstractState, Serializable {
   }
 
   private Object readResolve() {
-    FormulaManagerView fmgr = GlobalInfo.getInstance().getFormulaManager();
+    FormulaManagerView fmgr = GlobalInfo.getInstance().getFormulaManagerView();
     if (fmgr == null) {
       fmgr = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(),
           AssumptionStorageCPA.class).getFormulaManager();
-      GlobalInfo.getInstance().storeFormulaManager(fmgr);
+      GlobalInfo.getInstance().storeFormulaManagerView(fmgr);
     }
     return new AssumptionStorageState(fmgr, assumption, stopFormula);
   }

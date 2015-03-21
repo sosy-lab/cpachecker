@@ -250,9 +250,4 @@ class PrincessUtil {
     return result;
   }
 
-  /** this function can be used to print a bigger term */
-  public static String prettyPrint(IExpression t) {
-    return t.toString();
-  }
-
 }

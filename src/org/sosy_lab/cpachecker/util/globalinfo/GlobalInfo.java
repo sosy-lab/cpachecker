@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
@@ -44,7 +45,8 @@ public class GlobalInfo {
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
   private ConfigurableProgramAnalysis cpa;
-  private FormulaManagerView formulaManager;
+  private FormulaManager formulaManager;
+  private FormulaManagerView formulaManagerView;
   private ArrayList<Serializable> helperStorages = new ArrayList<>();
   private AbstractionManager absManager;
   private ApronManager apronManager;
@@ -86,8 +88,12 @@ public class GlobalInfo {
     return Optional.fromNullable(cpa);
   }
 
-  public void storeFormulaManager(FormulaManagerView formulaManager) {
-    this.formulaManager = formulaManager;
+  public void storeFormulaManager(FormulaManager pFormulaManager) {
+    formulaManager = pFormulaManager;
+  }
+
+  public void storeFormulaManagerView(FormulaManagerView pFormulaManagerView) {
+    formulaManagerView = pFormulaManagerView;
   }
 
   public void storeAbstractionManager(AbstractionManager absManager) {
@@ -102,9 +108,14 @@ public class GlobalInfo {
     logger = pLogManager;
   }
 
-  public FormulaManagerView getFormulaManager() {
+  public FormulaManager getFormulaManager() {
     Preconditions.checkState(formulaManager != null);
     return formulaManager;
+  }
+
+  public FormulaManagerView getFormulaManagerView() {
+    Preconditions.checkState(formulaManagerView != null);
+    return formulaManagerView;
   }
 
   public AbstractionManager getAbstractionManager() {

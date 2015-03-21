@@ -51,9 +51,6 @@ public class ValueDeterminationManager {
    *
    * @return Global constraint for value determination and types of the abstract
    * domain elements.
-   *
-   * @throws org.sosy_lab.cpachecker.exceptions.CPATransferException
-   * @throws InterruptedException
    */
   public Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>> valueDeterminationFormula(
       Map<Location, PolicyAbstractedState> globalPolicy,
@@ -75,9 +72,9 @@ public class ValueDeterminationManager {
 
         Template template = incoming.getKey();
         PolicyBound bound = incoming.getValue();
-        PathFormula startPathFormula = bound.startPathFormula;
-        PathFormula policyFormula = bound.formula;
-        Location fromLocation = bound.predecessor;
+        PathFormula startPathFormula = bound.getStartPathFormula();
+        PathFormula policyFormula = bound.getFormula();
+        Location fromLocation = bound.getPredecessor();
 
         String prefix;
         if (useUniquePrefix) {
@@ -155,11 +152,11 @@ public class ValueDeterminationManager {
 
     // Shortcut: if the bound is not dependent on the initial value,
     // just add the numeric constraint and don't process the input policies.
-    if (!bound.dependsOnInitial) {
+    if (!bound.dependsOnInitial()) {
       logger.log(Level.FINE, "Template does not depend on initial condition,"
           + "skipping");
       BooleanFormula constraint = fmgr.makeEqual(abstractDomainFormula,
-              fmgr.makeNumber(policyOutTemplate, bound.bound));
+              fmgr.makeNumber(policyOutTemplate, bound.getBound()));
       constraints.add(constraint);
       return;
     }
@@ -197,7 +194,7 @@ public class ValueDeterminationManager {
           incomingTemplate)) {
 
         upperBound = fmgr.makeNumber(incomingTemplateFormula,
-            stateWithUpdates.getBound(incomingTemplate).get().bound);
+            stateWithUpdates.getBound(incomingTemplate).get().getBound());
 
       } else {
         upperBound = fmgr.makeVariable(
@@ -213,7 +210,8 @@ public class ValueDeterminationManager {
     visited.add(prefix);
   }
 
-  String absDomainVarName(Location pLocation, Template template) {
+  public String absDomainVarName(Location pLocation, Template template) {
     return String.format(BOUND_VAR_NAME, pLocation.toID(), template);
   }
+
 }

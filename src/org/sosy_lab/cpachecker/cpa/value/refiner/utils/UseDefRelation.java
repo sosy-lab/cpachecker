@@ -123,6 +123,10 @@ public class UseDefRelation {
     booleanVariables          = pBooleanVariables;
     handleFeasibleAssumeEdges = pHandleFeasibleAssumeEdges;
 
+    buildRelation(path);
+  }
+
+  private void buildRelation(ARGPath path) {
     PathIterator iterator = path.reversePathIterator();
     while (iterator.hasNext()) {
       CFAEdge edge = iterator.getOutgoingEdge();
@@ -134,6 +138,11 @@ public class UseDefRelation {
       }
       else {
         updateUseDefRelation(iterator.getAbstractState(), edge);
+      }
+
+      // stop the traversal once a fix-point is reached
+      if(hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {
+        break;
       }
 
       iterator.advance();

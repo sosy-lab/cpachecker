@@ -54,7 +54,7 @@ class ASTTypeConverter extends TypeConverter {
 
       Preconditions.checkArgument(t.isInterface());
 
-      String typeName = NameConverter.convertClassOrInterfaceName(t);
+      String typeName = NameConverter.convertClassOrInterfaceToFullName(t);
 
       if (scope.containsInterfaceType(typeName)) {
         return scope.getInterfaceType(typeName);
@@ -76,7 +76,7 @@ class ASTTypeConverter extends TypeConverter {
 
       Preconditions.checkArgument(t.isClass() || t.isEnum());
 
-      String typeName = NameConverter.convertClassOrInterfaceName(t);
+      String typeName = NameConverter.convertClassOrInterfaceToFullName(t);
 
       if (scope.containsClassType(typeName)) {
         return scope.getClassType(typeName);

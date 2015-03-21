@@ -29,6 +29,9 @@ import java.util.Collections;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -79,7 +82,9 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
       boolean isToAdd = super.isToAdd(pNode);
       if (!isToAdd && !pNode.isCovered()) {
         if (handlePredicateStates) {
-          isToAdd = isPredicateAbstractionState(pNode);
+          CFANode loc = AbstractStates.extractLocation(pNode);
+          isToAdd = isPredicateAbstractionState(pNode)
+              || loc.getNumEnteringEdges() > 0 && !(loc instanceof FunctionEntryNode || loc instanceof FunctionExitNode);
         } else {
           for (ARGState parent : pNode.getParents()) {
             if (!isTransferSuccessor(parent, pNode)) {
@@ -115,7 +120,7 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     }
 
     private boolean isPredicateAbstractionState(ARGState pChild) {
-      return AbstractStates.extractStateByType(pChild, PredicateAbstractState.class).isAbstractionState();
+      return PredicateAbstractState.getPredicateState(pChild).isAbstractionState();
     }
 
   }

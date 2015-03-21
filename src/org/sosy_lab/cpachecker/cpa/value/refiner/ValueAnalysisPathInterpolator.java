@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
@@ -89,7 +88,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private boolean doLazyAbstraction = true;
 
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
-  private boolean pathSlicing = false;
+  private boolean pathSlicing = true;
 
   @Option(secure=true, description="whether to perform (more precise) edge-based interpolation or (more efficient) path-based interpolation")
   private boolean performEdgeBasedInterpolation = true;
@@ -167,12 +166,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       ValueAnalysisInterpolant interpolant)
       throws InterruptedException, CPAException {
 
-    if (pathSlicing) {
-      ARGPath slicedErrorPathPrefix = sliceErrorPath(errorPathPrefix);
-
-      if(!isFeasible(slicedErrorPathPrefix)) {
-        errorPathPrefix = slicedErrorPathPrefix;
-      }
+    if (pathSlicing && prefixPreference != PrefixPreference.DEFAULT) {
+      errorPathPrefix = sliceErrorPath(errorPathPrefix);
     }
 
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPathPrefix.size());
@@ -223,9 +218,14 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   }
 
   /**
-   * This method removes further edges from the error path (prefix).
+   * This method returns a sliced error path (prefix). In case the sliced error path becomes feasible,
+   * i.e., because slicing is not fully precise in presence of, e.g., structs or arrays, the original
+   * error path (prefix) that was given as input is returned.
+   *
+   * @throws InterruptedException
+   * @throws CPAException
    */
-  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
+  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) throws CPAException, InterruptedException {
 
     Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
         cfa.getVarClassification().isPresent()
@@ -279,13 +279,17 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       iterator.advance();
     }
 
-    return new ARGPath(errorPathPrefix.asStatesList(), abstractEdges);
+    ARGPath slicedErrorPathPrefix = new ARGPath(errorPathPrefix.asStatesList(), abstractEdges);
+
+    return (isFeasible(slicedErrorPathPrefix))
+        ? errorPathPrefix
+        : slicedErrorPathPrefix;
+
   }
 
   /**
    * This method performs interpolation on the complete path, based on the
-   * use-def-relation obtained by {@link AssumptionUseDefinitionCollector} or
-   * its subclass. It creates fake interpolants that are not inductive.
+   * use-def-relation. It creates fake interpolants that are not inductive.
    *
    * @param errorPathPrefix the error path prefix to interpolate
    * @return
@@ -391,7 +395,9 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath);
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
+          interpolant.createValueAnalysisState(),
+          new ArrayDeque<ValueAnalysisState>());
 
       totalPrefixes.setNextValue(prefixes.size());
 

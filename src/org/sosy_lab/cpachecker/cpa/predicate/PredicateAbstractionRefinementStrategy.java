@@ -118,10 +118,19 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     ;
   }
 
-  @Option(secure=true, name="refinement.keepAllPredicates",
-      description="During refinement, keep predicates from all removed parts "
-          + "of the ARG. Otherwise, only predicates from the error path are kept.")
-  private boolean keepAllPredicates = false;
+  @Option(secure=true, name="refinement.predicateBasisStrategy",
+      description="Which predicates should be used as basis for a new precision."
+          + "ALL: During refinement, keep predicates from all removed parts of the ARG."
+          + "CUTPOINT: Only predicates from the cut-point's precision are kept."
+          + "TARGET: Only predicates from the target state's precision are kept.")
+  /* There are usually more predicates at the target location that at the cut-point.
+   * An evaluation on 4000 source files for ALL, TARGET, and CUTPOINT showed:
+   * - (nearly) no difference for predicate analysis L.
+   * - predicate analysis LF is much slower with CUTPOINT than with TARGET or ALL
+   *   (especially on the source files product-lines/minepump_spec*).
+   */
+  private PredicateBasisStrategy predicateBasisStrategy = PredicateBasisStrategy.TARGET;
+  private static enum PredicateBasisStrategy {ALL, TARGET, CUTPOINT}
 
   @Option(secure=true, name="refinement.restartAfterRefinements",
       description="Do a complete restart (clearing the reached set) "
@@ -418,10 +427,18 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     // now create new precision
     precisionUpdate.start();
     PredicatePrecision basePrecision;
-    if (keepAllPredicates) {
+    switch(predicateBasisStrategy) {
+    case ALL:
       basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
-    } else {
+      break;
+    case TARGET:
       basePrecision = targetStatePrecision;
+      break;
+    case CUTPOINT:
+      basePrecision = extractPredicatePrecision(reached.getPrecision(refinementRoot));
+      break;
+    default:
+      throw new AssertionError("unknown strategy for predicate basis.");
     }
 
     logger.log(Level.ALL, "Old predicate map is", basePrecision);

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
@@ -72,7 +73,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -101,6 +100,7 @@ class KInductionProver implements AutoCloseable {
   private final CFA cfa;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final Algorithm algorithm;
 
@@ -136,8 +136,6 @@ class KInductionProver implements AutoCloseable {
 
   private final boolean havocLoopTerminationConditionVariablesOnly;
 
-  private final Supplier<Integer> bmcKAccessor;
-
   private ProverEnvironment prover = null;
 
   private UnmodifiableReachedSet invariantsReachedSet;
@@ -168,28 +166,17 @@ class KInductionProver implements AutoCloseable {
       InvariantGenerator pInvariantGenerator,
       BMCStatistics pStats,
       ReachedSetFactory pReachedSetFactory,
-      TargetLocationProvider pTargetLocationProvider,
       boolean pHavocLoopTerminationConditionVariablesOnly,
-      Supplier<Integer> pBMCKAccessor,
       ShutdownNotifier pShutdownNotifier) {
-    Preconditions.checkNotNull(pCFA);
-    Preconditions.checkNotNull(pLogger);
-    Preconditions.checkNotNull(pAlgorithm);
-    Preconditions.checkNotNull(pCPA);
-    Preconditions.checkNotNull(pInvariantGenerator);
-    Preconditions.checkNotNull(pStats);
-    Preconditions.checkNotNull(pReachedSetFactory);
-    Preconditions.checkNotNull(pBMCKAccessor);
-    Preconditions.checkNotNull(pShutdownNotifier);
-    cfa = pCFA;
-    logger = pLogger;
-    algorithm = pAlgorithm;
-    cpa = pCPA;
-    invariantGenerator = pInvariantGenerator;
-    stats = pStats;
-    reachedSetFactory = pReachedSetFactory;
+    cfa = checkNotNull(pCFA);
+    logger = checkNotNull(pLogger);
+    algorithm = checkNotNull(pAlgorithm);
+    cpa = checkNotNull(pCPA);
+    invariantGenerator  = checkNotNull(pInvariantGenerator);
+    stats = checkNotNull(pStats);
+    reachedSetFactory = checkNotNull(pReachedSetFactory);
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
     havocLoopTerminationConditionVariablesOnly = pHavocLoopTerminationConditionVariablesOnly;
-    bmcKAccessor = pBMCKAccessor;
     List<CFAEdge> incomingEdges = null;
     ReachedSet reachedSet = null;
     Loop loop = null;
@@ -299,19 +286,6 @@ class KInductionProver implements AutoCloseable {
   }
 
   /**
-   * Gets the single loop of the program. This loop is only available if no
-   * trivial constant result for the k-induction check was determined by the
-   * constructor, as can be checked by calling {@link isTrivial}.
-   *
-   * @return the single loop of the program.
-   */
-  Loop getLoop() {
-    Preconditions.checkState(!isTrivial(), "No loop computed, because the proof is trivial.");
-    assert loop != null;
-    return loop;
-  }
-
-  /**
    * Checks if the prover is already initialized.
    *
    * @return {@code true} if the prover is initialized, {@code false}
@@ -343,18 +317,20 @@ class KInductionProver implements AutoCloseable {
     return prover;
   }
 
-  public UnmodifiableReachedSet getCurrentInvariantsReachedSet() {
+  private UnmodifiableReachedSet getCurrentInvariantsReachedSet() throws InterruptedException {
     if (!invariantGenerationRunning) {
       return invariantsReachedSet;
     }
     try {
       return invariantGenerator.get();
     } catch (CPAException e) {
-      logger.log(Level.FINE, "Invariant generation encountered an exception.", e);
+      logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;
       return invariantsReachedSet;
     } catch (InterruptedException e) {
-      logger.log(Level.FINE, "Invariant generation has terminated:", e);
+      shutdownNotifier.shutdownIfNecessary();
+      logger.log(Level.FINE, "Invariant generation was cancelled.");
+      logger.logDebugException(e);
       invariantGenerationRunning = false;
       return invariantsReachedSet;
     }
@@ -369,7 +345,7 @@ class KInductionProver implements AutoCloseable {
    */
   private BooleanFormula getCurrentLoopHeadInvariants() throws CPATransferException, InterruptedException {
     if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
-      CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+      CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
       loopHeadInvariants = getCurrentLocationInvariants(loopHead, fmgr, pfmgr);
     }
     return loopHeadInvariants;
@@ -464,7 +440,7 @@ class KInductionProver implements AutoCloseable {
    * @throws InterruptedException if the bounded analysis constructing the
    * step case was interrupted.
    */
-  public final boolean check() throws CPAException, InterruptedException {
+  public final boolean check(final int k) throws CPAException, InterruptedException {
 
     // Early return if there is a trivial result for the inductive approach
     if (isTrivial()) {
@@ -489,7 +465,6 @@ class KInductionProver implements AutoCloseable {
     // Run algorithm in order to create formula (A & B)
     logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
 
-    int k = bmcKAccessor.get();
     LoopstackCPA stepCaseLoopstackCPA = CPAs.retrieveCPA(cpa, LoopstackCPA.class);
 
     ReachedSet reached = getCurrentReachedSet();
@@ -623,7 +598,7 @@ class KInductionProver implements AutoCloseable {
     if (pReachedSet.size() > 1) {
       return;
     }
-    CFANode loopHead = Iterables.getOnlyElement(getLoop().getLoopHeads());
+    CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
     if (havocLoopTerminationConditionVariablesOnly) {
       CFANode mainEntryNode = cfa.getMainFunction();
       Precision precision = cpa.getInitialPrecision(mainEntryNode, StateSpacePartition.getDefaultPartition());

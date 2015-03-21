@@ -82,7 +82,6 @@ class PrincessModel {
 
     IFunApp appTerm = (IFunApp)t;
     String lName = appTerm.fun().name();
-    TermType lType = env.getFunctionDeclaration(appTerm.fun()).getResultType();
 
     int lArity = PrincessUtil.getArity(appTerm);
 
@@ -99,7 +98,9 @@ class PrincessModel {
       }
     }
 
-    return new Function(lName, lType, lArguments);
+    // currently only int is supported in princess as return type, this needs to
+    // be changed if
+    return new Function(lName, TermType.Integer, lArguments);
   }
 
 

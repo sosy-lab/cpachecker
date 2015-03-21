@@ -29,6 +29,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -67,6 +69,10 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     AbstractState oldElement = element.getWrappedState();
 
     PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements, fullState);
+    if (unwrappedResult.isBottom()) {
+      element.removeFromARG();
+      return unwrappedResult;
+    }
 
     // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple children
     if (unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {

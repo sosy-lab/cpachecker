@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -35,7 +34,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 public class DoNothingInvariantGenerator implements InvariantGenerator {
 
   private final UnmodifiableReachedSet reachedSet;
-  private final Timer timer = new Timer();
 
   public DoNothingInvariantGenerator(ReachedSetFactory factory) {
     reachedSet = factory.create();
@@ -50,11 +48,6 @@ public class DoNothingInvariantGenerator implements InvariantGenerator {
   @Override
   public UnmodifiableReachedSet get()  {
     return reachedSet;
-  }
-
-  @Override
-  public Timer getTimeOfExecution() {
-    return timer;
   }
 
   @Override

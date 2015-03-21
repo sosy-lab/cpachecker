@@ -88,8 +88,8 @@ class SymbolTrackingPrincessStack implements PrincessStack {
       toAdd.add(trackingStack.removeLast());
     }
     for (Level level : toAdd) {
-      api.addBooleanVariables(asScalaIterable(level.booleanSymbols));
-      api.addConstants(asScalaIterable(level.intSymbols));
+      api.addBooleanVariables(iterableAsScalaIterable(level.booleanSymbols));
+      api.addConstants(iterableAsScalaIterable(level.intSymbols));
       for (IFunction function : level.functionSymbols) {
         api.addFunction(function);
       }

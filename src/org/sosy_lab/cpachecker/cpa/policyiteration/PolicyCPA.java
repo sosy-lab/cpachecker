@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.ComponentTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
  */
 @Options(prefix="cpa.policy")
 public class PolicyCPA
-    extends ComponentTransferRelation
+    extends SingleEdgeTransferRelation
     implements ConfigurableProgramAnalysis, StatisticsProvider, AbstractDomain {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -135,14 +135,13 @@ public class PolicyCPA
   }
 
   @Override
-  public Collection<? extends AbstractState> getComponentAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState,
       Precision pPrecision,
-      List<AbstractState> otherStates,
       CFAEdge pEdge
   ) throws CPATransferException, InterruptedException {
   return policyIterationManager.getAbstractSuccessors(
-      (PolicyState) pState, otherStates, pEdge
+      (PolicyState) pState, pEdge
   );
 }
 

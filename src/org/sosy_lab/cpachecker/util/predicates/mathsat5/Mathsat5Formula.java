@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import java.io.Serializable;
-
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.SerialProxyFormula;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 abstract class Mathsat5Formula implements Formula {
 
@@ -86,7 +86,9 @@ class Mathsat5RationalFormula extends Mathsat5Formula implements RationalFormula
   }
 }
 
-class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula, Serializable {
+@SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
+    justification="Is never deserialized directly, only via serial proxy")
+class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
   private static final long serialVersionUID = -3587393134167404728L;
 
   public Mathsat5BooleanFormula(long pTerm) {
@@ -94,21 +96,6 @@ class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula, 
   }
 
   private Object writeReplace() {
-    return new SerialProxyFormula(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this).toString());
-  }
-
-  private static class SerialProxyFormula implements Serializable {
-
-    private static final long serialVersionUID = -1670677113148700321L;
-    private final String formula;
-
-    public SerialProxyFormula(final String pF) {
-      formula = pF;
-    }
-
-    private Object readResolve() {
-      return GlobalInfo.getInstance().getFormulaManager().parse(formula);
-    }
-
+    return new SerialProxyFormula(this);
   }
 }

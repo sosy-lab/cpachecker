@@ -1208,7 +1208,7 @@ public class FormulaManagerView {
    */
   public Set<String> extractVariableNames(Formula f) {
     return Sets.newHashSet(Collections2.transform(
-        myExtractSubformulas(unwrap(f), FILTER_VARIABLES),
+        myExtractSubformulas(unwrap(f), FILTER_VARIABLES, true),
         GET_NAME));
   }
 
@@ -1216,11 +1216,16 @@ public class FormulaManagerView {
    * Extract the names of all free variables + UFs in a formula.
    *
    * @param f   The input formula
+   * @param recurseIntoFunctions Whether to return arguments which only appear
+   * inside functions.
+   *
    * @return    Set of variable names (might be instantiated)
    */
-  public Set<String> extractFunctionNames(Formula f) {
+  public Set<String> extractFunctionNames(Formula f,
+      boolean recurseIntoFunctions) {
     return Sets.newHashSet(Collections2.transform(
-        myExtractSubformulas(unwrap(f), Predicates.or(FILTER_UF, FILTER_VARIABLES)),
+        myExtractSubformulas(unwrap(f),
+            Predicates.or(FILTER_UF, FILTER_VARIABLES), recurseIntoFunctions),
         GET_NAME));
   }
 
@@ -1237,7 +1242,7 @@ public class FormulaManagerView {
   public Map<String, Formula> extractFreeVariableMap(Formula pF) {
     Map<String, Formula> result = Maps.newHashMap();
 
-    for (Formula v: myExtractSubformulas(unwrap(pF), FILTER_VARIABLES)) {
+    for (Formula v: myExtractSubformulas(unwrap(pF), FILTER_VARIABLES, true)) {
       result.put(unsafeManager.getName(v), v);
     }
 
@@ -1245,7 +1250,7 @@ public class FormulaManagerView {
   }
 
   private Collection<Formula> myExtractSubformulas(final Formula pFormula,
-      Predicate<Formula> filter) {
+      Predicate<Formula> filter, boolean recurseIntoFunctions) {
     // TODO The FormulaType of returned formulas may not be correct,
     // because we cannot determine if for example a Rational formula
     // is really rational, or should be wrapped as a Bitvector formula
@@ -1267,6 +1272,9 @@ public class FormulaManagerView {
 
       if (filter.apply(f)) {
         result.add(f);
+        if (!recurseIntoFunctions) {
+          continue;
+        }
       }
 
       if (unsafeManager.isQuantification(f)) {
@@ -1295,9 +1303,9 @@ public class FormulaManagerView {
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    if (unsafeManager.isAtom(t) || unsafeManager.isUF(t)) {
+    if (unsafeManager.isAtom(t)) {
       // term is atom
-      return true;
+      return !containsIfThenElse(t);
 
     } else if (booleanFormulaManager.isNot(t)) {
       t = (BooleanFormula)unsafeManager.getArg(t, 0);
@@ -1314,6 +1322,18 @@ public class FormulaManagerView {
     } else {
       return false;
     }
+  }
+
+  private boolean containsIfThenElse(Formula f) {
+    if (booleanFormulaManager.isIfThenElse(f)) {
+      return true;
+    }
+    for (int i = 0; i < unsafeManager.getArity(f); ++i) {
+      if (containsIfThenElse(unsafeManager.getArg(f, i))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static final String BitwiseAndUfName = "_&_";
@@ -1436,7 +1456,8 @@ public class FormulaManagerView {
   private List<Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa) {
     List<Formula> result = Lists.newArrayList();
 
-    for (Formula varFormula: myExtractSubformulas(unwrap(pFormula), FILTER_VARIABLES)) {
+    for (Formula varFormula: myExtractSubformulas(unwrap(pFormula),
+        FILTER_VARIABLES, true)) {
       Pair<String, Integer> fullName = parseName(unsafeManager.getName(varFormula));
       String varName = fullName.getFirst();
       Integer varSsaIndex = fullName.getSecond();

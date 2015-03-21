@@ -391,7 +391,7 @@ class CmdLineArguments {
               }
 
             } else {
-              ERROR_OUTPUT.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+              ERROR_OUTPUT.println("The property file " + newValue + " does not exist.");
               System.exit(ERROR_EXIT_CODE);
             }
           }

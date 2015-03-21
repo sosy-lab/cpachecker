@@ -41,6 +41,7 @@ import java.util.logging.Level;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -191,7 +192,7 @@ class EclipseJavaParser implements Parser {
 
     TypeHierarchy typeHierarchy = TypeHierarchy.createTypeHierachy(logger, astsOfFoundFiles);
 
-    return new Scope(mainClassName, typeHierarchy);
+    return new Scope(mainClassName, typeHierarchy, logger);
   }
 
   private List<JavaFileAST> getASTsOfProgram() throws JParserException {
@@ -335,8 +336,12 @@ class EclipseJavaParser implements Parser {
 
       ast.accept(builder);
 
-      String nextClassToBeParsed = builder.getScope().getNextClass();
+      while (scope.hasLocalClassPending()) {
+        AnonymousClassDeclaration nextLocalClassToBeParsed = scope.getNextLocalClass();
+        nextLocalClassToBeParsed.accept(builder);
+      }
 
+      String nextClassToBeParsed = scope.getNextClass();
       while (nextClassToBeParsed != null) {
 
         Path classFile = searchForClassFile(nextClassToBeParsed);
@@ -351,7 +356,12 @@ class EclipseJavaParser implements Parser {
           astNext.accept(builder);
         }
 
-        nextClassToBeParsed = builder.getScope().getNextClass();
+        while (scope.hasLocalClassPending()) {
+          AnonymousClassDeclaration nextLocalClassToBeParsed = scope.getNextLocalClass();
+          nextLocalClassToBeParsed.accept(builder);
+        }
+        
+        nextClassToBeParsed = scope.getNextClass();
       }
 
       DynamicBindingCreator tracker = new DynamicBindingCreator(builder);

@@ -45,10 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -61,7 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -69,7 +65,6 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -126,12 +121,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private PrefixPreference prefixPreference = PrefixPreference.DEFAULT;
-
-  @Option(secure=true, description="whether or not to perform path slicing before interpolation")
-  private boolean pathSlicing = false;
-
-  @Option(secure=true, description="defines how to handle feasible assume edges during path slicing", values={"NONE", "EQUALITY", "ALL"})
-  private String handleFeasibleAssumeEdges = "NONE";
 
   Configuration config;
 
@@ -322,56 +311,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
 
       allStatesTrace = classifier.obtainSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
-
-      if (pathSlicing) {
-        ARGPath slicedAllStatesTrace = sliceErrorPath(allStatesTrace);
-
-        PathFormula formula = pfmgr.makeEmptyPathFormula();
-        PathIterator iterator = slicedAllStatesTrace.pathIterator();
-        while (iterator.hasNext()) {
-          if(iterator.getOutgoingEdge().getEdgeType() != CFAEdgeType.BlankEdge) {
-            formula = pfmgr.makeAnd(formula, iterator.getOutgoingEdge());
-          }
-          iterator.advance();
-        }
-
-        if(solver.isUnsat(formula.getFormula())) {
-          allStatesTrace = slicedAllStatesTrace;
-        }
-      }
     }
     return allStatesTrace;
-  }
-
-  /**
-   * This method removes further edges from the error path (prefix).
-   */
-  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) {
-
-    Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
-        cfa.getVarClassification().isPresent()
-          ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet(),
-        handleFeasibleAssumeEdges).getUseDefStates();
-
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(errorPathPrefix.asEdgesList());
-
-    PathIterator iterator = errorPathPrefix.pathIterator();
-    while (iterator.hasNext()) {
-
-      // slice edge if there is neither a use nor a definition at the current state
-      if (!useDefStates.contains(iterator.getAbstractState())) {
-        abstractEdges.set(iterator.getIndex(), new BlankEdge("",
-            FileLocation.DUMMY,
-            iterator.getOutgoingEdge().getPredecessor(),
-            iterator.getOutgoingEdge().getSuccessor(),
-            ErrorPathClassifier.SUFFIX_REPLACEMENT));
-      }
-
-      iterator.advance();
-    }
-
-    return new ARGPath(errorPathPrefix.asStatesList(), abstractEdges);
   }
 
   /**

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -37,14 +38,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.concurrency.Threads;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -54,6 +59,8 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -67,12 +74,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 
 /**
  * Generate invariants using k-induction.
  */
-public class KInductionInvariantGenerator implements InvariantGenerator {
+public class KInductionInvariantGenerator implements InvariantGenerator, StatisticsProvider {
 
   private final BMCAlgorithm bmcAlgorithm;
 
@@ -84,7 +92,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
 
   private final ShutdownNotifier shutdownNotifier;
 
-  private boolean async = true;
+  private final boolean async;
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
@@ -104,7 +112,34 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
 
   private final AtomicBoolean areNewInvariantsAvailable = new AtomicBoolean(true);
 
-  public KInductionInvariantGenerator(
+  public static KInductionInvariantGenerator create(final Configuration pConfig,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory,
+      final ConfigurableProgramAnalysis pStepCaseCPA)
+      throws InvalidConfigurationException, CPAException {
+
+    LogManager logger = pLogger.withComponentName("KInductionInvariantGenerator");
+    ShutdownNotifier invGenBMCShutdownNotfier = ShutdownNotifier.createWithParent(pShutdownNotifier);
+    CPABuilder invGenBMCBuilder = new CPABuilder(pConfig, logger, invGenBMCShutdownNotfier, pReachedSetFactory);
+    ConfigurableProgramAnalysis invGenBMCCPA = invGenBMCBuilder.buildCPAWithSpecAutomatas(pCFA);
+    Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, logger, pConfig, invGenBMCShutdownNotfier);
+    BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, logger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
+
+    PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(pStepCaseCPA, PredicateCPA.class);
+
+    KInductionInvariantGenerator kIndInvGen =
+        new KInductionInvariantGenerator(
+            invGenBMC,
+            pReachedSetFactory,
+            invGenBMCCPA, logger,
+            invGenBMCShutdownNotfier,
+            pCFA,
+            stepCasePredicateCPA.getPathFormulaManager(),
+            true);
+    return kIndInvGen;
+  }
+
+  private KInductionInvariantGenerator(
       BMCAlgorithm pBMCAlgorithm,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
@@ -113,7 +148,8 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
       CFA pCFA,
       PathFormulaManager pClientPFM,
       boolean pAsync) throws InvalidConfigurationException {
-    Preconditions.checkNotNull(pBMCAlgorithm);
+    bmcAlgorithm = checkNotNull(pBMCAlgorithm);
+    async = pAsync;
     PredicateCPA predicateCPA = CPAs.retrieveCPA(pCPA, PredicateCPA.class);
     if (predicateCPA == null) {
       throw new InvalidConfigurationException("Predicate CPA required");
@@ -121,7 +157,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
     if (async && !predicateCPA.getSolver().getFormulaManager().getVersion().toLowerCase().contains("smtinterpol")) {
       throw new InvalidConfigurationException("Solver does not support concurrent execution, use SMTInterpol instead.");
     }
-    bmcAlgorithm = pBMCAlgorithm;
     cpa = pCPA;
     reachedSetFactory = pReachedSetFactory;
     logger = pLogger;
@@ -218,14 +253,15 @@ public class KInductionInvariantGenerator implements InvariantGenerator {
       try {
         return invariantGenerationFuture.get();
       } catch (ExecutionException e) {
-        return reachedSetFactory.create();
+        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+        throw Throwables.propagate(e);
       }
     }
   }
 
   @Override
-  public Timer getTimeOfExecution() {
-    return invariantGeneration;
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    bmcAlgorithm.collectStatistics(pStatsCollection);
   }
 
   @Override

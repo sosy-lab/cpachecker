@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,30 +38,26 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import scala.collection.JavaConversions;
 import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
 import ap.parser.IAtom;
+import ap.parser.IBoolLit;
 import ap.parser.IConstant;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
+import ap.parser.IFormulaITE;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
@@ -68,43 +66,14 @@ import com.google.common.collect.ImmutableList;
  */
 class PrincessEnvironment {
 
-  public static class FunctionType {
-
-    private final IFunction funcDecl;
-    private final TermType resultType;
-    private final List<TermType> args;
-
-    FunctionType(IFunction funcDecl, TermType resultType, List<TermType> args) {
-      this.funcDecl = funcDecl;
-      this.resultType = resultType;
-      this.args = ImmutableList.copyOf(args);
-    }
-
-    public IFunction getFuncDecl() { return funcDecl; }
-    public TermType getResultType() { return resultType; }
-    public List<TermType> getArgs() { return args; }
-
-  }
-
   /** cache for variables, because they do not implement equals() and hashCode(),
    * so we need to have the same objects. */
   private final Map<String, IFormula> boolVariablesCache = new HashMap<>();
   private final Map<String, ITerm> intVariablesCache = new HashMap<>();
-  private final Map<String, FunctionType> functionsCache = new HashMap<>();
-
-  private final Map<IFunction, FunctionType> declaredFunctions = new HashMap<>();
-
-  // order is important for abbreviations, because a abbreviation might depend on another one.
-  private final List<Pair<IFormula, IFormula>> abbrevFormulas = new ArrayList<>();
-  // for faster lookup, key: abbreviation, entry: long formula.
-  private final BiMap<IFormula, IFormula> abbrevFormulasMap = HashBiMap.create();
+  private final Map<String, IFunction> functionsCache = new HashMap<>();
+  private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
   private final @Nullable PathCounterTemplate basicLogfile;
-
-  /** formulas can be simplified through replacing them with an abbrev-formula. */
-  // TODO do we have to check, that no other symbol equals an abbreviation-symbol?
-  private static final String ABBREV = "ABBREV_";
-  private static final UniqueIdGenerator abbrevIndex = new UniqueIdGenerator();
 
   /** the wrapped api is the first created api.
    * It will never be used outside of this class and never be closed.
@@ -135,12 +104,10 @@ class PrincessEnvironment {
     for (ITerm s : intVariablesCache.values()) {
       stack.addSymbol(s);
     }
-    for (FunctionType s : functionsCache.values()) {
-      stack.addSymbol(s.funcDecl);
+    for (IFunction s : functionsCache.values()) {
+      stack.addSymbol(s);
     }
-    for (Pair<IFormula, IFormula> abbrev : abbrevFormulas) {
-      stack.addAbbrev(abbrev.getFirst(), abbrev.getSecond());
-    }
+
     registeredStacks.add(stack);
     return stack;
   }
@@ -270,73 +237,53 @@ class PrincessEnvironment {
 
   /** This function declares a new functionSymbol, that has a given number of params.
    * Princess has no support for typed params, only their number is important. */
-  public FunctionType declareFun(String name, TermType resultType, List<TermType> args) {
+  public IFunction declareFun(String name, int nofArgs, TermType returnType) {
     if (functionsCache.containsKey(name)) {
-      FunctionType function = functionsCache.get(name);
-      assert function.getResultType() == resultType;
-      assert function.getArgs().equals(args);
-      return function;
+      assert returnType == functionsReturnTypes.get(functionsCache.get(name));
+      return functionsCache.get(name);
+
     } else {
-      final FunctionType type = declareFun0(name, resultType, args);
-      functionsCache.put(name, type);
-      return type;
+      IFunction funcDecl = api.createFunction(name, nofArgs);
+      for (SymbolTrackingPrincessStack stack : registeredStacks) {
+         stack.addSymbol(funcDecl);
+      }
+      functionsCache.put(name, funcDecl);
+      functionsReturnTypes.put(funcDecl, returnType);
+      return funcDecl;
     }
   }
 
-  /** This function declares a new functionSymbol, that has a given number of params.
-   * Princess has no support for typed params, only their number is important. */
-  private FunctionType declareFun0(String name, TermType resultType, List<TermType> args) {
-    IFunction funcDecl = api.createFunction(name, args.size());
-    for (SymbolTrackingPrincessStack stack : registeredStacks) {
-       stack.addSymbol(funcDecl);
-    }
-    FunctionType type = new FunctionType(funcDecl, resultType, args);
-    declaredFunctions.put(funcDecl, type);
-    return type;
+  TermType getReturnTypeForFunction(IFunction fun) {
+    return functionsReturnTypes.get(fun);
   }
+  public IExpression makeFunction(IFunction funcDecl, List<IExpression> args) {
+    checkArgument(args.size() == funcDecl.arity(),
+        "functiontype has different number of args.");
 
-  public FunctionType getFunctionDeclaration(IFunction f) {
-    return declaredFunctions.get(f);
-  }
-
-  public IExpression makeFunction(IFunction funcDecl, TermType resultType, List<IExpression> args) {
     final ArrayBuffer<ITerm> argsBuf = new ArrayBuffer<>();
     for (IExpression arg : args) {
-      final ITerm termArg;
+      ITerm termArg;
       if (arg instanceof IFormula) { // boolean term -> build ITE(t,0,1), TODO why not ITE(t,1,0) ??
-        termArg = new ITermITE((IFormula)arg, new IIntLit(IdealInt.apply(0)), new IIntLit(IdealInt.apply(1)));
+        termArg = new ITermITE((IFormula)arg, new IIntLit(IdealInt.ZERO()), new IIntLit(IdealInt.ONE()));
       } else {
         termArg = (ITerm) arg;
       }
       argsBuf.$plus$eq(termArg);
     }
 
-    final ITerm t = new IFunApp(funcDecl, argsBuf.toSeq());
+    IExpression returnFormula = new IFunApp(funcDecl, argsBuf.toSeq());
+    TermType returnType = getReturnTypeForFunction(funcDecl);
 
-    switch (resultType) {
-      case Boolean:
-        return t;
-      case Integer:
-        return t;
-      default:
-        throw new AssertionError("unknown resulttype");
-    }
-  }
+    // boolean term -> build ITE(t > 0, true, false)
+    if (returnType == TermType.Boolean) {
+      IFormula condition = ((ITerm)returnFormula).$greater(new IIntLit(IdealInt.ZERO()));
+      returnFormula = new IFormulaITE(condition, new IBoolLit(true), new IBoolLit(false));
 
-  /** create a short replacement/abbreviation function for a long formula. */
-  public IFormula abbrev(IFormula longFormula) {
-    if (abbrevFormulasMap.inverse().containsKey(longFormula)) {
-      return abbrevFormulasMap.inverse().get(longFormula);
-    } else {
-      final String abbrevName = ABBREV + abbrevIndex.getFreshId();
-      final IFormula abbrev = api.abbrev(longFormula, abbrevName);
-      abbrevFormulas.add(Pair.of(abbrev, longFormula));
-      abbrevFormulasMap.put(abbrev, longFormula);
-      for (SymbolTrackingPrincessStack stack : registeredStacks) {
-        stack.addAbbrev(abbrev, longFormula);
-      }
-      return abbrev;
+    } else if (returnType != TermType.Integer) {
+      throw new AssertionError("Not possible to have return types for functions other than bool or int.");
     }
+
+    return returnFormula;
   }
 
   public String getVersion() {

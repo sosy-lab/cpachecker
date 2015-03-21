@@ -36,7 +36,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -99,13 +98,12 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState.Type;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.DoubleScalar;
 import apron.Interval;
@@ -136,28 +134,16 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
    * the value of the map entry is the explanation for the user
    */
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("pthread_create", "threads");
+      = ImmutableMap.of();
 
   private final LogManager logger;
   private final boolean splitDisequalities;
 
   private final Set<CFANode> loopHeads;
 
-  /**
-   * Class constructor.
-   * @param pSplitDisequalities
-   * @throws InvalidCFAException
-   * @throws InvalidConfigurationException
-   */
-  public ApronTransferRelation(LogManager log, CFA cfa, boolean pSplitDisequalities) throws InvalidCFAException {
+  public ApronTransferRelation(LogManager log, LoopStructure loops, boolean pSplitDisequalities) {
     logger = log;
     splitDisequalities = pSplitDisequalities;
-
-    if (!cfa.getLoopStructure().isPresent()) {
-      throw new InvalidCFAException("OctagonCPA does not work without loop information!");
-    }
-
-    LoopStructure loops = cfa.getLoopStructure().get();
 
     Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (Loop l : loops.getAllLoops()) {

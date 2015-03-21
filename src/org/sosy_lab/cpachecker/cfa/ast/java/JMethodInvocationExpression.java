@@ -29,7 +29,6 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
@@ -48,7 +47,7 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
 
   // TODO erase these two fields and change the algorithm to find known run time type bindings,
   private boolean hasKnownRunTimeBinding = false;
-  private JClassType runTimeBinding = null;
+  private JClassOrInterfaceType runTimeBinding = null;
 
   public JMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JMethodDeclaration pDeclaration) {
@@ -86,11 +85,11 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
     return getDeclaration().getDeclaringClass();
   }
 
-  public JClassType getRunTimeBinding() {
+  public JClassOrInterfaceType getRunTimeBinding() {
     return runTimeBinding;
   }
 
-  public void setRunTimeBinding(JClassType runTimeBinding) {
+  public void setRunTimeBinding(JClassOrInterfaceType runTimeBinding) {
     this.runTimeBinding = runTimeBinding;
     hasKnownRunTimeBinding = true;
   }

@@ -140,7 +140,7 @@ public class AbstractionFormula implements Serializable {
   }
 
   private Object readResolve() {
-    FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
+    FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
 
     // get formula from instantiated formula
     BooleanFormula notInstantiated = mgr.uninstantiate(instantiatedFormula);

@@ -82,6 +82,7 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
+import org.eclipse.cdt.core.dom.ast.IProblemType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
@@ -292,7 +293,14 @@ class ASTConverter {
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
                                                                             IASTExpression e) {
-    CIdExpression tmp = createTemporaryVariable(e);
+    CIdExpression tmp;
+    if (e.getExpressionType() instanceof IProblemType){
+      tmp = createInitializedTemporaryVariable(getLocation(e),
+                                                ((CRightHandSide)node).getExpressionType(),
+                                                (CInitializer)null);
+    } else{
+      tmp = createTemporaryVariable(e);
+    }
 
     sideAssignmentStack.addPreSideAssignment(new CFunctionCallAssignmentStatement(getLocation(e),
                                                                 tmp,

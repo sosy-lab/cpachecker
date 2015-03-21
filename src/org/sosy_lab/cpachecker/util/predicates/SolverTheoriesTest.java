@@ -31,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
@@ -40,8 +41,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @RunWith(Parameterized.class)
@@ -118,6 +121,45 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
 
     assert_().about(BooleanFormula()).that(f).isUnsatisfiable();
   }
+
+  @Test
+  public void testUfWithBoolType() throws SolverException, InterruptedException {
+    UninterpretedFunctionDeclaration<BooleanFormula> uf = fmgr.declareUninterpretedFunction("fun_ib", FormulaType.BooleanType, FormulaType.IntegerType);
+    BooleanFormula uf0 = fmgr.callUninterpretedFunction(uf, ImmutableList.of(imgr.makeNumber(0)));
+    BooleanFormula uf1 = fmgr.callUninterpretedFunction(uf, ImmutableList.of(imgr.makeNumber(1)));
+    BooleanFormula uf2 = fmgr.callUninterpretedFunction(uf, ImmutableList.of(imgr.makeNumber(2)));
+
+    BooleanFormula f01 = bmgr.xor(uf0, uf1);
+    BooleanFormula f02 = bmgr.xor(uf0, uf2);
+    BooleanFormula f12 = bmgr.xor(uf1, uf2);
+    assert_().about(BooleanFormula()).that(f01).isSatisfiable();
+    assert_().about(BooleanFormula()).that(f02).isSatisfiable();
+    assert_().about(BooleanFormula()).that(f12).isSatisfiable();
+
+    BooleanFormula f = bmgr.and(ImmutableList.of(f01, f02, f12));
+    assert_().about(BooleanFormula()).that(f).isUnsatisfiable();
+  }
+
+  @Test @Ignore
+  public void testUfWithBoolArg() throws SolverException, InterruptedException {
+    // Not all SMT solvers support UFs with boolean arguments.
+    // We can simulate this with "uf(ite(p,0,1))", but currently we do not need this.
+    // Thus this test is disabled and the following is enabled.
+
+    UninterpretedFunctionDeclaration<IntegerFormula> uf = fmgr.declareUninterpretedFunction("fun_bi", FormulaType.IntegerType, FormulaType.BooleanType);
+    IntegerFormula ufTrue = fmgr.callUninterpretedFunction(uf, ImmutableList.of(bmgr.makeBoolean(true)));
+    IntegerFormula ufFalse = fmgr.callUninterpretedFunction(uf, ImmutableList.of(bmgr.makeBoolean(false)));
+
+    BooleanFormula f = bmgr.not(imgr.equal(ufTrue, ufFalse));
+    assertThat(f.toString()).isEmpty();
+    assert_().about(BooleanFormula()).that(f).isSatisfiable();
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void testUfWithBoolArg_unsupported() throws SolverException, InterruptedException {
+    fmgr.declareUninterpretedFunction("fun_bi", FormulaType.IntegerType, FormulaType.BooleanType);
+  }
+
 
   @Test
   public void quantifierEliminationTest1() throws Exception {

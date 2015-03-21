@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -106,6 +108,13 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
       PrecisionAdjustmentResult out = precisionAdjustment.prec(oldElement, oldPrecision, slice, fullState);
+      if (out.isBottom()) {
+
+        // Short circuit: bottom for one of the contained states implies bottom
+        // for everything.
+        return out;
+      }
+
       AbstractState newElement = out.abstractState();
       Precision newPrecision = out.precision();
       if (out.action() == Action.BREAK) {

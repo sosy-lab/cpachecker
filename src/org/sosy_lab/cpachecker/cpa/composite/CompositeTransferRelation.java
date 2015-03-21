@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.defaults.ComponentTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -171,24 +170,14 @@ public final class CompositeTransferRelation implements TransferRelation {
     checkArgument(componentElements.size() == size, "State with wrong number of component states given");
     List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
-    List<AbstractState> currentSuccessors = new ArrayList<>();
-
     for (int i = 0; i < size; i++) {
       TransferRelation lCurrentTransfer = transferRelations.get(i);
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
       Collection<? extends AbstractState> componentSuccessors;
-      if (lCurrentTransfer instanceof ComponentTransferRelation) {
-        ComponentTransferRelation cTransfer = (ComponentTransferRelation)
-            lCurrentTransfer;
-        componentSuccessors = cTransfer.getComponentAbstractSuccessors(
-            lCurrentElement, lCurrentPrecision, ImmutableList.copyOf(currentSuccessors), cfaEdge);
-      } else {
-        componentSuccessors = lCurrentTransfer.getAbstractSuccessorsForEdge(
-            lCurrentElement, lCurrentPrecision, cfaEdge);
-      }
-      currentSuccessors.addAll(componentSuccessors);
+      componentSuccessors = lCurrentTransfer.getAbstractSuccessorsForEdge(
+          lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {

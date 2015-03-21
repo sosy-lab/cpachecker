@@ -5,28 +5,29 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>> {
+
+  /**
+   * Location associated with abstracted state.
+   */
+  private final Location location;
+
   /**
    * Finite bounds for templates.
    */
   private final ImmutableMap<Template, PolicyBound> abstraction;
-
-  /**
-   * Non-abstracted section of the formula.
-   *
-   * NOTE: contains {@code PointerTargetSet} inside.
-   */
 
   /**
    * State used to generate the abstraction.
@@ -34,7 +35,8 @@ public final class PolicyAbstractedState extends PolicyState
   private final PolicyIntermediateState generatingState;
 
   /**
-   * Version per location. Starts from zero, incremented with each update.
+   * Version per location. Starts from zero, incremented with each update
+   * to the location.
    */
   private final int version;
   private int hashCache = 0;
@@ -45,8 +47,9 @@ public final class PolicyAbstractedState extends PolicyState
       Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
       PolicyIntermediateState pGeneratingState) {
-    super(pLocation, pTemplates);
+    super(pTemplates);
 
+    location = pLocation;
     version = updateCounter.count(pLocation);
     updateCounter.add(pLocation);
 
@@ -54,8 +57,20 @@ public final class PolicyAbstractedState extends PolicyState
     generatingState = pGeneratingState;
   }
 
+  public static ImmutableMultiset<Location> getUpdateCounter() {
+    return ImmutableMultiset.copyOf(updateCounter);
+  }
+
   public int getVersion() {
     return version;
+  }
+
+  public CFANode getNode() {
+    return location.getFinalNode();
+  }
+
+  public Location getLocation() {
+    return location;
   }
 
   public static PolicyAbstractedState of(
@@ -111,15 +126,14 @@ public final class PolicyAbstractedState extends PolicyState
   public static PolicyAbstractedState empty(Location pLocation,
       PathFormula initial) {
     PolicyIntermediateState Iinitial = PolicyIntermediateState.of(
-        pLocation, ImmutableSet.<Template>of(),
-        initial, ImmutableMultimap.<Location, Location>of(),
-        ImmutableMap.<Location, PolicyAbstractedState>of()
+        ImmutableSet.<Template>of(),
+        initial,  ImmutableMap.<Location, PolicyAbstractedState>of()
     );
     return PolicyAbstractedState.of(
-        ImmutableMap.<Template, PolicyBound>of(),
+        ImmutableMap.<Template, PolicyBound>of(), // abstraction
         ImmutableSet.<Template>of(), // templates
         pLocation, // node
-        Iinitial
+        Iinitial // generating state
     );
   }
 
@@ -173,7 +187,8 @@ public final class PolicyAbstractedState extends PolicyState
       return false;
     }
     PolicyAbstractedState other = (PolicyAbstractedState)o;
-    return (generatingState.equals(other.generatingState) &&
+    return (
+        generatingState.equals(other.generatingState) &&
         abstraction.equals(other.abstraction) && super.equals(o));
   }
 }

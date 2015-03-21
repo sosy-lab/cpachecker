@@ -847,11 +847,13 @@ public class BAMTransferRelation implements TransferRelation {
   ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet,
                                                  Map<ARGState, ARGState> pPathElementToReachedState) {
     assert reachedSet.asReachedSet().contains(target);
+    assert pPathElementToReachedState.isEmpty() : "new path should be started with empty set of states.";
 
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(
             partitioning, wrappedReducer, argCache, pPathElementToReachedState,
             abstractStateToReachedSet, expandedToReducedCache, logger);
-    return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
+    return cexSubgraphComputer.computeCounterexampleSubgraph(
+        target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
   }
 
   /** searches through all available reachedSet for a matching state and returns its precision */

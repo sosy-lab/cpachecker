@@ -117,13 +117,7 @@ public abstract class SolverBasedTest0 {
   public final void initSolver() throws Exception {
     config = createTestConfigBuilder().build();
 
-    try {
-      factory = new FormulaManagerFactory(config, logger,
-          ShutdownNotifier.create());
-    } catch (NoClassDefFoundError e) {
-      assume().withFailureMessage("Scala is not on class path")
-              .that(e.getMessage()).doesNotContain("scala");
-    }
+    factory = new FormulaManagerFactory(config, logger, ShutdownNotifier.create());
     mgr = factory.getFormulaManager();
 
     fmgr = mgr.getFunctionFormulaManager();
