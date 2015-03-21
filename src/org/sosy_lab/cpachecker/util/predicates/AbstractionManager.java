@@ -69,6 +69,7 @@ import com.google.common.collect.Maps;
  */
 @Options(prefix = "cpa.predicate")
 public final class AbstractionManager {
+  // the different custom bdd variable ordering strategies.
   private static final String SIMILARITY = "SIMILARITY";
   private static final String FREQUENCY = "FREQUENCY";
   private static final String IMPLICATION = "IMPLICATION";
@@ -119,7 +120,10 @@ public final class AbstractionManager {
     this.singlePartitionOnly = Boolean.parseBoolean(config.getProperty("bdd.variable.ordering.single.partition"));
     this.reorderWithFrameworkStrategy = Arrays.asList(rmgr.getReorderStrategies()).contains(this.varOrderMethod);
     this.insertRandomly = this.varOrderMethod.equals(RANDOMLY);
-    this.partition = createNewPredicatePartition();
+
+    if (!this.reorderWithFrameworkStrategy) {
+      this.partition = createNewPredicatePartition();
+    }
 
     if (useCache) {
       toConcreteCache = new HashMap<>();
