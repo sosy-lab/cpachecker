@@ -8,22 +8,18 @@
 	</contentEntry>
 	<lib name="common.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/common-sources.jar!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/common-sources.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/common.jar!/"/>
 	</lib>
 	<lib name="guava.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/guava-sources.jar!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/guava-sources.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/guava.jar!/"/>
 	</lib>
 	<lib name="smtinterpol-comp.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/smtinterpol-sources.zip!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/smtinterpol-sources.zip!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/smtinterpol-comp.jar!/"/>
 	</lib>
 	<lib name="javabdd.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/javabdd-sources.jar!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/javabdd-sources.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/javabdd.jar!/"/>
 	</lib>
 	<lib name="java-cup-runtime.jar" scope="COMPILE">
@@ -58,7 +54,6 @@
 	</lib>
 	<lib name="guava-testlib.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/guava-testlib-sources.jar!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/guava-testlib-sources.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/test/guava-testlib.jar!/"/>
 	</lib>
 	<lib name="annotations.jar" scope="COMPILE">
@@ -66,7 +61,6 @@
 	</lib>
 	<lib name="truth.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/truth-sources.jar!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/truth-sources.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/test/truth.jar!/"/>
 	</lib>
 	<lib name="smt-parser.jar" scope="COMPILE">
@@ -77,7 +71,6 @@
 	</lib>
 	<lib name="org.eclipse.cdt.core.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/org.eclipse.cdt.core-sources.jar!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/org.eclipse.cdt.core-sources.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.cdt.core.jar!/"/>
 	</lib>
 	<lib name="org.eclipse.core.contenttype.jar" scope="COMPILE">
@@ -100,7 +93,6 @@
 	</lib>
 	<lib name="org.eclipse.jdt.core.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/org.eclipse.jdt.core-sources.jar!/"/>
-		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/org.eclipse.jdt.core-sources.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/org.eclipse.jdt.core.jar!/"/>
 	</lib>
 	<lib name="org.eclipse.osgi.jar" scope="COMPILE">
@@ -118,4 +110,7 @@
 	<lib name="scala-actors.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/scala-actors.jar!/"/>
 	</lib>
+	<levels>
+		<level name="lib" value="project"/>
+	</levels>
 </component>
