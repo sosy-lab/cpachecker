@@ -21,7 +21,12 @@
         <entry key="$PROJECT_DIR$">
           <value>
             <SvnBranchConfiguration>
-              <option name="trunkUrl" value="" />
+              <option name="branchUrls">
+                <list>
+                  <option value="https://svn.sosy-lab.org/software/cpachecker/branches/svproj-bddvarorder" />
+                </list>
+              </option>
+              <option name="trunkUrl" value="https://svn.sosy-lab.org/software/cpachecker/trunk" />
             </SvnBranchConfiguration>
           </value>
         </entry>
