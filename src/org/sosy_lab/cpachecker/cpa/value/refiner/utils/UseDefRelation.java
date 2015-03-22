@@ -197,7 +197,7 @@ public class UseDefRelation {
       CFAEdge currentEdge   = it.getOutgoingEdge();
 
       if(currentEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for(CFAEdge singleEdge : ((MultiEdge)currentEdge).getEdges()) {
+        for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)currentEdge).getEdges())) {
           unresolvedUses.addAll(getUses(currentState, singleEdge));
           unresolvedUses.removeAll(getDef(currentState, singleEdge));
         }
