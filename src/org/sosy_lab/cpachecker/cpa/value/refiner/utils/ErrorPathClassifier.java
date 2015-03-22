@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -41,6 +43,8 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
 public class ErrorPathClassifier {
@@ -64,8 +68,16 @@ public class ErrorPathClassifier {
 
     // heuristics based on approximating cost via variable domain types
     DOMAIN_BEST_SHALLOW(FIRST_LOWEST_SCORE),
+    DOMAIN_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
     DOMAIN_BEST_BOUNDED(BOUNDED_LOWEST_SCORE),
     DOMAIN_BEST_DEEP(LAST_LOWEST_SCORE),
+    DOMAIN_WORST_DEEP(LAST_HIGHEST_SCORE),
+
+    // same as above, but more precise
+    DOMAIN_PRECISE_BEST_SHALLOW(FIRST_LOWEST_SCORE),
+    DOMAIN_PRECISE_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
+    DOMAIN_PRECISE_BEST_DEEP(LAST_LOWEST_SCORE),
+    DOMAIN_PRECISE_WORST_DEEP(LAST_HIGHEST_SCORE),
 
     // heuristics based on approximating the depth of the refinement root
     REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
@@ -74,14 +86,16 @@ public class ErrorPathClassifier {
     // heuristic that combines refinement-root depth and domain-type score
     REFINE_DEEP_DOMAIN(LAST_LOWEST_SCORE),
 
+    // heuristic based on the length of the interpolant sequence (+ loop-counter heuristic)
+    ITP_LENGTH_SHORT_SHALLOW(FIRST_LOWEST_SCORE),
+    ITP_LENGTH_LONG_SHALLOW(FIRST_HIGHEST_SCORE),
+    ITP_LENGTH_SHORT_DEEP(LAST_LOWEST_SCORE),
+    ITP_LENGTH_LONG_DEEP(LAST_HIGHEST_SCORE),
+
     // use these only if you are feeling lucky
     RANDOM(),
     MEDIAN(),
-    MIDDLE(),
-
-    // use these if you want to go for a coffee or ten
-    DOMAIN_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
-    DOMAIN_WORST_DEEP(LAST_HIGHEST_SCORE);
+    MIDDLE();
 
     private PrefixPreference () {}
 
@@ -163,6 +177,18 @@ public class ErrorPathClassifier {
     case DOMAIN_WORST_DEEP:
       return obtainDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
 
+    case DOMAIN_PRECISE_BEST_SHALLOW:
+    case DOMAIN_PRECISE_BEST_DEEP:
+    case DOMAIN_PRECISE_WORST_SHALLOW:
+    case DOMAIN_PRECISE_WORST_DEEP:
+      return obtainPreciseDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
+
+    case ITP_LENGTH_SHORT_SHALLOW:
+    case ITP_LENGTH_LONG_SHALLOW:
+    case ITP_LENGTH_SHORT_DEEP:
+    case ITP_LENGTH_LONG_DEEP:
+      return obtainItpSequenceLengthHeuristicBasedPrefix(pPrefixes, preference, errorPath);
+
     case REFINE_SHALLOW:
     case REFINE_DEEP:
       return obtainRefinementRootHeuristicBasedPrefix(pPrefixes, preference, errorPath);
@@ -210,6 +236,104 @@ public class ErrorPathClassifier {
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
+        bestIndex = pPrefixes.indexOf(currentPrefix);
+      }
+
+      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
+    }
+
+    return buildPath(bestIndex, pPrefixes, originalErrorPath);
+  }
+
+  private ARGPath obtainPreciseDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Integer bestScore = null;
+    Integer bestIndex = 0;
+
+    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
+      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(pathToList(currentPrefix));
+
+      ARGPath path = currentErrorPath.immutableCopy();
+      UseDefRelation useDefRelation = new UseDefRelation(path,
+          classification.get().getIntBoolVars(),
+          "NONE");
+
+      int score = 0;
+      for (Collection<ASimpleDeclaration> uses : useDefRelation.getExpandedUses(path).values()) {
+        int temp = classification.get().obtainDomainTypeScoreForVariables2(FluentIterable.from(uses).transform(new Function<ASimpleDeclaration, String>() {
+          @Override
+          public String apply(ASimpleDeclaration pArg0) {
+            return pArg0.getQualifiedName();
+          }}).toSet(), loopStructure);
+
+        if(score + temp < score) {
+          score = Integer.MAX_VALUE;
+          break;
+        }
+
+        score = score + temp;
+      }
+
+      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
+        bestScore = score;
+        bestIndex = pPrefixes.indexOf(currentPrefix);
+      }
+
+      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
+    }
+
+    return buildPath(bestIndex, pPrefixes, originalErrorPath);
+  }
+
+  private ARGPath obtainItpSequenceLengthHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Integer bestScore = null;
+    Integer bestIndex = 0;
+
+    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
+      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(pathToList(currentPrefix));
+
+      ARGPath path = currentErrorPath.immutableCopy();
+      UseDefRelation useDefRelation = new UseDefRelation(path,
+          classification.get().getIntBoolVars(),
+          "NONE");
+
+      // values are in reverse order, with the first item being the use of the failing
+      // assume, hence, the index of first empty element, in relation to the first element
+      // is equal to the length of the itp-sequence
+      Collection<Collection<ASimpleDeclaration>> expandedUses = useDefRelation.getExpandedUses(path).values();
+      int length = Iterables.indexOf(expandedUses,
+          new Predicate<Collection<ASimpleDeclaration>>() {
+            @Override
+            public boolean apply(Collection<ASimpleDeclaration> values) {
+              return values.isEmpty();
+            }
+      });
+
+      // no pure heuristic, as it includes domain-types (loop-counter heuristic)
+      if(obtainDomainTypeScoreForPath(currentErrorPath) == Integer.MAX_VALUE) {
+        length = 0;
+      }
+
+      assert (length != -1) : useDefRelation.getExpandedUses(path).values() + " \n\n " + currentErrorPath;
+      if(length == -1) {
+        length = path.size();
+      }
+
+      if (preference.scorer.apply(Triple.of(length, bestScore, currentErrorPath.size()))) {
+        bestScore = length;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
 
@@ -355,13 +479,21 @@ public class ErrorPathClassifier {
     case DOMAIN_BEST_BOUNDED:
     case DOMAIN_BEST_SHALLOW:
     case DOMAIN_WORST_SHALLOW:
+    case DOMAIN_PRECISE_BEST_SHALLOW:
+    case DOMAIN_PRECISE_WORST_SHALLOW:
     case REFINE_SHALLOW:
+    case ITP_LENGTH_SHORT_SHALLOW:
+    case ITP_LENGTH_LONG_SHALLOW:
       return pPrefixes.subList(0, Math.min(pPrefixes.size(), MAX_PREFIX_NUMBER));
 
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_DEEP:
+    case DOMAIN_PRECISE_BEST_DEEP:
+    case DOMAIN_PRECISE_WORST_DEEP:
     case REFINE_DEEP:
     case REFINE_DEEP_DOMAIN:
+    case ITP_LENGTH_SHORT_DEEP:
+    case ITP_LENGTH_LONG_DEEP:
       return pPrefixes.subList(Math.max(0, pPrefixes.size() - MAX_PREFIX_NUMBER), pPrefixes.size());
 
     default:

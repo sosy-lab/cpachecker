@@ -1247,9 +1247,13 @@ cpa.predicate.refinement.predicateBasisStrategy = TARGET
 
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = DEFAULT
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
-             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, REFINE_DEEP_DOMAIN, RANDOM,
-             MEDIAN, MIDDLE, DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
+             DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
+             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
+             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
+             REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
+             ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
+             RANDOM, MEDIAN, MIDDLE]
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
@@ -1719,9 +1723,13 @@ cpa.value.refiner.performEdgeBasedInterpolation = true
 # which prefix of an actual counterexample trace should be used for
 # interpolation
 cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
-             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, REFINE_DEEP_DOMAIN, RANDOM,
-             MEDIAN, MIDDLE, DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
+             DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
+             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
+             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
+             REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
+             ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
+             RANDOM, MEDIAN, MIDDLE]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
