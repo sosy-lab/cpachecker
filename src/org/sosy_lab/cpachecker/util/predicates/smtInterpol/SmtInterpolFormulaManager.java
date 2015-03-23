@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FormulaLet;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -107,7 +108,8 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
 
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    return encapsulateBooleanFormula(getOnlyElement(getEnvironment().parseStringToTerms(pS)));
+    Term term = getOnlyElement(getEnvironment().parseStringToTerms(pS));
+    return encapsulateBooleanFormula(new FormulaUnLet().unlet(term));
   }
 
 
