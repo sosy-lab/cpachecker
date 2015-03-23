@@ -404,20 +404,21 @@ class KInductionProver implements AutoCloseable {
    * @throws CPATransferException
    */
   private BooleanFormula extractInvariantsAt(UnmodifiableReachedSet pReachedSet, CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
+    BooleanFormula invariant;
+
     if (invariantGenerationRunning && pReachedSet.isEmpty()) {
-      return bfmgr.makeBoolean(true); // no invariants available
-    }
+      invariant = bfmgr.makeBoolean(true); // no invariants available in ReachedSet
 
-    BooleanFormula invariant = bfmgr.makeBoolean(false);
+    } else {
+      invariant = bfmgr.makeBoolean(false);
+      for (AbstractState locState : AbstractStates.filterLocation(pReachedSet, pLocation)) {
+        BooleanFormula f = AbstractStates.extractReportedFormulas(pFMGR, locState);
+        logger.log(Level.ALL, "Invariant:", f);
 
-    for (AbstractState locState : AbstractStates.filterLocation(pReachedSet, pLocation)) {
-      BooleanFormula f = AbstractStates.extractReportedFormulas(pFMGR, locState);
-      logger.log(Level.ALL, "Invariant:", f);
-
-      invariant = bfmgr.or(invariant, f);
+        invariant = bfmgr.or(invariant, f);
+      }
     }
 
     for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
