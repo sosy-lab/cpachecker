@@ -130,7 +130,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     // TODO: There are different implementations of the region manager.
     //    Evaluate the applicability of them.
 
-    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
+    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
     predicateManager = new PredicateAbstractionManager(
         abstractionManager, formulaManager, pathFormulaManager,
         solver, config, logger, cfa.getLiveVariables());

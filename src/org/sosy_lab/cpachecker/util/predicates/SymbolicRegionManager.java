@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
@@ -249,5 +250,13 @@ public class SymbolicRegionManager implements RegionManager {
   @Override
   public String getVersion() {
     return fmgr.getVersion();
+  }
+
+  @Override
+  public void reorder(PredicateOrderingStrategy strategy) {
+  }
+
+  @Override
+  public void setVarOrder(ArrayList<Integer> pOrder) {
   }
 }
