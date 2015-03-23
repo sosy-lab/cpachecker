@@ -28,6 +28,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.LetTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -58,6 +59,9 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
 
   @Override
   public int getArity(Term pT) {
+    assert !(pT instanceof LetTerm)
+        : "Formulas used by CPAchecker are expected to not have LetTerms."
+            + " Check how this formula was created: " + pT;
     return SmtInterpolUtil.getArity(pT);
   }
 
