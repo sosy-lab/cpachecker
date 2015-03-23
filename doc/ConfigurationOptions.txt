@@ -240,6 +240,18 @@ bdd.javabdd.initTableSize = 10000
 bdd.package = "JAVA"
   allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
 
+# Granularity of the Sylvan BDD operations cache (recommended values 4-8).
+bdd.sylvan.cacheGranularity = 4
+
+# Log2 size of the BDD cache.
+bdd.sylvan.cacheSize = 24
+
+# Log2 size of the BDD node table.
+bdd.sylvan.tableSize = 26
+
+# Number of worker threads, 0 for automatic.
+bdd.sylvan.threads = 0
+
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
 blockreducer.allowReduceFunctionEntries = true

@@ -171,7 +171,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
+    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
     assumesStore = new PredicateAssumeStore(formulaManager);
 

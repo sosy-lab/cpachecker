@@ -2,10 +2,10 @@
 <classpath>
 	<classpathentry excluding="org/sosy_lab/cpachecker/appengine/" kind="src" path="src"/>
 	<classpathentry exported="true" kind="lib" path="bin"/>
-	<classpathentry exported="true" kind="lib" path="lib/java/runtime/common.jar" sourcepath="/CPAchecker/lib/java-contrib/common-sources.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="/CPAchecker/lib/java-contrib/guava-sources.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/java/runtime/smtinterpol-comp.jar" sourcepath="/CPAchecker/lib/java-contrib/smtinterpol-sources.zip"/>
-	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="/CPAchecker/lib/java-contrib/javabdd-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/common.jar" sourcepath="lib/java-contrib/common-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="lib/java-contrib/guava-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/smtinterpol-comp.jar" sourcepath="lib/java-contrib/smtinterpol-sources.zip"/>
+	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="lib/java-contrib/javabdd-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/icu4j.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/junit.jar"/>
@@ -16,25 +16,24 @@
 	<classpathentry kind="lib" path="lib/jsylvan.jar"/>
 	<classpathentry kind="lib" path="lib/apron.jar"/>
 	<classpathentry kind="lib" path="lib/gmp.jar"/>
-	<classpathentry kind="lib" path="lib/java/test/guava-testlib.jar" sourcepath="/CPAchecker/lib/java-contrib/guava-testlib-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/guava-testlib.jar" sourcepath="lib/java-contrib/guava-testlib-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/build/annotations.jar"/>
-	<classpathentry kind="lib" path="lib/java/test/truth.jar" sourcepath="/CPAchecker/lib/java-contrib/truth-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/truth.jar" sourcepath="lib/java-contrib/truth-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/smt-parser.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="/CPAchecker/lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.contenttype.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.jobs.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.resources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.equinox.common.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.equinox.preferences.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="/CPAchecker/lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/meconsole010.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/princess.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-actors.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/lib"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

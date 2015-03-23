@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -52,14 +51,15 @@ import com.google.common.collect.HashBiMap;
  */
 public class NamedRegionManager implements RegionManager {
 
-  private static final String ANONYMOUS_PREDICATE = "__anon_pred";
   private final RegionManager delegate;
+
   private final BiMap<String, Region> regionMap = HashBiMap.create();
-  /**
-   * counter needed for nodes in dot-output
-   */
-  int nodeCounter;
+
+  private static final String ANONYMOUS_PREDICATE = "__anon_pred";
   private int anonymousPredicateCounter = 0;
+
+  /** counter needed for nodes in dot-output */
+  int nodeCounter;
 
   public NamedRegionManager(RegionManager pDelegate) {
     delegate = checkNotNull(pDelegate);
@@ -69,7 +69,6 @@ public class NamedRegionManager implements RegionManager {
    * Create a predicate with a name associated to it.
    * If the same name is passed again to this method, the old predicate will be
    * returned (guaranteeing uniqueness of predicate<->name mapping).
-   *
    * @param pName An arbitary name for a predicate.
    * @return A region representing a predicate
    */
@@ -120,35 +119,33 @@ public class NamedRegionManager implements RegionManager {
         assert !falseBranch.isFalse();
         // only falseBranch is present
         out.append("!")
-            .append(predName)
-            .append(" & ");
+           .append(predName)
+           .append(" & ");
         dumpRegion(falseBranch, out);
 
       } else if (falseBranch.isFalse()) {
         // only trueBranch is present
         out.append(predName)
-            .append(" & ");
+           .append(" & ");
         dumpRegion(trueBranch, out);
 
       } else {
         // both branches present
         out.append("((")
-            .append(predName)
-            .append(" & ");
+           .append(predName)
+           .append(" & ");
         dumpRegion(trueBranch, out);
         out.append(") | (")
-            .append("!")
-            .append(predName)
-            .append(" & ");
+           .append("!")
+           .append(predName)
+           .append(" & ");
         dumpRegion(falseBranch, out);
         out.append("))");
       }
     }
   }
 
-  /**
-   * Returns a representation of a region in dot-format (graphviz).
-   */
+  /** Returns a representation of a region in dot-format (graphviz). */
   public String regionToDot(Region r) {
     nodeCounter = 2; // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE
     Map<Region, Integer> cache = new HashMap<>(); // map for same regions
@@ -249,21 +246,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ArrayList<Integer> pOrder) {
-  }
-
-  @Override
-  public void reorder(String strategy) {
-  }
-
-  @Override
-  public String[] getReorderStrategies() {
-    return new String[0];
-  }
-
-  @Override
-  public Region fromFormula(BooleanFormula pF, FormulaManagerView pFmgr,
-      Function<BooleanFormula, Region> pAtomToRegion) {
+  public Region fromFormula(BooleanFormula pF, FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
     return delegate.fromFormula(pF, pFmgr, pAtomToRegion);
   }
 

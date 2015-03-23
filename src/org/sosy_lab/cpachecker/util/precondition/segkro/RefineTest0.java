@@ -132,7 +132,7 @@ public class RefineTest0 extends SolverBasedTest0 {
     ExtractNewPreds enp = new ExtractNewPreds(solver, ruleEngine);
     InterpolationWithCandidates ipc = new MinCorePrio(logger, Mockito.mock(CFA.class), solver);
     RegionManager regionManager = new BDDManagerFactory(config, logger).createRegionManager();
-    AbstractionManager amgr = new AbstractionManager(regionManager, mgrv, config, logger, solver);
+    AbstractionManager amgr = new AbstractionManager(regionManager, mgrv, config, logger);
     refine = new Refine(config, logger, ShutdownNotifier.create(), cfa, solver, amgr, enp, ipc);
 
     // Test CFA elements...
