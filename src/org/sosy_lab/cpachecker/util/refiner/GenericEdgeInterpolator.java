@@ -188,9 +188,10 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
    * @throws InterruptedException
-   * @throws org.sosy_lab.cpachecker.exceptions.CPAException
+   * @throws CPAException
    */
-  private boolean isSuffixContradicting(ARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean isSuffixContradicting(ARGPath errorPath)
+      throws CPAException, InterruptedException {
     return !isRemainingPathFeasible(errorPath, initialState);
   }
 
@@ -210,7 +211,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param initialState the initial state, i.e. the state represented by the input interpolant.
    * @param pInitialEdge the initial edge of the error path
    * @return the initial successor
-   * @throws org.sosy_lab.cpachecker.exceptions.CPATransferException
+   * @throws CPAException
    */
   private Optional<S> getInitialSuccessor(
       final S pInitialState,
@@ -230,25 +231,20 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       oldState = postOperator.handleFunctionReturn(oldState, pInitialEdge, pCallstack);
     }
 
-    Optional<S> successor = postOperator.getStrongestPost(
-        oldState,
-        precision,
-        pInitialEdge);
-
-    return successor;
+    return postOperator.getStrongestPost(oldState, precision, pInitialEdge);
   }
 
   /**
-   * This method checks, whether or not the (remaining) error path is feasible when starting with the given (pseudo) initial state.
+   * This method checks, whether or not the (remaining) error path is feasible when starting with
+   * the given (pseudo) initial state.
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
    * @return true, it the path is feasible, else false
-   * @throws InterruptedException
-   * @throws org.sosy_lab.cpachecker.exceptions.CPAException
+   * @throws CPAException
    */
   private boolean isRemainingPathFeasible(ARGPath remainingErrorPath, S state)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     numberOfInterpolationQueries++;
     return checker.isFeasible(remainingErrorPath, state);
   }

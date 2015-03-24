@@ -80,7 +80,7 @@ import com.google.common.collect.Multimap;
  * @param <T> the type type S returns its forgotten information as
  * @param <I> the type of the interpolants created by this class
  */
-@Options(prefix="cpa.defaults.refiner")
+@Options(prefix="cpa.value.refinement")
 public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S>>
     implements PathInterpolator<I> {
 
@@ -232,7 +232,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
   /**
    * This utility method checks if the given path is feasible.
    */
-  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException, InterruptedException {
+  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException {
     try {
        return new ValueAnalysisFeasibilityChecker(logger, cfa, config).isFeasible(slicedErrorPathPrefix);
     } catch (InvalidConfigurationException e) {
@@ -386,11 +386,10 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param errorPath the original error path
    * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
    * @return a (sub)path of the error path which is given to the interpolation procedure
-   * @throws org.sosy_lab.cpachecker.exceptions.CPAException
-   * @throws InterruptedException
+   * @throws CPAException
    */
   protected ARGPath obtainErrorPathPrefix(ARGPath errorPath, I interpolant)
-          throws CPAException, InterruptedException {
+          throws CPAException {
 
     final List<ARGPath> prefixes = checker.getInfeasiblePrefixes(errorPath,
         interpolant.reconstructState(),

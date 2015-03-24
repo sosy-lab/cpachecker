@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.PrefixProvider;
 
 import com.google.common.base.Optional;
 
@@ -51,7 +50,7 @@ import com.google.common.base.Optional;
  * Generic feasibility checker
  */
 public abstract class GenericFeasibilityChecker<S extends AbstractState>
-    implements FeasibilityChecker<S>, PrefixProvider {
+    implements FeasibilityChecker<S> {
 
   private final LogManager logger;
 
@@ -147,7 +146,8 @@ public abstract class GenericFeasibilityChecker<S extends AbstractState>
 
       return prefixes;
     } catch (CPAException e) {
-      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+      throw new CPAException(
+          "Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }
 

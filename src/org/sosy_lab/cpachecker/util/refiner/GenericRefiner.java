@@ -295,7 +295,7 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
   }
 
   private boolean isInitialInterpolantTooWeak(ARGState root, Interpolant<S> initialItp, ARGPath errorPath)
-      throws CPAException, InterruptedException {
+      throws CPAException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak
     if (errorPath.getFirstState() == root) {
@@ -510,7 +510,7 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
   }
 
   public boolean isErrorPathFeasible(final ARGPath errorPath)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     return checker.isFeasible(errorPath);
   }
 
