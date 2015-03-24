@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import org.sosy_lab.common.Pair;
