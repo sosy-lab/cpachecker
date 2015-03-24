@@ -78,13 +78,11 @@ public final class AbstractionManager {
   private final Map<BooleanFormula, AbstractionPredicate> symbVarToPredicate = Maps.newHashMap();
   // and the mapping atom -> predicate
   private final Map<BooleanFormula, AbstractionPredicate> atomToPredicate = Maps.newHashMap();
-  // and the mapping varID -> predicate
-  private final Map<Integer, AbstractionPredicate> varIDToPredicate = Maps.newHashMap();
 
   // Properties for BDD variable ordering:
   @Option(secure = true, name = "abs.predicateOrdering.method",
       description = "Predicate ordering")
-  private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.RANDOMLY;
+  private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.SIMILARITY;
   // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
@@ -164,7 +162,6 @@ public final class AbstractionManager {
       symbVarToPredicate.put(symbVar, result);
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
-      varIDToPredicate.put(numberOfPredicates, result);
 
       if (!this.varOrderMethod.getIsFrameworkStrategy()) {
         if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {

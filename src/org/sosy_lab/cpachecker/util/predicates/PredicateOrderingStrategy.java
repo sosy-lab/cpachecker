@@ -30,7 +30,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 public enum PredicateOrderingStrategy {
   SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
   FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE, FRAMEWORK_WIN2, FRAMEWORK_WIN2ITE,
-  FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE;
+  FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE, CHRONOLOGICAL;
 
   private boolean isFrameworkStrategy;
 
@@ -47,6 +47,7 @@ public enum PredicateOrderingStrategy {
     FRAMEWORK_WIN2ITE.isFrameworkStrategy = true;
     FRAMEWORK_WIN3.isFrameworkStrategy = true;
     FRAMEWORK_WIN3ITE.isFrameworkStrategy = true;
+    CHRONOLOGICAL.isFrameworkStrategy = true;
   }
 
   public boolean getIsFrameworkStrategy() {
