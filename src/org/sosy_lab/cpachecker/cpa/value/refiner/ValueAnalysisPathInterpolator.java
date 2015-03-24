@@ -129,19 +129,14 @@ public class ValueAnalysisPathInterpolator
       totalInterpolations.inc();
       timerInterpolation.start();
 
-      try {
-        ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
+      ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
 
-        Map<ARGState, ValueAnalysisInterpolant> interpolants =
-            performPathBasedInterpolation(errorPathPrefix);
+      Map<ARGState, ValueAnalysisInterpolant> interpolants =
+          performPathBasedInterpolation(errorPathPrefix);
 
-        timerInterpolation.stop();
+      timerInterpolation.stop();
 
-        return interpolants;
-
-      } catch (InterruptedException e) {
-        throw new CPAException("Error while performing interpolation", e);
-      }
+      return interpolants;
     }
   }
 
