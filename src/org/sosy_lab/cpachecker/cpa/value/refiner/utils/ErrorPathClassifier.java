@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.sosy_lab.common.Pair;
@@ -95,7 +96,9 @@ public class ErrorPathClassifier {
     // use these only if you are feeling lucky
     RANDOM(),
     MEDIAN(),
-    MIDDLE();
+    MIDDLE(),
+
+    FEASIBLE();
 
     private PrefixPreference () {}
 
@@ -204,6 +207,9 @@ public class ErrorPathClassifier {
 
     case MIDDLE:
       return obtainMiddlePrefix(pPrefixes, errorPath);
+
+    case FEASIBLE:
+      return buildPath(pPrefixes, errorPath);
 
     default:
       return errorPath;
@@ -323,6 +329,7 @@ public class ErrorPathClassifier {
       });
 
       // no pure heuristic, as it includes domain-types (loop-counter heuristic)
+      // which gives slightly better results (eval'ed with value-analysis)
       if(obtainDomainTypeScoreForPath(currentErrorPath) == Integer.MAX_VALUE) {
         length = 0;
       }
@@ -531,6 +538,36 @@ public class ErrorPathClassifier {
       if (j != bestIndex) {
         replaceAssumeEdgeWithBlankEdge(errorPath);
       }
+    }
+
+    // append the (feasible) suffix
+    for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
+      // keep the original target ...
+      if(element.getFirst().isTarget()) {
+        errorPath.add(element);
+      }
+
+      // ... while replacing each transition by a no-op (should make, e.g., interpolation simpler/faster)
+      else {
+        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
+            FileLocation.DUMMY,
+            element.getSecond().getPredecessor(),
+            element.getSecond().getSuccessor(),
+            SUFFIX_REPLACEMENT)));
+      }
+    }
+
+    return errorPath.immutableCopy();
+  }
+
+
+  private ARGPath buildPath(final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
+    MutableARGPath errorPath = new MutableARGPath();
+    for (ARGPath prefix : pPrefixes) {
+      List<Pair<ARGState, CFAEdge>> list = pathToList(prefix);
+
+      errorPath.addAll(list);
+      replaceAssumeEdgeWithBlankEdge(errorPath);
     }
 
     // append the (feasible) suffix

@@ -663,6 +663,14 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   }
 
   /**
+   * This method resets the current error path id, which is needed when using another refiner,
+   * such as a refiner from the predicate domain, in parallel to this refiner.
+   */
+  void resetPreviousErrorPathId() {
+    previousErrorPathId = -1;
+  }
+
+  /**
    * The strategy to determine where to restart the analysis after a successful refinement.
    * {@link #ROOT} means that the analysis is restarted from the root of the ARG
    * {@link #PIVOT} means that the analysis is restarted from the lowest possible refinement root, i.e.,

@@ -69,6 +69,13 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   @Option(secure=true, description="whether or not to use refinement selection to decide which domain to refine")
   private boolean useRefinementSelection = false;
 
+  @Option(secure=true, description="whether or not to let auxiliary refiner score and refine a path that is feasible for the primary refiner,"
+      + " this allows to only extract prefixes that are exclusive to the auxiliary refiner")
+  private boolean useFeasiblePathForAuxRefiner = false;
+
+  @Option(secure=true, description="the maximum score for which always the primary refinement will be performed")
+  private int scoringThreshold = 65536;
+
   /**
    * classifier used to score sliced prefixes
    */
@@ -166,7 +173,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
+  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     int vaScore = 0;
@@ -174,7 +181,20 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     if (useRefinementSelection) {
       vaScore = obtainScoreForValueDomain(pErrorPath);
-      paScore = obtainScoreForPredicateDomain(pErrorPath);
+
+      // don't bother to extract prefixes in auxiliary analysis
+      // if score of primary analysis is beneath the threshold
+      if(vaScore > scoringThreshold) {
+
+        // hand the auxiliary analysis a path that is feasible
+        // for the primary analysis, so that only new prefixes are found
+        if(useFeasiblePathForAuxRefiner) {
+          List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+          pErrorPath = classfier.obtainSlicedPrefix(PrefixPreference.FEASIBLE, pErrorPath, vaPrefixes);
+        }
+
+        paScore = obtainScoreForPredicateDomain(pErrorPath);
+      }
     }
 
     CounterexampleInfo cex;
@@ -187,6 +207,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       }
 
       else {
+        valueCpaRefiner.resetPreviousErrorPathId();
         cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
 
         if(cex.isSpurious()) {
@@ -218,6 +239,12 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     timeForVAPrefixes.start();
     List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
     timeForVAPrefixes.stop();
+
+    // if path is feasible hand out a real bad score
+    if(vaPrefixes.get(0) == pErrorPath) {
+      return Integer.MAX_VALUE;
+    }
+
     this.avgPrefixesVA.setNextValue(vaPrefixes.size());
 
     int vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);

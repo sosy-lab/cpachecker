@@ -330,6 +330,14 @@ cegar.globalRefinement = false
 # omitted.
 cegar.refiner = no default value
 
+# the maximum score for which always the primary refinement will be performed
+cegar.scoringThreshold = 65536
+
+# whether or not to let auxiliary refiner score and refine a path that is
+# feasible for the primary refiner, this allows to only extract prefixes that
+# are exclusive to the auxiliary refiner
+cegar.useFeasiblePathForAuxRefiner = false
+
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
@@ -1262,7 +1270,7 @@ cpa.predicate.refinement.prefixPreference = DEFAULT
              DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
              REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
              ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
-             RANDOM, MEDIAN, MIDDLE]
+             RANDOM, MEDIAN, MIDDLE, FEASIBLE]
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
@@ -1738,7 +1746,7 @@ cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
              DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
              REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
              ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
-             RANDOM, MEDIAN, MIDDLE]
+             RANDOM, MEDIAN, MIDDLE, FEASIBLE]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
