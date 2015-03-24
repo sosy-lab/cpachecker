@@ -21,14 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.util.refiner;
+
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Package for interfaces and classes used for refinement in general.
+ * State that allows forgetting values of {@link MemoryLocation}s and readding them.
  *
- * Most types in this package rely on {@link org.sosy_lab.cpachecker.util.states.MemoryLocation},
- * but are otherwise only dependent on interfaces {@link StrongestPostOperator}, {@link Interpolant}
- * , {@link InterpolantManager} and {@link ForgetfulState}.
- * By defining implementations for these four interfaces, one can define a complete refinement
- * using the Generic* classes.
+ * @param <T> arbitrary type containing all information necessary for the implementation
+ *    to recreate the previous state after a delete
  */
-package org.sosy_lab.cpachecker.util.refiner;
+public interface ForgetfulState<T> extends AbstractState {
+
+  T forget(MemoryLocation location);
+
+  void remember(MemoryLocation location, T forgottenInformation);
+
+  Set<MemoryLocation> getTrackedMemoryLocations();
+
+  int getSize();
+}

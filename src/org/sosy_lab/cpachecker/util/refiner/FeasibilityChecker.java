@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.refiner;
 
+import java.util.Deque;
+import java.util.List;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -31,7 +34,7 @@ import org.sosy_lab.cpachecker.util.PrefixProvider;
 /**
  * Interface for checking the feasibility of error paths.
  */
-public interface FeasibilityChecker extends PrefixProvider {
+public interface FeasibilityChecker<S extends AbstractState> extends PrefixProvider {
 
   /**
    * Returns whether the given path is feasible, starting at the initial state.
@@ -54,5 +57,8 @@ public interface FeasibilityChecker extends PrefixProvider {
    *    <code>false</code> otherwise
    * @throws CPAException
    */
-  boolean isFeasible(final ARGPath path, AbstractState startingPoint) throws CPAException;
+  boolean isFeasible(final ARGPath path, S startingPoint) throws CPAException;
+
+  List<ARGPath> getInfeasiblePrefixes(ARGPath path, S initial, Deque<S> callstack)
+      throws CPAException;
 }

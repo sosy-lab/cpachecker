@@ -23,15 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,46 +33,30 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value.refiner")
-public class ValueAnalysisPathInterpolator implements Statistics {
+public class ValueAnalysisPathInterpolator
+    extends GenericPathInterpolator<ValueAnalysisState, Pair<Value, Type>, ValueAnalysisInterpolant> {
+
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
    * for the re-exploration of the ARG will be the node closest to the root
@@ -97,18 +74,6 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
   private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_BEST_SHALLOW;
 
-  /**
-   * the offset in the path from where to cut-off the subtree, and restart the analysis
-   */
-  private int interpolationOffset = -1;
-
-  /**
-   * a reference to the assignment-counting state, to make the precision increment aware of thresholds
-   */
-  private UniqueAssignmentsInPathConditionState assignments = null;
-
-  private FeasibilityChecker checker;
-
   // statistics
   private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
@@ -121,178 +86,63 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  private final ValueAnalysisEdgeInterpolator interpolator;
-
   public ValueAnalysisPathInterpolator(
-      final FeasibilityChecker pFeasibilityChecker,
-      final StrongestPostOperator pStrongestPostOperator,
+      final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final Configuration pConfig,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
+
+    super(new ValueAnalysisEdgeInterpolator(pFeasibilityChecker,
+            pStrongestPostOperator,
+            pConfig,
+            pLogger,
+            pShutdownNotifier,
+            pCfa),
+        ValueAnalysisInterpolantManager.getInstance(),
+        pFeasibilityChecker,
+        pConfig,
+        pLogger,
+        pShutdownNotifier,
+        pCfa);
+
     pConfig.inject(this);
     config = pConfig;
 
     logger           = pLogger;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
-    checker = pFeasibilityChecker;
-    interpolator     = new ValueAnalysisEdgeInterpolator(pFeasibilityChecker,
-                                                         pStrongestPostOperator,
-                                                         config,
-                                                         logger,
-                                                         shutdownNotifier,
-                                                         cfa);
   }
 
-  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
-      ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
-    totalInterpolations.inc();
-    timerInterpolation.start();
+  @Override
+  public Map<ARGState, ValueAnalysisInterpolant> performInterpolation(
+      final ARGPath errorPath,
+      final ValueAnalysisInterpolant interpolant
+  ) throws CPAException {
 
-    interpolationOffset = -1;
+    if (performEdgeBasedInterpolation) {
+      return super.performInterpolation(errorPath, interpolant);
 
-    ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
+    } else {
+      totalInterpolations.inc();
+      timerInterpolation.start();
 
-    Map<ARGState, ValueAnalysisInterpolant> interpolants =
-        performEdgeBasedInterpolation
-        ? performEdgeBasedInterpolation(errorPathPrefix, interpolant)
-        : performPathBasedInterpolation(errorPathPrefix);
+      try {
+        ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
 
-    timerInterpolation.stop();
+        Map<ARGState, ValueAnalysisInterpolant> interpolants =
+            performPathBasedInterpolation(errorPathPrefix);
 
-    return interpolants;
-  }
+        timerInterpolation.stop();
 
-  /**
-   * This method performs interpolation on each edge of the path, using the
-   * {@link ValueAnalysisEdgeInterpolator}.
-   *
-   * @param errorPathPrefix the error path prefix to interpolate
-   * @param interpolant an initial interpolant (only non-trivial when interpolating error path suffixes in global refinement)
-   * @return the mapping of {@link ARGState}s to {@link ValueAnalysisInterpolant}s
-   * @throws InterruptedException
-   * @throws CPAException
-   */
-  private Map<ARGState, ValueAnalysisInterpolant> performEdgeBasedInterpolation(ARGPath errorPathPrefix,
-      ValueAnalysisInterpolant interpolant)
-      throws InterruptedException, CPAException {
+        return interpolants;
 
-    if (pathSlicing && prefixPreference != PrefixPreference.DEFAULT) {
-      errorPathPrefix = sliceErrorPath(errorPathPrefix);
-    }
-
-    Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPathPrefix.size());
-
-    PathIterator pathIterator = errorPathPrefix.pathIterator();
-    Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
-    while (pathIterator.hasNext()) {
-      shutdownNotifier.shutdownIfNecessary();
-
-      // interpolate at each edge as long the previous interpolant is not false
-      if (!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(errorPathPrefix,
-            pathIterator.getOutgoingEdge(),
-            callstack,
-            pathIterator.getIndex(),
-            interpolant);
-      }
-
-      totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
-
-      if (!interpolant.isTrivial() && interpolationOffset == -1) {
-        interpolationOffset = pathIterator.getIndex();
-      }
-
-      sizeOfInterpolant.setNextValue(interpolant.getSize());
-
-      pathIterator.advance();
-
-      pathInterpolants.put(pathIterator.getAbstractState(), interpolant);
-
-      if (!pathIterator.hasNext()) {
-        assert interpolant.isFalse() : "final interpolant is not false: " + interpolant;
+      } catch (InterruptedException e) {
+        throw new CPAException("Error while performing interpolation", e);
       }
     }
-
-    return pathInterpolants;
-  }
-
-  /**
-   * This utility method checks if the given path is feasible.
-   */
-  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException {
-    return checker.isFeasible(slicedErrorPathPrefix);
-  }
-
-  /**
-   * This method returns a sliced error path (prefix). In case the sliced error path becomes feasible,
-   * i.e., because slicing is not fully precise in presence of, e.g., structs or arrays, the original
-   * error path (prefix) that was given as input is returned.
-   *
-   * @throws InterruptedException
-   * @throws CPAException
-   */
-  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) throws CPAException, InterruptedException {
-
-    Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
-        cfa.getVarClassification().isPresent()
-          ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet(),
-        "EQUALITY").getUseDefStates();
-
-    ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(errorPathPrefix.asEdgesList());
-
-    PathIterator iterator = errorPathPrefix.pathIterator();
-    while (iterator.hasNext()) {
-      CFAEdge originalEdge = iterator.getOutgoingEdge();
-
-      // slice edge if there is neither a use nor a definition at the current state
-      if (!useDefStates.contains(iterator.getAbstractState())) {
-        abstractEdges.set(iterator.getIndex(), new BlankEdge("",
-            FileLocation.DUMMY,
-            originalEdge.getPredecessor(),
-            originalEdge.getSuccessor(),
-            ErrorPathClassifier.SUFFIX_REPLACEMENT));
-      }
-
-      /*************************************/
-      /** assure that call stack is valid **/
-      /*************************************/
-      // when entering into a function, remember if call is relevant or not
-      if(originalEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-        functionCalls.push((Pair.of((FunctionCallEdge)originalEdge, abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge)));
-      }
-
-      // when returning from a function, ...
-      if(originalEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-        Pair<FunctionCallEdge, Boolean> functionCallInfo = functionCalls.pop();
-        // ... if call is relevant and return edge is now a blank edge, restore the original return edge
-        if(functionCallInfo.getSecond() && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
-          abstractEdges.set(iterator.getIndex(), originalEdge);
-        }
-
-        // ... if call is irrelevant and return edge is not sliced, restore the call edge
-        else if(!functionCallInfo.getSecond() && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          for(int j = iterator.getIndex(); j >= 0; j--) {
-            if(functionCallInfo.getFirst() == abstractEdges.get(j)) {
-              abstractEdges.set(j, functionCallInfo.getFirst());
-              break;
-            }
-          }
-        }
-      }
-
-      iterator.advance();
-    }
-
-    ARGPath slicedErrorPathPrefix = new ARGPath(errorPathPrefix.asStatesList(), abstractEdges);
-
-    return (isFeasible(slicedErrorPathPrefix))
-        ? errorPathPrefix
-        : slicedErrorPathPrefix;
-
   }
 
   /**
@@ -327,105 +177,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     return interpolants;
   }
 
-  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
-      throws CPAException, InterruptedException {
-
-    assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
-        UniqueAssignmentsInPathConditionState.class);
-
-    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
-
-    Map<ARGState, ValueAnalysisInterpolant> itps = performInterpolation(errorPath.immutableCopy(),
-        ValueAnalysisInterpolant.createInitial());
-
-    for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
-      addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()), itp.getValue());
-    }
-
-    return increment;
-  }
-
-  /**
-   * This method adds the given variable at the given location to the increment.
-   *
-   * @param increment the current increment
-   * @param currentNode the current node for which to add a new variable
-   * @param memoryLocation the name of the variable to add to the increment at the given edge
-   */
-  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
-      CFANode currentNode,
-      ValueAnalysisInterpolant itp) {
-    for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
-      if (assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
-        increment.put(currentNode, memoryLocation);
-      }
-    }
-  }
-
-  /**
-   * This method determines the new refinement root.
-   *
-   * @param errorPath the error path from where to determine the refinement root
-   * @param increment the current precision increment
-   * @param isRepeatedRefinement the flag to determine whether or not this is a repeated refinement
-   * @return the new refinement root
-   * @throws RefinementFailedException if no refinement root can be determined
-   */
-  public Pair<ARGState, CFAEdge> determineRefinementRoot(MutableARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
-      boolean isRepeatedRefinement) throws RefinementFailedException {
-
-    if (interpolationOffset == -1) {
-      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
-    }
-
-    // if doing lazy abstraction, use the node closest to the root node where new information is present
-    if (doLazyAbstraction) {
-      return errorPath.get(interpolationOffset);
-    }
-
-    // otherwise, just use the successor of the root node
-    else {
-      return errorPath.get(1);
-    }
-  }
-
-  /**
-   * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
-   *
-   * @param errorPath the original error path
-   * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
-   * @return a (sub)path of the error path which is given to the interpolation procedure
-   * @throws CPAException
-   */
-  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
-      throws CPAException, InterruptedException {
-
-    List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath);
-
-    totalPrefixes.setNextValue(prefixes.size());
-
-    ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
-    errorPath = classifier.obtainSlicedPrefix(prefixPreference, errorPath, prefixes);
-
-    return errorPath;
-  }
-
   @Override
   public String getName() {
     return getClass().getSimpleName();
-  }
-
-  @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
-    writer.put(timerInterpolation);
-    writer.put(totalInterpolations);
-    writer.put(totalInterpolationQueries);
-    writer.put(sizeOfInterpolant);
-    writer.put(totalPrefixes);
-  }
-
-  public int getInterpolationOffset() {
-    return interpolationOffset;
   }
 }

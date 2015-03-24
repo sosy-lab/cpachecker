@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -59,8 +58,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -87,7 +87,8 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * refiner used for value-analysis interpolation refinement
    */
   private ValueAnalysisPathInterpolator interpolatingRefiner;
-  private FeasibilityChecker valueAnalysisChecker;
+
+  private final FeasibilityChecker<ValueAnalysisState> valueAnalysisChecker;
 
   /**
    * the hash code of the previous error path
@@ -138,14 +139,30 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " needs an ApronCPA");
     }
 
-    ApronDelegatingRefiner refiner = new ApronDelegatingRefiner(cpa,
+    final LogManager logger = apronCPA.getLogger();
+    final CFA cfa = apronCPA.getCFA();
+
+    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(logger, cfa, apronCPA.getConfiguration());
+
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
+        new ValueAnalysisStrongestPostOperator(logger, cfa);
+
+    ApronDelegatingRefiner refiner = new ApronDelegatingRefiner(feasibilityChecker,
+                                                                strongestPostOp,
+                                                                cpa,
                                                                 apronCPA);
 
     return refiner;
   }
 
-  private ApronDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final ApronCPA pApronCPA)
-      throws InvalidConfigurationException {
+  private ApronDelegatingRefiner(
+      final FeasibilityChecker<ValueAnalysisState> pValueAnalysisFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pValueAnalysisStrongestPostOperator,
+      final ConfigurableProgramAnalysis pCpa,
+      final ApronCPA pApronCPA
+  ) throws InvalidConfigurationException {
+
     super(pCpa);
     pApronCPA.getConfiguration().inject(this);
 
@@ -153,25 +170,12 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     logger               = pApronCPA.getLogger();
     shutdownNotifier     = pApronCPA.getShutdownNotifier();
     apronCPA             = pApronCPA;
-    valueAnalysisChecker = createValueAnalysisFeasibilityChecker();
-    interpolatingRefiner = new ValueAnalysisPathInterpolator(
-        valueAnalysisChecker,
-        getInterpolationStrongestPostOp(),
-        pApronCPA.getConfiguration(),
-        logger, shutdownNotifier, cfa);
-  }
-
-  private FeasibilityChecker createValueAnalysisFeasibilityChecker()
-      throws InvalidConfigurationException {
-
-    return new ValueAnalysisFeasibilityChecker(
-        getInterpolationStrongestPostOp(), logger, cfa, apronCPA.getConfiguration());
-  }
-
-  private StrongestPostOperator getInterpolationStrongestPostOp()
-      throws InvalidConfigurationException {
-
-    return new ValueAnalysisTransferRelation(Configuration.builder().build(), logger, cfa);
+    interpolatingRefiner =
+        new ValueAnalysisPathInterpolator(pValueAnalysisFeasibilityChecker,
+                                          pValueAnalysisStrongestPostOperator,
+                                          pApronCPA.getConfiguration(),
+                                          logger, shutdownNotifier, cfa);
+    valueAnalysisChecker = pValueAnalysisFeasibilityChecker;
   }
 
   @Override

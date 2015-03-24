@@ -21,14 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.util.refiner;
+
+import java.util.Deque;
+
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Package for interfaces and classes used for refinement in general.
- *
- * Most types in this package rely on {@link org.sosy_lab.cpachecker.util.states.MemoryLocation},
- * but are otherwise only dependent on interfaces {@link StrongestPostOperator}, {@link Interpolant}
- * , {@link InterpolantManager} and {@link ForgetfulState}.
- * By defining implementations for these four interfaces, one can define a complete refinement
- * using the Generic* classes.
+ * Classes implementing this interface are able to derive interpolants from edges.
  */
-package org.sosy_lab.cpachecker.util.refiner;
+public interface EdgeInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S>> {
+
+  I deriveInterpolant(
+      ARGPath errorPath,
+      CFAEdge currentEdge,
+      Deque<S> callstack,
+      int offset,
+      I inputInterpolant
+  ) throws CPAException;
+
+  int getNumberOfInterpolationQueries();
+}

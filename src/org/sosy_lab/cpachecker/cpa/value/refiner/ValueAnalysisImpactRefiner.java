@@ -62,14 +62,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refiner.GenericRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -102,7 +100,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
   ValueAnalysisPathInterpolator interpolatingRefiner;
-  private FeasibilityChecker checker;
+  ValueAnalysisFeasibilityChecker checker;
 
   private VariableTrackingPrecision globalPrecision = null;
 
@@ -138,12 +136,11 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
 
-    final StrongestPostOperator strongestPostOperator =
-        new ValueAnalysisTransferRelation(Configuration.builder().build(),
-                                          logger, cfa);
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
+        new ValueAnalysisStrongestPostOperator(logger, cfa);
 
-    final FeasibilityChecker feasibilityChecker =
-        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
+    final ValueAnalysisFeasibilityChecker feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
     ValueAnalysisImpactRefiner refiner = new ValueAnalysisImpactRefiner(
                                     feasibilityChecker,
@@ -151,15 +148,15 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
                                     config,
                                     logger,
                                     valueAnalysisCpa.getShutdownNotifier(),
-                                    cfa,
+                                    valueAnalysisCpa.getCFA(),
                                     argCpa);
 
     return refiner;
   }
 
   private ValueAnalysisImpactRefiner(
-      final FeasibilityChecker pFeasibilityChecker,
-      final StrongestPostOperator pStrongestPostOperator,
+      final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOp,
       final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa, final ARGCPA pArgCpa)
           throws InvalidConfigurationException {
@@ -168,12 +165,11 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
     logger                = pLogger;
     argCpa                = pArgCpa;
-
     checker               = pFeasibilityChecker;
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(checker,
-                                                              pStrongestPostOperator,
-                                                              pConfig,
-                                                              pLogger, pShutdownNotifier, pCfa);
+    interpolatingRefiner  =
+        new ValueAnalysisPathInterpolator(checker,
+                                          pStrongestPostOp,
+                                          pConfig, pLogger, pShutdownNotifier, pCfa);
   }
 
   @Override
@@ -385,7 +381,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     }
 
     // for all other cases, check if the path is feasible when using the interpolant as initial state
-    return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
+    return checker.isFeasible(errorPath, initialItp.reconstructState());
   }
 
   private VariableTrackingPrecision joinSubtreePrecisions(final ReachedSet pReached,

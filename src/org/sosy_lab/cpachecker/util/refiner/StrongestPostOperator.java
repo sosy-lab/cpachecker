@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.refiner;
 
+import java.util.Deque;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -33,7 +35,7 @@ import com.google.common.base.Optional;
 /**
  * Interface for the strongest post-operator as used in CEGAR.
  */
-public interface StrongestPostOperator {
+public interface StrongestPostOperator<S extends AbstractState> {
 
   /**
    * Computes the abstract state that represents the region of states reachable from the given state
@@ -48,6 +50,10 @@ public interface StrongestPostOperator {
    * @return an <code>Optional</code> containing the computed abstract state. An empty
    *    <code>Optional</code>, if the resulting abstracted state is contradicting
    */
-  Optional<? extends AbstractState> getStrongestPost(
-      AbstractState origin, Precision precision, CFAEdge operation) throws CPAException;
+  Optional<S> getStrongestPost(
+      S origin, Precision precision, CFAEdge operation) throws CPAException;
+
+  S handleFunctionCall(S state, CFAEdge edge, Deque<S> callstack);
+
+  S handleFunctionReturn(S next, CFAEdge edge, Deque<S> callstack);
 }

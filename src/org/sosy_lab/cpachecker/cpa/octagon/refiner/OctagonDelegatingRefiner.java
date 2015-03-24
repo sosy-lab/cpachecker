@@ -59,8 +59,9 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -85,7 +86,6 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * refiner used for value-analysis interpolation refinement
    */
   private ValueAnalysisPathInterpolator interpolatingRefiner;
-  private final FeasibilityChecker valueAnalysisChecker;
 
   /**
    * the hash code of the previous error path
@@ -123,6 +123,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private final CFA cfa;
   private final OctagonCPA octagonCPA;
 
+  private final FeasibilityChecker<ValueAnalysisState> valueChecker;
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -136,12 +138,26 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " needs an OctagonCPA");
     }
 
-    OctagonDelegatingRefiner refiner = new OctagonDelegatingRefiner(cpa, octagonCPA);
+    final LogManager logger = octagonCPA.getLogger();
+    final Configuration config = octagonCPA.getConfiguration();
+    final CFA cfa = octagonCPA.getCFA();
+
+    final FeasibilityChecker<ValueAnalysisState> valueChecker =
+        new ValueAnalysisFeasibilityChecker(logger, cfa, config);
+
+    final StrongestPostOperator<ValueAnalysisState> valuePostOp =
+        new ValueAnalysisStrongestPostOperator(logger, cfa);
+
+    OctagonDelegatingRefiner refiner =
+        new OctagonDelegatingRefiner(valueChecker, valuePostOp, cpa, octagonCPA);
 
     return refiner;
   }
 
-  private OctagonDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
+  private OctagonDelegatingRefiner(
+      final FeasibilityChecker<ValueAnalysisState> pValueAnalysisFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pValueAnalysisPostOperator,
+      final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
       throws InvalidConfigurationException {
     super(pCpa);
     pOctagonCPA.getConfiguration().inject(this);
@@ -150,27 +166,13 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     logger                = pOctagonCPA.getLogger();
     shutdownNotifier      = pOctagonCPA.getShutdownNotifier();
     octagonCPA            = pOctagonCPA;
-    valueAnalysisChecker  = createValueAnalysisFeasibilityChecker();
-    interpolatingRefiner  =
-        new ValueAnalysisPathInterpolator(valueAnalysisChecker,
-                                          getStrongestPostOperatorForInterpolation(),
-                                          pOctagonCPA.getConfiguration(),
-                                          logger, shutdownNotifier, cfa);
-  }
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(
+        pValueAnalysisFeasibilityChecker,
+        pValueAnalysisPostOperator,
+        pOctagonCPA.getConfiguration(),
+        logger, shutdownNotifier, cfa);
 
-  private FeasibilityChecker createValueAnalysisFeasibilityChecker()
-      throws InvalidConfigurationException {
-
-    return new ValueAnalysisFeasibilityChecker(getStrongestPostOperatorForInterpolation(),
-                                               logger, cfa,
-                                               octagonCPA.getConfiguration());
-  }
-
-  private StrongestPostOperator getStrongestPostOperatorForInterpolation()
-      throws InvalidConfigurationException {
-
-    return new ValueAnalysisTransferRelation(Configuration.builder().build(),
-                                             logger, cfa);
+    valueChecker = pValueAnalysisFeasibilityChecker;
   }
 
   @Override
@@ -208,6 +210,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @param errorPath the current error path
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
+   * @throws InvalidConfigurationException
    */
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
@@ -327,7 +330,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @throws CPAException if the path check gets interrupted
    */
   boolean isPathFeasable(ARGPath path) throws CPAException {
-    return valueAnalysisChecker.isFeasible(path);
+    return valueChecker.isFeasible(path);
   }
 
   /**

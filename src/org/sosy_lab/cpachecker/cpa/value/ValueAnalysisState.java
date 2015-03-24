@@ -56,13 +56,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.refiner.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
 
-public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
+public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState,
+    ForgetfulState<Pair<Value, Type>>, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
 
   private static final long serialVersionUID = -3152134511524554357L;
@@ -168,6 +170,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @param pMemoryLocation the name of the memory location to remove
    * @return the value of the removed memory location
    */
+  @Override
   public Pair<Value, Type> forget(MemoryLocation pMemoryLocation) {
     Value value = constantsMap.get(pMemoryLocation);
     Type type = memLocToType.get(pMemoryLocation);
@@ -175,6 +178,11 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     memLocToType = memLocToType.removeAndCopy(pMemoryLocation);
 
     return Pair.of(value, type);
+  }
+
+  @Override
+  public void remember(final MemoryLocation pLocation, final Pair<Value, Type> pValueAndType) {
+    assignConstant(pLocation, pValueAndType.getFirst(), pValueAndType.getSecond());
   }
 
   /**
@@ -627,6 +635,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * @return the set of tracked variables by this state
    */
+  @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     // no copy necessary, set is immutable
     return constantsMap.keySet();

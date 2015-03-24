@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -65,32 +65,34 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     valueAnalysisCpa.injectRefinablePrecision();
 
     final LogManager logger = valueAnalysisCpa.getLogger();
-    final CFA cfa = valueAnalysisCpa.getCFA();
     final Configuration config = valueAnalysisCpa.getConfiguration();
+    final CFA cfa = valueAnalysisCpa.getCFA();
 
-    final StrongestPostOperator strongestPostOperator = new ValueAnalysisTransferRelation(
-        Configuration.builder().build(), logger, cfa);
+    final ValueAnalysisFeasibilityChecker checker =
+        new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
-    final ValueAnalysisFeasibilityChecker feasibilityChecker =
-        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
+        new ValueAnalysisStrongestPostOperator(logger, cfa);
 
-    ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(
-        feasibilityChecker,
-        strongestPostOperator,
-        config,
-        logger,
+    ValueAnalysisGlobalRefiner refiner =
+        new ValueAnalysisGlobalRefiner(
+            checker,
+            strongestPostOp,
+            config,
+            logger,
         valueAnalysisCpa.getShutdownNotifier(),
-        cfa);
+            cfa);
 
     return refiner;
   }
 
   ValueAnalysisGlobalRefiner(
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
-      final StrongestPostOperator pStrongestPostOperator,
-      final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
-      throws InvalidConfigurationException {
+      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final CFA pCfa
+  ) throws InvalidConfigurationException {
 
     super(pFeasibilityChecker, pStrongestPostOperator, pConfig, pLogger, pShutdownNotifier, pCfa);
 

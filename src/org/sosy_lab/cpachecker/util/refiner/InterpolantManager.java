@@ -21,14 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.util.refiner;
+
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
- * Package for interfaces and classes used for refinement in general.
- *
- * Most types in this package rely on {@link org.sosy_lab.cpachecker.util.states.MemoryLocation},
- * but are otherwise only dependent on interfaces {@link StrongestPostOperator}, {@link Interpolant}
- * , {@link InterpolantManager} and {@link ForgetfulState}.
- * By defining implementations for these four interfaces, one can define a complete refinement
- * using the Generic* classes.
+ * Classes implementing this interface are able to create interpolants out of subtypes of
+ * {@link AbstractState}.
  */
-package org.sosy_lab.cpachecker.util.refiner;
+public interface InterpolantManager<S extends AbstractState, I extends Interpolant<S>> {
+
+  I createInitialInterpolant();
+
+  I createInterpolant(S state);
+
+  I getTrueInterpolant();
+
+  I getFalseInterpolant();
+
+}
