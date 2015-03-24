@@ -82,14 +82,17 @@ public final class AbstractionManager {
   private final Map<Integer, AbstractionPredicate> varIDToPredicate = Maps.newHashMap();
 
   // Properties for BDD variable ordering:
-  private PredicateOrderingStrategy varOrderMethod;
+  @Option(secure = true, name = "abs.predicateOrdering.method",
+      description = "Predicate ordering")
+  private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.RANDOMLY;
   // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
   private final HashMap<Integer, HashSet<String>> partitionIDToPredVars = new HashMap<>();
   private PredicatePartition partition;
-  private boolean insertRandomly;
-  private boolean singlePartitionOnly;
+  @Option(secure = true, name = "abs.predicateOrdering.partitions",
+      description = "Use multiple partitions for predicates")
+  private boolean multiplePartitions = false;
   private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
@@ -107,9 +110,6 @@ public final class AbstractionManager {
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     solver = pSolver;
-    this.varOrderMethod = PredicateOrderingStrategy.valueOf(config.getProperty("bdd.variable.ordering.method"));
-    this.singlePartitionOnly = Boolean.parseBoolean(config.getProperty("bdd.variable.ordering.single.partition"));
-    this.insertRandomly = this.varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY);
 
     if (!this.varOrderMethod.getIsFrameworkStrategy()) {
       this.partition = createNewPredicatePartition();
@@ -167,13 +167,13 @@ public final class AbstractionManager {
       varIDToPredicate.put(numberOfPredicates, result);
 
       if (!this.varOrderMethod.getIsFrameworkStrategy()) {
-        if (insertRandomly) {
+        if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
           int randomIndex = new Random().nextInt(randomListOfVarIDs.size() + 1);
           randomListOfVarIDs.add(randomIndex, numberOfPredicates);
-        } else if (singlePartitionOnly) {
-          this.partition.insertPredicate(result);
-        } else {
+        } else if (multiplePartitions) {
           updatePartitions(result);
+        } else {
+          this.partition.insertPredicate(result);
         }
       }
 
@@ -242,14 +242,9 @@ public final class AbstractionManager {
       rmgr.reorder(this.varOrderMethod);
     } else {
       ArrayList<Integer> predicateOrdering = new ArrayList<>(numberOfPredicates);
-      if (insertRandomly) {
+      if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
         predicateOrdering.addAll(randomListOfVarIDs);
-      } else if (singlePartitionOnly) {
-        List<AbstractionPredicate> predicates = partition.getPredicates();
-        for (AbstractionPredicate predicate : predicates) {
-          predicateOrdering.add(predicate.getVariableNumber());
-        }
-      } else {
+      } else if (multiplePartitions) {
         HashSet<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
         for (PredicatePartition partition : partitions) {
           List<AbstractionPredicate> predicates = partition.getPredicates();
@@ -257,6 +252,11 @@ public final class AbstractionManager {
           for (AbstractionPredicate predicate : predicates) {
             predicateOrdering.add(predicate.getVariableNumber());
           }
+        }
+      } else {
+        List<AbstractionPredicate> predicates = partition.getPredicates();
+        for (AbstractionPredicate predicate : predicates) {
+          predicateOrdering.add(predicate.getVariableNumber());
         }
       }
 
