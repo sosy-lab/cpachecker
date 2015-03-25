@@ -688,13 +688,6 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# Compare CallstackStates using the identity function, that is two states
-# would be equal only if they are the same object and not if their call stack
-# contains the same list of functions. This prevents merging of abstract
-# states inside a called functions if they are successors of different
-# abstract states in the caller function.
-cpa.callstack.produceUniqueStates = true
-
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -937,10 +930,10 @@ cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
 # Predicate ordering
-cpa.predicate.abs.predicateOrdering.method = RANDOMLY
+cpa.predicate.abs.predicateOrdering.method = SIMILARITY
   enum:     [SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
              FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE, FRAMEWORK_WIN2,
-             FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE]
+             FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE, CHRONOLOGICAL]
 
 # Use multiple partitions for predicates
 cpa.predicate.abs.predicateOrdering.partitions = false
@@ -1610,9 +1603,6 @@ cpa.stator.policy.encodeTemplatesAsRationals = false
 
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = Rational.ONE
-
-# Remove redundant constraints from the value determination problem
-cpa.stator.policy.filterValueDeterminationConstraints = true
 
 # Perform formula slicing after abstractions to propagate the pointer
 # information
