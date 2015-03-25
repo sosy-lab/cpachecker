@@ -231,7 +231,7 @@ public class ErrorPathClassifier {
     MutableARGPath currentErrorPath = new MutableARGPath();
     Integer bestScore = null;
     Integer bestIndex = 0;
-
+    Integer currIndex = 0;
     for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
       assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
 
@@ -241,8 +241,10 @@ public class ErrorPathClassifier {
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
-        bestIndex = pPrefixes.indexOf(currentPrefix);
+        bestIndex = currIndex;
       }
+
+      currIndex++;
 
       replaceAssumeEdgeWithBlankEdge(currentErrorPath);
     }
@@ -258,7 +260,7 @@ public class ErrorPathClassifier {
     MutableARGPath currentErrorPath = new MutableARGPath();
     Integer bestScore = null;
     Integer bestIndex = 0;
-
+    Integer currIndex = 0;
     for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
       assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
 
@@ -287,8 +289,10 @@ public class ErrorPathClassifier {
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
-        bestIndex = pPrefixes.indexOf(currentPrefix);
+        bestIndex = currIndex;
       }
+
+      currIndex++;
 
       replaceAssumeEdgeWithBlankEdge(currentErrorPath);
     }
@@ -304,7 +308,7 @@ public class ErrorPathClassifier {
     MutableARGPath currentErrorPath = new MutableARGPath();
     Integer bestScore = null;
     Integer bestIndex = 0;
-
+    Integer currIndex = 0;
     for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
       assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
 
@@ -340,8 +344,10 @@ public class ErrorPathClassifier {
 
       if (preference.scorer.apply(Triple.of(length, bestScore, currentErrorPath.size()))) {
         bestScore = length;
-        bestIndex = pPrefixes.indexOf(currentPrefix);
+        bestIndex = currIndex;
       }
+
+      currIndex++;
 
       replaceAssumeEdgeWithBlankEdge(currentErrorPath);
     }
@@ -357,7 +363,7 @@ public class ErrorPathClassifier {
     MutableARGPath currentErrorPath = new MutableARGPath();
     Integer bestDepth = null;
     Integer bestIndex = 0;
-
+    Integer currIndex = 0;
     for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
       assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
 
@@ -370,8 +376,10 @@ public class ErrorPathClassifier {
 
       if (preference.scorer.apply(Triple.of(depth, bestDepth, currentErrorPath.size()))) {
         bestDepth = depth;
-        bestIndex = pPrefixes.indexOf(currentPrefix);
+        bestIndex = currIndex;
       }
+
+      currIndex++;
 
       replaceAssumeEdgeWithBlankEdge(currentErrorPath);
     }
