@@ -65,7 +65,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
   @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
       + " each struct member when handling non-determinstic structs.")
-  private boolean handleStructs = false;
+  private boolean handleStructs = true;
 
   @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
       + " each array slot when handling non-deterministic arrays of fixed length."
