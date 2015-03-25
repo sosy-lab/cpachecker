@@ -37,6 +37,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.UnmodifiableIterator;
 
 
+@SuppressWarnings("unused")
 class Mathsat5NativeApi {
 
   static {
@@ -53,12 +54,28 @@ class Mathsat5NativeApi {
   public static final int MSAT_FALSE = 0;
   public static final int MSAT_TRUE = 1;
 
+  /**
+   * OptiMathSAT codes for queries on objective items
+   */
+  public static final int MSAT_OPTIMUM = 0;
+  public static final int MSAT_INITIAL_LOWER = 1;
+  public static final int MSAT_INITIAL_UPPER = 2;
+  public static final int MSAT_FINAL_LOWER = 3;
+  public static final int MSAT_FINAL_UPPER = 4;
+  public static final int MSAT_FINAL_ERROR = 5;
+
+  /**
+   * OptiMathSAT objective type, either minimize or maximize
+   */
+  public static final int MSAT_OBJECTIVE_MINIMIZE = -1;
+  public static final int MSAT_OBJECTIVE_MAXIMIZE =  1;
+
   interface AllSatModelCallback {
 
     void callback(long[] model) throws InterruptedException;
   }
 
-  static interface TerminationTest {
+  interface TerminationTest {
     boolean shouldTerminate() throws InterruptedException;
   }
 
@@ -67,8 +84,7 @@ class Mathsat5NativeApi {
   public static int msat_all_sat(long e, long[] important,
       AllSatModelCallback func) throws InterruptedException {
 
-    int result = msat_all_sat(e, important, important.length, func);
-    return result;
+    return msat_all_sat(e, important, important.length, func);
   }
 
   /**
@@ -395,4 +411,211 @@ class Mathsat5NativeApi {
   public static native void msat_free_termination_test(long t);
   public static native String msat_get_version();
   public static native String msat_last_error_message(long e);
+
+  /** Optimization **/
+
+/**
+ * OptiMathSAT - objectives creation
+ */
+
+  /**
+   * Push on the stack the new objective 'min(term)' with optional
+   * optimization local interval [lower, upper[
+   *
+   * @param e msat_env The environment in which to operate.
+   * @param term msat_term The term to be minimized.
+   * @param lower The string representing the value of an initial lower bound.
+   * @param upper The string representing the value of an initial upper bound.
+   */
+  public static native void msat_push_minimize(long e, long term, String lower, String upper);
+
+  /**
+   * Push on the stack the new objective 'max(term)' with optional
+   * optimization local interval ]local, upper]
+   *
+   * @param e msat_env The environment in which to operate.
+   * @param term msat_term The term to be maximized.
+   * @param lower The string representing the value of an initial lower bound.
+   * @param upper The string representing the value of an initial upper bound.
+   */
+  public static native void msat_push_maximize(long e, long term, String lower,
+      String upper);
+
+  /**
+   * Push on the stack the new objective 'min(max(term0), ..., max(termN))'
+   * with optional optimization local interval ]lower, upper]
+   *
+   * @param e msat_env The environment in which to operate.
+   * @param len size_t The size of terms.
+   * @param terms msat_term[] The array of terms to be optimized.
+   * @param lower The string representing the value of an initial lower bound.
+   * @param upper The string representing the value of an initial upper bound.
+   */
+  public static native void msat_push_minmax(long e, int len, long[] terms,
+      String lower, String upper);
+
+  /**
+   * Push on the stack the new objective 'max(min(term0), ..., min(termN))'
+   * with optional optimization local interval [lower, upper[
+   *
+   * @param e msat_env The environment in which to operate.
+   * @param len size_t The size of terms.
+   * @param terms msat_term[] The array of terms to be optimized.
+   * @param lower The string representing the value of an initial lower bound.
+   * @param upper The string representing the value of an initial upper bound.
+   */
+  public static native void msat_push_maxmin(long e, int len, long[] terms,
+      String lower, String upper);
+
+  /**
+   * \brief Associate a weight to a term declaration with respect to a MaxSMT
+   * group identified by a common id label. Assert-soft constraints are ineffective
+   * unless the id label is used by an objective that is pushed on the stack
+   *
+   * \param e msat_env The environment in which to operate.
+   * \param term msat_term The term to which a weight is attached.
+   * \param weight msat_term The weight of not satisfying this soft-clause.
+   * \param upper The MaxSMT sum onto which the weight contribution is added.
+   */
+  public static native void msat_assert_soft_formula(long e, long term, long weight,
+      String id);
+
+/**
+ * OptiMathSAT - objective stack iterator
+ */
+
+  /**
+   * Creates an objective iterator
+   * NOTE: an objective iterator, and any of its references, should only be
+   * instantiated after a ::msat_solve call, and prior to any further
+   * push/pop/assert_formula action. Otherwise, the behaviour is undefined.
+   * @param e msat_env The environment in use
+   * @return msat_objective_iterator an iterator for the current objectives
+   */
+  public static native long msat_create_objective_iterator(long e);
+
+  /**
+   * Checks whether {@code i} can be incremented
+   * @param i msat_objective_iterator An objective iterator
+   * @return nonzero if \a i can be incremented, zero otherwise
+   */
+  public static native int msat_objective_iterator_has_next(long i);
+
+  /**
+   * Returns the next objective, and increments the given iterator
+   * @param i msat_objective_iterator The objective iterator to increment.
+   * @param o msat_objective* Output value for the next objective in the stack.
+   * @return nonzero in case of error.
+   */
+  public static native int msat_objective_iterator_next(long i, long[] o);
+
+  /**
+   * Destroys an objective iterator.
+   * @param i msat_objective_iterator the iterator to destroy.
+   */
+  public static native void msat_destroy_objective_iterator(long i);
+
+  /**
+   * OptiMathSAT - functions for objective state inspection
+   */
+
+  /**
+   * Returns the optimization search state of the given objective
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective.
+   * @return msat_result ::MSAT_SAT if objective has a solution, ::MSAT_UNSAT if objective
+   * is unsatisfiable, and ::MSAT_UNKNOWN if there was some error or if
+   * satisfiability/optimality could not be determined.
+   */
+  public static native int msat_objective_result(long e, long o);
+
+  /**
+   * Returns the term which is optimized by the objective
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective.
+   * @return msat_term representation of the objective function
+   */
+  public static native long msat_objective_get_term(long e, long o);
+
+  /**
+   * Returns the objective optimization type (min or max)
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective.
+   * @return msat_objective_type ::MSAT_OBJECTIVE_MINIMIZE or ::MSAT_OBJECTIVE_MAXIMIZE
+   */
+  public static native long msat_objective_get_type(long e, long o);
+
+  /**
+   * Load into memory the model associated with the given objective,
+   * provided that it is satisfiable.
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective providing the model.
+   */
+  public static native void msat_set_model(long e, long o);
+
+/**
+ * Returns optimization search statistics.
+ * @return A string which provides some search statistics information
+ *         on the optimization search of the given objective.
+ *         The string must be deallocated by the user with ::msat_free().
+ */
+  public static native String msat_objective_get_search_stats(long e, long o);
+
+  /**
+   * Determines if the given objective value is unbounded.
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective providing the value.
+   * @param i msat_objective_value The objective field to be tested.
+   * @return 1 if unbounded, 0 if not, -1 on error.
+   */
+  public static native int msat_objective_value_is_unbounded(long e, long o, int i);
+
+  /**
+   * Determines if the given objective value is +INF.
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective providing the value.
+   * @param i msat_objective_value The objective field to be tested.
+   * @return 1 if +INF, 0 if not, -1 on error.
+   */
+  public static native int msat_objective_value_is_plus_inf(long e, long o, int i);
+
+  /**
+   * Determines if the given objective value is -INF.
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective providing the value.
+   * @param i msat_objective_value The objective field to be tested.
+   * @return 1 if -INF, 0 if not, -1 on error.
+   */
+  public static native int msat_objective_value_is_minus_inf(long e, long o, int i);
+
+  /**
+   * Determines if the given objective value is strict,
+   *    (e.g. if term(i) = k and strict(i) = TRUE, then actual value of 'i' is k+epsilon,
+   *    with epsilon being any small positive value)
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective providing the value.
+   * @param i msat_objective_value The objective field to be tested.
+   * @return 1 if strict, 0 if not, -1 on error.
+   */
+  public static native int msat_objective_value_is_strict(long e, long o, int i);
+
+  /**
+   * Returns term representation of the given objective value.
+   * NOTE: the representation IS imprecise if objective value is strict.
+   * @param e msat_env The environment in which to operate.
+   * @param o msat_objective The objective providing the value.
+   * @param i msat_objective_value The objective field to retrieve.
+   * @return msat_term term associated to the objective value, or msat_error_term on error.
+   */
+  public static native long msat_objective_value_term(long e, long o, int i);
+
+/**
+ * Returns a string representation of the given objective value.
+ * @param e msat_env The environment in which to operate.
+ * @param o msat_objective The objective providing the value.
+ * @param i msat_objective_value The objective field to retrieve.
+ * @return a string representing the objective value.
+ *         The string must be deallocated by the user with ::msat_free().
+ */
+  public static native String msat_objective_value_repr(long e, long o, int i);
 }

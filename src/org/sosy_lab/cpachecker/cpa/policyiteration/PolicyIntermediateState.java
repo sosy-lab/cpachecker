@@ -1,12 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public final class PolicyIntermediateState extends PolicyState {
 
@@ -18,30 +17,30 @@ public final class PolicyIntermediateState extends PolicyState {
   /**
    * Abstract states used for generating this state.
    */
-  private final ImmutableMap<Location, PolicyAbstractedState> generatingStates;
+  private final ImmutableSet<PolicyAbstractedState> generatingStates;
 
   private transient PolicyIntermediateState mergedInto;
 
-  private int hashCache = 0;
-
-
   private PolicyIntermediateState(
+      CFANode node,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Map<Location, PolicyAbstractedState> pGeneratingStates
+      Set<PolicyAbstractedState> pGeneratingStates
       ) {
-    super(pTemplates);
+    super(pTemplates, node);
 
     pathFormula = pPathFormula;
-    generatingStates = ImmutableMap.copyOf(pGeneratingStates);
+    generatingStates = ImmutableSet.copyOf(pGeneratingStates);
   }
 
   public static PolicyIntermediateState of(
+      CFANode node,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Map<Location, PolicyAbstractedState> generatingStates
+      Set<PolicyAbstractedState> generatingStates
   ) {
-    return new PolicyIntermediateState(pTemplates, pPathFormula, generatingStates);
+    return new PolicyIntermediateState(
+        node, pTemplates, pPathFormula, generatingStates);
   }
 
   public void setMergedInto(PolicyIntermediateState other) {
@@ -55,7 +54,7 @@ public final class PolicyIntermediateState extends PolicyState {
   /**
    * @return Starting {@link PathFormula} for possible starting locations.
    */
-  public Map<Location, PolicyAbstractedState> getGeneratingStates() {
+  public ImmutableSet<PolicyAbstractedState> getGeneratingStates() {
     return generatingStates;
   }
 
@@ -78,28 +77,5 @@ public final class PolicyIntermediateState extends PolicyState {
   @Override
   public String toString() {
     return pathFormula.toString();
-  }
-
-  @Override
-  public int hashCode() {
-    if (hashCache == 0) {
-      hashCache = Objects.hashCode(pathFormula, generatingStates,
-          super.hashCode());
-    }
-    return hashCache;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    PolicyIntermediateState other = (PolicyIntermediateState)o;
-    return (pathFormula.equals(other.pathFormula)
-        && generatingStates.equals(other.generatingStates)
-        && super.equals(o));
   }
 }

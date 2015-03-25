@@ -9,6 +9,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -19,10 +20,10 @@ import com.google.common.collect.Multiset;
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
 
-  final Multiset<Pair<Location, Template>> templateUpdateCounter
+  final Multiset<Pair<CFANode, Template>> templateUpdateCounter
       = HashMultiset.create();
 
-  final Multiset<Location> abstractMergeCounter = HashMultiset.create();
+  final Multiset<CFANode> abstractMergeCounter = HashMultiset.create();
 
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
@@ -151,8 +152,9 @@ public class PolicyIterationStatistics implements Statistics {
   }
 
   private void printTimer(PrintStream out, Timer t, String name) {
-    out.printf("Time spent in %s: %s (Max: %s)%n",
-        name, t, t.getMaxTime().formatAs(TimeUnit.SECONDS));
+    out.printf("Time spent in %s: %s (Max: %s), (Avg: %s)%n",
+        name, t, t.getMaxTime().formatAs(TimeUnit.SECONDS),
+        t.getAvgTime().formatAs(TimeUnit.SECONDS));
   }
 
   @Override

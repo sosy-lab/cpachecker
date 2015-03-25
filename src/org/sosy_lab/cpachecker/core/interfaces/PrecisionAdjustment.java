@@ -28,6 +28,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 /**
  * Interface for the precision adjustment operator.
  */
@@ -42,16 +45,24 @@ public interface PrecisionAdjustment {
    * wrapper CPAs.
    * @param state The current abstract state for this CPA.
    * @param precision The current precision for this CPA.
-   * @param states The current reached set with the abstract states for this CPA.
+   * @param states The current reached set with ALL abstract states.
+   * @param stateProjection Projection function from any state within reached
+   * set to a state belonging to this CPA.
    * @param fullState The current abstract state, but for all CPAs
    * (This can be used to access information stored in abstract states of other CPAs
    * such as the current CFA location. Use methods from {@link AbstractStates}
    * to access the individual states.).
    *
    * @return The new abstract state, new precision and the action flag
-   * encapsulated in a {@link PrecisionAdjustmentResult} instance.
+   * encapsulated in a {@link PrecisionAdjustmentResult} instance OR
+   * Optional.absent() if a newly produced abstract states corresponds
+   * to BOTTOM.
    */
-  public PrecisionAdjustmentResult prec(
-      AbstractState state, Precision precision, UnmodifiableReachedSet states, AbstractState fullState)
-      throws CPAException, InterruptedException;
+  Optional<PrecisionAdjustmentResult> prec(
+      AbstractState state,
+      Precision precision,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState fullState
+  ) throws CPAException, InterruptedException;
 }

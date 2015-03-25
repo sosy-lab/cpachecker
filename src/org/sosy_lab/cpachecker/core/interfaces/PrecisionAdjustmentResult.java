@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -35,174 +34,78 @@ import com.google.common.base.Objects;
  * Represents the result to a call to {@link org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet, org.sosy_lab.cpachecker.core.interfaces.AbstractState)}.
  * Contains the (possibly changed) abstract abstractState and precision,
  * and an {@link org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action} instance (all are not null).
- *
- * NOTE: implemented as an abstract state because Java7 does not allow static
- * methods on an interface.
  */
-public abstract class PrecisionAdjustmentResult {
-  private PrecisionAdjustmentResult(){}
+@Immutable
+public class PrecisionAdjustmentResult {
+
+  private final AbstractState abstractState;
+  private final Precision precision;
+  private final Action action;
 
   /**
    * The precision adjustment operator can tell the CPAAlgorithm whether
    * to continue with the analysis or whether to break immediately.
    */
-  public static enum Action {
+  public enum Action {
     CONTINUE,
     BREAK,
     ;
   }
 
-  public abstract AbstractState abstractState();
+  private PrecisionAdjustmentResult(AbstractState pState, Precision pPrecision,
+      Action pAction) {
+    abstractState = checkNotNull(pState);
+    precision = checkNotNull(pPrecision);
+    action = checkNotNull(pAction);
+  }
 
-  public abstract Precision precision();
-
-  public abstract Action action();
-
-  public abstract boolean isBottom();
-
-  @CheckReturnValue
-  public abstract PrecisionAdjustmentResult withAbstractState(AbstractState newAbstractState);
-
-  @CheckReturnValue
-  public abstract PrecisionAdjustmentResult withPrecision(Precision newPrecision);
-
-  @CheckReturnValue
-  public abstract PrecisionAdjustmentResult withAction(Action newAction);
 
   public static PrecisionAdjustmentResult create(AbstractState pState,
       Precision pPrecision, Action pAction) {
-    return new PrecisionAdjustmentResultImpl(pState, pPrecision, pAction);
+    return new PrecisionAdjustmentResult(pState, pPrecision, pAction);
   }
 
-  public static PrecisionAdjustmentResult bottom() {
-    return BottomPrecisionAdjustmentResult.getInstance();
+  public AbstractState abstractState() {
+    return abstractState;
   }
 
-
-  @Immutable
-  private static final class PrecisionAdjustmentResultImpl extends
-      PrecisionAdjustmentResult {
-
-    private final AbstractState abstractState;
-    private final Precision precision;
-    private final Action action;
-
-    private PrecisionAdjustmentResultImpl(AbstractState pState, Precision pPrecision,
-        Action pAction) {
-      abstractState = checkNotNull(pState);
-      precision = checkNotNull(pPrecision);
-      action = checkNotNull(pAction);
-    }
-
-
-    @Override
-    public AbstractState abstractState() {
-      return abstractState;
-    }
-
-    @Override
-    public Precision precision() {
-      return precision;
-    }
-
-    @Override
-    public Action action() {
-      return action;
-    }
-
-    public boolean isBottom() {
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(abstractState, action, precision);
-    }
-
-    @Override
-    public boolean equals(@Nullable Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (!(obj instanceof PrecisionAdjustmentResultImpl)) {
-        return false;
-      }
-      PrecisionAdjustmentResultImpl other = (PrecisionAdjustmentResultImpl) obj;
-      return (abstractState.equals(other.abstractState))
-          && (precision.equals(other.precision))
-          && (action.equals(other.action))
-          ;
-    }
-
-    @Override
-    public PrecisionAdjustmentResult withAbstractState(AbstractState newAbstractState) {
-      return new PrecisionAdjustmentResultImpl(newAbstractState, precision, action);
-    }
-
-    @Override
-    public PrecisionAdjustmentResult withPrecision(Precision newPrecision) {
-      return new PrecisionAdjustmentResultImpl(abstractState, newPrecision, action);
-    }
-
-    @Override
-    public PrecisionAdjustmentResult withAction(Action newAction) {
-      return new PrecisionAdjustmentResultImpl(abstractState, precision, newAction);
-    }
+  public Precision precision() {
+    return precision;
   }
 
-  @Immutable
-  private static class BottomPrecisionAdjustmentResult extends PrecisionAdjustmentResult {
-    private final static BottomPrecisionAdjustmentResult INSTANCE =
-        new BottomPrecisionAdjustmentResult();
+  public Action action() {
+    return action;
+  }
 
-    private BottomPrecisionAdjustmentResult() {}
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(abstractState, action, precision);
+  }
 
-    public static BottomPrecisionAdjustmentResult getInstance() {
-      return INSTANCE;
-    }
-
-    @Override
-    public AbstractState abstractState() {
-      throw new UnsupportedOperationException(
-          "Bottom state has no associated state");
-    }
-
-    @Override
-    public Precision precision() {
-      throw new UnsupportedOperationException(
-          "Bottom state has no associated precision");
-    }
-
-    @Override
-    public Action action() {
-      throw new UnsupportedOperationException(
-          "Bottom state has no associated action");
-    }
-
-    @Override
-    public PrecisionAdjustmentResult withAbstractState(
-        AbstractState newAbstractState) {
-      throw new UnsupportedOperationException(
-          "Bottom state has no associated state");
-    }
-
-    @Override
-    public PrecisionAdjustmentResult withPrecision(
-        Precision newPrecision) {
-      throw new UnsupportedOperationException(
-          "Bottom state has no associated precision");
-    }
-
-    @Override
-    public PrecisionAdjustmentResult withAction(
-        Action newAction) {
-      throw new UnsupportedOperationException(
-          "Bottom state has no associated action");
-    }
-
-    @Override
-    public boolean isBottom() {
+  @Override
+  public boolean equals(@Nullable Object obj) {
+    if (this == obj) {
       return true;
     }
+    if (!(obj instanceof PrecisionAdjustmentResult)) {
+      return false;
+    }
+    PrecisionAdjustmentResult other = (PrecisionAdjustmentResult) obj;
+    return (abstractState.equals(other.abstractState))
+        && (precision.equals(other.precision))
+        && (action.equals(other.action))
+        ;
+  }
+
+  public PrecisionAdjustmentResult withAbstractState(AbstractState newAbstractState) {
+    return new PrecisionAdjustmentResult(newAbstractState, precision, action);
+  }
+
+  public PrecisionAdjustmentResult withPrecision(Precision newPrecision) {
+    return new PrecisionAdjustmentResult(abstractState, newPrecision, action);
+  }
+
+  public PrecisionAdjustmentResult withAction(Action newAction) {
+    return new PrecisionAdjustmentResult(abstractState, precision, newAction);
   }
 }

@@ -26,17 +26,19 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 
+import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
@@ -45,16 +47,21 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
   private final PrecisionAdjustment wrappedPrecAdjustment;
   protected final boolean inPredicatedAnalysis;
 
+
   public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment, boolean pInPredicatedAnalysis) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
     inPredicatedAnalysis = pInPredicatedAnalysis;
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState pElement,
-      Precision oldPrecision, UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState pElement,
+      Precision oldPrecision,
+      UnmodifiableReachedSet pElements,
+      final Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof ARGState);
+    //noinspection ConstantConditions
     ARGState element = (ARGState)pElement;
 
     if (inPredicatedAnalysis && element.isTarget()) {
@@ -63,16 +70,25 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
       throw new PredicatedAnalysisPropertyViolationException("Property violated during successor computation", element, false);
     }
 
-    UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
-        pElements,  ARGState.getUnwrapFunction(), Functions.<Precision>identity());
-
     AbstractState oldElement = element.getWrappedState();
 
-    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements, fullState);
-    if (unwrappedResult.isBottom()) {
+    Optional<PrecisionAdjustmentResult> optionalUnwrappedResult =
+        wrappedPrecAdjustment.prec(
+            oldElement,
+            oldPrecision,
+            pElements,
+            Functions.compose(
+                ARGState.getUnwrapFunction(),
+                projection),
+            fullState
+        );
+
+    if (!optionalUnwrappedResult.isPresent()) {
       element.removeFromARG();
-      return unwrappedResult;
+      return Optional.absent();
     }
+
+    PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.get();
 
     // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple children
     if (unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {
@@ -85,14 +101,14 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return PrecisionAdjustmentResult.create(pElement, oldPrecision, action);
+      return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, action));
     }
 
     ARGState resultElement = new ARGState(newElement, null);
 
     element.replaceInARGWith(resultElement); // this completely eliminates element
 
-    return PrecisionAdjustmentResult.create(resultElement, newPrecision, action);
+    return Optional.of(PrecisionAdjustmentResult.create(resultElement, newPrecision, action));
   }
 
   /**

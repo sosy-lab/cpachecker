@@ -2,10 +2,10 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -18,10 +18,14 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
 
   /** Templates tracked. */
-  protected final ImmutableSet<Template> templates;
+  private final ImmutableSet<Template> templates;
+  private final CFANode node;
 
-  protected PolicyState(Set<Template> pTemplates) {
+  protected PolicyState(
+      Set<Template> pTemplates,
+      CFANode pNode) {
     templates = ImmutableSet.copyOf(pTemplates);
+    node = pNode;
   }
 
   /**
@@ -36,6 +40,10 @@ public abstract class PolicyState implements AbstractState, Graphable {
     return (PolicyAbstractedState) this;
   }
 
+  public CFANode getNode() {
+    return node;
+  }
+
   public abstract boolean isAbstract();
 
   public ImmutableSet<Template> getTemplates() {
@@ -45,22 +53,5 @@ public abstract class PolicyState implements AbstractState, Graphable {
   @Override
   public boolean shouldBeHighlighted() {
     return false;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    PolicyState other = (PolicyState)o;
-    return (templates.equals(other.templates));
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hashCode(templates);
   }
 }

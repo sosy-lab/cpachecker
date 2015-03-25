@@ -34,6 +34,9 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 
 public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -44,8 +47,10 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState successor, Precision precision,
-      UnmodifiableReachedSet states, AbstractState fullState) throws CPAException {
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState successor, Precision precision,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException {
 
     CHCState candidateState = (CHCState)successor;
 
@@ -53,9 +58,10 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
     if (ancestor != null) {
       AbstractState newState = generalize(candidateState, ancestor, precision);
-      return PrecisionAdjustmentResult.create(newState, precision, Action.CONTINUE);
+      return Optional.of(PrecisionAdjustmentResult
+          .create(newState, precision, Action.CONTINUE));
     } else {
-      return PrecisionAdjustmentResult.create(successor, precision, Action.CONTINUE);
+      return Optional.of(PrecisionAdjustmentResult.create(successor, precision, Action.CONTINUE));
     }
 
   }

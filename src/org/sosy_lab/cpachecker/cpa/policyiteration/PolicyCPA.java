@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -27,11 +26,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -41,16 +43,21 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 /**
  * New version of policy iteration, now with path focusing.
  */
 @Options(prefix="cpa.policy")
 public class PolicyCPA
     extends SingleEdgeTransferRelation
-    implements ConfigurableProgramAnalysis, StatisticsProvider, AbstractDomain {
+    implements ConfigurableProgramAnalysis,
+               StatisticsProvider,
+               AbstractDomain,
+               PrecisionAdjustment {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final PrecisionAdjustment precisionAdjustment;
   private final PolicyIterationStatistics statistics;
   private final IPolicyIterationManager policyIterationManager;
 
@@ -102,10 +109,10 @@ public class PolicyCPA
         templateManager, valueDeterminationFormulaManager,
         statistics,
         formulaSlicingManager,
-        formulaLinearizationManager);
+        formulaLinearizationManager,
+        realFormulaManager.getUnsafeFormulaManager());
     mergeOperator = new MergeJoinOperator(this);
     stopOperator = new StopSepOperator(this);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
@@ -175,7 +182,7 @@ public class PolicyCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return this;
   }
 
   @Override
@@ -186,6 +193,18 @@ public class PolicyCPA
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(statistics);
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState state,
+      Precision precision,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
+
+    return policyIterationManager.prec((PolicyState)state, precision, states,
+        (ARGState)fullState);
   }
 }
 

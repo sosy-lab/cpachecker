@@ -36,6 +36,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
@@ -56,10 +59,12 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState pElement, Precision pPrecision,
+      UnmodifiableReachedSet pElements, Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
     if (trans.breakAnalysis) {
-      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
+      return Optional.of(
+          PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK));
     }
 
     // precision might be outdated, if comes from a block-start and the inner part was refined.
@@ -73,19 +78,25 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       validPrecision = pPrecision;
     }
 
-    PrecisionAdjustmentResult result = wrappedPrecisionAdjustment.prec(pElement, validPrecision, pElements, fullState);
-    if (result.isBottom()) {
+    Optional<PrecisionAdjustmentResult> result = wrappedPrecisionAdjustment.prec(
+        pElement,
+        validPrecision,
+        pElements,
+        projection,
+        fullState);
+    if (!result.isPresent()) {
       return result;
     }
 
-    result = result.withAbstractState(trans.attachAdditionalInfoToCallNode(result.abstractState()));
+    PrecisionAdjustmentResult updatedResult = result.get().withAbstractState(
+        trans.attachAdditionalInfoToCallNode(result.get().abstractState()));
 
-    if (pElement != result.abstractState()) {
+    if (pElement != updatedResult.abstractState()) {
       logger.log(Level.ALL, "before PREC:", pElement);
-      logger.log(Level.ALL, "after PREC:", result.abstractState());
-      trans.replaceStateInCaches(pElement, result.abstractState(), false);
+      logger.log(Level.ALL, "after PREC:", updatedResult.abstractState());
+      trans.replaceStateInCaches(pElement, updatedResult.abstractState(), false);
     }
 
-    return result;
+    return Optional.of(updatedResult);
   }
 }

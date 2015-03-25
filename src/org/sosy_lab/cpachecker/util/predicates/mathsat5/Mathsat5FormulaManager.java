@@ -188,7 +188,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
   @Override
   public OptEnvironment newOptEnvironment() {
-    throw new UnsupportedOperationException("MathSAT5 does not support optimization");
+    return new Mathsat5OptProver(this, mathsatConfig);
   }
 
   @Override

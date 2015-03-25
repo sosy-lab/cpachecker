@@ -33,6 +33,9 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do
  * _NOT_ depend on the reached set when performing prec.
@@ -40,8 +43,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CachePrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment mCachedPrecisionAdjustment;
-  //private final Map<AbstractState, Map<Precision, Triple<AbstractState, Precision, Action>>> mCache;
-  private final Map<Precision, Map<AbstractState, PrecisionAdjustmentResult>> mCache;
+
+  private final Map<Precision, Map<AbstractState, Optional<PrecisionAdjustmentResult>>> mCache;
 
   public CachePrecisionAdjustment(PrecisionAdjustment pCachedPrecisionAdjustment) {
     mCachedPrecisionAdjustment = pCachedPrecisionAdjustment;
@@ -50,36 +53,24 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(
+  public Optional<PrecisionAdjustmentResult> prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
-    /*Map<Precision, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pElement);
+      UnmodifiableReachedSet pElements,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
 
-    if (lCache == null) {
-      lCache = new HashMap<>();
-      mCache.put(pElement, lCache);
-    }
-
-    Triple<AbstractState, Precision, Action> lResult = lCache.get(pPrecision);
-
-    if (lResult == null) {
-      lResult = mCachedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
-      lCache.put(pPrecision, lResult);
-    }
-
-    return lResult;*/
-
-    Map<AbstractState, PrecisionAdjustmentResult> lCache = mCache.get(pPrecision);
+    Map<AbstractState, Optional<PrecisionAdjustmentResult>> lCache = mCache.get(pPrecision);
 
     if (lCache == null) {
       lCache = new HashMap<>();
       mCache.put(pPrecision, lCache);
     }
 
-    PrecisionAdjustmentResult lResult = lCache.get(pElement);
+    Optional<PrecisionAdjustmentResult> lResult = lCache.get(pElement);
 
     if (lResult == null) {
-      lResult = mCachedPrecisionAdjustment.prec(pElement, pPrecision, pElements, fullState);
+      lResult = mCachedPrecisionAdjustment.prec(
+              pElement, pPrecision, pElements, projection, fullState);
       lCache.put(pElement, lResult);
     }
 

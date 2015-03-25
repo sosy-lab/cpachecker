@@ -62,6 +62,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -284,16 +286,17 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.precisionTimer.start();
         PrecisionAdjustmentResult precAdjustmentResult;
         try {
-          precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet, successor);
+          Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
+              precisionAdjustment.prec(
+                  successor, precision, reachedSet,
+                  Functions.<AbstractState>identity(),
+                  successor);
+          if (!precAdjustmentOptional.isPresent()) {
+            continue;
+          }
+          precAdjustmentResult = precAdjustmentOptional.get();
         } finally {
           stats.precisionTimer.stop();
-        }
-
-        if (precAdjustmentResult.isBottom()) {
-
-          // PrecisionAdjustment may strengthen the state to BOTTOM: in that
-          // case it is equivalent to as if this state was never returned.
-          continue;
         }
 
         successor = precAdjustmentResult.abstractState();

@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
@@ -128,7 +129,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision, UnmodifiableReachedSet pStates, AbstractState fullState)
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision, UnmodifiableReachedSet pStates,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState)
       throws CPAException, InterruptedException {
 
     return prec((ValueAnalysisState)pState,
@@ -137,7 +140,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
         AbstractStates.extractStateByType(fullState, UniqueAssignmentsInPathConditionState.class));
   }
 
-  private PrecisionAdjustmentResult prec(ValueAnalysisState pState,
+  private Optional<PrecisionAdjustmentResult> prec(ValueAnalysisState pState,
       VariableTrackingPrecision pPrecision,
       LocationState location,
       UniqueAssignmentsInPathConditionState assignments) {
@@ -164,7 +167,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
       totalEnforcePath.stop();
     }
 
-    return PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE);
+    return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
   }
 
   private void enforceLiveness(ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {

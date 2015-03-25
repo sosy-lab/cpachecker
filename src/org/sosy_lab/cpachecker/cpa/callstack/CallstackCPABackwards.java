@@ -53,18 +53,15 @@ public class CallstackCPABackwards extends AbstractCPA implements ConfigurablePr
 
   private final Reducer reducer;
   private final CFA cfa;
-  private final CallstackStateFactory callstackStateFactory;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CallstackCPABackwards.class);
   }
 
   public CallstackCPABackwards(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-    super("sep", "sep", new CallstackTransferRelationBackwards(config, pLogger,
-        new CallstackStateFactory(config)));
+    super("sep", "sep", new CallstackTransferRelationBackwards(config, pLogger));
     this.cfa = pCFA;
-    callstackStateFactory = new CallstackStateFactory(config);
-    reducer = new CallstackReducer(callstackStateFactory);
+    reducer = new CallstackReducer();
   }
 
   @Override
@@ -82,14 +79,14 @@ public class CallstackCPABackwards extends AbstractCPA implements ConfigurablePr
       if (!artificialLoops.isEmpty()) {
         Loop singleLoop = Iterables.getOnlyElement(artificialLoops);
         if (singleLoop.getLoopNodes().contains(pNode)) {
-          return callstackStateFactory.create(
+          return new CallstackState(
               null,
               CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, pNode
           );
         }
       }
     }
-    return callstackStateFactory.create(
+    return new CallstackState(
         null, pNode.getFunctionName(), pNode
     );
   }

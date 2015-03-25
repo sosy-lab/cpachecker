@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
@@ -88,9 +90,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(
-      AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pElement,
+      Precision pPrecision,
+      UnmodifiableReachedSet pElements,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
     try {
@@ -101,8 +106,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
         return computeAbstraction((ComputeAbstractionState)element, precision);
       } else {
-        return PrecisionAdjustmentResult.create(
-            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE);
+        return Optional.of(PrecisionAdjustmentResult.create(
+            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
       }
 
 
@@ -114,7 +119,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   /**
    * Compute an abstraction.
    */
-  private PrecisionAdjustmentResult computeAbstraction(
+  private Optional<PrecisionAdjustmentResult> computeAbstraction(
       ComputeAbstractionState element,
       PredicatePrecision precision) throws CPAException, InterruptedException {
 
@@ -154,7 +159,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     if (newAbstractionFormula.isFalse()) {
       numAbstractionsFalse++;
       logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
-      return PrecisionAdjustmentResult.bottom();
+      return Optional.absent();
     }
 
     // create new empty path formula
@@ -171,8 +176,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     PredicateAbstractState state =
         PredicateAbstractState.mkAbstractionState(newPathFormula,
             newAbstractionFormula, abstractionLocations);
-    return PrecisionAdjustmentResult.create(
-        state, precision, PrecisionAdjustmentResult.Action.CONTINUE);
+    return Optional.of(PrecisionAdjustmentResult.create(
+        state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
   }
 
   private void extractInvariants() throws CPAException {

@@ -32,11 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 
 public class CallstackReducer implements Reducer {
-  private final CallstackStateFactory callstackStateFactory;
-
-  public CallstackReducer(CallstackStateFactory pCallstackStateFactory) {
-    callstackStateFactory = pCallstackStateFactory;
-  }
 
   @Override
   public AbstractState getVariableReducedState(
@@ -50,11 +45,11 @@ public class CallstackReducer implements Reducer {
 
   private CallstackState copyCallstackUpToCallNode(CallstackState element, CFANode callNode) {
     if (element.getCurrentFunction().equals(callNode.getFunctionName())) {
-      return callstackStateFactory.create(null, element.getCurrentFunction(), callNode);
+      return new CallstackState(null, element.getCurrentFunction(), callNode);
     } else {
       assert element.getPreviousState() != null;
       CallstackState recursiveResult = copyCallstackUpToCallNode(element.getPreviousState(), callNode);
-      return callstackStateFactory.create(recursiveResult,
+      return new CallstackState(recursiveResult,
           element.getCurrentFunction(),
           element.getCallNode());
     }
@@ -83,7 +78,7 @@ public class CallstackReducer implements Reducer {
     } else {
       CallstackState recursiveResult = copyCallstackExceptLast(target, source.getPreviousState());
 
-      return callstackStateFactory.create(
+      return new CallstackState(
           recursiveResult,
           source.getCurrentFunction(),
           source.getCallNode());
