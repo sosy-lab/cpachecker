@@ -23,21 +23,25 @@
  */
 package org.sosy_lab.cpachecker.util.codeGen;
 
+import java.util.Deque;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class Edge {
-  
+
   private ARGState parent;
   private ARGState child;
   private CFAEdge edge;
-  
-  public Edge(ARGState parent, ARGState child) {
+  private Deque<Function> callStack;
+
+  public Edge(ARGState parent, ARGState child, Deque<Function> callStack) {
     this.parent = parent;
     this.child = child;
     this.edge = parent.getEdgeToChild(child);
+    this.callStack = callStack;
   }
-  
+
   public ARGState getParent() {
     return parent;
   }
@@ -48,5 +52,9 @@ public class Edge {
 
   public CFAEdge getEdge() {
     return edge;
+  }
+
+  public Deque<Function> getCallStack() {
+    return callStack;
   }
 }

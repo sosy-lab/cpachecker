@@ -50,4 +50,9 @@ public class SimpleStatement extends Statement {
     String replacement = "$1" + newFunction.getName() + "$3";
     statement = statement.replaceAll(searchRegex, replacement);
   }
+
+  @Override
+  public SimpleStatement clone() {
+    return new SimpleStatement(statement);
+  }
 }

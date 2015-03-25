@@ -34,6 +34,8 @@ public class Function extends BlockStatement {
   private String name;
   private String id;
 
+  private Function() {}
+
   public Function(ARGState fState) {
     super(null);
 
@@ -68,5 +70,21 @@ public class Function extends BlockStatement {
 
   public String getPrototype() {
     return header + ";";
+  }
+
+  @Override
+  public Function clone() {
+    Function clone = new Function();
+    BlockStatement blockClone = super.clone();
+
+    clone.name = this.name;
+    clone.id = this.id;
+    clone.header = this.header.clone();
+
+    clone.children = blockClone.children;
+    clone.parent = blockClone.parent;
+    clone.declarations = blockClone.declarations;
+
+    return clone;
   }
 }

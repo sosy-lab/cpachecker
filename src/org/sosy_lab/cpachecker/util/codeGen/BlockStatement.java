@@ -36,6 +36,10 @@ public class BlockStatement extends Statement {
   protected BlockStatement parent;
   protected SimpleStatement header;
 
+  protected BlockStatement() {
+
+  }
+
   public BlockStatement(BlockStatement parent) {
     this(parent, "");
   }
@@ -105,6 +109,25 @@ public class BlockStatement extends Statement {
     for (Statement child : children) {
       child.replaceFunction(oldFunction, newFunction);
     }
+  }
+
+  @Override
+  public BlockStatement clone() {
+    BlockStatement clone = new BlockStatement(this.parent);
+
+    for (Statement child : this.children) {
+      Statement childClone = child.clone();
+      if (childClone instanceof BlockStatement) {
+        ((BlockStatement) childClone).parent = clone;
+      }
+
+      clone.children.add(child.clone());
+
+    }
+
+    clone.declarations.addAll(this.declarations); // shallow copy of declarations
+
+    return clone;
   }
 
   public String getBody(String indentation) {

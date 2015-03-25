@@ -33,4 +33,6 @@ public abstract class Statement {
   protected abstract String toString(String indentation);
 
   public abstract void replaceFunction(Function toReplace, Function keep);
+
+  public abstract Statement clone();
 }
