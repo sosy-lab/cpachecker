@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.codeGen;
 
-import static com.google.common.base.Predicates.in;
-import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.*;
-
 import java.util.*;
-
 import javax.annotation.Nullable;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -39,15 +36,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.*;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 public class CFromPathGenerator {
 
@@ -73,13 +63,14 @@ public class CFromPathGenerator {
     Deque<Edge> waitStack = new ArrayDeque<>();
 
     newFunction(rootState, callStack);
-    for (Edge state : edgesOnErrorPath(rootState)) {
+    List<Edge> edgesToChildrenOnErrorPath = edgesToChildrenOnErrorPath(rootState, callStack);
+    for (Edge state : edgesToChildrenOnErrorPath) {
       waitStack.offerFirst(state);
     }
 
     while (!waitStack.isEmpty()) {
       Edge currentState = waitStack.pollFirst();
-      Iterable<Edge> newEdges = handleEdge(currentState, callStack);
+      Iterable<Edge> newEdges = handleEdge(currentState);
 
       for (Edge newEdge : newEdges) {
         waitStack.offerFirst(newEdge);
@@ -168,7 +159,8 @@ public class CFromPathGenerator {
     return f;
   }
 
-  private Iterable<Edge> handleEdge(Edge edge, Deque<Function> callStack) {
+  private Iterable<Edge> handleEdge(Edge edge) {
+    Deque<Function> callStack = edge.getCallStack();
     Function currentFunction = callStack.peekFirst();
     CFAEdge cfaEdge = edge.getEdge();
     ARGState child = edge.getChild();
@@ -186,20 +178,20 @@ public class CFromPathGenerator {
       simpleEdge(edge.getEdge(), callStack);
     }
 
-    return edgesOnErrorPath(child);
+    return edgesToChildrenOnErrorPath(child, callStack);
   }
 
   private SimpleStatement functionCall(CFunctionCallEdge fCallEdge, String functionName) {
     List<String> lArguments = Lists.transform(fCallEdge.getArguments(),
 
-        new com.google.common.base.Function<CExpression, String>() {
+            new com.google.common.base.Function<CExpression, String>() {
 
-          @Nullable
-          @Override
-          public String apply(@Nullable CExpression pCExpression) {
-            return (pCExpression == null) ? " " : pCExpression.toASTString();
-          }
-        });
+              @Nullable
+              @Override
+              public String apply(@Nullable CExpression pCExpression) {
+                return (pCExpression == null) ? " " : pCExpression.toASTString();
+              }
+            });
 
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
@@ -239,7 +231,7 @@ public class CFromPathGenerator {
         break;
       case AssumeEdge:
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
-        SimpleStatement return0 = new SimpleStatement("exit(0);");
+        SimpleStatement return0 = new SimpleStatement("exit(0); // error path left");
         currentFunction.enterBlock("if (!(" + assumeEdge.getCode() + "))").add(return0);
         break;
       case DeclarationEdge:
@@ -264,16 +256,64 @@ public class CFromPathGenerator {
     }
   }
 
-  private Iterable<Edge> edgesOnErrorPath(final ARGState state) {
-    List<ARGState> children = from(state.getChildren()).filter(in(errorPathStates)).toList();
+  private List<Edge> edgesToChildrenOnErrorPath(final ARGState state, Deque<Function> callStack) {
+    assert state.getChildren().size() <= 2;
 
-    return transform(children, new com.google.common.base.Function<ARGState, Edge>() {
+    List<Edge> edges = new LinkedList<>();
+    List<ARGState> childrenOnErrorPath = new ArrayList<>();
 
-      @Nullable
-      @Override
-      public Edge apply(ARGState pARGState) {
-        return new Edge(state, pARGState);
+    for (ARGState child : state.getChildren()) {
+      if (errorPathStates.contains(child)) {
+        childrenOnErrorPath.add(child);
       }
-    });
+    }
+
+    if (childrenOnErrorPath.size() == 1) {
+      edges.add(new Edge(state, childrenOnErrorPath.get(0), callStack));
+    } else if (childrenOnErrorPath.size() == 2) {
+      boolean isFirstChild = true;
+      for (ARGState child : childrenOnErrorPath) {
+        Deque<Function> clonedStack = cloneStack(callStack);
+        Function currentFunction = clonedStack.peek();
+
+        // multiple children should only occur after if statements
+        CAssumeEdge assumeEdge = (CAssumeEdge) state.getEdgeToChild(child);
+        boolean truthAssumption = assumeEdge.getTruthAssumption();
+
+        StringBuilder condition = new StringBuilder();
+
+        if (isFirstChild) {
+          condition.append("if ");
+          isFirstChild = false;
+        } else {
+          condition.append("else if ");
+        }
+
+        if (truthAssumption) {
+          condition.append("(").append(assumeEdge.getExpression().toASTString()).append(")");
+        } else {
+          condition.append("(!(").append(assumeEdge.getExpression().toASTString()).append("))");
+        }
+
+        // create a new block starting with this condition
+        BlockStatement openedBlock = currentFunction.enterBlock(condition.toString());
+
+        edges.add(new Edge(state, child, clonedStack));
+      }
+    }
+
+    return edges;
   }
-}
+
+  private Deque<Function> cloneStack(Deque<Function> callStack) {
+      Deque<Function> cloneStack = new ArrayDeque<>();
+
+      for (Function function : callStack) {
+        Function clone = function.clone();
+        functions.add(clone); // TODO this does not work this way!
+        cloneStack.offerLast(clone);
+      }
+
+      return cloneStack;
+    }
+  }
