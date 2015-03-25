@@ -111,6 +111,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
+  private boolean refineablePrecisionSet = false;
+
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     this.config           = config;
@@ -220,8 +222,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null) {
+    if (initialPrecisionFile == null && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+      refineablePrecisionSet = true;
     }
   }
 
