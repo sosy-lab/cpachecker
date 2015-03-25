@@ -355,7 +355,7 @@ public class ErrorPathClassifier {
     }
 
     MutableARGPath currentErrorPath = new MutableARGPath();
-    Integer bestScore = null;
+    Integer bestDepth = null;
     Integer bestIndex = 0;
 
     for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
@@ -363,10 +363,13 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      int depth = getDepthOfRefinementRoot(currentErrorPath.immutableCopy()) * (-1);
+      ARGPath slicedPrefix = currentErrorPath.immutableCopy();
+      UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars(), "EQUALITY");
 
-      if (preference.scorer.apply(Triple.of(depth, bestScore, currentErrorPath.size()))) {
-        bestScore = depth;
+      int depth = getDepthOfRefinementRoot(slicedPrefix, useDefRelation) * (-1);
+
+      if (preference.scorer.apply(Triple.of(depth, bestDepth, currentErrorPath.size()))) {
+        bestDepth = depth;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
 
@@ -382,7 +385,7 @@ public class ErrorPathClassifier {
     }
 
     MutableARGPath currentErrorPath = new MutableARGPath();
-    Integer bestScore = null;
+    Integer bestDepthAndScore = null;
     Integer bestIndex = 0;
 
     for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
@@ -390,10 +393,13 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      int depthAndScore = getDepthAndScoreOfRefinementRoot(currentErrorPath.immutableCopy()) * (-1);
+      ARGPath slicedPrefix = currentErrorPath.immutableCopy();
+      UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars(), "EQUALITY");
 
-      if (preference.scorer.apply(Triple.of(depthAndScore, bestScore, currentErrorPath.size()))) {
-        bestScore = depthAndScore;
+      int depthAndScore = getDepthAndScoreOfRefinementRoot(slicedPrefix, useDefRelation) * (-1);
+
+      if (preference.scorer.apply(Triple.of(depthAndScore, bestDepthAndScore, currentErrorPath.size()))) {
+        bestDepthAndScore = depthAndScore;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
 
@@ -403,42 +409,25 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes, originalErrorPath);
   }
 
-  private int getDepthOfRefinementRoot(ARGPath slicedPrefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars(), "EQUALITY");
-
-    int depth = 0;
+  private int getDepthOfRefinementRoot(ARGPath slicedPrefix, UseDefRelation useDefRelation) {
     PathIterator iterator = slicedPrefix.pathIterator();
     while(iterator.hasNext()) {
-      if(useDefRelation.getDef(iterator.getAbstractState(), iterator.getOutgoingEdge()).isEmpty()) {
-        depth++;
-      }
 
-      else {
-        break;
+      if(useDefRelation.hasDef(iterator.getAbstractState(), iterator.getOutgoingEdge())) {
+        return iterator.getIndex();
       }
 
       iterator.advance();
     }
-    return depth;
+
+    assert false : "There must be at least one non-empty definition along the path";
+
+    return -1;
   }
 
-  private int getDepthAndScoreOfRefinementRoot(ARGPath slicedPrefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars(), "EQUALITY");
+  private int getDepthAndScoreOfRefinementRoot(ARGPath slicedPrefix, UseDefRelation useDefRelation) {
 
-    int depth = 0;
-    PathIterator iterator = slicedPrefix.pathIterator();
-    while(iterator.hasNext()) {
-      if(useDefRelation.getDef(iterator.getAbstractState(), iterator.getOutgoingEdge()).isEmpty()) {
-        depth++;
-      }
-
-      else {
-        break;
-      }
-
-      iterator.advance();
-    }
-
+    int depth = getDepthOfRefinementRoot(slicedPrefix, useDefRelation);
     int score = classification.get().obtainDomainTypeScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
 
     return depth - score;

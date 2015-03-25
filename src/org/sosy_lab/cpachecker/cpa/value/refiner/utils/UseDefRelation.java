@@ -170,6 +170,18 @@ public class UseDefRelation {
     unresolvedUses.addAll(uses);
   }
 
+  boolean hasDef(ARGState state, CFAEdge edge) {
+    Set<ASimpleDeclaration> defs = new HashSet<>(getDef(state, edge));
+
+    if(edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+      for(CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
+        defs.addAll(getDef(state, singleEdge));
+      }
+    }
+
+    return defs.size() > 0;
+  }
+
   Collection<ASimpleDeclaration> getDef(ARGState state, CFAEdge edge) {
     if(relation.containsKey(Pair.of(state, edge))) {
       return relation.get(Pair.of(state, edge)).getFirst();
