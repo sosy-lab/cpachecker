@@ -47,7 +47,7 @@ import com.google.common.base.Optional;
 public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
+  public final Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
       UnmodifiableReachedSet pStates,
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException {
