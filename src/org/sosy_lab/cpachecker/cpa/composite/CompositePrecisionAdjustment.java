@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -113,7 +111,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       Precision oldPrecision = prec.get(i);
       Optional<PrecisionAdjustmentResult> out = precisionAdjustment.prec(
           oldElement, oldPrecision, pElements,
-          Functions.compose(getCompositeProjection(i), projection),
+          Functions.compose(stateProjectionFunctions.get(i), projection),
           fullState
       );
 
@@ -142,14 +140,4 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
     return Optional.of(PrecisionAdjustmentResult.create(outElement, outPrecision, action));
   }
-
-  private Function<AbstractState, AbstractState> getCompositeProjection(final int idx) {
-    return new Function<AbstractState, AbstractState>() {
-      @Override
-      public AbstractState apply(AbstractState input) {
-        return ((CompositeState)input).get(idx);
-      }
-    };
-  }
-
 }
