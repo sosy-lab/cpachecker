@@ -1,10 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public final class PolicyIntermediateState extends PolicyState {
@@ -16,8 +18,10 @@ public final class PolicyIntermediateState extends PolicyState {
 
   /**
    * Abstract states used for generating this state.
+   *
+   * locationID -> PolicyAbstractedState.
    */
-  private final ImmutableSet<PolicyAbstractedState> generatingStates;
+  private final ImmutableMap<Integer, PolicyAbstractedState> generatingStates;
 
   private transient PolicyIntermediateState mergedInto;
 
@@ -25,19 +29,19 @@ public final class PolicyIntermediateState extends PolicyState {
       CFANode node,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Set<PolicyAbstractedState> pGeneratingStates
+      Map<Integer, PolicyAbstractedState> pGeneratingStates
       ) {
     super(pTemplates, node);
 
     pathFormula = pPathFormula;
-    generatingStates = ImmutableSet.copyOf(pGeneratingStates);
+    generatingStates = ImmutableMap.copyOf(pGeneratingStates);
   }
 
   public static PolicyIntermediateState of(
       CFANode node,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Set<PolicyAbstractedState> generatingStates
+      Map<Integer, PolicyAbstractedState> generatingStates
   ) {
     return new PolicyIntermediateState(
         node, pTemplates, pPathFormula, generatingStates);
@@ -54,7 +58,7 @@ public final class PolicyIntermediateState extends PolicyState {
   /**
    * @return Starting {@link PathFormula} for possible starting locations.
    */
-  public ImmutableSet<PolicyAbstractedState> getGeneratingStates() {
+  public ImmutableMap<Integer, PolicyAbstractedState> getGeneratingStates() {
     return generatingStates;
   }
 
@@ -76,6 +80,7 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toString() {
-    return pathFormula.toString();
+    return "Length: " + pathFormula.getLength();
+//    return pathFormula.toString();
   }
 }

@@ -34,8 +34,7 @@ public final class PolicyAbstractedState extends PolicyState
   private transient Optional<PolicyAbstractedState> newVersion =
       Optional.absent();
 
-  private static final UniqueIdGenerator uuidGenerator = new UniqueIdGenerator();
-  private final int uniqueID;
+  private final int locationID;
 
   // the same version on nodes might be just good enough.
   private static final Multiset<CFANode> updateCounter = HashMultiset.create();
@@ -43,17 +42,18 @@ public final class PolicyAbstractedState extends PolicyState
   private PolicyAbstractedState(CFANode node,
       Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
-      PolicyIntermediateState pGeneratingState) {
+      PolicyIntermediateState pGeneratingState,
+      int pLocationID) {
     super(pTemplates, node);
 
     updateCounter.add(node);
     abstraction = ImmutableMap.copyOf(pAbstraction);
     generatingState = pGeneratingState;
-    uniqueID = uuidGenerator.getFreshId();
+    locationID = pLocationID;
   }
 
-  public int getUniqueID() {
-    return uniqueID;
+  public int getLocationID() {
+    return locationID;
   }
 
   public static ImmutableMultiset<CFANode> getUpdateCounter() {
@@ -88,9 +88,11 @@ public final class PolicyAbstractedState extends PolicyState
       Map<Template, PolicyBound> data,
       Set<Template> templates,
       CFANode node,
-      PolicyIntermediateState pGeneratingState
+      PolicyIntermediateState pGeneratingState,
+      int pLocationID
   ) {
-    return new PolicyAbstractedState(node, templates, data, pGeneratingState);
+    return new PolicyAbstractedState(node, templates, data, pGeneratingState,
+        pLocationID);
   }
 
   public PolicyAbstractedState withUpdates(
@@ -115,7 +117,7 @@ public final class PolicyAbstractedState extends PolicyState
       }
     }
     return new PolicyAbstractedState(
-        getNode(), newTemplates, builder.build(),  generatingState
+        getNode(), newTemplates, builder.build(),  generatingState, locationID
     );
   }
 
@@ -139,13 +141,14 @@ public final class PolicyAbstractedState extends PolicyState
     PolicyIntermediateState initialState = PolicyIntermediateState.of(
         node,
         ImmutableSet.<Template>of(),
-        initial,  ImmutableSet.<PolicyAbstractedState>of()
+        initial,  ImmutableMap.<Integer, PolicyAbstractedState>of()
     );
     return PolicyAbstractedState.of(
         ImmutableMap.<Template, PolicyBound>of(), // abstraction
         ImmutableSet.<Template>of(), // templates
         node, // node
-        initialState // generating state
+        initialState, // generating state
+        -1
     );
   }
 
@@ -171,7 +174,7 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public String toString() {
-    return String.format("(id=%s)%s", uniqueID, abstraction);
+    return String.format("(loc=%s)%s", locationID, abstraction);
   }
 
   @Override

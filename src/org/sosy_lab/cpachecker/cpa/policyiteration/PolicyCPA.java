@@ -109,8 +109,7 @@ public class PolicyCPA
         templateManager, valueDeterminationFormulaManager,
         statistics,
         formulaSlicingManager,
-        formulaLinearizationManager,
-        realFormulaManager.getUnsafeFormulaManager());
+        formulaLinearizationManager);
     mergeOperator = new MergeJoinOperator(this);
     stopOperator = new StopSepOperator(this);
   }
