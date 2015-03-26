@@ -5,6 +5,7 @@ import static com.google.common.truth.Truth.assertThat;
 import java.math.BigInteger;
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -97,6 +98,13 @@ public class OptProversTestSuite {
       rfmgr =  mgr.getRationalFormulaManager();
       ifmgr =  mgr.getIntegerFormulaManager();
       bfmgr =  mgr.getBooleanFormulaManager();
+    }
+
+    @After
+    public void free() throws Exception {
+      if (mgr instanceof AutoCloseable) {
+        ((AutoCloseable)mgr).close();
+      }
     }
 
     @Test
