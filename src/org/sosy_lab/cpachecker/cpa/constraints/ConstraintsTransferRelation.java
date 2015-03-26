@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 
 /**
  * Transfer relation for Symbolic Execution Analysis.
@@ -202,8 +203,6 @@ public class ConstraintsTransferRelation
         return null;
 
       } else {
-        newState = simplify(newState);
-
         return newState;
       }
 
@@ -296,8 +295,11 @@ public class ConstraintsTransferRelation
     return Optional.fromNullable(constraint);
   }
 
-  private ConstraintsState simplify(ConstraintsState pState) {
-    return simplifier.simplify(pState);
+  private ConstraintsState simplify(
+      final ConstraintsState pState,
+      final ValueAnalysisState pValueState
+  ) {
+    return simplifier.simplify(pState, pValueState);
   }
 
   @Override
@@ -317,15 +319,22 @@ public class ConstraintsTransferRelation
     for (AbstractState currState : pStrengtheningStates) {
 
       if (currState instanceof ValueAnalysisState) {
+        final ValueAnalysisState valueState = (ValueAnalysisState) currState;
         final ConstraintFactory factory =
-            ConstraintFactory.getInstance(currentFunctionName, (ValueAnalysisState) currState, machineModel, logger);
+            ConstraintFactory.getInstance(currentFunctionName, valueState, machineModel, logger);
 
-        Optional<Collection<ConstraintsState>> newValueStrengthenedStates =
+        Optional<Collection<ConstraintsState>> oNewValueStrengthenedStates =
             strengthen((ConstraintsState) pStateToStrengthen, factory, currentFunctionName, (AssumeEdge) pCfaEdge);
 
-        if (newValueStrengthenedStates.isPresent()) {
+        if (oNewValueStrengthenedStates.isPresent()) {
           nothingChanged = false;
-          newStates.addAll(newValueStrengthenedStates.get());
+          Collection<ConstraintsState> strengthenedStates = oNewValueStrengthenedStates.get();
+
+          if (!strengthenedStates.isEmpty()) {
+            ConstraintsState newState = Iterables.getOnlyElement(strengthenedStates);
+            newState = simplify(newState, valueState);
+            newStates.add(newState);
+          }
         }
       }
     }
@@ -387,5 +396,4 @@ public class ConstraintsTransferRelation
     }
     return Optional.of(newStates);
   }
-
 }

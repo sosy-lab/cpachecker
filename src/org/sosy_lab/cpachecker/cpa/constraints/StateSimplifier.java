@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -31,6 +36,13 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 /**
  * Simplifier for {@link ConstraintsState}s.
@@ -59,11 +71,14 @@ public class StateSimplifier {
    * @param pState the state to simplify
    * @return the simplified state
    */
-  public ConstraintsState simplify(ConstraintsState pState) {
+  public ConstraintsState simplify(
+      final ConstraintsState pState,
+      final ValueAnalysisState pValueState
+  ) {
     ConstraintsState newState;
 
     newState = removeTrivialConstraints(pState, pState.getDefiniteAssignment());
-
+    newState = removeOutdatedConstraints(newState, pValueState);
     return newState;
   }
 
@@ -88,5 +103,273 @@ public class StateSimplifier {
     final ConstraintTrivialityChecker trivialityChecker = new ConstraintTrivialityChecker(pAssignment);
 
     return pConstraint.accept(trivialityChecker);
+  }
+
+
+  /**
+   * Removes all constraints that cannot influence the CPA's behaviour anymore.
+   * If a constraint contains only symbolic identifiers that are not assigned to a memory location
+   * anymore and that does not constrain another symbolic identifier that still can influence
+   * the CPA's behaviour, we can safely remove the constraint.
+   *
+   * @param pState the state to remove constraints of, if possible
+   * @param pValueState the value state to use for checking whether a symbolic identifier
+   *    occurs in a memory location's assignment
+   *
+   * @return a new {@link ConstraintsState} without negligible constraints
+   */
+  private ConstraintsState removeOutdatedConstraints(
+      final ConstraintsState pState,
+      final ValueAnalysisState pValueState
+  ) {
+    ConstraintsState newState = pState.copyOf();
+
+    final Map<ActivityInfo, Set<ActivityInfo>> symIdActivity = getInitialActivityMap(newState);
+    final Set<SymbolicIdentifier> symbolicValues = getExistingSymbolicIds(pValueState);
+
+    for (Map.Entry<ActivityInfo, Set<ActivityInfo>> e : symIdActivity.entrySet()) {
+      final ActivityInfo s = e.getKey();
+      final SymbolicIdentifier currId = s.getIdentifier();
+
+      switch (s.getActivity()) {
+        case DELETED:
+          newState.removeAll(s.getUsingConstraints());
+          break;
+        case ACTIVE:
+        case UNUSED:
+
+          if (!symbolicValues.contains(currId)) {
+            s.disable();
+            Set<ActivityInfo> parent = new HashSet<>();
+            parent.add(s);
+            boolean canBeRemoved = removeOutdatedConstraints0(symIdActivity,
+                symbolicValues,
+                e.getValue(),
+                parent);
+
+            if (canBeRemoved) {
+              s.markDeleted();
+              newState.removeAll(s.getUsingConstraints());
+            }
+          }
+          break;
+        default:
+          throw new AssertionError("Unhandled activity type: " + s.getActivity());
+      }
+    }
+
+    return newState;
+  }
+
+  private boolean removeOutdatedConstraints0(
+      final Map<ActivityInfo, Set<ActivityInfo>> pSymIdActivity,
+      final Set<SymbolicIdentifier> pExistingValues,
+      final Set<ActivityInfo> targets,
+      final Set<ActivityInfo> parents
+  ) {
+
+    for (ActivityInfo t : targets) {
+      if (pExistingValues.contains(t.getIdentifier())) {
+        return false;
+      } else if (t.getActivity() == Activity.ACTIVE) {
+        t.disable();
+      }
+
+      switch (t.getActivity()) {
+        case ACTIVE:
+          return false;
+        case DELETED:
+          // do nothing, we already know that this target is not needed
+          break;
+        case UNUSED:
+          final Set<ActivityInfo> dependents = pSymIdActivity.get(t);
+          dependents.removeAll(parents);
+
+          // remove all infos already known as deletable
+          Iterables.filter(dependents, new Predicate<ActivityInfo>() {
+
+            @Override
+            public boolean apply(ActivityInfo pActivityInfo) {
+              return pActivityInfo.getActivity() != Activity.DELETED;
+            }
+          });
+
+          if (dependents.isEmpty()) {
+            t.markDeleted();
+            return true;
+          }
+
+          parents.add(t);
+          boolean success = removeOutdatedConstraints0(pSymIdActivity,
+              pExistingValues,
+              dependents,
+              parents);
+
+          if (!success) {
+            return false;
+          } else {
+            t.markDeleted();
+          }
+          break;
+        default:
+          throw new AssertionError("Unhandled status of ActivityInfo: " + t.getActivity());
+      }
+    }
+
+    assert allDeleted(targets);
+    return true;
+  }
+
+  private boolean allDeleted(final Set<ActivityInfo> pInfos) {
+    for (ActivityInfo i : pInfos) {
+      if (i.getActivity() != Activity.DELETED) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private Set<SymbolicIdentifier> getExistingSymbolicIds(final ValueAnalysisState pValueState) {
+    final SymbolicIdentifierLocator locator = SymbolicIdentifierLocator.getInstance();
+    final Collection<Value> valueStateConstants = pValueState.getConstantsMapView().values();
+    Set<SymbolicIdentifier> symbolicValues = new HashSet<>();
+
+    for (Value v : valueStateConstants) {
+      if (v instanceof SymbolicValue) {
+        symbolicValues.addAll(((SymbolicValue) v).accept(locator));
+      }
+    }
+
+    return symbolicValues;
+  }
+
+  private Map<ActivityInfo, Set<ActivityInfo>> getInitialActivityMap(
+      final ConstraintsState pState
+  ) {
+
+    Map<ActivityInfo, Set<ActivityInfo>> activityMap = new HashMap<>();
+    final SymbolicIdentifierLocator symIdLocator = SymbolicIdentifierLocator.getInstance();
+
+    for (Constraint c : pState) {
+      final Set<SymbolicIdentifier> usedIdentifiers = c.accept(symIdLocator);
+
+      for (SymbolicIdentifier i : usedIdentifiers) {
+        Set<SymbolicIdentifier> otherIdentifiers = new HashSet<>(usedIdentifiers);
+        otherIdentifiers.remove(i);
+
+        final Set<ActivityInfo> dependents = createActivitySet(otherIdentifiers, c);
+
+        final ActivityInfo currActivityInfo = ActivityInfo.getInfo(i, c);
+
+        Set<ActivityInfo> existingDependents = activityMap.get(currActivityInfo);
+
+        if (existingDependents == null) {
+          activityMap.put(currActivityInfo, dependents);
+        } else {
+          existingDependents.addAll(dependents);
+        }
+      }
+    }
+
+    return activityMap;
+  }
+
+  private Set<ActivityInfo> createActivitySet(
+      final Set<SymbolicIdentifier> pIdentifiers,
+      final Constraint pUsingConstraint
+  ) {
+    final Set<ActivityInfo> activitySet = new HashSet<>();
+
+    for (SymbolicIdentifier i : pIdentifiers) {
+      activitySet.add(ActivityInfo.getInfo(i, pUsingConstraint));
+    }
+
+    return activitySet;
+  }
+
+  private enum Activity { ACTIVE, UNUSED, DELETED }
+
+  private static class ActivityInfo {
+    private final static Map<SymbolicIdentifier, ActivityInfo> infos = new HashMap<>();
+
+    private final SymbolicIdentifier identifier;
+    private Set<Constraint> usingConstraints;
+    private Activity activity;
+
+    static ActivityInfo getInfo(
+        final SymbolicIdentifier pIdentifier,
+        final Constraint pConstraint
+    ) {
+
+      if (infos.containsKey(pIdentifier)) {
+        ActivityInfo info = infos.get(pIdentifier);
+        info.usingConstraints.add(pConstraint);
+
+        return info;
+
+      } else {
+        ActivityInfo info = new ActivityInfo(pIdentifier, pConstraint);
+        infos.put(pIdentifier, info);
+
+        return info;
+      }
+    }
+
+    /** Initializes activity info for symbolic identifier as 'active'. */
+    private ActivityInfo(final SymbolicIdentifier pIdentifier, final Constraint pConstraint) {
+      identifier = pIdentifier;
+      activity = Activity.ACTIVE;
+
+      usingConstraints = new HashSet<>();
+      usingConstraints.add(pConstraint);
+    }
+
+    public SymbolicIdentifier getIdentifier() {
+      return identifier;
+    }
+
+    public Set<Constraint> getUsingConstraints() {
+      return usingConstraints;
+    }
+
+    public Activity getActivity() {
+      return activity;
+    }
+
+    public void disable() {
+      activity = Activity.UNUSED;
+    }
+
+    public void enable() {
+      activity = Activity.ACTIVE;
+    }
+
+    public void markDeleted() {
+      activity = Activity.DELETED;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      ActivityInfo that = (ActivityInfo)o;
+
+      if (!identifier.equals(that.identifier)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return identifier.hashCode();
+    }
   }
 }
