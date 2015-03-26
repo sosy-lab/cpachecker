@@ -190,25 +190,36 @@ public class ConstraintsTransferRelation
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
       FileLocation pFileLocation) throws UnrecognizedCodeException, SolverException, InterruptedException {
 
-    Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
+    Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
     ConstraintsState newState = pOldState.copyOf();
 
     FormulaCreator formulaCreator = getFormulaCreator(pOldState.getDefiniteAssignment(), pFunctionName);
     newState.initialize(solver, formulaManager, formulaCreator);
 
-    if (newConstraint.isPresent()) {
-      newState.add(newConstraint.get());
+    if (oNewConstraint.isPresent()) {
+      final Constraint newConstraint = oNewConstraint.get();
 
-      if (newState.isUnsat()) {
-        return null;
+      // If a constraint is trivial, its satisfiability is not influenced by other constraints.
+      // So to evade more expensive SAT checks, we just check the constraint on its own.
+      if (newConstraint.isTrivial()) {
+        if (solver.isUnsat(formulaCreator.createFormula(newConstraint))) {
+          return null;
+        }
 
       } else {
-        return newState;
-      }
+        newState.add(newConstraint);
 
-    } else {
-      return newState;
+        if (newState.isUnsat()) {
+          return null;
+
+        } else {
+          return newState;
+        }
+
+      }
     }
+
+    return pOldState;
   }
 
   private FormulaCreator getFormulaCreator(IdentifierAssignment pDefiniteAssignment, String pFunctionName) {
