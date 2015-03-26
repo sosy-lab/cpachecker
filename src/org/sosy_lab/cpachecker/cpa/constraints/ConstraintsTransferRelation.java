@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -193,7 +194,8 @@ public class ConstraintsTransferRelation
     Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
     ConstraintsState newState = pOldState.copyOf();
 
-    FormulaCreator formulaCreator = getFormulaCreator(pOldState.getDefiniteAssignment(), pFunctionName);
+    final IdentifierAssignment definiteAssignment = pOldState.getDefiniteAssignment();
+    FormulaCreator formulaCreator = getFormulaCreator(definiteAssignment, pFunctionName);
     newState.initialize(solver, formulaManager, formulaCreator);
 
     if (oNewConstraint.isPresent()) {
@@ -201,7 +203,7 @@ public class ConstraintsTransferRelation
 
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
-      if (newConstraint.isTrivial()) {
+      if (isTrivial(newConstraint, definiteAssignment)) {
         if (solver.isUnsat(formulaCreator.createFormula(newConstraint))) {
           return null;
         }
@@ -304,6 +306,15 @@ public class ConstraintsTransferRelation
     }
 
     return Optional.fromNullable(constraint);
+  }
+
+  private boolean isTrivial(
+      final Constraint pConstraint,
+      final IdentifierAssignment pDefiniteAssignment
+  ) {
+    final ConstraintTrivialityChecker checker = new ConstraintTrivialityChecker(pDefiniteAssignment);
+
+    return pConstraint.accept(checker);
   }
 
   private ConstraintsState simplify(
