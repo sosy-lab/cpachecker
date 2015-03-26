@@ -193,7 +193,6 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
     List<CCompositeType.CCompositeTypeMemberDeclaration> memberDeclarations =
         pStructType.getMembers();
 
-    assert !memberDeclarations.isEmpty();
     for (CCompositeType.CCompositeTypeMemberDeclaration d : memberDeclarations) {
       String memberName = d.getName();
       MemoryLocation memberLocation = pValueVisitor.evaluateRelativeMemLocForStructMember(
