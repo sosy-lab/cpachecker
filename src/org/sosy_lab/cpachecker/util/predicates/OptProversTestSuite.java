@@ -127,7 +127,7 @@ public class OptProversTestSuite {
             rfmgr.greaterThan(x, y)
         );
         prover.addConstraint(bfmgr.and(constraints));
-        @SuppressWarnings("UnusedDeclaration")
+        @SuppressWarnings({ "UnusedDeclaration", "unused" })
         int handle = prover.maximize(x);
         OptStatus response = prover.check();
         Assert.assertEquals(OptStatus.UNSAT,
@@ -194,9 +194,9 @@ public class OptProversTestSuite {
 
         z = ifmgr.divide(x, one);
 
-        @SuppressWarnings("UnusedDeclaration")
+        @SuppressWarnings({ "UnusedDeclaration", "unused" })
         int handle = prover.maximize(z);
-        @SuppressWarnings("UnusedDeclaration")
+        @SuppressWarnings({ "UnusedDeclaration", "unused" })
         OptStatus response = prover.check();
       }
     }

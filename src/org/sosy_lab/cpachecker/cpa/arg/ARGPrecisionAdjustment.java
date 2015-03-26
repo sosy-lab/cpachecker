@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
