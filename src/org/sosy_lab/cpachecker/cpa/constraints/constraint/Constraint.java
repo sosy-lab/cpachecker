@@ -36,9 +36,23 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
  */
 public interface Constraint {
 
+  /** Returns the expression type of the constraint */
   Type getType();
 
+  /** Accepts the given visitor. */
   <T> T accept(ConstraintVisitor<T> pVisitor);
 
+  /**
+   * Returns whether this constraint is trivial.
+   * A constraint is trivial if it does not contain any symbolic identifiers.
+   *
+   * <p>This method does not check whether a occurring symbolic identifier has a definite
+   * assignment, but always returns <code>false</code>, if one exists. To consider
+   * definite assignments, use
+   * {@link org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker}.</p>
+   *
+   * @return <code>true</code> if the given constraint does not contain any symbolic identifiers,
+   *    <code>false</code> otherwise</code>
+   */
   boolean isTrivial();
 }
