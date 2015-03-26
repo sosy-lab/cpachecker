@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
 
-public class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironment{
+class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironment{
   private int noObjectives = 0;
   private List<Long> objectives = null;
 
