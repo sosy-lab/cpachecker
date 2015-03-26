@@ -149,6 +149,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     if (extraOptions.requireProofs) {
       set_param_value(cfg, "PROOF", "true");
     }
+    global_param_set("smt.random_seed", String.valueOf(randomSeed));
 
     // TODO add some other params, memory-limit?
     final long context = mk_context_rc(cfg);
