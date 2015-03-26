@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 
 enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -48,7 +46,6 @@ enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
 
     assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
-    assert Iterables.all(pElements, Predicates.<AbstractState>equalTo(AlwaysTopState.INSTANCE));
 
     return Optional.of(PrecisionAdjustmentResult.create(
         AlwaysTopState.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE));
