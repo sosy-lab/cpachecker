@@ -28,12 +28,9 @@ import java.io.Writer;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ProcessExecutor;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.*;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
@@ -41,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
-import org.sosy_lab.cpachecker.util.codeGen.CFromPathGenerator;
+import org.sosy_lab.cpachecker.util.codeGen.PathToCTranslator;
 
 @Options(prefix = "counterexample.excheck")
 public class ExecutionChecker implements CounterexampleChecker {
@@ -64,8 +61,6 @@ public class ExecutionChecker implements CounterexampleChecker {
   @Override
   public boolean checkCounterexample(ARGState rootState, ARGState errorState, Set<ARGState> errorPathStates)
       throws CPAException, InterruptedException {
-    CFromPathGenerator gen = new CFromPathGenerator(rootState, errorState, errorPathStates);
-
     boolean delCodeFile = codeFile == null;
     boolean delExecutable = executable == null;
 
@@ -81,8 +76,10 @@ public class ExecutionChecker implements CounterexampleChecker {
       throw new CPAException("Could not create temporary files.", e);
     }
 
+    Appender sourceCode = PathToCTranslator.translatePaths(rootState, errorPathStates);
+
     try (Writer w = Files.openOutputFile(codeFile)) {
-      gen.generateSourceCode().appendTo(w);
+      sourceCode.appendTo(w);
     } catch (IOException e) {
       throw new CPAException("Could not write the produced C code.", e);
     }
@@ -126,8 +123,8 @@ public class ExecutionChecker implements CounterexampleChecker {
         logger.log(Level.WARNING, "Could not delete temporary file: " + executable.getPath());
       }
     }
-    
-    return exec.getExitcode() != 0; 
+
+    return exec.getExitcode() != 0;
   }
 
   private static class Exec extends ProcessExecutor<CounterexampleAnalysisFailed> {
