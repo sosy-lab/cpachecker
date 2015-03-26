@@ -28,14 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -72,6 +65,7 @@ public class PathToCTranslator {
 
   private final List<String> mGlobalDefinitionsList = new ArrayList<>();
   private final List<String> mFunctionDecls = new ArrayList<>();
+  private final List<String> mIncludes = new ArrayList<>(Arrays.asList("#include <stdlib.h>"));
   private int mFunctionIndex = 0;
 
   // list of functions
@@ -121,7 +115,8 @@ public class PathToCTranslator {
 
   private Appender generateCCode() {
     return Appenders.forIterable(Joiner.on('\n'),
-                                concat(mGlobalDefinitionsList,
+                                concat(mIncludes,
+                                       mGlobalDefinitionsList,
                                        mFunctionDecls,
                                        mFunctionBodies));
   }
@@ -340,7 +335,7 @@ public class PathToCTranslator {
     FunctionBody currentFunction = functionStack.peek();
 
     if (childElement.isTarget()) {
-      currentFunction.write("assert(0); // target state ");
+      currentFunction.write("exit(-1337); // target state ");
     }
 
     // handle the edge
@@ -374,7 +369,7 @@ public class PathToCTranslator {
 
     case AssumeEdge: {
       CAssumeEdge lAssumeEdge = (CAssumeEdge)pCFAEdge;
-      return ("__CPROVER_assume(" + lAssumeEdge.getCode() + ");");
+      return ("if (!(" + lAssumeEdge.getCode() + ")) exit(0); // error path left");
 //    return ("if(! (" + lAssumptionString + ")) { return (0); }");
     }
 
@@ -436,7 +431,11 @@ public class PathToCTranslator {
   }
 
   private String getFreshFunctionName(FunctionEntryNode functionStartNode) {
-    return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
+    if ("main".equals(functionStartNode.getFunctionName())) {
+      return functionStartNode.getFunctionName();
+    } else {
+      return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
+    }
   }
 
   private Stack<FunctionBody> cloneStack(Stack<FunctionBody> pStack) {
