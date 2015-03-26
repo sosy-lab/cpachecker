@@ -134,6 +134,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
   private final StatTimer buildCounterexampeTraceTime = new StatTimer("Building the counterexample trace");
   private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
+  private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
 
   class Stats extends AbstractStatistics {
 
@@ -155,6 +156,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         w0.beginLevel().put(getFormulasForPathTime);
         w0.beginLevel().put(buildCounterexampeTraceTime);
         w0.beginLevel().put(preciseCouterexampleTime);
+        w0.beginLevel().put(totalPrefixes);
       }
 
       statistics.printStatistics(out, result, reached);
@@ -307,11 +309,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
     List<ARGPath> infeasilbePrefixes = provider.getInfeasilbePrefixes(allStatesTrace);
 
+    totalPrefixes.setNextValue(infeasilbePrefixes.size());
+
     if(allStatesTrace != infeasilbePrefixes.get(0)) {
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
-
       allStatesTrace = classifier.obtainSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
     }
+
     return allStatesTrace;
   }
 
