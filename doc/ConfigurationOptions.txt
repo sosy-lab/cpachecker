@@ -1620,6 +1620,10 @@ cpa.stator.policy.generateOctagons = false
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
 
+# Any intermediate state with formula length bigger than specified will be
+# checked for reachability. Set to 0 to disable.
+cpa.stator.policy.lengthLimitForSATCheck = 200
+
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
 
