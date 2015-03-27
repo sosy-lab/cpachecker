@@ -67,7 +67,8 @@ public class ValueDeterminationManager {
 
     long uniquePrefix = 0;
 
-    Set<PolicyAbstractedState> visitedStates = new HashSet<>();
+    Set<Integer> visitedLocationIDs = new HashSet<>();
+
     LinkedHashSet<PolicyAbstractedState> queue = new LinkedHashSet<>();
     queue.add(stateWithUpdates);
     Set<String> visited = new HashSet<>();
@@ -76,6 +77,10 @@ public class ValueDeterminationManager {
       Iterator<PolicyAbstractedState> it = queue.iterator();
       PolicyAbstractedState state = it.next();
       it.remove();
+
+      if (visitedLocationIDs.contains(state.getLocationID())) {
+        continue;
+      }
 
       for (Entry<Template, PolicyBound> incoming : state) {
         Template template = incoming.getKey();
@@ -86,7 +91,7 @@ public class ValueDeterminationManager {
         if ((state != stateWithUpdates || updated.containsKey(template))
             && bound.dependsOnInitial()) {
 
-          if (!visitedStates.contains(backpointer)) {
+          if (!visitedLocationIDs.contains(backpointer.getLocationID())) {
             queue.add(backpointer);
           }
         }
@@ -115,7 +120,7 @@ public class ValueDeterminationManager {
         );
       }
 
-      visitedStates.add(state);
+      visitedLocationIDs.add(state.getLocationID());
     }
 
     return Pair.of(ImmutableMap.copyOf(types), constraints);
@@ -233,7 +238,6 @@ public class ValueDeterminationManager {
    * for the given template for the given state.
    */
   public String absDomainVarName(PolicyAbstractedState state, Template template) {
-    // wtf???? how did that even work???
     return String.format(BOUND_VAR_NAME, state.getLocationID(), template);
   }
 

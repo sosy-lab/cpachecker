@@ -382,6 +382,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyAbstractedState oldState
   ) throws CPATransferException, InterruptedException {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
+    Preconditions.checkState(newState.getLocationID() == oldState.getLocationID());
     CFANode node = oldState.getNode();
 
     statistics.abstractMergeCounter.add(node);
@@ -656,13 +657,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
     final BooleanFormula startConstraints = getStartConstraints(state);
 
-    try (
-        // Optimizing environment to get the final value.
-        OptEnvironment optEnvironment = solver.newOptEnvironment();
-
-        // Prover environment to perform meta-queries.
-        ProverEnvironment prover = solver.newProverEnvironment()
-    ) {
+    try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
       optEnvironment.addConstraint(annotatedFormula);
       optEnvironment.addConstraint(startConstraints);
 
@@ -671,9 +666,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // Bottom => bail early.
         return Optional.absent();
       }
-
-      //noinspection ResultOfMethodCallIgnored
-      prover.push(linearizedFormula);
 
       for (Template template : state.getTemplates()) {
         shutdownNotifier.shutdownIfNecessary();
@@ -744,8 +736,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               // NOTE: it is important to use the formula which does not include
               // the initial condition.
               PolicyBound policyBound = modelToPolicyBound(
-                  objective,
-                  prover, state, p, annotatedFormula, model, boundValue);
+                  objective, state, p, annotatedFormula, model, boundValue);
               abstraction.put(template, policyBound);
             }
             logger.log(Level.FINE, "Got bound: ", bound);
@@ -833,29 +824,34 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private PolicyBound modelToPolicyBound(
       Formula templateObjective,
-      ProverEnvironment prover,
       PolicyIntermediateState inputState,
       PathFormula inputPathFormula,
       BooleanFormula annotatedFormula,
       Model model,
       Rational bound) throws SolverException, InterruptedException {
 
-    // Check whether the bound can change if initial condition is dropped.
-    //noinspection ResultOfMethodCallIgnored
-    prover.push(fmgr.makeGreaterThan(
-        templateObjective,
-        fmgr.makeNumber(templateObjective, bound), true));
-    boolean dependsOnInitial;
-    try {
-      statistics.checkIndependenceTimer.start();
-      dependsOnInitial = !prover.isUnsat();
-    } finally {
-      statistics.checkIndependenceTimer.stop();
-      prover.pop();
-    }
-
     BooleanFormula policyFormula = linearizationManager.enforceChoice(
         annotatedFormula, model.entrySet());
+    boolean dependsOnInitial;
+
+    // Check whether the bound can change if initial condition is dropped.
+    statistics.checkIndependenceTimer.start();
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+
+      //noinspection ResultOfMethodCallIgnored
+      prover.push(policyFormula);
+
+      //noinspection ResultOfMethodCallIgnored
+      prover.push(fmgr.makeGreaterThan(
+          templateObjective,
+          fmgr.makeNumber(templateObjective, bound), true));
+      try {
+        dependsOnInitial = !prover.isUnsat();
+      } finally {
+        statistics.checkIndependenceTimer.stop();
+        prover.pop();
+      }
+    }
 
     int prevLocID = ((BigInteger)model.get(
         new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer))).intValue();

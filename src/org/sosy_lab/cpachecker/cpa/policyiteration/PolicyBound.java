@@ -20,22 +20,22 @@ public interface PolicyBound {
   /**
    * @return <strong>Latest</strong> version of the origin state.
    */
-  public PolicyAbstractedState getPredecessor();
+  PolicyAbstractedState getPredecessor();
 
-  public PathFormula getFormula();
+  PathFormula getFormula();
 
-  public Rational getBound();
+  Rational getBound();
 
-  public PathFormula getStartPathFormula();
+  PathFormula getStartPathFormula();
 
-  public boolean dependsOnInitial();
+  boolean dependsOnInitial();
 
-  public int serializePolicy(PolicyAbstractedState toState);
+  int serializePolicy(PolicyAbstractedState toState);
 
-  public PolicyBound updateValue(Rational newValue);
+  PolicyBound updateValue(Rational newValue);
 
 
-  public static class PolicyBoundImpl implements PolicyBound {
+  class PolicyBoundImpl implements PolicyBound {
 
     /**
      * Location of an abstracted state which has caused an update.
@@ -160,7 +160,7 @@ public interface PolicyBound {
   /**
    * Dummy class to refer to the previous bound.
    */
-  public static class PolicyBoundDummy implements PolicyBound {
+  class PolicyBoundDummy implements PolicyBound {
 
     private final Rational value;
 
