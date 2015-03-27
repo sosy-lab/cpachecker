@@ -120,10 +120,14 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   protected Collection<LiveVariablesState> postProcessing(@Nullable LiveVariablesState successor) {
     if (successor == null) {
       return Collections.emptySet();
-    } else {
-      liveVariables.putAll(edge.getPredecessor(), successor.getLiveVariables());
-      return Collections.singleton(successor);
     }
+
+    // live variables of multiedges were handleded separately
+    if (!(edge instanceof MultiEdge)) {
+      liveVariables.putAll(edge.getPredecessor(), successor.getLiveVariables());
+    }
+
+    return Collections.singleton(successor);
   }
 
   @Override
@@ -133,6 +137,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     for (final CFAEdge innerEdge : Lists.reverse(cfaEdge.getEdges())) {
       edge = innerEdge;
       state = handleSimpleEdge(innerEdge);
+      liveVariables.putAll(edge.getPredecessor(), state.getLiveVariables());
     }
     edge = cfaEdge; // reset edge
     return state;
