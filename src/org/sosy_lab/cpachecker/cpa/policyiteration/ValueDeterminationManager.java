@@ -212,18 +212,9 @@ public class ValueDeterminationManager {
               startPathFormula
           ), addPrefix);
 
-      Formula upperBound;
-      if (incomingState == stateWithUpdates && !updated.containsKey(
-          incomingTemplate)) {
-
-        upperBound = fmgr.makeNumber(incomingTemplateFormula,
-            stateWithUpdates.getBound(incomingTemplate).get().getBound());
-
-      } else {
-        upperBound = fmgr.makeVariable(
+      Formula upperBound = fmgr.makeVariable(
             fmgr.getFormulaType(incomingTemplateFormula),
             prevAbstractDomainElement);
-      }
       BooleanFormula constraint = fmgr.makeLessOrEqual(
           incomingTemplateFormula, upperBound, true);
       constraints.add(constraint);
