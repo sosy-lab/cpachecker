@@ -30,7 +30,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
@@ -55,9 +55,9 @@ public class StateSimplifier {
   private final MachineModel machineModel;
 
   @SuppressWarnings("unused")
-  private final LogManagerWithoutDuplicates logger;
+  private final LogManager logger;
 
-  public StateSimplifier(MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
+  public StateSimplifier(MachineModel pMachineModel, LogManager pLogger) {
     machineModel = pMachineModel;
     logger = pLogger;
   }
@@ -82,7 +82,11 @@ public class StateSimplifier {
     return newState;
   }
 
-  private ConstraintsState removeTrivialConstraints(ConstraintsState pState, IdentifierAssignment pAssignment) {
+  /** Removes all trivial constraints from the given state. */
+  public ConstraintsState removeTrivialConstraints(
+      final ConstraintsState pState,
+      final IdentifierAssignment pAssignment
+  ) {
     ConstraintsState newState = pState.copyOf();
 
     Iterator<Constraint> it = newState.iterator();
@@ -118,7 +122,7 @@ public class StateSimplifier {
    *
    * @return a new {@link ConstraintsState} without negligible constraints
    */
-  private ConstraintsState removeOutdatedConstraints(
+  public ConstraintsState removeOutdatedConstraints(
       final ConstraintsState pState,
       final ValueAnalysisState pValueState
   ) {
