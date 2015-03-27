@@ -147,6 +147,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       int numberOfRefinements = totalRefinement.getUpdateCount();
       if (numberOfRefinements > 0) {
         w0.put(totalPathLength)
+          .put(totalPrefixes)
           .spacer()
           .put(totalRefinement);
 
@@ -156,7 +157,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         w0.beginLevel().put(getFormulasForPathTime);
         w0.beginLevel().put(buildCounterexampeTraceTime);
         w0.beginLevel().put(preciseCouterexampleTime);
-        w0.beginLevel().put(totalPrefixes);
       }
 
       statistics.printStatistics(out, result, reached);
