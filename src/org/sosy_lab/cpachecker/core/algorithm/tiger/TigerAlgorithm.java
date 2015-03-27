@@ -107,9 +107,11 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
@@ -364,7 +366,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     return lGoalPatterns;
   }
 
-  private boolean isCovered(int goalIndex, Goal lGoal) {
+  private boolean isCovered(int goalIndex, Goal lGoal, boolean stopAtFirstMatch) {
+    boolean result = false;
     for (TestCase testcase : testsuite.getTestCases()) {
       ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath());
       if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
@@ -373,14 +376,17 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
         testsuite.addTestCase(testcase, lGoal);
 
-        return true;
+        if(stopAtFirstMatch) {
+            return true;
+          }
+          result = true;
       }
       else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
         logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
       }
     }
 
-    return false;
+    return result;
   }
 
   private boolean testGeneration(LinkedList<ElementaryCoveragePattern> pTestGoalPatterns, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) throws CPAException, InterruptedException {
@@ -425,7 +431,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
       }
 
-      if (checkCoverage && isCovered(goalIndex, lGoal)) {
+      if (checkCoverage && isCovered(goalIndex, lGoal, true)) {
         if (lGoalPrediction != null) {
           lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
         }
@@ -499,7 +505,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           if (checkCoverage) {
             if (coverageCheckOpt.containsKey(lGoal)) {
               if (coverageCheckOpt.get(lGoal) < testsuite.getNumberOfTestCases()) {
-                if (isCovered(goalIndex, lGoal)) {
+                if (isCovered(goalIndex, lGoal, true)) {
                   continue;
                 }
                 else {
@@ -526,6 +532,12 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         //previousPreviousNumberOfTestCases = testsuite.getNumberOfTestCases();
       }
       while (testsuite.hasTimedoutTestGoals());
+    }
+
+    for(Goal g : testsuite.getTestGoals()){
+        if(isCovered(g.getIndex(), g, false)) {
+          continue;
+      }
     }
 
     return wasSound;
@@ -555,8 +567,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     if (cpa instanceof CompositeCPA) {
       CompositeCPA compositeCPA = (CompositeCPA)cpa;
       lComponentAnalyses.addAll(compositeCPA.getWrappedCPAs());
-    }
-    else {
+    } else if (cpa instanceof ARGCPA) {
+      lComponentAnalyses.addAll(((ARGCPA) cpa).getWrappedCPAs());
+    } else {
       lComponentAnalyses.add(cpa);
     }
 
@@ -738,6 +751,12 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
             // Try to reconstruct a trace in the ARG
             ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
+            ARGPath path = ARGUtils.getOnePathTo(argState);
+            ErrorPathShrinker eps = new ErrorPathShrinker();
+            List<CFAEdge> shrinkedErrorPath = null;
+            if(path!=null){
+              shrinkedErrorPath = eps.shrinkErrorPath(path);
+            }
 
             Collection<ARGState> parents;
             parents = argState.getParents();
@@ -770,7 +789,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             // TODO we need a different way to obtain input values
             List<BigInteger> inputValues = new ArrayList<>();
 
-            TestCase testcase = new TestCase(inputValues, trace);
+            TestCase testcase = new TestCase(inputValues, trace, shrinkedErrorPath);
             testsuite.addTestCase(testcase, pGoal);
           }
           else {
@@ -823,8 +842,12 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                   //inputValues.add((BigInteger)e.getValue());
                   inputValues.add(new BigInteger(e.getValue().toString()));
                 }
+                
+                ErrorPathShrinker eps = new ErrorPathShrinker();
+                List<CFAEdge> shrinkedErrorPath;
+                shrinkedErrorPath = eps.shrinkErrorPath(cex.getTargetPath());
 
-                TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
+                TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath);
                 testsuite.addTestCase(testcase, pGoal);
 
                 // TODO Alex?

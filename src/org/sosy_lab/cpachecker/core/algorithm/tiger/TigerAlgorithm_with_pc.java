@@ -110,10 +110,12 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -450,11 +452,18 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
         }
       }
       */
+//      Region presenceConditionGoal = bddCpaNamedRegionManager.makeOr(lGoal.getPresenceCondition(), coveringRegion);
+
       if (!bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(), coveringRegion).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+//      if (!presenceConditionGoal.isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+
         // test goal is already (at least for some PCs) covered by an existing test case
-        // remove those PCs from todo
-        remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(coveringRegion));
-        lGoal.setPresenceCondition(remainingPCforGoalCoverage);
+          // remove those PCs from todo
+          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(coveringRegion));
+          lGoal.setPresenceCondition(remainingPCforGoalCoverage);
+
+//        remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeNot(presenceConditionGoal);
+//        lGoal.setPresenceCondition(presenceConditionGoal);
 
         testsuite.addTestCase(testcase, lGoal);
 
@@ -572,7 +581,7 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
         } else {
           // now we need to cover all remaining configurations
           // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
-          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(testsuite.getGoalCoverage(lGoal)));
+          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(lGoal.getPresenceCondition()));
           logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
         }
       }
@@ -667,6 +676,13 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
         } while (testsuite.hasTimedoutTestGoals());
       }
     }
+
+//    for (Goal_with_pc g : testsuite.getTestGoals()) {
+//      if (isCovered(g.getIndex(), g)) {
+//        continue;
+//      }
+//    }
+
     return wasSound;
   }
 
@@ -698,8 +714,9 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
     if (cpa instanceof CompositeCPA) {
       CompositeCPA compositeCPA = (CompositeCPA)cpa;
       lComponentAnalyses.addAll(compositeCPA.getWrappedCPAs());
-    }
-    else {
+    } else if (cpa instanceof ARGCPA) {
+      lComponentAnalyses.addAll(((ARGCPA) cpa).getWrappedCPAs());
+    } else {
       lComponentAnalyses.add(cpa);
     }
 
@@ -833,7 +850,9 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
       workerThread.join();
 
       if (workerRunnable.throwableWasCaught()) {
-        throw new RuntimeException(workerRunnable.getCaughtThrowable());
+         // TODO: handle exception
+         analysisWasSound = false;
+//        throw new RuntimeException(workerRunnable.getCaughtThrowable());
       }
       else {
         analysisWasSound = workerRunnable.analysisWasSound();
@@ -892,6 +911,12 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
 
             // Try to reconstruct a trace in the ARG
             ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
+            ARGPath path = ARGUtils.getOnePathTo(argState);
+            ErrorPathShrinker eps = new ErrorPathShrinker();
+            List<CFAEdge> shrinkedErrorPath = null;
+            if(path!=null){
+              shrinkedErrorPath = eps.shrinkErrorPath(path);
+            }
 
             Collection<ARGState> parents;
             parents = argState.getParents();
@@ -928,8 +953,8 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
             logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion((testCaseCriticalStateRegion==null ?testCaseFinalRegion:testCaseCriticalStateRegion)));
 
             TestCase_with_pc testcase = new TestCase_with_pc(inputValues,
-                (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
-                trace, bddCpaNamedRegionManager);
+                    (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
+                    trace, shrinkedErrorPath, bddCpaNamedRegionManager);
             testsuite.addTestCase(testcase, pGoal);
           }
           else {
@@ -983,6 +1008,10 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
                   inputValues.add(new BigInteger(e.getValue().toString()));
                 }
 
+                ErrorPathShrinker eps = new ErrorPathShrinker();
+                List<CFAEdge> shrinkedErrorPath;
+                shrinkedErrorPath = eps.shrinkErrorPath(cex.getTargetPath());
+
                 /* We could determine regions for coverage goals reached earlier during execution of the test case.
                  * Now we cant because cex */
                 Region testCaseCriticalStateRegion = null;
@@ -997,11 +1026,14 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
                   }
                   pathIterator.advance();
                 }
+                if (testCaseCriticalStateRegion != null) {
+                    pGoal.setPresenceCondition(testCaseCriticalStateRegion);
+                }
                 Region testCaseFinalRegion = getRegionFromWrappedBDDstate(reachedSet.getLastState());
                 logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion((testCaseCriticalStateRegion==null ?testCaseFinalRegion:testCaseCriticalStateRegion)));
                 TestCase_with_pc testcase = new TestCase_with_pc(inputValues,
                     (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
-                    cex.getTargetPath().asEdgesList(), bddCpaNamedRegionManager);
+                    cex.getTargetPath().asEdgesList(), shrinkedErrorPath, bddCpaNamedRegionManager);
                 testsuite.addTestCase(testcase, pGoal);
               }
             }
@@ -1123,6 +1155,9 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
+
+    // make the initial presence condition false
+    pTestGoalPCtoCover = bddCpaNamedRegionManager.makeFalse();
 
     Goal_with_pc lGoal = new Goal_with_pc(pIndex, pGoalPattern, automaton, pTestGoalPCtoCover);
 

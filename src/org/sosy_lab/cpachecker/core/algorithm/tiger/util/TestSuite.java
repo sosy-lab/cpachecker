@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 
 
@@ -42,6 +45,14 @@ public class TestSuite {
     mapping = new HashMap<>();
     infeasibleGoals = new LinkedList<>();
     timedOutGoals = new HashMap<>();
+  }
+
+  public Set<Goal> getTestGoals(){
+  Set<Goal> result = new HashSet<>();
+    for(List<Goal> goalList : mapping.values()){
+      result.addAll(goalList);
+  }
+  return result;
   }
 
   public int getNumberOfFeasibleTestGoals() {
@@ -107,7 +118,12 @@ public class TestSuite {
       str.append("\n");
 
       for (Goal goal : entry.getValue()) {
-        //str.append(goal.getIndex());
+        CFANode predecessor = goal.getCriticalEdge().getPredecessor();
+        if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+          str.append(((CLabelNode) predecessor).getLabel());
+        } else {
+          str.append(goal.getIndex());
+        }
         str.append(goal.toSkeleton());
         str.append("\n");
       }
@@ -119,7 +135,12 @@ public class TestSuite {
       str.append("infeasible:\n");
 
       for (Goal goal : infeasibleGoals) {
-        //str.append(goal.getIndex());
+        CFANode predecessor = goal.getCriticalEdge().getPredecessor();
+        if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+          str.append(((CLabelNode) predecessor).getLabel());
+        } else {
+          str.append(goal.getIndex());
+        }
         str.append(goal.toSkeleton());
         str.append("\n");
       }
@@ -131,7 +152,12 @@ public class TestSuite {
       str.append("timed out:\n");
 
       for (Goal goal : timedOutGoals.values()) {
-        //str.append(goal.getIndex());
+        CFANode predecessor = goal.getCriticalEdge().getPredecessor();
+        if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+          str.append(((CLabelNode) predecessor).getLabel());
+        } else {
+          str.append(goal.getIndex());
+        }
         str.append(goal.toSkeleton());
         str.append("\n");
       }

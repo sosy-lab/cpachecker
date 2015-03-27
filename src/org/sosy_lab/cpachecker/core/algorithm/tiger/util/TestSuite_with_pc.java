@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal_with_pc;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
@@ -49,6 +52,14 @@ public class TestSuite_with_pc {
     infeasibleGoals = new HashMap<>();
     timedOutGoals = new HashMap<>();
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+  }
+
+  public Set<Goal_with_pc> getTestGoals(){
+  Set<Goal_with_pc> result = new HashSet<>();
+    for(List<Goal_with_pc> goalList : mapping.values()){
+      result.addAll(goalList);
+  }
+  return result;
   }
 
   public int getNumberOfFeasibleTestGoals() {
@@ -92,6 +103,9 @@ public class TestSuite_with_pc {
   }
 
   public boolean addTestCase(TestCase_with_pc testcase, Goal_with_pc goal) {
+    if (testSuiteAlreadyContrainsTestCase(testcase, goal)) {
+      return true;
+    }
     numberOfFeasibleGoals++;
     List<Goal_with_pc> goals = mapping.get(testcase);
     boolean testcaseExisted = true;
@@ -104,6 +118,41 @@ public class TestSuite_with_pc {
     return testcaseExisted;
   }
 
+  private boolean testSuiteAlreadyContrainsTestCase(TestCase_with_pc pTestcase, Goal_with_pc pGoal) {
+    // TODO make a real comparison and not just a string compare
+    String testcaseString = "Testcase " + pTestcase.toString() + " covers";
+    String testgoalString = "Goal ";
+    CFANode predecessor = pGoal.getCriticalEdge().getPredecessor();
+    if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+      testgoalString += ((CLabelNode) predecessor).getLabel();
+    } else {
+      testgoalString += pGoal.getIndex();
+    }
+    testgoalString += " " + pGoal.toSkeleton() + " with targetPC " + bddCpaNamedRegionManager.dumpRegion(pGoal.getPresenceCondition());
+
+    for (Entry<TestCase_with_pc, List<Goal_with_pc>> entry : mapping.entrySet()) {
+      String testcaseStringCmp = "Testcase " + entry.getKey().toString() + " covers";
+      if (testcaseString.equals(testcaseStringCmp)) {
+        for (Goal_with_pc goal : entry.getValue()) {
+          String testgoalStringCmp = "Goal ";
+          CFANode predecessorCmp = goal.getCriticalEdge().getPredecessor();
+          if (predecessorCmp instanceof CLabelNode && !((CLabelNode) predecessorCmp).getLabel().isEmpty()) {
+            testgoalStringCmp += ((CLabelNode) predecessorCmp).getLabel();
+          } else {
+            testgoalStringCmp += goal.getIndex();
+          }
+          testgoalStringCmp += " " + goal.toSkeleton() + " with targetPC " + bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition());
+          if (testgoalString.equals(testgoalStringCmp)) {
+            return true;
+          }
+        }
+      } else {
+        continue;
+      }
+    }
+    return false;
+  }
+
   public Set<TestCase_with_pc> getTestCases() {
     return mapping.keySet();
   }
@@ -112,51 +161,151 @@ public class TestSuite_with_pc {
     return getTestCases().size();
   }
 
+//  @Override
+//  public String toString() {
+//    StringBuffer str = new StringBuffer();
+//    for (Entry<TestCase_with_pc, List<Goal_with_pc>> entry : mapping.entrySet()) {
+//      str.append("Testcase ");
+//      str.append(entry.getKey().toString());
+//      str.append(" covers\n");
+//      for (Goal_with_pc goal : entry.getValue()) {
+//        str.append("Goal ");
+//        CFANode predecessor = goal.getCriticalEdge().getPredecessor();
+//        if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+//          str.append(((CLabelNode) predecessor).getLabel());
+//        } else {
+//          str.append(goal.getIndex());
+//        }
+//        str.append(" ");
+//        str.append(goal.toSkeleton());
+//        str.append(" with targetPC ");
+//        str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
+//        str.append("\n");
+//      }
+//      str.append("\n");
+//    }
+//
+//    str.append("infeasible:\n");
+//    for (Entry<Goal_with_pc, Region> entry : infeasibleGoals.entrySet()) {
+//      str.append("Goal ");
+//      CFANode predecessor = entry.getKey().getCriticalEdge().getPredecessor();
+//      if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+//        str.append(((CLabelNode) predecessor).getLabel());
+//      } else {
+//        str.append(entry.getKey().getIndex());
+//      }
+//      str.append(" ");
+//      str.append(entry.getKey().toSkeleton());
+//      str.append(" with targetPC ");
+//      str.append(bddCpaNamedRegionManager.dumpRegion(entry.getKey().getPresenceCondition()));
+//      str.append("\n\tcannot be covered with PC ");
+//      str.append(bddCpaNamedRegionManager.dumpRegion(entry.getValue()));
+//      str.append("\n");
+//    }
+//
+//    str.append("\n");
+//
+//    if (!timedOutGoals.isEmpty()) {
+//      str.append("timed out:\n");
+//      for (Pair<Goal_with_pc, Region> goal : timedOutGoals.values()) {
+//        CFANode predecessor = goal.getFirst().getCriticalEdge().getPredecessor();
+//        if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+//          str.append(((CLabelNode) predecessor).getLabel());
+//        } else {
+//          str.append(goal.getFirst().getIndex());
+//        }
+//        str.append(goal.getFirst().toSkeleton());
+//        str.append("\n");
+//      }
+//      str.append("\n");
+//    }
+//    return str.toString();
+//  }
+
   @Override
   public String toString() {
     StringBuffer str = new StringBuffer();
     for (Entry<TestCase_with_pc, List<Goal_with_pc>> entry : mapping.entrySet()) {
-      str.append("Testcase ");
-      str.append(entry.getKey().toString());
-      str.append(" covers\n");
+      str.append(entry.getKey().toString() + "\n");
+      str.append("Errorpath Length: " + entry.getKey().getErrorPath().size() + "\n");
+//      str.append(" covers\n");
       for (Goal_with_pc goal : entry.getValue()) {
         str.append("Goal ");
-        str.append(goal.getIndex());
-        str.append(" ");
-        str.append(goal.toSkeleton());
-        str.append(" with targetPC ");
+        CFANode predecessor = goal.getCriticalEdge().getPredecessor();
+        if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+          str.append(((CLabelNode) predecessor).getLabel());
+        } else {
+          str.append(goal.getIndex());
+        }
+        str.append(": ");
+//        str.append(goal.toSkeleton());
+//        str.append(" with targetPC ");
         str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
         str.append("\n");
       }
       str.append("\n");
     }
+    str.append("\n");
 
     str.append("infeasible:\n");
     for (Entry<Goal_with_pc, Region> entry : infeasibleGoals.entrySet()) {
       str.append("Goal ");
-      str.append(entry.getKey().getIndex());
-      str.append(" ");
-      str.append(entry.getKey().toSkeleton());
-      str.append(" with targetPC ");
-      str.append(bddCpaNamedRegionManager.dumpRegion(entry.getKey().getPresenceCondition()));
-      str.append("\n\tcannot be covered with PC ");
+      CFANode predecessor = entry.getKey().getCriticalEdge().getPredecessor();
+      if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+        str.append(((CLabelNode) predecessor).getLabel());
+      } else {
+        str.append(entry.getKey().getIndex());
+      }
+//      str.append(" ");
+//      str.append(entry.getKey().toSkeleton());
+//      str.append(" with targetPC ");
+//      str.append(bddCpaNamedRegionManager.dumpRegion(entry.getKey().getPresenceCondition()));
+      str.append(": cannot be covered with PC ");
       str.append(bddCpaNamedRegionManager.dumpRegion(entry.getValue()));
       str.append("\n");
     }
 
     str.append("\n");
 
-    if (!timedOutGoals.isEmpty()) {
-      str.append("timed out:\n");
-      for (Pair<Goal_with_pc, Region> goal : timedOutGoals.values()) {
-        //str.append(goal.getIndex());
-        str.append(goal.getFirst().toSkeleton());
-        str.append("\n");
-      }
-      str.append("\n");
-    }
+//    str.append("timedout:\n");
+//    for (Entry<Integer, Pair<Goal_with_pc, Region>> entry : timedOutGoals.entrySet()) {
+//      str.append("Goal ");
+//      CFANode predecessor = goal.entry.getKey().getCriticalEdge().getPredecessor();
+//      if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+//        str.append(((CLabelNode) predecessor).getLabel());
+//      } else {
+//        str.append(entry.getKey().getIndex());
+//      }
+////      str.append(" ");
+////      str.append(entry.getKey().toSkeleton());
+////      str.append(" with targetPC ");
+////      str.append(bddCpaNamedRegionManager.dumpRegion(entry.getKey().getPresenceCondition()));
+//      str.append(": cannot be covered with PC ");
+//      str.append(bddCpaNamedRegionManager.dumpRegion(entry.getValue()));
+//      str.append("\n");
+
+//    }
+//
+//    str.append("\n");
+//
+//    if (!timedOutGoals.isEmpty()) {
+//      str.append("timed out:\n");
+//      for (Pair<Goal_with_pc, Region> goal : timedOutGoals.values()) {
+//        CFANode predecessor = goal.getFirst().getCriticalEdge().getPredecessor();
+//        if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+//          str.append(((CLabelNode) predecessor).getLabel());
+//        } else {
+//          str.append(goal.getFirst().getIndex());
+//        }
+//        str.append(goal.getFirst().toSkeleton());
+//        str.append("\n");
+//      }
+//      str.append("\n");
+//    }
     return str.toString();
   }
+
+
   /**
    * Summarizes the presence conditions of tests in this testsuite that cover the parameter test goal.
    */

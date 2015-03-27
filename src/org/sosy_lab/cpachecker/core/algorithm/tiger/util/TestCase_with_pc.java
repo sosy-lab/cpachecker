@@ -36,8 +36,8 @@ public class TestCase_with_pc extends TestCase {
 
   private Region pc;
 
-  public TestCase_with_pc(List<BigInteger> pInputs, Region pPresenceCondition, List<CFAEdge> pPath, NamedRegionManager pBddCpaNamedRegionManager) {
-    super(pInputs, pPath);
+  public TestCase_with_pc(List<BigInteger> pInputs, Region pPresenceCondition, List<CFAEdge> pPath, List<CFAEdge> pShrinkedErrorPath, NamedRegionManager pBddCpaNamedRegionManager) {
+    super(pInputs, pPath, pShrinkedErrorPath);
     assert pPresenceCondition != null;
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     pc = pPresenceCondition;
@@ -49,5 +49,15 @@ public class TestCase_with_pc extends TestCase {
 
   public Region getRegion() {
     return pc;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof TestCase_with_pc) {
+      TestCase_with_pc other = (TestCase_with_pc)o;
+      return (getInputs().equals(other.getInputs()) && getPath().equals(other.getPath()) && pc.equals(other.getRegion()));
+    }
+
+    return false;
   }
 }

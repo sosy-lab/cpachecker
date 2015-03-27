@@ -33,14 +33,20 @@ public class TestCase {
 
   private List<BigInteger> inputs;
   private List<CFAEdge> path;
+  private List<CFAEdge> errorPath;
 
-  public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath) {
+  public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath, List<CFAEdge> pShrinkedErrorPath) {
     inputs = pInputs;
     path = pPath;
+    errorPath = pShrinkedErrorPath;
   }
 
   public List<CFAEdge> getPath() {
     return path;
+  }
+
+  public List<CFAEdge> getErrorPath() {
+    return errorPath;
   }
 
   public List<BigInteger> getInputs() {
