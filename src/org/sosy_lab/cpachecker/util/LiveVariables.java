@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -96,6 +97,78 @@ public class LiveVariables {
     public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
+  }
+
+  /**
+   * This class regards every variable as live on every position in the program.
+   */
+  private static class AllVariablesAsLiveVariables extends LiveVariables {
+
+    private FluentIterable<String> allVariables;
+    private FluentIterable<ASimpleDeclaration> allVariableDecls;
+
+    private AllVariablesAsLiveVariables(CFA cfa, List<Pair<ADeclaration, String>> globalsList) {
+      super();
+      checkNotNull(cfa);
+      checkNotNull(globalsList);
+
+      Set<ASimpleDeclaration> globalVars = FluentIterable.from(globalsList)
+                                                          .transform(DECLARATION_FILTER)
+                                                          .filter(notNull())
+                                                          .filter(not(or(instanceOf(CTypeDeclaration.class),
+                                                                         instanceOf(CFunctionDeclaration.class)))).toSet();
+
+      final CFATraversal.EdgeCollectingCFAVisitor edgeCollectingVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
+      CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), edgeCollectingVisitor);
+      FluentIterable<ADeclarationEdge> edges = from(edgeCollectingVisitor.getVisitedEdges()).filter(ADeclarationEdge.class);
+
+      // we have no information which variable is live at a certain node, so
+      // when asked about the variables for a certain node, we return the whole
+      // set of all variables of the analysed program
+      allVariableDecls = edges.transform(new Function<ADeclarationEdge, ASimpleDeclaration>() {
+
+        @Override
+        public ASimpleDeclaration apply(ADeclarationEdge pInput) {
+          return pInput.getDeclaration();
+        }}).append(globalVars);
+
+
+      allVariables = allVariableDecls.transform(ASimpleDeclaration.GET_QUALIFIED_NAME);
+    }
+
+    @Override
+    public boolean isVariableLive(ASimpleDeclaration pVariable, CFANode pLocation) {
+      return true;
+    }
+
+    @Override
+    public boolean isVariableLive(String pVarName, CFANode pLocation) {
+      return true;
+    }
+
+    @Override
+    public FluentIterable<String> getLiveVariableNamesForNode(CFANode pNode) {
+      return allVariables;
+    }
+
+    @Override
+    public FluentIterable<ASimpleDeclaration> getLiveVariablesForNode(CFANode pNode) {
+      return allVariableDecls;
+    }
+  }
+
+  /**
+   * constructor for creating the AllVariablesAsLiveVariables Object, should
+   *not be used elsewhere
+   */
+  private LiveVariables() {
+    variableClassification = null;
+    liveVariablesStrings = null;
+    globalVariables = null;
+    evaluationStrategy = null;
+    language = null;
+    liveVariables = null;
+    globalVariablesStrings = null;
   }
 
   // For ensuring deterministic behavior, all collections should be sorted!
@@ -183,6 +256,11 @@ public class LiveVariables {
     return from(liveVariablesStrings.get(pNode)).append(globalVariablesStrings);
   }
 
+  public static Optional<LiveVariables> createWithAllVariablesAsLive(final List<Pair<ADeclaration, String>> globalsList,
+                                                           final MutableCFA pCFA) {
+    return Optional.of((LiveVariables)new AllVariablesAsLiveVariables(pCFA, globalsList));
+  }
+
   public static Optional<LiveVariables> create(final Optional<VariableClassification> variableClassification,
                                                final List<Pair<ADeclaration, String>> globalsList,
                                                final MutableCFA pCFA,
@@ -198,7 +276,7 @@ public class LiveVariables {
     // we cannot make any assumptions about c programs where we do not know
     // about the addressed variables
     if (pCFA.getLanguage() == Language.C && !variableClassification.isPresent()) {
-      return Optional.absent();
+      return Optional.of((LiveVariables)new AllVariablesAsLiveVariables(pCFA, globalsList));
     }
 
     // we need a cfa with variableClassification, thus we create one now
@@ -208,10 +286,10 @@ public class LiveVariables {
     // be chosen later on
     LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
-    return create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig.evaluationStrategy);
+    return Optional.of(create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig.evaluationStrategy));
   }
 
-  private static Optional<LiveVariables> create0(final VariableClassification variableClassification,
+  private static LiveVariables create0(final VariableClassification variableClassification,
                                                  final List<Pair<ADeclaration, String>> globalsList,
                                                  final LogManager logger,
                                                  final ShutdownNotifier shutdownNotifier,
@@ -247,14 +325,14 @@ public class LiveVariables {
       logger.log(Level.INFO, "Global live variables collection failed, fallback to function-wise analysis.");
       return create0(variableClassification, globalsList, logger, shutdownNotifier, cfa, EvaluationStrategy.FUNCTION_WISE);
     } else if (liveVariables == null) {
-      return Optional.absent();
+      return new AllVariablesAsLiveVariables(cfa, globalsList);
     }
 
-    return Optional.of(new LiveVariables(liveVariables,
-                                         variableClassification,
-                                         globalVariables,
-                                         eval,
-                                         cfa.getLanguage()));
+    return new LiveVariables(liveVariables,
+                             variableClassification,
+                             globalVariables,
+                             eval,
+                             cfa.getLanguage());
   }
 
   private final static Function<Pair<ADeclaration, String>, ASimpleDeclaration> DECLARATION_FILTER =
