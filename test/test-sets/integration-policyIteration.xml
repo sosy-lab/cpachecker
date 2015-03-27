@@ -1,17 +1,21 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="2000" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="2000" cpuCores="1">
     <option name="-noout" />
+
+    <option name="-policy-unrolling"/>
     <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=true</option>
     <option name="-setprop">analysis.reportFalseAsUnknown=true</option>
+    <option name="-setprop">cpa.stator.policy.generateOctagons=true</option>
+    <option name="-setprop">cpa.stator.policy.formulaSlicing=true</option>
+
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-    <sourcefiles>
-        <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    </sourcefiles>
 
     <rundefinition>
-        <option name="-policy-unrolling"/>
+        <sourcefiles>
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        </sourcefiles>
     </rundefinition>
 
     <columns>
@@ -25,6 +29,8 @@
         <column title="optimization">Time spent in optimization</column>
 
         <column title="SMT solving">Time spent in SMT solver</column>
+        <column title="formula slicing">Time spent in checking inductiveness in formula slicing</column>
+        <column title="checking independence">Time spent in checking independence</column>
 
         <column title="#counterexample checks">Number of counterexample checks</column>
         <column title="counterexample checking time">Time for counterexample checks</column>
