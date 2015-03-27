@@ -349,7 +349,7 @@ public class CtoFormulaConverter {
 //      : "Saving variables with mutliple types is not possible!";
     if (t != null && !areEqualWithMatchingPointerArray(t, type)) {
 
-      if (getFormulaTypeFromCType(t) != getFormulaTypeFromCType(type)) {
+      if (!getFormulaTypeFromCType(t).equals(getFormulaTypeFromCType(type))) {
         throw new UnsupportedOperationException(
             "Variable " + name + " used with types of different sizes! " +
                 "(Type1: " + t + ", Type2: " + type + ")");
