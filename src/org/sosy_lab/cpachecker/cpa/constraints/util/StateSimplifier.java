@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints;
+package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -45,9 +46,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
- * Simplifier for {@link ConstraintsState}s.
+ * Simplifier for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState}s.
  * Provides different methods for simplifying a <code>ConstraintsState</code>
- * through {@link #simplify(ConstraintsState, ValueAnalysisState)}.
+ * through {@link #simplify(org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState, ValueAnalysisState)}.
  */
 public class StateSimplifier {
 
@@ -63,7 +64,7 @@ public class StateSimplifier {
   }
 
   /**
-   * Simplifies the given {@link ConstraintsState}.
+   * Simplifies the given {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState}.
    * Applies different simplifications to it.
    *
    * <p>The returned state will hold the same amount of information as the given state.</p>

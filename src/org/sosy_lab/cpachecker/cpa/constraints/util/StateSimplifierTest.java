@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints;
+package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -30,7 +30,9 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -38,7 +40,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Unit tests for {@link StateSimplifier}.
+ * Unit tests for {@link org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier}.
  *
  * There exist four symbolic identifiers that are divided into two groups by their dependencies:
  * Constraints exist so that the first identifier is dependent on the second one and so that the
