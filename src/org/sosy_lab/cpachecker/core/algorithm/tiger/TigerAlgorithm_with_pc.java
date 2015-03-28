@@ -224,6 +224,8 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
   private String programDenotation;
   private MainCPAStatistics stats;
 
+  List<Pair<Goal_with_pc, Region>> remainingPCs = null;
+
   NamedRegionManager bddCpaNamedRegionManager = null;
 
   public TigerAlgorithm_with_pc(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
@@ -482,8 +484,16 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
   private boolean testGeneration(LinkedList<Pair<ElementaryCoveragePattern,Region>> pTestGoalPatterns, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) throws CPAException, InterruptedException {
     boolean wasSound = true;
 
-    int goalIndex = 0;
+    int goalIndex = 1;
     int numberOfTestGoals = pTestGoalPatterns.size();
+
+    // get all test goals and initialize their remaining presence conditions
+    remainingPCs = new ArrayList<>();
+    for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
+      Goal_with_pc newGoal = constructGoal(goalIndex, pair.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, pair.getSecond());
+      remainingPCs.add(Pair.of(newGoal, pair.getSecond()));
+      goalIndex++;
+    }
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton = null;
 
@@ -491,11 +501,11 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
       statistics_numberOfProcessedTestGoals++;
 
       Pair<ElementaryCoveragePattern,Region> lTestGoalPatternWithRegion = pTestGoalPatterns.poll();
+      goalIndex = getGoalIndexByPattern(lTestGoalPatternWithRegion.getFirst());
       ElementaryCoveragePattern lTestGoalPattern = lTestGoalPatternWithRegion.getFirst();
       // the condition identifying configurations that we want to cover (gets reduced in due process until only an infeasible/non-coverable condition remains)
-      Region remainingPCforGoalCoverage = lTestGoalPatternWithRegion.getSecond();
+      Region remainingPCforGoalCoverage = getRemainingPCByTestGoalId(goalIndex);
 
-      goalIndex++;
 
       Boolean stop = false;
 
@@ -507,6 +517,7 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
       reachedSet = null;
 
       while (!stop && !remainingPCforGoalCoverage.isFalse()) {
+        remainingPCforGoalCoverage = getRemainingPCByTestGoalId(goalIndex);
         logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goalIndex, numberOfTestGoals, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
 
         Goal_with_pc lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, remainingPCforGoalCoverage);
@@ -558,7 +569,7 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
         }
 
         // goal is uncovered so far; run CPAchecker to cover it
-        ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation, remainingPCforGoalCoverage);
+        ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation, getRemainingPCByTestGoalId(goalIndex));
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
           wasSound = false;
@@ -581,8 +592,8 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
         } else {
           // now we need to cover all remaining configurations
           // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
-          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(lGoal.getPresenceCondition()));
-          logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+//          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(lGoal.getPresenceCondition()));
+//          logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
         }
       }
     }
@@ -684,6 +695,24 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
 //    }
 
     return wasSound;
+  }
+
+  private Region getRemainingPCByTestGoalId(int id) {
+    for (Pair<Goal_with_pc, Region> pair : remainingPCs) {
+      if (pair.getFirst().getIndex() == id) {
+        return pair.getSecond();
+      }
+    }
+    return null;
+  }
+
+  private int getGoalIndexByPattern(ElementaryCoveragePattern pattern) {
+    for (Pair<Goal_with_pc, Region> pair : remainingPCs) {
+      if (pattern.equals(pair.getFirst().getPattern())) {
+        return pair.getFirst().getIndex();
+      }
+    }
+    return -1;
   }
 
   enum ReachabilityAnalysisResult {
@@ -905,6 +934,7 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
           Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
           if (counterexamples.isEmpty()) {
+            // TODO: handle empty counter example with presence conditions
             logger.logf(Level.INFO, "Counterexample is not available.");
 
             LinkedList<CFAEdge> trace = new LinkedList<>();
@@ -1013,33 +1043,56 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
                 shrinkedErrorPath = eps.shrinkErrorPath(cex.getTargetPath());
 
                 /* We could determine regions for coverage goals reached earlier during execution of the test case.
-                 * Now we cant because cex */
+                 * Now we can't because cex */
+                List<Goal_with_pc> newTestGoals = new ArrayList<>();
                 Region testCaseCriticalStateRegion = null;
                 int abstract_state_index = 0;
                 PathIterator pathIterator = cex.getTargetPath().pathIterator();
+                List<Pair<Goal_with_pc, Region>> toBeDeleted = new ArrayList<>();
+                List<Pair<Goal_with_pc, Region>> toBeAdded = new ArrayList<>();
                 while (pathIterator.hasNext()) {
                   ARGState state = pathIterator.getAbstractState();
                   if (pathIterator.getIndex()!=0) { // get incoming edge is not allowed if index==0
-                    if (pathIterator.getIncomingEdge().equals(criticalEdge)) {
-                      testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(state);
+                    for (Pair<Goal_with_pc, Region> remaining : remainingPCs) {
+                      if (pathIterator.getIncomingEdge().equals(remaining.getFirst().getCriticalEdge())) {
+                        testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(state);
+                        if (testCaseCriticalStateRegion != null) {
+                          Goal_with_pc newGoal = constructGoal(remaining.getFirst().getIndex(), remaining.getFirst().getPattern(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, testCaseCriticalStateRegion);
+                          newGoal.setPresenceCondition(testCaseCriticalStateRegion);
+                          newTestGoals.add(newGoal);
+                          toBeDeleted.add(remaining);
+                          Region remainingPCforGoal = bddCpaNamedRegionManager.makeAnd(remaining.getSecond(), bddCpaNamedRegionManager.makeNot(newGoal.getPresenceCondition()));
+                          logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", newGoal.getIndex(), bddCpaNamedRegionManager.dumpRegion(remainingPCforGoal));
+                          toBeAdded.add(Pair.of(remaining.getFirst(), remainingPCforGoal));
+
+                          if (pathIterator.getIncomingEdge().equals(criticalEdge)) {
+                            remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(newGoal.getPresenceCondition()));
+                          }
+                          continue;
+                        }
+                      }
                     }
                   }
                   pathIterator.advance();
                 }
-                if (testCaseCriticalStateRegion != null) {
-                    pGoal.setPresenceCondition(testCaseCriticalStateRegion);
-                }
+
+                remainingPCs.removeAll(toBeDeleted);
+                remainingPCs.addAll(toBeAdded);
+
                 Region testCaseFinalRegion = getRegionFromWrappedBDDstate(reachedSet.getLastState());
                 logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion((testCaseCriticalStateRegion==null ?testCaseFinalRegion:testCaseCriticalStateRegion)));
                 TestCase_with_pc testcase = new TestCase_with_pc(inputValues,
                     (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
                     cex.getTargetPath().asEdgesList(), shrinkedErrorPath, bddCpaNamedRegionManager);
-                testsuite.addTestCase(testcase, pGoal);
+                for (Goal_with_pc newGoal : newTestGoals) {
+                  testsuite.addTestCase(testcase, newGoal);
+                }
               }
             }
           }
         }
         else {
+          // TODO: handle infeasible
           // we consider the test goals is infeasible
           logger.logf(Level.INFO, "Test goal infeasible.");
           if (lGoalPrediction != null) {
