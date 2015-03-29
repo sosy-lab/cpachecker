@@ -129,7 +129,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       }
     }
 
-    final RTTState newElement = RTTState.copyOf(state);
+    final RTTState newState = RTTState.copyOf(state);
 
     // get the variable name in the declarator
     String methodName = cfaEdge.getPredecessor().getFunctionName();
@@ -144,7 +144,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       JFieldDeclaration fieldVariable = (JFieldDeclaration) decl;
 
       // if this is a  field, add to the list of field variables
-      newElement.addFieldVariable(fieldVariable);
+      newState.addFieldVariable(fieldVariable);
     }
 
     // get initial value
@@ -153,26 +153,26 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     if (init instanceof JInitializerExpression) {
       JExpression exp = ((JInitializerExpression) init).getExpression();
 
-      initialValue = getExpressionValue(newElement, exp, methodName, cfaEdge);
+      initialValue = getExpressionValue(newState, exp, methodName, cfaEdge);
     }
 
     // assign initial value
     String scopedVarName = NameProvider.getInstance().getScopedVariableName(decl, methodName,
-        newElement.getClassObjectScope());
+        newState.getClassObjectScope());
 
     if (initialValue == null) {
-      newElement.forget(scopedVarName);
+      newState.forget(scopedVarName);
     } else {
-      newElement.assignObject(scopedVarName, initialValue);
+      newState.assignObject(scopedVarName, initialValue);
     }
 
-    return newElement;
+    return newState;
   }
 
-  private String getExpressionValue(RTTState element, JExpression expression,
+  private String getExpressionValue(RTTState pState, JExpression expression,
           String methodName, CFAEdge edge) throws UnrecognizedCodeException {
     return expression.accept(
-        new ExpressionValueVisitor(edge, element, methodName));
+        new ExpressionValueVisitor(edge, pState, methodName));
   }
 
   @Override
@@ -183,16 +183,16 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       JExpression expression = cfaEdge.getExpression().get();
       String methodName = cfaEdge.getPredecessor().getFunctionName();
 
-      RTTState newElement = RTTState.copyOf(state);
+      RTTState newState = RTTState.copyOf(state);
       // In Case Of Class Instance Creation, return unique Object
       if (cfaEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
         handleAssignmentToVariable(TEMP_VAR_NAME, expression,
-            newElement.getClassObjectScope(), newElement, methodName);
+            newState.getClassObjectScope(), newState, methodName);
       } else {
         handleAssignmentToVariable(TEMP_VAR_NAME, expression,
-            new ExpressionValueVisitor(cfaEdge, newElement, methodName));
+            new ExpressionValueVisitor(cfaEdge, newState, methodName));
       }
-      return newElement;
+      return newState;
     }
     else {
       return state;
@@ -201,27 +201,25 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
   private void handleAssignmentToVariable
                         (String lParam, JExpression exp, String value,
-                            RTTState newElement, String functionName) {
+                            RTTState newState, String functionName) {
 
     String assignedVar =
         NameProvider.getInstance().getScopedVariableName(lParam, functionName,
-            newElement.getClassObjectScope(), newElement);
+            newState.getClassObjectScope(), newState);
 
     if (value == null) {
-      newElement.forget(assignedVar);
+      newState.forget(assignedVar);
     } else {
-      newElement.assignObject(assignedVar, value);
+      newState.assignObject(assignedVar, value);
     }
   }
 
   private void handleAssignmentToVariable(String lParam, JExpression exp,
       ExpressionValueVisitor visitor) throws UnrecognizedCodeException {
 
-    String value;
-    value =  exp.accept(visitor);
-    RTTState newElement = visitor.state;
+    String value =  exp.accept(visitor);
 
-    handleAssignmentToVariable(lParam, exp, value, newElement, visitor.functionName);
+    handleAssignmentToVariable(lParam, exp, value, visitor.state, visitor.functionName);
   }
 
   @Override
@@ -230,9 +228,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
     // expression is a binary operation, e.g. a = b;
     if (statement instanceof JAssignment) {
-      RTTState newElement = RTTState.copyOf(state);
-      handleAssignment(newElement, (JAssignment) statement, cfaEdge);
-      return newElement;
+      RTTState newState = RTTState.copyOf(state);
+      handleAssignment(newState, (JAssignment) statement, cfaEdge);
+      return newState;
 
       // external function call - do nothing
     } else if (statement instanceof JMethodOrConstructorInvocation) {
@@ -247,7 +245,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     return state;
   }
 
-  private void handleAssignment(RTTState newElement,
+  private void handleAssignment(RTTState newState,
                                   JAssignment assignExpression, CFAEdge cfaEdge)
                                                 throws UnrecognizedCCodeException {
 
@@ -269,15 +267,15 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
                                         .getScopedVariableName(
                                             ((JIdExpression) op1).getName(),
                                             methodName,
-                                            newElement.getClassObjectScope(),
-                                            newElement);
+                                            newState.getClassObjectScope(),
+                                            newState);
 
-        newElement.forget(scopedName);
+        newState.forget(scopedName);
         return;
       }
 
       handleAssignmentToVariable((JIdExpression) op1,
-          op2, new ExpressionValueVisitor(cfaEdge, newElement, methodName));
+          op2, new ExpressionValueVisitor(cfaEdge, newState, methodName));
     }
   }
 
@@ -289,9 +287,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     String lParamObjectScope = nameProvider.getObjectScope(visitor.state, visitor.functionName, lParam);
     String value = exp.accept(visitor);
 
-    RTTState newElement = visitor.state;
+    RTTState newState = visitor.state;
 
-    if (!newElement.isKnownAsStatic(lParam.getName()) && lParamObjectScope == null) {
+    if (!newState.isKnownAsStatic(lParam.getName()) && lParamObjectScope == null) {
       // can't resolve lParam variable, do nothing
       // TODO How to forget old Values?
       return;
@@ -301,10 +299,10 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
         visitor.functionName, lParamObjectScope);
 
     if (value != null && (lParam.getExpressionType() instanceof JReferenceType)) {
-      newElement.assignObject(assignedVar, value);
+      newState.assignObject(assignedVar, value);
 
     } else {
-      newElement.forget(assignedVar);
+      newState.forget(assignedVar);
     }
   }
 
@@ -314,7 +312,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       String callerFunctionName)
           throws UnrecognizedCodeException {
 
-    RTTState newElement  = RTTState.copyOf(state);
+    RTTState newState  = RTTState.copyOf(state);
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
     NameProvider nameProvider = NameProvider.getInstance();
 
@@ -330,24 +328,24 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
         String returnVarName = nameProvider.getScopedVariableName(TEMP_VAR_NAME,
                                                                   calledFunctionName,
-                                                                  newElement.getClassObjectScope(),
-                                                                  newElement);
+                                                                  newState.getClassObjectScope(),
+                                                                  newState);
 
         String assignedVarName = nameProvider.getScopedVariableName(((JIdExpression) op1).getDeclaration(),
                                                                     callerFunctionName,
-                                                                    newElement.getClassObjectStack().peek());
+                                                                    newState.getClassObjectStack().peek());
 
 
         JSimpleDeclaration decl = ((JIdExpression) op1).getDeclaration();
 
         //Ignore not reference Types
         if (state.contains(returnVarName) && (decl.getType() instanceof JReferenceType)) {
-          newElement.assignObject(assignedVarName, state.getUniqueObjectFor(returnVarName));
+          newState.assignObject(assignedVarName, state.getUniqueObjectFor(returnVarName));
         } else {
-          newElement.forget(assignedVarName);
+          newState.forget(assignedVarName);
         }
       }
-      // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
+      // a[x] = b(); TODO: for now, nothing is done here, but cloning the current state
       else if (op1 instanceof JArraySubscriptExpression) {
 
       } else {
@@ -355,9 +353,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       }
     }
 
-    newElement.dropFrame(cfaEdge.getPredecessor().getFunctionName());
+    newState.dropFrame(cfaEdge.getPredecessor().getFunctionName());
 
-    return newElement;
+    return newState;
   }
 
   @Override
@@ -366,7 +364,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       String calledFunctionName)
       throws UnrecognizedCCodeException {
 
-    RTTState newElement = RTTState.copyOf(state);
+    RTTState newState = RTTState.copyOf(state);
 
     FunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
     String callerFunctionName = cfaEdge.getPredecessor().getFunctionName();
@@ -390,13 +388,13 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       String formalParamName = NameProvider.getInstance()
                                            .getScopedVariableName(paramNames.get(i),
                                                                   calledFunctionName,
-                                                                  newElement.getClassObjectScope(),
-                                                                  newElement);
+                                                                  newState.getClassObjectScope(),
+                                                                  newState);
 
       if (value == null || !(exp.getExpressionType() instanceof JReferenceType)) {
-        newElement.forget(formalParamName);
+        newState.forget(formalParamName);
       } else {
-        newElement.assignObject(formalParamName, value);
+        newState.assignObject(formalParamName, value);
       }
     }
 
@@ -409,14 +407,14 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     // A Object calls its super Constructor
     if (functionCall instanceof JSuperConstructorInvocation) {
 
-      newElement.assignThisAndNewObjectScope(state.getUniqueObjectFor(RTTState.KEYWORD_THIS));
+      newState.assignThisAndNewObjectScope(state.getUniqueObjectFor(RTTState.KEYWORD_THIS));
 
    // A New Object is created, which is the new classObject scope
     } else if (functionCall instanceof JClassInstanceCreation) {
 
       JReturnStatementEdge returnEdge =  (JReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
-      String uniqueObject = returnEdge.getExpression().get().accept(new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
-      newElement.assignThisAndNewObjectScope(uniqueObject);
+      String uniqueObject = returnEdge.getExpression().get().accept(new FunctionExitValueVisitor(returnEdge, newState, calledFunctionName));
+      newState.assignThisAndNewObjectScope(uniqueObject);
 
       // A Referenced Method Invocation, the new scope is the unique Object
       // of its reference variable
@@ -426,13 +424,13 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
       String variableName = NameProvider.getInstance()
                                         .getScopedVariableName(variableReference, callerFunctionName,
-                                            newElement.getClassObjectScope());
+                                            newState.getClassObjectScope());
 
-      if (newElement.contains(variableName)) {
-        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(variableName));
+      if (newState.contains(variableName)) {
+        newState.assignThisAndNewObjectScope(newState.getUniqueObjectFor(variableName));
       } else {
         // When the object of the variable can't be found
-        newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
+        newState.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       }
       //  a unreferenced Method Invocation
     } else {
@@ -441,13 +439,13 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
       // If the method isn't static, the object  scope remains the same
       if (decl.isStatic()) {
-        newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
+        newState.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       } else {
-        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(RTTState.KEYWORD_THIS));
+        newState.assignThisAndNewObjectScope(newState.getUniqueObjectFor(RTTState.KEYWORD_THIS));
       }
      //  the method Invocation can't be handled
     }
-    return newElement;
+    return newState;
   }
 
   @Override
@@ -484,8 +482,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
   private static class FunctionExitValueVisitor extends ExpressionValueVisitor {
 
-    public FunctionExitValueVisitor(CFAEdge pEdge, RTTState pElement, String pFunctionName) {
-      super(pEdge, pElement, pFunctionName);
+    public FunctionExitValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
+      super(pEdge, pState, pFunctionName);
 
     }
 
@@ -558,9 +556,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     protected final String functionName;
 
 
-    public ExpressionValueVisitor(CFAEdge pEdge, RTTState pElement, String pFunctionName) {
+    public ExpressionValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
       edge = pEdge;
-      state = pElement;
+      state = pState;
       functionName = pFunctionName;
     }
 
@@ -797,7 +795,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge, Precision precision) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pStates, CFAEdge cfaEdge, Precision precision) throws CPATransferException, InterruptedException {
     return null;
   }
 
