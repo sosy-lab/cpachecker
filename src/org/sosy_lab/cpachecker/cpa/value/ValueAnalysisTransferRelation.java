@@ -92,7 +92,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -236,19 +235,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
     oldState = ValueAnalysisState.copyOf((ValueAnalysisState)pAbstractState);
-  }
-
-  @Override
-  protected ValueAnalysisState handleMultiEdge(final MultiEdge cfaEdge) throws CPATransferException {
-    // we need to keep the old state,
-    // because the analysis uses a 'delta' for the now state
-    final ValueAnalysisState backup = state;
-    for (CFAEdge edge : cfaEdge) {
-      state = handleSimpleEdge(edge);
-    }
-    final ValueAnalysisState successor = state;
-    state = backup;
-    return successor;
   }
 
   @Override
