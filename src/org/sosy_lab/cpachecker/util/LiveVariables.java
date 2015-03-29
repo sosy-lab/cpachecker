@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -39,7 +40,9 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -64,6 +67,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.livevar.LiveVariablesCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -93,6 +99,22 @@ public class LiveVariables {
             + " function is handled separately, global means that the whole"
             + " cfa is used for the computation.", secure=true)
     private EvaluationStrategy evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
+
+    @Option(secure=true, description="Overall timelimit for collecting the liveness information."
+        + "(use seconds or specify a unit; 0 for infinite)")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+                    defaultUserUnit=TimeUnit.SECONDS,
+                    min=0)
+    private TimeSpan overallLivenessCheckTime = TimeSpan.ofNanos(0);
+
+    @Option(secure=true, description="Timelimit for collecting the liveness information with one approach,"
+        + " (p.e. if global analysis is selected and fails in the specified timelimit the function wise approach"
+        + " will have the same time-limit afterwards to compute the live variables)."
+        + "(use seconds or specify a unit; 0 for infinite)")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+                    defaultUserUnit=TimeUnit.SECONDS,
+                    min=0)
+    private TimeSpan partwiseLivenessCheckTime = TimeSpan.ofSeconds(20);
 
     public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -286,7 +308,20 @@ public class LiveVariables {
     // be chosen later on
     LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
-    return Optional.of(create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig.evaluationStrategy));
+    ShutdownNotifier liveVarsNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+    List<ResourceLimit> limits;
+    if (liveVarConfig.overallLivenessCheckTime.isEmpty()) {
+      limits = Collections.emptyList();
+    } else {
+      limits = Collections.singletonList((ResourceLimit)WalltimeLimit.fromNowOn(liveVarConfig.overallLivenessCheckTime));
+    }
+    ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsNotifier, limits);
+
+    limitChecker.start();
+    LiveVariables liveVarObject = create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig);
+    limitChecker.cancel();
+
+    return Optional.of(liveVarObject);
   }
 
   private static LiveVariables create0(final VariableClassification variableClassification,
@@ -294,10 +329,10 @@ public class LiveVariables {
                                                  final LogManager logger,
                                                  final ShutdownNotifier shutdownNotifier,
                                                  final CFA cfa,
-                                                 final EvaluationStrategy eval) throws AssertionError {
+                                                 final LiveVariablesConfiguration config) throws AssertionError {
     // prerequisites for creating the live variables
     Set<ASimpleDeclaration> globalVariables;
-    switch (eval) {
+    switch (config.evaluationStrategy) {
     case FUNCTION_WISE: globalVariables = FluentIterable.from(globalsList)
                                                         .transform(DECLARATION_FILTER)
                                                         .filter(notNull())
@@ -307,23 +342,37 @@ public class LiveVariables {
       break;
     case GLOBAL: globalVariables = Collections.emptySet(); break;
     default:
-      throw new AssertionError("Unhandled case statement: " + eval);
+      throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
     }
 
-    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, shutdownNotifier, eval);
+    ShutdownNotifier liveVarsNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+    List<ResourceLimit> limits;
+    if (config.partwiseLivenessCheckTime.isEmpty()) {
+      limits = Collections.emptyList();
+    } else {
+      limits = Collections.singletonList((ResourceLimit)WalltimeLimit.fromNowOn(config.partwiseLivenessCheckTime));
+    }
+    ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsNotifier, limits);
+
+    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, liveVarsNotifier, config.evaluationStrategy);
     Multimap<CFANode, ASimpleDeclaration> liveVariables = null;
+
+    limitChecker.start();
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), eval);
+      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), config.evaluationStrategy);
     }
+
+    limitChecker.cancel();
 
     // when the analysis did not finish or could even not be created we return
     // an absent optional, but before we try the function-wise analysis if we
     // did not yet use it
-    if (liveVariables == null && eval != EvaluationStrategy.FUNCTION_WISE) {
+    if (liveVariables == null && config.evaluationStrategy != EvaluationStrategy.FUNCTION_WISE) {
       logger.log(Level.INFO, "Global live variables collection failed, fallback to function-wise analysis.");
-      return create0(variableClassification, globalsList, logger, shutdownNotifier, cfa, EvaluationStrategy.FUNCTION_WISE);
+      config.evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
+      return create0(variableClassification, globalsList, logger, shutdownNotifier, cfa, config);
     } else if (liveVariables == null) {
       return new AllVariablesAsLiveVariables(cfa, globalsList);
     }
@@ -331,7 +380,7 @@ public class LiveVariables {
     return new LiveVariables(liveVariables,
                              variableClassification,
                              globalVariables,
-                             eval,
+                             config.evaluationStrategy,
                              cfa.getLanguage());
   }
 

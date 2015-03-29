@@ -1668,6 +1668,9 @@ cpa.value.blk.alwaysAtJoins = false
 # restrict abstractions to loop heads
 cpa.value.blk.alwaysAtLoops = false
 
+# toggle liveness abstraction
+cpa.value.blk.doLivenessAbstraction = false
+
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
 cpa.value.blk.onlyAtNonLinearCFA = false
@@ -1825,6 +1828,16 @@ limits.time.wall = -1ns
 # global means that the whole cfa is used for the computation.
 liveVar.evaluationStrategy = FUNCTION_WISE
   enum:     [FUNCTION_WISE, GLOBAL]
+
+# Overall timelimit for collecting the liveness information.(use seconds or
+# specify a unit; 0 for infinite)
+liveVar.overallLivenessCheckTime = 0ns
+
+# Timelimit for collecting the liveness information with one approach, (p.e.
+# if global analysis is selected and fails in the specified timelimit the
+# function wise approach will have the same time-limit afterwards to compute
+# the live variables).(use seconds or specify a unit; 0 for infinite)
+liveVar.partwiseLivenessCheckTime = 20s
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
