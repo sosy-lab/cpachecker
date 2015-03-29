@@ -311,18 +311,10 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
    * @return an OctState or null
    */
   private Set<OctagonState> handleLiteralBooleanExpression(long value, boolean truthAssumption, OctagonState state) {
-    if (value == 0) {
-      if (truthAssumption) {
-        return Collections.emptySet();
-      } else {
-        return Collections.singleton(state);
-      }
+    if ((value == 0) == truthAssumption) {
+      return Collections.emptySet();
     } else {
-      if (truthAssumption) {
-        return Collections.singleton(state);
-      } else {
-        return Collections.emptySet();
-      }
+      return Collections.singleton(state);
     }
   }
 
@@ -608,7 +600,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
    * a CCharLiteralExpression.
    */
   private Set<OctagonState> handleBinaryAssumptionWithTwoLiterals(CLiteralExpression left, CLiteralExpression right, BinaryOperator op,
-      boolean truthAssumption) throws CPATransferException {
+      boolean truthAssumption) {
     OctagonNumericValue leftVal = OctagonIntValue.ZERO;
     if (left instanceof CIntegerLiteralExpression) {
       leftVal = OctagonIntValue.of(((CIntegerLiteralExpression) left).asLong());
@@ -627,93 +619,30 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       rightVal = new OctagonDoubleValue(((CFloatLiteralExpression)right).getValue().doubleValue());
     }
 
+    if (truthAssumption == isOperatorSatisfied(op, leftVal, rightVal)) {
+      return Collections.singleton(state);
+    } else {
+      return Collections.emptySet();
+    }
+  }
+
+  private static boolean isOperatorSatisfied(final BinaryOperator op,
+      final OctagonNumericValue leftVal, final OctagonNumericValue rightVal) {
     switch (op) {
     case EQUALS:
-      if (truthAssumption) {
-        if (leftVal.isEqual(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.isEqual(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.isEqual(rightVal);
     case GREATER_EQUAL:
-      if (truthAssumption) {
-        if (leftVal.greaterEqual(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.greaterEqual(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.greaterEqual(rightVal);
     case GREATER_THAN:
-      if (truthAssumption) {
-        if (leftVal.greaterThan(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.greaterThan(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.greaterThan(rightVal);
     case LESS_EQUAL:
-      if (truthAssumption) {
-        if (leftVal.lessEqual(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.lessEqual(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.lessEqual(rightVal);
     case LESS_THAN:
-      if (truthAssumption) {
-        if (leftVal.lessThan(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.lessThan(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.lessThan(rightVal);
     case NOT_EQUALS:
-      if (truthAssumption) {
-        if (leftVal.isEqual(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      } else {
-        if (leftVal.isEqual(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      }
+      return !leftVal.isEqual(rightVal);
     default:
-      throw new CPATransferException("Unhandled case: " + op);
+      throw new AssertionError("Unhandled case: " + op);
     }
   }
 
