@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,7 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import com.google.common.base.Preconditions;
 
 /** This Transfer-Relation forwards the method 'getAbstractSuccessors()'
- * to an edge-specific sub-methods ('AssumeEdge', 'DeclarationEdge', ...).
+ * to an edge-specific sub-method ('AssumeEdge', 'DeclarationEdge', ...).
  * It handles all casting of the edges and their information.
  * There is always an abstract method, that calls either the matching
  * C- or Java-Methods, depending on the type of the edge.
@@ -126,7 +126,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   private static final String NOT_IMPLEMENTED = "this method is not implemented";
 
-  /** the given edge, not casted, for local access */
+  /** the given edge, not casted, for local access (like logging) */
   protected CFAEdge edge;
 
   /** the given state, casted to correct type, for local access */
@@ -155,6 +155,10 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   }
 
 
+  /**
+   * This is the main method that delegates the control-flow to the
+   * corresponding edge-type-specific methods.
+   * In most cases there is no need to override this method. */
   @Override
   public Collection<T> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
@@ -318,7 +322,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption) {
+  protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
+      throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -351,7 +356,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   protected S handleFunctionCallEdge(JMethodCallEdge cfaEdge,
       List<JExpression> arguments, List<JParameterDeclaration> parameters,
-      String calledFunctionName) {
+      String calledFunctionName) throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -375,12 +380,13 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   protected S handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
       CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
-      throws CPATransferException {
+          throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected S handleFunctionReturnEdge(JMethodReturnEdge cfaEdge,
-      JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName) {
+      JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName)
+          throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -404,7 +410,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl) {
+  protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl)
+      throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -428,7 +435,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement) {
+  protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement)
+      throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -452,7 +460,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge) {
+  protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge)
+      throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -480,7 +489,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
-  protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) {
+  protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
@@ -514,7 +523,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return false;
   }
 
-  /**  */
+  @Deprecated
   protected static String buildVarName(@Nullable final String function, final String var) {
     return (function == null) ? var : function + "::" + var;
   }
