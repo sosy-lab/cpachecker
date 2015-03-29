@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -69,15 +68,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -122,7 +115,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
-public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, VariableTrackingPrecision> {
+public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
   /**
    * This is used for making smaller and greater constraint with octagons
@@ -151,66 +144,19 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
           builder.addAll(l.getLoopHeads());
     }
     loopHeads = builder.build();
-  }
-
-  boolean done = false;
-
-  @Override
-  public Collection<ApronState> getAbstractSuccessorsForEdge(
-      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
-      throws CPATransferException {
-
-    setInfo(abstractState, abstractPrecision, cfaEdge);
 
     // TODO the creation of the additional ApronManager which then is never used
     // should not be necessary, however, without this constructor call the library
     // does not work properly
-    if (!done) {
     try {
       new ApronManager(Configuration.defaultConfiguration());
     } catch (InvalidConfigurationException e) {
       throw new AssertionError(e);
     }
-    done = true;
-    }
+  }
 
-
-    final Collection<ApronState> preCheck = preCheck();
-    if (preCheck != null) { return preCheck; }
-
-    final Collection<ApronState> successors = new ArrayList<>();
-
-    switch (cfaEdge.getEdgeType()) {
-
-    case AssumeEdge:
-      final AssumeEdge assumption = (AssumeEdge) cfaEdge;
-      successors.addAll(handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption()));
-      break;
-
-    case FunctionCallEdge:
-      final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-      final FunctionEntryNode succ = fnkCall.getSuccessor();
-      final String calledFunctionName = succ.getFunctionName();
-      successors.addAll(handleFunctionCallEdge(fnkCall, fnkCall.getArguments(),
-          succ.getFunctionParameters(), calledFunctionName));
-      break;
-
-    case FunctionReturnEdge:
-      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-      final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-      successors.addAll(handleFunctionReturnEdge(fnkReturnEdge,
-          summaryEdge, summaryEdge.getExpression(), callerFunctionName));
-
-      break;
-
-    case MultiEdge:
-      successors.addAll(handleMultiEdge((MultiEdge) cfaEdge));
-      break;
-
-    default:
-      successors.addAll(handleSimpleEdge(cfaEdge));
-    }
+  @Override
+  protected Collection<ApronState> postProcessing(Collection<ApronState> successors) {
 
     successors.removeAll(Collections.singleton(null));
 
@@ -221,23 +167,19 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       if (st.isEmpty()) {
         states.remove();
         logger.log(Level.FINER, "removing state because of unsatisfiable constraints:\n" +
-                                 st + "________________\nEdge was:\n" + cfaEdge.getDescription());
+                                 st + "________________\nEdge was:\n" + edge.getDescription());
       }
     }
 
-
-    Set<ApronState> returnStates = new HashSet<>(successors);
-    if (loopHeads.contains(cfaEdge.getSuccessor())) {
+    if (loopHeads.contains(edge.getSuccessor())) {
       Set<ApronState> newStates = new HashSet<>();
       for (ApronState s : successors) {
         newStates.add(s.asLoopHead());
       }
-      returnStates = newStates;
+      return newStates;
+    } else {
+      return new HashSet<>(successors);
     }
-
-    resetInfo();
-
-    return returnStates;
   }
 
   @Override
@@ -599,18 +541,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
    * @return an OctState or null
    */
   private Set<ApronState> handleLiteralBooleanExpression(long value, boolean truthAssumption, ApronState state) {
-    if (value == 0) {
-      if (truthAssumption) {
-        return Collections.singleton(state);
-      } else {
-        return Collections.emptySet();
-      }
+    if ((value == 0) == truthAssumption) {
+      return Collections.singleton(state);
     } else {
-      if (truthAssumption) {
-        return Collections.emptySet();
-      } else {
-        return Collections.singleton(state);
-      }
+      return Collections.emptySet();
     }
   }
 
