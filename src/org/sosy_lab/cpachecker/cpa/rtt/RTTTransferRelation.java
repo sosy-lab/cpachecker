@@ -133,9 +133,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
     final RTTState newState = RTTState.copyOf(state);
 
-    // get the variable name in the declarator
-    String methodName = cfaEdge.getPredecessor().getFunctionName();
-
     // variables without initializer are set to null
     // until they are assigned a value
     String initialValue = RTTState.NULL_REFERENCE;
@@ -155,11 +152,11 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     if (init instanceof JInitializerExpression) {
       JExpression exp = ((JInitializerExpression) init).getExpression();
 
-      initialValue = getExpressionValue(newState, exp, methodName, cfaEdge);
+      initialValue = getExpressionValue(newState, exp, functionName, cfaEdge);
     }
 
     // assign initial value
-    String scopedVarName = nameProvider.getScopedVariableName(decl, methodName,
+    String scopedVarName = nameProvider.getScopedVariableName(decl, functionName,
         newState.getClassObjectScope());
 
     if (initialValue == null) {
@@ -183,16 +180,15 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
     if (cfaEdge.getExpression().isPresent()) {
       JExpression expression = cfaEdge.getExpression().get();
-      String methodName = cfaEdge.getPredecessor().getFunctionName();
 
       RTTState newState = RTTState.copyOf(state);
       // In Case Of Class Instance Creation, return unique Object
       if (cfaEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
         handleAssignmentToVariable(TEMP_VAR_NAME, expression,
-            newState.getClassObjectScope(), newState, methodName);
+            newState.getClassObjectScope(), newState, functionName);
       } else {
         handleAssignmentToVariable(TEMP_VAR_NAME, expression,
-            new ExpressionValueVisitor(cfaEdge, newState, methodName));
+            new ExpressionValueVisitor(cfaEdge, newState, functionName));
       }
       return newState;
     }
@@ -221,7 +217,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
     String value =  exp.accept(visitor);
 
-    handleAssignmentToVariable(lParam, exp, value, visitor.state, visitor.functionName);
+    handleAssignmentToVariable(lParam, exp, value, visitor.state, functionName);
   }
 
   @Override
@@ -254,12 +250,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     JExpression op1 = assignExpression.getLeftHandSide();
     JRightHandSide op2 = assignExpression.getRightHandSide();
 
-
-
     if (op1 instanceof JIdExpression) {
       // a = ...
 
-      String methodName = cfaEdge.getPredecessor().getFunctionName();
       JSimpleDeclaration declaration = ((JIdExpression) op1).getDeclaration();
 
       // If declaration could not be resolve, forget variable
@@ -267,7 +260,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
         String scopedName = nameProvider.getScopedVariableName(
                                             ((JIdExpression) op1).getName(),
-                                            methodName,
+                                            functionName,
                                             newState.getClassObjectScope(),
                                             newState);
 
@@ -276,14 +269,14 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       }
 
       handleAssignmentToVariable((JIdExpression) op1,
-          op2, new ExpressionValueVisitor(cfaEdge, newState, methodName));
+          op2, new ExpressionValueVisitor(cfaEdge, newState, functionName));
     }
   }
 
   private void handleAssignmentToVariable(JIdExpression lParam, JRightHandSide exp,
       ExpressionValueVisitor visitor) throws UnrecognizedCCodeException {
 
-    String lParamObjectScope = nameProvider.getObjectScope(visitor.state, visitor.functionName, lParam);
+    String lParamObjectScope = nameProvider.getObjectScope(visitor.state, functionName, lParam);
     String value = exp.accept(visitor);
 
     RTTState newState = visitor.state;
@@ -295,7 +288,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     String assignedVar = nameProvider.getScopedVariableName(lParam.getDeclaration(),
-        visitor.functionName, lParamObjectScope);
+        functionName, lParamObjectScope);
 
     if (value != null && (lParam.getExpressionType() instanceof JReferenceType)) {
       newState.assignObject(assignedVar, value);
@@ -312,7 +305,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
           throws UnrecognizedCodeException {
 
     RTTState newState  = RTTState.copyOf(state);
-    String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
 
@@ -325,7 +317,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       if ((op1 instanceof JIdExpression)) {
 
         String returnVarName = nameProvider.getScopedVariableName(TEMP_VAR_NAME,
-                                                                  calledFunctionName,
+                                                                  functionName,
                                                                   newState.getClassObjectScope(),
                                                                   newState);
 
@@ -351,7 +343,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       }
     }
 
-    newState.dropFrame(cfaEdge.getPredecessor().getFunctionName());
+    newState.dropFrame(functionName);
 
     return newState;
   }
@@ -365,8 +357,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     RTTState newState = RTTState.copyOf(state);
 
     FunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
-    String callerFunctionName = cfaEdge.getPredecessor().getFunctionName();
-
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
     if (!cfaEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
@@ -374,7 +364,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     // visitor for getting the Object values of the actual parameters in caller function context
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(cfaEdge, state, callerFunctionName);
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(cfaEdge, state, functionName);
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < paramNames.size(); i++) {
@@ -421,7 +411,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       JSimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable().getDeclaration();
 
       String variableName = nameProvider
-                                        .getScopedVariableName(variableReference, callerFunctionName,
+                                        .getScopedVariableName(variableReference, functionName,
                                             newState.getClassObjectScope());
 
       if (newState.contains(variableName)) {
@@ -450,8 +440,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
   protected RTTState handleAssumption(JAssumeEdge cfaEdge,
       JExpression expression, boolean truthAssumption)
           throws UnrecognizedCodeException {
-
-    String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     String valueString = getExpressionValue(state, expression, functionName, cfaEdge);
