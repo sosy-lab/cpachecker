@@ -214,7 +214,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
   @Override
   public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
-    return new Z3TheoremProver(this, z3params, pGenerateUnsatCore);
+    return new Z3TheoremProver(this, z3params, shutdownNotfier, pGenerateUnsatCore);
   }
 
   @Override
