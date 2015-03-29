@@ -70,15 +70,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -122,7 +116,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
 @SuppressWarnings("rawtypes")
-public class OctagonTransferRelation extends ForwardingTransferRelation<Set<OctagonState>, OctagonState, VariableTrackingPrecision> {
+public class OctagonTransferRelation extends ForwardingTransferRelation<Collection<OctagonState>, OctagonState, VariableTrackingPrecision> {
 
   private static final String TEMP_VAR_PREFIX = "___cpa_temp_var_";
 
@@ -155,49 +149,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
   }
 
   @Override
-  public Collection<OctagonState> getAbstractSuccessorsForEdge(
-      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
-      throws CPATransferException {
-
-    setInfo(abstractState, abstractPrecision, cfaEdge);
-
-    final Collection<OctagonState> preCheck = preCheck();
-    if (preCheck != null) { return preCheck; }
-
-    final Collection<OctagonState> successors = new ArrayList<>();
-
-    switch (cfaEdge.getEdgeType()) {
-
-    case AssumeEdge:
-      final AssumeEdge assumption = (AssumeEdge) cfaEdge;
-      successors.addAll(handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption()));
-      break;
-
-    case FunctionCallEdge:
-      final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-      final FunctionEntryNode succ = fnkCall.getSuccessor();
-      final String calledFunctionName = succ.getFunctionName();
-      successors.addAll(handleFunctionCallEdge(fnkCall, fnkCall.getArguments(),
-          succ.getFunctionParameters(), calledFunctionName));
-      break;
-
-    case FunctionReturnEdge:
-      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-      final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-      successors.addAll(handleFunctionReturnEdge(fnkReturnEdge,
-          summaryEdge, summaryEdge.getExpression(), callerFunctionName));
-
-      break;
-
-    case MultiEdge:
-      successors.addAll(handleMultiEdge((MultiEdge) cfaEdge));
-      break;
-
-    default:
-      successors.addAll(handleSimpleEdge(cfaEdge));
-    }
-
+  protected Collection<OctagonState> postProcessing(Collection<OctagonState> successors) {
+    assert !successors.contains(null); // TODO is this assertion equal to next line?
     assert !successors.removeAll(Collections.singleton(null));
 
     // remove all states whose constraints cannot be satisfied
@@ -207,7 +160,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       if (st.isEmpty()) {
         states.remove();
         logger.log(Level.FINER, "removing state because of unsatisfiable constraints:\n" +
-                                 st + "________________\nEdge was:\n" + cfaEdge.getDescription());
+                                 st + "________________\nEdge was:\n" + edge.getDescription());
       }
     }
 
@@ -219,15 +172,13 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       cleanedUpStates.add(st.removeTempVars(functionName, TEMP_VAR_PREFIX));
     }
 
-    if (loopHeads.contains(cfaEdge.getSuccessor())) {
+    if (loopHeads.contains(edge.getSuccessor())) {
       Set<OctagonState> newStates = new HashSet<>();
       for (OctagonState s : cleanedUpStates) {
         newStates.add(s.asLoopHead());
       }
       cleanedUpStates = newStates;
     }
-
-    resetInfo();
 
     return cleanedUpStates;
   }
