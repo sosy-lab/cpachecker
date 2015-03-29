@@ -64,7 +64,7 @@ public class PathToCTranslator {
   };
 
   private final List<String> mGlobalDefinitionsList = new ArrayList<>();
-  private final List<String> mFunctionDecls = new ArrayList<>();
+  private final List<String> mFunctionDecls = new ArrayList<>(Arrays.asList("int main() {return main_0();}"));
   private final List<String> mIncludes = new ArrayList<>(Arrays.asList("#include <stdlib.h>"));
   private int mFunctionIndex = 0;
 
@@ -431,11 +431,7 @@ public class PathToCTranslator {
   }
 
   private String getFreshFunctionName(FunctionEntryNode functionStartNode) {
-    if ("main".equals(functionStartNode.getFunctionName())) {
-      return functionStartNode.getFunctionName();
-    } else {
       return functionStartNode.getFunctionName() + "_" + mFunctionIndex++;
-    }
   }
 
   private Stack<FunctionBody> cloneStack(Stack<FunctionBody> pStack) {
