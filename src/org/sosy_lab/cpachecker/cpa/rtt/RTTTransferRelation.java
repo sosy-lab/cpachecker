@@ -184,41 +184,26 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
       RTTState newState = RTTState.copyOf(state);
       // In Case Of Class Instance Creation, return unique Object
+      final String value;
       if (cfaEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
-        handleAssignmentToVariable(TEMP_VAR_NAME, expression,
-            newState.getClassObjectScope(), newState, functionName);
+        value = state.getClassObjectScope();
       } else {
-        handleAssignmentToVariable(TEMP_VAR_NAME, expression,
-            new ExpressionValueVisitor(cfaEdge, newState, functionName));
+        value = getExpressionValue(state, expression, functionName, cfaEdge);
+      }
+
+      final String assignedVar =
+          nameProvider.getScopedVariableName(TEMP_VAR_NAME, functionName,
+              state.getClassObjectScope(), state);
+      if (value == null) {
+        newState.forget(assignedVar);
+      } else {
+        newState.assignObject(assignedVar, value);
       }
       return newState;
-    }
-    else {
+
+    } else {
       return state;
     }
-  }
-
-  private void handleAssignmentToVariable
-                        (String lParam, JExpression exp, String value,
-                            RTTState newState, String functionName) {
-
-    String assignedVar =
-        nameProvider.getScopedVariableName(lParam, functionName,
-            newState.getClassObjectScope(), newState);
-
-    if (value == null) {
-      newState.forget(assignedVar);
-    } else {
-      newState.assignObject(assignedVar, value);
-    }
-  }
-
-  private void handleAssignmentToVariable(String lParam, JExpression exp,
-      ExpressionValueVisitor visitor) throws UnrecognizedCodeException {
-
-    String value =  exp.accept(visitor);
-
-    handleAssignmentToVariable(lParam, exp, value, visitor.state, functionName);
   }
 
   @Override
