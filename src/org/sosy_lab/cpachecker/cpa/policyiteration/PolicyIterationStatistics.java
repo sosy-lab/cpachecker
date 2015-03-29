@@ -130,6 +130,9 @@ public class PolicyIterationStatistics implements Statistics {
   }
 
   private <T> UpdateStats<T> getUpdateStats(Multiset<T> updateStats) {
+    if (updateStats.elementSet().isEmpty()) {
+      return new UpdateStats<>(0, 0, 0, null, null);
+    }
     int max = Integer.MIN_VALUE;
     int min = Integer.MAX_VALUE;
     T maxObject = null;
