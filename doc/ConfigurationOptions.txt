@@ -1346,6 +1346,9 @@ cpa.predicate.solver.logfile = "smtquery.%03d.smt2"
 # default options. Format is 'key1=value1,key2=value2'
 cpa.predicate.solver.mathsat5.furtherOptions = ""
 
+# Load less stable optimizing version of mathsat5 solver.
+cpa.predicate.solver.mathsat5.loadOptimathsat5 = false
+
 # Random seed for SMT solver.
 cpa.predicate.solver.random-seed = 42
 
