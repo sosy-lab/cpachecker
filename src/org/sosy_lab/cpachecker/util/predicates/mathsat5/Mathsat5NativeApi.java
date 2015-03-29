@@ -31,18 +31,12 @@ import java.util.NoSuchElementException;
 
 import javax.annotation.CheckReturnValue;
 
-import org.sosy_lab.cpachecker.util.NativeLibraries;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.UnmodifiableIterator;
 
 
 @SuppressWarnings("unused")
 class Mathsat5NativeApi {
-
-  static {
-    NativeLibraries.loadLibrary("mathsat5j");
-  }
 
   // msat_result
   private static final int MSAT_UNKNOWN = -1;

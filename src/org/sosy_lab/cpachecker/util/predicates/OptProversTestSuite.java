@@ -8,7 +8,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -19,7 +19,6 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -41,12 +40,6 @@ import com.google.common.collect.ImmutableList;
     OptProversTestSuite.Z3MaximizationTest.class,
 })
 public class OptProversTestSuite {
-
-  @BeforeClass
-  public static void setUp() {
-    NativeLibraries.loadLibrary("z3j");
-    NativeLibraries.loadLibrary("mathsat5j");
-  }
 
   public static class Z3MaximizationTest extends OptimizationTest {
 
@@ -77,6 +70,7 @@ public class OptProversTestSuite {
     }
   }
 
+  @Ignore
   public static abstract class OptimizationTest {
 
     private FormulaManager mgr;
@@ -90,7 +84,10 @@ public class OptProversTestSuite {
 
     @Before
     public void loadLibrary() throws Exception {
-      Configuration config = Configuration.defaultConfiguration();
+      Configuration config = Configuration.builder().setOption(
+          "cpa.predicate.loadOptimathsat5", "true"
+      ).build();
+
       LogManager logger = TestLogManager.getInstance();
       ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
 
