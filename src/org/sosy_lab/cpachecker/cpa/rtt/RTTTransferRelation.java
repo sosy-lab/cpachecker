@@ -99,6 +99,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
   private static int nextFreeId = 0;
 
+  private final static NameProvider nameProvider = NameProvider.getInstance();
+
   @Override
   protected RTTState handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration declaration)
       throws UnrecognizedCodeException {
@@ -157,7 +159,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     // assign initial value
-    String scopedVarName = NameProvider.getInstance().getScopedVariableName(decl, methodName,
+    String scopedVarName = nameProvider.getScopedVariableName(decl, methodName,
         newState.getClassObjectScope());
 
     if (initialValue == null) {
@@ -204,7 +206,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
                             RTTState newState, String functionName) {
 
     String assignedVar =
-        NameProvider.getInstance().getScopedVariableName(lParam, functionName,
+        nameProvider.getScopedVariableName(lParam, functionName,
             newState.getClassObjectScope(), newState);
 
     if (value == null) {
@@ -263,8 +265,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       // If declaration could not be resolve, forget variable
       if (declaration == null) {
 
-        String scopedName = NameProvider.getInstance()
-                                        .getScopedVariableName(
+        String scopedName = nameProvider.getScopedVariableName(
                                             ((JIdExpression) op1).getName(),
                                             methodName,
                                             newState.getClassObjectScope(),
@@ -281,8 +282,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
   private void handleAssignmentToVariable(JIdExpression lParam, JRightHandSide exp,
       ExpressionValueVisitor visitor) throws UnrecognizedCCodeException {
-
-    NameProvider nameProvider = NameProvider.getInstance();
 
     String lParamObjectScope = nameProvider.getObjectScope(visitor.state, visitor.functionName, lParam);
     String value = exp.accept(visitor);
@@ -314,7 +313,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
     RTTState newState  = RTTState.copyOf(state);
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
-    NameProvider nameProvider = NameProvider.getInstance();
 
     // expression is an assignment operation, e.g. a = g(b);
 
@@ -385,7 +383,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
       value = exp.accept(visitor);
 
-      String formalParamName = NameProvider.getInstance()
+      String formalParamName = nameProvider
                                            .getScopedVariableName(paramNames.get(i),
                                                                   calledFunctionName,
                                                                   newState.getClassObjectScope(),
@@ -422,7 +420,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       JReferencedMethodInvocationExpression objectMethodInvocation = (JReferencedMethodInvocationExpression) functionCall;
       JSimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable().getDeclaration();
 
-      String variableName = NameProvider.getInstance()
+      String variableName = nameProvider
                                         .getScopedVariableName(variableReference, callerFunctionName,
                                             newState.getClassObjectScope());
 
@@ -511,7 +509,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
     @Override
     public String visit(JVariableRunTimeType pE) throws UnrecognizedCCodeException {
-      return NameProvider.getInstance()
+      return nameProvider
           .getScopedVariableName(pE.getReferencedVariable().getDeclaration(), methodName,
                              newState.getKeywordThisUniqueObject());
     }
@@ -713,7 +711,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
         return null;
       }
 
-      NameProvider nameProvider = NameProvider.getInstance();
       JSimpleDeclaration declaration = idExpression.getDeclaration();
 
       if (idExpression instanceof JFieldAccess) {
