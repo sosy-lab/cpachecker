@@ -360,33 +360,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       return false;
     }
 
-    boolean oldLessOrEqual = true;
-
-    // also, this element is not less or equal than the other element,
-    // if any one constant's value of the other element differs from the constant's value in this element
-    for (Map.Entry<MemoryLocation, Value> otherEntry : other.constantsMap.entrySet()) {
-      MemoryLocation key = otherEntry.getKey();
-      Value otherValue = otherEntry.getValue();
-      Value thisValue = constantsMap.get(key);
-
-      if (thisValue instanceof SymbolicIdentifier && hasKnownValue(
-          (SymbolicIdentifier) thisValue)) {
-        thisValue = identifierMap.get(thisValue);
-      }
-
-      if (otherValue instanceof SymbolicIdentifier && other
-          .hasKnownValue((SymbolicIdentifier) otherValue)) {
-        otherValue = other.identifierMap.get(otherValue);
-      }
-
-      if (!otherValue.equals(thisValue)) {
-        oldLessOrEqual = false;
-        break;
-      }
-    }
-
-    boolean newLessOrEqual = true;
-
     // Alternative: check whether symbolic values' covered value space is less or equal.
     for (Map.Entry<MemoryLocation, Value> otherEntry : other.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
@@ -404,14 +377,12 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
         }
 
         if (!otherValue.equals(thisValue)) {
-          newLessOrEqual = false;
+          return false;
         }
       }
     }
 
-    newLessOrEqual &= hasLessOrEqualSymbolicCoverage(other);
-
-    return newLessOrEqual;
+    return hasLessOrEqualSymbolicCoverage(other);
   }
 
   private Value getKnownValueOfSymbolicIdentifier(final Value pThisValue) {

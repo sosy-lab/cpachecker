@@ -171,36 +171,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
 
     return solver.implies(otherRepresentingFormula, thisRepresentingFormula);*/
 
-    // Alternative method: a naive check.
-
-    boolean oldLessOrEqual = true;
-    if (other.size() > size()) {
-      return false;
-    }
-
-    if (other.definiteAssignment.size() > definiteAssignment.size()) {
-      return false;
-    }
-
-    if (!containsAll(other)) {
-      oldLessOrEqual = false;
-    }
-
-    for (Map.Entry<SymbolicIdentifier, Value> e : other.definiteAssignment.entrySet()) {
-      if (!definiteAssignment.containsKey(e.getKey())) {
-        oldLessOrEqual = false;
-        break;
-      }
-
-      if (!e.getValue().equals(definiteAssignment.get(e.getKey()))) {
-        oldLessOrEqual = false;
-        break;
-      }
-    }
-
-    boolean newLessOrEqual = lessOrEqualOperator.isLessOrEqual(this, other);
-
-    return newLessOrEqual;
+    return lessOrEqualOperator.isLessOrEqual(this, other);
   }
 
   /**
