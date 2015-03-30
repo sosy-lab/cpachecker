@@ -429,6 +429,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       return false;
     }
 
+    if (thisSymbolicAssignments.isEmpty()) {
+      return true;
+    }
+
     final LessOrEqualOperator leqOperator = LessOrEqualOperator.getInstance();
 
     final Set<LessOrEqualOperator.Environment> possibleScenarios =
