@@ -156,7 +156,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           }
 
         } else if (BuiltinFunctions.isNaN(functionName)) {
-          assert parameterValues.isEmpty();
+          assert parameterValues.isEmpty() || parameterValues.size() == 1;
 
           if (BuiltinFunctions.isNaNFloat(functionName)) {
             return new NumericValue(Float.NaN);
