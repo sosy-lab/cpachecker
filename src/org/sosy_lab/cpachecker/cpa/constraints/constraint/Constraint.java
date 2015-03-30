@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 
 /**
  * A single constraint.
@@ -34,13 +34,10 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
  *
  * <p>Possible examples would be relations like <code>'5 < 10'</code> or <code>'n == 10'</code></p>
  */
-public interface Constraint {
+public interface Constraint extends SymbolicValue {
 
   /** Returns the expression type of the constraint */
   Type getType();
-
-  /** Accepts the given visitor. */
-  <T> T accept(ConstraintVisitor<T> pVisitor);
 
   /**
    * Returns whether this constraint is trivial.

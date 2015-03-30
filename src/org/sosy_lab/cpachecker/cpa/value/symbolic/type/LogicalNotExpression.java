@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
 
 /**
@@ -40,11 +39,6 @@ public class LogicalNotExpression extends UnarySymbolicExpression implements Una
 
   @Override
   public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
-    return pVisitor.visit(this);
-  }
-
-  @Override
-  public <T> T accept(ConstraintVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

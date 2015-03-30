@@ -85,7 +85,7 @@ import com.google.common.collect.Table;
  * Creator for {@link Formula}s using only integer values.
  */
 public class IntegerFormulaCreator
-    implements FormulaCreator, SymbolicValueVisitor<Formula>, ConstraintVisitor<Formula> {
+    implements FormulaCreator, SymbolicValueVisitor<Formula> {
 
   private static long auxiliaryVariableAmount = 0;
   private static long floatVariableAmount = 0;

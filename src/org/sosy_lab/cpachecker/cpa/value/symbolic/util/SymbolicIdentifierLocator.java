@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -63,8 +62,7 @@ import com.google.common.collect.ImmutableSet;
  * Locates all {@link SymbolicIdentifier}s contained in a {@link SymbolicValue}.
  */
 public class SymbolicIdentifierLocator
-    implements SymbolicValueVisitor<Set<SymbolicIdentifier>>,
-               ConstraintVisitor<Set<SymbolicIdentifier>> {
+    implements SymbolicValueVisitor<Set<SymbolicIdentifier>> {
 
   private final static SymbolicIdentifierLocator SINGLETON = new SymbolicIdentifierLocator();
 

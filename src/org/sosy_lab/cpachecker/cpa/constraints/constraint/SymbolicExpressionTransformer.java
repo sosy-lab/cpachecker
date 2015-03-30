@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -80,7 +79,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
  */
-public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpression>, ConstraintVisitor<CExpression> {
+public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpression> {
 
   private static final FileLocation DUMMY_LOCATION = FileLocation.DUMMY;
 
