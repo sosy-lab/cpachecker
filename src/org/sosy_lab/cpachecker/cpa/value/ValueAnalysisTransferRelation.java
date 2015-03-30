@@ -345,6 +345,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     throws UnrecognizedCodeException {
 
     ValueAnalysisState newElement  = ValueAnalysisState.copyOf(state);
+    newElement.dropFrame(functionReturnEdge.getPredecessor().getFunctionName());
 
     Optional<? extends AVariableDeclaration> returnVarName = functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
@@ -353,7 +354,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     // expression is an assignment operation, e.g. a = g(b);
-
     if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement assignExp = ((AFunctionCallAssignmentStatement)exprOnSummary);
       AExpression op1 = assignExp.getLeftHandSide();
@@ -364,7 +364,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       if (op1 instanceof CLeftHandSide) {
         ExpressionValueVisitor v =
-            new ExpressionValueVisitor(state, callerFunctionName,
+            new ExpressionValueVisitor(newElement, callerFunctionName,
                 machineModel, logger);
         MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
@@ -419,8 +419,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
       }
     }
-
-    newElement.dropFrame(functionName);
 
     assert !returnVarName.isPresent() || !newElement.contains(functionReturnVar);
     return newElement;
