@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -143,7 +145,41 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
 
   @Override
   protected Long substitute(Long expr, List<Long> substituteFrom, List<Long> substituteTo) {
-    throw new UnsupportedOperationException();
+    return recSubstitute(
+        expr, substituteFrom, substituteTo, new HashMap<Long, Long>()
+    );
+  }
+
+  private long recSubstitute(Long expr, List<Long> substituteFrom,
+      List<Long> substituteTo, HashMap<Long, Long> memoization) {
+
+    Long out = memoization.get(expr);
+    if (out != null) {
+      return out;
+    }
+
+    try {
+      // Check whether the current expression matches.
+      for (int i=0; i<substituteFrom.size(); i++) {
+        long from = substituteFrom.get(i);
+        if (msat_term_repr(expr).equals(msat_term_repr(from))) {
+          out = substituteTo.get(i);
+          return out;
+        }
+      }
+
+      List<Long> updatedChildren = new ArrayList<>();
+      for (int childIdx=0; childIdx<getArity(expr); childIdx++) {
+        long child = getArg(expr, childIdx);
+        updatedChildren.add(recSubstitute(child, substituteFrom, substituteTo,
+            memoization));
+      }
+
+      out = replaceArgs(expr, updatedChildren);
+      return out;
+    } finally {
+      memoization.put(expr, out);
+    }
   }
 
   @Override
