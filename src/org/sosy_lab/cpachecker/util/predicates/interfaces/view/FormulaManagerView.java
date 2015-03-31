@@ -204,11 +204,13 @@ public class FormulaManagerView {
       break;
     case INTEGER:
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          this, getIntegerFormulaManager());
+          this, manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
+          manager.getBooleanFormulaManager());
       break;
     case RATIONAL:
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          this, getRationalFormulaManager());
+          this, manager.getRationalFormulaManager(), manager.getFunctionFormulaManager(),
+          manager.getBooleanFormulaManager());
     break;
     case BITVECTOR:
       throw new InvalidConfigurationException("Value BITVECTOR is not valid for option cpa.predicate.encodeFloatAs");

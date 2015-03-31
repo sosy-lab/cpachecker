@@ -26,22 +26,27 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import java.math.BigDecimal;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
+
+import com.google.common.collect.ImmutableList;
 
 
 public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
         extends BaseManagerView
         implements FloatingPointFormulaManager {
 
-  private final BooleanFormulaManagerView booleanManager;
-  private final FunctionFormulaManagerView functionManager;
-  private final NumeralFormulaManagerView<? super T, T> numericFormulaManager;
+  private final BooleanFormulaManager booleanManager;
+  private final FunctionFormulaManager functionManager;
+  private final NumeralFormulaManager<? super T, T> numericFormulaManager;
   private final FormulaType<T> formulaType;
 
   private final UninterpretedFunctionDeclaration<BooleanFormula> isSubnormalUfDecl;
@@ -52,11 +57,13 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
 
   public ReplaceFloatingPointWithNumeralAndFunctionTheory(
       FormulaManagerView pViewManager,
-      NumeralFormulaManagerView<? super T, T> pReplacementManager) {
+      NumeralFormulaManager<? super T, T> pReplacementManager,
+      FunctionFormulaManager rawFunctionManager,
+      BooleanFormulaManager pBooleaManager) {
     super(pViewManager);
     numericFormulaManager = pReplacementManager;
-    booleanManager = pViewManager.getBooleanFormulaManager();
-    functionManager = pViewManager.getFunctionFormulaManager();
+    booleanManager = pBooleaManager;
+    functionManager = rawFunctionManager;
 
     formulaType = numericFormulaManager.getFormulaType();
     isSubnormalUfDecl = functionManager.declareUninterpretedFunction("__isSubnormal__", FormulaType.BooleanType, formulaType);
@@ -92,9 +99,11 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
       // just wrapped differently
       return wrap(pTargetType, number);
     } else {
-      return functionManager.declareAndCallUninterpretedFunction(
+      UninterpretedFunctionDeclaration<?> castFunction = functionManager.declareUninterpretedFunction(
           "__cast_" + type + "_to_" + pTargetType + "__",
-          pTargetType, number);
+          targetType, type);
+      return wrap(pTargetType,
+          functionManager.callUninterpretedFunction(castFunction, ImmutableList.of(number)));
     }
   }
 
@@ -177,7 +186,8 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
   }
   @Override
   public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
-    return functionManager.callUninterpretedFunction(isSubnormalUfDecl, unwrap(pNumber));
+    return functionManager.callUninterpretedFunction(isSubnormalUfDecl,
+        ImmutableList.of(unwrap(pNumber)));
   }
 
   @Override
