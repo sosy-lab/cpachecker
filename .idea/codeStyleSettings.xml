@@ -16,6 +16,7 @@
           </value>
         </option>
         <option name="PARAMETER_NAME_PREFIX" value="p" />
+        <option name="INSERT_INNER_CLASS_IMPORTS" value="true" />
         <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
         <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="2" />
         <option name="PACKAGES_TO_USE_IMPORT_ON_DEMAND">
