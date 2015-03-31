@@ -225,8 +225,12 @@ bdd.javabdd.cacheRatio = 0.1
 # Initial size of the BDD cache, use 0 for cacheRatio*initTableSize.
 bdd.javabdd.cacheSize = 0
 
-# Initial size of the BDD node table.
-bdd.javabdd.initTableSize = 10000
+# Initial size of the BDD node table in percentage of available Java heap
+# memory (only used if initTableSize is 0).
+bdd.javabdd.initTableRatio = 0.001
+
+# Initial size of the BDD node table, use 0 for size based on initTableRatio.
+bdd.javabdd.initTableSize = 0
 
 # Which BDD package should be used?
 # - java:   JavaBDD (default, no dependencies, many features)

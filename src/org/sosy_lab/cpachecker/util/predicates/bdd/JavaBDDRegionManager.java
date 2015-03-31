@@ -91,9 +91,12 @@ class JavaBDDRegionManager implements RegionManager {
   private final Map<PhantomReference<JavaBDDRegion>, BDD> referenceMap = Maps
       .newIdentityHashMap();
 
-  @Option(secure = true, description = "Initial size of the BDD node table.")
-  @IntegerOption(min = 1)
-  private int initTableSize = 10000;
+  @Option(secure = true, description = "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
+  private double initTableRatio = 0.001;
+
+  @Option(secure = true, description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
+  @IntegerOption(min = 0)
+  private int initTableSize = 0;
 
   @Option(secure = true, description = "Initial size of the BDD cache, use 0 for cacheRatio*initTableSize.")
   @IntegerOption(min = 0)
@@ -108,6 +111,18 @@ class JavaBDDRegionManager implements RegionManager {
   JavaBDDRegionManager(String bddPackage, Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
+    if (initTableRatio <= 0 || initTableRatio >= 1) {
+      throw new InvalidConfigurationException("Invalid value " + initTableRatio
+          + " for option bdd.javabdd.initTableRatio, needs to be between 0 and 1.");
+    }
+    if (initTableSize == 0) {
+      // JFactory uses 5 ints of 4 byte sizes for each entry in the BDD table
+      double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 4;
+      initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int)size;
+      logger.log(Level.CONFIG, "Setting value of bdd.javabdd.initTableSize to", initTableSize);
+    }
+
     if (cacheRatio < 0) {
       throw new InvalidConfigurationException("Invalid value " + cacheRatio
           + " for option bdd.javabdd.cacheRatio, cannot be negative.");
@@ -115,7 +130,6 @@ class JavaBDDRegionManager implements RegionManager {
     if (cacheSize == 0) {
       cacheSize = (int)(initTableSize * cacheRatio);
     }
-    logger = pLogger;
     factory =
         BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
 
