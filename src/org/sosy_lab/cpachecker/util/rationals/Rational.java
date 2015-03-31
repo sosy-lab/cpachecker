@@ -8,7 +8,8 @@ import com.google.common.base.Objects;
  * Rational class, throws exceptions on
  * unsupported operations (e.g. 1/0).
  */
-public class Rational implements Comparable<Rational>{
+@SuppressWarnings("NumberEquality")
+public class Rational extends Number implements Comparable<Rational> {
 
   // -- Just some shortcuts for BigIntegers --
   static private final BigInteger b_zero = BigInteger.ZERO;
@@ -177,7 +178,8 @@ public class Rational implements Comparable<Rational>{
   /**
    * @return rational converted to double.
    */
-  public double toDouble() {
+  @Override
+  public double doubleValue() {
     return num.doubleValue() / den.doubleValue();
   }
 
@@ -239,5 +241,20 @@ public class Rational implements Comparable<Rational>{
       return a;
     }
     return b;
+  }
+
+  @Override
+  public int intValue() {
+    return (int)doubleValue();
+  }
+
+  @Override
+  public long longValue() {
+    return (long)doubleValue();
+  }
+
+  @Override
+  public float floatValue() {
+    return (float)doubleValue();
   }
 }
