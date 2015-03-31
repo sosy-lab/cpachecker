@@ -162,7 +162,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     pathFormulaManager = pfMgr;
 
     RegionManager regionManager;
-    if (abstractionType.equals("FORMULA")) {
+    if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
+      // No need to load BDD library if we never abstract (might use lots of memory)
       regionManager = new SymbolicRegionManager(formulaManager, solver);
     } else {
       assert abstractionType.equals("BDD");
