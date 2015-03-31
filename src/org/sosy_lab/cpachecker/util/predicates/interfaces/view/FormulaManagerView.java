@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
@@ -170,8 +171,18 @@ public class FormulaManagerView {
             ignoreExtractConcat);
         break;
       case RATIONAL:
+        NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
+        try {
+          rmgr = manager.getRationalFormulaManager();
+        } catch (UnsupportedOperationException e) {
+          throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
+              + "please choose another SMT solver "
+              + "or use the option cpa.predicate.encodeBitvectorAs "
+              + "to approximate bitvectors with another theory.",
+              e);
+        }
         rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-            manager.getRationalFormulaManager(), manager.getFunctionFormulaManager(),
+            rmgr, manager.getFunctionFormulaManager(),
             ignoreExtractConcat);
       break;
       case FLOAT:
@@ -207,8 +218,18 @@ public class FormulaManagerView {
           manager.getBooleanFormulaManager());
       break;
     case RATIONAL:
+      NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
+      try {
+        rmgr = manager.getRationalFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
+            + "please choose another SMT solver "
+            + "or use the option cpa.predicate.encodeFloatAs "
+            + "to approximate floats with another theory.",
+            e);
+      }
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, manager.getRationalFormulaManager(), manager.getFunctionFormulaManager(),
+          wrappingHandler, rmgr, manager.getFunctionFormulaManager(),
           manager.getBooleanFormulaManager());
     break;
     case BITVECTOR:
