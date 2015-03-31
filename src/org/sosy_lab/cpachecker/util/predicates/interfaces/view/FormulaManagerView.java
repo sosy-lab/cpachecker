@@ -951,7 +951,8 @@ public class FormulaManagerView {
       Function<String, String> pRenameFunction) {
 
     return wrap(getFormulaType(pFormula),
-        myFreeVariableNodeTransformer(unwrap(pFormula), new HashMap<Formula, Formula>(),
+        myFreeVariableNodeTransformer(unwrap(pFormula),
+            new HashMap<Formula, Formula>(),
             pRenameFunction));
   }
 
@@ -1107,6 +1108,14 @@ public class FormulaManagerView {
         });
   }
 
+  /**
+   * @see UnsafeFormulaManager#splitNumeralEqualityIfPossible(Formula) for
+   * documentation.
+   */
+  public <T extends Formula> List<T> splitNumeralEqualityIfPossible(T formula) {
+    return unsafeManager.splitNumeralEqualityIfPossible(formula);
+  }
+
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula pFormula, boolean splitArithEqualities,
       Predicate<BooleanFormula> isLowestLevel) {
     Set<BooleanFormula> seen = new HashSet<>();
@@ -1127,11 +1136,11 @@ public class FormulaManagerView {
 
       if (isLowestLevel.apply(f)) {
         if (splitArithEqualities && myIsPurelyArithmetic(f)) {
-          BooleanFormula split = unsafeManager.splitNumeralEqualityIfPossible(f);
+          List<BooleanFormula> split = unsafeManager.splitNumeralEqualityIfPossible(f);
           // some solvers might produce non-atomic formulas for split,
           // thus push it instead of adding it directly to result
-          if (seen.add(split)) {
-            toProcess.push(split);
+          if (seen.add(split.get(0))) {
+            toProcess.push(split.get(0));
           }
         }
         result.add(f);

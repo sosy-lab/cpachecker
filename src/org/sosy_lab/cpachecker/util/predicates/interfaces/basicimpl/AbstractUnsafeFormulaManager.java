@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -224,11 +225,19 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   }
 
   @Override
-  public <T extends Formula> T splitNumeralEqualityIfPossible(T pF) {
-    return encapsulateWithTypeOf(pF, splitNumeralEqualityIfPossible(extractInfo(pF)));
+  public <T extends Formula> List<T> splitNumeralEqualityIfPossible(final T pF) {
+    return Lists.transform(
+        splitNumeralEqualityIfPossible(extractInfo(pF)),
+        new Function<TFormulaInfo, T>() {
+          @Override
+          public T apply(TFormulaInfo input) {
+            return encapsulateWithTypeOf(pF, input);
+          }
+        }
+    );
   }
 
-  protected abstract TFormulaInfo splitNumeralEqualityIfPossible(TFormulaInfo pF);
+  protected abstract List<? extends TFormulaInfo> splitNumeralEqualityIfPossible(TFormulaInfo pF);
 
   protected abstract TFormulaInfo substitute(
       TFormulaInfo expr,

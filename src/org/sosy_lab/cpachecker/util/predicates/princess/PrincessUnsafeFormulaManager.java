@@ -110,13 +110,16 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   }
 
   @Override
-  protected IExpression splitNumeralEqualityIfPossible(IExpression pF) {
+  protected List<? extends IExpression> splitNumeralEqualityIfPossible(IExpression pF) {
     // Princess does not support Equal.
     // Formulas are converted from "a==b" to "a+(-b)==0".
     if (pF instanceof IIntFormula && ((IIntFormula)pF).rel() == IIntRelation.EqZero()) {
-      return ((IIntFormula)pF).t().$less$eq(new IIntLit(IdealInt.ZERO()));
+      return ImmutableList.of(
+          ((IIntFormula)pF).t().$less$eq(new IIntLit(IdealInt.ZERO())),
+          ((IIntFormula)pF).t().$greater$eq(new IIntLit(IdealInt.ZERO()))
+      );
     }
-    return pF;
+    return ImmutableList.of(pF);
   }
 
   @Override
