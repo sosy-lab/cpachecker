@@ -68,7 +68,6 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
-  @Ignore // seems to be no longer provable since r16189
   @Test public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c");
   }
@@ -78,7 +77,6 @@ public class PolicyIterationTest {
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
 
-  @Ignore // seems to be no longer provable since r16189
   @Test public void pointers_loop_true_assert() throws Exception {
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
@@ -171,12 +169,14 @@ public class PolicyIterationTest {
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
         .put("cpa.predicate.solver", "Z3")
         .put("specification", "config/specification/default.spc")
-        .put("cpa.predicate.ignoreIrrelevantVariables", "false")
+        .put("cpa.predicate.ignoreIrrelevantVariables", "true")
+        .put("cpa.predicate.maxArrayLength", "3")
+        .put("cpa.predicate.defaultArrayLength", "3")
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
-        .put("analysis.summaryEdges", "true")
-        .put("analysis.traveral.order", "bfs")
-        .put("cpa.callstack.produceUniqueStates", "false")
+        .put("analysis.traversal.order", "bfs")
+
+        .put("log.consoleLevel", "INFO")
     .build());
     props.putAll(extra);
     return props;
