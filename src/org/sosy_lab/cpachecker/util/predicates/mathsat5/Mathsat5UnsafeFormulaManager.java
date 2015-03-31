@@ -148,7 +148,7 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
 
   @Override
   protected Long simplify(Long pF) {
-    throw new UnsupportedOperationException();
+    return pF;
   }
 
   @Override
