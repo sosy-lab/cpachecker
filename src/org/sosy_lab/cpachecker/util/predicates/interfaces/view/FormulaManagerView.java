@@ -1112,7 +1112,8 @@ public class FormulaManagerView {
    * @see UnsafeFormulaManager#splitNumeralEqualityIfPossible(Formula) for
    * documentation.
    */
-  public <T extends Formula> List<T> splitNumeralEqualityIfPossible(T formula) {
+  public List<BooleanFormula> splitNumeralEqualityIfPossible(BooleanFormula formula) {
+    // only exported here for BooleanFormula because otherwise it is not type-safe
     return unsafeManager.splitNumeralEqualityIfPossible(formula);
   }
 
