@@ -40,9 +40,9 @@ public class NumeralFormulaManagerView
 
   private final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
-  public NumeralFormulaManagerView(FormulaManagerView pViewManager,
+  public NumeralFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
-    super(pViewManager);
+    super(pWrappingHandler);
     this.manager = pManager;
   }
 

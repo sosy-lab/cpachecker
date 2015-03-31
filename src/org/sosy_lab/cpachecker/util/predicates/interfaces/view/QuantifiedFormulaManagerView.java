@@ -46,12 +46,14 @@ public class QuantifiedFormulaManagerView
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
   public QuantifiedFormulaManagerView(
-      FormulaManagerView pViewManager,
-      QuantifiedFormulaManager pManager) {
-    super(pViewManager);
+      FormulaWrappingHandler pWrappingHandler,
+      QuantifiedFormulaManager pManager,
+      BooleanFormulaManagerView pBmgr,
+      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pImgr) {
+    super(pWrappingHandler);
     this.manager = pManager;
-    this.bfm = pViewManager.getBooleanFormulaManager();
-    this.ifm = pViewManager.getIntegerFormulaManager();
+    this.bfm = pBmgr;
+    this.ifm = pImgr;
   }
 
   @Override

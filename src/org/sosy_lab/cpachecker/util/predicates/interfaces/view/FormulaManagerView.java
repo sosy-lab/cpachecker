@@ -62,9 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -114,6 +111,7 @@ public class FormulaManagerView {
   private final FormulaManager manager;
   private final UnsafeFormulaManager unsafeManager;
 
+  private final FormulaWrappingHandler wrappingHandler;
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
   private final FloatingPointFormulaManagerView floatingPointFormulaManager;
@@ -151,6 +149,7 @@ public class FormulaManagerView {
     logger = pLogger;
     manager = checkNotNull(solverFactory.getFormulaManager());
     unsafeManager = manager.getUnsafeFormulaManager();
+    wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
 
     BitvectorFormulaManager rawBitvectorFormulaManager;
     switch (encodeBitvectorAs) {
@@ -166,12 +165,12 @@ public class FormulaManagerView {
         }
         break;
       case INTEGER:
-        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(this,
+        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
             manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
             ignoreExtractConcat);
         break;
       case RATIONAL:
-        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(this,
+        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
             manager.getRationalFormulaManager(), manager.getFunctionFormulaManager(),
             ignoreExtractConcat);
       break;
@@ -180,13 +179,13 @@ public class FormulaManagerView {
       default:
         throw new AssertionError();
     }
-    bitvectorFormulaManager = new BitvectorFormulaManagerView(this, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
+    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
 
-    integerFormulaManager = new NumeralFormulaManagerView<>(this, manager.getIntegerFormulaManager());
-    booleanFormulaManager = new BooleanFormulaManagerView(this, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
-    functionFormulaManager = new FunctionFormulaManagerView(this, manager.getFunctionFormulaManager());
-    quantifiedFormulaManager = new QuantifiedFormulaManagerView(this, manager.getQuantifiedFormulaManager());
-    arrayFormulaManager = new ArrayFormulaManagerView(this, manager.getArrayFormulaManager());
+    integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
+    booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
+    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
+    quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
+    arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
 
     FloatingPointFormulaManager rawFloatingPointFormulaManager;
     switch (encodeFloatAs) {
@@ -204,12 +203,12 @@ public class FormulaManagerView {
       break;
     case INTEGER:
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          this, manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
+          wrappingHandler, manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
           manager.getBooleanFormulaManager());
       break;
     case RATIONAL:
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          this, manager.getRationalFormulaManager(), manager.getFunctionFormulaManager(),
+          wrappingHandler, manager.getRationalFormulaManager(), manager.getFunctionFormulaManager(),
           manager.getBooleanFormulaManager());
     break;
     case BITVECTOR:
@@ -217,75 +216,20 @@ public class FormulaManagerView {
     default:
       throw new AssertionError();
     }
-    floatingPointFormulaManager = new FloatingPointFormulaManagerView(this, rawFloatingPointFormulaManager);
+    floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
   }
 
-
-  @SuppressWarnings("unchecked")
-  <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
-    assert !(toWrap instanceof WrappingFormula<?, ?>);
-
-    if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
-      return (T1) new WrappingBitvectorFormula<>((BitvectorType)targetType, toWrap);
-
-    } else if (targetType.isFloatingPointType() && (encodeFloatAs != Theory.FLOAT)) {
-      return (T1) new WrappingFloatingPointFormula<>((FloatingPointType)targetType, toWrap);
-
-    } else if (targetType.isArrayType()) {
-      final ArrayFormulaType<?, ?> targetArrayType = (ArrayFormulaType<?, ?>) targetType;
-//      final FormulaType<? extends Formula> targetIndexType = targetArrayType.getIndexType();
-//      final FormulaType<? extends Formula> targetElementType = targetArrayType.getElementType();
-      return (T1) new WrappingArrayFormula<>(targetArrayType, toWrap);
-
-    } else if (targetType.equals(manager.getFormulaType(toWrap))) {
-      return (T1) toWrap;
-
-    } else {
-      throw new IllegalArgumentException("invalid wrap call");
-    }
+  FormulaWrappingHandler getFormulaWrappingHandler() {
+    return wrappingHandler;
   }
 
-  <T extends Formula> Formula unwrap(T f) {
-    if (f instanceof WrappingFormula<?, ?>) {
-      return ((WrappingFormula<?, ?>)f).getWrapped();
-    } else {
-      return f;
-    }
+  private <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
+    return wrappingHandler.wrap(targetType, toWrap);
   }
 
-  FormulaType<?> unwrapType(FormulaType<?> type) {
-    if (type.isArrayType()) {
-      ArrayFormulaType<?, ?> arrayType = (ArrayFormulaType<?, ?>) type;
-      return FormulaType.getArrayType(
-          unwrapType(arrayType.getIndexType()),
-          unwrapType(arrayType.getElementType()));
-    }
-
-    if (type.isBitvectorType()) {
-      switch (encodeBitvectorAs) {
-      case BITVECTOR:
-        return type;
-      case INTEGER:
-        return FormulaType.IntegerType;
-      case RATIONAL:
-        return FormulaType.RationalType;
-      }
-    }
-
-    if (type.isFloatingPointType()) {
-      switch (encodeFloatAs) {
-      case FLOAT:
-        return type;
-      case INTEGER:
-        return FormulaType.IntegerType;
-      case RATIONAL:
-        return FormulaType.RationalType;
-      }
-    }
-
-    return type;
+  private <T extends Formula> Formula unwrap(T f) {
+    return wrappingHandler.unwrap(f);
   }
-
 
   public Path formatFormulaOutputFile(String function, int call, String formula, int index) {
     if (formulaDumpFile == null) {
@@ -759,7 +703,7 @@ public class FormulaManagerView {
   public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     // lazy initialisation, because not all SMT-solvers support Rationals and maybe we only want to use Integers.
     if (rationalFormulaManager == null) {
-      rationalFormulaManager = new NumeralFormulaManagerView<>(this, manager.getRationalFormulaManager());
+      rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getRationalFormulaManager());
     }
     return rationalFormulaManager;
   }
@@ -788,16 +732,8 @@ public class FormulaManagerView {
     return arrayFormulaManager;
   }
 
-  @SuppressWarnings("unchecked")
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
-    checkNotNull(pFormula);
-
-    if (pFormula instanceof WrappingFormula<?, ?>) {
-      WrappingFormula<?, ?> castFormula = (WrappingFormula<?, ?>)pFormula;
-      return (FormulaType<T>)castFormula.getType();
-    } else {
-      return getRawFormulaType(pFormula);
-    }
+    return wrappingHandler.getFormulaType(pFormula);
   }
 
   private <T extends Formula> FormulaType<T> getRawFormulaType(T pFormula) {

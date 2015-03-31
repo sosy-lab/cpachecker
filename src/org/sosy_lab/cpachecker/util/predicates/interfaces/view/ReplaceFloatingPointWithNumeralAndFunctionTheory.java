@@ -56,11 +56,11 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
   private final T minusInfinityVariable;
 
   public ReplaceFloatingPointWithNumeralAndFunctionTheory(
-      FormulaManagerView pViewManager,
+      FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<? super T, T> pReplacementManager,
       FunctionFormulaManager rawFunctionManager,
       BooleanFormulaManager pBooleaManager) {
-    super(pViewManager);
+    super(pWrappingHandler);
     numericFormulaManager = pReplacementManager;
     booleanManager = pBooleaManager;
     functionManager = rawFunctionManager;
