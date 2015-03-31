@@ -222,8 +222,8 @@ backwardSpecification = no default value
 # fixed BDD cache size).
 bdd.javabdd.cacheRatio = 0.1
 
-# Size of the BDD cache if cache ratio is not used.
-bdd.javabdd.cacheSize = 1000
+# Initial size of the BDD cache, use 0 for cacheRatio*initTableSize.
+bdd.javabdd.cacheSize = 0
 
 # Initial size of the BDD node table.
 bdd.javabdd.initTableSize = 10000

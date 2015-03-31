@@ -45,6 +45,7 @@ import net.sf.javabdd.JFactory;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -89,10 +90,15 @@ class JavaBDDRegionManager implements RegionManager {
   // In this map we store the info which BDD to free after a JavaBDDRegion object was GCed.
   private final Map<PhantomReference<JavaBDDRegion>, BDD> referenceMap = Maps
       .newIdentityHashMap();
+
   @Option(secure = true, description = "Initial size of the BDD node table.")
+  @IntegerOption(min = 1)
   private int initTableSize = 10000;
-  @Option(secure = true, description = "Size of the BDD cache if cache ratio is not used.")
-  private int cacheSize = 1000;
+
+  @Option(secure = true, description = "Initial size of the BDD cache, use 0 for cacheRatio*initTableSize.")
+  @IntegerOption(min = 0)
+  private int cacheSize = 0;
+
   @Option(secure = true,
       description = "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
   private double cacheRatio = 0.1;
@@ -102,6 +108,13 @@ class JavaBDDRegionManager implements RegionManager {
   JavaBDDRegionManager(String bddPackage, Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    if (cacheRatio < 0) {
+      throw new InvalidConfigurationException("Invalid value " + cacheRatio
+          + " for option bdd.javabdd.cacheRatio, cannot be negative.");
+    }
+    if (cacheSize == 0) {
+      cacheSize = (int)(initTableSize * cacheRatio);
+    }
     logger = pLogger;
     factory =
         BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
