@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import java.util.logging.Level;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
+import net.sf.javabdd.JFactory;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
@@ -188,15 +190,12 @@ class JavaBDDRegionManager implements RegionManager {
   public void printStatistics(PrintStream out) {
     try {
       BDDFactory.GCStats stats = factory.getGCStats();
+      int cacheSize = readCacheSize();
 
       writingStatisticsTo(out)
           .put("Number of BDD nodes", factory.getNodeNum())
           .put("Size of BDD node table", factory.getNodeTableSize())
-
-              // Cache size is currently always equal to cacheSize,
-              // unfortunately the library does not update it on cache resizes.
-              // .put("Size of BDD cache", factory.getCacheSize())
-
+          .putIf(cacheSize >= 0, "Size of BDD cache", cacheSize)
           .put(cleanupQueueSize)
           .put(cleanupTimer)
 
@@ -211,6 +210,33 @@ class JavaBDDRegionManager implements RegionManager {
       // Not all factories might have all statistics supported.
       // As statistics are not that important, just ignore it.
     }
+  }
+
+  /**
+   * Return the current size of the cache of the BDD library.
+   * Returns -1 if value cannot be read.
+   */
+  private int readCacheSize() {
+    if (factory instanceof JFactory) {
+      // Unfortunately JFactory does not update its reported size on cache resizes.
+      try {
+        Field cacheField = JFactory.class.getDeclaredField("applycache");
+        cacheField.setAccessible(true);
+        Object cache = cacheField.get(factory);
+        if (cache != null) {
+          Field tableField = cache.getClass().getDeclaredField("table");
+          tableField.setAccessible(true);
+          Object table = tableField.get(cache);
+          if (table instanceof Object[]) {
+            return ((Object[])table).length;
+          }
+        }
+      } catch (ReflectiveOperationException | SecurityException e) {
+        logger.logDebugException(e, "Could not access cache field of JFactory for statistics");
+      }
+      return -1;
+    }
+    return factory.getCacheSize();
   }
 
   // Code for connecting the Java GC and the BDD library GC
