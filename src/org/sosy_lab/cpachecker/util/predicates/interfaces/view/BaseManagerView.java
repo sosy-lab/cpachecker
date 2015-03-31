@@ -39,10 +39,6 @@ abstract class BaseManagerView {
     baseManager = pViewManager;
   }
 
-  FormulaManagerView getViewManager() {
-    return baseManager;
-  }
-
   final <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     return baseManager.getFormulaType(pFormula);
   }

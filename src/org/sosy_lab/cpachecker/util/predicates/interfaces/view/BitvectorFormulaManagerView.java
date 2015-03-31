@@ -28,6 +28,7 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 
@@ -35,15 +36,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorT
 public class BitvectorFormulaManagerView extends BaseManagerView implements BitvectorFormulaManager {
 
   private final BitvectorFormulaManager manager;
+  private final BooleanFormulaManager bmgr;
 
   public BitvectorFormulaManagerView(FormulaManagerView pViewManager,
-      BitvectorFormulaManager pManager) {
+      BitvectorFormulaManager pManager, BooleanFormulaManager pBmgr) {
     super(pViewManager);
     this.manager = pManager;
+    bmgr = pBmgr;
   }
 
   public BooleanFormula notEqual(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    BooleanFormulaManagerView bmgr = getViewManager().getBooleanFormulaManager();
     return bmgr.not(equal(pNumber1, pNumber2));
   }
   public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, long pI) {

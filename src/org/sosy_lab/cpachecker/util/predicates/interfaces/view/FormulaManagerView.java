@@ -180,7 +180,7 @@ public class FormulaManagerView {
       default:
         throw new AssertionError();
     }
-    bitvectorFormulaManager = new BitvectorFormulaManagerView(this, rawBitvectorFormulaManager);
+    bitvectorFormulaManager = new BitvectorFormulaManagerView(this, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
 
     integerFormulaManager = new NumeralFormulaManagerView<>(this, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(this, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
