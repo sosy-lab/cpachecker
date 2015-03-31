@@ -239,10 +239,6 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   protected abstract List<? extends TFormulaInfo> splitNumeralEqualityIfPossible(TFormulaInfo pF);
 
-  protected abstract TFormulaInfo substitute(
-      TFormulaInfo expr,
-      List<TFormulaInfo> substituteFrom,
-      List<TFormulaInfo> substituteTo);
 
   @Override
   public <T1 extends Formula, T2 extends Formula> T1 substitute(T1 pF, Map<T2, T2> pFromToMapping) {
@@ -252,11 +248,17 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     return substitute(pF, fromList, toList);
   }
 
+  protected abstract TFormulaInfo substitute(
+      TFormulaInfo expr,
+      List<TFormulaInfo> substituteFrom,
+      List<TFormulaInfo> substituteTo);
+
   @Override
   public <T extends Formula> T simplify(T f) {
     return encapsulateWithTypeOf(f, simplify(extractInfo(f)));
   }
 
-  protected abstract TFormulaInfo simplify(TFormulaInfo f);
-
+  protected TFormulaInfo simplify(TFormulaInfo f) {
+    return f;
+  }
 }

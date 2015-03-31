@@ -169,7 +169,9 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
       // Check whether the current expression matches.
       for (int i=0; i<substituteFrom.size(); i++) {
         long from = substituteFrom.get(i);
-        if (msat_term_repr(expr).equals(msat_term_repr(from))) {
+
+        // Same variables are guaranteed to have same pointer addresses.
+        if (expr == from) {
           out = substituteTo.get(i);
           return out;
         }
@@ -187,11 +189,6 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
     } finally {
       memoization.put(expr, out);
     }
-  }
-
-  @Override
-  protected Long simplify(Long pF) {
-    return pF;
   }
 
   @Override
