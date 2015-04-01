@@ -37,20 +37,10 @@ import zlib
 from time import sleep
 from zipfile import ZipFile
 
-try:
-    from httplib import HTTPConnection, HTTPResponse
-    import urllib
-    import urllib2
-except ImportError:
-    from http.client import HTTPConnection, HTTPResponse
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-
-try:
-    from concurrent.futures import ThreadPoolExecutor
-    from concurrent.futures import as_completed
-except:
-    pass
+import urllib.parse as urllib
+import urllib.request as urllib2
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
 import benchexec.util as util
@@ -58,8 +48,6 @@ import benchexec.util as util
 RESULT_KEYS = ["cputime", "walltime"]
 
 MAX_SUBMISSION_THREADS = 5
-
-PYTHON_VERSION = sys.version_info[0]
 
 class WebClientError(Exception):
     def __init__(self, value):
@@ -100,13 +88,7 @@ def execute_benchmark(benchmark, output_handler):
                 continue
 
             output_handler.output_before_run_set(runSet)
-
-            try:
-                # python 3.2
-                from concurrent.futures import ThreadPoolExecutor
-                runIDs = _submitRunsPrallel(runSet, webclient, benchmark)
-            except ImportError:
-                runIDs = _submitRuns(runSet, webclient, benchmark)
+            runIDs = _submitRunsPrallel(runSet, webclient, benchmark)
 
             _getResults(runIDs, output_handler, webclient, benchmark)
             output_handler.output_after_run_set(runSet)
@@ -137,30 +119,6 @@ def _submitRunsPrallel(runSet, webclient, benchmark):
         try:
             run = runIDsFutures[future]
             runID = future.result().decode("utf-8")
-            runIDs.update({runID:run})
-            logging.info('Submitted run {0}/{1} with id {2}'.\
-                format(submissonCounter, len(runSet.runs), runID))
-
-        except (urllib2.HTTPError, WebClientError) as e:
-            try:
-                message = e.read() #not all HTTPErrors have a read() method
-            except:
-                message = ""
-            logging.warning('Could not submit run {0}: {1} {2}'.\
-                format(run.identifier, e, message))
-        finally:
-            submissonCounter += 1
-
-    return runIDs
-
-def _submitRuns(runSet, webclient, benchmark):
-
-    runIDs = {}
-    submissonCounter = 1
-
-    for run in runSet.runs:
-        try:
-            runID = _submitRun(run, webclient, benchmark)
             runIDs.update({runID:run})
             logging.info('Submitted run {0}/{1} with id {2}'.\
                 format(submissonCounter, len(runSet.runs), runID))
@@ -221,12 +179,9 @@ def _submitRun(run, webclient, benchmark, counter = 0):
     headers = {"Content-type": "application/x-www-form-urlencoded", \
                "Accept": "text/plain"}
 
-    if (PYTHON_VERSION == 3):
-        paramsCompressed = zlib.compress(paramsEncoded.encode('utf-8'))
-        headers.update({"Content-Encoding":"deflate"})
-        resquest = urllib2.Request(webclient + "runs/", paramsCompressed, headers)
-    else:
-        resquest = urllib2.Request(webclient + "runs/", paramsEncoded, headers)
+    paramsCompressed = zlib.compress(paramsEncoded.encode('utf-8'))
+    headers.update({"Content-Encoding":"deflate"})
+    resquest = urllib2.Request(webclient + "runs/", paramsCompressed, headers)
 
     # send request
     try:
@@ -331,10 +286,7 @@ def _isFinished(runID, webclient, benchmark):
         return False
 
     if response.getcode() == 200:
-        state = response.read()
-
-        if PYTHON_VERSION == 3:
-            state = state.decode('utf-8')
+        state = response.read().decode('utf-8')
 
         if state == "FINISHED":
             logging.debug('Run {0} finished.'.format(runID))
