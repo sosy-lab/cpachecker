@@ -128,23 +128,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
    */
   @Override
   public ConstraintsState join(ConstraintsState other) {
-    ConstraintsState newState = new ConstraintsState();
-
-    if (constraints.size() < other.size()) {
-      for (Constraint c : constraints) {
-        if (other.contains(c)) {
-          newState.add(c);
-        }
-      }
-    } else {
-      for (Constraint c : other) {
-        if (constraints.contains(c)) {
-          newState.add(c);
-        }
-      }
-    }
-
-    return newState;
+    throw new UnsupportedOperationException("ConstraintStates can't be joined");
   }
 
   /**
