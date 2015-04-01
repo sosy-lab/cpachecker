@@ -180,7 +180,8 @@ public class RealCChecker implements CounterexampleChecker, Statistics {
         break;
       case 1: // compiler did not succeed
         logger.log(Level.WARNING, "Compiler did not compile the program.");
-      default:
+      //$FALL-THROUGH$
+    default:
         compilerSuccess = false;
         break;
     }

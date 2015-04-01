@@ -59,11 +59,11 @@ public class RealCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed>
     for (int i = 0; i < args.size(); i++) {
       cmd[i] = args.get(i);
     }
-    String commandLine = "";
+    StringBuilder commandLine = new StringBuilder();
     for (String s : cmd) {
-      commandLine += s + " ";
+      commandLine.append(s + " ");
     }
-    logger.log(Level.FINE, "Commandline to execute: " + commandLine);
+    logger.log(Level.FINE, "Commandline to execute: " + commandLine.toString());
 
     return cmd;
   }
@@ -77,11 +77,11 @@ public class RealCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed>
     for (int i = 0; i < args.size(); i++) {
       cmd[i+1] = args.get(i);
     }
-    String commandLine = "";
+    StringBuilder commandLine = new StringBuilder();
     for (String s : cmd) {
-      commandLine += s + " ";
+      commandLine.append(s + " ");
     }
-    logger.log(Level.INFO, "Commandline to execute: " + commandLine);
+    logger.log(Level.INFO, "Commandline to execute: " + commandLine.toString());
 
     return cmd;
   }
