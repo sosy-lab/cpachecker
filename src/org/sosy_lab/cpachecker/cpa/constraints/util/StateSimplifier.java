@@ -311,6 +311,10 @@ public class StateSimplifier {
         ActivityInfo info = infos.get(pIdentifier);
         info.usingConstraints.add(pConstraint);
 
+        // Activity might have been marked as deleted in a previous iteration of CEGAR, so we have
+        // to set it back
+        info.enable();
+
         return info;
 
       } else {
