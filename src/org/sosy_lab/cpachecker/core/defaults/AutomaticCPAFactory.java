@@ -66,7 +66,7 @@ public class AutomaticCPAFactory implements CPAFactory {
    */
   @Target(ElementType.PARAMETER)
   @Retention(RetentionPolicy.RUNTIME)
-  public static @interface Optional { }
+  public static @interface OptionalAnnotation { }
 
   private final Class<? extends ConfigurableProgramAnalysis> type;
   private final ClassToInstanceMap<Object> injects = MutableClassToInstanceMap.create();
@@ -144,7 +144,7 @@ public class AutomaticCPAFactory implements CPAFactory {
 
       boolean optional = false;
       for (Annotation a : parameterAnnotations[i]) {
-        if (a instanceof Optional) {
+        if (a instanceof OptionalAnnotation) {
           optional = true;
           break;
         }

@@ -43,6 +43,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -91,6 +92,13 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   private final ShutdownNotifier shutdownNotifier;
   private final TerminationTest terminationTest;
 
+  @Options(prefix="cpa.predicate.solver.mathsat5")
+  private static class ExtraOptions {
+    @Option(secure=true, description="Load less stable optimizing version of"
+        + " mathsat5 solver.")
+    boolean loadOptimathsat5 = false;
+  }
+
   private Mathsat5FormulaManager(
       LogManager pLogger,
       long pMathsatConfig,
@@ -135,6 +143,14 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   public static Mathsat5FormulaManager create(LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier,
       @Nullable PathCounterTemplate solverLogFile, long randomSeed) throws InvalidConfigurationException {
+
+    ExtraOptions extraOptions = new ExtraOptions();
+    config.inject(extraOptions);
+    if (extraOptions.loadOptimathsat5) {
+      NativeLibraries.loadLibrary("optimathsat5j");
+    } else {
+      NativeLibraries.loadLibrary("mathsat5j");
+    }
 
     // Init Msat
     Mathsat5Settings settings = new Mathsat5Settings(config, solverLogFile);
@@ -188,7 +204,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
   @Override
   public OptEnvironment newOptEnvironment() {
-    throw new UnsupportedOperationException("MathSAT5 does not support optimization");
+    return new Mathsat5OptProver(this, mathsatConfig);
   }
 
   @Override

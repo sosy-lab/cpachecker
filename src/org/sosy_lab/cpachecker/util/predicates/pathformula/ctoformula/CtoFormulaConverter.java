@@ -136,8 +136,7 @@ public class CtoFormulaConverter {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   public static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("pthread_create", "threads",
-                        "fesetround", "floating-point rounding modes");
+      = ImmutableMap.of("fesetround", "floating-point rounding modes");
 
   //names for special variables needed to deal with functions
   @Deprecated
@@ -350,7 +349,7 @@ public class CtoFormulaConverter {
 //      : "Saving variables with mutliple types is not possible!";
     if (t != null && !areEqualWithMatchingPointerArray(t, type)) {
 
-      if (getFormulaTypeFromCType(t) != getFormulaTypeFromCType(type)) {
+      if (!getFormulaTypeFromCType(t).equals(getFormulaTypeFromCType(type))) {
         throw new UnsupportedOperationException(
             "Variable " + name + " used with types of different sizes! " +
                 "(Type1: " + t + ", Type2: " + type + ")");

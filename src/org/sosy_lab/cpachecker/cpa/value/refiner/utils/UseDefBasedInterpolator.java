@@ -32,9 +32,6 @@ import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -78,38 +75,25 @@ public class UseDefBasedInterpolator {
    * @return the (ordered) mapping mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s
    */
   public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolants() {
-
-    ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new ArrayDeque<>();
-    HashMap<MemoryLocation, Value> rawItp = new HashMap<>();
+    Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence = useDefRelation.getExpandedUses(slicedPrefix);
     ValueAnalysisInterpolant trivialItp = ValueAnalysisInterpolant.FALSE;
 
+    ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new ArrayDeque<>();
     PathIterator iterator = slicedPrefix.reversePathIterator();
     while (iterator.hasNext()) {
       ARGState state = iterator.getAbstractState();
-      CFAEdge edge   = iterator.getOutgoingEdge();
 
-      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for(CFAEdge singleEdge : ((MultiEdge)edge).getEdges()) {
-          updateRawInterpolant(rawItp,
-              useDefRelation.getDef(state, singleEdge),
-              useDefRelation.getUses(state, singleEdge));
-        }
-      }
-      else {
-        updateRawInterpolant(rawItp,
-            useDefRelation.getDef(state, edge),
-            useDefRelation.getUses(state, edge));
-      }
+      Collection<ASimpleDeclaration> uses = useDefSequence.get(state);
 
-      // create the interpolant after the (multi-)edge,
-      // in-between would make the interpolants stronger then needed
-      interpolants.addFirst(Pair.of(state, rawItp.isEmpty()
+      ValueAnalysisInterpolant interpolant = uses.isEmpty()
           ? trivialItp
-          : createNonTrivialItp(rawItp)));
+          : createInterpolant(uses);
 
-      // as the traversal goes backwards, once the (failing) assumption
-      // was passed, then a trivial interpolant has to be TRUE, not FALSE
-      if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      interpolants.addFirst(Pair.of(state, interpolant));
+
+      // as the traversal goes backwards, once the interpolant was non-trivial once,
+      // the next time it is trivial, it has to be TRUE, and no longer FALSE
+      if (interpolant != trivialItp) {
         trivialItp = ValueAnalysisInterpolant.TRUE;
       }
 
@@ -119,6 +103,15 @@ public class UseDefBasedInterpolator {
     return convertToLinkedMap(interpolants);
   }
 
+  private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
+    HashMap<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
+    for(ASimpleDeclaration use : uses) {
+      useDefInterpolant.put(MemoryLocation.valueOf(use.getQualifiedName()), UnknownValue.getInstance());
+    }
+
+    return new ValueAnalysisInterpolant(useDefInterpolant, Collections.<MemoryLocation, Type>emptyMap());
+  }
+
   private Map<ARGState, ValueAnalysisInterpolant> convertToLinkedMap(
       ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> itps) {
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
@@ -126,24 +119,5 @@ public class UseDefBasedInterpolator {
       interpolants.put(itp.getFirst(), itp.getSecond());
     }
     return interpolants;
-  }
-
-  private ValueAnalysisInterpolant createNonTrivialItp(HashMap<MemoryLocation, Value> rawItp) {
-    return new ValueAnalysisInterpolant(new HashMap<>(rawItp), Collections.<MemoryLocation, Type>emptyMap());
-  }
-
-  /**
-   * This method add uses and removes definition from the incremental raw interpolant.
-   */
-  private void updateRawInterpolant(HashMap<MemoryLocation, Value> rawItp,
-      Collection<ASimpleDeclaration> defs,
-      Collection<ASimpleDeclaration> uses) {
-    for(ASimpleDeclaration use : uses) {
-      rawItp.put(MemoryLocation.valueOf(use.getQualifiedName()), UnknownValue.getInstance());
-    }
-
-    for(ASimpleDeclaration def : defs) {
-      rawItp.remove(MemoryLocation.valueOf(def.getQualifiedName()));
-    }
   }
 }

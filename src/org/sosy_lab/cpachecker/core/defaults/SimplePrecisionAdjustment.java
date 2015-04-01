@@ -26,8 +26,13 @@ package org.sosy_lab.cpachecker.core.defaults;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 /**
  * Base implementation for precision adjustment implementations which fulfill
@@ -42,12 +47,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
-      UnmodifiableReachedSet pStates, AbstractState fullState) throws CPAException {
+  public final Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
+      UnmodifiableReachedSet pStates,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException {
 
     Action action = prec(pState, pPrecision);
 
-    return PrecisionAdjustmentResult.create(pState, pPrecision, action);
+    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, action));
   }
 
   public abstract Action prec(AbstractState pState, Precision pPrecision) throws CPAException;

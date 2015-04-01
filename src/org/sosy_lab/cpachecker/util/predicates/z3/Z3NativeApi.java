@@ -346,6 +346,12 @@ public final class Z3NativeApi {
   public static native long mk_power(long context, long a1, long a2);
 
   public static native long mk_lt(long context, long a1, long a2);
+
+  /**
+   * Create less than or equal to.
+   * The nodes {@code t1} and {@code t2} must have the same sort, and must be
+   * int or real.
+   */
   public static native long mk_le(long context, long a1, long a2);
   public static native long mk_gt(long context, long a1, long a2);
   public static native long mk_ge(long context, long a1, long a2);
@@ -510,6 +516,11 @@ public final class Z3NativeApi {
   public static native long app_to_ast(long context, long a1);
   public static native long get_app_decl(long context, long a1);
   public static native int get_app_num_args(long context, long a1);
+
+  /**
+   * Precondition: {@code i < get_num_args(c, a)}
+   * @return Z3_ast the i-th argument of the given application.
+   */
   public static native long get_app_arg(long context, long a1, int index);
   public static native boolean is_eq_ast(long context, long a1, long a2);
   public static native int get_ast_id(long context, long a1);

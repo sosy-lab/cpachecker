@@ -162,7 +162,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     pathFormulaManager = pfMgr;
 
     RegionManager regionManager;
-    if (abstractionType.equals("FORMULA")) {
+    if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
+      // No need to load BDD library if we never abstract (might use lots of memory)
       regionManager = new SymbolicRegionManager(formulaManager, solver);
     } else {
       assert abstractionType.equals("BDD");
@@ -171,7 +172,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
+    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
 
     assumesStore = new PredicateAssumeStore(formulaManager);
 
@@ -196,7 +197,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     if (useInvariantsForAbstraction) {
-      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, pShutdownNotifier, cfa);
+      invariantGenerator = new CPAInvariantGenerator(config, logger, pShutdownNotifier, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
     }

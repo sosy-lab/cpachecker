@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
@@ -67,6 +68,13 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
   @Option(secure=true, description="whether or not to use refinement selection to decide which domain to refine")
   private boolean useRefinementSelection = false;
+
+  @Option(secure=true, description="whether or not to let auxiliary refiner score and refine a path that is feasible for the primary refiner,"
+      + " this allows to only extract prefixes that are exclusive to the auxiliary refiner")
+  private boolean useFeasiblePathForAuxRefiner = false;
+
+  @Option(secure=true, description="the maximum score for which always the primary refinement will be performed")
+  private int scoringThreshold = 65536;
 
   /**
    * classifier used to score sliced prefixes
@@ -96,10 +104,12 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   StatCounter totalVaRefinements  = new StatCounter("Number of VA refinements");
   StatInt avgPrefixesVA           = new StatInt(StatKind.AVG, "Avg. number of VA-prefixes");
   StatInt avgScoreVA              = new StatInt(StatKind.AVG, "Avg. score of best VA-prefixes");
+  StatTimer timeForVAPrefixes     = new StatTimer("Time for computing VA-prefixes");
 
   StatCounter totalPaRefinements  = new StatCounter("Number of PA refinements");
   StatInt avgScorePA              = new StatInt(StatKind.AVG, "Avg. score of best PA-prefixes");
   StatInt avgPrefixesPA           = new StatInt(StatKind.AVG, "Avg. number of PA-prefixes");
+  StatTimer timeForPAPrefixes     = new StatTimer("Time for computing PA-prefixes");
 
   StatCounter totalVaRefinementsExtra = new StatCounter("Number of VA refinements (PA was SAT)");
   StatCounter totalPaRefinementsExtra = new StatCounter("Number of PA refinements (VA was SAT)");
@@ -163,15 +173,28 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
+  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     int vaScore = 0;
-    int paScore = 1;
+    int paScore = Integer.MAX_VALUE;
 
     if (useRefinementSelection) {
       vaScore = obtainScoreForValueDomain(pErrorPath);
-      paScore = obtainScoreForPredicateDomain(pErrorPath);
+
+      // don't bother to extract prefixes in auxiliary analysis
+      // if score of primary analysis is beneath the threshold
+      if(vaScore > scoringThreshold) {
+
+        // hand the auxiliary analysis a path that is feasible
+        // for the primary analysis, so that only new prefixes are found
+        if(useFeasiblePathForAuxRefiner) {
+          List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+          pErrorPath = classfier.obtainSlicedPrefix(PrefixPreference.FEASIBLE, pErrorPath, vaPrefixes);
+        }
+
+        paScore = obtainScoreForPredicateDomain(pErrorPath);
+      }
     }
 
     CounterexampleInfo cex;
@@ -179,11 +202,12 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     if (vaScore <= paScore) {
       cex = valueCpaRefiner.performRefinement(reached);
 
-      if(cex.isSpurious()) {
+      if (cex.isSpurious()) {
         totalVaRefinements.inc();
       }
 
       else {
+        valueCpaRefiner.resetPreviousErrorPathId();
         cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
 
         if(cex.isSpurious()) {
@@ -211,24 +235,32 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     return cex;
   }
 
-  private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    int paScore;
-    List<ARGPath> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
-    this.avgPrefixesPA.setNextValue(paPrefixes.size());
-
-    paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
-    this.avgScorePA.setNextValue(paScore);
-    return paScore;
-  }
-
   private int obtainScoreForValueDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    int vaScore;
+    timeForVAPrefixes.start();
     List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+    timeForVAPrefixes.stop();
+
+    // if path is feasible hand out a real bad score
+    if(vaPrefixes.get(0) == pErrorPath) {
+      return Integer.MAX_VALUE;
+    }
+
     this.avgPrefixesVA.setNextValue(vaPrefixes.size());
 
-    vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    int vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
     this.avgScoreVA.setNextValue(vaScore);
     return vaScore;
+  }
+
+  private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
+    timeForPAPrefixes.start();
+    List<ARGPath> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
+    timeForPAPrefixes.stop();
+    this.avgPrefixesPA.setNextValue(paPrefixes.size());
+
+    int paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    this.avgScorePA.setNextValue(paScore);
+    return paScore;
   }
 
   private List<ARGPath> getPrefixesOfValueDomain(final ARGPath pErrorPath)
@@ -268,10 +300,12 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     writer.put(avgPrefixesVA);
     writer.put(avgScoreVA);
     writer.put(totalVaRefinementsExtra);
+    writer.put(timeForVAPrefixes);
 
     writer.put(totalPaRefinements);
     writer.put(avgPrefixesPA);
     writer.put(avgScorePA);
     writer.put(totalPaRefinementsExtra);
+    writer.put(timeForPAPrefixes);
   }
 }

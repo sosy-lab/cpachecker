@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -57,7 +56,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  * Checks whether a {@link Constraint} is trivial, that means that it does not contain any
  * variables with unknown concrete values.
  */
-public class ConstraintTrivialityChecker implements ConstraintVisitor<Boolean>, SymbolicValueVisitor<Boolean> {
+public class ConstraintTrivialityChecker implements SymbolicValueVisitor<Boolean> {
 
   private final IdentifierAssignment definiteAssignment;
 

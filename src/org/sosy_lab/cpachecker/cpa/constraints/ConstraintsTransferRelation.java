@@ -62,7 +62,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -75,6 +77,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 
 /**
  * Transfer relation for Symbolic Execution Analysis.
@@ -189,27 +192,37 @@ public class ConstraintsTransferRelation
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
       FileLocation pFileLocation) throws UnrecognizedCodeException, SolverException, InterruptedException {
 
-    Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
+    Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
     ConstraintsState newState = pOldState.copyOf();
 
-    FormulaCreator formulaCreator = getFormulaCreator(pOldState.getDefiniteAssignment(), pFunctionName);
+    final IdentifierAssignment definiteAssignment = pOldState.getDefiniteAssignment();
+    FormulaCreator formulaCreator = getFormulaCreator(definiteAssignment, pFunctionName);
     newState.initialize(solver, formulaManager, formulaCreator);
 
-    if (newConstraint.isPresent()) {
-      newState.add(newConstraint.get());
+    if (oNewConstraint.isPresent()) {
+      final Constraint newConstraint = oNewConstraint.get();
 
-      if (newState.isUnsat()) {
-        return null;
+      // If a constraint is trivial, its satisfiability is not influenced by other constraints.
+      // So to evade more expensive SAT checks, we just check the constraint on its own.
+      if (isTrivial(newConstraint, definiteAssignment)) {
+        if (solver.isUnsat(formulaCreator.createFormula(newConstraint))) {
+          return null;
+        }
 
       } else {
-        newState = simplify(newState);
+        newState.add(newConstraint);
 
-        return newState;
+        if (newState.isUnsat()) {
+          return null;
+
+        } else {
+          return newState;
+        }
+
       }
-
-    } else {
-      return newState;
     }
+
+    return pOldState;
   }
 
   private FormulaCreator getFormulaCreator(IdentifierAssignment pDefiniteAssignment, String pFunctionName) {
@@ -296,8 +309,20 @@ public class ConstraintsTransferRelation
     return Optional.fromNullable(constraint);
   }
 
-  private ConstraintsState simplify(ConstraintsState pState) {
-    return simplifier.simplify(pState);
+  private boolean isTrivial(
+      final Constraint pConstraint,
+      final IdentifierAssignment pDefiniteAssignment
+  ) {
+    final ConstraintTrivialityChecker checker = new ConstraintTrivialityChecker(pDefiniteAssignment);
+
+    return pConstraint.accept(checker);
+  }
+
+  private ConstraintsState simplify(
+      final ConstraintsState pState,
+      final ValueAnalysisState pValueState
+  ) {
+    return simplifier.simplify(pState, pValueState);
   }
 
   @Override
@@ -317,15 +342,22 @@ public class ConstraintsTransferRelation
     for (AbstractState currState : pStrengtheningStates) {
 
       if (currState instanceof ValueAnalysisState) {
+        final ValueAnalysisState valueState = (ValueAnalysisState) currState;
         final ConstraintFactory factory =
-            ConstraintFactory.getInstance(currentFunctionName, (ValueAnalysisState) currState, machineModel, logger);
+            ConstraintFactory.getInstance(currentFunctionName, valueState, machineModel, logger);
 
-        Optional<Collection<ConstraintsState>> newValueStrengthenedStates =
+        Optional<Collection<ConstraintsState>> oNewValueStrengthenedStates =
             strengthen((ConstraintsState) pStateToStrengthen, factory, currentFunctionName, (AssumeEdge) pCfaEdge);
 
-        if (newValueStrengthenedStates.isPresent()) {
+        if (oNewValueStrengthenedStates.isPresent()) {
           nothingChanged = false;
-          newStates.addAll(newValueStrengthenedStates.get());
+          Collection<ConstraintsState> strengthenedStates = oNewValueStrengthenedStates.get();
+
+          if (!strengthenedStates.isEmpty()) {
+            ConstraintsState newState = Iterables.getOnlyElement(strengthenedStates);
+            newState = simplify(newState, valueState);
+            newStates.add(newState);
+          }
         }
       }
     }
@@ -387,5 +419,4 @@ public class ConstraintsTransferRelation
     }
     return Optional.of(newStates);
   }
-
 }

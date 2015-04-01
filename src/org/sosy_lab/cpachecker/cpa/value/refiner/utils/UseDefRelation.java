@@ -29,7 +29,6 @@ import static com.google.common.collect.Collections2.filter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -126,6 +125,63 @@ public class UseDefRelation {
     buildRelation(path);
   }
 
+  boolean hasDef(ARGState state, CFAEdge edge) {
+    Set<ASimpleDeclaration> defs = new HashSet<>(getDef(state, edge));
+
+    if(edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+      for(CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
+        defs.addAll(getDef(state, singleEdge));
+      }
+    }
+
+    return defs.size() > 0;
+  }
+
+  Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
+
+    Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
+    Collection<ASimpleDeclaration> unresolvedUses = new HashSet<>();
+
+    PathIterator it = path.reversePathIterator();
+    while(it.hasNext()) {
+      ARGState currentState = it.getAbstractState();
+      CFAEdge currentEdge   = it.getOutgoingEdge();
+
+      if(currentEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)currentEdge).getEdges())) {
+          unresolvedUses.addAll(getUses(currentState, singleEdge));
+          unresolvedUses.removeAll(getDef(currentState, singleEdge));
+        }
+      }
+
+      else {
+        unresolvedUses.addAll(getUses(currentState, currentEdge));
+        unresolvedUses.removeAll(getDef(currentState, currentEdge));
+      }
+
+      expandedUses.put(currentState, new HashSet<>(unresolvedUses));
+
+      it.advance();
+    }
+
+    return expandedUses;
+  }
+
+  public Collection<String> getUsesAsQualifiedName() {
+    Set<String> uses = new HashSet<>();
+    for (Set<ASimpleDeclaration> useSet : FluentIterable.from(relation.values()).transform(Pair.<Set<ASimpleDeclaration>>getProjectionToSecond()).toSet()) {
+      for (ASimpleDeclaration use : useSet) {
+        uses.add(use.getQualifiedName());
+      }
+    }
+
+    return uses;
+  }
+
+  public Set<ARGState> getUseDefStates() {
+    return FluentIterable.from(relation.keySet()).transform(Pair.<ARGState>getProjectionToFirst()).toSet();
+  }
+
   private void buildRelation(ARGPath path) {
     PathIterator iterator = path.reversePathIterator();
     while (iterator.hasNext()) {
@@ -154,26 +210,24 @@ public class UseDefRelation {
   }
 
   private void addUseDef(ARGState state, CFAEdge edge, ASimpleDeclaration def, ASimpleDeclaration use) {
-    relation.put(Pair.of(state, edge), Pair.<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>of(Sets.newHashSet(def), Sets.newHashSet(use)));
-
-    unresolvedUses.remove(def);
-    unresolvedUses.add(use);
+    updateRelation(state, edge, Sets.newHashSet(def), Sets.newHashSet(use));
   }
 
   private void addUseDef(ARGState state, CFAEdge edge, ASimpleDeclaration def, Set<ASimpleDeclaration> uses) {
-    relation.put(Pair.of(state, edge), Pair.<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>of(Sets.newHashSet(def), uses));
-
-    unresolvedUses.remove(def);
-    unresolvedUses.addAll(uses);
+    updateRelation(state, edge, Sets.newHashSet(def), uses);
   }
 
   private void addUseDef(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> uses) {
-    relation.put(Pair.of(state, edge), Pair.<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>of(Collections.<ASimpleDeclaration>emptySet(), uses));
+    updateRelation(state, edge, Collections.<ASimpleDeclaration>emptySet(), uses);
+  }
 
+  private void updateRelation(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
+    relation.put(Pair.of(state, edge), Pair.of(defs, uses));
+    unresolvedUses.removeAll(defs);
     unresolvedUses.addAll(uses);
   }
 
-  Collection<ASimpleDeclaration> getDef(ARGState state, CFAEdge edge) {
+  private Collection<ASimpleDeclaration> getDef(ARGState state, CFAEdge edge) {
     if(relation.containsKey(Pair.of(state, edge))) {
       return relation.get(Pair.of(state, edge)).getFirst();
     } else {
@@ -181,45 +235,12 @@ public class UseDefRelation {
     }
   }
 
-  Collection<ASimpleDeclaration> getUses(ARGState state, CFAEdge edge) {
+  private Collection<ASimpleDeclaration> getUses(ARGState state, CFAEdge edge) {
     if(relation.containsKey(Pair.of(state, edge))) {
       return relation.get(Pair.of(state, edge)).getSecond();
     } else {
       return Collections.emptySet();
     }
-  }
-
-  public Collection<ASimpleDeclaration> getUses() {
-    Set<ASimpleDeclaration> uses = new HashSet<>();
-    for (Set<ASimpleDeclaration> useSet : FluentIterable.from(relation.values()).transform(Pair.<Set<ASimpleDeclaration>>getProjectionToSecond()).toSet()) {
-      uses.addAll(useSet);
-    }
-
-    return uses;
-  }
-
-  public Collection<String> getUsesAsQualifiedName() {
-    Set<String> uses = new HashSet<>();
-    for (Set<ASimpleDeclaration> useSet : FluentIterable.from(relation.values()).transform(Pair.<Set<ASimpleDeclaration>>getProjectionToSecond()).toSet()) {
-      for (ASimpleDeclaration use : useSet) {
-        uses.add(use.getQualifiedName());
-      }
-    }
-
-    return uses;
-  }
-
-  public Map<ARGState, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>> getUseDef() {
-    Map<ARGState, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>> useDef = new HashMap<>(relation.size());
-    for(Map.Entry<Pair<ARGState, CFAEdge>, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>> entry : relation.entrySet()) {
-      useDef.put(entry.getKey().getFirst(), entry.getValue());
-    }
-
-    return useDef;
-  }
-
-  public Set<ARGState> getUseDefStates() {
-    return FluentIterable.from(relation.keySet()).transform(Pair.<ARGState>getProjectionToFirst()).toSet();
   }
 
   private void updateUseDefRelation(ARGState state, CFAEdge edge) {

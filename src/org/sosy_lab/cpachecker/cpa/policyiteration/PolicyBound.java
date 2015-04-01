@@ -16,77 +16,31 @@ import com.google.common.base.Objects;
  * Policy with a local bound.
  */
 public interface PolicyBound {
-  public Location getPredecessor();
-
-  public PathFormula getFormula();
-
-  public Rational getBound();
-
-  public PathFormula getStartPathFormula();
-
-  public boolean dependsOnInitial();
-
-  public int serializePolicy(Location toLocation);
-
-  public PolicyBound updateValue(Rational newValue);
 
   /**
-   * Dummy class to refer to the previous bound.
+   * @return <strong>Latest</strong> version of the origin state.
    */
-  public static class PolicyBoundDummy implements PolicyBound {
+  PolicyAbstractedState getPredecessor();
 
-    private final Rational value;
+  PathFormula getFormula();
 
-    private PolicyBoundDummy(Rational pValue) {
-      value = pValue;
-    }
+  Rational getBound();
 
-    public static PolicyBoundDummy of(Rational pValue) {
-      return new PolicyBoundDummy(pValue);
-    }
+  PathFormula getStartPathFormula();
 
-    @Override
-    public Location getPredecessor() {
-      throw new UnsupportedOperationException("Dummy policy bound only has a value");
-    }
+  boolean dependsOnInitial();
 
-    @Override
-    public PathFormula getFormula() {
-      throw new UnsupportedOperationException("Dummy policy bound only has a value");
-    }
+  int serializePolicy(PolicyAbstractedState toState);
 
-    @Override
-    public Rational getBound() {
-      return value;
-    }
+  PolicyBound updateValue(Rational newValue);
 
-    @Override
-    public PathFormula getStartPathFormula() {
-      throw new UnsupportedOperationException("Dummy policy bound only has a value");
-    }
 
-    @Override
-    public boolean dependsOnInitial() {
-      throw new UnsupportedOperationException("Dummy policy bound only has a value");
-    }
-
-    @Override
-    public int serializePolicy(Location toLocation) {
-      throw new UnsupportedOperationException("Dummy policy bound only has a value");
-    }
-
-    @Override
-    public PolicyBound updateValue(Rational newValue) {
-      throw new UnsupportedOperationException("Dummy policy bound only has a value");
-    }
-  }
-
-  public static class PolicyBoundImpl implements PolicyBound {
+  class PolicyBoundImpl implements PolicyBound {
 
     /**
      * Location of an abstracted state which has caused an update.
      */
-    private final Location predecessor;
+    private final PolicyAbstractedState predecessor;
 
     /**
      * Policy formula. Has to be concave and monotone (no conjunctions in
@@ -111,12 +65,12 @@ public interface PolicyBound {
      */
     private final boolean dependsOnInitial;
 
-    private static final Map<Triple<Location, BooleanFormula, Location>, Integer>
+    private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
         serializationMap = new HashMap<>();
     private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
 
     private PolicyBoundImpl(PathFormula pFormula, Rational pBound,
-        Location pPredecessor,
+        PolicyAbstractedState pPredecessor,
         PathFormula pStartPathFormula, boolean pDependsOnInitial) {
       formula = pFormula;
       bound = pBound;
@@ -126,7 +80,7 @@ public interface PolicyBound {
     }
 
     public static PolicyBound of(PathFormula pFormula, Rational bound,
-        Location pUpdatedFrom, PathFormula pStartPathFormula,
+        PolicyAbstractedState pUpdatedFrom, PathFormula pStartPathFormula,
         boolean dependsOnInitial) {
       return new PolicyBoundImpl(pFormula, bound, pUpdatedFrom, pStartPathFormula,
           dependsOnInitial);
@@ -144,9 +98,9 @@ public interface PolicyBound {
      * Based on triple (from, to, policy).
      */
     @Override
-    public int serializePolicy(Location toLocation) {
-      Triple<Location, BooleanFormula, Location> p = Triple.of(
-          predecessor, formula.getFormula(), toLocation);
+    public int serializePolicy(PolicyAbstractedState toState) {
+      Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState> p = Triple.of(
+          predecessor, formula.getFormula(), toState);
       Integer serialization = serializationMap.get(p);
       if (serialization == null) {
         serialization = pathCounter.getFreshId();
@@ -156,8 +110,8 @@ public interface PolicyBound {
     }
 
     @Override
-    public Location getPredecessor() {
-      return predecessor;
+    public PolicyAbstractedState getPredecessor() {
+      return predecessor.getLatestVersion();
     }
 
     @Override
@@ -196,8 +150,61 @@ public interface PolicyBound {
       if (other == null) return false;
       if (other.getClass() != this.getClass()) return false;
       PolicyBoundImpl o = (PolicyBoundImpl) other;
-      return predecessor.equals(o.predecessor) && bound.equals(o.bound)
-          && formula.equals(o.formula);
+      return
+          predecessor.equals(o.predecessor)
+              && bound.equals(o.bound)
+              && formula.equals(o.formula);
+    }
+  }
+
+  /**
+   * Dummy class to refer to the previous bound.
+   */
+  class PolicyBoundDummy implements PolicyBound {
+
+    private final Rational value;
+
+    private PolicyBoundDummy(Rational pValue) {
+      value = pValue;
+    }
+
+    public static PolicyBoundDummy of(Rational pValue) {
+      return new PolicyBoundDummy(pValue);
+    }
+
+    @Override
+    public PolicyAbstractedState getPredecessor() {
+      throw new UnsupportedOperationException("Dummy policy bound only has a value");
+    }
+
+    @Override
+    public PathFormula getFormula() {
+      throw new UnsupportedOperationException("Dummy policy bound only has a value");
+    }
+
+    @Override
+    public Rational getBound() {
+      return value;
+    }
+
+    @Override
+    public PathFormula getStartPathFormula() {
+      throw new UnsupportedOperationException("Dummy policy bound only has a value");
+    }
+
+    @Override
+    public boolean dependsOnInitial() {
+      throw new UnsupportedOperationException("Dummy policy bound only has a value");
+    }
+
+    @Override
+    public int serializePolicy(PolicyAbstractedState toState) {
+      throw new UnsupportedOperationException("Dummy policy bound only has a value");
+    }
+
+    @Override
+    public PolicyBound updateValue(Rational newValue) {
+      throw new UnsupportedOperationException("Dummy policy bound only has a value");
     }
   }
 }

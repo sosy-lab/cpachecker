@@ -66,7 +66,7 @@ public class OctagonAnalysisFeasabilityChecker {
     cfa = pCfa;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new OctagonTransferRelation(logger, cfa);
+    transfer  = new OctagonTransferRelation(logger, cfa.getLoopStructure().get());
     checkedPath = pPath;
 
     foundPath = getInfeasiblePrefix(VariableTrackingPrecision.createStaticPrecision(pCpa.getConfiguration(),

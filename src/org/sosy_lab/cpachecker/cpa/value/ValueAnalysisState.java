@@ -44,8 +44,11 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.constraints.LessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -375,27 +378,148 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       return false;
     }
 
-    // also, this element is not less or equal than the other element,
-    // if any one constant's value of the other element differs from the constant's value in this element
+    // Alternative: check whether symbolic values' covered value space is less or equal.
     for (Map.Entry<MemoryLocation, Value> otherEntry : other.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
       Value otherValue = otherEntry.getValue();
       Value thisValue = constantsMap.get(key);
 
-      if (thisValue instanceof SymbolicIdentifier && hasKnownValue((SymbolicIdentifier) thisValue)) {
-        thisValue = identifierMap.get(thisValue);
-      }
+      // if both values are symbolic values, we will check whether they are aliases later.
+      if (!(thisValue instanceof SymbolicValue && otherValue instanceof SymbolicValue)) {
+        if (isSymbolicIdentifierWithKnownValue(thisValue)) {
+          thisValue = getKnownValueOfSymbolicIdentifier(thisValue);
+        }
 
-      if (otherValue instanceof SymbolicIdentifier && other.hasKnownValue((SymbolicIdentifier) otherValue)) {
-        otherValue = other.identifierMap.get(otherValue);
-      }
+        if (isSymbolicIdentifierWithKnownValue(otherValue)) {
+          otherValue = getKnownValueOfSymbolicIdentifier(otherValue);
+        }
 
-      if (!otherValue.equals(thisValue)) {
-        return false;
+        if (!otherValue.equals(thisValue)) {
+          return false;
+        }
       }
     }
 
-    return true;
+    return hasLessOrEqualSymbolicCoverage(other);
+  }
+
+  private Value getKnownValueOfSymbolicIdentifier(final Value pThisValue) {
+    SymbolicIdentifier identifier = null;
+
+    if (pThisValue instanceof SymbolicIdentifier) {
+      identifier = (SymbolicIdentifier) pThisValue;
+
+    } else if (pThisValue instanceof ConstantSymbolicExpression) {
+      final Value innerValue = ((ConstantSymbolicExpression) pThisValue).getValue();
+
+      if (innerValue instanceof SymbolicIdentifier) {
+        identifier = (SymbolicIdentifier) innerValue;
+      }
+    }
+
+    if (identifier == null) {
+      throw new IllegalArgumentException("Given value can't be resolved to symbolic identifier: "
+          + pThisValue);
+    }
+
+    return identifierMap.get(identifier);
+  }
+
+  private boolean isSymbolicIdentifierWithKnownValue(final Value pThisValue) {
+    Value relevantValue = pThisValue;
+
+    if (relevantValue instanceof ConstantSymbolicExpression) {
+      relevantValue = ((ConstantSymbolicExpression) pThisValue).getValue();
+    }
+
+    return relevantValue instanceof SymbolicIdentifier
+        && hasKnownValue((SymbolicIdentifier) relevantValue);
+  }
+
+  private boolean hasLessOrEqualSymbolicCoverage(final ValueAnalysisState pOther) {
+    final Map<MemoryLocation, SymbolicValue> thisSymbolicAssignments = getSymbolicAssignments();
+    final Map<MemoryLocation, SymbolicValue> otherSymbolicAssignments =
+        pOther.getSymbolicAssignments();
+
+    // if the given state has more symbolic assignments, we simplify by handling the states
+    // as non-comparable
+    if (otherSymbolicAssignments.size() > thisSymbolicAssignments.size()) {
+      return false;
+    }
+
+    if (thisSymbolicAssignments.isEmpty()) {
+      return true;
+    }
+
+    final LessOrEqualOperator leqOperator = LessOrEqualOperator.getInstance();
+
+    final Set<LessOrEqualOperator.Environment> possibleScenarios =
+        leqOperator.getPossibleAliasings(thisSymbolicAssignments.values(),
+                                         otherSymbolicAssignments.values());
+
+    if (possibleScenarios.isEmpty()) {
+      return false;
+    }
+
+    // check whether a possible aliasing of symbolic expressions fits the correct memory locations.
+    for (LessOrEqualOperator.Environment e : possibleScenarios) {
+      boolean memoryLocationsAndAliassesConsistent = true;
+
+      for (Map.Entry<SymbolicIdentifier, Value> entry : pOther.identifierMap.entrySet()) {
+        SymbolicIdentifier id = entry.getKey();
+        SymbolicIdentifier alias = e.getCounterpart(id);
+
+        // definite assignments are not cleaned up when symbolic identifiers are forgotten,
+        // so it is possible that no alias exists, because the identifier is not part of the state
+        // anymore
+        if (alias == null) {
+          continue;
+        }
+
+        if (!entry.getValue().equals(identifierMap.get(alias))) {
+          memoryLocationsAndAliassesConsistent = false;
+          break;
+        }
+      }
+
+      if (!memoryLocationsAndAliassesConsistent) {
+        continue;
+      }
+
+      for (Map.Entry<MemoryLocation, SymbolicValue> entry : otherSymbolicAssignments.entrySet()) {
+        MemoryLocation memLoc = entry.getKey();
+        SymbolicValue value = entry.getValue();
+
+        SymbolicValue alias = e.getCounterpart(value);
+
+        assert alias != null;
+
+        if (!thisSymbolicAssignments.containsKey(memLoc) || !thisSymbolicAssignments.get(memLoc).equals(alias)) {
+          memoryLocationsAndAliassesConsistent = false;
+        }
+      }
+
+      if (memoryLocationsAndAliassesConsistent) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private Map<MemoryLocation, SymbolicValue> getSymbolicAssignments() {
+    Map<MemoryLocation, SymbolicValue> assignmentMap = new HashMap<>();
+
+    for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
+      Value currVal = entry.getValue();
+
+      // we only want symbolic values that do not have a definite assignment
+      if (currVal instanceof SymbolicValue && !isSymbolicIdentifierWithKnownValue(currVal)) {
+        assignmentMap.put(entry.getKey(), (SymbolicValue) currVal);
+      }
+    }
+
+    return assignmentMap;
   }
 
   @Override

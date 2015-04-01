@@ -41,9 +41,9 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
 
   private final FunctionFormulaManager manager;
 
-  public FunctionFormulaManagerView(FormulaManagerView pViewManager,
+  public FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       FunctionFormulaManager pManager) {
-    super(pViewManager);
+    super(pWrappingHandler);
     this.manager = pManager;
   }
 

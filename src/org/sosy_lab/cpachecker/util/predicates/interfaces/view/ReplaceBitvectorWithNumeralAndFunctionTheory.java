@@ -58,11 +58,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   private final boolean ignoreExtractConcat;
 
   public ReplaceBitvectorWithNumeralAndFunctionTheory(
-      FormulaManagerView pViewManager,
+      FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<? super T, T> rawNumericFormulaManager,
       FunctionFormulaManager rawFunctionManager,
       final boolean ignoreExtractConcat) {
-    super(pViewManager);
+    super(pWrappingHandler);
     numericFormulaManager = rawNumericFormulaManager;
     this.ignoreExtractConcat = ignoreExtractConcat;
     this.functionManager = rawFunctionManager;

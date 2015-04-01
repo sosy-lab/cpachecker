@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
@@ -21,13 +23,8 @@ public class FormulaLinearizationManager {
   private final FormulaManagerView fmgr;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
 
-  private static final String NOT_FUNC_NAME = "not";
-
-  private static final String EQ_FUNC_NAME = "=";
-  private static final String OR_FUNC_NAME = "or";
-
   public static final String CHOICE_VAR_NAME = "__POLICY_CHOICE_";
-  private int choiceVarCounter = -1;
+  private final UniqueIdGenerator choiceVarCounter = new UniqueIdGenerator();
 
   public FormulaLinearizationManager(UnsafeFormulaManager pUfmgr,
       BooleanFormulaManager pBfmgr, FormulaManagerView pFmgr,
@@ -46,84 +43,64 @@ public class FormulaLinearizationManager {
    *  x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return (BooleanFormula)recLinearize(input, new HashMap<Formula, Formula>());
-  }
-
-  // TODO: stop code duplication.
-  private Formula recLinearize(final Formula input,
-      Map<Formula, Formula> memoization) {
-    Formula out = memoization.get(input);
-    if (out != null) {
-      return out;
-    }
-
-    // Pattern matching on (not (= A B)).
-    boolean isNot = ufmgr.getName(input).equals(NOT_FUNC_NAME);
-
-    if (isNot && ufmgr.getName(ufmgr.getArg(input, 0)).equals(EQ_FUNC_NAME)) {
-      Formula child = ufmgr.getArg(input, 0);
-      Formula lhs = ufmgr.getArg(child, 0);
-      Formula rhs = ufmgr.getArg(child, 1);
-
-      out = bfmgr.or(
-          fmgr.makeGreaterThan(lhs, rhs, true),
-          fmgr.makeLessThan(lhs, rhs, true));
-    } else {
-      List<Formula> newArgs = new ArrayList<>();
-      for (int i=0; i<ufmgr.getArity(input); i++) {
-        newArgs.add(recLinearize(ufmgr.getArg(input, i), memoization));
-      }
-
-      out = ufmgr.replaceArgs(input, newArgs);
-    }
-
-    memoization.put(input, out);
-    return out;
+    return new LinearizationManager(
+        fmgr, new HashMap<BooleanFormula, BooleanFormula>()
+    ).visit(input);
   }
 
   /**
    * Annotate disjunctions with choice variables.
    */
   public BooleanFormula annotateDisjunctions(BooleanFormula input) {
-    return (BooleanFormula)recAnnotateDisjunction(
-        input, new HashMap<Formula, Formula>());
+    return new DisjunctionAnnotationVisitor(fmgr,
+        new HashMap<BooleanFormula, BooleanFormula>()).visit(input);
   }
 
-  private Formula recAnnotateDisjunction(Formula input,
-      Map<Formula, Formula> memoization) {
-    Formula out = memoization.get(input);
-    if (out != null) {
-      return out;
+  private class LinearizationManager extends BooleanFormulaTransformationVisitor {
+
+    protected LinearizationManager(
+        FormulaManagerView pFmgr, Map<BooleanFormula, BooleanFormula> pCache) {
+      super(pFmgr, pCache);
     }
 
-    if (ufmgr.getName(input).equals(OR_FUNC_NAME)) {
-      String freshVarName = CHOICE_VAR_NAME + (++choiceVarCounter);
+    @Override
+    protected BooleanFormula visitNot(BooleanFormula pOperand) {
+      List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
+
+      // Pattern matching on (NOT (= A B)).
+      if (split.size() == 2) {
+        return bfmgr.or(
+            bfmgr.not(split.get(0)), bfmgr.not(split.get(1))
+        );
+      }
+      return super.visitNot(pOperand);
+    }
+  }
+
+  private class DisjunctionAnnotationVisitor extends BooleanFormulaTransformationVisitor {
+    // todo: fail fast if the disjunction is inside NOT operator.
+
+    protected DisjunctionAnnotationVisitor(
+        FormulaManagerView pFmgr,
+        Map<BooleanFormula, BooleanFormula> pCache) {
+      super(pFmgr, pCache);
+    }
+
+    @Override
+    protected BooleanFormula visitOr(BooleanFormula... pOperands) {
+      String freshVarName = CHOICE_VAR_NAME + choiceVarCounter.getFreshId();
       IntegerFormula var = ifmgr.makeVariable(freshVarName);
-      List<Formula> newArgs = new ArrayList<>();
-      for (int choice = 0; choice < ufmgr.getArity(input); choice++) {
+      List<BooleanFormula> newArgs = new ArrayList<>();
+      for (int i=0; i < pOperands.length; i++) {
         newArgs.add(
             bfmgr.and(
-                (BooleanFormula)
-                    recAnnotateDisjunction(ufmgr.getArg(input, choice),
-                        memoization),
-                fmgr.makeEqual(var, ifmgr.makeNumber(choice))
+                visitIfNotSeen(pOperands[i]),
+                fmgr.makeEqual(var, ifmgr.makeNumber(i))
             )
         );
       }
-      out = ufmgr.replaceArgs(input, newArgs);
-
-    } else {
-      List<Formula> newArgs = new ArrayList<>();
-      for (int i=0; i<ufmgr.getArity(input); i++) {
-        newArgs.add(
-            recAnnotateDisjunction(
-                ufmgr.getArg(input, i), memoization));
-      }
-      out = ufmgr.replaceArgs(input, newArgs);
+      return bfmgr.or(newArgs);
     }
-
-    memoization.put(input, out);
-    return out;
   }
 
   /**

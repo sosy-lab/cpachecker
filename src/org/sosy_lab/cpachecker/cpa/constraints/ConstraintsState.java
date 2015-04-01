@@ -69,6 +69,8 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
 
   private IdentifierAssignment definiteAssignment;
 
+  private LessOrEqualOperator lessOrEqualOperator = LessOrEqualOperator.getInstance();
+
   /**
    * Creates a new, initial <code>ConstraintsState</code> object.
    */
@@ -76,6 +78,15 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     constraints = new ArrayList<>();
     constraintFormulas = new HashMap<>();
     definiteAssignment = new IdentifierAssignment();
+  }
+
+  public ConstraintsState(
+      final Set<Constraint> pConstraints,
+      final IdentifierAssignment pDefiniteAssignment
+  ) {
+    constraints = new ArrayList<>(pConstraints);
+    definiteAssignment = new IdentifierAssignment(pDefiniteAssignment);
+    constraintFormulas = new HashMap<>();
   }
 
   /**
@@ -153,29 +164,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
 
     return solver.implies(otherRepresentingFormula, thisRepresentingFormula);*/
 
-    if (other.size() > size()) {
-      return false;
-    }
-
-    if (other.definiteAssignment.size() > definiteAssignment.size()) {
-      return false;
-    }
-
-    if (!containsAll(other)) {
-      return false;
-    }
-
-    for (Map.Entry<SymbolicIdentifier, Value> e : other.definiteAssignment.entrySet()) {
-      if (!definiteAssignment.containsKey(e.getKey())) {
-        return false;
-      }
-
-      if (!definiteAssignment.get(e.getKey()).equals(e.getValue())) {
-        return false;
-      }
-    }
-
-    return true;
+    return lessOrEqualOperator.isLessOrEqual(this, other);
   }
 
   /**

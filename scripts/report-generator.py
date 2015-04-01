@@ -62,11 +62,15 @@ def call_dot(infile, outpath):
         except OSError:
             pass # if outfile is not written, removing is impossible
         return False
+    except OSError as e:
+        if e.errno == 2:
+            sys.exit('Error: Could not call "dot" from GraphViz to create graph, please install it\n({}).'.format(e))
+        else:
+            sys.exit('Error: Could not call "dot" from GraphViz to create graph\n({}).'.format(e))
+
 
     if code != 0:
-        print ('Error: Could not call GraphViz to create graph {0} (error code {1})'.format(outfile, code))
-        print ('Report generation failed')
-        sys.exit(1)
+        sys.exit('Error: Could not call "dot" from to create graph {0} (return code {1}).'.format(outfile, code))
 
     return True
 
@@ -117,10 +121,19 @@ def main():
 
     # read config file
     config = {}
-    with open(options.configfile) as configfile:
-        for line in configfile:
-            (key, val) = line.split("=", 1)
-            config[key.strip()] = val.strip()
+    try:
+        with open(options.configfile) as configfile:
+            for line in configfile:
+                (key, val) = line.split("=", 1)
+                config[key.strip()] = val.strip()
+    except IOError as e:
+        if e.errno:
+            sys.exit('Could not find output of CPAchecker in {}. Please specify correctpath with option --config\n({}).'.format(options.configfile, e))
+        else:
+            sys.exit('Could not read output of CPAchecker in {}\n({}).'.format(options.configfile, e))
+
+    if not config.get('analysis.programNames'):
+        sys.exit('CPAchecker output does not specify path to analyzed program. Cannot generate report.')
 
     # extract paths to all necessary files from config
     cpaoutdir      = config.get('output.path', 'output/')

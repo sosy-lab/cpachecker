@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
-import java.util.HashSet;
-import java.util.Set;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -65,16 +64,12 @@ public class TargetLocationProvider {
     super();
     reachedSetFactory = pReachedSetFactory;
     shutdownNotifier = pShutdownNotifier;
-    logManager = pLogManager;
+    logManager = pLogManager.withComponentName("TargetLocationProvider");
     config = pConfig;
     cfa = pCfa;
   }
 
   public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
-    return tryGetAutomatonTargetLocations(pRootNode, true);
-  }
-
-  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode, boolean pSkipRecursion) {
     try {
       // Create new configuration with default set of CPAs
       ConfigurationBuilder configurationBuilder = Configuration.builder();
@@ -83,7 +78,7 @@ public class TargetLocationProvider {
       }
       configurationBuilder.setOption("output.disable", "true");
       configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
-      configurationBuilder.setOption("cpa.callstack.skipRecursion", Boolean.toString(pSkipRecursion));
+      configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
 
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
@@ -94,38 +89,41 @@ public class TargetLocationProvider {
           cpa.getInitialState(pRootNode, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(pRootNode, StateSpacePartition.getDefaultPartition()));
       CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
+      try {
 
-      Set<CFANode> result = new HashSet<>();
+        while (reached.hasWaitingState()) {
+          targetFindingAlgorithm.run(reached);
+        }
 
-      boolean changed = true;
-      while (changed) {
-        targetFindingAlgorithm.run(reached);
-        changed = result.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
+      } finally {
+        CPAs.closeCpaIfPossible(cpa, logManager);
+        CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
       }
 
-      CPAs.closeCpaIfPossible(cpa, logManager);
-      CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
+      // Order of reached is the order in which states were created,
+      // toSet() keeps ordering, so the result is deterministic.
+      return from(reached)
+          .filter(AbstractStates.IS_TARGET_STATE)
+          .transform(AbstractStates.EXTRACT_LOCATION)
+          .toSet();
 
-      return ImmutableSet.copyOf(result);
+    } catch (InvalidConfigurationException | CPAException e) {
 
-    } catch (CPAException e) {
-
-      if (!shutdownNotifier.shouldShutdown()) {
-        if ((pSkipRecursion || !pSkipRecursion && !e.toString().toLowerCase().contains("recursion"))) {
-          logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
-        } else {
-          logManager.logException(Level.FINEST, e, "Recursion detected. Defaulting to selecting all locations.");
-        }
+      if (!e.toString().toLowerCase().contains("recursion")) {
+        logManager.logUserException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
+      } else {
+        logManager.log(Level.INFO, "Recursion detected. Defaulting to selecting all locations as potential target locations.");
+        logManager.logDebugException(e);
       }
 
       return null;
 
-    } catch (InvalidConfigurationException | InterruptedException e) {
-
+    } catch (InterruptedException e) {
       if (!shutdownNotifier.shouldShutdown()) {
-        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
+      } else {
+        logManager.logDebugException(e);
       }
-
       return null;
     }
   }

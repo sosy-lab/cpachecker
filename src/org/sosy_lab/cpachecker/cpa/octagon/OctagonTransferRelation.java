@@ -35,9 +35,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -72,15 +70,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -110,13 +102,12 @@ import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonUniversalCoeffici
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -125,7 +116,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
 @SuppressWarnings("rawtypes")
-public class OctagonTransferRelation extends ForwardingTransferRelation<Set<OctagonState>, OctagonState, VariableTrackingPrecision> {
+public class OctagonTransferRelation extends ForwardingTransferRelation<Collection<OctagonState>, OctagonState, VariableTrackingPrecision> {
 
   private static final String TEMP_VAR_PREFIX = "___cpa_temp_var_";
 
@@ -140,25 +131,14 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
    * the value of the map entry is the explanation for the user
    */
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("pthread_create", "threads");
+      = ImmutableMap.of();
 
   private final LogManager logger;
 
   private final Set<CFANode> loopHeads;
 
-  /**
-   * Class constructor.
-   * @throws InvalidCFAException
-   * @throws InvalidConfigurationException
-   */
-  public OctagonTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
+  public OctagonTransferRelation(LogManager log, LoopStructure loops) {
     logger = log;
-
-    if (!cfa.getLoopStructure().isPresent()) {
-      throw new InvalidCFAException("OctagonCPA does not work without loop information!");
-    }
-
-    LoopStructure loops = cfa.getLoopStructure().get();
 
     Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (Loop l : loops.getAllLoops()) {
@@ -169,49 +149,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
   }
 
   @Override
-  public Collection<OctagonState> getAbstractSuccessorsForEdge(
-      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
-      throws CPATransferException {
-
-    setInfo(abstractState, abstractPrecision, cfaEdge);
-
-    final Collection<OctagonState> preCheck = preCheck();
-    if (preCheck != null) { return preCheck; }
-
-    final Collection<OctagonState> successors = new ArrayList<>();
-
-    switch (cfaEdge.getEdgeType()) {
-
-    case AssumeEdge:
-      final AssumeEdge assumption = (AssumeEdge) cfaEdge;
-      successors.addAll(handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption()));
-      break;
-
-    case FunctionCallEdge:
-      final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-      final FunctionEntryNode succ = fnkCall.getSuccessor();
-      final String calledFunctionName = succ.getFunctionName();
-      successors.addAll(handleFunctionCallEdge(fnkCall, fnkCall.getArguments(),
-          succ.getFunctionParameters(), calledFunctionName));
-      break;
-
-    case FunctionReturnEdge:
-      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-      final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-      successors.addAll(handleFunctionReturnEdge(fnkReturnEdge,
-          summaryEdge, summaryEdge.getExpression(), callerFunctionName));
-
-      break;
-
-    case MultiEdge:
-      successors.addAll(handleMultiEdge((MultiEdge) cfaEdge));
-      break;
-
-    default:
-      successors.addAll(handleSimpleEdge(cfaEdge));
-    }
-
+  protected Collection<OctagonState> postProcessing(Collection<OctagonState> successors) {
+    assert !successors.contains(null); // TODO is this assertion equal to next line?
     assert !successors.removeAll(Collections.singleton(null));
 
     // remove all states whose constraints cannot be satisfied
@@ -221,7 +160,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       if (st.isEmpty()) {
         states.remove();
         logger.log(Level.FINER, "removing state because of unsatisfiable constraints:\n" +
-                                 st + "________________\nEdge was:\n" + cfaEdge.getDescription());
+                                 st + "________________\nEdge was:\n" + edge.getDescription());
       }
     }
 
@@ -233,15 +172,13 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       cleanedUpStates.add(st.removeTempVars(functionName, TEMP_VAR_PREFIX));
     }
 
-    if (loopHeads.contains(cfaEdge.getSuccessor())) {
+    if (loopHeads.contains(edge.getSuccessor())) {
       Set<OctagonState> newStates = new HashSet<>();
       for (OctagonState s : cleanedUpStates) {
         newStates.add(s.asLoopHead());
       }
       cleanedUpStates = newStates;
     }
-
-    resetInfo();
 
     return cleanedUpStates;
   }
@@ -325,18 +262,10 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
    * @return an OctState or null
    */
   private Set<OctagonState> handleLiteralBooleanExpression(long value, boolean truthAssumption, OctagonState state) {
-    if (value == 0) {
-      if (truthAssumption) {
-        return Collections.emptySet();
-      } else {
-        return Collections.singleton(state);
-      }
+    if ((value == 0) == truthAssumption) {
+      return Collections.emptySet();
     } else {
-      if (truthAssumption) {
-        return Collections.singleton(state);
-      } else {
-        return Collections.emptySet();
-      }
+      return Collections.singleton(state);
     }
   }
 
@@ -622,7 +551,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
    * a CCharLiteralExpression.
    */
   private Set<OctagonState> handleBinaryAssumptionWithTwoLiterals(CLiteralExpression left, CLiteralExpression right, BinaryOperator op,
-      boolean truthAssumption) throws CPATransferException {
+      boolean truthAssumption) {
     OctagonNumericValue leftVal = OctagonIntValue.ZERO;
     if (left instanceof CIntegerLiteralExpression) {
       leftVal = OctagonIntValue.of(((CIntegerLiteralExpression) left).asLong());
@@ -641,93 +570,30 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       rightVal = new OctagonDoubleValue(((CFloatLiteralExpression)right).getValue().doubleValue());
     }
 
+    if (truthAssumption == isOperatorSatisfied(op, leftVal, rightVal)) {
+      return Collections.singleton(state);
+    } else {
+      return Collections.emptySet();
+    }
+  }
+
+  private static boolean isOperatorSatisfied(final BinaryOperator op,
+      final OctagonNumericValue leftVal, final OctagonNumericValue rightVal) {
     switch (op) {
     case EQUALS:
-      if (truthAssumption) {
-        if (leftVal.isEqual(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.isEqual(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.isEqual(rightVal);
     case GREATER_EQUAL:
-      if (truthAssumption) {
-        if (leftVal.greaterEqual(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.greaterEqual(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.greaterEqual(rightVal);
     case GREATER_THAN:
-      if (truthAssumption) {
-        if (leftVal.greaterThan(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.greaterThan(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.greaterThan(rightVal);
     case LESS_EQUAL:
-      if (truthAssumption) {
-        if (leftVal.lessEqual(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.lessEqual(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.lessEqual(rightVal);
     case LESS_THAN:
-      if (truthAssumption) {
-        if (leftVal.lessThan(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      } else {
-        if (leftVal.lessThan(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      }
+      return leftVal.lessThan(rightVal);
     case NOT_EQUALS:
-      if (truthAssumption) {
-        if (leftVal.isEqual(rightVal)) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(state);
-        }
-      } else {
-        if (leftVal.isEqual(rightVal)) {
-          return Collections.singleton(state);
-        } else {
-          return Collections.emptySet();
-        }
-      }
+      return !leftVal.isEqual(rightVal);
     default:
-      throw new CPATransferException("Unhandled case: " + op);
+      throw new AssertionError("Unhandled case: " + op);
     }
   }
 

@@ -1,11 +1,22 @@
 #!/bin/sh
 
+# This script builds either libmathsat5j.so (bindings to mathsat5), or
+# liboptimathsat5j.so (bindings to optimathsat5).
+# In future, mathsat5 and optimathsat should merge, making the switching
+# obsolete.
+
 # For building libmathsat5j.so, there are two dependencies:
 # - The static Mathsat5 library as can be downloaded from http://mathsat.fbk.eu/download.html
 # - The static GMP library compiled with the "-fPIC" option.
 #   To create this, download GMP from http://gmplib.org/ and run
 #   ./configure --enable-cxx --with-pic --disable-shared
 #   make
+
+# For building liboptimathsat5.so, OptiMathSat5 can be downloaded from
+# http://optimathsat.disi.unitn.it/.
+
+# To build mathsat bindings: ./compile.sh $MATHSAT_DIR $GMP_DIR
+# To build optimathsat bindings: ./compile.sh $MATHSAT_DIR $GMP_DIR -opt
 
 # This script searches for all included libraries in the current directory first.
 # You can use this to override specific libraries installed on your system.
@@ -43,18 +54,30 @@ if [ ! -f "$GMP_LIB_DIR/libgmp.a" ]; then
 	exit 1
 fi
 
-echo "Compiling the C wrapper code and creating the \"mathsat5j\" library"
+SRC_FILES="org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.c versions.c"
+OBJ_FILES="org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o"
+
+if [ "$3" = "-opt" ]; then
+    echo "Compiling bindings to OptiMathSAT"
+    SRC_FILES="$SRC_FILES optimization.c"
+    OBJ_FILES="$OBJ_FILES optimization.o"
+    OUT_FILE="liboptimathsat5j.so"
+else
+    OUT_FILE="libmathsat5j.so"
+fi
+
+echo "Compiling the C wrapper code and creating the \"$OUT_FILE\" library"
 
 # This will compile the JNI wrapper part, given the JNI and the Mathsat header files
-gcc -g $JNI_HEADERS -I$MSAT_SRC_DIR -I$GMP_HEADER_DIR versions.c org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.c -fPIC -c
+gcc -g $JNI_HEADERS -I$MSAT_SRC_DIR -I$GMP_HEADER_DIR $SRC_FILES -fPIC -c
 
 # This will link together the file produced above, the Mathsat library, the GMP library and the standard libraries.
 # Everything except the standard libraries is included statically.
 # The result is a shared library.
 if [ `uname -m` = "x86_64" ]; then
-	gcc -Wall -g -o libmathsat5j.so -shared -Wl,-soname,libmathsat5j.so -L. -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR versions.o org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++ -Wl,--wrap=memcpy
+	gcc -Wall -g -o $OUT_FILE -shared -Wl,-soname,libmathsat5j.so -L. -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR versions.o $OBJ_FILES -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++ -Wl,--wrap=memcpy
 else
-	gcc -Wall -g -o libmathsat5j.so -shared -Wl,-soname,libmathsat5j.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++
+	gcc -Wall -g -o $OUT_FILE -shared -Wl,-soname,libmathsat5j.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR $OBJ_FILES -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++
 fi
 
 
@@ -68,10 +91,10 @@ fi
 MISSING_SYMBOLS="$(readelf -Ws libmathsat5j.so | grep NOTYPE | grep GLOBAL | grep UND)"
 if [ ! -z "$MISSING_SYMBOLS" ]; then
 	echo "Warning: There are the following unresolved dependencies in libmathsat5j.so:"
-	readelf -Ws libmathsat5j.so | grep NOTYPE | grep GLOBAL | grep UND
+	readelf -Ws $OBJ_FILES | grep NOTYPE | grep GLOBAL | grep UND
 	exit 1
 fi
 
 echo "All Done"
 echo "Please check in the following output that the library does not depend on any GLIBC version >= 2.11, otherwise it will not work on Ubuntu 10.04:"
-LANG=C objdump -p libmathsat5j.so |grep -A50 "required from"
+LANG=C objdump -p $OUT_FILE |grep -A50 "required from"

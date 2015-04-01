@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.PathToRealCTranslator;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -120,6 +121,10 @@ public class CEXExporter {
   @Option(secure=true, name="exportImmediately",
           description="export error paths to files immediately after they were found")
   private boolean dumpErrorPathImmediately = false;
+
+  @Option(secure=true, name="codeStyle",
+          description="use either CMBC or real C")
+  private String codeStyle = "CMBC";
 
   private final LogManager logger;
   private final ARGPathExport witnessExporter;
@@ -212,7 +217,11 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (errorPathSourceFile != null) {
-        pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+        if (codeStyle.equals("REALC")) {
+          pathProgram = PathToRealCTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
+        } else {
+          pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+        }
       }
 
     } else {
@@ -223,7 +232,11 @@ public class CEXExporter {
       pathElements = ARGUtils.getAllStatesOnPathsTo(lastState);
 
       if (errorPathSourceFile != null) {
-        pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+        if (codeStyle.equals("REALC")) {
+          pathProgram = PathToRealCTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
+        } else {
+          pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+        }
       }
     }
 

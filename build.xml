@@ -108,7 +108,7 @@
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
     </target>
 
-    <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
+    <target name="build-dependencies" depends="init, build-subprojects"/>
 
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
@@ -116,7 +116,7 @@
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="build-project" depends="build-dependencies,-warn-errorprone">
+    <target name="build-project" depends="-warn-errorprone">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <echo message="Compiling CPAchecker"/>

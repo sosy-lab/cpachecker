@@ -39,9 +39,9 @@ public class FloatingPointFormulaManagerView
 
   private final FloatingPointFormulaManager manager;
 
-  public FloatingPointFormulaManagerView(FormulaManagerView pViewManager,
+  public FloatingPointFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       FloatingPointFormulaManager pManager) {
-    super(pViewManager);
+    super(pWrappingHandler);
     this.manager = pManager;
   }
 

@@ -143,7 +143,6 @@ public class ValueAnalysisRefiner
    *
    * @param errorPath the error path for which to create the model
    * @return the model for the given error path
-   * @throws InvalidConfigurationException
    * @throws InterruptedException
    * @throws CPAException
    */

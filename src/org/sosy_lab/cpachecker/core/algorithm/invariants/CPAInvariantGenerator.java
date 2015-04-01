@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -113,7 +112,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
   private final CPAInvariantGeneratorStatistics stats = new CPAInvariantGeneratorStatistics();
   private final LogManager logger;
-  private final Algorithm invariantAlgorithm;
+  private final CPAAlgorithm invariantAlgorithm;
   private final ConfigurableProgramAnalysis invariantCPAs;
   private final ReachedSetFactory reachedSetFactory;
   private final ReachedSet reached;
@@ -136,8 +135,9 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     return invariantCPAs;
   }
 
-  public CPAInvariantGenerator(Configuration config, LogManager pLogger,
-      ReachedSetFactory reachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException, CPAException {
+  public CPAInvariantGenerator(final Configuration config, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final CFA cfa)
+          throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger.withComponentName("CPAInvariantGenerator");
     shutdownNotifier = ShutdownNotifier.createWithParent(pShutdownNotifier);
@@ -151,9 +151,9 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
+    reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     invariantCPAs = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAWithSpecAutomatas(cfa);
     invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, shutdownNotifier);
-    this.reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     reached = reachedSetFactory.create();
   }
 
@@ -213,9 +213,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     if (invariantCPAs instanceof StatisticsProvider) {
       ((StatisticsProvider)invariantCPAs).collectStatistics(pStatsCollection);
     }
-    if (invariantAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)invariantAlgorithm).collectStatistics(pStatsCollection);
-    }
+    invariantAlgorithm.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
   }
 

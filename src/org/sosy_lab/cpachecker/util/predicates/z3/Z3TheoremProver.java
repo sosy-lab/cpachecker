@@ -49,6 +49,7 @@ import com.google.common.base.Preconditions;
 
 class Z3TheoremProver implements ProverEnvironment {
 
+  private final ShutdownNotifier shutdownNotifier;
   private final Z3FormulaManager mgr;
   private long z3context;
   private long z3solver;
@@ -60,7 +61,8 @@ class Z3TheoremProver implements ProverEnvironment {
 
   private final Map<String, BooleanFormula> storedConstraints;
 
-  Z3TheoremProver(Z3FormulaManager pMgr, long z3params, boolean generateUnsatCore) {
+  Z3TheoremProver(Z3FormulaManager pMgr, long z3params,
+      ShutdownNotifier pShutdownNotifier, boolean generateUnsatCore) {
     mgr = pMgr;
     z3context = mgr.getEnvironment();
     z3solver = mk_solver(z3context);
@@ -72,6 +74,7 @@ class Z3TheoremProver implements ProverEnvironment {
     } else {
       storedConstraints = null;
     }
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -117,8 +120,9 @@ class Z3TheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public boolean isUnsat() throws Z3SolverException {
+  public boolean isUnsat() throws Z3SolverException, InterruptedException {
     int result = solver_check(z3context, z3solver);
+    shutdownNotifier.shutdownIfNecessary();
     Preconditions.checkArgument(result != Z3_LBOOL.Z3_L_UNDEF.status);
 
     smtLogger.logCheck();

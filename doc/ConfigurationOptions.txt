@@ -222,11 +222,15 @@ backwardSpecification = no default value
 # fixed BDD cache size).
 bdd.javabdd.cacheRatio = 0.1
 
-# Size of the BDD cache if cache ratio is not used.
-bdd.javabdd.cacheSize = 1000
+# Initial size of the BDD cache, use 0 for cacheRatio*initTableSize.
+bdd.javabdd.cacheSize = 0
 
-# Initial size of the BDD node table.
-bdd.javabdd.initTableSize = 10000
+# Initial size of the BDD node table in percentage of available Java heap
+# memory (only used if initTableSize is 0).
+bdd.javabdd.initTableRatio = 0.001
+
+# Initial size of the BDD node table, use 0 for size based on initTableRatio.
+bdd.javabdd.initTableSize = 0
 
 # Which BDD package should be used?
 # - java:   JavaBDD (default, no dependencies, many features)
@@ -329,6 +333,14 @@ cegar.globalRefinement = false
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
 cegar.refiner = no default value
+
+# the maximum score for which always the primary refinement will be performed
+cegar.scoringThreshold = 65536
+
+# whether or not to let auxiliary refiner score and refine a path that is
+# feasible for the primary refiner, this allows to only extract prefixes that
+# are exclusive to the auxiliary refiner
+cegar.useFeasiblePathForAuxRefiner = false
 
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
@@ -524,6 +536,9 @@ cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 # export error path to file as an automaton
 cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
+# use either CMBC or real C
+cpa.arg.errorPath.codeStyle = "CMBC"
+
 # export error path to file, if one is found
 cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
 cpa.arg.errorPath.enabled = true
@@ -679,13 +694,6 @@ cpa.callstack.depth = 0
 # faster since it uses only object equivalence
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
-
-# Compare CallstackStates using the identity function, that is two states
-# would be equal only if they are the same object and not if their call stack
-# contains the same list of functions. This prevents merging of abstract
-# states inside a called functions if they are successors of different
-# abstract states in the caller function.
-cpa.callstack.produceUniqueStates = true
 
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
@@ -927,6 +935,15 @@ cpa.pointerA.merge = "JOIN"
 # which stop operator to use for PointerACPA
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Predicate ordering
+cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
+  enum:     [SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
+             FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE, FRAMEWORK_WIN2,
+             FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE, CHRONOLOGICAL]
+
+# Use multiple partitions for predicates
+cpa.predicate.abs.predicateOrdering.partitions = false
 
 # use caching of region to formula conversions
 # use caching of abstractions
@@ -1247,9 +1264,13 @@ cpa.predicate.refinement.predicateBasisStrategy = TARGET
 
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = DEFAULT
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
-             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, REFINE_DEEP_DOMAIN, RANDOM,
-             MEDIAN, MIDDLE, DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
+             DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
+             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
+             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
+             REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
+             ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
+             RANDOM, MEDIAN, MIDDLE, FEASIBLE]
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
@@ -1315,6 +1336,11 @@ cpa.predicate.revealAllocationTypeFromLhs = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
+# Enables sat checks at abstraction location.
+# Infeasible paths are already excluded by transfer relation and not later by
+# precision adjustment. This property is required in proof checking.
+cpa.predicate.satCheckAtAbstraction = false
+
 # Which SMT solver to use.
 cpa.predicate.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
@@ -1326,6 +1352,9 @@ cpa.predicate.solver.logfile = "smtquery.%03d.smt2"
 # List of further options which will be passed to Mathsat in addition to the
 # default options. Format is 'key1=value1,key2=value2'
 cpa.predicate.solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+cpa.predicate.solver.mathsat5.loadOptimathsat5 = false
 
 # Random seed for SMT solver.
 cpa.predicate.solver.random-seed = 42
@@ -1585,9 +1614,6 @@ cpa.stator.policy.encodeTemplatesAsRationals = false
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = Rational.ONE
 
-# Remove redundant constraints from the value determination problem
-cpa.stator.policy.filterValueDeterminationConstraints = true
-
 # Perform formula slicing after abstractions to propagate the pointer
 # information
 cpa.stator.policy.formulaSlicing = true
@@ -1603,6 +1629,10 @@ cpa.stator.policy.generateOctagons = false
 
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
+
+# Any intermediate state with formula length bigger than specified will be
+# checked for reachability. Set to 0 to disable.
+cpa.stator.policy.lengthLimitForSATCheck = 200
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
@@ -1648,6 +1678,9 @@ cpa.value.blk.alwaysAtJoins = false
 # restrict abstractions to loop heads
 cpa.value.blk.alwaysAtLoops = false
 
+# toggle liveness abstraction
+cpa.value.blk.doLivenessAbstraction = false
+
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
 cpa.value.blk.onlyAtNonLinearCFA = false
@@ -1673,6 +1706,9 @@ cpa.value.precisionFile = no default value
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 
+# whether or not to do lazy-abstraction
+cpa.value.refinement.doLazyAbstraction = true
+
 # when to export the interpolation tree
 # NEVER:   never export the interpolation tree
 # FINAL:   export the interpolation tree once after each refinement
@@ -1687,6 +1723,16 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 # heuristic to sort targets based on the quality of interpolants deriveable
 # from them
 cpa.value.refinement.itpSortedTargets = false
+
+# whether or not to perform path slicing before interpolation
+cpa.value.refinement.pathSlicing = true
+
+# which prefix of an actual counterexample trace should be used for
+# interpolation
+cpa.value.refinement.prefixPreference = DOMAIN_BEST_SHALLOW
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
+             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, REFINE_DEEP_DOMAIN, RANDOM,
+             MEDIAN, MIDDLE, DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
@@ -1714,9 +1760,13 @@ cpa.value.refiner.performEdgeBasedInterpolation = true
 # which prefix of an actual counterexample trace should be used for
 # interpolation
 cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
-             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, REFINE_DEEP_DOMAIN, RANDOM,
-             MEDIAN, MIDDLE, DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
+             DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
+             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
+             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
+             REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
+             ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
+             RANDOM, MEDIAN, MIDDLE, FEASIBLE]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -1730,7 +1780,7 @@ cpa.value.symbolic.handleArrays = false
 
 # If this option is set to true, an own symbolic identifier is assigned to
 # each struct member when handling non-determinstic structs.
-cpa.value.symbolic.handleStructs = false
+cpa.value.symbolic.handleStructs = true
 
 # Use symbolic values. This allows tracking of non-deterministic values.
 # Symbolic values should always be used in conjunction with ConstraintsCPA.
@@ -1801,6 +1851,16 @@ limits.time.wall = -1ns
 # global means that the whole cfa is used for the computation.
 liveVar.evaluationStrategy = FUNCTION_WISE
   enum:     [FUNCTION_WISE, GLOBAL]
+
+# Overall timelimit for collecting the liveness information.(use seconds or
+# specify a unit; 0 for infinite)
+liveVar.overallLivenessCheckTime = 0ns
+
+# Timelimit for collecting the liveness information with one approach, (p.e.
+# if global analysis is selected and fails in the specified timelimit the
+# function wise approach will have the same time-limit afterwards to compute
+# the live variables).(use seconds or specify a unit; 0 for infinite)
+liveVar.partwiseLivenessCheckTime = 20s
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value

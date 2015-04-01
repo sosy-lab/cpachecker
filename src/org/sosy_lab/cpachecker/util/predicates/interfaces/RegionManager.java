@@ -24,11 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
@@ -146,7 +148,7 @@ public interface RegionManager {
    *         branch and the else branch
    */
   public Triple<Region, Region, Region>
-      getIfThenElse(Region f);
+  getIfThenElse(Region f);
 
   /**
    * Prints some information about the RegionManager.
@@ -162,6 +164,20 @@ public interface RegionManager {
    * Return a new {@link RegionBuilder} instance.
    */
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
+
+  /**
+   * Sets the bdd variable ordering.
+   *
+   * @param pOrder the new order of the variables.
+   */
+  public void setVarOrder(ArrayList<Integer> pOrder);
+
+  /**
+   * Reorders the bdd variables with the provided strategy.
+   *
+   * @param strategy the reorder strategy that should be applied.
+   */
+  public void reorder(PredicateOrderingStrategy strategy);
 
   /**
    * A stateful region builder for regions that are disjunctions

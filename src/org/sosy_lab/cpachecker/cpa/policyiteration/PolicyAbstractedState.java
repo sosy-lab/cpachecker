@@ -1,14 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
@@ -20,11 +22,6 @@ public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>> {
 
   /**
-   * Location associated with abstracted state.
-   */
-  private final Location location;
-
-  /**
    * Finite bounds for templates.
    */
   private final ImmutableMap<Template, PolicyBound> abstraction;
@@ -34,52 +31,68 @@ public final class PolicyAbstractedState extends PolicyState
    */
   private final PolicyIntermediateState generatingState;
 
-  /**
-   * Version per location. Starts from zero, incremented with each update
-   * to the location.
-   */
-  private final int version;
-  private int hashCache = 0;
+  private transient Optional<PolicyAbstractedState> newVersion =
+      Optional.absent();
 
-  private static final Multiset<Location> updateCounter = HashMultiset.create();
+  private final int locationID;
 
-  private PolicyAbstractedState(Location pLocation,
+  // the same version on nodes might be just good enough.
+  private static final Multiset<CFANode> updateCounter = HashMultiset.create();
+
+  private PolicyAbstractedState(CFANode node,
       Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
-      PolicyIntermediateState pGeneratingState) {
-    super(pTemplates);
+      PolicyIntermediateState pGeneratingState,
+      int pLocationID) {
+    super(pTemplates, node);
 
-    location = pLocation;
-    version = updateCounter.count(pLocation);
-    updateCounter.add(pLocation);
-
+    updateCounter.add(node);
     abstraction = ImmutableMap.copyOf(pAbstraction);
     generatingState = pGeneratingState;
+    locationID = pLocationID;
   }
 
-  public static ImmutableMultiset<Location> getUpdateCounter() {
+  public int getLocationID() {
+    return locationID;
+  }
+
+  public static ImmutableMultiset<CFANode> getUpdateCounter() {
     return ImmutableMultiset.copyOf(updateCounter);
   }
 
-  public int getVersion() {
-    return version;
+  public void setNewVersion(PolicyAbstractedState pNewVersion) {
+    newVersion = Optional.of(pNewVersion);
   }
 
-  public CFANode getNode() {
-    return location.getFinalNode();
-  }
+  /**
+   * @return latest version of this state found in the reached set.
+   */
+  public PolicyAbstractedState getLatestVersion() {
+    PolicyAbstractedState latest = this;
+    List<PolicyAbstractedState> toUpdate = new ArrayList<>();
 
-  public Location getLocation() {
-    return location;
+    // Traverse the pointers up.
+    while (latest.newVersion.isPresent()) {
+      toUpdate.add(latest);
+      latest = latest.newVersion.get();
+    }
+
+    // Update the pointers on the visited states.
+    for (PolicyAbstractedState visited : toUpdate) {
+      visited.newVersion = Optional.of(latest);
+    }
+    return latest;
   }
 
   public static PolicyAbstractedState of(
       Map<Template, PolicyBound> data,
       Set<Template> templates,
-      Location pLocation,
-      PolicyIntermediateState pGeneratingState
+      CFANode node,
+      PolicyIntermediateState pGeneratingState,
+      int pLocationID
   ) {
-    return new PolicyAbstractedState(pLocation, templates, data, pGeneratingState);
+    return new PolicyAbstractedState(node, templates, data, pGeneratingState,
+        pLocationID);
   }
 
   public PolicyAbstractedState withUpdates(
@@ -104,7 +117,7 @@ public final class PolicyAbstractedState extends PolicyState
       }
     }
     return new PolicyAbstractedState(
-        getLocation(), newTemplates, builder.build(),  generatingState
+        getNode(), newTemplates, builder.build(),  generatingState, locationID
     );
   }
 
@@ -123,17 +136,19 @@ public final class PolicyAbstractedState extends PolicyState
   /**
    * @return Empty abstracted state associated with {@code node}.
    */
-  public static PolicyAbstractedState empty(Location pLocation,
+  public static PolicyAbstractedState empty(CFANode node,
       PathFormula initial) {
-    PolicyIntermediateState Iinitial = PolicyIntermediateState.of(
+    PolicyIntermediateState initialState = PolicyIntermediateState.of(
+        node,
         ImmutableSet.<Template>of(),
-        initial,  ImmutableMap.<Location, PolicyAbstractedState>of()
+        initial,  ImmutableMap.<Integer, PolicyAbstractedState>of()
     );
     return PolicyAbstractedState.of(
         ImmutableMap.<Template, PolicyBound>of(), // abstraction
         ImmutableSet.<Template>of(), // templates
-        pLocation, // node
-        Iinitial // generating state
+        node, // node
+        initialState, // generating state
+        -1
     );
   }
 
@@ -145,8 +160,8 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(v=%s, loc=%s)%s%n %n %s %n",
-        version, getLocation().toID(),
+        "(node=%s)%s%n %n %s %n",
+        getNode(),
         (new PolicyDotWriter()).toDOTLabel(abstraction),
         generatingState.getPathFormula()
     );
@@ -159,36 +174,11 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public String toString() {
-    return String.format("%s(%s): %s", getLocation(), version, abstraction);
+    return String.format("(loc=%s)%s", locationID, abstraction);
   }
 
   @Override
   public Iterator<Entry<Template, PolicyBound>> iterator() {
     return abstraction.entrySet().iterator();
-  }
-
-  @Override
-  public int hashCode() {
-    if (hashCache == 0) {
-      hashCache = Objects.hashCode(
-          generatingState,
-          abstraction,
-          super.hashCode());
-    }
-    return hashCache;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    PolicyAbstractedState other = (PolicyAbstractedState)o;
-    return (
-        generatingState.equals(other.generatingState) &&
-        abstraction.equals(other.abstraction) && super.equals(o));
   }
 }

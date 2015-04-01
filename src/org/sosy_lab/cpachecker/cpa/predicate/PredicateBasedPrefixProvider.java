@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.Lists;
@@ -50,8 +50,6 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
   private final PathFormulaManager pathFormulaManager;
 
-  private final FormulaManagerView formulaManager;
-
   /**
    * This method acts as the constructor of the class.
    *
@@ -61,7 +59,6 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     logger = pLogger;
     solver = pSolver;
     pathFormulaManager = pPathFormulaManager;
-    formulaManager = solver.getFormulaManager();
   }
 
   /* (non-Javadoc)
@@ -69,52 +66,49 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    */
   @Override
   public List<ARGPath> getInfeasilbePrefixes(final ARGPath path) throws CPAException, InterruptedException {
-
     List<ARGPath> prefixes = new ArrayList<>();
+    MutableARGPath currentPrefix = new MutableARGPath();
 
-    try {
-      MutableARGPath currentPrefix = new MutableARGPath();
-      PathFormula satFormula = pathFormulaManager.makeEmptyPathFormula();
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {
-
-        PathFormula formula = pathFormulaManager.makeAnd(satFormula, iterator.getOutgoingEdge());
+        boolean isUnsat = false;
         currentPrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
 
+        try {
+          formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), iterator.getOutgoingEdge());
+
+          prover.push(formula.getFormula());
+          isUnsat = prover.isUnsat();
+        }
+        catch (SolverException e) {
+          logger.logUserException(Level.WARNING, e, "Error during computation of prefixes, continuing with original error path");
+          return Lists.newArrayList(path);
+        }
+        catch (CPATransferException e) {
+          throw new CPAException("Computation of path formula for prefix failed: " + e.getMessage(), e);
+        }
+
         // formula is unsatisfiable => path is infeasible
-        if (solver.isUnsat(formula.getFormula())) {
+        if (isUnsat) {
           logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
+          prover.pop();
           prefixes.add(currentPrefix.immutableCopy());
 
           currentPrefix = new MutableARGPath();
-          satFormula = pathFormulaManager.makeAnd(satFormula,
-              formulaManager.getBooleanFormulaManager().makeBoolean(true));
-        }
-
-        else {
-          satFormula = pathFormulaManager.makeAnd(satFormula,
-              iterator.getOutgoingEdge());
         }
 
         iterator.advance();
       }
-
-      // prefixes is empty => path is feasible, so add complete path
-      if (prefixes.isEmpty()) {
-        prefixes.add(path);
-      }
-
-      return prefixes;
     }
 
-    catch (SolverException e) {
-      logger.logUserException(Level.WARNING, e, "Error during computation of prefixes, continuing with original error path");
-      return Lists.newArrayList(path);
+    // prefixes is empty => path is feasible, so add complete path
+    if (prefixes.isEmpty()) {
+      prefixes.add(path);
     }
 
-    catch (CPATransferException e) {
-      throw new CPAException("Computation of path formula for prefix failed: " + e.getMessage(), e);
-    }
+    return prefixes;
   }
 }

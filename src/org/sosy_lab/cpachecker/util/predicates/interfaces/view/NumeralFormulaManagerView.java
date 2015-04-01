@@ -40,14 +40,10 @@ public class NumeralFormulaManagerView
 
   private final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
-  public NumeralFormulaManagerView(FormulaManagerView pViewManager,
+  public NumeralFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
-    super(pViewManager);
+    super(pWrappingHandler);
     this.manager = pManager;
-  }
-
-  private BooleanFormula wrapInView(BooleanFormula pFormula) {
-    return pFormula;
   }
 
   @Override
@@ -79,7 +75,7 @@ public class NumeralFormulaManagerView
   }
   @Override
   public BooleanFormula modularCongruence(ParamFormulaType pNumber1, ParamFormulaType pNumber2, long pModulo) {
-    return wrapInView(manager.modularCongruence(pNumber1, pNumber2, pModulo));
+    return manager.modularCongruence(pNumber1, pNumber2, pModulo);
   }
   @Override
   public ResultFormulaType multiply(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
@@ -87,23 +83,23 @@ public class NumeralFormulaManagerView
   }
   @Override
   public BooleanFormula equal(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
-    return wrapInView(manager.equal(pNumber1, pNumber2));
+    return manager.equal(pNumber1, pNumber2);
   }
   @Override
   public BooleanFormula greaterThan(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
-    return wrapInView(manager.greaterThan(pNumber1, pNumber2));
+    return manager.greaterThan(pNumber1, pNumber2);
   }
   @Override
   public BooleanFormula greaterOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
-    return wrapInView(manager.greaterOrEquals(pNumber1, pNumber2));
+    return manager.greaterOrEquals(pNumber1, pNumber2);
   }
   @Override
   public BooleanFormula lessThan(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
-    return wrapInView(manager.lessThan(pNumber1, pNumber2));
+    return manager.lessThan(pNumber1, pNumber2);
   }
   @Override
   public BooleanFormula lessOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
-    return wrapInView(manager.lessOrEquals(pNumber1, pNumber2));
+    return manager.lessOrEquals(pNumber1, pNumber2);
   }
 
 

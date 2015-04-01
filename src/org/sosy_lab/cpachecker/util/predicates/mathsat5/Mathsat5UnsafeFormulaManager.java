@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Longs;
 
 class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Long> {
@@ -122,18 +125,24 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   }
 
   @Override
-  protected Long splitNumeralEqualityIfPossible(Long pF) {
+  protected List<Long> splitNumeralEqualityIfPossible(Long pF) {
     if (msat_term_is_equal(msatEnv, pF) && getArity(pF) == 2) {
       long arg0 = msat_term_get_arg(pF, 0);
       long arg1 = msat_term_get_arg(pF, 1);
       long type = msat_term_get_type(arg0);
       if (msat_is_bv_type(msatEnv, type)) {
-        return msat_make_bv_uleq(msatEnv, arg0, arg1);
+        return ImmutableList.of(
+            msat_make_bv_uleq(msatEnv, arg0, arg1),
+            msat_make_bv_uleq(msatEnv, arg1, arg0)
+        );
       } else if (msat_is_integer_type(msatEnv, type) || msat_is_rational_type(msatEnv, type)) {
-        return msat_make_leq(msatEnv, arg0, arg1);
+        return ImmutableList.of(
+            msat_make_leq(msatEnv, arg0, arg1),
+            msat_make_leq(msatEnv, arg1, arg0)
+        );
       }
     }
-    return pF;
+    return ImmutableList.of(pF);
   }
 
   @Override
@@ -143,12 +152,43 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
 
   @Override
   protected Long substitute(Long expr, List<Long> substituteFrom, List<Long> substituteTo) {
-    throw new UnsupportedOperationException();
+    return recSubstitute(
+        expr, substituteFrom, substituteTo, new HashMap<Long, Long>()
+    );
   }
 
-  @Override
-  protected Long simplify(Long pF) {
-    throw new UnsupportedOperationException();
+  private long recSubstitute(Long expr, List<Long> substituteFrom,
+      List<Long> substituteTo, HashMap<Long, Long> memoization) {
+
+    Long out = memoization.get(expr);
+    if (out != null) {
+      return out;
+    }
+
+    try {
+      // Check whether the current expression matches.
+      for (int i=0; i<substituteFrom.size(); i++) {
+        long from = substituteFrom.get(i);
+
+        // Same variables are guaranteed to have same pointer addresses.
+        if (expr == from) {
+          out = substituteTo.get(i);
+          return out;
+        }
+      }
+
+      List<Long> updatedChildren = new ArrayList<>();
+      for (int childIdx=0; childIdx<getArity(expr); childIdx++) {
+        long child = getArg(expr, childIdx);
+        updatedChildren.add(recSubstitute(child, substituteFrom, substituteTo,
+            memoization));
+      }
+
+      out = replaceArgs(expr, updatedChildren);
+      return out;
+    } finally {
+      memoization.put(expr, out);
+    }
   }
 
   @Override

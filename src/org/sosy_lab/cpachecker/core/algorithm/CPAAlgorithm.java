@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -62,6 +62,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -284,7 +286,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.precisionTimer.start();
         PrecisionAdjustmentResult precAdjustmentResult;
         try {
-          precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet, successor);
+          Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
+              precisionAdjustment.prec(
+                  successor, precision, reachedSet,
+                  Functions.<AbstractState>identity(),
+                  successor);
+          if (!precAdjustmentOptional.isPresent()) {
+            continue;
+          }
+          precAdjustmentResult = precAdjustmentOptional.get();
         } finally {
           stats.precisionTimer.stop();
         }

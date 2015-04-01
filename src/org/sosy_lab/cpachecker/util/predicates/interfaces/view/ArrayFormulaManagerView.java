@@ -36,8 +36,8 @@ public class ArrayFormulaManagerView
 
   private ArrayFormulaManager manager;
 
-  ArrayFormulaManagerView(FormulaManagerView pViewManager, ArrayFormulaManager pManager) {
-    super(pViewManager);
+  ArrayFormulaManagerView(FormulaWrappingHandler pWrappingHandler, ArrayFormulaManager pManager) {
+    super(pWrappingHandler);
     this.manager = pManager;
   }
 

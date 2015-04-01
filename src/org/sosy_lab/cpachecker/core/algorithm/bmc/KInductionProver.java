@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -88,7 +87,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -138,8 +136,6 @@ class KInductionProver implements AutoCloseable {
 
   private final boolean havocLoopTerminationConditionVariablesOnly;
 
-  private final Supplier<Integer> bmcKAccessor;
-
   private ProverEnvironment prover = null;
 
   private UnmodifiableReachedSet invariantsReachedSet;
@@ -170,9 +166,7 @@ class KInductionProver implements AutoCloseable {
       InvariantGenerator pInvariantGenerator,
       BMCStatistics pStats,
       ReachedSetFactory pReachedSetFactory,
-      TargetLocationProvider pTargetLocationProvider,
       boolean pHavocLoopTerminationConditionVariablesOnly,
-      Supplier<Integer> pBMCKAccessor,
       ShutdownNotifier pShutdownNotifier) {
     cfa = checkNotNull(pCFA);
     logger = checkNotNull(pLogger);
@@ -181,7 +175,6 @@ class KInductionProver implements AutoCloseable {
     invariantGenerator  = checkNotNull(pInvariantGenerator);
     stats = checkNotNull(pStats);
     reachedSetFactory = checkNotNull(pReachedSetFactory);
-    bmcKAccessor = checkNotNull(pBMCKAccessor);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     havocLoopTerminationConditionVariablesOnly = pHavocLoopTerminationConditionVariablesOnly;
     List<CFAEdge> incomingEdges = null;
@@ -411,20 +404,21 @@ class KInductionProver implements AutoCloseable {
    * @throws CPATransferException
    */
   private BooleanFormula extractInvariantsAt(UnmodifiableReachedSet pReachedSet, CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
+    BooleanFormula invariant;
+
     if (invariantGenerationRunning && pReachedSet.isEmpty()) {
-      return bfmgr.makeBoolean(true); // no invariants available
-    }
+      invariant = bfmgr.makeBoolean(true); // no invariants available in ReachedSet
 
-    BooleanFormula invariant = bfmgr.makeBoolean(false);
+    } else {
+      invariant = bfmgr.makeBoolean(false);
+      for (AbstractState locState : AbstractStates.filterLocation(pReachedSet, pLocation)) {
+        BooleanFormula f = AbstractStates.extractReportedFormulas(pFMGR, locState);
+        logger.log(Level.ALL, "Invariant:", f);
 
-    for (AbstractState locState : AbstractStates.filterLocation(pReachedSet, pLocation)) {
-      BooleanFormula f = AbstractStates.extractReportedFormulas(pFMGR, locState);
-      logger.log(Level.ALL, "Invariant:", f);
-
-      invariant = bfmgr.or(invariant, f);
+        invariant = bfmgr.or(invariant, f);
+      }
     }
 
     for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
@@ -447,7 +441,7 @@ class KInductionProver implements AutoCloseable {
    * @throws InterruptedException if the bounded analysis constructing the
    * step case was interrupted.
    */
-  public final boolean check() throws CPAException, InterruptedException {
+  public final boolean check(final int k) throws CPAException, InterruptedException {
 
     // Early return if there is a trivial result for the inductive approach
     if (isTrivial()) {
@@ -472,7 +466,6 @@ class KInductionProver implements AutoCloseable {
     // Run algorithm in order to create formula (A & B)
     logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
 
-    int k = bmcKAccessor.get();
     LoopstackCPA stepCaseLoopstackCPA = CPAs.retrieveCPA(cpa, LoopstackCPA.class);
 
     ReachedSet reached = getCurrentReachedSet();

@@ -252,7 +252,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           lastAnalysisFailed = true;
           if (configFilesIterator.hasNext()) {
             logger.logUserException(Level.WARNING, e, "Analysis not completed");
-            if (e.getMessage().contains("Unsupported C feature (recursion)")) {
+            if (e.getMessage().contains("recursion")) {
               recursionFound = true;
             }
           } else {

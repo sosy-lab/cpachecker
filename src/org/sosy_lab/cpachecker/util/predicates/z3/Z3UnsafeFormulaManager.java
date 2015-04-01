@@ -36,6 +36,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
@@ -170,20 +171,39 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
   }
 
   @Override
-  protected Long splitNumeralEqualityIfPossible(Long pF) {
+  protected List<Long> splitNumeralEqualityIfPossible(Long pF) {
     if (isOP(z3context, pF, Z3_OP_EQ)
         && get_app_num_args(z3context, pF) == 2) {
-      long arg0 = get_app_arg(z3context, pF, 0);
-      long arg1 = get_app_arg(z3context, pF, 1);
-      long sortKind = get_sort_kind(z3context, get_sort(z3context, arg0));
-      assert sortKind == get_sort_kind(z3context, get_sort(z3context, arg1));
-      if (sortKind == Z3_BV_SORT) {
-        return mk_bvule(z3context, arg0, arg1);
-      } else if (sortKind == Z3_INT_SORT || sortKind == Z3_REAL_SORT) {
-        return mk_le(z3context, arg0, arg1);
+      long arg0 = getArg(pF, 0);
+      inc_ref(z3context, arg0);
+      long arg1 = getArg(pF, 1);
+      inc_ref(z3context, arg1);
+
+      try {
+        long sortKind = get_sort_kind(z3context, get_sort(z3context, arg0));
+        assert sortKind == get_sort_kind(z3context, get_sort(z3context, arg1));
+        if (sortKind == Z3_BV_SORT) {
+
+          long out1 = mk_bvule(z3context, arg0, arg1);
+          inc_ref(z3context, out1);
+          long out2 = mk_bvuge(z3context, arg0, arg1);
+          inc_ref(z3context, out2);
+
+          return ImmutableList.of(out1, out2);
+        } else if (sortKind == Z3_INT_SORT || sortKind == Z3_REAL_SORT) {
+
+          long out1  = mk_le(z3context, arg0, arg1);
+          inc_ref(z3context, out1);
+          long out2 = mk_ge(z3context, arg0, arg1);
+          inc_ref(z3context, out2);
+          return ImmutableList.of(out1, out2);
+        }
+      } finally {
+        dec_ref(z3context, arg0);
+        dec_ref(z3context, arg1);
       }
     }
-    return pF;
+    return ImmutableList.of(pF);
   }
 
   public long createUIFCallImpl(long pNewFunc, long[] args) {

@@ -420,7 +420,6 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
     
 def _parseAndSetCloudWorkerHostInformation(filePath, output_handler):
     try:
-        output_handler.all_created_files.append(filePath)
         values = _parseFile(filePath)
 
         values["host"] = values.get("@vcloud-name", "-")

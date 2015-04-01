@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
  */
 public class ExtendedRational implements Comparable<ExtendedRational>{
   @SuppressWarnings("hiding")
-  public static enum NumberType {
+  public enum NumberType {
     NEG_INFTY,
     RATIONAL, // Normal rational.
     INFTY,
@@ -65,7 +65,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
       case NEG_INFTY:
         return Double.NEGATIVE_INFINITY;
       case RATIONAL:
-        return rational.toDouble();
+        return rational.doubleValue();
       case INFTY:
         return Double.POSITIVE_INFINITY;
       case NaN:

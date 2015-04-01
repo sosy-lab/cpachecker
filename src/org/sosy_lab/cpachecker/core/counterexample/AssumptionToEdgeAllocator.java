@@ -1301,7 +1301,7 @@ public class AssumptionToEdgeAllocator {
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
 
       if (pValue instanceof Rational) {
-        double val = ((Rational) pValue).toDouble();
+        double val = ((Rational) pValue).doubleValue();
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {

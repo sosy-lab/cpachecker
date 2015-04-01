@@ -37,14 +37,14 @@ import com.google.common.base.Optional;
  */
 public class OptEnvironmentView implements OptEnvironment {
   private final OptEnvironment delegate;
-  private final FormulaManagerView baseManagerView;
+  private final FormulaWrappingHandler wrappingHandler;
 
   public OptEnvironmentView(
       OptEnvironment pDelegate,
-      FormulaManagerView pBaseManagerView
+      FormulaManagerView pFormulaManager
   ) {
     delegate = pDelegate;
-    baseManagerView = pBaseManagerView;
+    wrappingHandler = pFormulaManager.getFormulaWrappingHandler();
   }
 
 
@@ -55,12 +55,12 @@ public class OptEnvironmentView implements OptEnvironment {
 
   @Override
   public int maximize(Formula objective) {
-    return delegate.maximize(baseManagerView.unwrap(objective));
+    return delegate.maximize(wrappingHandler.unwrap(objective));
   }
 
   @Override
   public int minimize(Formula objective) {
-    return delegate.minimize(baseManagerView.unwrap(objective));
+    return delegate.minimize(wrappingHandler.unwrap(objective));
   }
 
   @Override
