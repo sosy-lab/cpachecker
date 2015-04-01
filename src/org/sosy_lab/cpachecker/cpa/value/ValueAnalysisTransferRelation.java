@@ -115,7 +115,7 @@ import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;

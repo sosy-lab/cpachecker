@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
+package org.sosy_lab.cpachecker.util.refiner;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Collections2.filter;
@@ -137,7 +137,7 @@ public class UseDefRelation {
     return defs.size() > 0;
   }
 
-  Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
+  public Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
 
     Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
     Collection<ASimpleDeclaration> unresolvedUses = new HashSet<>();

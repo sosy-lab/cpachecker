@@ -49,7 +49,7 @@ public class UseDefBasedInterpolator {
   /**
    * the use-def relation of the final, failing (assume) edge
    */
-  private final UseDefRelation useDefRelation;
+  private final org.sosy_lab.cpachecker.util.refiner.UseDefRelation useDefRelation;
 
   /**
    * the sliced infeasible prefix for which to compute the interpolants
@@ -59,12 +59,12 @@ public class UseDefBasedInterpolator {
   /**
    * This class allows the creation of (fake) interpolants by using the use-def-relation.
    * This interpolation approach only works if the given path is a sliced prefix,
-   * obtained via {@link ErrorPathClassifier#obtainSlicedPrefix}.
+   * obtained via {@link org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier#obtainSlicedPrefix}.
    *
    * @param pSlicedPrefix
    * @param pUseDefRelation
    */
-  public UseDefBasedInterpolator(ARGPath pSlicedPrefix, UseDefRelation pUseDefRelation) {
+  public UseDefBasedInterpolator(ARGPath pSlicedPrefix, org.sosy_lab.cpachecker.util.refiner.UseDefRelation pUseDefRelation) {
     slicedPrefix   = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
   }
