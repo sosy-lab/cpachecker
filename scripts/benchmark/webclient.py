@@ -28,13 +28,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
+import io
 import logging
 import os
 import shutil
 import zlib
+import zipfile
 
 from time import sleep
-from zipfile import ZipFile
 
 import urllib.parse as urllib
 import urllib.request as urllib2
@@ -46,6 +47,13 @@ from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
 RESULT_KEYS = ["cputime", "walltime"]
 
 MAX_SUBMISSION_THREADS = 5
+
+RESULT_FILE_LOG = 'output.log'
+RESULT_FILE_STDERR = 'stderr'
+RESULT_FILE_RUN_INFO = 'runInformation.txt'
+RESULT_FILE_HOST_INFO = 'hostInformation.txt'
+SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
+                        RESULT_FILE_HOST_INFO, 'runDescription.txt'}
 
 class WebClientError(Exception):
     def __init__(self, value):
@@ -304,8 +312,6 @@ def _isFinished(runID, webclient, benchmark):
         return False
 
 def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
-    zipFilePath = run.log_file + ".zip"
-
     # download result as zip file
     counter = 0
     sucess = False
@@ -315,50 +321,34 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
         try:
             response = urllib2.urlopen(resquest)
         except urllib2.HTTPError as e:
-            logging.info('Could get result of run with id {0}: {1}'.format(run.identifier, e))
+            logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
             _auth(webclient, benchmark)
             sleep(10)
             return False
 
         if response.getcode() == 200:
-            with open(zipFilePath, 'w+b') as zipFile:
-                zipFile.write(response.read())
-                sucess = True
+            zipContent = response.read()
+            sucess = True
         else:
             sleep(1)
 
     if sucess:
         # unzip result
-        resultDir = run.log_file + ".output"
         output_handler.output_before_run(run)
-        with ZipFile(zipFilePath) as resultZipFile:
-            resultZipFile.extractall(resultDir)
-        os.remove(zipFilePath)
+        return_value = -1
+        try:
+            try:
+                with zipfile.ZipFile(io.BytesIO(zipContent)) as resultZipFile:
+                    return_value = _handleResult(resultZipFile, run, output_handler)
+            except zipfile.BadZipfile:
+                logging.warning('Server returned illegal zip file with results of run {}.'.format(run.identifier))
+                # Dump ZIP to disk for debugging
+                with open(run.log_file + '.zip', 'wb') as zipFile:
+                    zipFile.write(zipContent)
+        except IOError as e:
+            logging.warning('Error while writing results of run {}: {}'.format(run.identifier, e))
 
-        # move logfile and stderr
-        with open(run.log_file, 'w') as log_file:
-            log_file.write(" ".join(run.cmdline()) + "\n\n\n--------------------------------------------------------------------------------\n")
-            toolLog = resultDir + "/output.log"
-            if os.path.isfile(toolLog):
-                for line in open(toolLog):
-                    log_file.write(line)
-                os.remove(toolLog)
-        stderr = resultDir + "/stderr"
-        if os.path.isfile(stderr):
-            shutil.move(stderr, run.log_file + ".stdError")
-
-        # extract values
-        (run.walltime, run.cputime, return_value, values) = _parseCloudResultFile(resultDir + "/runInformation.txt")
-        run.values.update(values)
-        values = _parseAndSetCloudWorkerHostInformation(resultDir + "/hostInformation.txt", output_handler)
-        run.values.update(values)
         run.after_execution(return_value)
-
-        # remove no longer needed files
-        os.remove(resultDir + "/hostInformation.txt")
-        os.remove(resultDir + "/runInformation.txt")
-        if os.listdir(resultDir) == []:
-            os.rmdir(resultDir)
 
         output_handler.output_after_run(run)
         return True
@@ -367,27 +357,65 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
         logging.warning('Could not get run result, run is not finished: {0}'.format(runID))
         return False
 
-def _parseAndSetCloudWorkerHostInformation(filePath, output_handler):
-    try:
-        values = _parseFile(filePath)
+def _handleResult(resultZipFile, run, output_handler):
+    resultDir = run.log_file + ".output"
+    files = set(resultZipFile.namelist())
 
-        values["host"] = values.pop("@vcloud-name", "-")
-        name = values["host"]
-        osName = values.pop("@vcloud-os", "-")
-        memory = values.pop("@vcloud-memory", "-")
-        cpuName = values.pop("@vcloud-cpuModel", "-")
-        frequency = values.pop("@vcloud-frequency", "-")
-        cores = values.pop("@vcloud-cores", "-")
-        output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+    # extract values
+    if RESULT_FILE_RUN_INFO in files:
+        with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
+            (run.walltime, run.cputime, return_value, values) = _parseCloudResultFile(runInformation)
+            run.values.update(values)
+    else:
+        return_value = -1
+        logging.warning('Missing result for {}.'.format(run.identifier))
 
-    except IOError:
-        logging.warning("Host information file not found: " + filePath)
+    if RESULT_FILE_HOST_INFO in files:
+        with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
+            values = _parseAndSetCloudWorkerHostInformation(hostInformation, output_handler)
+            run.values.update(values)
+    else:
+        logging.warning('Missing host information for run {}.'.format(run.identifier))
+
+    # extract log file
+    if RESULT_FILE_LOG in files:
+        with open(run.log_file, 'wb') as log_file:
+            log_header = " ".join(run.cmdline()) + "\n\n\n--------------------------------------------------------------------------------\n"
+            log_file.write(log_header.encode('utf-8'))
+            with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
+                for line in result_log_file:
+                    log_file.write(line)
+    else:
+        logging.warning('Missing log file for run {}.'.format(run.identifier))
+
+    if RESULT_FILE_STDERR in files:
+        resultZipFile.extract(RESULT_FILE_STDERR, resultDir)
+        shutil.move(os.path.join(resultDir, RESULT_FILE_STDERR), run.log_file + ".stdError")
+        os.rmdir(resultDir)
+
+    files = files - SPECIAL_RESULT_FILES
+    if files:
+        resultZipFile.extractall(resultDir, files)
+
+    return return_value
+
+def _parseAndSetCloudWorkerHostInformation(file, output_handler):
+    values = _parseFile(file)
+
+    values["host"] = values.pop("@vcloud-name", "-")
+    name = values["host"]
+    osName = values.pop("@vcloud-os", "-")
+    memory = values.pop("@vcloud-memory", "-")
+    cpuName = values.pop("@vcloud-cpuModel", "-")
+    frequency = values.pop("@vcloud-frequency", "-")
+    cores = values.pop("@vcloud-cores", "-")
+    output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
 
     return values
 
 
-def _parseCloudResultFile(filePath):
-    values = _parseFile(filePath)
+def _parseCloudResultFile(file):
+    values = _parseFile(file)
 
     return_value = int(values["@vcloud-exitcode"])
     walltime = float(values["walltime"].strip('s'))
@@ -403,18 +431,17 @@ def _parseCloudResultFile(filePath):
 
     return (walltime, cputime, return_value, values)
 
-def _parseFile(filePath):
+def _parseFile(file):
     values = {}
 
-    with open(filePath, 'rt') as file:
-        for line in file:
-            (key, value) = line.split("=", 1)
-            value = value.strip()
-            if key in RESULT_KEYS or key.startswith("energy"):
-                values[key] = value
-            else:
-                # "@" means value is hidden normally
-                values["@vcloud-" + key] = value
+    for line in file:
+        (key, value) = line.decode('utf-8').split("=", 1)
+        value = value.strip()
+        if key in RESULT_KEYS or key.startswith("energy"):
+            values[key] = value
+        else:
+            # "@" means value is hidden normally
+            values["@vcloud-" + key] = value
 
     return values
 
