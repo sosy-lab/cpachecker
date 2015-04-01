@@ -61,6 +61,11 @@ import com.google.common.base.Optional;
  */
 public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
+  /**
+   * Suffix that has to be appended to all variable names.
+   * Since {@link CtoFormulaConverter} uses single static assignments (SSA), but we don't,
+   * we can just append the first SSA index to every variable name.
+   */
   private static final String VARIABLE_SUFFIX = "@1";
 
   private final FormulaManagerView formulaManager;
