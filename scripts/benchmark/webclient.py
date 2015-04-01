@@ -371,13 +371,13 @@ def _parseAndSetCloudWorkerHostInformation(filePath, output_handler):
     try:
         values = _parseFile(filePath)
 
-        values["host"] = values.get("@vcloud-name", "-")
+        values["host"] = values.pop("@vcloud-name", "-")
         name = values["host"]
-        osName = values.get("@vcloud-os", "-")
-        memory = values.get("@vcloud-memory", "-")
-        cpuName = values.get("@vcloud-cpuModel", "-")
-        frequency = values.get("@vcloud-frequency", "-")
-        cores = values.get("@vcloud-cores", "-")
+        osName = values.pop("@vcloud-os", "-")
+        memory = values.pop("@vcloud-memory", "-")
+        cpuName = values.pop("@vcloud-cpuModel", "-")
+        frequency = values.pop("@vcloud-frequency", "-")
+        cores = values.pop("@vcloud-cores", "-")
         output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
 
     except IOError:
@@ -392,7 +392,14 @@ def _parseCloudResultFile(filePath):
     return_value = int(values["@vcloud-exitcode"])
     walltime = float(values["walltime"].strip('s'))
     cputime = float(values["cputime"].strip('s'))
-    values["memUsage"] = int(values["@vcloud-memory"].strip('B'))
+    if "@vcloud-memory" in values:
+        values["memUsage"] = int(values.pop("@vcloud-memory").strip('B'))
+
+    # remove irrelevant columns
+    values.pop("@vcloud-command", None)
+    values.pop("@vcloud-timeLimit", None)
+    values.pop("@vcloud-coreLimit", None)
+    values.pop("@vcloud-memoryLimit", None)
 
     return (walltime, cputime, return_value, values)
 
