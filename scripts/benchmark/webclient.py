@@ -30,7 +30,6 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import logging
 import os
-import subprocess
 import shutil
 import zlib
 
@@ -43,7 +42,6 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
-import benchexec.util as util
 
 RESULT_KEYS = ["cputime", "walltime"]
 
@@ -140,7 +138,6 @@ def _submitRun(run, webclient, benchmark, counter = 0):
     programTexts = []
     for programPath in run.sourcefiles:
         with open(programPath, 'r') as programFile:
-            programName = programPath.split('/')[-1]
             programText = programFile.read()
             programTexts.append(programText)
     params = {'programText': programTexts}
@@ -340,7 +337,7 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
 
         # move logfile and stderr
         with open(run.log_file, 'w') as log_file:
-            log_file.write(" ".join(run.cmdline()) + "\n\n\n\n\n------------------------------------------\n")
+            log_file.write(" ".join(run.cmdline()) + "\n\n\n--------------------------------------------------------------------------------\n")
             toolLog = resultDir + "/output.log"
             if os.path.isfile(toolLog):
                 for line in open(toolLog):
@@ -390,12 +387,6 @@ def _parseAndSetCloudWorkerHostInformation(filePath, output_handler):
 
 
 def _parseCloudResultFile(filePath):
-
-    walltime = None
-    cputime = None
-    memUsage = None
-    return_value = None
-
     values = _parseFile(filePath)
 
     return_value = int(values["@vcloud-exitcode"])
