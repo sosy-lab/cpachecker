@@ -213,6 +213,10 @@ class Mathsat5NativeApi {
   public static native long msat_make_uf(long e, long func, long[] args);
   public static native long msat_make_array_read(long e, long arr, long idx);
   public static native long msat_make_array_write(long e, long arr, long idx, long elem);
+  public static native long msat_make_array_const(long e, long arrayType, long elem);
+  public static native long msat_make_int_to_bv(long e, int width, long t);
+  public static native long msat_make_int_from_ubv(long e, long t);
+  public static native long msat_make_int_from_sbv(long e, long t);
   public static native long msat_make_bv_number(long e, String numRep, int width, int base);
   public static native long msat_make_bv_concat(long e, long t1, long t2);
 
@@ -305,6 +309,10 @@ class Mathsat5NativeApi {
   public static native boolean msat_term_is_floor(long e, long t);
   public static native boolean msat_term_is_array_read(long e, long t);
   public static native boolean msat_term_is_array_write(long e, long t);
+  public static native boolean msat_term_is_array_const(long e, long t);
+  public static native boolean msat_term_is_int_to_bv(long e, long t);
+  public static native boolean msat_term_is_int_from_ubv(long e, long t);
+  public static native boolean msat_term_is_int_from_sbv(long e, long t);
   public static native boolean msat_term_is_bv_concat(long e, long t);
   public static native boolean msat_term_is_bv_extract(long e, long t);
   public static native boolean msat_term_is_bv_or(long e, long t);
@@ -339,9 +347,9 @@ class Mathsat5NativeApi {
   public static native long msat_decl_get_return_type(long d);
   public static native int msat_decl_get_arity(long d);
   public static native long msat_decl_get_arg_type(long d, int n);
+  public static native String msat_decl_repr(long d);
   public static native String msat_decl_get_name(long d);
   public static native String msat_term_repr(long t);
-
   /*
    * Parsing and writing formulas.
    */

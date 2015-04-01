@@ -84,6 +84,7 @@ class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements Inte
     } catch (IllegalArgumentException e) {
       String msg = Strings.nullToEmpty(e.getMessage());
       if (msg.contains("impossible to build a suitable congruence graph")
+          || msg.contains("can't build ie-local interpolant")
           || msg.contains("splitting of AB-mixed terms not supported")) {
         // This is not a bug in CPAchecker, but a problem of MathSAT which happens during interpolation
         throw new SolverException(e.getMessage(), e);

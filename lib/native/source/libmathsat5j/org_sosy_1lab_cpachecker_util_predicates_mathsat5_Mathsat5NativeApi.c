@@ -398,6 +398,33 @@ TERM_ARG(4)
 CALL4(msat_term, make_array_write)
 TERM_RETURN
 
+DEFINE_FUNC(jterm, 1make_1array_1const) WITH_THREE_ARGS(jenv, jtype, jterm)
+ENV_ARG(1)
+TYPE_ARG(2)
+TERM_ARG(3)
+CALL3(msat_term, make_array_const)
+TERM_RETURN
+
+
+DEFINE_FUNC(jterm, 1make_1int_1to_1bv) WITH_THREE_ARGS(jenv, int, jterm)
+ENV_ARG(1)
+SIMPLE_ARG(size_t, 2)
+TERM_ARG(3)
+CALL3(msat_term, make_int_to_bv)
+TERM_RETURN
+
+DEFINE_FUNC(jterm, 1make_1int_1from_1ubv) WITH_TWO_ARGS(jenv, jterm)
+ENV_ARG(1)
+TERM_ARG(2)
+CALL2(msat_term, make_int_from_ubv)
+TERM_RETURN
+
+DEFINE_FUNC(jterm, 1make_1int_1from_1sbv) WITH_TWO_ARGS(jenv, jterm)
+ENV_ARG(1)
+TERM_ARG(2)
+CALL2(msat_term, make_int_from_sbv)
+TERM_RETURN
+
 DEFINE_FUNC(jterm, 1make_1bv_1number) WITH_FOUR_ARGS(jenv, string, int, int)
 ENV_ARG(1)
 STRING_ARG(2)
@@ -656,7 +683,10 @@ func2_term_is(times, 1times)
 func2_term_is(floor, 1floor)
 func2_term_is(array_read, 1array_1read)
 func2_term_is(array_write, 1array_1write)
-
+func2_term_is(array_const, 1array_1const)
+func2_term_is(int_to_bv, 1int_1to_1bv)
+func2_term_is(int_from_ubv, 1int_1from_1ubv)
+func2_term_is(int_from_sbv, 1int_1from_1sbv)
 
 #define func_term_is_bv(name) \
 	DEFINE_FUNC(jboolean, 1term_1is_1bv_1##name) WITH_TWO_ARGS(jenv, jterm) \
