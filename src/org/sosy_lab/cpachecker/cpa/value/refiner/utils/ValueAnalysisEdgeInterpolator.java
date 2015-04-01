@@ -24,23 +24,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refiner.GenericEdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 
 public class ValueAnalysisEdgeInterpolator
-    extends GenericEdgeInterpolator<ValueAnalysisState, Pair<Value, Type>, ValueAnalysisInterpolant> {
+    extends GenericEdgeInterpolator<ValueAnalysisState, ValueAnalysisInformation, ValueAnalysisInterpolant> {
 
   /**
    * This method acts as the constructor of the class.

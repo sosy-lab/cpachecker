@@ -26,24 +26,22 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import java.util.Collections;
 import java.util.Map;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
@@ -55,7 +53,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 @Options(prefix="cpa.value.refiner")
 public class ValueAnalysisPathInterpolator
-    extends GenericPathInterpolator<ValueAnalysisState, Pair<Value, Type>, ValueAnalysisInterpolant> {
+    extends GenericPathInterpolator<ValueAnalysisState, ValueAnalysisInformation, ValueAnalysisInterpolant> {
 
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node

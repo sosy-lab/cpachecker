@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -61,10 +60,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState,
-    ForgetfulState<Pair<Value, Type>>, Serializable, Graphable,
+    ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
     LatticeAbstractState<ValueAnalysisState> {
 
   private static final long serialVersionUID = -3152134511524554357L;
@@ -160,7 +160,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @param variableName the name of the variable to remove
    * @return the value of the removed variable
    */
-  public Pair<Value, Type> forget(String variableName) {
+  public ValueAnalysisInformation forget(String variableName) {
     return forget(MemoryLocation.valueOf(variableName));
   }
 
@@ -171,18 +171,28 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @return the value of the removed memory location
    */
   @Override
-  public Pair<Value, Type> forget(MemoryLocation pMemoryLocation) {
+  public ValueAnalysisInformation forget(MemoryLocation pMemoryLocation) {
+
     Value value = constantsMap.get(pMemoryLocation);
     Type type = memLocToType.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
     memLocToType = memLocToType.removeAndCopy(pMemoryLocation);
 
-    return Pair.of(value, type);
+    return new ValueAnalysisInformation(ImmutableMap.of(pMemoryLocation, value),
+                                        ImmutableMap.of(pMemoryLocation, type),
+                                          Collections.<SymbolicIdentifier, Value>emptyMap());
   }
 
   @Override
-  public void remember(final MemoryLocation pLocation, final Pair<Value, Type> pValueAndType) {
-    assignConstant(pLocation, pValueAndType.getFirst(), pValueAndType.getSecond());
+  public void remember(final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {
+    final Value value = pValueAndType.getAssignments().get(pLocation);
+    final Type valueType = pValueAndType.getLocationTypes().get(pLocation);
+    final Map<SymbolicIdentifier, Value> symIdAssignments = pValueAndType.getIdentifierValues();
+
+    assignConstant(pLocation, value, valueType);
+    for (Map.Entry<SymbolicIdentifier, Value> a : symIdAssignments.entrySet()) {
+      identifierMap = identifierMap.putAndCopy(a.getKey(), a.getValue());
+    }
   }
 
   /**
@@ -663,6 +673,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   public ValueAnalysisInterpolant createInterpolant() {
     return new ValueAnalysisInterpolant(new HashMap<>(constantsMap), new HashMap<>(memLocToType));
+  }
+
+  public ValueAnalysisInformation getInformation() {
+    return new ValueAnalysisInformation(constantsMap, memLocToType, identifierMap);
   }
 
 
