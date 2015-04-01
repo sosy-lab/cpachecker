@@ -104,6 +104,10 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
     return data.size();
   }
 
+  public boolean isEmpty() {
+    return data.isEmpty();
+  }
+
   /**
    * @return Whether all coefficients are integral.
    */
