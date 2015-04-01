@@ -174,18 +174,20 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
 
   /**
    * This method performs interpolation on each edge of the path, using the
-   * {@link org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator}.
+   * {@link EdgeInterpolator} given to this object at construction.
    *
    * @param errorPathPrefix the error path prefix to interpolate
    * @param interpolant an initial interpolant
    *    (only non-trivial when interpolating error path suffixes in global refinement)
-   * @return the mapping of {@link ARGState}s to {@link ValueAnalysisInterpolant}s
+   * @return the mapping of {@link ARGState}s to {@link Interpolant}s
+   *
    * @throws InterruptedException
    * @throws CPAException
    */
-  protected Map<ARGState, I> performEdgeBasedInterpolation(ARGPath errorPathPrefix,
-      I interpolant)
-      throws InterruptedException, CPAException {
+  protected Map<ARGState, I> performEdgeBasedInterpolation(
+      ARGPath errorPathPrefix,
+      I interpolant
+  ) throws InterruptedException, CPAException {
 
     if (pathSlicing && prefixPreference != PrefixPreference.DEFAULT) {
       errorPathPrefix = sliceErrorPath(errorPathPrefix);
@@ -248,7 +250,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @throws InterruptedException
    * @throws org.sosy_lab.cpachecker.exceptions.CPAException
    */
-  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) throws CPAException, InterruptedException {
+  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix)
+      throws CPAException, InterruptedException {
 
     Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
         cfa.getVarClassification().isPresent()
@@ -272,19 +275,24 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
             ErrorPathClassifier.SUFFIX_REPLACEMENT));
       }
 
+      CFAEdgeType typeOfOriginalEdge = originalEdge.getEdgeType();
       /*************************************/
       /** assure that call stack is valid **/
       /*************************************/
       // when entering into a function, remember if call is relevant or not
-      if(originalEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-        functionCalls.push((Pair.of((FunctionCallEdge)originalEdge, abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge)));
+      if(typeOfOriginalEdge == CFAEdgeType.FunctionCallEdge) {
+        boolean isAbstractEdgeFunctionCall =
+            abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge;
+
+        functionCalls.push((Pair.of((FunctionCallEdge)originalEdge, isAbstractEdgeFunctionCall)));
       }
 
       // when returning from a function, ...
-      if(originalEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      if(typeOfOriginalEdge == CFAEdgeType.FunctionReturnEdge) {
         Pair<FunctionCallEdge, Boolean> functionCallInfo = functionCalls.pop();
         // ... if call is relevant and return edge is now a blank edge, restore the original return edge
-        if(functionCallInfo.getSecond() && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
+        if(functionCallInfo.getSecond()
+            && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
           abstractEdges.set(iterator.getIndex(), originalEdge);
         }
 
@@ -338,9 +346,11 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param currentNode the current node for which to add a new variable
    * @param memoryLocation the name of the variable to add to the increment at the given edge
    */
-  private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
-      CFANode currentNode,
-      I itp) {
+  private void addToPrecisionIncrement(
+      final Multimap<CFANode, MemoryLocation> increment,
+      final CFANode currentNode,
+      final I itp
+  ) {
 
     for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
       if (assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
