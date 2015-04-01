@@ -142,7 +142,6 @@ def _submitRunsParallel(runSet, webclient, benchmark):
     return runIDs
 
 def _submitRun(run, webclient, benchmark, counter = 0):
-    invalidParams = False
     programTexts = []
     for programPath in run.sourcefiles:
         with open(programPath, 'r') as programFile:
@@ -152,40 +151,34 @@ def _submitRun(run, webclient, benchmark, counter = 0):
 
     if benchmark.config.revision:
         tokens = benchmark.config.revision.split(':')
-        params.update({'svnBranch':tokens[0]})
+        params['svnBranch'] = tokens[0]
         if len(tokens)>1:
-            params.update({'revision':tokens[1]})
+            params['revision'] = tokens[1]
 
     if run.propertyfile:
         with open(run.propertyfile, 'r') as propertyFile:
             propertyText = propertyFile.read()
-            params.update({'propertyText':propertyText})
+            params['propertyText'] = propertyText
 
     limits = benchmark.rlimits
     if MEMLIMIT in limits:
-        params.update({'memoryLimitation':str(limits[MEMLIMIT]) + "MB"})
+        params['memoryLimitation'] = str(limits[MEMLIMIT]) + "MB"
     if TIMELIMIT in limits:
-        params.update({'timeLimitation':limits[TIMELIMIT]})
+        params['timeLimitation'] = limits[TIMELIMIT]
     if CORELIMIT in limits:
-        params.update({'coreLimitation':limits[CORELIMIT]})
-
+        params['coreLimitation'] = limits[CORELIMIT]
     if benchmark.config.cpu_model:
-        params.update({'cpuModel':benchmark.config.cpu_model})
-
+        params['cpuModel'] = benchmark.config.cpu_model
 
     invalidOption = _handleOptions(run, params)
-    invalidParams |= invalidOption
-
-    if invalidParams:
+    if invalidOption:
         raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
             .format(run.options, run.identifier))
 
-    paramsEncoded = urllib.urlencode(params, True)
-    headers = {"Content-type": "application/x-www-form-urlencoded", \
+    headers = {"Content-Type": "application/x-www-form-urlencoded",
+               "Content-Encoding": "deflate",
                "Accept": "text/plain"}
-
-    paramsCompressed = zlib.compress(paramsEncoded.encode('utf-8'))
-    headers.update({"Content-Encoding":"deflate"})
+    paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     request = urllib2.Request(webclient + "runs/", paramsCompressed, headers)
 
     # send request
@@ -215,7 +208,7 @@ def _handleOptions(run, params):
             try:
                 option=next(i)
                 if option == "-heap":
-                    params.update({'heap':next(i)})
+                    params['heap'] = next(i)
 
                 elif option == "-noout":
                     options.append("output.disable=true")
@@ -241,9 +234,9 @@ def _handleOptions(run, params):
                     if spec[-8:] == ".graphml":
                         with open(spec, 'r') as  errorWitnessFile:
                             errorWitnessText = errorWitnessFile.read()
-                            params.update({'errorWitnessText':errorWitnessText})
+                            params['errorWitnessText'] = errorWitnessText
                     else:
-                        params.update({'specification':spec})
+                        params['specification'] = spec
                 elif option == "-config":
                     configPath = next(i)
                     tokens = configPath.split('/')
@@ -251,20 +244,20 @@ def _handleOptions(run, params):
                         logging.warning('Configuration {0} of run {1} is not from the default config directory.'.format(configPath, run.identifier))
                         return True
                     config  = next(i).split('/')[2].split('.')[0]
-                    params.update({'configuration':config})
+                    params['configuration'] = config
 
                 elif option == "-setprop":
                     options.append(next(i))
 
                 elif option[0] == '-' and 'configuration' not in params :
-                    params.update({'configuration': option[1:]})
+                    params['configuration'] = option[1:]
                 else:
                     return True
 
             except StopIteration:
                 break
 
-    params.update({'option':options})
+    params['option'] = options
     return False
 
 def _getResults(runIDs, output_handler, webclient, benchmark):
