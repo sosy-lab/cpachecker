@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
+import org.sosy_lab.cpachecker.core.algorithm.realctools.RealCChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -80,7 +81,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   private final Set<ARGState> checkedTargetStates = Collections.newSetFromMap(new WeakHashMap<ARGState, Boolean>());
 
-  @Option(secure=true, name="checker", toUppercase=true, values={"CBMC", "CPACHECKER"},
+  @Option(secure=true, name="checker", toUppercase=true, values={"CBMC", "CPACHECKER", "REALC"},
           description="which model checker to use for verifying counterexamples as a second check\n"
                     + "Currently CBMC or CPAchecker with a different config can be used.")
   private String checkerName = "CBMC";
@@ -108,6 +109,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       checker = new CBMCChecker(config, logger, cfa);
     } else if (checkerName.equals("CPACHECKER")) {
       checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename, cpa);
+    }else if (checkerName.equals("REALC")){
+      checker = new RealCChecker(config, logger, cfa, cpa);
     } else {
       throw new AssertionError();
     }
