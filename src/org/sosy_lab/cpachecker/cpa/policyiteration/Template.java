@@ -1,5 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
@@ -19,7 +25,7 @@ public class Template {
   /**
    * Kind of a template.
    */
-  public static enum Kind {
+  public enum Kind {
     UPPER_BOUND, NEG_LOWER_BOUND, COMPLEX
   }
 
@@ -75,14 +81,44 @@ public class Template {
     return linearExpression.hashCode();
   }
 
+
+  /**
+   * @return String suitable for formula serialization. Guarantees that two
+   * equal templates will get an equal serialization.
+   */
+  public String toFormulaString() {
+
+    // Sort by .getQualifiedName() first.
+    Map<String, CIdExpression> mapping = new HashMap<>();
+    ArrayList<String> varNames = new ArrayList<>();
+
+    for (Entry<CIdExpression, Rational> monomial : linearExpression) {
+      CIdExpression key = monomial.getKey();
+      String varName = key.getDeclaration().getQualifiedName();
+
+      mapping.put(varName, key);
+      varNames.add(varName);
+    }
+
+    Collections.sort(varNames);
+
+    StringBuilder b = new StringBuilder();
+    for (String varName : varNames) {
+      Rational coeff = linearExpression.getCoeff(mapping.get(varName));
+
+      LinearExpression.writeMonomial(varName, coeff, b);
+    }
+    return b.toString();
+  }
+
   @Override
   public String toString() {
-    return String.format("%s", linearExpression.toString(new Function<CIdExpression, String>() {
+    return linearExpression.toString(new Function<CIdExpression, String>() {
 
       @Override
       public String apply(CIdExpression pCIdExpression) {
         return pCIdExpression.getDeclaration().getQualifiedName();
       }
-    }));
+    });
   }
 }

@@ -147,20 +147,30 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
     StringBuilder b = new StringBuilder();
     for (Entry<T, Rational> monomial : this) {
       Rational coeff = monomial.getValue();
-      if (b.length() != 0 && coeff.signum() >= 0) {
-        b.append(" + ");
-      }
       T var = monomial.getKey();
       String varSerialized = converter.apply(var);
-      if (coeff == Rational.ONE) {
-        b.append(varSerialized);
-      } else if (coeff == Rational.NEG_ONE) {
-        b.append(" - ").append(varSerialized);
-      } else {
-        b.append(coeff.toString()).append(varSerialized);
-      }
+
+      writeMonomial(varSerialized, coeff, b);
     }
     return b.toString();
+  }
+
+  /**
+   * Pretty-print monomial to the given {@link StringBuilder}.
+   */
+  public static void writeMonomial(
+      String varSerialized, Rational coeff, StringBuilder b
+  ) {
+    if (b.length() != 0 && coeff.signum() >= 0) {
+      b.append(" + ");
+    }
+    if (coeff == Rational.ONE) {
+      b.append(varSerialized);
+    } else if (coeff == Rational.NEG_ONE) {
+      b.append(" - ").append(varSerialized);
+    } else {
+      b.append(coeff.toString()).append(varSerialized);
+    }
   }
 
   @Override
