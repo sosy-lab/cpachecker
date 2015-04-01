@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.ConstraintsInformation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Lists;
 
@@ -191,6 +193,14 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     }
 
     return changed;
+  }
+
+  public void remember(
+      final MemoryLocation pLocation,
+      final ConstraintsInformation pForgottenInformation
+  ) {
+    constraints.addAll(pForgottenInformation.getConstraints());
+    definiteAssignment.putAll(pForgottenInformation.getAssignments());
   }
 
   @Override
