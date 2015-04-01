@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.Un
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -235,11 +234,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
    * This utility method checks if the given path is feasible.
    */
   private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException {
-    try {
-       return new ValueAnalysisFeasibilityChecker(logger, cfa, config).isFeasible(slicedErrorPathPrefix);
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
-    }
+    return checker.isFeasible(slicedErrorPathPrefix);
   }
 
   /**
