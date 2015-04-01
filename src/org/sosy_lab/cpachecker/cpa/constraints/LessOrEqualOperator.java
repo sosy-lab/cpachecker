@@ -29,18 +29,23 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class LessOrEqualOperator {
 
   private static final LessOrEqualOperator SINGLETON = new LessOrEqualOperator();
+  private static final Type DUMMY_TYPE_NUMERIC = CNumericTypes.INT;
 
   private LessOrEqualOperator() {
     // DO NOTHING
@@ -55,45 +60,67 @@ public class LessOrEqualOperator {
       final ConstraintsState pBiggerState
   ) {
 
-    if (pBiggerState.size() > pLesserState.size()) {
+    // Get all constraints of the state, including definite assignments of symbolic identifiers.
+    // This simplifies comparison between states because we don't have look at these separately.
+    final Set<? extends SymbolicValue> allConstraintsLesserState = getAllValues(pLesserState);
+    final Set<? extends SymbolicValue> allConstraintsBiggerState = getAllValues(pBiggerState);
+
+    if (allConstraintsBiggerState.size() > allConstraintsLesserState.size()) {
       return false;
     }
 
-    if (pLesserState.isEmpty()) {
+    if (allConstraintsBiggerState.isEmpty()) {
       return true;
     }
 
-    final IdentifierAssignment lesserStateDefAssignments = pLesserState.getDefiniteAssignment();
-    final IdentifierAssignment biggerStateDefAssignments = pBiggerState.getDefiniteAssignment();
+    final Set<Environment> possibleScenarios = getPossibleAliasings(allConstraintsLesserState,
+                                                                    allConstraintsBiggerState);
 
-    if (pBiggerState.getDefiniteAssignment().size() > lesserStateDefAssignments.size()) {
-      return false;
+    return !possibleScenarios.isEmpty();
+  }
+
+  private Set<? extends SymbolicValue> getAllValues(ConstraintsState pState) {
+
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+    Set<SymbolicValue> allValues = new HashSet<>();
+
+    // all real constraints are part of all constraints of the state
+    for (Constraint c : pState) {
+      allValues.add(c);
     }
 
-    final Set<Environment> possibleScenarios = getPossibleAliasings(pLesserState, pBiggerState);
+    // each definite assignment in itself is a constraint, so we add these too
+    for (Map.Entry<SymbolicIdentifier, Value> entry : pState.getDefiniteAssignment().entrySet()) {
+      SymbolicIdentifier id = entry.getKey();
+      Value value = entry.getValue();
 
-    for (Environment e : possibleScenarios) {
-      boolean consistent = true;
+      assert !(value instanceof SymbolicValue)
+          : "Definite assignment of symbolic identifier is symbolic value";
 
-      for (Map.Entry<SymbolicIdentifier, Value> entry : biggerStateDefAssignments.entrySet()) {
-        SymbolicIdentifier id = entry.getKey();
-        SymbolicIdentifier alias = e.aliasses.get(id);
+      Type type = getType(value);
 
-        // definite assignments may not be cleaned up together with unneccessary constraints.
-        // if no alias exists for a symbolic identifier, we assume it's not in the state anymore.
-        if (alias == null) {
-          continue;
-        }
+      SymbolicExpression idExp = factory.asConstant(id, type);
+      SymbolicExpression valueExp = factory.asConstant(value, type);
 
-        consistent &= entry.getValue().equals(lesserStateDefAssignments.get(alias));
-      }
-
-      if (consistent) {
-        return true;
-      }
+      // the type doesn't really matter here, as long as its the same for all constraints created
+      // this way.
+      allValues.add(factory.equal(idExp, valueExp, DUMMY_TYPE_NUMERIC, DUMMY_TYPE_NUMERIC));
     }
 
-    return false;
+    return allValues;
+  }
+
+  private Type getType(Value pValue) {
+    // We only use CTypes. The type compatibility doesn't really matter, as long as the expressions
+    // are comparable.
+
+    if (pValue instanceof BooleanValue) {
+      return CNumericTypes.BOOL;
+    } else {
+      return DUMMY_TYPE_NUMERIC;
+    }
+
   }
 
   public Set<Environment> getPossibleAliasings(
