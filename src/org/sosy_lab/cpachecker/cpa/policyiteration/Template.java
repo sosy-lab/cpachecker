@@ -113,12 +113,6 @@ public class Template {
 
   @Override
   public String toString() {
-    return linearExpression.toString(new Function<CIdExpression, String>() {
-
-      @Override
-      public String apply(CIdExpression pCIdExpression) {
-        return pCIdExpression.getDeclaration().getQualifiedName();
-      }
-    });
+    return linearExpression.toString();
   }
 }
