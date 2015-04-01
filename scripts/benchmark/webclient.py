@@ -170,7 +170,7 @@ def _submitRun(run, webclient, benchmark, counter = 0):
     if benchmark.config.cpu_model:
         params['cpuModel'] = benchmark.config.cpu_model
 
-    invalidOption = _handleOptions(run, params)
+    invalidOption = _handleOptions(run, params, limits)
     if invalidOption:
         raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
             .format(run.options, run.identifier))
@@ -199,10 +199,14 @@ def _submitRun(run, webclient, benchmark, counter = 0):
     else:
         raise urllib2.HTTPError(response.read(), response.getcode())
 
-def _handleOptions(run, params):
+def _handleOptions(run, params, rlimits):
+    # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
+    # instead of doing it here manually, too
     options = ["statistics.print=true"]
+    if 'softtimelimit' in rlimits and not '-timelimit' in options:
+        options.append("limits.time.cpu=" + str(rlimits['softtimelimit']) + "s")
+
     if run.options:
-        option = ""
         i = iter(run.options)
         while True:
             try:
@@ -212,7 +216,7 @@ def _handleOptions(run, params):
 
                 elif option == "-noout":
                     options.append("output.disable=true")
-                elif option == "-stat":
+                elif option == "-stats":
                     #ignore, is always set by this script
                     pass
                 elif option == "-java":
@@ -224,7 +228,7 @@ def _handleOptions(run, params):
                 elif option == "-entryfunction":
                     options.append("analysis.entryFunction=" + next(i))
                 elif option == "-timelimit":
-                    options.append("limits.time.cpu =" + next(i))
+                    options.append("limits.time.cpu=" + next(i))
                 elif option == "-skipRecursion":
                     options.append("cpa.callstack.skipRecursion=true")
                     options.append("analysis.summaryEdges=true")
