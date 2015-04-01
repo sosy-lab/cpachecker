@@ -176,6 +176,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   @Override
   public ValueAnalysisInformation forget(MemoryLocation pMemoryLocation) {
 
+    if (!constantsMap.containsKey(pMemoryLocation)) {
+      return ValueAnalysisInformation.EMPTY;
+    }
+
     Value value = constantsMap.get(pMemoryLocation);
     Type type = memLocToType.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
@@ -183,7 +187,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
     return new ValueAnalysisInformation(ImmutableMap.of(pMemoryLocation, value),
                                         ImmutableMap.of(pMemoryLocation, type),
-                                          Collections.<SymbolicIdentifier, Value>emptyMap());
+                                        Collections.<SymbolicIdentifier, Value>emptyMap());
   }
 
   @Override
