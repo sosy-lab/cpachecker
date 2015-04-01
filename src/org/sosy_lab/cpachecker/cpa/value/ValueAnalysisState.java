@@ -360,13 +360,16 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       return false;
     }
 
-    // Alternative: check whether symbolic values' covered value space is less or equal.
+    // also, this element is not less or equal than the other element,
+    // if any one constant's value of the other element differs from the constant's value in this
+    // element
     for (Map.Entry<MemoryLocation, Value> otherEntry : other.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
       Value otherValue = otherEntry.getValue();
       Value thisValue = constantsMap.get(key);
 
-      // if both values are symbolic values, we will check whether they are aliases later.
+      // if both values are symbolic values, we will check whether they actually represent the same
+      // value space later.
       if (!(thisValue instanceof SymbolicValue && otherValue instanceof SymbolicValue)) {
         if (isSymbolicIdentifierWithKnownValue(thisValue)) {
           thisValue = getKnownValueOfSymbolicIdentifier(thisValue);
