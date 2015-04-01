@@ -73,7 +73,7 @@ def init(config, benchmark):
             benchmark.tool_version = config.revision
         else:
             benchmark.tool_version = "trunk:HEAD"
-    benchmark.executable = ''
+    benchmark.executable = 'scripts/cpa.sh'
 
 def get_system_info():
     return None
