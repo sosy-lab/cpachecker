@@ -59,6 +59,10 @@ public class LessOrEqualOperator {
       return false;
     }
 
+    if (pLesserState.isEmpty()) {
+      return true;
+    }
+
     final IdentifierAssignment lesserStateDefAssignments = pLesserState.getDefiniteAssignment();
     final IdentifierAssignment biggerStateDefAssignments = pBiggerState.getDefiniteAssignment();
 
