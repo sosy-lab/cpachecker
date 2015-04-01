@@ -536,6 +536,9 @@ cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 # export error path to file as an automaton
 cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
+# use either CMBC or real C
+cpa.arg.errorPath.codeStyle = "CMBC"
+
 # export error path to file, if one is found
 cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
 cpa.arg.errorPath.enabled = true
@@ -934,7 +937,7 @@ cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
 # Predicate ordering
-cpa.predicate.abs.predicateOrdering.method = SIMILARITY
+cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
   enum:     [SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
              FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE, FRAMEWORK_WIN2,
              FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE, CHRONOLOGICAL]

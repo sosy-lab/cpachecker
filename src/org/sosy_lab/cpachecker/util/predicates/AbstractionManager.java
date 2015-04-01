@@ -82,7 +82,7 @@ public final class AbstractionManager {
   // Properties for BDD variable ordering:
   @Option(secure = true, name = "abs.predicateOrdering.method",
       description = "Predicate ordering")
-  private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.SIMILARITY;
+  private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.CHRONOLOGICAL;
   // mapping predicate variable -> partition containing predicates with this predicate variable
   private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
   // and mapping partition ID -> set of predicate variables covered by partition
