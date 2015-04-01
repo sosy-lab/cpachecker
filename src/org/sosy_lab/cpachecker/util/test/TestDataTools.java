@@ -77,8 +77,12 @@ public class TestDataTools {
     Configuration typeConverterConfig = Configuration.builder()
         .setOption("output.disable", "true")
         .build();
+    FileTypeConverter fileTypeConverter = FileTypeConverter.create(typeConverterConfig);
+    Configuration.getDefaultConverters().put(
+        FileOption.class, fileTypeConverter
+    );
     return Configuration.builder()
-        .addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(typeConverterConfig));
+        .addConverter(FileOption.class, fileTypeConverter);
   }
 
   public static final CFANode DUMMY_CFA_NODE = new CFANode("DUMMY");
