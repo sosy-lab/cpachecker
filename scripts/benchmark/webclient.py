@@ -472,7 +472,7 @@ def _auth(webclient, benchmark):
     if benchmark.config.cloudUser:
         tokens = benchmark.config.cloudUser.split(':')
         if not len(tokens) == 2:
-            logging.serve('Invalid username password format, expected {user}:{pwd}')
+            logging.warning('Invalid username password format, expected {user}:{pwd}')
             return  
         username = tokens[0]
         password = tokens[1]
