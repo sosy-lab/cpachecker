@@ -206,11 +206,5 @@ public class ValueAnalysisRefiner
 
     return sortedTargets;
   }
-
-  @Override
-  protected void resetPreviousErrorPathId() {
-    // Make the method visible for this package
-    super.resetPreviousErrorPathId();
-  }
 }
 

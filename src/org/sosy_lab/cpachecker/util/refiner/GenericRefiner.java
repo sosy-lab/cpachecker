@@ -632,7 +632,7 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
    * This method resets the current error path id, which is needed when using another refiner,
    * such as a refiner from the predicate domain, in parallel to this refiner.
    */
-  protected final void resetPreviousErrorPathId() {
+  public final void resetPreviousErrorPathId() {
     previousErrorPathId = -1;
   }
 }
