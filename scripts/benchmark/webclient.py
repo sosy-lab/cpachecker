@@ -94,7 +94,7 @@ def execute_benchmark(benchmark, output_handler):
                 continue
 
             output_handler.output_before_run_set(runSet)
-            runIDs = _submitRunsPrallel(runSet, webclient, benchmark)
+            runIDs = _submitRunsParallel(runSet, webclient, benchmark)
 
             _getResults(runIDs, output_handler, webclient, benchmark)
             output_handler.output_after_run_set(runSet)
@@ -109,7 +109,7 @@ def stop():
     # TODO: cancel runs on server
     pass
 
-def _submitRunsPrallel(runSet, webclient, benchmark):
+def _submitRunsParallel(runSet, webclient, benchmark):
 
     logging.info('Submitting runs')
 
@@ -186,11 +186,11 @@ def _submitRun(run, webclient, benchmark, counter = 0):
 
     paramsCompressed = zlib.compress(paramsEncoded.encode('utf-8'))
     headers.update({"Content-Encoding":"deflate"})
-    resquest = urllib2.Request(webclient + "runs/", paramsCompressed, headers)
+    request = urllib2.Request(webclient + "runs/", paramsCompressed, headers)
 
     # send request
     try:
-        response = urllib2.urlopen(resquest)
+        response = urllib2.urlopen(request)
 
     except urllib2.HTTPError as e:
         if (e.code == 401 and counter < 3):
@@ -281,9 +281,9 @@ def _getResults(runIDs, output_handler, webclient, benchmark):
 def _isFinished(runID, webclient, benchmark):
 
     headers = {"Accept": "text/plain"}
-    resquest = urllib2.Request(webclient + "runs/" + runID + "/state", headers=headers)
+    request = urllib2.Request(webclient + "runs/" + runID + "/state", headers=headers)
     try:
-        response = urllib2.urlopen(resquest)
+        response = urllib2.urlopen(request)
     except urllib2.HTTPError as e:
         logging.info('Could get result of run with id {0}: {1}'.format(runID, e))
         _auth(webclient, benchmark)
@@ -314,12 +314,12 @@ def _isFinished(runID, webclient, benchmark):
 def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
     # download result as zip file
     counter = 0
-    sucess = False
-    while (not sucess and counter < 10):
+    success = False
+    while (not success and counter < 10):
         counter += 1
-        resquest = urllib2.Request(webclient + "runs/" + runID + "/result")
+        request = urllib2.Request(webclient + "runs/" + runID + "/result")
         try:
-            response = urllib2.urlopen(resquest)
+            response = urllib2.urlopen(request)
         except urllib2.HTTPError as e:
             logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
             _auth(webclient, benchmark)
@@ -328,11 +328,11 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
 
         if response.getcode() == 200:
             zipContent = response.read()
-            sucess = True
+            success = True
         else:
             sleep(1)
 
-    if sucess:
+    if success:
         # unzip result
         output_handler.output_before_run(run)
         return_value = -1
