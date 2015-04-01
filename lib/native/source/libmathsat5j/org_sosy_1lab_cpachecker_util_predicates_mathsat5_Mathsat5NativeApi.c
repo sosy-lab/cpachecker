@@ -881,6 +881,14 @@ FAILURE_CODE_RETURN
 
 i_func1s(solve, 1solve, msat_result, msat_env)
 
+DEFINE_FUNC(int, 1solve_1with_1assumptions) WITH_THREE_ARGS(jenv, jtermArray, int)
+ENV_ARG(1)
+TERM_ARRAY_ARG(2)
+SIMPLE_ARG(size_t, 3)
+CALL3(msat_result, solve_with_assumptions)
+FREE_TERM_ARRAY_ARG(2)
+INT_RETURN
+
 
 /*
  * msat_term* 	msat_get_asserted_formulas (msat_env e, size_t *num_asserted)

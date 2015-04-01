@@ -86,15 +86,23 @@ class Mathsat5NativeApi {
    * Return true if sat, false if unsat.
    */
   public static boolean msat_check_sat(long e) throws InterruptedException {
-    int res = msat_solve(e);
-    switch (res) {
+    return processSolveResult(e, msat_solve(e));
+  }
+
+  public static boolean msat_check_sat_with_assumptions(long e, long[] assumptions) throws InterruptedException {
+    return processSolveResult(e,
+        msat_solve_with_assumptions(e, assumptions, assumptions.length));
+  }
+
+  private static boolean processSolveResult(long e, int resultCode) throws IllegalStateException {
+    switch (resultCode) {
     case MSAT_SAT:
       return true;
     case MSAT_UNSAT:
       return false;
     default:
       String msg = Strings.emptyToNull(msat_last_error_message(e));
-      String code = (res == MSAT_UNKNOWN) ? "\"unknown\"" : res + "";
+      String code = (resultCode == MSAT_UNKNOWN) ? "\"unknown\"" : resultCode + "";
       throw new IllegalStateException("msat_solve returned " + code
           + (msg != null ? ": " + msg : ""));
     }
@@ -374,7 +382,7 @@ class Mathsat5NativeApi {
   //public static native int msat_add_preferred_for_branching(long e, long termBoolvar);
   //public static native int msat_clear_preferred_for_branching(long e)
   private static native int msat_solve(long e) throws InterruptedException;
-  //public static native int msat_solve_with_assumptions(long e, long[] assumptions, size numAssumptions)
+  private static native int msat_solve_with_assumptions(long e, long[] assumptions, int numAssumptions) throws InterruptedException;
   private static native int msat_all_sat(long e, long[] important, int num_important,
       AllSatModelCallback func) throws InterruptedException;
   //private static native int msat_solve_diversify(long e, DiversifyModelCallback func, long userData)
