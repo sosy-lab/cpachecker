@@ -29,23 +29,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class LessOrEqualOperator {
 
   private static final LessOrEqualOperator SINGLETON = new LessOrEqualOperator();
-  private static final Type DUMMY_TYPE_NUMERIC = CNumericTypes.INT;
 
   private LessOrEqualOperator() {
     // DO NOTHING
@@ -61,9 +55,11 @@ public class LessOrEqualOperator {
   ) {
 
     // Get all constraints of the state, including definite assignments of symbolic identifiers.
-    // This simplifies comparison between states because we don't have look at these separately.
-    final Set<? extends SymbolicValue> allConstraintsLesserState = getAllValues(pLesserState);
-    final Set<? extends SymbolicValue> allConstraintsBiggerState = getAllValues(pBiggerState);
+    // This simplifies comparison between states because we don't have to look at these separately.
+    final ConstraintsState.ConstraintsOnlyView allConstraintsLesserState =
+        pLesserState.getConstraintsOnlyView();
+    final ConstraintsState.ConstraintsOnlyView allConstraintsBiggerState =
+        pBiggerState.getConstraintsOnlyView();
 
     if (allConstraintsBiggerState.size() > allConstraintsLesserState.size()) {
       return false;
@@ -77,50 +73,6 @@ public class LessOrEqualOperator {
                                                                     allConstraintsBiggerState);
 
     return !possibleScenarios.isEmpty();
-  }
-
-  private Set<? extends SymbolicValue> getAllValues(ConstraintsState pState) {
-
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
-    Set<SymbolicValue> allValues = new HashSet<>();
-
-    // all real constraints are part of all constraints of the state
-    for (Constraint c : pState) {
-      allValues.add(c);
-    }
-
-    // each definite assignment in itself is a constraint, so we add these too
-    for (Map.Entry<SymbolicIdentifier, Value> entry : pState.getDefiniteAssignment().entrySet()) {
-      SymbolicIdentifier id = entry.getKey();
-      Value value = entry.getValue();
-
-      assert !(value instanceof SymbolicValue)
-          : "Definite assignment of symbolic identifier is symbolic value";
-
-      Type type = getType(value);
-
-      SymbolicExpression idExp = factory.asConstant(id, type);
-      SymbolicExpression valueExp = factory.asConstant(value, type);
-
-      // the type doesn't really matter here, as long as its the same for all constraints created
-      // this way.
-      allValues.add(factory.equal(idExp, valueExp, DUMMY_TYPE_NUMERIC, DUMMY_TYPE_NUMERIC));
-    }
-
-    return allValues;
-  }
-
-  private Type getType(Value pValue) {
-    // We only use CTypes. The type compatibility doesn't really matter, as long as the expressions
-    // are comparable.
-
-    if (pValue instanceof BooleanValue) {
-      return CNumericTypes.BOOL;
-    } else {
-      return DUMMY_TYPE_NUMERIC;
-    }
-
   }
 
   public Set<Environment> getPossibleAliasings(

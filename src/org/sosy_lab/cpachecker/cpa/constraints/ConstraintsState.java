@@ -28,17 +28,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.ConstraintsInformation;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -51,6 +57,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.collect.ForwardingSet;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
@@ -493,6 +501,10 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     return sb.append("] size->  ").append(constraints.size()).toString();
   }
 
+  public ConstraintsOnlyView getConstraintsOnlyView() {
+    return new ConstraintsOnlyView(this);
+  }
+
   private class ConstraintIterator implements Iterator<Constraint> {
 
     private int index = -1;
@@ -514,6 +526,73 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
 
       constraints.remove(index);
       constraintFormulas.remove(constraintToRemove);
+    }
+  }
+
+  /**
+   * View for {@link ConstraintsState} that displays definite assignments for symbolic identifiers
+   * as constraints.
+   * This way, when, for example, comparing constraints states, one only has to look at the
+   * constraints of the view.
+   *
+   * <p>Note: The types of the constraints are not always accurate, as constraints have to be
+   * created out of definite assignments where only a value is available.</p>
+   */
+  public static class ConstraintsOnlyView extends ForwardingSet<Constraint> {
+    private static final Type DUMMY_TYPE_NUMERIC = CNumericTypes.INT;
+
+    private final ImmutableSet<Constraint> constraints;
+
+    private ConstraintsOnlyView(final ConstraintsState pState) {
+      constraints = getAllValues(pState);
+    }
+
+    private ImmutableSet<Constraint> getAllValues(ConstraintsState pState) {
+
+      final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+      Set<Constraint> allValues = new HashSet<>();
+
+      // all real constraints are part of all constraints of the state
+      for (Constraint c : pState) {
+        allValues.add(c);
+      }
+
+      // each definite assignment in itself is a constraint, so we add these too
+      for (Map.Entry<SymbolicIdentifier, Value> entry : pState.getDefiniteAssignment().entrySet()) {
+        SymbolicIdentifier id = entry.getKey();
+        Value value = entry.getValue();
+
+        assert !(value instanceof SymbolicValue)
+            : "Definite assignment of symbolic identifier is symbolic value";
+
+        Type type = getType(value);
+
+        SymbolicExpression idExp = factory.asConstant(id, type);
+        SymbolicExpression valueExp = factory.asConstant(value, type);
+
+        // the type doesn't really matter here, as long as its the same for all constraints created
+        // this way.
+        allValues.add(factory.equal(idExp, valueExp, DUMMY_TYPE_NUMERIC, DUMMY_TYPE_NUMERIC));
+      }
+
+      return ImmutableSet.copyOf(allValues);
+    }
+
+    private Type getType(Value pValue) {
+      // We only use CTypes. The type compatibility doesn't really matter, as long as the expressions
+      // are comparable.
+
+      if (pValue instanceof BooleanValue) {
+        return CNumericTypes.BOOL;
+      } else {
+        return DUMMY_TYPE_NUMERIC;
+      }
+    }
+
+    @Override
+    protected Set<Constraint> delegate() {
+      return constraints;
     }
   }
 }
