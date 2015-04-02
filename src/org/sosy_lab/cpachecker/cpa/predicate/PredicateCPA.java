@@ -197,7 +197,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     if (useInvariantsForAbstraction) {
-      invariantGenerator = new CPAInvariantGenerator(config, logger, pShutdownNotifier, cfa);
+      invariantGenerator = CPAInvariantGenerator.create(config, logger, pShutdownNotifier, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }

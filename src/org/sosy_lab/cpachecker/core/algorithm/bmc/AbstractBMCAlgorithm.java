@@ -172,7 +172,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           pShutdownNotifier, pCFA, pReachedSetFactory);
 
     } else if (induction && addInvariantsByAI) {
-      invariantGenerator = new CPAInvariantGenerator(pConfig, pLogger, pShutdownNotifier, cfa);
+      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, pShutdownNotifier, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }

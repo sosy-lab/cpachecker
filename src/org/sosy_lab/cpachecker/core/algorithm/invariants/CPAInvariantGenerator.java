@@ -120,8 +120,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
   private final CPAInvariantGeneratorStatistics stats = new CPAInvariantGeneratorStatistics();
   private final LogManager logger;
-  private final CPAAlgorithm invariantAlgorithm;
-  private final ConfigurableProgramAnalysis invariantCPAs;
+  private final CPAAlgorithm algorithm;
+  private final ConfigurableProgramAnalysis cpa;
   private final ReachedSetFactory reachedSetFactory;
 
   private final ShutdownNotifier shutdownNotifier;
@@ -143,12 +143,24 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
   };
 
-  public CPAInvariantGenerator(final Configuration config, final LogManager pLogger,
+  public static CPAInvariantGenerator create(final Configuration pConfig,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final CFA pCFA)
+          throws InvalidConfigurationException, CPAException {
+
+    return new CPAInvariantGenerator(
+            pConfig,
+            pLogger.withComponentName("CPAInvariantGenerator"),
+            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pCFA);
+  }
+
+  private CPAInvariantGenerator(final Configuration config, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA cfa)
           throws InvalidConfigurationException, CPAException {
     config.inject(this);
-    logger = pLogger.withComponentName("CPAInvariantGenerator");
-    shutdownNotifier = ShutdownNotifier.createWithParent(pShutdownNotifier);
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
 
     Configuration invariantConfig;
     try {
@@ -160,14 +172,15 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
 
     reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
-    invariantCPAs = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAWithSpecAutomatas(cfa);
-    invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, shutdownNotifier);
+    cpa = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAWithSpecAutomatas(cfa);
+    algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownNotifier);
   }
 
   @Override
   public void start(final CFANode initialLocation) {
-    checkNotNull(initialLocation);
     checkState(invariantGenerationFuture == null);
+
+    Callable<InvariantSupplier> task = new InvariantGenerationTask(initialLocation);
 
     if (async) {
       if (adjustConditions) {
@@ -176,12 +189,12 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
       // start invariant generation asynchronously
       ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
-      invariantGenerationFuture = executor.submit(new InvariantGenerationTask(initialLocation));
+      invariantGenerationFuture = executor.submit(task);
       executor.shutdown(); // will shutdown after task is finished
 
     } else {
       // create future for lazy synchronous invariant generation
-      invariantGenerationFuture = new LazyFutureTask<>(new InvariantGenerationTask(initialLocation));
+      invariantGenerationFuture = new LazyFutureTask<>(task);
     }
 
     shutdownNotifier.registerAndCheckImmediately(shutdownListener);
@@ -204,7 +217,6 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     } else {
       try {
         return invariantGenerationFuture.get();
-
       } catch (ExecutionException e) {
         Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
@@ -217,18 +229,18 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
   @Override
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
-    InvariantsCPA cpa = CPAs.retrieveCPA(invariantCPAs, InvariantsCPA.class);
-    if (cpa != null) {
-      cpa.injectInvariant(pLocation, pAssumption);
+    InvariantsCPA invariantCPA = CPAs.retrieveCPA(cpa, InvariantsCPA.class);
+    if (invariantCPA != null) {
+      invariantCPA.injectInvariant(pLocation, pAssumption);
     }
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (invariantCPAs instanceof StatisticsProvider) {
-      ((StatisticsProvider)invariantCPAs).collectStatistics(pStatsCollection);
+    if (cpa instanceof StatisticsProvider) {
+      ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
     }
-    invariantAlgorithm.collectStatistics(pStatsCollection);
+    algorithm.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
   }
 
@@ -275,9 +287,9 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     private final List<AdjustableConditionCPA> conditionCPAs;
     private final CFANode initialLocation;
 
-    public InvariantGenerationTask(final CFANode pInitialLocation) {
+    private InvariantGenerationTask(final CFANode pInitialLocation) {
       initialLocation = checkNotNull(pInitialLocation);
-      conditionCPAs = CPAs.asIterable(invariantCPAs).filter(AdjustableConditionCPA.class).toList();
+      conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
 
       if (adjustConditions && conditionCPAs.isEmpty()) {
         logger.log(Level.WARNING, "Cannot adjust invariant generation: No adjustable CPAs.");
@@ -288,6 +300,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     public InvariantSupplier call() throws Exception {
       stats.invariantGeneration.start();
       InvariantSupplier invariant;
+
       try {
         invariant = runInvariantGeneration(initialLocation);
         latestInvariant.set(invariant);
@@ -303,8 +316,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
         }
       } finally {
         stats.invariantGeneration.stop();
-        CPAs.closeCpaIfPossible(invariantCPAs, logger);
-        CPAs.closeIfPossible(invariantAlgorithm, logger);
+        CPAs.closeCpaIfPossible(cpa, logger);
+        CPAs.closeIfPossible(algorithm, logger);
       }
       return invariant;
     }
@@ -313,13 +326,13 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
         throws CPAException, InterruptedException {
 
       ReachedSet taskReached = reachedSetFactory.create();
-      synchronized (invariantCPAs) {
-        taskReached.add(invariantCPAs.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
-            invariantCPAs.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
+      synchronized (cpa) {
+        taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
+            cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
       }
 
       while (!taskReached.getWaitlist().isEmpty()) {
-        invariantAlgorithm.run(taskReached);
+        algorithm.run(taskReached);
       }
 
       return new ReachedSetBasedInvariantSupplier(
@@ -330,7 +343,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       if (!adjustConditions || conditionCPAs.isEmpty()) {
         return false;
       }
-      synchronized (invariantCPAs) {
+      synchronized (cpa) {
         for (AdjustableConditionCPA cpa : conditionCPAs) {
           if (!cpa.adjustPrecision()) {
             logger.log(Level.INFO, "Further invariant generation adjustments denied by", cpa.getClass().getSimpleName());
