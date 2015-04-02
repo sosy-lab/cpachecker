@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant;
+package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import java.util.Collections;
 import java.util.Set;
