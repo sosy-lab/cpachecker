@@ -1567,12 +1567,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     private SMGKnownValue(long pValue) {
-      checkNotNull(pValue);
       value = BigInteger.valueOf(pValue);
     }
 
     private SMGKnownValue(int pValue) {
-      checkNotNull(pValue);
       value = BigInteger.valueOf(pValue);
     }
 

@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "unchecked", "fallthrough" })
+@SuppressWarnings(value = { "all", "unchecked", "fallthrough", "SelfAssignment" })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE", "DM_DEFAULT_ENCODING", "SA_FIELD_SELF_ASSIGNMENT"})
 %%
 
