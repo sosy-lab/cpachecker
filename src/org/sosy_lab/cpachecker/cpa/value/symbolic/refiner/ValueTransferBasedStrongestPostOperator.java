@@ -146,12 +146,13 @@ public class ValueTransferBasedStrongestPostOperator
     // independent of scope.
     final ConstraintsState constraintsState = getConstraintsStateOfCompositeState(pNext);
 
-    ValueAnalysisState valueState = getValueStateOfCompositeState(callState);
+    ValueAnalysisState currentValueState = getValueStateOfCompositeState(pNext);
+    ValueAnalysisState callStateValueState = getValueStateOfCompositeState(callState);
 
-    valueState = valueState.rebuildStateAfterFunctionCall(
-            valueState, (FunctionExitNode) pEdge.getPredecessor());
+    currentValueState = currentValueState.rebuildStateAfterFunctionCall(
+            callStateValueState, (FunctionExitNode) pEdge.getPredecessor());
 
-    return getNewCompositeState(valueState, constraintsState);
+    return getNewCompositeState(currentValueState, constraintsState);
   }
 
   private Optional<ValueAnalysisState> strengthenValueState(
