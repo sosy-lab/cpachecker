@@ -185,8 +185,16 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
     memLocToType = memLocToType.removeAndCopy(pMemoryLocation);
 
+    Map<MemoryLocation, Type> typeAssignment;
+
+    if (type == null) {
+      typeAssignment = Collections.emptyMap();
+    } else {
+      typeAssignment = ImmutableMap.of(pMemoryLocation, type);
+    }
+
     return new ValueAnalysisInformation(ImmutableMap.of(pMemoryLocation, value),
-                                        ImmutableMap.of(pMemoryLocation, type),
+                                        typeAssignment,
                                         Collections.<SymbolicIdentifier, Value>emptyMap());
   }
 
