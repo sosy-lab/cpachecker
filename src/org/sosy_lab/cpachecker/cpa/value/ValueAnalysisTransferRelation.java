@@ -127,7 +127,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
@@ -716,8 +715,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         } else if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
-        } else if (BuiltinFunctions.isBuiltinFunction(func)
-            && expression instanceof CFunctionCallAssignmentStatement) {
+        } else if (expression instanceof CFunctionCallAssignmentStatement) {
 
           return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
         }
