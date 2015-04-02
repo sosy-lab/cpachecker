@@ -113,6 +113,42 @@ public class ForgettingCompositeState
     return values.getSize();
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    ForgettingCompositeState that = (ForgettingCompositeState)o;
+
+    if (!constraints.equals(that.constraints)) {
+      return false;
+    }
+    if (!values.equals(that.values)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = values.hashCode();
+    result = 31 * result + constraints.hashCode();
+    return result;
+  }
+
+  @Override
+  public String toString() {
+    return "ForgettingCompositeState[" +
+        values +
+        ", " + constraints +
+        ']';
+  }
+
   /**
    * This class contains a {@link MemoryLocation} and all values of a ValueAnalysisState
    * and all constraints of a ConstraintsState that are associated with it.
