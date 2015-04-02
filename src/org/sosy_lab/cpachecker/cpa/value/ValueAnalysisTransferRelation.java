@@ -755,13 +755,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
 
-    final MemoryLocation memLoc = evv.evaluateMemoryLocation(leftSide);
+    final Optional<MemoryLocation> memLoc = getMemoryLocation(leftSide, newValue, evv);
 
-    if (!newValue.isUnknown()) {
-      newElement.assignConstant(memLoc, newValue, leftSideType);
+    if (memLoc.isPresent()) {
+      if (!newValue.isUnknown()) {
+        newElement.assignConstant(memLoc.get(), newValue, leftSideType);
 
-    } else {
-      newElement.forget(memLoc);
+      } else {
+        newElement.forget(memLoc.get());
+      }
     }
 
     return newElement;
