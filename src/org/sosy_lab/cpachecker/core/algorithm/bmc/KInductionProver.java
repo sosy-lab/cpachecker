@@ -145,6 +145,7 @@ class KInductionProver implements AutoCloseable {
 
   private int previousK = -1;
 
+  // The CandidateInvariants that have been proven to hold at the loop heads of {@link loop}.
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
   private boolean invariantGenerationRunning = true;
@@ -339,8 +340,8 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
 
-    for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
-      if (ci.getLocations(cfa).contains(pLocation)) {
+    if (loop.getLoopHeads().contains(pLocation)) {
+      for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
         invariant = bfmgr.and(invariant, ci.getCandidate(pFMGR, pPFMGR));
       }
     }

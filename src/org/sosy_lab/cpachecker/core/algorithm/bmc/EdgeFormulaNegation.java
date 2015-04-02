@@ -29,7 +29,6 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.Collections;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -130,11 +129,6 @@ public class EdgeFormulaNegation implements CandidateInvariant {
         s.removeFromARG();
       }
     }
-  }
-
-  @Override
-  public Set<CFANode> getLocations(CFA pCFA) {
-    return Collections.unmodifiableSet(locations);
   }
 
   @Override

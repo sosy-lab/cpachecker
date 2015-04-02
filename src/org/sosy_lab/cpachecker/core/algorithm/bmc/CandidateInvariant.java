@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -70,15 +66,6 @@ public interface CandidateInvariant {
    * @param pReachedSet the reached set to remove unreachable states from.
    */
   void assumeTruth(ReachedSet pReachedSet);
-
-  /**
-   * Gets the set of locations this invariant holds at.
-   *
-   * @param the control flow automaton.
-   *
-   * @return the set of locations this invariant holds at.
-   */
-  Set<CFANode> getLocations(CFA pCFA);
 
   /**
    * Try to inject the invariant into an invariant generator in order to
