@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 import java.util.Collection;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -86,8 +87,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
   private final PathFormulaManager clientPFM;
 
-  private final ExecutorService executorService = Executors.newSingleThreadExecutor(Threads.threadFactory());
-
   private final ShutdownRequestListener shutdownListener;
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
@@ -143,17 +142,15 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
       @Override
       public void shutdownRequested(String pReason) {
-        executorService.shutdownNow();
+        invariantGenerationFuture.cancel(true);
       }
     };
   }
 
   @Override
   public void start(final CFANode pInitialLocation) {
-
     checkNotNull(pInitialLocation);
     checkState(invariantGenerationFuture == null);
-
 
     Callable<InvariantSupplier> task = new Callable<InvariantSupplier>() {
 
@@ -180,15 +177,17 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     };
 
     if (async) {
-      shutdownNotifier.registerAndCheckImmediately(shutdownListener);
-      if (!executorService.isShutdown() && !shutdownNotifier.shouldShutdown()) {
-        invariantGenerationFuture = executorService.submit(task);
-      } else {
-        invariantGenerationFuture = new LazyFutureTask<>(task);
-      }
+      // start invariant generation asynchronously
+      ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
+      invariantGenerationFuture = executor.submit(task);
+      executor.shutdown(); // will shutdown after task is finished
+
     } else {
+      // create future for lazy synchronous invariant generation
       invariantGenerationFuture = new LazyFutureTask<>(task);
     }
+
+    shutdownNotifier.registerAndCheckImmediately(shutdownListener);
   }
 
   private InvariantSupplier getResults() {
@@ -208,14 +207,21 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
-    if (async) {
+    checkState(invariantGenerationFuture != null);
+
+    if (async && !invariantGenerationFuture.isDone()) {
+      // grab intermediate result that is available so far
       return getResults();
+
     } else {
       try {
         return invariantGenerationFuture.get();
       } catch (ExecutionException e) {
         Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
         throw Throwables.propagate(e);
+      } catch (CancellationException e) {
+        shutdownNotifier.shutdownIfNecessary();
+        throw e;
       }
     }
   }

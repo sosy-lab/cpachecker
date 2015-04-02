@@ -196,12 +196,12 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
-    shutdownNotifier.shutdownIfNecessary();
 
-    if (invariantGenerationFuture.isDone() // finished
-        || !adjustConditions // without continuously-refined invariants we should wait for the result
-        ) {
+    if (async && adjustConditions && !invariantGenerationFuture.isDone()) {
+      // grab intermediate result that is available so far
+      return verifyNotNull(latestInvariant.get());
 
+    } else {
       try {
         return invariantGenerationFuture.get();
 
@@ -209,14 +209,9 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
         Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
-        InterruptedException ie = new InterruptedException();
-        ie.initCause(e);
-        throw ie;
+        shutdownNotifier.shutdownIfNecessary();
+        throw e;
       }
-
-    } else {
-      // grab intermediate result that is available so far
-      return verifyNotNull(latestInvariant.get());
     }
   }
 
