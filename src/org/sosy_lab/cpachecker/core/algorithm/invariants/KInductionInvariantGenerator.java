@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -43,11 +44,13 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -67,6 +70,24 @@ import com.google.common.base.Throwables;
  */
 public class KInductionInvariantGenerator implements InvariantGenerator, StatisticsProvider {
 
+  private static class KInductionInvariantGeneratorStatistics extends BMCStatistics {
+
+    final Timer invariantGeneration = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      out.println("Time for invariant generation:   " + invariantGeneration);
+      super.printStatistics(out, result, reached);
+    }
+
+    @Override
+    public String getName() {
+      return "k-Induction-based invariant generator";
+    }
+  }
+
+  private final KInductionInvariantGeneratorStatistics stats;
+
   private final BMCAlgorithmForInvariantGeneration bmcAlgorithm;
 
   private final ConfigurableProgramAnalysis cpa;
@@ -81,8 +102,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
   private Future<InvariantSupplier> invariantGenerationFuture = null;
 
-  private final Timer invariantGeneration = new Timer();
-
   private final ShutdownRequestListener shutdownListener;
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
@@ -92,10 +111,13 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
     LogManager logger = pLogger.withComponentName("KInductionInvariantGenerator");
     ShutdownNotifier invGenBMCShutdownNotfier = ShutdownNotifier.createWithParent(pShutdownNotifier);
+    KInductionInvariantGeneratorStatistics stats = new KInductionInvariantGeneratorStatistics();
     CPABuilder invGenBMCBuilder = new CPABuilder(pConfig, logger, invGenBMCShutdownNotfier, pReachedSetFactory);
     ConfigurableProgramAnalysis invGenBMCCPA = invGenBMCBuilder.buildCPAWithSpecAutomatas(pCFA);
     Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, logger, pConfig, invGenBMCShutdownNotfier);
-    BMCAlgorithmForInvariantGeneration invGenBMC = new BMCAlgorithmForInvariantGeneration(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, logger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
+    BMCAlgorithmForInvariantGeneration invGenBMC = new BMCAlgorithmForInvariantGeneration(
+        invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, logger, pReachedSetFactory,
+        invGenBMCShutdownNotfier, pCFA, stats);
 
     KInductionInvariantGenerator kIndInvGen =
         new KInductionInvariantGenerator(
@@ -103,6 +125,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
             pReachedSetFactory,
             invGenBMCCPA, logger,
             invGenBMCShutdownNotfier,
+            stats,
             true);
     return kIndInvGen;
   }
@@ -113,6 +136,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
       ConfigurableProgramAnalysis pCPA,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      KInductionInvariantGeneratorStatistics pStatistics,
       boolean pAsync) throws InvalidConfigurationException {
     bmcAlgorithm = checkNotNull(pBMCAlgorithm);
     async = pAsync;
@@ -127,6 +151,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     reachedSetFactory = pReachedSetFactory;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    stats = pStatistics;
 
     shutdownListener = new ShutdownRequestListener() {
 
@@ -146,7 +171,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
       @Override
       public InvariantSupplier call() throws InterruptedException, CPAException {
-        invariantGeneration.start();
+        stats.invariantGeneration.start();
         shutdownNotifier.shutdownIfNecessary();
 
         try {
@@ -160,7 +185,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         } finally {
           CPAs.closeCpaIfPossible(cpa, logger);
           CPAs.closeIfPossible(bmcAlgorithm, logger);
-          invariantGeneration.stop();
+          stats.invariantGeneration.stop();
         }
       }
 
@@ -215,5 +240,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     bmcAlgorithm.collectStatistics(pStatsCollection);
+    pStatsCollection.add(stats);
   }
 }

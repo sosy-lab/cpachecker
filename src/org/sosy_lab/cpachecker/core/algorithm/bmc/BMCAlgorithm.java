@@ -102,6 +102,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                       ShutdownNotifier pShutdownNotifier, CFA pCFA)
                       throws InvalidConfigurationException, CPAException {
     super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownNotifier, pCFA,
+        new BMCStatistics(),
         false /* no invariant generator */);
     pConfig.inject(this);
 

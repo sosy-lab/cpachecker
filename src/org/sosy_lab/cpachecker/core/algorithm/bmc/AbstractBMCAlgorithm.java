@@ -139,11 +139,12 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
                       ShutdownNotifier pShutdownNotifier, CFA pCFA,
+                      BMCStatistics pBMCStatistics,
                       boolean pIsInvariantGenerator)
                       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this, AbstractBMCAlgorithm.class);
 
-    stats = new BMCStatistics(pIsInvariantGenerator);
+    stats = pBMCStatistics;
     algorithm = pAlgorithm;
     cpa = pCPA;
     logger = pLogger;

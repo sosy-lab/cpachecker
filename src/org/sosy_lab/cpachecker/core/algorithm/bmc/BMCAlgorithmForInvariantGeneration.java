@@ -61,9 +61,10 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
                       ShutdownNotifier pShutdownNotifier, CFA pCFA,
-                      boolean pIsInvariantGenerator)
+                      BMCStatistics pBMCStatistics)
                       throws InvalidConfigurationException, CPAException {
     super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownNotifier, pCFA,
+        pBMCStatistics,
         true /* invariant generator */ );
     Verify.verify(checkIfInductionIsPossible(pCFA, pLogger));
     assert pCFA.getAllLoopHeads().get().size() == 1;
