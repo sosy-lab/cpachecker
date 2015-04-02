@@ -55,6 +55,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
@@ -89,6 +90,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
+  @ForOverride
   protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException;
 
   @Override

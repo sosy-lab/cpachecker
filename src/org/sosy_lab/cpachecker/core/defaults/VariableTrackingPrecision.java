@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -57,6 +57,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
+import com.google.errorprone.annotations.ForOverride;
 
 public abstract class VariableTrackingPrecision implements Precision {
 
@@ -176,6 +177,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    *
    * @return the owner CPA of this precision
    */
+  @ForOverride
   protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
 
 
@@ -395,7 +397,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public final Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+    protected final Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
       return baseline.getCPAClass();
     }
   }

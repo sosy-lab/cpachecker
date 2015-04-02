@@ -295,7 +295,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
 
   @Override
-  public void startRefinementOfPath() {
+  protected void startRefinementOfPath() {
     checkState(newPredicates == null);
     // needs to be a fully deterministic data structure,
     // thus a Multimap based on a LinkedHashMap
@@ -311,7 +311,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  public boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
+  protected boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
     checkState(newPredicates != null);
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
@@ -383,7 +383,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  public void finishRefinementOfPath(ARGState pUnreachableState,
+  protected void finishRefinementOfPath(ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
       throws CPAException {

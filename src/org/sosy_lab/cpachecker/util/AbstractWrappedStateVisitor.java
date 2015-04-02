@@ -27,6 +27,8 @@ package org.sosy_lab.cpachecker.util;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 
+import com.google.errorprone.annotations.ForOverride;
+
 /**
  * Utility class to visit all wrapped abstract states
  * (including the wrapper states)
@@ -36,6 +38,7 @@ public abstract class AbstractWrappedStateVisitor {
   /**
    * Operation to apply on an state when it is visited
    */
+  @ForOverride
   protected abstract void process(AbstractState state);
 
   /**
