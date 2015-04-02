@@ -41,8 +41,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 
-import javax.annotation.concurrent.GuardedBy;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -87,7 +85,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -149,9 +146,6 @@ class KInductionProver implements AutoCloseable {
   private int previousK = -1;
 
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
-
-  @GuardedBy("this")
-  private ImmutableSet<CandidateInvariant> candidateInvariants = ImmutableSet.of();
 
   private boolean invariantGenerationRunning = true;
 
@@ -232,18 +226,6 @@ class KInductionProver implements AutoCloseable {
 
   public Collection<CandidateInvariant> getConfirmedCandidates() {
     return confirmedCandidates;
-  }
-
-  public ImmutableSet<CandidateInvariant> setCandidateInvariants(Set<CandidateInvariant> pCandidateInvariants) {
-    synchronized (this) {
-      return this.candidateInvariants = from(pCandidateInvariants).filter(not(in(confirmedCandidates))).toSet();
-    }
-  }
-
-  private ImmutableSet<CandidateInvariant> getCandidateInvariants() {
-    synchronized (this) {
-      return from(this.candidateInvariants).filter(not(in(confirmedCandidates))).toSet();
-    }
   }
 
   /**
@@ -400,6 +382,8 @@ class KInductionProver implements AutoCloseable {
   /**
    * Attempts to perform the inductive check over all candidate invariants.
    *
+   * @param k The k value to use in the check.
+   * @param candidateInvariants What should be checked.
    * @return <code>true</code> if k-induction successfully proved the
    * correctness of all candidate invariants.
    *
@@ -408,7 +392,9 @@ class KInductionProver implements AutoCloseable {
    * @throws InterruptedException if the bounded analysis constructing the
    * step case was interrupted.
    */
-  public final boolean check(final int k) throws CPAException, InterruptedException {
+  public final boolean check(final int k,
+      final Set<CandidateInvariant> candidateInvariants)
+      throws CPAException, InterruptedException {
 
     // Early return if there is a trivial result for the inductive approach
     if (isTrivial()) {
@@ -446,7 +432,6 @@ class KInductionProver implements AutoCloseable {
      */
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
     ReachedSet predecessorReachedSet = null;
-    ImmutableSet<CandidateInvariant> candidateInvariants = getCandidateInvariants();
     for (CandidateInvariant candidateInvariant : candidateInvariants) {
 
       final BooleanFormula predecessorAssertion;

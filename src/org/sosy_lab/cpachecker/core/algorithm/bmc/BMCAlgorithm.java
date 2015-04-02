@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
+import static java.util.Collections.unmodifiableSet;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
@@ -97,7 +98,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 @Options(prefix="bmc")
@@ -235,7 +235,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     invariantGenerator.start(initialLocation);
 
-    Set<CandidateInvariant> candidateInvariants = getCandidateInvariants();
+    // The set of candidate invariants that still need to be checked.
+    // Successfully proven invariants are removed from the set.
+    final Set<CandidateInvariant> candidateInvariants = getCandidateInvariants();
 
     try {
 
@@ -254,7 +256,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           KInductionProver kInductionProver = createInductionProver()) {
 
         if (induction) {
-          kInductionProver.setCandidateInvariants(ImmutableSet.<CandidateInvariant>of(TargetLocationCandidateInvariant.INSTANCE));
           locationInvariantsProvider = new InvariantSupplier() {
 
             @Override
@@ -313,9 +314,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
             // try to prove program safety via induction
             if (induction) {
-              kInductionProver.setCandidateInvariants(candidateInvariants);
               final int k = CPAs.retrieveCPA(cpa, LoopstackCPA.class).getMaxLoopIterations();
-              sound = sound || kInductionProver.check(k);
+              sound = sound || kInductionProver.check(k, unmodifiableSet(candidateInvariants));
               candidateInvariants.removeAll(kInductionProver.getConfirmedCandidates());
             }
             if (sound) {
