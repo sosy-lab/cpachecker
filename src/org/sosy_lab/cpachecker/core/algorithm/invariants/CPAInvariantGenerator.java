@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Throwables;
@@ -242,7 +243,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
 
     @Override
-    public BooleanFormula getInvariantFor(CFANode pLocation, FormulaManagerView fmgr) {
+    public BooleanFormula getInvariantFor(CFANode pLocation, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 

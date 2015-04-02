@@ -85,14 +85,11 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
   private final Timer invariantGeneration = new Timer();
 
-  private final PathFormulaManager clientPFM;
-
   private final ShutdownRequestListener shutdownListener;
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory,
-      final ConfigurableProgramAnalysis pStepCaseCPA)
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory)
       throws InvalidConfigurationException, CPAException {
 
     LogManager logger = pLogger.withComponentName("KInductionInvariantGenerator");
@@ -102,15 +99,12 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, logger, pConfig, invGenBMCShutdownNotfier);
     BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, logger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
 
-    PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(pStepCaseCPA, PredicateCPA.class);
-
     KInductionInvariantGenerator kIndInvGen =
         new KInductionInvariantGenerator(
             invGenBMC,
             pReachedSetFactory,
             invGenBMCCPA, logger,
             invGenBMCShutdownNotfier,
-            stepCasePredicateCPA.getPathFormulaManager(),
             true);
     return kIndInvGen;
   }
@@ -121,7 +115,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
       ConfigurableProgramAnalysis pCPA,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      PathFormulaManager pClientPFM,
       boolean pAsync) throws InvalidConfigurationException {
     bmcAlgorithm = checkNotNull(pBMCAlgorithm);
     async = pAsync;
@@ -136,7 +129,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     reachedSetFactory = pReachedSetFactory;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    clientPFM = pClientPFM;
 
     shutdownListener = new ShutdownRequestListener() {
 
@@ -193,8 +185,8 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   private InvariantSupplier getResults() {
     return new InvariantSupplier() {
       @Override
-      public BooleanFormula getInvariantFor(CFANode pNode, FormulaManagerView pFmgr) {
-        return bmcAlgorithm.getCurrentLocationInvariants(pNode, pFmgr, clientPFM);
+      public BooleanFormula getInvariantFor(CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr) {
+        return bmcAlgorithm.getCurrentLocationInvariants(pNode, pFmgr, pPfmgr);
       }
     };
   }

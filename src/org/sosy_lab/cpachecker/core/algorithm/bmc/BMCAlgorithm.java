@@ -209,7 +209,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          pShutdownNotifier, pCFA, pReachedSetFactory, stepCaseCPA);
+          pShutdownNotifier, pCFA, pReachedSetFactory);
 
     } else if (induction && addInvariantsByAI) {
       invariantGenerator = new CPAInvariantGenerator(pConfig, pLogger, pShutdownNotifier, cfa);

@@ -355,7 +355,7 @@ class KInductionProver implements AutoCloseable {
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
-    BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR);
+    BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
 
     for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
       if (ci.getLocations(cfa).contains(pLocation)) {
