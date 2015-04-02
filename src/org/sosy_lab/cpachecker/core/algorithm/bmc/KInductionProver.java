@@ -352,13 +352,8 @@ class KInductionProver implements AutoCloseable {
   }
 
   public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    if (invariantGenerationRunning) {
-      UnmodifiableReachedSet currentInvariantsReachedSet = getCurrentInvariantsReachedSet();
-      if (currentInvariantsReachedSet != invariantsReachedSet) {
-        return extractInvariantsAt(currentInvariantsReachedSet, pLocation, pFMGR, pPFMGR);
-      }
-    }
-    return extractInvariantsAt(invariantsReachedSet, pLocation, pFMGR, pPFMGR);
+    UnmodifiableReachedSet currentInvariantsReachedSet = getCurrentInvariantsReachedSet();
+    return extractInvariantsAt(currentInvariantsReachedSet, pLocation, pFMGR, pPFMGR);
   }
 
   @Override
@@ -517,7 +512,8 @@ class KInductionProver implements AutoCloseable {
             LoopstackState ls = AbstractStates.extractStateByType(pArg0, LoopstackState.class);
             return ls != null && ls.getIteration() <= 1;
           }});
-    BooleanFormula loopHeadInv = bfmgr.and(from(BMCHelper.assertAt(loopHeadStates, getCurrentLoopHeadInvariants(), fmgr)).toList());
+    BooleanFormula invariants = getCurrentLoopHeadInvariants();
+    BooleanFormula loopHeadInv = bfmgr.and(from(BMCHelper.assertAt(loopHeadStates, invariants, fmgr)).toList());
 
     // Create the formula asserting the faultiness of the successor
     stepCaseLoopstackCPA.setMaxLoopIterations(k + 1);
@@ -557,13 +553,10 @@ class KInductionProver implements AutoCloseable {
       }
 
       // Re-attempt the proof immediately, if new invariants are available
-      UnmodifiableReachedSet localInvariantsReachedSet = invariantsReachedSet;
-      UnmodifiableReachedSet currentInvariantsReachedSet = getCurrentInvariantsReachedSet();
-      while (!isInvariant && currentInvariantsReachedSet != localInvariantsReachedSet) {
-        localInvariantsReachedSet = currentInvariantsReachedSet;
-        BooleanFormula invariants = getCurrentLoopHeadInvariants();
-        invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
-        push(invariants);
+      BooleanFormula oldInvariants = invariants;
+      BooleanFormula currentInvariants = getCurrentLoopHeadInvariants();
+      while (!isInvariant && !currentInvariants.equals(oldInvariants)) {
+        push(fmgr.instantiate(currentInvariants, SSAMap.emptySSAMap().withDefault(1)));
         isInvariant = prover.isUnsat();
 
         if (!isInvariant && logger.wouldBeLogged(Level.ALL)) {
@@ -571,7 +564,8 @@ class KInductionProver implements AutoCloseable {
         }
 
         pop();
-        currentInvariantsReachedSet = getCurrentInvariantsReachedSet();
+        oldInvariants = currentInvariants;
+        currentInvariants = getCurrentLoopHeadInvariants();
       }
 
       // If the proof is successful, move the problem from the set of open
