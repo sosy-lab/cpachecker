@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
+
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
@@ -44,7 +46,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -75,11 +76,10 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
   protected Set<CandidateInvariant> getCandidateInvariants(CFA cfa,
       Collection<CFANode> targetLocations) {
     final Set<CandidateInvariant> result = new LinkedHashSet<>();
-    if (cfa.getLoopStructure().isPresent()) {
-      LoopStructure loopStructure = cfa.getLoopStructure().get();
-      for (CFAEdge assumeEdge : getRelevantAssumeEdges(targetLocations)) {
-        result.add(new EdgeFormulaNegation(loopStructure.getAllLoopHeads(), assumeEdge));
-      }
+    final CFANode loopHead = getOnlyElement(cfa.getLoopStructure().get().getAllLoopHeads());
+
+    for (CFAEdge assumeEdge : getRelevantAssumeEdges(targetLocations)) {
+      result.add(new EdgeFormulaNegation(loopHead, assumeEdge));
     }
     return result;
   }
