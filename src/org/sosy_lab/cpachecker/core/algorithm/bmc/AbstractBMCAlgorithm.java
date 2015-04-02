@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.unmodifiableSet;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
@@ -40,6 +41,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -64,6 +66,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -146,9 +150,18 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
 
-    CPABuilder builder = new CPABuilder(pConfig, pLogger, pShutdownNotifier, pReachedSetFactory);
-    stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa);
-    stepCaseAlgorithm = CPAAlgorithm.create(stepCaseCPA, pLogger, pConfig, pShutdownNotifier);
+    if (induction) {
+      induction = checkIfInductionIsPossible(pCFA, pLogger);
+    }
+
+    if (induction) {
+      CPABuilder builder = new CPABuilder(pConfig, pLogger, pShutdownNotifier, pReachedSetFactory);
+      stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa);
+      stepCaseAlgorithm = CPAAlgorithm.create(stepCaseCPA, pLogger, pConfig, pShutdownNotifier);
+    } else {
+      stepCaseCPA = null;
+      stepCaseAlgorithm = null;
+    }
 
     if (!pIsInvariantGenerator
         && induction
@@ -174,6 +187,40 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
 
     targetLocationProvider = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+  }
+
+  private static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
+    if (!cfa.getLoopStructure().isPresent()) {
+      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
+      return false;
+    }
+
+    LoopStructure loops = cfa.getLoopStructure().get();
+
+    // Induction is currently only possible if there is a single loop.
+    // This check can be weakened in the future,
+    // e.g. it is ok if there is only a single loop on each path.
+    if (loops.getCount() > 1) {
+      logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops.");
+      return false;
+    }
+    if (loops.getCount() == 0) {
+      // induction is unnecessary, program has no loops
+      return false;
+    }
+    Loop loop = Iterables.getOnlyElement(loops.getAllLoops());
+    if (from(loop.getIncomingEdges())
+        .filter(not(instanceOf(CFunctionReturnEdge.class))) // function edges do not count as incoming/outgoing edges
+        .size() > 1) {
+      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges.");
+      return false;
+    }
+    if (loop.getLoopHeads().size() > 1) {
+      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many loop heads.");
+      return false;
+    }
+
+    return true;
   }
 
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {

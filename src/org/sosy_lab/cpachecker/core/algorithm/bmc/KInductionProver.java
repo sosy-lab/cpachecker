@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
@@ -34,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -45,7 +43,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -68,7 +65,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -103,9 +99,7 @@ class KInductionProver implements AutoCloseable {
 
   private final ConfigurableProgramAnalysis cpa;
 
-  private final Boolean trivialResult;
-
-  private final ReachedSet reachedSet;
+  private final ReachedSet reached;
 
   private final Loop loop;
 
@@ -172,46 +166,8 @@ class KInductionProver implements AutoCloseable {
     reachedSetFactory = checkNotNull(pReachedSetFactory);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     havocLoopTerminationConditionVariablesOnly = pHavocLoopTerminationConditionVariablesOnly;
-    List<CFAEdge> incomingEdges = null;
-    ReachedSet reachedSet = null;
-    Loop loop = null;
-    if (!cfa.getLoopStructure().isPresent()) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
-      trivialResult = false;
-    } else {
-      LoopStructure loops = cfa.getLoopStructure().get();
-
-      // Induction is currently only possible if there is a single loop.
-      // This check can be weakened in the future,
-      // e.g. it is ok if there is only a single loop on each path.
-      if (loops.getCount() > 1) {
-        logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
-        invariantGenerator.cancel();
-        trivialResult = false;
-      } else if (loops.getCount() == 0) {
-        // induction is unnecessary, program has no loops
-        invariantGenerator.cancel();
-        trivialResult = true;
-      } else {
-        stats.inductionPreparation.start();
-
-        loop = Iterables.getOnlyElement(loops.getAllLoops());
-        // function edges do not count as incoming/outgoing edges
-        incomingEdges = from(loop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).toList();
-
-        if (incomingEdges.size() > 1) {
-          logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
-          trivialResult = false;
-        } else if (loop.getLoopHeads().size() > 1) {
-          logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many loop heads");
-          trivialResult = false;
-        } else {
-          trivialResult = null;
-          reachedSet = reachedSetFactory.create();
-        }
-        stats.inductionPreparation.stop();
-      }
-    }
+    loop = Iterables.getOnlyElement(pCFA.getLoopStructure().get().getAllLoops());
+    reached = reachedSetFactory.create();
 
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     solver = stepCasePredicateCPA.getSolver();
@@ -221,51 +177,10 @@ class KInductionProver implements AutoCloseable {
     loopHeadInvariants = bfmgr.makeBoolean(true);
 
     invariantsSupplier = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
-    this.reachedSet = reachedSet;
-    this.loop = loop;
   }
 
   public Collection<CandidateInvariant> getConfirmedCandidates() {
     return confirmedCandidates;
-  }
-
-  /**
-   * Checks if the result of the k-induction check has been determined to
-   * be trivial by the constructor.
-   *
-   * @return {@code true} if the constructor was able to determine a constant
-   * result for the k-induction check, {@code false} otherwise.
-   */
-  boolean isTrivial() {
-    return this.trivialResult != null;
-  }
-
-  /**
-   * If available, gets the constant result of the k-induction check as
-   * determined by the constructor. Do not call this function if there is no
-   * such trivial constant result. This can be checked by calling
-   * {@link isTrivial}.
-   *
-   * @return the trivial constant result of the k-induction check.
-   */
-  private boolean getTrivialResult() {
-    Preconditions.checkState(isTrivial(), "The proof is non-trivial.");
-    return trivialResult;
-  }
-
-  /**
-   * Gets the current reached set describing the loop iterations unrolled for
-   * the inductive step. The reached set is only available if no trivial
-   * constant result for the k-induction check was determined by the
-   * constructor, as can be checked by calling {@link isTrivial}.
-   *
-   * @return the current reached set describing the loop iterations unrolled
-   * for the inductive step.
-   */
-  private ReachedSet getCurrentReachedSet() {
-    Preconditions.checkState(!isTrivial(), "No reached set created, because the proof is trivial.");
-    assert reachedSet != null;
-    return reachedSet;
   }
 
   /**
@@ -397,11 +312,6 @@ class KInductionProver implements AutoCloseable {
       final Set<CandidateInvariant> candidateInvariants)
       throws CPAException, InterruptedException {
 
-    // Early return if there is a trivial result for the inductive approach
-    if (isTrivial()) {
-      return getTrivialResult();
-    }
-
     // Early return if the invariant generation proved the program correct
     if (bfmgr.isFalse(getCurrentLoopHeadInvariants())) {
       return true;
@@ -421,8 +331,6 @@ class KInductionProver implements AutoCloseable {
     logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
 
     LoopstackCPA stepCaseLoopstackCPA = CPAs.retrieveCPA(cpa, LoopstackCPA.class);
-
-    ReachedSet reached = getCurrentReachedSet();
 
     // Initialize the reached set if necessary
     ensureReachedSetInitialized(reached);
