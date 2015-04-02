@@ -269,10 +269,11 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             if os.path.exists(run.log_file + ".stdError"):
                 runsProducedErrorOutput = True
 
-            output_handler.output_before_run(run)
+            if return_value is not None:
+                output_handler.output_before_run(run)
 
-            run.after_execution(return_value)
-            output_handler.output_after_run(run)
+                run.after_execution(return_value)
+                output_handler.output_after_run(run)
 
         output_handler.output_after_run_set(runSet, walltime=usedWallTime)
 

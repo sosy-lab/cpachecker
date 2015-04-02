@@ -340,8 +340,7 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
 
     if success:
         # unzip result
-        output_handler.output_before_run(run)
-        return_value = -1
+        return_value = None
         try:
             try:
                 with zipfile.ZipFile(io.BytesIO(zipContent)) as resultZipFile:
@@ -354,9 +353,10 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
         except IOError as e:
             logging.warning('Error while writing results of run {}: {}'.format(run.identifier, e))
 
-        run.after_execution(return_value)
-
-        output_handler.output_after_run(run)
+        if return_value is not None:
+            output_handler.output_before_run(run)
+            run.after_execution(return_value)
+            output_handler.output_after_run(run)
         return True
 
     else:
@@ -373,7 +373,7 @@ def _handleResult(resultZipFile, run, output_handler):
             (run.walltime, run.cputime, return_value, values) = _parseCloudResultFile(runInformation)
             run.values.update(values)
     else:
-        return_value = -1
+        return_value = None
         logging.warning('Missing result for {}.'.format(run.identifier))
 
     if RESULT_FILE_HOST_INFO in files:
