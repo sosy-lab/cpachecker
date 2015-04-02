@@ -115,7 +115,6 @@ import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -129,6 +128,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -360,55 +360,24 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       // we expect left hand side of the expression to be a variable
 
+      ExpressionValueVisitor v =
+          new ExpressionValueVisitor(newElement, callerFunctionName, machineModel, logger);
+
+      Value newValue = null;
       boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
-
-      if (op1 instanceof CLeftHandSide) {
-        ExpressionValueVisitor v =
-            new ExpressionValueVisitor(newElement, callerFunctionName,
-                machineModel, logger);
-        MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
-
-        if (assignedVarName == null) {
-          if (v.hasMissingPointer() && valueExists) {
-            Value value = state.getValueFor(functionReturnVar);
-            addMissingInformation((CLeftHandSide) op1, value);
-          }
-        } else if (valueExists) {
-          Value value = state.getValueFor(functionReturnVar);
-          newElement.assignConstant(assignedVarName, value, state.getTypeForMemoryLocation(functionReturnVar));
-        } else {
-          newElement.forget(assignedVarName);
-        }
-
-      } else if (op1 instanceof AIdExpression) {
-        String assignedVarName = ((AIdExpression) op1).getDeclaration().getQualifiedName();
-
-        if (!valueExists) {
-          newElement.forget(assignedVarName);
-        } else if (op1 instanceof JIdExpression && isDynamicField((JIdExpression)op1)) {
-          missingScopedFieldName = true;
-          notScopedField = (JIdExpression) op1;
-          notScopedFieldValue = state.getValueFor(functionReturnVar);
-        } else {
-          newElement.assignConstant(assignedVarName, state.getValueFor(functionReturnVar));
-        }
+      if (valueExists) {
+        newValue = state.getValueFor(functionReturnVar);
       }
 
-      // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if (op1 instanceof APointerExpression) {
-
-      } else if (op1 instanceof JArraySubscriptExpression) {
-        Value newValue = UnknownValue.getInstance();
+      // We have to handle Java arrays in a special way, because they are stored as ArrayValue
+      // objects
+      if (op1 instanceof JArraySubscriptExpression) {
         JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
-
-        if (valueExists) {
-          newValue = state.getValueFor(functionReturnVar);
-        }
 
         ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
         Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
 
-        if (maybeIndex.isPresent() && assignedArray != null) {
+        if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
           assignedArray.setValue(newValue, maybeIndex.get());
 
         } else {
@@ -416,12 +385,72 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
 
       } else {
-        throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
+        // We can handle all types below "casually", so just get the memory location for the
+        // left hand side and assign the function's return value
+
+        Optional<MemoryLocation> memLoc = Optional.absent();
+
+        // get memory location for left hand side
+        if (op1 instanceof CLeftHandSide) {
+          if (valueExists) {
+            memLoc = getMemoryLocation((CLeftHandSide) op1, newValue, v);
+          } else {
+            memLoc = getMemoryLocation((CLeftHandSide) op1, UnknownValue.getInstance(), v);
+          }
+
+        } else if (op1 instanceof AIdExpression) {
+          if (op1 instanceof JIdExpression && isDynamicField((JIdExpression)op1)
+              && valueExists) {
+            missingScopedFieldName = true;
+            notScopedField = (JIdExpression)op1;
+            notScopedFieldValue = newValue;
+          } else {
+            String op1QualifiedName = ((AIdExpression)op1).getDeclaration().getQualifiedName();
+            memLoc = Optional.of(MemoryLocation.valueOf(op1QualifiedName));
+          }
+        }
+
+        // a* = b(); TODO: for now, nothing is done here, but cloning the current element
+        else if (op1 instanceof APointerExpression) {
+
+        } else {
+          throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
+        }
+
+        // assign the value if a memory location was successfully computed
+        if (memLoc.isPresent()) {
+          if (!valueExists) {
+            newElement.forget(memLoc.get());
+
+          } else {
+            newElement.assignConstant(memLoc.get(),
+                                      newValue,
+                                      state.getTypeForMemoryLocation(functionReturnVar));
+          }
+        }
       }
     }
 
-    assert !returnVarName.isPresent() || !newElement.contains(functionReturnVar);
     return newElement;
+  }
+
+  private Optional<MemoryLocation> getMemoryLocation(
+      final CLeftHandSide pExpression,
+      final Value pRightHandSideValue,
+      final ExpressionValueVisitor pValueVisitor
+  ) throws UnrecognizedCCodeException {
+
+    MemoryLocation assignedVarName = pValueVisitor.evaluateMemoryLocation(pExpression);
+
+    if (assignedVarName == null) {
+      if (pValueVisitor.hasMissingPointer()) {
+        addMissingInformation(pExpression, pRightHandSideValue);
+      }
+      return Optional.absent();
+
+    } else {
+      return Optional.of(assignedVarName);
+    }
   }
 
   private boolean isDynamicField(JIdExpression pIdentifier) {
