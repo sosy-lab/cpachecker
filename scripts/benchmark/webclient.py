@@ -121,28 +121,32 @@ def _submitRunsParallel(runSet, webclient, benchmark):
     executor.shutdown(wait=False)
 
     #collect results to executor
-    for future in as_completed(runIDsFutures.keys()):
-        try:
-            run = runIDsFutures[future]
-            runID = future.result().decode("utf-8")
-            runIDs.update({runID:run})
-            logging.info('Submitted run {0}/{1} with id {2}'.\
-                format(submissonCounter, len(runSet.runs), runID))
-
-        except (urllib2.HTTPError, WebClientError) as e:
+    try:
+        for future in as_completed(runIDsFutures.keys()):
             try:
-                if e.code == 401:
-                    message = 'Please specify username and password with --cloudUser.'
-                elif e.code == 404:
-                    message = 'Please check the URL given to --cloudMaster.'
-                else:
-                    message = e.read() #not all HTTPErrors have a read() method
-            except AttributeError:
-                message = ""
-            logging.warning('Could not submit run {0}: {1}. {2}'.\
-                format(run.identifier, e, message))
-        finally:
-            submissonCounter += 1
+                run = runIDsFutures[future]
+                runID = future.result().decode("utf-8")
+                runIDs.update({runID:run})
+                logging.info('Submitted run {0}/{1} with id {2}'.\
+                    format(submissonCounter, len(runSet.runs), runID))
+
+            except (urllib2.HTTPError, WebClientError) as e:
+                try:
+                    if e.code == 401:
+                        message = 'Please specify username and password with --cloudUser.'
+                    elif e.code == 404:
+                        message = 'Please check the URL given to --cloudMaster.'
+                    else:
+                        message = e.read() #not all HTTPErrors have a read() method
+                except AttributeError:
+                    message = ""
+                logging.warning('Could not submit run {0}: {1}. {2}'.\
+                    format(run.identifier, e, message))
+            finally:
+                submissonCounter += 1
+    finally:
+        for future in runIDsFutures.keys():
+            future.cancel() # for example in case of interrupt
 
     return runIDs
 
