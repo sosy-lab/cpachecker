@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -78,7 +77,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 /**
@@ -126,8 +124,6 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   private final ShutdownNotifier shutdownNotifier;
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
-
-  private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
 
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
@@ -246,24 +242,6 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     pStatsCollection.add(stats);
   }
 
-  @Override
-  public void addUpdateListener(UpdateListener pUpdateListener) {
-    Preconditions.checkNotNull(pUpdateListener);
-    updateListeners.add(pUpdateListener);
-  }
-
-  @Override
-  public void removeUpdateListener(UpdateListener pUpdateListener) {
-    Preconditions.checkNotNull(pUpdateListener);
-    updateListeners.remove(pUpdateListener);
-  }
-
-  private void notifyUpdateListeners() {
-    for (UpdateListener updateListener : updateListeners) {
-      updateListener.updated();
-    }
-  }
-
   private class InvariantGenerationTask implements Callable<UnmodifiableReachedSet> {
 
     private final ReachedSet taskReached;
@@ -369,7 +347,6 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
           // wrapping this call itself, so this function must not be called
           // before ref is set to the wrapping future
           currentFuture.set(ref.get());
-          notifyUpdateListeners();
           if (adjustConditions() && !shutdownNotifier.shouldShutdown()) {
             scheduleTask(pReachedSetFactory, pInitialLocation);
           } else {

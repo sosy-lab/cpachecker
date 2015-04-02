@@ -26,14 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import static com.google.common.base.Preconditions.*;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.concurrency.Threads;
@@ -64,7 +61,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 /**
@@ -88,17 +84,11 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
   private final Timer invariantGeneration = new Timer();
 
-  private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
-
   private final PathFormulaManager clientPFM;
-
-  private InvariantSupplier currentInvariants;
 
   private final ExecutorService executorService = Executors.newSingleThreadExecutor(Threads.threadFactory());
 
   private final ShutdownRequestListener shutdownListener;
-
-  private final AtomicBoolean areNewInvariantsAvailable = new AtomicBoolean(true);
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
@@ -148,7 +138,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     clientPFM = pClientPFM;
-    currentInvariants = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
 
     shutdownListener = new ShutdownRequestListener() {
 
@@ -157,14 +146,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         executorService.shutdownNow();
       }
     };
-
-    bmcAlgorithm.addUpdateListener(new UpdateListener() {
-
-      @Override
-      public void updated() {
-        areNewInvariantsAvailable.set(true);
-      }
-    });
   }
 
   @Override
@@ -211,15 +192,12 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   }
 
   private InvariantSupplier getResults() {
-    if (areNewInvariantsAvailable.getAndSet(false)) {
-      currentInvariants = new InvariantSupplier() {
-        @Override
-        public BooleanFormula getInvariantFor(CFANode pNode, FormulaManagerView pFmgr) {
-          return bmcAlgorithm.getCurrentLocationInvariants(pNode, pFmgr, clientPFM);
-        }
-      };
-    }
-    return currentInvariants;
+    return new InvariantSupplier() {
+      @Override
+      public BooleanFormula getInvariantFor(CFANode pNode, FormulaManagerView pFmgr) {
+        return bmcAlgorithm.getCurrentLocationInvariants(pNode, pFmgr, clientPFM);
+      }
+    };
   }
 
   @Override
@@ -245,17 +223,5 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     bmcAlgorithm.collectStatistics(pStatsCollection);
-  }
-
-  @Override
-  public void addUpdateListener(UpdateListener pUpdateListener) {
-    Preconditions.checkNotNull(pUpdateListener);
-    updateListeners.add(pUpdateListener);
-  }
-
-  @Override
-  public void removeUpdateListener(UpdateListener pUpdateListener) {
-    Preconditions.checkNotNull(pUpdateListener);
-    updateListeners.remove(pUpdateListener);
   }
 }

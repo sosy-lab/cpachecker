@@ -32,11 +32,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Triple;
@@ -62,7 +60,6 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.UpdateListener;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -98,7 +95,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -171,8 +167,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final TargetLocationProvider targetLocationProvider;
 
-  private final List<UpdateListener> updateListeners = new CopyOnWriteArrayList<>();
-
   private final boolean isInvariantGenerator;
 
   private Function<Triple<CFANode, FormulaManagerView, PathFormulaManager>, BooleanFormula> locationInvariantsProvider = new Function<Triple<CFANode,FormulaManagerView,PathFormulaManager>, BooleanFormula>() {
@@ -216,26 +210,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
           pShutdownNotifier, pCFA, pReachedSetFactory, stepCaseCPA);
-      invariantGenerator.addUpdateListener(new UpdateListener() {
 
-        @Override
-        public void updated() {
-          notifyUpdateListeners();
-        }
-      });
     } else if (induction && addInvariantsByAI) {
       invariantGenerator = new CPAInvariantGenerator(pConfig, pLogger, pShutdownNotifier, cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
-
-    invariantGenerator.addUpdateListener(new UpdateListener() {
-
-      @Override
-      public void updated() {
-        notifyUpdateListeners();
-      }
-    });
 
     PredicateCPA predCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predCpa == null) {
@@ -345,9 +325,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
               kInductionProver.setCandidateInvariants(candidateInvariants);
               final int k = CPAs.retrieveCPA(cpa, LoopstackCPA.class).getMaxLoopIterations();
               sound = sound || kInductionProver.check(k);
-              if (candidateInvariants.removeAll(kInductionProver.getConfirmedCandidates())) {
-                notifyUpdateListeners();
-              }
+              candidateInvariants.removeAll(kInductionProver.getConfirmedCandidates());
             }
             if (sound) {
               return true;
@@ -663,21 +641,5 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         reachedSetFactory,
         havocLoopTerminationConditionVariablesOnly,
         shutdownNotifier) : null;
-  }
-
-  public void addUpdateListener(UpdateListener pUpdateListener) {
-    Preconditions.checkNotNull(pUpdateListener);
-    updateListeners.add(pUpdateListener);
-  }
-
-  public void removeUpdateListener(UpdateListener pUpdateListener) {
-    Preconditions.checkNotNull(pUpdateListener);
-    updateListeners.remove(pUpdateListener);
-  }
-
-  private void notifyUpdateListeners() {
-    for (UpdateListener updateListener : updateListeners) {
-      updateListener.updated();
-    }
   }
 }

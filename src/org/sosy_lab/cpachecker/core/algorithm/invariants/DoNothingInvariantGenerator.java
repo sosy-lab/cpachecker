@@ -41,15 +41,4 @@ public class DoNothingInvariantGenerator implements InvariantGenerator {
   public InvariantSupplier get()  {
     return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
   }
-
-  @Override
-  public void addUpdateListener(UpdateListener pUpdateListener) {
-    // There will never be an update anyway
-  }
-
-  @Override
-  public void removeUpdateListener(UpdateListener pUpdateListener) {
-    // There will never be an update anyway
-
-  }
 }

@@ -68,8 +68,4 @@ public interface InvariantGenerator {
    * @throws InterruptedException If the invariant generation was interrupted.
    */
   InvariantSupplier get() throws CPAException, InterruptedException;
-
-  void addUpdateListener(UpdateListener pUpdateListener);
-
-  void removeUpdateListener(UpdateListener pUpdateListener);
 }
