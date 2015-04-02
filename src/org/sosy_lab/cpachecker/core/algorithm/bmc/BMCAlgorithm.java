@@ -226,7 +226,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     } else if (induction && addInvariantsByAI) {
       invariantGenerator = new CPAInvariantGenerator(pConfig, pLogger, pShutdownNotifier, cfa);
     } else {
-      invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
+      invariantGenerator = new DoNothingInvariantGenerator();
     }
 
     invariantGenerator.addUpdateListener(new UpdateListener() {

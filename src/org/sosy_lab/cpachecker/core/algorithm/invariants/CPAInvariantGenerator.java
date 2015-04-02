@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Verify.verify;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -70,7 +72,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -191,12 +197,13 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   }
 
   @Override
-  public UnmodifiableReachedSet get() throws CPAException, InterruptedException {
+  public InvariantSupplier get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
     shutdownNotifier.shutdownIfNecessary();
 
+    final UnmodifiableReachedSet reached;
     try {
-      return invariantGenerationFuture.get();
+      reached = invariantGenerationFuture.get();
 
     } catch (ExecutionException e) {
       Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
@@ -206,6 +213,28 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       ie.initCause(e);
       throw ie;
     }
+    verify(!reached.hasWaitingState());
+    if (reached.isEmpty()) {
+      // initial reached set represents invariant "true"
+      return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+    }
+
+    return new InvariantSupplier() {
+
+      @Override
+      public BooleanFormula getInvariantFor(CFANode pLocation, FormulaManagerView fmgr) {
+        BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+        BooleanFormula invariant = bfmgr.makeBoolean(false);
+
+        for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
+          BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+          logger.log(Level.ALL, "Invariant:", f);
+
+          invariant = bfmgr.or(invariant, f);
+        }
+        return invariant;
+      }
+    };
   }
 
   @Override

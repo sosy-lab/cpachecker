@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
@@ -57,14 +56,18 @@ public interface InvariantGenerator {
   void cancel();
 
   /**
-   * Retrieve the generated ReachedSet with the invariants.
+   * Retrieve the generated invariant.
    * Can be called only after {@link #start(CFANode)} was called.
-   * May be called more than once and returns the same result.
+   *
+   * Depending on the invariant generator, this method may either block
+   * for some time during the invariant generation runs,
+   * or return a current snapshot of the invariants quickly.
+   *
    * @return
    * @throws CPAException If the invariant generation failed.
    * @throws InterruptedException If the invariant generation was interrupted.
    */
-  UnmodifiableReachedSet get() throws CPAException, InterruptedException;
+  InvariantSupplier get() throws CPAException, InterruptedException;
 
   void addUpdateListener(UpdateListener pUpdateListener);
 

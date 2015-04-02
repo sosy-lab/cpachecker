@@ -199,7 +199,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (useInvariantsForAbstraction) {
       invariantGenerator = new CPAInvariantGenerator(config, logger, pShutdownNotifier, cfa);
     } else {
-      invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
+      invariantGenerator = new DoNothingInvariantGenerator();
     }
 
     if (performInitialStaticRefinement) {

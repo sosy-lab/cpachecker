@@ -53,13 +53,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.edgeexclusion.EdgeExclusionPrecision;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
@@ -138,7 +138,7 @@ class KInductionProver implements AutoCloseable {
 
   private ProverEnvironment prover = null;
 
-  private UnmodifiableReachedSet invariantsReachedSet;
+  private InvariantSupplier invariantsSupplier;
 
   private BooleanFormula loopHeadInvariants;
 
@@ -225,7 +225,7 @@ class KInductionProver implements AutoCloseable {
     pfmgr = stepCasePredicateCPA.getPathFormulaManager();
     loopHeadInvariants = bfmgr.makeBoolean(true);
 
-    invariantsReachedSet = reachedSetFactory.create();
+    invariantsSupplier = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
     this.reachedSet = reachedSet;
     this.loop = loop;
   }
@@ -317,22 +317,22 @@ class KInductionProver implements AutoCloseable {
     return prover;
   }
 
-  private UnmodifiableReachedSet getCurrentInvariantsReachedSet() throws InterruptedException {
+  private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
     if (!invariantGenerationRunning) {
-      return invariantsReachedSet;
+      return invariantsSupplier;
     }
     try {
       return invariantGenerator.get();
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;
-      return invariantsReachedSet;
+      return invariantsSupplier;
     } catch (InterruptedException e) {
       shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINE, "Invariant generation was cancelled.");
       logger.logDebugException(e);
       invariantGenerationRunning = false;
-      return invariantsReachedSet;
+      return invariantsSupplier;
     }
   }
 
@@ -352,8 +352,18 @@ class KInductionProver implements AutoCloseable {
   }
 
   public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    UnmodifiableReachedSet currentInvariantsReachedSet = getCurrentInvariantsReachedSet();
-    return extractInvariantsAt(currentInvariantsReachedSet, pLocation, pFMGR, pPFMGR);
+    InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
+    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+
+    BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR);
+
+    for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
+      if (ci.getLocations(cfa).contains(pLocation)) {
+        invariant = bfmgr.and(invariant, ci.getCandidate(pFMGR, pPFMGR));
+      }
+    }
+
+    return invariant;
   }
 
   @Override
@@ -385,44 +395,6 @@ class KInductionProver implements AutoCloseable {
     Preconditions.checkState(isProverInitialized());
     prover.push(pFormula);
     ++stackDepth;
-  }
-
-  /**
-   * Extracts the generated invariants for the given location from the
-   * given reached set produced by the invariant generator.
-   *
-   * @param pReachedSet the reached set produced by the invariant generator.
-   * @param pLocation the location to extract the invariants for.
-   *
-   * @return the extracted invariants as a boolean formula.
-   * @throws InterruptedException
-   * @throws CPATransferException
-   */
-  private BooleanFormula extractInvariantsAt(UnmodifiableReachedSet pReachedSet, CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-
-    BooleanFormula invariant;
-
-    if (invariantGenerationRunning && pReachedSet.isEmpty()) {
-      invariant = bfmgr.makeBoolean(true); // no invariants available in ReachedSet
-
-    } else {
-      invariant = bfmgr.makeBoolean(false);
-      for (AbstractState locState : AbstractStates.filterLocation(pReachedSet, pLocation)) {
-        BooleanFormula f = AbstractStates.extractReportedFormulas(pFMGR, locState);
-        logger.log(Level.ALL, "Invariant:", f);
-
-        invariant = bfmgr.or(invariant, f);
-      }
-    }
-
-    for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
-      if (ci.getLocations(cfa).contains(pLocation)) {
-        invariant = bfmgr.and(invariant, ci.getCandidate(pFMGR, pPFMGR));
-      }
-    }
-
-    return invariant;
   }
 
   /**
