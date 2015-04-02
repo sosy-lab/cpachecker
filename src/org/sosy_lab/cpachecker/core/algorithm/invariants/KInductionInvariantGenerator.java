@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -66,7 +66,7 @@ import com.google.common.base.Throwables;
  */
 public class KInductionInvariantGenerator implements InvariantGenerator, StatisticsProvider {
 
-  private final BMCAlgorithm bmcAlgorithm;
+  private final BMCAlgorithmForInvariantGeneration bmcAlgorithm;
 
   private final ConfigurableProgramAnalysis cpa;
 
@@ -94,7 +94,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     CPABuilder invGenBMCBuilder = new CPABuilder(pConfig, logger, invGenBMCShutdownNotfier, pReachedSetFactory);
     ConfigurableProgramAnalysis invGenBMCCPA = invGenBMCBuilder.buildCPAWithSpecAutomatas(pCFA);
     Algorithm invGenBMCCPAAlgorithm = CPAAlgorithm.create(invGenBMCCPA, logger, pConfig, invGenBMCShutdownNotfier);
-    BMCAlgorithm invGenBMC = new BMCAlgorithm(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, logger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
+    BMCAlgorithmForInvariantGeneration invGenBMC = new BMCAlgorithmForInvariantGeneration(invGenBMCCPAAlgorithm, invGenBMCCPA, pConfig, logger, pReachedSetFactory, invGenBMCShutdownNotfier, pCFA, true);
 
     KInductionInvariantGenerator kIndInvGen =
         new KInductionInvariantGenerator(
@@ -107,7 +107,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   }
 
   private KInductionInvariantGenerator(
-      BMCAlgorithm pBMCAlgorithm,
+      BMCAlgorithmForInvariantGeneration pBMCAlgorithm,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
       LogManager pLogger,

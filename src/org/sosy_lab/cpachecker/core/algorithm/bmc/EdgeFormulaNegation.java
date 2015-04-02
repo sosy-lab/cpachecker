@@ -116,11 +116,6 @@ public class EdgeFormulaNegation implements CandidateInvariant {
   }
 
   @Override
-  public boolean violationIndicatesError() {
-    return false;
-  }
-
-  @Override
   public void assumeTruth(ReachedSet pReachedSet) {
     if (locations.contains(edge.getPredecessor())) {
       Iterable<AbstractState> infeasibleStates = from(AbstractStates.filterLocation(pReachedSet, edge.getSuccessor())).toList();

@@ -47,11 +47,6 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
   }
 
   @Override
-  public boolean violationIndicatesError() {
-    return true;
-  }
-
-  @Override
   public void assumeTruth(ReachedSet pReachedSet) {
     Iterable<AbstractState> targetStates = from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE).toList();
     pReachedSet.removeAll(targetStates);

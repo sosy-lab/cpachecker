@@ -51,15 +51,6 @@ public interface CandidateInvariant {
   BooleanFormula getAssertion(ReachedSet pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException;
 
   /**
-   * Check if a violation of this formula indicates an error in the analyzed
-   * program.
-   *
-   * @return {@code true} if a violation indicates an error, {@code false}
-   * otherwise.
-   */
-  boolean violationIndicatesError();
-
-  /**
    * Assume that the invariant holds and remove states from the given reached
    * set that must therefore be unreachable.
    *
