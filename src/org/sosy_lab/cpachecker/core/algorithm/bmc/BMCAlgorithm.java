@@ -37,7 +37,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,6 +58,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -169,12 +168,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final boolean isInvariantGenerator;
 
-  private Function<Triple<CFANode, FormulaManagerView, PathFormulaManager>, BooleanFormula> locationInvariantsProvider = new Function<Triple<CFANode,FormulaManagerView,PathFormulaManager>, BooleanFormula>() {
-
-    @Override
-    public BooleanFormula apply(Triple<CFANode, FormulaManagerView, PathFormulaManager> pArg0) {
-      return pArg0.getSecond().getBooleanFormulaManager().makeBoolean(true);
-    }};
+  private InvariantSupplier locationInvariantsProvider = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
 
     public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                         Configuration pConfig, LogManager pLogger,
@@ -231,8 +225,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     targetLocationProvider = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
   }
 
-  public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) {
-    return locationInvariantsProvider.apply(Triple.of(pLocation, pFMGR, pPFMGR));
+  public InvariantSupplier getCurrentInvariants() {
+    return locationInvariantsProvider;
   }
 
   @Override
@@ -261,13 +255,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
         if (induction) {
           kInductionProver.setCandidateInvariants(ImmutableSet.<CandidateInvariant>of(TargetLocationCandidateInvariant.INSTANCE));
-          locationInvariantsProvider = new Function<Triple<CFANode,FormulaManagerView,PathFormulaManager>, BooleanFormula>() {
+          locationInvariantsProvider = new InvariantSupplier() {
 
             @Override
-            public BooleanFormula apply(Triple<CFANode, FormulaManagerView, PathFormulaManager> pArg0) {
-              CFANode location = pArg0.getFirst();
-              FormulaManagerView fmgr = pArg0.getSecond();
-              PathFormulaManager pfmgr = pArg0.getThird();
+            public BooleanFormula getInvariantFor(CFANode location, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
               try {
                 return kInductionProver.getCurrentLocationInvariants(location, fmgr, pfmgr);
               } catch (InterruptedException | CPAException e) {

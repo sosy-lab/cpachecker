@@ -58,9 +58,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Throwables;
 
@@ -157,7 +154,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
           Precision initialPrecision = cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition());
           reachedSet.add(initialState, initialPrecision);
           bmcAlgorithm.run(reachedSet);
-          return getResults();
+          return bmcAlgorithm.getCurrentInvariants();
 
         } finally {
           CPAs.closeCpaIfPossible(cpa, logger);
@@ -182,15 +179,6 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     shutdownNotifier.registerAndCheckImmediately(shutdownListener);
   }
 
-  private InvariantSupplier getResults() {
-    return new InvariantSupplier() {
-      @Override
-      public BooleanFormula getInvariantFor(CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr) {
-        return bmcAlgorithm.getCurrentLocationInvariants(pNode, pFmgr, pPfmgr);
-      }
-    };
-  }
-
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
@@ -203,7 +191,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
     if (async && !invariantGenerationFuture.isDone()) {
       // grab intermediate result that is available so far
-      return getResults();
+      return bmcAlgorithm.getCurrentInvariants();
 
     } else {
       try {
