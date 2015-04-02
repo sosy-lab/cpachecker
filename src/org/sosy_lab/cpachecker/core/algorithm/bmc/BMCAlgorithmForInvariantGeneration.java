@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Verify;
+
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
   private InvariantSupplier locationInvariantsProvider = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
@@ -61,6 +63,8 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
                       throws InvalidConfigurationException, CPAException {
     super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownNotifier, pCFA,
         true /* invariant generator */ );
+    Verify.verify(checkIfInductionIsPossible(pCFA, pLogger));
+    assert pCFA.getAllLoopHeads().get().size() == 1;
   }
 
   public InvariantSupplier getCurrentInvariants() {

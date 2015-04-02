@@ -189,7 +189,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     targetLocationProvider = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
   }
 
-  private static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
+  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
