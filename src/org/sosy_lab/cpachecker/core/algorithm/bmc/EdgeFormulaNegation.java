@@ -32,17 +32,14 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -128,19 +125,11 @@ public class EdgeFormulaNegation implements CandidateInvariant {
 
   @Override
   public void attemptInjection(InvariantGenerator pInvariantGenerator) throws UnrecognizedCodeException {
-    if (pInvariantGenerator instanceof CPAInvariantGenerator) {
-      CPAInvariantGenerator invGen = (CPAInvariantGenerator) pInvariantGenerator;
-      InvariantsCPA invariantsCPA = CPAs.retrieveCPA(invGen.getCPAs(), InvariantsCPA.class);
-      if (invariantsCPA != null) {
-        Optional<AssumeEdge> assumption = getAssumeEdge();
-        if (assumption.isPresent()) {
-          for (CFANode location : locations) {
-            invariantsCPA.injectInvariant(location, assumption.get());
-          }
-        }
+    Optional<AssumeEdge> assumption = getAssumeEdge();
+    if (assumption.isPresent()) {
+      for (CFANode location : locations) {
+        pInvariantGenerator.injectInvariant(location, assumption.get());
       }
     }
   }
-
-
 }

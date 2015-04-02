@@ -52,6 +52,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -69,7 +70,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -140,10 +143,6 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
   };
 
-  public ConfigurableProgramAnalysis getCPAs() {
-    return invariantCPAs;
-  }
-
   public CPAInvariantGenerator(final Configuration config, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA cfa)
           throws InvalidConfigurationException, CPAException {
@@ -213,6 +212,14 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
         shutdownNotifier.shutdownIfNecessary();
         throw e;
       }
+    }
+  }
+
+  @Override
+  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
+    InvariantsCPA cpa = CPAs.retrieveCPA(invariantCPAs, InvariantsCPA.class);
+    if (cpa != null) {
+      cpa.injectInvariant(pLocation, pAssumption);
     }
   }
 

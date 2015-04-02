@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -204,6 +205,11 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         throw e;
       }
     }
+  }
+
+  @Override
+  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) {
+    // ignore for now (never called anyway)
   }
 
   @Override

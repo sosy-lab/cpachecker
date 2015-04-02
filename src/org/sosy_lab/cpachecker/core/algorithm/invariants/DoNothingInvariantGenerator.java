@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
@@ -41,4 +42,7 @@ public class DoNothingInvariantGenerator implements InvariantGenerator {
   public InvariantSupplier get()  {
     return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
   }
+
+  @Override
+  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) { }
 }
