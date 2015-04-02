@@ -419,7 +419,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         // assign the value if a memory location was successfully computed
         if (memLoc.isPresent()) {
           if (!valueExists) {
-            newElement.forget(memLoc.get());
+            unknownValueHandler.handle(memLoc.get(), op1.getExpressionType(), newElement, v);
 
           } else {
             newElement.assignConstant(memLoc.get(),
@@ -760,7 +760,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         newElement.assignConstant(memLoc.get(), newValue, leftSideType);
 
       } else {
-        newElement.forget(memLoc.get());
+        unknownValueHandler.handle(memLoc.get(), leftSideType, newElement, evv);
       }
     }
 
