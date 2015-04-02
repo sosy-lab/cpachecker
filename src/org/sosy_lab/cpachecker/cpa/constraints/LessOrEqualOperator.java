@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsOnlyView;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
@@ -56,10 +57,10 @@ public class LessOrEqualOperator {
 
     // Get all constraints of the state, including definite assignments of symbolic identifiers.
     // This simplifies comparison between states because we don't have to look at these separately.
-    final ConstraintsState.ConstraintsOnlyView allConstraintsLesserState =
-        pLesserState.getConstraintsOnlyView();
-    final ConstraintsState.ConstraintsOnlyView allConstraintsBiggerState =
-        pBiggerState.getConstraintsOnlyView();
+    final ConstraintsOnlyView allConstraintsLesserState =
+        new ConstraintsOnlyView(pLesserState);
+    final ConstraintsOnlyView allConstraintsBiggerState =
+        new ConstraintsOnlyView(pBiggerState);
 
     if (allConstraintsBiggerState.size() > allConstraintsLesserState.size()) {
       return false;
