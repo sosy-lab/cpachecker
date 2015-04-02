@@ -131,10 +131,15 @@ def _submitRunsParallel(runSet, webclient, benchmark):
 
         except (urllib2.HTTPError, WebClientError) as e:
             try:
-                message = e.read() #not all HTTPErrors have a read() method
-            except:
+                if e.code == 401:
+                    message = 'Please specify username and password with --cloudUser.'
+                elif e.code == 404:
+                    message = 'Please check the URL given to --cloudMaster.'
+                else:
+                    message = e.read() #not all HTTPErrors have a read() method
+            except AttributeError:
                 message = ""
-            logging.warning('Could not submit run {0}: {1} {2}'.\
+            logging.warning('Could not submit run {0}: {1}. {2}'.\
                 format(run.identifier, e, message))
         finally:
             submissonCounter += 1
