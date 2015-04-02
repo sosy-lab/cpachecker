@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.collect.Iterables.getOnlyElement;
 
 import java.util.Collections;
 
@@ -45,31 +46,24 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 
 public class EdgeFormulaNegation implements CandidateInvariant {
 
-  private final CFAEdge edge;
+  private final AssumeEdge edge;
 
   private final CFANode location;
 
-  public EdgeFormulaNegation(CFANode location, CFAEdge pEdge) {
+  public EdgeFormulaNegation(CFANode location, AssumeEdge pEdge) {
     Preconditions.checkNotNull(pEdge);
     this.location = checkNotNull(location);
     this.edge = pEdge;
   }
 
-  private Optional<AssumeEdge> getAssumeEdge() {
-    if (edge instanceof AssumeEdge) {
-      AssumeEdge assumeEdge = (AssumeEdge) edge;
-      CFANode predecessor = assumeEdge.getPredecessor();
-      AssumeEdge otherEdge = CFAUtils.leavingEdges(predecessor).filter(not(equalTo(edge))).filter(AssumeEdge.class).iterator().next();
-      return Optional.of(otherEdge);
-    }
-    return Optional.absent();
+  private AssumeEdge getNegatedAssumeEdge() {
+    CFANode predecessor = edge.getPredecessor();
+    return getOnlyElement(CFAUtils.leavingEdges(predecessor).filter(AssumeEdge.class).filter(not(equalTo(edge))));
   }
 
   public BooleanFormula getCandidate(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
@@ -91,16 +85,12 @@ public class EdgeFormulaNegation implements CandidateInvariant {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(getAssumeEdge());
+    return edge.hashCode();
   }
 
   @Override
   public String toString() {
-    Optional<AssumeEdge> assumeEdge = getAssumeEdge();
-    if (assumeEdge.isPresent()) {
-      return assumeEdge.get().toString();
-    }
-    return String.format("not (%s)", edge);
+    return getNegatedAssumeEdge().toString();
   }
 
   @Override
@@ -124,9 +114,6 @@ public class EdgeFormulaNegation implements CandidateInvariant {
 
   @Override
   public void attemptInjection(InvariantGenerator pInvariantGenerator) throws UnrecognizedCodeException {
-    Optional<AssumeEdge> assumption = getAssumeEdge();
-    if (assumption.isPresent()) {
-      pInvariantGenerator.injectInvariant(location, assumption.get());
-    }
+    pInvariantGenerator.injectInvariant(location, getNegatedAssumeEdge());
   }
 }

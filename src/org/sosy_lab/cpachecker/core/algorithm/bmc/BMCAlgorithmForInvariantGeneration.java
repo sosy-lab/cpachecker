@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -78,7 +79,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
     final Set<CandidateInvariant> result = new LinkedHashSet<>();
     final CFANode loopHead = getOnlyElement(cfa.getLoopStructure().get().getAllLoopHeads());
 
-    for (CFAEdge assumeEdge : getRelevantAssumeEdges(targetLocations)) {
+    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(targetLocations)) {
       result.add(new EdgeFormulaNegation(loopHead, assumeEdge));
     }
     return result;
@@ -91,8 +92,8 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
    *
    * @return the relevant assume edges.
    */
-  private Set<CFAEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<CFAEdge> assumeEdges = new LinkedHashSet<>();
+  private Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
+    final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
     Set<CFANode> visited = new HashSet<>(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
@@ -100,7 +101,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          assumeEdges.add(enteringEdge);
+          assumeEdges.add((AssumeEdge)enteringEdge);
         } else if (visited.add(predecessor)) {
           waitlist.add(predecessor);
         }
