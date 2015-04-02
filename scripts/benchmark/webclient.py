@@ -84,7 +84,7 @@ def execute_benchmark(benchmark, output_handler):
     logging.info('Using webclient at {0}'.format(webclient))
 
     #authentification
-    _auth(webclient, benchmark)
+    _auth(webclient, benchmark.config)
 
     STOPPED_BY_INTERRUPT = False
     try:
@@ -196,7 +196,7 @@ def _submitRun(run, webclient, benchmark, counter = 0):
 
     except urllib2.HTTPError as e:
         if (e.code == 401 and counter < 3):
-            _auth(webclient, benchmark)
+            _auth(webclient, benchmark.config)
             return _submitRun(run, webclient, benchmark, counter + 1)
         else:
             raise e
@@ -292,7 +292,7 @@ def _isFinished(runID, webclient, benchmark):
         response = urllib2.urlopen(request)
     except urllib2.HTTPError as e:
         logging.info('Could get result of run with id {0}: {1}'.format(runID, e))
-        _auth(webclient, benchmark)
+        _auth(webclient, benchmark.config)
         sleep(10)
         return False
 
@@ -328,7 +328,7 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
             response = urllib2.urlopen(request)
         except urllib2.HTTPError as e:
             logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
-            _auth(webclient, benchmark)
+            _auth(webclient, benchmark.config)
             sleep(10)
             return False
 
@@ -451,9 +451,9 @@ def _parseFile(file):
 
     return values
 
-def _auth(webclient, benchmark):
-    if benchmark.config.cloudUser:
-        tokens = benchmark.config.cloudUser.split(':')
+def _auth(webclient, config):
+    if config.cloudUser:
+        tokens = config.cloudUser.split(':')
         if not len(tokens) == 2:
             logging.warning('Invalid username password format, expected {user}:{pwd}')
             return
