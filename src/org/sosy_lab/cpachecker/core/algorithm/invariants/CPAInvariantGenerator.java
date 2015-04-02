@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
-import static com.google.common.base.Verify.verify;
+import static com.google.common.base.Verify.verifyNotNull;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -36,8 +36,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
@@ -62,6 +60,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -82,7 +81,8 @@ import com.google.common.base.Throwables;
 /**
  * Class that encapsulates invariant generation by using the CPAAlgorithm
  * with an appropriate configuration.
- * Supports synchronous and asynchronous execution.
+ * Supports synchronous and asynchronous execution,
+ * and continuously-refine invariants.
  */
 @Options(prefix="invariantGeneration")
 public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProvider {
@@ -119,11 +119,17 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   private final CPAAlgorithm invariantAlgorithm;
   private final ConfigurableProgramAnalysis invariantCPAs;
   private final ReachedSetFactory reachedSetFactory;
-  private final ReachedSet reached;
 
   private final ShutdownNotifier shutdownNotifier;
 
-  private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
+  // After start(), this will hold a Future for the final result of the invariant generation.
+  // We use a Future instead of just the atomic reference below
+  // to be able to ask for termination and see thrown exceptions.
+  private Future<InvariantSupplier> invariantGenerationFuture = null;
+
+  // In case of (async & adjustConditions), this will point to the last invariant
+  // that the continuously-refining invariant generation produced so far.
+  private final AtomicReference<InvariantSupplier> latestInvariant = new AtomicReference<>();
 
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
@@ -156,31 +162,26 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     invariantCPAs = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAWithSpecAutomatas(cfa);
     invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, shutdownNotifier);
-    reached = reachedSetFactory.create();
   }
 
   @Override
   public void start(final CFANode initialLocation) {
     checkNotNull(initialLocation);
     checkState(invariantGenerationFuture == null);
-    checkState(!reached.hasWaitingState());
 
     if (async) {
-      invariantGenerationFuture = new AdjustingInvariantGenerationFuture(reachedSetFactory, initialLocation);
+      if (adjustConditions) {
+        latestInvariant.set(InvariantSupplier.TrivialInvariantSupplier.INSTANCE);
+      }
+
+      // start invariant generation asynchronously
+      ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
+      invariantGenerationFuture = executor.submit(new InvariantGenerationTask(initialLocation));
+      executor.shutdown(); // will shutdown after task is finished
+
     } else {
-      Callable<UnmodifiableReachedSet> task = new Callable<UnmodifiableReachedSet>() {
-
-        @Override
-        public UnmodifiableReachedSet call() throws Exception {
-          shutdownNotifier.shutdownIfNecessary();
-          UnmodifiableReachedSet result = new InvariantGenerationTask(reachedSetFactory, initialLocation).call();
-          CPAs.closeCpaIfPossible(invariantCPAs, logger);
-          CPAs.closeIfPossible(invariantAlgorithm, logger);
-          return result;
-        }
-
-      };
-      invariantGenerationFuture = new LazyFutureTask<>(task);
+      // create future for lazy synchronous invariant generation
+      invariantGenerationFuture = new LazyFutureTask<>(new InvariantGenerationTask(initialLocation));
     }
 
     shutdownNotifier.registerAndCheckImmediately(shutdownListener);
@@ -197,40 +198,26 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     checkState(invariantGenerationFuture != null);
     shutdownNotifier.shutdownIfNecessary();
 
-    final UnmodifiableReachedSet reached;
-    try {
-      reached = invariantGenerationFuture.get();
+    if (invariantGenerationFuture.isDone() // finished
+        || !adjustConditions // without continuously-refined invariants we should wait for the result
+        ) {
 
-    } catch (ExecutionException e) {
-      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-      throw new UnexpectedCheckedException("invariant generation", e.getCause());
-    } catch (CancellationException e) {
-      InterruptedException ie = new InterruptedException();
-      ie.initCause(e);
-      throw ie;
-    }
-    verify(!reached.hasWaitingState());
-    if (reached.isEmpty()) {
-      // initial reached set represents invariant "true"
-      return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
-    }
+      try {
+        return invariantGenerationFuture.get();
 
-    return new InvariantSupplier() {
-
-      @Override
-      public BooleanFormula getInvariantFor(CFANode pLocation, FormulaManagerView fmgr) {
-        BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
-        BooleanFormula invariant = bfmgr.makeBoolean(false);
-
-        for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
-          BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
-          logger.log(Level.ALL, "Invariant:", f);
-
-          invariant = bfmgr.or(invariant, f);
-        }
-        return invariant;
+      } catch (ExecutionException e) {
+        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+        throw new UnexpectedCheckedException("invariant generation", e.getCause());
+      } catch (CancellationException e) {
+        InterruptedException ie = new InterruptedException();
+        ie.initCause(e);
+        throw ie;
       }
-    };
+
+    } else {
+      // grab intermediate result that is available so far
+      return verifyNotNull(latestInvariant.get());
+    }
   }
 
   @Override
@@ -242,152 +229,102 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     pStatsCollection.add(stats);
   }
 
-  private class InvariantGenerationTask implements Callable<UnmodifiableReachedSet> {
+  /**
+   * {@link InvariantSupplier} that extracts invariants from a {@link ReachedSet}
+   * with {@link FormulaReportingState}s.
+   */
+  private static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
 
-    private final ReachedSet taskReached;
+    private final LogManager logger;
+    private final UnmodifiableReachedSet reached;
 
-    public InvariantGenerationTask(ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation) {
-      taskReached = pReachedSetFactory.create();
+    private ReachedSetBasedInvariantSupplier(UnmodifiableReachedSet pReached,
+        LogManager pLogger) {
+      checkArgument(!pReached.hasWaitingState());
+      checkArgument(!pReached.isEmpty());
+      reached = pReached;
+      logger = pLogger;
+    }
+
+    @Override
+    public BooleanFormula getInvariantFor(CFANode pLocation, FormulaManagerView fmgr) {
+      BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+      BooleanFormula invariant = bfmgr.makeBoolean(false);
+
+      for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
+        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+        logger.log(Level.ALL, "Invariant for", pLocation+":", f);
+
+        invariant = bfmgr.or(invariant, f);
+      }
+      return invariant;
+    }
+  }
+
+  /**
+   * Callable for creating invariants by running the CPAAlgorithm,
+   * potentially in a loop with increasing precision.
+   * Returns the final invariants,
+   * and publishes intermediate results to {@link CPAInvariantGenerator#latestInvariant}.
+   */
+  private class InvariantGenerationTask implements Callable<InvariantSupplier> {
+
+    private final List<AdjustableConditionCPA> conditionCPAs;
+    private final CFANode initialLocation;
+
+    public InvariantGenerationTask(final CFANode pInitialLocation) {
+      initialLocation = checkNotNull(pInitialLocation);
+      conditionCPAs = CPAs.asIterable(invariantCPAs).filter(AdjustableConditionCPA.class).toList();
+
+      if (adjustConditions && conditionCPAs.isEmpty()) {
+        logger.log(Level.WARNING, "Cannot adjust invariant generation: No adjustable CPAs.");
+      }
+    }
+
+    @Override
+    public InvariantSupplier call() throws Exception {
+      stats.invariantGeneration.start();
+      InvariantSupplier invariant;
+      try {
+        invariant = runInvariantGeneration(initialLocation);
+        latestInvariant.set(invariant);
+
+        int i = 0;
+        while (adjustConditions()) {
+          shutdownNotifier.shutdownIfNecessary();
+
+          logger.log(Level.INFO, "Starting iteration", ++i, "of invariant generation with abstract interpretation.");
+
+          invariant = runInvariantGeneration(initialLocation);
+          latestInvariant.set(invariant);
+        }
+      } finally {
+        stats.invariantGeneration.stop();
+        CPAs.closeCpaIfPossible(invariantCPAs, logger);
+        CPAs.closeIfPossible(invariantAlgorithm, logger);
+      }
+      return invariant;
+    }
+
+    private InvariantSupplier runInvariantGeneration(CFANode pInitialLocation)
+        throws CPAException, InterruptedException {
+
+      ReachedSet taskReached = reachedSetFactory.create();
       synchronized (invariantCPAs) {
         taskReached.add(invariantCPAs.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
             invariantCPAs.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
       }
-    }
 
-    @Override
-    public UnmodifiableReachedSet call() throws CPAException, InterruptedException {
-      checkState(taskReached.hasWaitingState());
-
-      stats.invariantGeneration.start();
-      logger.log(Level.INFO, "Finding invariants");
-
-      try {
-        while (!taskReached.getWaitlist().isEmpty()) {
-          invariantAlgorithm.run(taskReached);
-        }
-
-        return new UnmodifiableReachedSetWrapper(taskReached);
-
-      } finally {
-        stats.invariantGeneration.stop();
+      while (!taskReached.getWaitlist().isEmpty()) {
+        invariantAlgorithm.run(taskReached);
       }
-    }
 
-  }
-
-  private class AdjustingInvariantGenerationFuture implements Future<UnmodifiableReachedSet> {
-
-    private final List<AdjustableConditionCPA> conditionCPAs;
-
-    private final AtomicReference<Future<UnmodifiableReachedSet>> currentFuture = new AtomicReference<>();
-
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor(Threads.threadFactory());
-
-    private boolean done = false;
-
-    private boolean cancelledInner = false;
-
-    public AdjustingInvariantGenerationFuture(final ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation) {
-      conditionCPAs = CPAs.asIterable(invariantCPAs).filter(AdjustableConditionCPA.class).toList();
-      Callable<UnmodifiableReachedSet> initialTask = new Callable<UnmodifiableReachedSet>() {
-
-        @Override
-        public UnmodifiableReachedSet call() {
-          return pReachedSetFactory.create();
-        }
-
-      };
-      currentFuture.set(executorService.submit(initialTask));
-      if (!shutdownNotifier.shouldShutdown()) {
-        scheduleTask(pReachedSetFactory, pInitialLocation);
-      }
-    }
-
-    @Override
-    public boolean cancel(boolean pMayInterruptIfRunning) {
-      cancelledInner = true;
-      boolean wasDone = done;
-      setDone();
-      Future<UnmodifiableReachedSet> currentFuture = this.currentFuture.get();
-      if (currentFuture != null) {
-        return currentFuture.cancel(pMayInterruptIfRunning);
-      }
-      return !wasDone;
-    }
-
-    @Override
-    public UnmodifiableReachedSet get() throws InterruptedException, ExecutionException {
-      return currentFuture.get().get();
-    }
-
-    @Override
-    public UnmodifiableReachedSet get(long pTimeout, TimeUnit pUnit) throws InterruptedException, ExecutionException,
-        TimeoutException {
-      return currentFuture.get().get(pTimeout, pUnit);
-    }
-
-    @Override
-    public boolean isCancelled() {
-      return cancelledInner;
-    }
-
-    @Override
-    public boolean isDone() {
-      return done;
-    }
-
-    private Future<UnmodifiableReachedSet> scheduleTask(final ReachedSetFactory pReachedSetFactory, final CFANode pInitialLocation) {
-      final AtomicReference<Future<UnmodifiableReachedSet>> ref = new AtomicReference<>();
-      final Future<UnmodifiableReachedSet> future = new LazyFutureTask<>(new InvariantGenerationTask(pReachedSetFactory, pInitialLocation) {
-
-        @Override
-        public UnmodifiableReachedSet call() throws CPAException, InterruptedException {
-          UnmodifiableReachedSet result = super.call();
-          // This accesses the future referenced by ref, which is a future
-          // wrapping this call itself, so this function must not be called
-          // before ref is set to the wrapping future
-          currentFuture.set(ref.get());
-          if (adjustConditions() && !shutdownNotifier.shouldShutdown()) {
-            scheduleTask(pReachedSetFactory, pInitialLocation);
-          } else {
-            setDone();
-            cancelledInner |= ref.get().isCancelled();
-          }
-          return result;
-        }
-
-      });
-      // Set the wrapping future as value of the reference
-      ref.set(future);
-      // From here on it is safe to call the task, so it is submit to a scheduler
-      if (!shutdownNotifier.shouldShutdown() && !executorService.isShutdown()) {
-        ref.set(executorService.submit(new Callable<UnmodifiableReachedSet>() {
-
-          @Override
-          public UnmodifiableReachedSet call() throws ExecutionException, InterruptedException {
-            return future.get();
-          }
-
-        }));
-      }
-      return future;
-    }
-
-    private void setDone() {
-      if (!done) {
-        done = true;
-        CPAs.closeCpaIfPossible(invariantCPAs, logger);
-        CPAs.closeIfPossible(invariantAlgorithm, logger);
-        executorService.shutdown();
-      }
+      return new ReachedSetBasedInvariantSupplier(
+          new UnmodifiableReachedSetWrapper(taskReached), logger);
     }
 
     private boolean adjustConditions() {
-      if (!adjustConditions) {
-        return false;
-      }
-      if (conditionCPAs.isEmpty()) {
-        logger.log(Level.INFO, "Cannot adjust invariant generation: No adjustable CPAs.");
+      if (!adjustConditions || conditionCPAs.isEmpty()) {
         return false;
       }
       synchronized (invariantCPAs) {
@@ -400,7 +337,5 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       }
       return true;
     }
-
   }
-
 }
