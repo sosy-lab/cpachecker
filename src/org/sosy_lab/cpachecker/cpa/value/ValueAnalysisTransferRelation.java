@@ -189,6 +189,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   /**
    * Save the old State for strengthen.
+   * Do not change or modify this state!
    */
   private ValueAnalysisState oldState;
 
@@ -234,7 +235,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // but I'm not sure of the behavior of calling strengthen, so
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
-    oldState = ValueAnalysisState.copyOf((ValueAnalysisState)pAbstractState);
+    oldState = (ValueAnalysisState)pAbstractState;
   }
 
   @Override
@@ -305,7 +306,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
       throws UnrecognizedCCodeException {
 
+    // visitor must use the initial (previous) state, because there we have all information about variables
     ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+
+    // clone state, because will be changed through removing all variables of current function's scope.
+    // The assignment of the global 'state' is safe, because the 'old state'
+    // is available in the visitor and is not used for further computation.
+    state = ValueAnalysisState.copyOf(state);
+    state.dropFrame(functionName);
 
     AExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
@@ -345,7 +353,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     throws UnrecognizedCodeException {
 
     ValueAnalysisState newElement  = ValueAnalysisState.copyOf(state);
-    newElement.dropFrame(functionReturnEdge.getPredecessor().getFunctionName());
 
     Optional<? extends AVariableDeclaration> returnVarName = functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
@@ -420,7 +427,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    assert !returnVarName.isPresent() || !newElement.contains(functionReturnVar);
+    if(returnVarName.isPresent()) {
+      newElement.forget(functionReturnVar);
+    }
     return newElement;
   }
 
@@ -1253,8 +1262,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
-    public FieldAccessExpressionValueVisitor(RTTState pJortState) {
-      super(state, functionName, machineModel, logger);
+    public FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
+      super(pState, functionName, machineModel, logger);
       jortState = pJortState;
     }
 
@@ -1282,8 +1291,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       String varName = handleIdExpression(idExp);
 
-      if (state.contains(varName)) {
-        return state.getValueFor(varName);
+      if (readableState.contains(varName)) {
+        return readableState.getValueFor(varName);
       } else {
         return Value.UnknownValue.getInstance();
       }
@@ -1648,7 +1657,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private Collection<ValueAnalysisState> strengthen(RTTState rttState)
       throws UnrecognizedCCodeException {
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
 
     if (missingFieldVariableObject) {
       newElement.assignConstant(getRTTScopedVariableName(
@@ -1674,6 +1683,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         return null;
       }
     } else if (missingAssumeInformation && missingInformationRightJExpression != null) {
+
       Value value = handleMissingInformationRightJExpression(rttState);
 
       missingAssumeInformation = false;
@@ -1714,7 +1724,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private Value handleMissingInformationRightJExpression(RTTState pJortState) {
     return missingInformationRightJExpression.accept(
-        new FieldAccessExpressionValueVisitor(pJortState));
+        new FieldAccessExpressionValueVisitor(pJortState, oldState));
   }
 
   private ValueAnalysisState handleNotScopedVariable(RTTState rttState, ValueAnalysisState newElement) {
