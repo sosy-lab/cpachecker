@@ -152,7 +152,9 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       @Nullable
       @Override
       public Precision apply(@Nullable AbstractState state) {
-        return transfer.getPrecisionForState(Preconditions.checkNotNull(subgraphStatesToReachedState.get(state)), delegate.asReachedSet());
+        return delegate.asReachedSet().getPrecision(delegate.asReachedSet().getLastState());
+        // TODO do we really need the target-precision for refinements and not the actual one?
+        // return transfer.getPrecisionForState(Preconditions.checkNotNull(subgraphStatesToReachedState.get(state)), delegate.asReachedSet());
       }
     };
 
@@ -168,13 +170,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
     @Override
     public UnmodifiableReachedSet asReachedSet() {
-      if (true) {
-        return delegate.asReachedSet();
-      }
-
-      // TODO there is a bug with precision handling in BAM-PredicateAnalysis,
-      //      when using the new ReachedSet instead of only the MainReachedSet.
-      //      However for ValuaAnalysis-refinement we need the new ReachedSet.
       return new UnmodifiableReachedSet() {
         @Override
         public Collection<AbstractState> asCollection() {
