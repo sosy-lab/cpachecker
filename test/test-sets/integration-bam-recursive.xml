@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="90" hardtimelimit="100" memlimit="1500" cpuCores="2">
+
+  <resultfiles>**.*</resultfiles>
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <option name="-noout"/>
+  <option name="-heap">1000M</option>
+  
+    <sourcefiles name="simple">
+      <include>../programs/benchmarks/recursive-simple/*.c</include>
+      <option name="-valueAnalysis-bam-rec"/>
+    </sourcefiles>
+    
+    <sourcefiles name="svcomp">
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <option name="-predicateAnalysis-bam-rec-plain"/>
+    </sourcefiles>
+
+  <rundefinition name="bam-rec">
+  </rundefinition>
+
+</benchmark>
