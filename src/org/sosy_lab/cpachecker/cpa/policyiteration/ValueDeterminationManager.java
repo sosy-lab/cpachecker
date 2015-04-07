@@ -229,7 +229,8 @@ public class ValueDeterminationManager {
    * for the given template for the given state.
    */
   public String absDomainVarName(PolicyAbstractedState state, Template template) {
-    return String.format(BOUND_VAR_NAME, state.getLocationID(), template);
+    return String.format(
+        BOUND_VAR_NAME, state.getLocationID(), template.toFormulaString());
   }
 
 }

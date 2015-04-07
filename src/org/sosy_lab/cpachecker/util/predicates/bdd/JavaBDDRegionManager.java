@@ -665,7 +665,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitAtom(BooleanFormula pAtom) {
+    protected BDD visitAtom(BooleanFormula pAtom) {
       return ((JavaBDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
     }
 
@@ -687,7 +687,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitNot(BooleanFormula pOperand) {
+    protected BDD visitNot(BooleanFormula pOperand) {
       BDD operand = convert(pOperand);
       BDD result = operand.not();
       operand.free();
@@ -720,17 +720,17 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitAnd(BooleanFormula... pOperands) {
+    protected BDD visitAnd(BooleanFormula... pOperands) {
       return visitMulti(BDDFactory.and, pOperands);
     }
 
     @Override
-    public BDD visitOr(BooleanFormula... pOperands) {
+    protected BDD visitOr(BooleanFormula... pOperands) {
       return visitMulti(BDDFactory.or, pOperands);
     }
 
     @Override
-    public BDD visitEquivalence(BooleanFormula pOperand1,
+    protected BDD visitEquivalence(BooleanFormula pOperand1,
         BooleanFormula pOperand2) {
       return visitBinary(pOperand1, pOperand2, BDDFactory.biimp);
     }
@@ -742,7 +742,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitIfThenElse(BooleanFormula pCondition,
+    protected BDD visitIfThenElse(BooleanFormula pCondition,
         BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       BDD condition = convert(pCondition);
       BDD thenBDD = convert(pThenFormula);

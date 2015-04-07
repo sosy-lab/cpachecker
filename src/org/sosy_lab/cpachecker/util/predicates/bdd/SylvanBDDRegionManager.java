@@ -473,7 +473,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitAtom(BooleanFormula pAtom) {
+    protected Long visitAtom(BooleanFormula pAtom) {
       return unwrap(atomToRegion.apply(pAtom));
     }
 
@@ -497,12 +497,12 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitNot(BooleanFormula pOperand) {
+    protected Long visitNot(BooleanFormula pOperand) {
       return JSylvan.makeNot(convert(pOperand));
     }
 
     @Override
-    public Long visitAnd(BooleanFormula... pOperands) {
+    protected Long visitAnd(BooleanFormula... pOperands) {
       long result = JSylvan.getTrue();
 
       for (BooleanFormula f : pOperands) {
@@ -515,7 +515,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitOr(BooleanFormula... pOperands) {
+    protected Long visitOr(BooleanFormula... pOperands) {
       long result = JSylvan.getFalse();
 
       for (BooleanFormula f : pOperands) {
@@ -528,7 +528,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitEquivalence(BooleanFormula pOperand1,
+    protected Long visitEquivalence(BooleanFormula pOperand1,
         BooleanFormula pOperand2) {
       return JSylvan.makeEquals(convert(pOperand1), convert(pOperand2));
     }
@@ -540,7 +540,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitIfThenElse(BooleanFormula pCondition,
+    protected Long visitIfThenElse(BooleanFormula pCondition,
         BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       return JSylvan.makeIte(convert(pCondition), convert(pThenFormula),
           convert(pElseFormula));

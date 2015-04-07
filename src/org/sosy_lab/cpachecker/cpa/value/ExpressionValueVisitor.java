@@ -57,7 +57,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private boolean missingPointer = false;
 
-  private final ValueAnalysisState state;
+  // This state is read-only! No writing or modification allowed!
+  protected final ValueAnalysisState readableState;
 
   /** This Visitor returns the numeral value for an expression.
    *
@@ -69,7 +70,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     super(pFunctionName, pMachineModel, pLogger);
-    state = pState;
+    readableState = pState;
   }
 
   /* additional methods */
@@ -107,8 +108,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       memLoc = MemoryLocation.valueOf(varName.getName(), 0);
     }
 
-    if (state.contains(memLoc)) {
-      return state.getValueFor(memLoc);
+    if (readableState.contains(memLoc)) {
+      return readableState.getValueFor(memLoc);
     } else {
       return Value.UnknownValue.getInstance();
     }
@@ -123,7 +124,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     if (getState().contains(varLoc)) {
-      return state.getValueFor(varLoc);
+      return readableState.getValueFor(varLoc);
     } else {
       return Value.UnknownValue.getInstance();
     }
@@ -343,6 +344,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   public ValueAnalysisState getState() {
-    return state;
+    return readableState;
   }
 }

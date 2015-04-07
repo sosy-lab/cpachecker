@@ -25,11 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collections;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -38,9 +33,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
 
 
 public enum TargetLocationCandidateInvariant implements CandidateInvariant {
@@ -55,26 +47,12 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
   }
 
   @Override
-  public boolean violationIndicatesError() {
-    return true;
-  }
-
-  @Override
   public void assumeTruth(ReachedSet pReachedSet) {
     Iterable<AbstractState> targetStates = from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE).toList();
     pReachedSet.removeAll(targetStates);
     for (ARGState s : from(targetStates).filter(ARGState.class)) {
       s.removeFromARG();
     }
-  }
-
-  @Override
-  public Set<CFANode> getLocations(CFA pCFA) {
-    Optional<ImmutableSet<CFANode>> loopHeads = pCFA.getAllLoopHeads();
-    if (loopHeads.isPresent()) {
-      return loopHeads.get();
-    }
-    return Collections.emptySet();
   }
 
   @Override

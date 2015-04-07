@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
+import com.google.errorprone.annotations.ForOverride;
+
 /**
  * Abstract class for the refinement strategy that should be used after a spurious
  * counterexample has been found and interpolants were computed.
@@ -102,6 +104,7 @@ public abstract class RefinementStrategy {
     return true;
   }
 
+  @ForOverride
   protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
     int equalPrecisions = 0;
     int differentPrecisions = 0;
@@ -178,7 +181,7 @@ public abstract class RefinementStrategy {
           PredicateAbstractState s = getPredicateState(w);
           BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
           // solver.addUnsatisfiableFormulaToCache(blockFormula);
-          // TODO disabled, because tree-interpolation returns true-false-interpolants 
+          // TODO disabled, because tree-interpolation returns true-false-interpolants
           // without an unsatisfiable intermediate formula
           // TODO: Move caching to InterpolationManager.buildCounterexampleTrace
         }
@@ -229,6 +232,7 @@ public abstract class RefinementStrategy {
     assert !pReached.asReachedSet().contains(lastElement);
   }
 
+  @ForOverride
   protected abstract void startRefinementOfPath();
 
   /**
@@ -240,6 +244,7 @@ public abstract class RefinementStrategy {
    * @return True if no refinement was necessary (this implies that refinement
    *          on all of the state's parents is also not necessary)
    */
+  @ForOverride
   protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state) throws InterruptedException, SolverException;
 
   /**
@@ -253,6 +258,7 @@ public abstract class RefinementStrategy {
    * @throws CPAException
    * @throws InterruptedException
    */
+  @ForOverride
   protected abstract void finishRefinementOfPath(
       final ARGState unreachableState,
       List<ARGState> affectedStates,

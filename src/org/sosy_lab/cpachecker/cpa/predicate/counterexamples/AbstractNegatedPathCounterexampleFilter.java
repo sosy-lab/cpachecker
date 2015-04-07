@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * An abstract {@link CounterexampleFilter} implementation
@@ -125,5 +126,6 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
    * have proper implementations of {@link Object#equals(Object)}
    * and {@link Object#hashCode()}, or {@link Optional#absent()}.
    */
+  @ForOverride
   protected abstract Optional<T> getCounterexampleRepresentation(List<BooleanFormula> negatedPath) throws InterruptedException;
 }

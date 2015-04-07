@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -104,6 +103,10 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
     return data.size();
   }
 
+  public boolean isEmpty() {
+    return data.isEmpty();
+  }
+
   /**
    * @return Whether all coefficients are integral.
    */
@@ -127,36 +130,33 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
    */
   @Override
   public String toString() {
-    return toString(new Function<T, String>() {
-
-      @Override
-      public String apply(T pT) {
-        return pT.toString();
-      }
-    });
-  }
-
-  /**
-   * Printing with a custom serializer for variables.
-   */
-  public String toString(Function<T, String> converter) {
     StringBuilder b = new StringBuilder();
     for (Entry<T, Rational> monomial : this) {
       Rational coeff = monomial.getValue();
-      if (b.length() != 0 && coeff.signum() >= 0) {
-        b.append(" + ");
-      }
       T var = monomial.getKey();
-      String varSerialized = converter.apply(var);
-      if (coeff == Rational.ONE) {
-        b.append(varSerialized);
-      } else if (coeff == Rational.NEG_ONE) {
-        b.append(" - ").append(varSerialized);
-      } else {
-        b.append(coeff.toString()).append(varSerialized);
-      }
+      String varSerialized = var.toString();
+
+      writeMonomial(varSerialized, coeff, b);
     }
     return b.toString();
+  }
+
+  /**
+   * Pretty-print monomial to the given {@link StringBuilder}.
+   */
+  public static void writeMonomial(
+      String varSerialized, Rational coeff, StringBuilder b
+  ) {
+    if (b.length() != 0 && coeff.signum() >= 0) {
+      b.append(" + ");
+    }
+    if (coeff == Rational.ONE) {
+      b.append(varSerialized);
+    } else if (coeff == Rational.NEG_ONE) {
+      b.append(" - ").append(varSerialized);
+    } else {
+      b.append(coeff.toString()).append(varSerialized);
+    }
   }
 
   @Override

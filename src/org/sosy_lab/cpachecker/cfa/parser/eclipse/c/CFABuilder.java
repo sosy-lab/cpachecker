@@ -364,7 +364,8 @@ class CFABuilder extends ASTVisitor {
     String functionName = startNode.getFunctionName();
 
     if (cfas.containsKey(functionName)) {
-      throw new CFAGenerationRuntimeException("Duplicate function " + functionName);
+      throw new CFAGenerationRuntimeException("Duplicate function " + functionName
+          + " in " + startNode.getFileLocation() + " and " + cfas.get(functionName).getFileLocation());
     }
     cfas.put(functionName, startNode);
     cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());

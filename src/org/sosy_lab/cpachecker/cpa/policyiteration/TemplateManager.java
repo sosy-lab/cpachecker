@@ -109,7 +109,7 @@ public class TemplateManager {
     } else {
       generatedTemplates = ImmutableSet.of();
     }
-    logger.log(Level.FINE, "hello");
+    logger.log(Level.FINE, "Generated templates", generatedTemplates);
   }
 
 
@@ -143,7 +143,9 @@ public class TemplateManager {
               || !shouldProcessVariable(s2)) {
             continue;
           }
-          if (s1 == s2) { // Don't pair up the same var.
+          if (s1.getQualifiedName().equals(s2.getQualifiedName())) {
+
+            // Don't pair up the same var.
             continue;
           }
           if (!s1.getType().equals(s2.getType())) {
@@ -276,6 +278,8 @@ public class TemplateManager {
         String statement = edge.getRawStatement();
         Optional<Template> template = Optional.absent();
 
+        // todo: use the automaton instead to derive the error conditions,
+        // do not hardcode the function names.
         if (statement.contains(ASSERT_H_FUNC_NAME)
             && edge instanceof CStatementEdge) {
 
@@ -303,6 +307,9 @@ public class TemplateManager {
 
         if (template.isPresent()) {
           Template t = template.get();
+          if (t.linearExpression.isEmpty()) {
+            continue;
+          }
 
           // Add template and its negation.
           templates.add(t);

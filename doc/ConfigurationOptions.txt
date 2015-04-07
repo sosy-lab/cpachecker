@@ -464,7 +464,7 @@ configuration.dumpFile = "UsedConfiguration.properties"
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = "CBMC"
-  allowed values: [CBMC, CPACHECKER]
+  allowed values: [CBMC, CPACHECKER, REALC]
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
@@ -1720,7 +1720,7 @@ cpa.value.refinement.exportInterpolationTree = "NEVER"
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 
-# heuristic to sort targets based on the quality of interpolants deriveable
+# heuristic to sort targets based on the quality of interpolants derivable
 # from them
 cpa.value.refinement.itpSortedTargets = false
 
@@ -1730,9 +1730,13 @@ cpa.value.refinement.pathSlicing = true
 # which prefix of an actual counterexample trace should be used for
 # interpolation
 cpa.value.refinement.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
-             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, REFINE_DEEP_DOMAIN, RANDOM,
-             MEDIAN, MIDDLE, DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
+             DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
+             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
+             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
+             REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
+             ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
+             RANDOM, MEDIAN, MIDDLE, FEASIBLE]
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
@@ -2016,6 +2020,17 @@ reachedSet.dot = "reached.dot"
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
+
+# File name where to put the path program that is generated as input for a
+# common c compiler. A temporary file is used if this is unspecified. 
+realC.dumpRealCfile = no default value
+
+# Path to the compiler. Can be absolute or on PATH
+realC.pathToCompiler = no default value
+
+# maximum time limit for realC (use milliseconds or specify a unit; 0 for
+# infinite)
+realC.timelimit = 0ms
 
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this

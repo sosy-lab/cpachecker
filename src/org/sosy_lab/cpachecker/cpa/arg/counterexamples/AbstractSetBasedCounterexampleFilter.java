@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 import com.google.common.base.Optional;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * Abstract base implementation of {@link CounterexampleFilter}.
@@ -92,5 +93,6 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
    * have proper implementations of {@link Object#equals(Object)}
    * and {@link Object#hashCode()}, or {@link Optional#absent()}.
    */
+  @ForOverride
   protected abstract Optional<T> getCounterexampleRepresentation(CounterexampleInfo counterexample) throws InterruptedException;
 }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
@@ -34,32 +33,28 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 
-import javax.annotation.concurrent.GuardedBy;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.edgeexclusion.EdgeExclusionPrecision;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
@@ -70,7 +65,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -87,7 +81,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -106,9 +99,7 @@ class KInductionProver implements AutoCloseable {
 
   private final ConfigurableProgramAnalysis cpa;
 
-  private final Boolean trivialResult;
-
-  private final ReachedSet reachedSet;
+  private final ReachedSet reached;
 
   private final Loop loop;
 
@@ -138,7 +129,7 @@ class KInductionProver implements AutoCloseable {
 
   private ProverEnvironment prover = null;
 
-  private UnmodifiableReachedSet invariantsReachedSet;
+  private InvariantSupplier invariantsSupplier;
 
   private BooleanFormula loopHeadInvariants;
 
@@ -148,10 +139,8 @@ class KInductionProver implements AutoCloseable {
 
   private int previousK = -1;
 
+  // The CandidateInvariants that have been proven to hold at the loop heads of {@link loop}.
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
-
-  @GuardedBy("this")
-  private ImmutableSet<CandidateInvariant> candidateInvariants = ImmutableSet.of();
 
   private boolean invariantGenerationRunning = true;
 
@@ -177,46 +166,8 @@ class KInductionProver implements AutoCloseable {
     reachedSetFactory = checkNotNull(pReachedSetFactory);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     havocLoopTerminationConditionVariablesOnly = pHavocLoopTerminationConditionVariablesOnly;
-    List<CFAEdge> incomingEdges = null;
-    ReachedSet reachedSet = null;
-    Loop loop = null;
-    if (!cfa.getLoopStructure().isPresent()) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
-      trivialResult = false;
-    } else {
-      LoopStructure loops = cfa.getLoopStructure().get();
-
-      // Induction is currently only possible if there is a single loop.
-      // This check can be weakened in the future,
-      // e.g. it is ok if there is only a single loop on each path.
-      if (loops.getCount() > 1) {
-        logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
-        invariantGenerator.cancel();
-        trivialResult = false;
-      } else if (loops.getCount() == 0) {
-        // induction is unnecessary, program has no loops
-        invariantGenerator.cancel();
-        trivialResult = true;
-      } else {
-        stats.inductionPreparation.start();
-
-        loop = Iterables.getOnlyElement(loops.getAllLoops());
-        // function edges do not count as incoming/outgoing edges
-        incomingEdges = from(loop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).toList();
-
-        if (incomingEdges.size() > 1) {
-          logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
-          trivialResult = false;
-        } else if (loop.getLoopHeads().size() > 1) {
-          logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many loop heads");
-          trivialResult = false;
-        } else {
-          trivialResult = null;
-          reachedSet = reachedSetFactory.create();
-        }
-        stats.inductionPreparation.stop();
-      }
-    }
+    loop = Iterables.getOnlyElement(pCFA.getLoopStructure().get().getAllLoops());
+    reached = reachedSetFactory.create();
 
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     solver = stepCasePredicateCPA.getSolver();
@@ -225,64 +176,11 @@ class KInductionProver implements AutoCloseable {
     pfmgr = stepCasePredicateCPA.getPathFormulaManager();
     loopHeadInvariants = bfmgr.makeBoolean(true);
 
-    invariantsReachedSet = reachedSetFactory.create();
-    this.reachedSet = reachedSet;
-    this.loop = loop;
+    invariantsSupplier = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 
   public Collection<CandidateInvariant> getConfirmedCandidates() {
     return confirmedCandidates;
-  }
-
-  public ImmutableSet<CandidateInvariant> setCandidateInvariants(Set<CandidateInvariant> pCandidateInvariants) {
-    synchronized (this) {
-      return this.candidateInvariants = from(pCandidateInvariants).filter(not(in(confirmedCandidates))).toSet();
-    }
-  }
-
-  private ImmutableSet<CandidateInvariant> getCandidateInvariants() {
-    synchronized (this) {
-      return from(this.candidateInvariants).filter(not(in(confirmedCandidates))).toSet();
-    }
-  }
-
-  /**
-   * Checks if the result of the k-induction check has been determined to
-   * be trivial by the constructor.
-   *
-   * @return {@code true} if the constructor was able to determine a constant
-   * result for the k-induction check, {@code false} otherwise.
-   */
-  boolean isTrivial() {
-    return this.trivialResult != null;
-  }
-
-  /**
-   * If available, gets the constant result of the k-induction check as
-   * determined by the constructor. Do not call this function if there is no
-   * such trivial constant result. This can be checked by calling
-   * {@link isTrivial}.
-   *
-   * @return the trivial constant result of the k-induction check.
-   */
-  private boolean getTrivialResult() {
-    Preconditions.checkState(isTrivial(), "The proof is non-trivial.");
-    return trivialResult;
-  }
-
-  /**
-   * Gets the current reached set describing the loop iterations unrolled for
-   * the inductive step. The reached set is only available if no trivial
-   * constant result for the k-induction check was determined by the
-   * constructor, as can be checked by calling {@link isTrivial}.
-   *
-   * @return the current reached set describing the loop iterations unrolled
-   * for the inductive step.
-   */
-  private ReachedSet getCurrentReachedSet() {
-    Preconditions.checkState(!isTrivial(), "No reached set created, because the proof is trivial.");
-    assert reachedSet != null;
-    return reachedSet;
   }
 
   /**
@@ -317,22 +215,22 @@ class KInductionProver implements AutoCloseable {
     return prover;
   }
 
-  private UnmodifiableReachedSet getCurrentInvariantsReachedSet() throws InterruptedException {
+  private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
     if (!invariantGenerationRunning) {
-      return invariantsReachedSet;
+      return invariantsSupplier;
     }
     try {
       return invariantGenerator.get();
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;
-      return invariantsReachedSet;
+      return invariantsSupplier;
     } catch (InterruptedException e) {
       shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINE, "Invariant generation was cancelled.");
       logger.logDebugException(e);
       invariantGenerationRunning = false;
-      return invariantsReachedSet;
+      return invariantsSupplier;
     }
   }
 
@@ -352,13 +250,18 @@ class KInductionProver implements AutoCloseable {
   }
 
   public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    if (invariantGenerationRunning) {
-      UnmodifiableReachedSet currentInvariantsReachedSet = getCurrentInvariantsReachedSet();
-      if (currentInvariantsReachedSet != invariantsReachedSet) {
-        return extractInvariantsAt(currentInvariantsReachedSet, pLocation, pFMGR, pPFMGR);
+    InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
+    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+
+    BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
+
+    if (loop.getLoopHeads().contains(pLocation)) {
+      for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
+        invariant = bfmgr.and(invariant, ci.getCandidate(pFMGR, pPFMGR));
       }
     }
-    return extractInvariantsAt(invariantsReachedSet, pLocation, pFMGR, pPFMGR);
+
+    return invariant;
   }
 
   @Override
@@ -393,46 +296,10 @@ class KInductionProver implements AutoCloseable {
   }
 
   /**
-   * Extracts the generated invariants for the given location from the
-   * given reached set produced by the invariant generator.
-   *
-   * @param pReachedSet the reached set produced by the invariant generator.
-   * @param pLocation the location to extract the invariants for.
-   *
-   * @return the extracted invariants as a boolean formula.
-   * @throws InterruptedException
-   * @throws CPATransferException
-   */
-  private BooleanFormula extractInvariantsAt(UnmodifiableReachedSet pReachedSet, CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-
-    BooleanFormula invariant;
-
-    if (invariantGenerationRunning && pReachedSet.isEmpty()) {
-      invariant = bfmgr.makeBoolean(true); // no invariants available in ReachedSet
-
-    } else {
-      invariant = bfmgr.makeBoolean(false);
-      for (AbstractState locState : AbstractStates.filterLocation(pReachedSet, pLocation)) {
-        BooleanFormula f = AbstractStates.extractReportedFormulas(pFMGR, locState);
-        logger.log(Level.ALL, "Invariant:", f);
-
-        invariant = bfmgr.or(invariant, f);
-      }
-    }
-
-    for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
-      if (ci.getLocations(cfa).contains(pLocation)) {
-        invariant = bfmgr.and(invariant, ci.getCandidate(pFMGR, pPFMGR));
-      }
-    }
-
-    return invariant;
-  }
-
-  /**
    * Attempts to perform the inductive check over all candidate invariants.
    *
+   * @param k The k value to use in the check.
+   * @param candidateInvariants What should be checked.
    * @return <code>true</code> if k-induction successfully proved the
    * correctness of all candidate invariants.
    *
@@ -441,12 +308,9 @@ class KInductionProver implements AutoCloseable {
    * @throws InterruptedException if the bounded analysis constructing the
    * step case was interrupted.
    */
-  public final boolean check(final int k) throws CPAException, InterruptedException {
-
-    // Early return if there is a trivial result for the inductive approach
-    if (isTrivial()) {
-      return getTrivialResult();
-    }
+  public final boolean check(final int k,
+      final Set<CandidateInvariant> candidateInvariants)
+      throws CPAException, InterruptedException {
 
     // Early return if the invariant generation proved the program correct
     if (bfmgr.isFalse(getCurrentLoopHeadInvariants())) {
@@ -468,8 +332,6 @@ class KInductionProver implements AutoCloseable {
 
     LoopstackCPA stepCaseLoopstackCPA = CPAs.retrieveCPA(cpa, LoopstackCPA.class);
 
-    ReachedSet reached = getCurrentReachedSet();
-
     // Initialize the reached set if necessary
     ensureReachedSetInitialized(reached);
 
@@ -479,7 +341,6 @@ class KInductionProver implements AutoCloseable {
      */
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
     ReachedSet predecessorReachedSet = null;
-    ImmutableSet<CandidateInvariant> candidateInvariants = getCandidateInvariants();
     for (CandidateInvariant candidateInvariant : candidateInvariants) {
 
       final BooleanFormula predecessorAssertion;
@@ -517,7 +378,8 @@ class KInductionProver implements AutoCloseable {
             LoopstackState ls = AbstractStates.extractStateByType(pArg0, LoopstackState.class);
             return ls != null && ls.getIteration() <= 1;
           }});
-    BooleanFormula loopHeadInv = bfmgr.and(from(BMCHelper.assertAt(loopHeadStates, getCurrentLoopHeadInvariants(), fmgr)).toList());
+    BooleanFormula invariants = getCurrentLoopHeadInvariants();
+    BooleanFormula loopHeadInv = bfmgr.and(from(BMCHelper.assertAt(loopHeadStates, invariants, fmgr)).toList());
 
     // Create the formula asserting the faultiness of the successor
     stepCaseLoopstackCPA.setMaxLoopIterations(k + 1);
@@ -557,13 +419,10 @@ class KInductionProver implements AutoCloseable {
       }
 
       // Re-attempt the proof immediately, if new invariants are available
-      UnmodifiableReachedSet localInvariantsReachedSet = invariantsReachedSet;
-      UnmodifiableReachedSet currentInvariantsReachedSet = getCurrentInvariantsReachedSet();
-      while (!isInvariant && currentInvariantsReachedSet != localInvariantsReachedSet) {
-        localInvariantsReachedSet = currentInvariantsReachedSet;
-        BooleanFormula invariants = getCurrentLoopHeadInvariants();
-        invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
-        push(invariants);
+      BooleanFormula oldInvariants = invariants;
+      BooleanFormula currentInvariants = getCurrentLoopHeadInvariants();
+      while (!isInvariant && !currentInvariants.equals(oldInvariants)) {
+        push(fmgr.instantiate(currentInvariants, SSAMap.emptySSAMap().withDefault(1)));
         isInvariant = prover.isUnsat();
 
         if (!isInvariant && logger.wouldBeLogged(Level.ALL)) {
@@ -571,7 +430,8 @@ class KInductionProver implements AutoCloseable {
         }
 
         pop();
-        currentInvariantsReachedSet = getCurrentInvariantsReachedSet();
+        oldInvariants = currentInvariants;
+        currentInvariants = getCurrentLoopHeadInvariants();
       }
 
       // If the proof is successful, move the problem from the set of open

@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-class BMCStatistics implements Statistics {
+public class BMCStatistics implements Statistics {
 
   final Timer satCheck = new Timer();
   final Timer errorPathCreation = new Timer();
@@ -39,12 +39,6 @@ class BMCStatistics implements Statistics {
   final Timer inductionPreparation = new Timer();
   final Timer inductionCheck = new Timer();
   private int inductionCutPoints = 0;
-
-  private final boolean isInvariantGenerator;
-
-  BMCStatistics(boolean pIsInvariantGenerator) {
-    isInvariantGenerator = pIsInvariantGenerator;
-  }
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
@@ -66,6 +60,6 @@ class BMCStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return isInvariantGenerator ? "k-Induction-based invariant generator" : "BMC algorithm";
+    return "BMC algorithm";
   }
 }

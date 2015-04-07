@@ -23,58 +23,47 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.collect.Iterables.getOnlyElement;
 
 import java.util.Collections;
-import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 
 public class EdgeFormulaNegation implements CandidateInvariant {
 
-  private final CFAEdge edge;
+  private final AssumeEdge edge;
 
-  private final Set<CFANode> locations;
+  private final CFANode location;
 
-  public EdgeFormulaNegation(Set<CFANode> pLocations, CFAEdge pEdge) {
-    Preconditions.checkNotNull(pLocations);
+  public EdgeFormulaNegation(CFANode location, AssumeEdge pEdge) {
     Preconditions.checkNotNull(pEdge);
-    this.locations = pLocations;
+    this.location = checkNotNull(location);
     this.edge = pEdge;
   }
 
-  private Optional<AssumeEdge> getAssumeEdge() {
-    if (edge instanceof AssumeEdge) {
-      AssumeEdge assumeEdge = (AssumeEdge) edge;
-      CFANode predecessor = assumeEdge.getPredecessor();
-      AssumeEdge otherEdge = CFAUtils.leavingEdges(predecessor).filter(not(equalTo(edge))).filter(AssumeEdge.class).iterator().next();
-      return Optional.of(otherEdge);
-    }
-    return Optional.absent();
+  private AssumeEdge getNegatedAssumeEdge() {
+    CFANode predecessor = edge.getPredecessor();
+    return getOnlyElement(CFAUtils.leavingEdges(predecessor).filter(AssumeEdge.class).filter(not(equalTo(edge))));
   }
 
   public BooleanFormula getCandidate(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
@@ -96,34 +85,25 @@ public class EdgeFormulaNegation implements CandidateInvariant {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(getAssumeEdge());
+    return edge.hashCode();
   }
 
   @Override
   public String toString() {
-    Optional<AssumeEdge> assumeEdge = getAssumeEdge();
-    if (assumeEdge.isPresent()) {
-      return assumeEdge.get().toString();
-    }
-    return String.format("not (%s)", edge);
+    return getNegatedAssumeEdge().toString();
   }
 
   @Override
   public BooleanFormula getAssertion(ReachedSet pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    Iterable<AbstractState> locationStates = AbstractStates.filterLocations(pReachedSet, locations);
+    Iterable<AbstractState> locationStates = AbstractStates.filterLocation(pReachedSet, location);
     FluentIterable<BooleanFormula> assertions = FluentIterable.from(
         BMCHelper.assertAt(locationStates, getCandidate(pFMGR, pPFMGR), pFMGR));
     return pFMGR.getBooleanFormulaManager().and(assertions.toList());
   }
 
   @Override
-  public boolean violationIndicatesError() {
-    return false;
-  }
-
-  @Override
   public void assumeTruth(ReachedSet pReachedSet) {
-    if (locations.contains(edge.getPredecessor())) {
+    if (location.equals(edge.getPredecessor())) {
       Iterable<AbstractState> infeasibleStates = from(AbstractStates.filterLocation(pReachedSet, edge.getSuccessor())).toList();
       pReachedSet.removeAll(infeasibleStates);
       for (ARGState s : from(infeasibleStates).filter(ARGState.class)) {
@@ -133,25 +113,7 @@ public class EdgeFormulaNegation implements CandidateInvariant {
   }
 
   @Override
-  public Set<CFANode> getLocations(CFA pCFA) {
-    return Collections.unmodifiableSet(locations);
-  }
-
-  @Override
   public void attemptInjection(InvariantGenerator pInvariantGenerator) throws UnrecognizedCodeException {
-    if (pInvariantGenerator instanceof CPAInvariantGenerator) {
-      CPAInvariantGenerator invGen = (CPAInvariantGenerator) pInvariantGenerator;
-      InvariantsCPA invariantsCPA = CPAs.retrieveCPA(invGen.getCPAs(), InvariantsCPA.class);
-      if (invariantsCPA != null) {
-        Optional<AssumeEdge> assumption = getAssumeEdge();
-        if (assumption.isPresent()) {
-          for (CFANode location : locations) {
-            invariantsCPA.injectInvariant(location, assumption.get());
-          }
-        }
-      }
-    }
+    pInvariantGenerator.injectInvariant(location, getNegatedAssumeEdge());
   }
-
-
 }

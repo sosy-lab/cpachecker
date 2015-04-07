@@ -39,6 +39,8 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -163,10 +165,12 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private boolean relevantVariableLimitReached = false;
 
-  private final Map<CFANode, InvariantsFormula<CompoundInterval>> invariants = new HashMap<>();
+  private final Map<CFANode, InvariantsFormula<CompoundInterval>> invariants
+      = Collections.synchronizedMap(new HashMap<CFANode, InvariantsFormula<CompoundInterval>>());
 
   private final ConditionAdjuster conditionAdjuster;
 
+  @GuardedBy("itself")
   private final Set<String> interestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
