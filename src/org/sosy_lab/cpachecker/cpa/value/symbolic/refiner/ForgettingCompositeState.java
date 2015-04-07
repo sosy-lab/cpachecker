@@ -28,7 +28,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.ConstraintsInformation;
+import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
 import org.sosy_lab.cpachecker.util.refiner.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
