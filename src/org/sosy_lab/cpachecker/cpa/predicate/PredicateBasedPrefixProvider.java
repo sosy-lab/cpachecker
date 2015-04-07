@@ -29,6 +29,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
@@ -79,9 +80,11 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
         try {
           formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), iterator.getOutgoingEdge());
-
           prover.push(formula.getFormula());
-          isUnsat = prover.isUnsat();
+
+          if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge) {
+            isUnsat = prover.isUnsat();
+          }
         }
         catch (SolverException e) {
           logger.logUserException(Level.WARNING, e, "Error during computation of prefixes, continuing with original error path");
