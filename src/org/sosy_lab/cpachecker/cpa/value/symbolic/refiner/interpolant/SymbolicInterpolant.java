@@ -23,18 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.refiner.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -44,33 +45,40 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState> {
 
   static final SymbolicInterpolant TRUE = new SymbolicInterpolant();
-  static final SymbolicInterpolant FALSE = new SymbolicInterpolant(null, null);
+  static final SymbolicInterpolant FALSE =
+      new SymbolicInterpolant((ValueAnalysisInterpolant) null, null);
 
-  private ValueAnalysisInformation valueInformation;
+  private ValueAnalysisInterpolant valueInterpolant;
   private ConstraintsInformation constraintsInformation;
 
 
   private SymbolicInterpolant() {
-    valueInformation = ValueAnalysisInformation.EMPTY;
+    valueInterpolant = ValueAnalysisInterpolant.createInitial();
     constraintsInformation = ConstraintsInformation.EMPTY;
   }
 
-  protected SymbolicInterpolant(ValueAnalysisInformation pValueInfo,
-                                ConstraintsInformation pConstraints) {
-    valueInformation = pValueInfo;
+  public SymbolicInterpolant(
+      final ValueAnalysisInformation pValueInfo,
+      final ConstraintsInformation pConstraints
+  ) {
+    checkNotNull(pValueInfo);
+    checkNotNull(pConstraints);
+    valueInterpolant = new ValueAnalysisInterpolant(pValueInfo.getAssignments(),
+                                                    pValueInfo.getLocationTypes());
+    constraintsInformation = pConstraints;
+  }
+
+  private SymbolicInterpolant(
+      final ValueAnalysisInterpolant pValueInterpolant,
+      final ConstraintsInformation pConstraints
+  ) {
+    valueInterpolant = pValueInterpolant;
     constraintsInformation = pConstraints;
   }
 
   @Override
   public ForgettingCompositeState reconstructState() {
-    final PersistentMap<MemoryLocation, Value> assignments =
-        PathCopyingPersistentTreeMap.copyOf(valueInformation.getAssignments());
-    final PersistentMap<MemoryLocation, Type> types =
-        PathCopyingPersistentTreeMap.copyOf(valueInformation.getLocationTypes());
-    final PersistentMap<SymbolicIdentifier, Value> identifierValues =
-        PathCopyingPersistentTreeMap.copyOf(valueInformation.getIdentifierValues());
-
-    final ValueAnalysisState values = new ValueAnalysisState(assignments, types, identifierValues);
+    final ValueAnalysisState values = valueInterpolant.reconstructState();
 
     ConstraintsState constraints = new ConstraintsState(constraintsInformation.getConstraints(),
                                                         constraintsInformation.getAssignments());
@@ -80,12 +88,13 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
 
   @Override
   public int getSize() {
-    return valueInformation == null ? 0 : valueInformation.getAssignments().size();
+
+    return valueInterpolant == null ? 0 : valueInterpolant.getSize();
   }
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
-    return valueInformation.getAssignments().keySet();
+    return valueInterpolant.getMemoryLocations();
   }
 
   @Override
@@ -104,36 +113,50 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
   }
 
   @Override
-  public <T extends Interpolant<ForgettingCompositeState>> T join(T otherInterpolant) {
-    final ForgettingCompositeState thisState = reconstructState();
-    final ForgettingCompositeState otherState = otherInterpolant.reconstructState();
+  public <T extends Interpolant<ForgettingCompositeState>> T join(T pOtherInterpolant) {
+    assert pOtherInterpolant instanceof SymbolicInterpolant;
 
-    final ValueAnalysisState thisValues = thisState.getValueState();
-    final ValueAnalysisState otherValues = otherState.getValueState();
+    SymbolicInterpolant that = (SymbolicInterpolant) pOtherInterpolant;
 
-    ValueAnalysisState newValues = thisValues.join(otherValues);
+    ValueAnalysisInterpolant newValueInterpolant = valueInterpolant.join(that.valueInterpolant);
 
-    final ConstraintsState thisConstraints = thisState.getConstraintsState();
-    final ConstraintsState otherConstraints = otherState.getConstraintsState();
+    ConstraintsInformation newConstraintsInfo = joinConstraints(that.constraintsInformation);
 
-    ConstraintsState newConstraints;
+    return (T) new SymbolicInterpolant(newValueInterpolant,
+                                       newConstraintsInfo);
+  }
 
-    if (thisConstraints.size() > otherConstraints.size()) {
-      newConstraints = thisConstraints.copyOf();
-      newConstraints.retainAll(otherConstraints);
-    } else {
-      newConstraints = otherConstraints.copyOf();
-      newConstraints.retainAll(thisConstraints);
-    }
+  /**
+   * Join the given {@link ConstraintsInformation} with this object's
+   * <code>ConstraintsInformation</code>.
+   * The conjunction of both constraints informations'
+   * constraints in combination with their definite assignments must not be contradicting.
+   * Otherwise, behaviour is undefined.
+   *
+   * @param pOtherConstraintsInfo the constraints information to join with this object's one
+   * @return the join of both constraints informations
+   */
+  private ConstraintsInformation joinConstraints(
+      final ConstraintsInformation pOtherConstraintsInfo
+  ) {
+    // Just use all the constraints of both interpolants.
+    // We can't check at this point whether they are contradicting without creating a solver
+    // environment, unfortunately.
+    Set<Constraint> allConstraints = new HashSet<>(constraintsInformation.getConstraints());
+    allConstraints.addAll(pOtherConstraintsInfo.getConstraints());
 
-    return (T) new SymbolicInterpolant(newValues.getInformation(),
-                                       new ConstraintsInformation(newConstraints,
-                                                                  new IdentifierAssignment()));
+    IdentifierAssignment allAssignments =
+        new IdentifierAssignment(constraintsInformation.getAssignments());
+
+    allAssignments.putAll(pOtherConstraintsInfo.getAssignments());
+
+    return new ConstraintsInformation(allConstraints,
+                                      allAssignments);
   }
 
   @Override
   public String toString() {
-    return "Interpolant[" + valueInformation
+    return "Interpolant[" + valueInterpolant
         + ", " + constraintsInformation + "]";
   }
 
@@ -148,23 +171,32 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
 
     SymbolicInterpolant that = (SymbolicInterpolant)o;
 
-    if (constraintsInformation == null) {
-      return that.constraintsInformation == null;
+    boolean constraintsNull = false;
+
+    if ((constraintsInformation == null || that.constraintsInformation == null)) {
+      constraintsNull = true;
+      if (constraintsInformation != that.constraintsInformation) {
+        return false;
+      }
     }
 
-    if (valueInformation == null) {
-      return that.valueInformation == null;
+    boolean valuesNull = false;
+
+    if (valueInterpolant == null || that.valueInterpolant == null) {
+      valuesNull = true;
+      if (valueInterpolant != that.valueInterpolant) {
+        return false;
+      }
     }
 
-    return constraintsInformation.equals(that.constraintsInformation)
-        && valueInformation.equals(that.valueInformation);
+    return (constraintsNull || constraintsInformation.equals(that.constraintsInformation))
+        && (valuesNull || valueInterpolant.equals(that.valueInterpolant));
   }
 
   @Override
   public int hashCode() {
-    int result = valueInformation != null ? valueInformation.hashCode() : 0;
-    result = 31 * result +
-        (constraintsInformation != null ? constraintsInformation.hashCode() : 0);
+    int result = valueInterpolant != null ? valueInterpolant.hashCode() : 0;
+    result = 31 * result + (constraintsInformation != null ? constraintsInformation.hashCode() : 0);
     return result;
   }
 }
