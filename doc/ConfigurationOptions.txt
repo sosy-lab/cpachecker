@@ -1782,8 +1782,11 @@ cpa.value.stop = "SEP"
 # cases.
 cpa.value.symbolic.handleArrays = false
 
+# Whether to handle non-deterministic pointers in symbolic value analysis.
+cpa.value.symbolic.handlePointers = true
+
 # If this option is set to true, an own symbolic identifier is assigned to
-# each struct member when handling non-determinstic structs.
+# each struct member when handling non-deterministic structs.
 cpa.value.symbolic.handleStructs = true
 
 # Use symbolic values. This allows tracking of non-deterministic values.

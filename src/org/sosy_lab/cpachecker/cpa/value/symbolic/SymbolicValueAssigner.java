@@ -34,19 +34,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
-import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 /**
  * This class allows assignment of new {@link SymbolicIdentifier}s
@@ -64,13 +65,17 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   private boolean useSymbolicValues = false;
 
   @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
-      + " each struct member when handling non-determinstic structs.")
+      + " each struct member when handling non-deterministic structs.")
   private boolean handleStructs = true;
 
   @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
       + " each array slot when handling non-deterministic arrays of fixed length."
       + " If the length of the array can't be determined, it won't be handled in either cases.")
   private boolean handleArrays = false;
+
+  @Option(description="Whether to handle non-deterministic pointers in symbolic value analysis.")
+  private boolean handlePointers = true;
+
 
   /**
    * Creates a new <code>SymbolicValueAssigner</code> object with the given configuration.
@@ -228,7 +233,8 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
         return handleStructs;
 
       } else {
-        return !(canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
+        return (!(canonicalType instanceof CPointerType) || handlePointers)
+            && !(canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
       }
 
     } else {
