@@ -23,15 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -39,44 +32,26 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.GenericRefiner;
+import org.sosy_lab.cpachecker.util.refiner.PathExtractor;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
-
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisRefiner
     extends GenericRefiner<ValueAnalysisState, ValueAnalysisInformation, ValueAnalysisInterpolant> {
 
-  @Option(
-      secure = true,
-      description = "heuristic to sort targets based on the quality of interpolants deriveable from them")
-  private boolean itpSortedTargets = false;
-
   private final ValueAnalysisFeasibilityChecker checker;
 
   private ValueAnalysisConcreteErrorPathAllocator concreteErrorPathAllocator;
-
-  private ErrorPathClassifier classifier;
-
-  /**
-   * keep log of feasible targets that were already found
-   */
-  private final Set<ARGState> feasibleTargets = new HashSet<>();
 
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -98,9 +73,16 @@ public class ValueAnalysisRefiner
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
         new ValueAnalysisStrongestPostOperator(logger, cfa);
 
+    final ErrorPathClassifier pathClassifier = new ErrorPathClassifier(cfa.getVarClassification(),
+                                                                       cfa.getLoopStructure());
+
     ValueAnalysisRefiner refiner = new ValueAnalysisRefiner(
         checker,
         strongestPostOp,
+        new SortingPathExtractor(checker,
+                                 pathClassifier,
+                                 logger, config),
+        pathClassifier,
         config,
         logger,
         valueAnalysisCpa.getShutdownNotifier(),
@@ -112,7 +94,8 @@ public class ValueAnalysisRefiner
   ValueAnalysisRefiner(
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
-
+      final PathExtractor pPathExtractor,
+      final ErrorPathClassifier pPathClassifier,
       final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
@@ -120,8 +103,10 @@ public class ValueAnalysisRefiner
     super(pFeasibilityChecker,
           new ValueAnalysisPathInterpolator(pFeasibilityChecker,
                                             pStrongestPostOperator,
+                                            pPathClassifier,
                                             pConfig, pLogger, pShutdownNotifier, pCfa),
           ValueAnalysisInterpolantManager.getInstance(),
+          pPathExtractor,
           ValueAnalysisCPA.class,
           pConfig,
           pLogger,
@@ -132,7 +117,6 @@ public class ValueAnalysisRefiner
     pConfig.inject(this);
 
     checker = pFeasibilityChecker;
-    classifier    = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
 
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pLogger, pShutdownNotifier, pCfa.getMachineModel());
   }
@@ -149,62 +133,6 @@ public class ValueAnalysisRefiner
   @Override
   protected Model createModel(ARGPath errorPath) throws InterruptedException, CPAException {
     return concreteErrorPathAllocator.allocateAssignmentsToPath(checker.evaluate(errorPath));
-  }
-
-  /**
-   * This method returns an unsorted, non-empty collection of target states
-   * found during the analysis.
-   *
-   * @param pReached the set of reached states
-   * @return the target states
-   * @throws RefinementFailedException
-   */
-  @Override
-  protected Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
-
-    // sort the list, to either favor shorter paths or better interpolants
-    Comparator<ARGState> comparator = new Comparator<ARGState>() {
-      @Override
-      public int compare(ARGState target1, ARGState target2) {
-        try {
-          ARGPath path1 = ARGUtils.getOnePathTo(target1);
-          ARGPath path2 = ARGUtils.getOnePathTo(target2);
-
-          if(itpSortedTargets) {
-            List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1);
-            List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2);
-
-            int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_BEST_BOUNDED);
-            int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_BEST_BOUNDED);
-
-            if(score1 == score2) {
-              return 0;
-            }
-
-            else if(score1 < score2) {
-              return -1;
-            }
-
-            else {
-              return 1;
-            }
-          }
-
-          else {
-            return path1.size() - path2.size();
-          }
-        } catch (CPAException | InterruptedException e) {
-          throw new AssertionError(e);
-        }
-      }
-    };
-
-    Collection<ARGState> targets = super.getTargetStates(pReached);
-
-    List<ARGState> sortedTargets = FluentIterable.from(targets)
-        .filter(Predicates.not(Predicates.in(feasibleTargets))).toSortedList(comparator);
-
-    return sortedTargets;
   }
 }
 

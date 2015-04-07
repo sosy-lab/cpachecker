@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -141,7 +142,10 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
 
     checker = pFeasibilityChecker;
     interpolatingRefiner  = new ValueAnalysisPathInterpolator(
-        pFeasibilityChecker, pStrongestPostOperator, pConfig, pLogger, pShutdownNotifier, pCfa);
+        pFeasibilityChecker,
+        pStrongestPostOperator,
+        new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure()),
+        pConfig, pLogger, pShutdownNotifier, pCfa);
 
     config                = pConfig;
     cfa                   = pCfa;

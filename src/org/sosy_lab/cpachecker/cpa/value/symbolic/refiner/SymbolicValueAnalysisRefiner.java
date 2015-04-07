@@ -37,12 +37,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.GenericRefiner;
+import org.sosy_lab.cpachecker.util.refiner.PathExtractor;
 
 /**
  * Refiner for value analysis using symbolic values.
@@ -51,13 +52,7 @@ import org.sosy_lab.cpachecker.util.refiner.GenericRefiner;
 public class SymbolicValueAnalysisRefiner
     extends GenericRefiner<ForgettingCompositeState, ForgettingCompositeState.MemoryLocationAssociation, SymbolicInterpolant> {
 
-  private final SymbolicFeasibilityChecker symbolicChecker;
-  private final ValueAnalysisFeasibilityChecker explicitOnlyChecker;
-
-  private final SymbolicStrongestPostOperator strongestPostOp;
-
   private final ValueAnalysisRefiner explicitOnlyRefiner;
-  //private final SymbolicInterpolator symbolicInterpolator;
 
   private final LogManager logger;
 
@@ -86,6 +81,9 @@ public class SymbolicValueAnalysisRefiner
                                                     cfa,
                                                     shutdownNotifier);
 
+    final ErrorPathClassifier errorPathClassifier =
+        new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
+
     final  SymbolicEdgeInterpolator edgeInterpolator =
         new SymbolicEdgeInterpolator(strongestPostOperator,
                                      feasibilityChecker,
@@ -96,6 +94,7 @@ public class SymbolicValueAnalysisRefiner
         new SymbolicPathInterpolator(edgeInterpolator,
                                      SymbolicInterpolantManager.getInstance(),
                                      feasibilityChecker,
+                                     errorPathClassifier,
                                      config,
                                      logger,
                                      shutdownNotifier,
@@ -104,7 +103,6 @@ public class SymbolicValueAnalysisRefiner
     SymbolicValueAnalysisRefiner refiner = new SymbolicValueAnalysisRefiner(
         feasibilityChecker,
         pathInterpolator,
-        strongestPostOperator,
         config,
         logger,
         shutdownNotifier,
@@ -117,7 +115,6 @@ public class SymbolicValueAnalysisRefiner
   protected SymbolicValueAnalysisRefiner(
       final SymbolicFeasibilityChecker pFeasibilityChecker,
       final SymbolicPathInterpolator pInterpolator,
-      final SymbolicStrongestPostOperator pStrongestPostOperator,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -128,23 +125,14 @@ public class SymbolicValueAnalysisRefiner
     super(pFeasibilityChecker,
           pInterpolator,
           SymbolicInterpolantManager.getInstance(),
+          new PathExtractor(pLogger),
           ValueAnalysisCPA.class,
           pConfig,
           pLogger,
           pShutdownNotifier,
           pCfa);
 
-    symbolicChecker =
-        new SymbolicValueAnalysisFeasibilityChecker(pStrongestPostOperator,
-                                                    pConfig, pLogger, pCfa,
-                                                    pShutdownNotifier);
-
-    explicitOnlyChecker =
-        new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
-
     explicitOnlyRefiner = ValueAnalysisRefiner.create(pValueCpa);
-
-    strongestPostOp = pStrongestPostOperator;
     logger = pLogger;
   }
 

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,16 +33,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingGlobalPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
-
-import com.google.common.collect.FluentIterable;
 
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
@@ -78,6 +74,8 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
         new ValueAnalysisGlobalRefiner(
             checker,
             strongestPostOp,
+            new ErrorPathClassifier(cfa.getVarClassification(),
+                                    cfa.getLoopStructure()),
             config,
             logger,
         valueAnalysisCpa.getShutdownNotifier(),
@@ -89,12 +87,17 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   ValueAnalysisGlobalRefiner(
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
+      final ErrorPathClassifier pPathClassifier,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker, pStrongestPostOperator, pConfig, pLogger, pShutdownNotifier, pCfa);
+    super(pFeasibilityChecker,
+          pStrongestPostOperator,
+          new SortingGlobalPathExtractor(pFeasibilityChecker, pPathClassifier, pLogger, pConfig),
+          pPathClassifier,
+          pConfig, pLogger, pShutdownNotifier, pCfa);
 
     pConfig.inject(this, ValueAnalysisGlobalRefiner.class);
   }
@@ -105,16 +108,6 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   @Override
   protected ValueAnalysisInterpolationTree createInterpolationTree(Collection<ARGState> targets) {
     return new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
-  }
-
-  /**
-   * This method extracts all target states available in the ARG (hence, global refinement).
-   */
-  @Override
-  protected FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
-    return from(pReached.asReachedSet())
-        .transform(AbstractStates.toState(ARGState.class))
-        .filter(AbstractStates.IS_TARGET_STATE);
   }
 }
 

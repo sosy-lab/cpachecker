@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOpera
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
@@ -173,6 +174,8 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     interpolatingRefiner =
         new ValueAnalysisPathInterpolator(pValueAnalysisFeasibilityChecker,
                                           pValueAnalysisStrongestPostOperator,
+                                          new ErrorPathClassifier(cfa.getVarClassification(),
+                                                                  cfa.getLoopStructure()),
                                           pApronCPA.getConfiguration(),
                                           logger, shutdownNotifier, cfa);
     valueAnalysisChecker = pValueAnalysisFeasibilityChecker;

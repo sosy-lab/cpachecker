@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.refiner;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -74,7 +71,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
@@ -112,14 +108,11 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
 
   private final InterpolantManager<S, I> interpolantManager;
 
+  private final PathExtractor pathExtractor;
+
   private final Class<? extends ConfigurableProgramAnalysis> cpa;
 
   private int previousErrorPathId = -1;
-
-  /**
-   * keep log of feasible targets that were already found
-   */
-  private final Set<ARGState> feasibleTargets = new HashSet<>();
 
   /**
    * keep log of previous refinements to identify repeated one
@@ -128,7 +121,6 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
 
   // statistics
   private int refinementCounter = 0;
-  private int targetCounter = 0;
   private final Timer totalTime = new Timer();
   private int timesRootRelocated = 0;
   private int timesRepeatedRefinements = 0;
@@ -137,6 +129,7 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
       final FeasibilityChecker<S> pFeasibilityChecker,
       final PathInterpolator<I> pPathInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
+      final PathExtractor pPathExtractor,
       final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,
       final Configuration pConfig,
       final LogManager pLogger,
@@ -147,9 +140,11 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
     pConfig.inject(this);
 
     logger = pLogger;
-    interpolator  = pPathInterpolator;
+    interpolator = pPathInterpolator;
     interpolantManager = pInterpolantManager;
-    checker       = pFeasibilityChecker;
+    checker = pFeasibilityChecker;
+    pathExtractor = pPathExtractor;
+
     cpa = pCpaToRefine;
   }
 
@@ -171,8 +166,8 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
     totalTime.start();
     refinementCounter++;
 
-    Collection<ARGState> targets = getTargetStates(pReached);
-    List<ARGPath> targetPaths = getTargetPaths(targets);
+    Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
+    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
 
     if (!madeProgress(targetPaths.get(0))) {
       throw new RefinementFailedException(Reason.RepeatedCounterexample,
@@ -490,7 +485,7 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
           feasiblePath = currentPath;
         }
 
-        feasibleTargets.add(currentPath.getLastState());
+        pathExtractor.addFeasibleTarget(currentPath.getLastState());
       }
     }
 
@@ -519,70 +514,11 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
    *
    * @param errorPath the error path for which to create the model
    * @return the model for the given error path
-   * @throws org.sosy_lab.common.configuration.InvalidConfigurationException
    * @throws InterruptedException
-   * @throws org.sosy_lab.cpachecker.exceptions.CPAException
+   * @throws CPAException
    */
   protected Model createModel(ARGPath errorPath) throws InterruptedException, CPAException {
     return Model.empty();
-  }
-
-  /**
-   * This method returns the list of paths to the target states, sorted by the
-   * length of the paths, in ascending order.
-   *
-   * @param targetStates the target states for which to get the target paths
-   * @return the list of paths to the target states
-   */
-  protected List<ARGPath> getTargetPaths(final Collection<ARGState> targetStates) {
-    List<ARGPath> errorPaths = new ArrayList<>(targetStates.size());
-
-    for (ARGState target : targetStates) {
-      errorPaths.add(ARGUtils.getOnePathTo(target));
-    }
-
-    return errorPaths;
-  }
-
-  /**
-   * This method returns an unsorted, non-empty collection of target states
-   * found during the analysis.
-   *
-   * @param pReached the set of reached states
-   * @return the target states
-   * @throws org.sosy_lab.cpachecker.exceptions.RefinementFailedException
-   */
-  protected Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
-
-    // extract target locations from and exclude those found to be feasible before,
-    // e.g., when analysis.stopAfterError is set to false
-    List<ARGState> targets = extractTargetStatesFromArg(pReached)
-        .filter(Predicates.not(Predicates.in(feasibleTargets))).toList();
-
-    // set of targets may only be empty, if all of them were found feasible previously
-    if(targets.isEmpty()) {
-      assert feasibleTargets.containsAll(extractTargetStatesFromArg(pReached).toSet());
-
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-          ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
-    }
-
-    logger.log(Level.FINEST, "number of targets found: " + targets.size());
-
-    targetCounter = targetCounter + targets.size();
-
-    return targets;
-  }
-
-  /**
-   * This method extracts the last state from the ARG, which has to be a target state.
-   */
-  protected FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
-    ARGState lastState = ((ARGState)pReached.asReachedSet().getLastState());
-
-    assert (lastState.isTarget()) : "Last state is not a target state";
-
-    return from(Collections.singleton(lastState));
   }
 
   @Override
@@ -603,7 +539,7 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
     out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
-    out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
+    pathExtractor.printStatistics(out, pResult, pReached);
     out.println("Time for completing refinement:       " + totalTime);
     interpolator.printStatistics(out, pResult, pReached);
     out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));

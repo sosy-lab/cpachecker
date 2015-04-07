@@ -120,11 +120,13 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
   private final EdgeInterpolator<S, T, I> interpolator;
   private final InterpolantManager<S, I> interpolantManager;
   private final FeasibilityChecker<S> checker;
+  private final ErrorPathClassifier classifier;
 
   public GenericPathInterpolator(
       final EdgeInterpolator<S, T, I> pEdgeInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
       final FeasibilityChecker<S> pFeasibilityChecker,
+      final ErrorPathClassifier pPathClassifier,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -140,6 +142,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
     interpolator       = pEdgeInterpolator;
     interpolantManager = pInterpolantManager;
     checker = pFeasibilityChecker;
+
+    classifier = pPathClassifier;
   }
 
   @Override
@@ -241,7 +245,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
    * error path (prefix) that was given as input is returned.
    *
    * @throws InterruptedException
-   * @throws org.sosy_lab.cpachecker.exceptions.CPAException
+   * @throws CPAException
    */
   private ARGPath sliceErrorPath(final ARGPath errorPathPrefix)
       throws CPAException, InterruptedException {
@@ -337,7 +341,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
    *
    * @param increment the current increment
    * @param currentNode the current node for which to add a new variable
-   * @param memoryLocation the name of the variable to add to the increment at the given edge
+   * @param itp the interpolant to add to the precision increment
    */
   private void addToPrecisionIncrement(
       final Multimap<CFANode, MemoryLocation> increment,
@@ -359,7 +363,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param increment the current precision increment
    * @param isRepeatedRefinement the flag to determine whether or not this is a repeated refinement
    * @return the new refinement root
-   * @throws org.sosy_lab.cpachecker.exceptions.RefinementFailedException if no refinement root can be determined
+   * @throws RefinementFailedException if no refinement root can be determined
    */
   @Override
   public Pair<ARGState, CFAEdge> determineRefinementRoot(
@@ -400,8 +404,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
 
     totalPrefixes.setNextValue(prefixes.size());
 
-    ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(),
-                                                             cfa.getLoopStructure());
     errorPath = classifier.obtainSlicedPrefix(prefixPreference, errorPath, prefixes);
 
     return errorPath;

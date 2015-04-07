@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.GenericRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -169,6 +170,8 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     interpolatingRefiner  =
         new ValueAnalysisPathInterpolator(checker,
                                           pStrongestPostOp,
+                                          new ErrorPathClassifier(pCfa.getVarClassification(),
+                                                                  pCfa.getLoopStructure()),
                                           pConfig, pLogger, pShutdownNotifier, pCfa);
   }
 

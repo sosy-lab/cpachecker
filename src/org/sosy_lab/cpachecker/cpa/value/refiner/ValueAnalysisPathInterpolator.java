@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.util.refiner.UseDefRelation;
@@ -87,6 +88,7 @@ public class ValueAnalysisPathInterpolator
   public ValueAnalysisPathInterpolator(
       final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
+      final ErrorPathClassifier pPathClassifier,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -101,6 +103,7 @@ public class ValueAnalysisPathInterpolator
             pCfa),
         ValueAnalysisInterpolantManager.getInstance(),
         pFeasibilityChecker,
+        pPathClassifier,
         pConfig,
         pLogger,
         pShutdownNotifier,

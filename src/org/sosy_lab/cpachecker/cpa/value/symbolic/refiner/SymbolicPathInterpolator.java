@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
 
 /**
@@ -44,12 +45,18 @@ public class SymbolicPathInterpolator
       SymbolicEdgeInterpolator pEdgeInterpolator,
       SymbolicInterpolantManager pInterpolantManager,
       SymbolicFeasibilityChecker pFeasibilityChecker,
+      ErrorPathClassifier pPathClassifier,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCfa)
-      throws InvalidConfigurationException {
-    super(pEdgeInterpolator, pInterpolantManager, pFeasibilityChecker, pConfig, pLogger,
-        pShutdownNotifier, pCfa);
+      CFA pCfa
+  ) throws InvalidConfigurationException {
+
+    super(pEdgeInterpolator,
+          pInterpolantManager,
+          pFeasibilityChecker,
+          pPathClassifier,
+          pConfig, pLogger,
+          pShutdownNotifier, pCfa);
   }
 }
