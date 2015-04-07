@@ -28,44 +28,38 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
+import io
 import logging
 import os
-import subprocess
 import shutil
 import zlib
+import zipfile
 
 from time import sleep
-from zipfile import ZipFile
 
-try:
-    from httplib import HTTPConnection, HTTPResponse
-    import urllib
-    import urllib2
-except ImportError:
-    from http.client import HTTPConnection, HTTPResponse
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-
-try:
-    from concurrent.futures import ThreadPoolExecutor
-    from concurrent.futures import as_completed
-except:
-    pass
+import urllib.parse as urllib
+import urllib.request as urllib2
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
-import benchexec.util as util
 
 RESULT_KEYS = ["cputime", "walltime"]
 
 MAX_SUBMISSION_THREADS = 5
 
-PYTHON_VERSION = sys.version_info[0]
+RESULT_FILE_LOG = 'output.log'
+RESULT_FILE_STDERR = 'stderr'
+RESULT_FILE_RUN_INFO = 'runInformation.txt'
+RESULT_FILE_HOST_INFO = 'hostInformation.txt'
+SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
+                        RESULT_FILE_HOST_INFO, 'runDescription.txt'}
 
 class WebClientError(Exception):
-     def __init__(self, value):
-         self.value = value
-     def __str__(self):
-         return repr(self.value)
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
 
 def init(config, benchmark):
     if config.cloudMaster:
@@ -73,7 +67,7 @@ def init(config, benchmark):
             benchmark.tool_version = config.revision
         else:
             benchmark.tool_version = "trunk:HEAD"
-    benchmark.executable = ''
+    benchmark.executable = 'scripts/cpa.sh'
 
 def get_system_info():
     return None
@@ -86,12 +80,12 @@ def execute_benchmark(benchmark, output_handler):
 
     if not benchmark.config.cloudMaster[-1] == '/':
         benchmark.config.cloudMaster += '/'
-    webclient = benchmark.config.cloudMaster   
+    webclient = benchmark.config.cloudMaster
     logging.info('Using webclient at {0}'.format(webclient))
 
-    #authentification 
-    _auth(webclient, benchmark)
-    
+    #authentification
+    _auth(webclient, benchmark.config)
+
     STOPPED_BY_INTERRUPT = False
     try:
         for runSet in benchmark.run_sets:
@@ -100,14 +94,8 @@ def execute_benchmark(benchmark, output_handler):
                 continue
 
             output_handler.output_before_run_set(runSet)
+            runIDs = _submitRunsParallel(runSet, webclient, benchmark)
 
-            try:
-                # python 3.2
-                from concurrent.futures import ThreadPoolExecutor
-                runIDs = _submitRunsPrallel(runSet, webclient, benchmark)
-            except ImportError:
-                runIDs = _submitRuns(runSet, webclient, benchmark)
-                
             _getResults(runIDs, output_handler, webclient, benchmark)
             output_handler.output_after_run_set(runSet)
 
@@ -121,10 +109,10 @@ def stop():
     # TODO: cancel runs on server
     pass
 
-def _submitRunsPrallel(runSet, webclient, benchmark):
-    
+def _submitRunsParallel(runSet, webclient, benchmark):
+
     logging.info('Submitting runs')
-    
+
     runIDs = {}
     submissonCounter = 1
     #submit to executor
@@ -133,108 +121,82 @@ def _submitRunsPrallel(runSet, webclient, benchmark):
     executor.shutdown(wait=False)
 
     #collect results to executor
-    for future in as_completed(runIDsFutures.keys()):
-        try:
-            run = runIDsFutures[future]
-            runID = future.result().decode("utf-8")
-            runIDs.update({runID:run})
-            logging.info('Submitted run {0}/{1} with id {2}'.\
-                format(submissonCounter, len(runSet.runs), runID)) 
- 
-        except (urllib2.HTTPError, WebClientError) as e:
+    try:
+        for future in as_completed(runIDsFutures.keys()):
             try:
-                message = e.read() #not all HTTPErrors have a read() method
-            except:
-                message = ""
-            logging.warning('Could not submit run {0}: {1} {2}'.\
-                format(run.identifier, e, message))
-        finally:
-            submissonCounter += 1
+                run = runIDsFutures[future]
+                runID = future.result().decode("utf-8")
+                runIDs.update({runID:run})
+                logging.info('Submitted run {0}/{1} with id {2}'.\
+                    format(submissonCounter, len(runSet.runs), runID))
+
+            except (urllib2.HTTPError, WebClientError) as e:
+                try:
+                    if e.code == 401:
+                        message = 'Please specify username and password with --cloudUser.'
+                    elif e.code == 404:
+                        message = 'Please check the URL given to --cloudMaster.'
+                    else:
+                        message = e.read() #not all HTTPErrors have a read() method
+                except AttributeError:
+                    message = ""
+                logging.warning('Could not submit run {0}: {1}. {2}'.\
+                    format(run.identifier, e, message))
+            finally:
+                submissonCounter += 1
+    finally:
+        for future in runIDsFutures.keys():
+            future.cancel() # for example in case of interrupt
 
     return runIDs
-    
-def _submitRuns(runSet, webclient, benchmark):
-    
-    runIDs = {}
-    submissonCounter = 1
 
-    for run in runSet.runs:
-        try:
-            runID = _submitRun(run, webclient, benchmark)
-            runIDs.update({runID:run})
-            logging.info('Submitted run {0}/{1} with id {2}'.\
-                format(submissonCounter, len(runSet.runs), runID))  
-
-        except (urllib2.HTTPError, WebClientError) as e:
-            try:
-                message = e.read() #not all HTTPErrors have a read() method
-            except:
-                message = ""
-            logging.warning('Could not submit run {0}: {1} {2}'.\
-                format(run.identifier, e, message))
-        finally:
-            submissonCounter += 1
-        
-    return runIDs
-    
 def _submitRun(run, webclient, benchmark, counter = 0):
-    invalidParams = False    
     programTexts = []
     for programPath in run.sourcefiles:
         with open(programPath, 'r') as programFile:
-            programName = programPath.split('/')[-1]
             programText = programFile.read()
             programTexts.append(programText)
     params = {'programText': programTexts}
 
     if benchmark.config.revision:
         tokens = benchmark.config.revision.split(':')
-        params.update({'svnBranch':tokens[0]})
+        params['svnBranch'] = tokens[0]
         if len(tokens)>1:
-            params.update({'revision':tokens[1]})
+            params['revision'] = tokens[1]
 
     if run.propertyfile:
         with open(run.propertyfile, 'r') as propertyFile:
-            propertyText = propertyFile.read()      
-            params.update({'propertyText':propertyText})
-    
+            propertyText = propertyFile.read()
+            params['propertyText'] = propertyText
+
     limits = benchmark.rlimits
     if MEMLIMIT in limits:
-        params.update({'memoryLimitation':str(limits[MEMLIMIT]) + "MB"})     
+        params['memoryLimitation'] = str(limits[MEMLIMIT]) + "MB"
     if TIMELIMIT in limits:
-        params.update({'timeLimitation':limits[TIMELIMIT]})  
+        params['timeLimitation'] = limits[TIMELIMIT]
     if CORELIMIT in limits:
-        params.update({'coreLimitation':limits[CORELIMIT]})  
-
+        params['coreLimitation'] = limits[CORELIMIT]
     if benchmark.config.cpu_model:
-        params.update({'cpuModel':benchmark.config.cpu_model})                
+        params['cpuModel'] = benchmark.config.cpu_model
 
- 
-    invalidOption = _handleOptions(run, params)
-    invalidParams |= invalidOption   
-
-    if invalidParams:
+    invalidOption = _handleOptions(run, params, limits)
+    if invalidOption:
         raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
-            .format(run.options, run.identifier))        
+            .format(run.options, run.identifier))
 
-    paramsEncoded = urllib.urlencode(params, True)
-    headers = {"Content-type": "application/x-www-form-urlencoded", \
+    headers = {"Content-Type": "application/x-www-form-urlencoded",
+               "Content-Encoding": "deflate",
                "Accept": "text/plain"}
-  
-    if (PYTHON_VERSION == 3):
-        paramsCompressed = zlib.compress(paramsEncoded.encode('utf-8'))
-        headers.update({"Content-Encoding":"deflate"})
-        resquest = urllib2.Request(webclient + "runs/", paramsCompressed, headers)
-    else:
-        resquest = urllib2.Request(webclient + "runs/", paramsEncoded, headers)
+    paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
+    request = urllib2.Request(webclient + "runs/", paramsCompressed, headers)
 
     # send request
     try:
-         response = urllib2.urlopen(resquest)
+        response = urllib2.urlopen(request)
 
     except urllib2.HTTPError as e:
         if (e.code == 401 and counter < 3):
-            _auth(webclient, benchmark)
+            _auth(webclient, benchmark.config)
             return _submitRun(run, webclient, benchmark, counter + 1)
         else:
             raise e
@@ -242,24 +204,28 @@ def _submitRun(run, webclient, benchmark, counter = 0):
     if response.getcode() == 200:
         runID = response.read()
         return runID
-        
+
     else:
         raise urllib2.HTTPError(response.read(), response.getcode())
 
-def _handleOptions(run, params):
+def _handleOptions(run, params, rlimits):
+    # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
+    # instead of doing it here manually, too
     options = ["statistics.print=true"]
+    if 'softtimelimit' in rlimits and not '-timelimit' in options:
+        options.append("limits.time.cpu=" + str(rlimits['softtimelimit']) + "s")
+
     if run.options:
-        option = ""
         i = iter(run.options)
-        while True: 
-            try: 
+        while True:
+            try:
                 option=next(i)
                 if option == "-heap":
-                    params.update({'heap':next(i)})
+                    params['heap'] = next(i)
 
                 elif option == "-noout":
                     options.append("output.disable=true")
-                elif option == "-stat":
+                elif option == "-stats":
                     #ignore, is always set by this script
                     pass
                 elif option == "-java":
@@ -271,41 +237,41 @@ def _handleOptions(run, params):
                 elif option == "-entryfunction":
                     options.append("analysis.entryFunction=" + next(i))
                 elif option == "-timelimit":
-                     options.append("limits.time.cpu =" + next(i)) 
+                    options.append("limits.time.cpu=" + next(i))
                 elif option == "-skipRecursion":
-                     options.append("cpa.callstack.skipRecursion=true")
-                     options.append("analysis.summaryEdges=true")
+                    options.append("cpa.callstack.skipRecursion=true")
+                    options.append("analysis.summaryEdges=true")
 
                 elif option == "-spec":
-                     spec  = next(i)[-1].split('.')[0]
-                     if spec[-8:] == ".graphml":
-                          with open(spec, 'r') as  errorWitnessFile:
-                              errorWitnessText = errorWitnessFile.read()      
-                              params.update({'errorWitnessText':errorWitnessText})
-                     else:
-                         params.update({'specification':spec})
+                    spec  = next(i)[-1].split('.')[0]
+                    if spec[-8:] == ".graphml":
+                        with open(spec, 'r') as  errorWitnessFile:
+                            errorWitnessText = errorWitnessFile.read()
+                            params['errorWitnessText'] = errorWitnessText
+                    else:
+                        params['specification'] = spec
                 elif option == "-config":
-                     configPath = next(i)
-                     tokens = configPath.split('/')
-                     if not (tokens[0] == "config" and len(tokens) == 2):
-                         logging.warning('Configuration {0} of run {1} is not from the default config directory.'.format(configPath, run.identifier))  
-                         return True
-                     config  = next(i).split('/')[2].split('.')[0]
-                     params.update({'configuration':config})
+                    configPath = next(i)
+                    tokens = configPath.split('/')
+                    if not (tokens[0] == "config" and len(tokens) == 2):
+                        logging.warning('Configuration {0} of run {1} is not from the default config directory.'.format(configPath, run.identifier))
+                        return True
+                    config  = next(i).split('/')[2].split('.')[0]
+                    params['configuration'] = config
 
                 elif option == "-setprop":
-                     options.append(next(i))
+                    options.append(next(i))
 
                 elif option[0] == '-' and 'configuration' not in params :
-                     params.update({'configuration': option[1:]})
+                    params['configuration'] = option[1:]
                 else:
-                     return True
+                    return True
 
-            except StopIteration: 
+            except StopIteration:
                 break
 
-    params.update({'option':options})
-    return False   
+    params['option'] = options
+    return False
 
 def _getResults(runIDs, output_handler, webclient, benchmark):
     while len(runIDs) > 0 :
@@ -316,164 +282,181 @@ def _getResults(runIDs, output_handler, webclient, benchmark):
                     finishedRunIDs.append(runID)
 
         for runID in finishedRunIDs:
-             del runIDs[runID]
+            del runIDs[runID]
 
 def _isFinished(runID, webclient, benchmark):
 
     headers = {"Accept": "text/plain"}
-    resquest = urllib2.Request(webclient + "runs/" + runID + "/state", headers=headers)
+    request = urllib2.Request(webclient + "runs/" + runID + "/state", headers=headers)
     try:
-        response = urllib2.urlopen(resquest)
+        response = urllib2.urlopen(request)
     except urllib2.HTTPError as e:
         logging.info('Could get result of run with id {0}: {1}'.format(runID, e))
-        _auth(webclient, benchmark)
+        _auth(webclient, benchmark.config)
         sleep(10)
-        return False        
-    
+        return False
+
     if response.getcode() == 200:
-        state = response.read()
-        
-        if PYTHON_VERSION == 3:
-            state = state.decode('utf-8')
-        
+        state = response.read().decode('utf-8')
+
         if state == "FINISHED":
-            logging.debug('Run {0} finished.'.format(runID))  
+            logging.debug('Run {0} finished.'.format(runID))
             return True
-        
-        # UNKNOWN is returned for unknown runs. This happens, 
+
+        # UNKNOWN is returned for unknown runs. This happens,
         # when the webclient is restarted since the submission of the runs.
         if state == "UNKNOWN":
-            logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(runID))  
+            logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(runID))
             return True
-        
+
         else:
             return False
-        
+
     else:
-        logging.warning('Could not get run state: {0}'.format(runID))    
-        
+        logging.warning('Could not get run state: {0}'.format(runID))
+
         return False
 
 def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
-    zipFilePath = run.log_file + ".zip"    
-
     # download result as zip file
     counter = 0
-    sucess = False
-    while (not sucess and counter < 10):
+    success = False
+    while (not success and counter < 10):
         counter += 1
-        resquest = urllib2.Request(webclient + "runs/" + runID + "/result")
+        request = urllib2.Request(webclient + "runs/" + runID + "/result")
         try:
-             response = urllib2.urlopen(resquest)
+            response = urllib2.urlopen(request)
         except urllib2.HTTPError as e:
-             logging.info('Could get result of run with id {0}: {1}'.format(run.identifier, e))
-             _auth(webclient, benchmark)
-             sleep(10)
-             return False        
+            logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
+            _auth(webclient, benchmark.config)
+            sleep(10)
+            return False
 
         if response.getcode() == 200:
-            with open(zipFilePath, 'w+b') as zipFile:
-                zipFile.write(response.read())
-                sucess = True
+            zipContent = response.read()
+            success = True
         else:
             sleep(1)
-                
-    if sucess:
-       # unzip result
-       resultDir = run.log_file + ".output"
-       output_handler.output_before_run(run)
-       with ZipFile(zipFilePath) as resultZipFile:
-           resultZipFile.extractall(resultDir)
-       os.remove(zipFilePath)
-       
-       # move logfile and stderr
-       with open(run.log_file, 'w') as log_file:
-           log_file.write(" ".join(run.cmdline()) + "\n\n\n\n\n------------------------------------------\n")
-           toolLog = resultDir + "/output.log"
-           if os.path.isfile(toolLog):
-               for line in open(toolLog):
-                   log_file.write(line)
-               os.remove(toolLog)
-       stderr = resultDir + "/stderr"
-       if os.path.isfile(stderr):
-           shutil.move(stderr, run.log_file + ".stdError")
 
-       # extract values
-       (run.walltime, run.cputime, return_value, values) = _parseCloudResultFile(resultDir + "/runInformation.txt")
-       run.values.update(values)
-       values = _parseAndSetCloudWorkerHostInformation(resultDir + "/hostInformation.txt", output_handler)
-       run.values.update(values)
-       run.after_execution(return_value)
+    if success:
+        # unzip result
+        return_value = None
+        try:
+            try:
+                with zipfile.ZipFile(io.BytesIO(zipContent)) as resultZipFile:
+                    return_value = _handleResult(resultZipFile, run, output_handler)
+            except zipfile.BadZipfile:
+                logging.warning('Server returned illegal zip file with results of run {}.'.format(run.identifier))
+                # Dump ZIP to disk for debugging
+                with open(run.log_file + '.zip', 'wb') as zipFile:
+                    zipFile.write(zipContent)
+        except IOError as e:
+            logging.warning('Error while writing results of run {}: {}'.format(run.identifier, e))
 
-       # remove no longer needed files
-       os.remove(resultDir + "/hostInformation.txt")
-       os.remove(resultDir + "/runInformation.txt")
-       if os.listdir(resultDir) == []: 
-           os.rmdir(resultDir)        
+        if return_value is not None:
+            output_handler.output_before_run(run)
+            run.after_execution(return_value)
+            output_handler.output_after_run(run)
+        return True
 
-       output_handler.output_after_run(run)
-       return True
-       
     else:
         logging.warning('Could not get run result, run is not finished: {0}'.format(runID))
-        return False     
-    
-def _parseAndSetCloudWorkerHostInformation(filePath, output_handler):
-    try:
-        values = _parseFile(filePath)
+        return False
 
-        values["host"] = values.get("@vcloud-name", "-")
-        name = values["host"]
-        osName = values.get("@vcloud-os", "-")
-        memory = values.get("@vcloud-memory", "-")
-        cpuName = values.get("@vcloud-cpuModel", "-")
-        frequency = values.get("@vcloud-frequency", "-")
-        cores = values.get("@vcloud-cores", "-")
-        output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+def _handleResult(resultZipFile, run, output_handler):
+    resultDir = run.log_file + ".output"
+    files = set(resultZipFile.namelist())
 
-    except IOError:
-        logging.warning("Host information file not found: " + filePath)
-   
+    # extract values
+    if RESULT_FILE_RUN_INFO in files:
+        with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
+            (run.walltime, run.cputime, return_value, values) = _parseCloudResultFile(runInformation)
+            run.values.update(values)
+    else:
+        return_value = None
+        logging.warning('Missing result for {}.'.format(run.identifier))
+
+    if RESULT_FILE_HOST_INFO in files:
+        with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
+            values = _parseAndSetCloudWorkerHostInformation(hostInformation, output_handler)
+            run.values.update(values)
+    else:
+        logging.warning('Missing host information for run {}.'.format(run.identifier))
+
+    # extract log file
+    if RESULT_FILE_LOG in files:
+        with open(run.log_file, 'wb') as log_file:
+            log_header = " ".join(run.cmdline()) + "\n\n\n--------------------------------------------------------------------------------\n"
+            log_file.write(log_header.encode('utf-8'))
+            with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
+                for line in result_log_file:
+                    log_file.write(line)
+    else:
+        logging.warning('Missing log file for run {}.'.format(run.identifier))
+
+    if RESULT_FILE_STDERR in files:
+        resultZipFile.extract(RESULT_FILE_STDERR, resultDir)
+        shutil.move(os.path.join(resultDir, RESULT_FILE_STDERR), run.log_file + ".stdError")
+        os.rmdir(resultDir)
+
+    files = files - SPECIAL_RESULT_FILES
+    if files:
+        resultZipFile.extractall(resultDir, files)
+
+    return return_value
+
+def _parseAndSetCloudWorkerHostInformation(file, output_handler):
+    values = _parseFile(file)
+
+    values["host"] = values.pop("@vcloud-name", "-")
+    name = values["host"]
+    osName = values.pop("@vcloud-os", "-")
+    memory = values.pop("@vcloud-memory", "-")
+    cpuName = values.pop("@vcloud-cpuModel", "-")
+    frequency = values.pop("@vcloud-frequency", "-")
+    cores = values.pop("@vcloud-cores", "-")
+    output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+
     return values
 
 
-def _parseCloudResultFile(filePath):
-
-    walltime = None
-    cputime = None
-    memUsage = None
-    return_value = None
-    
-    values = _parseFile(filePath)   
+def _parseCloudResultFile(file):
+    values = _parseFile(file)
 
     return_value = int(values["@vcloud-exitcode"])
     walltime = float(values["walltime"].strip('s'))
     cputime = float(values["cputime"].strip('s'))
-    values["memUsage"] = int(values["@vcloud-memory"].strip('B'))     
-    
+    if "@vcloud-memory" in values:
+        values["memUsage"] = int(values.pop("@vcloud-memory").strip('B'))
+
+    # remove irrelevant columns
+    values.pop("@vcloud-command", None)
+    values.pop("@vcloud-timeLimit", None)
+    values.pop("@vcloud-coreLimit", None)
+    values.pop("@vcloud-memoryLimit", None)
+
     return (walltime, cputime, return_value, values)
 
-def _parseFile(filePath):
+def _parseFile(file):
     values = {}
 
-    with open(filePath, 'rt') as file:
-        for line in file:
-            (key, value) = line.split("=", 1)
-            value = value.strip()
-            if key in RESULT_KEYS or key.startswith("energy"):
-                values[key] = value
-            else:
-                # "@" means value is hidden normally
-                values["@vcloud-" + key] = value
+    for line in file:
+        (key, value) = line.decode('utf-8').split("=", 1)
+        value = value.strip()
+        if key in RESULT_KEYS or key.startswith("energy"):
+            values[key] = value
+        else:
+            # "@" means value is hidden normally
+            values["@vcloud-" + key] = value
 
     return values
 
-def _auth(webclient, benchmark):
-    if benchmark.config.cloudUser:
-        tokens = benchmark.config.cloudUser.split(':')
+def _auth(webclient, config):
+    if config.cloudUser:
+        tokens = config.cloudUser.split(':')
         if not len(tokens) == 2:
-            logging.serve('Invalid username password format, expected {user}:{pwd}')
-            return  
+            logging.warning('Invalid username password format, expected {user}:{pwd}')
+            return
         username = tokens[0]
         password = tokens[1]
         auth_handler = urllib2.HTTPBasicAuthHandler(urllib2.HTTPPasswordMgrWithDefaultRealm())
@@ -483,4 +466,4 @@ def _auth(webclient, benchmark):
                         passwd=password)
         opener = urllib2.build_opener(auth_handler)
         # install it globally so it can be used with urlopen
-        urllib2.install_opener(opener) 
+        urllib2.install_opener(opener)

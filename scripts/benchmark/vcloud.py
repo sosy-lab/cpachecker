@@ -257,22 +257,23 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                         os.remove(dataFile)
                 except IOError as e:
                     logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
-                                    output_handler.format_sourcefile_name(run.identifier), e))
+                                    run.identifier, e))
                     output_handler.all_created_files.append(dataFile)
                     executedAllRuns = False
                     return_value = None
             else:
-                logging.warning("No results exist for file {0}.".format(output_handler.format_sourcefile_name(run.identifier)))
+                logging.warning("No results exist for file {0}.".format(run.identifier))
                 executedAllRuns = False
                 return_value = None
 
             if os.path.exists(run.log_file + ".stdError"):
                 runsProducedErrorOutput = True
 
-            output_handler.output_before_run(run)
+            if return_value is not None:
+                output_handler.output_before_run(run)
 
-            run.after_execution(return_value)
-            output_handler.output_after_run(run)
+                run.after_execution(return_value)
+                output_handler.output_after_run(run)
 
         output_handler.output_after_run_set(runSet, walltime=usedWallTime)
 
