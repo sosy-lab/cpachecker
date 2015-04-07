@@ -121,8 +121,8 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -344,8 +344,8 @@ class CFAFunctionBuilder extends ASTVisitor {
           init.accept(checkBinding);
 
           // this case has to be extra, as there should never be an initializer for labels
-        } else if (((CVariableDeclaration)newD).getType() instanceof CTypedefType
-                   && ((CTypedefType)((CVariableDeclaration)newD).getType()).getName().equals("__label__")) {
+        } else if (newD.getType() instanceof CProblemType
+                   && newD.getType().toString().equals("__label__")) {
 
           scope.registerLocalLabel((CVariableDeclaration)newD);
           CFANode nextNode = newCFANode();
@@ -688,6 +688,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (localLabel == null) {
       labelMap.put(labelName, labelNode);
     } else {
+      if (scope.containsLabelCFANode(labelNode)){
+        throw new CFAGenerationRuntimeException("Duplicate label " + labelName
+            + " in function " + cfa.getFunctionName(), labelStatement, niceFileNameFunction);
+      }
       scope.addLabelCFANode(labelNode);
     }
 
