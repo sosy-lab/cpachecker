@@ -26,8 +26,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound.PolicyBoundImpl;
-import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound.PolicyBoundDummy;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -214,7 +212,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
 
     if (simplifyFormulas) {
+      statistics.simplifyTimer.start();
       outPath = outPath.updateFormula(fmgr.simplify(outPath.getFormula()));
+      statistics.simplifyTimer.stop();
     }
 
     PolicyState out = PolicyIntermediateState.of(
@@ -359,8 +359,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     PathFormula mergedPath = pfmgr.makeOr(newPath, oldPath);
     if (simplifyFormulas) {
+      statistics.simplifyTimer.start();
       mergedPath = mergedPath.updateFormula(
           fmgr.simplify(mergedPath.getFormula()));
+      statistics.simplifyTimer.stop();
     }
 
     // No value determination, no abstraction, simply join incoming edges
@@ -385,7 +387,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Preconditions.checkState(newState.getLocationID() == oldState.getLocationID());
     CFANode node = oldState.getNode();
 
-    statistics.abstractMergeCounter.add(node);
+    statistics.abstractMergeCounter.add(oldState.getLocationID());
 
     Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
         newState.getTemplates());
@@ -406,7 +408,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         continue;
       } else if (newValue.get().getBound().compareTo(oldValue.get().getBound()) > 0) {
         updated.put(template, newValue.get());
-        statistics.templateUpdateCounter.add(Pair.of(node, template));
+        statistics.templateUpdateCounter.add(Pair.of(newState.getLocationID(),
+            template));
       }
     }
 
@@ -680,22 +683,20 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // add a lemma that the new value has to be strictly larger otherwise.
         BooleanFormula prevStateConstraint = bfmgr.makeBoolean(true);
         PolicyBound prevBound = null;
-        if (usePreviousBounds) {
-          if (otherState.isPresent()) {
-            PolicyAbstractedState prevState = otherState.get();
-            Optional<PolicyBound> bound = prevState.getBound(template);
-            if (!bound.isPresent()) {
-              logger.log(Level.FINE, "Old is unbounded, skipping update");
+        if (usePreviousBounds && otherState.isPresent()) {
+          PolicyAbstractedState prevState = otherState.get();
+          Optional<PolicyBound> bound = prevState.getBound(template);
+          if (!bound.isPresent()) {
 
-              continue;
-            } else {
-              prevBound = bound.get();
-              Rational prevValue = prevBound.getBound();
+            // Can't do better than unbounded.
+            continue;
+          } else {
+            prevBound = bound.get();
+            Rational prevValue = prevBound.getBound();
 
-              prevStateConstraint = fmgr.makeGreaterThan(
-                  objective, fmgr.makeNumber(objective, prevValue), true
-              );
-            }
+            prevStateConstraint = fmgr.makeGreaterThan(
+                objective, fmgr.makeNumber(objective, prevValue), true
+            );
           }
         }
 
@@ -747,7 +748,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             assert prevBound != null;
 
             // Use the previous bound.
-            abstraction.put(template, PolicyBoundDummy.of(prevBound.getBound()));
+            abstraction.put(template, prevBound);
             break;
 
           case UNDEF:
@@ -762,7 +763,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     return Optional.of(
         PolicyAbstractedState.of(
-            abstraction, state.getTemplates(), state.getNode(), state, locationID));
+            abstraction, state.getTemplates(), state.getNode(), state,
+            locationID));
   }
 
   private List<BooleanFormula> abstractStateToConstraints(PolicyAbstractedState
@@ -835,6 +837,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     boolean dependsOnInitial;
 
     // Check whether the bound can change if initial condition is dropped.
+    // todo: we can also try dropping constraints off one by one.
+    // for constr in startConstraints: push & track in unsat core.
+    // assert, ask for unsat core.
     statistics.checkIndependenceTimer.start();
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
 
@@ -859,9 +864,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyAbstractedState backpointer = inputState.getGeneratingStates()
         .get(prevLocID).getLatestVersion();
 
-    return PolicyBoundImpl.of(
+    return PolicyBound.of(
         inputPathFormula.updateFormula(policyFormula), bound, backpointer,
-        backpointer.getPathFormula(),
         dependsOnInitial);
   }
 

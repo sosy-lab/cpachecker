@@ -7,9 +7,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -20,10 +18,10 @@ import com.google.common.collect.Multiset;
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
 
-  final Multiset<Pair<CFANode, Template>> templateUpdateCounter
+  final Multiset<Pair<Integer, Template>> templateUpdateCounter
       = HashMultiset.create();
 
-  final Multiset<CFANode> abstractMergeCounter = HashMultiset.create();
+  final Multiset<Integer> abstractMergeCounter = HashMultiset.create();
 
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
@@ -31,6 +29,7 @@ public class PolicyIterationStatistics implements Statistics {
   final Timer slicingTimer = new Timer();
   final Timer optTimer = new Timer();
   final Timer checkIndependenceTimer = new Timer();
+  final Timer simplifyTimer = new Timer();
 
   public void startCheckSATTimer() {
     checkSATTimer.start();
@@ -79,21 +78,18 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, abstractionTimer, "abstraction");
     out.printf("Number of abstractions performed: %d%n",
         abstractionTimer.getNumberOfIntervals());
-    printTimer(out, optTimer, "optimization");
+    printTimer(out, optTimer, "optimization (OPT-SMT)");
     out.printf("Number of optimization queries sent: %d%n",
         optTimer.getNumberOfIntervals());
-    printTimer(out, checkSATTimer, "checking satisfiability");
+    printTimer(out, checkSATTimer, "checking bad states (SMT)");
+    out.printf("Number of check-SAT calls sent: %d%n",
+        checkSATTimer.getNumberOfIntervals());
+
     if (slicingTimer.getNumberOfIntervals() > 0) {
       printTimer(out, slicingTimer, "checking inductiveness in formula slicing");
     }
     printTimer(out, checkIndependenceTimer, "checking independence");
-    out.printf("Time spent in %s: %s (Max: %s)%n",
-        "SMT solver",
-        TimeSpan.sum(
-            optTimer.getSumTime(),
-            checkSATTimer.getSumTime()
-        ).formatAs(TimeUnit.SECONDS),
-        optTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
+    printTimer(out, simplifyTimer, "simplifying formulas");
 
     UpdateStats<?> updateStats =
         getUpdateStats(PolicyAbstractedState.getUpdateCounter());
