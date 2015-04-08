@@ -77,6 +77,18 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
+/**
+ * A generic refiner using {@link MemoryLocation MemoryLocations} and
+ * a {@link VariableTrackingPrecision}.
+ *
+ * @param <S> the type of the state the {@link StrongestPostOperator} and
+ *    {@link Interpolant Interpolants} are based on
+ * @param <T> the type <code>S</code> uses for returning forgotten information
+ * @param <I> the type of the interpolants used in refinement
+ *
+ * @see GenericFeasibilityChecker
+ * @see GenericPathInterpolator
+ */
 @Options(prefix = "cpa.value.refinement")
 public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolant<S>>
     implements Refiner, StatisticsProvider {
@@ -102,7 +114,7 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
 
   protected final LogManager logger;
 
-  private final PathInterpolator<I> interpolator;
+  private final PathInterpolator<I, MemoryLocation> interpolator;
 
   private final FeasibilityChecker<S> checker;
 
@@ -127,7 +139,7 @@ public class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolan
 
   public GenericRefiner(
       final FeasibilityChecker<S> pFeasibilityChecker,
-      final PathInterpolator<I> pPathInterpolator,
+      final PathInterpolator<I, MemoryLocation> pPathInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
       final PathExtractor pPathExtractor,
       final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,

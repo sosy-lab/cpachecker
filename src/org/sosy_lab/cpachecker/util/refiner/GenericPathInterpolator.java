@@ -79,7 +79,7 @@ import com.google.common.collect.Multimap;
  */
 @Options(prefix="cpa.value.refinement")
 public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S>>
-    implements PathInterpolator<I> {
+    implements PathInterpolator<I, MemoryLocation> {
 
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
