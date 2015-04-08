@@ -469,8 +469,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     final LessOrEqualOperator leqOperator = LessOrEqualOperator.getInstance();
 
     final Set<LessOrEqualOperator.Environment> possibleScenarios =
-        leqOperator.getPossibleAliasings(thisSymbolicAssignments.values(),
-                                         otherSymbolicAssignments.values());
+        leqOperator.getPossibleAliases(thisSymbolicAssignments.values(),
+            otherSymbolicAssignments.values());
 
     if (possibleScenarios.isEmpty()) {
       return false;
@@ -482,7 +482,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
       for (Map.Entry<SymbolicIdentifier, Value> entry : pOther.identifierMap.entrySet()) {
         SymbolicIdentifier id = entry.getKey();
-        SymbolicIdentifier alias = e.getCounterpart(id);
+        SymbolicIdentifier alias = e.getAlias(id);
 
         // definite assignments are not cleaned up when symbolic identifiers are forgotten,
         // so it is possible that no alias exists, because the identifier is not part of the state

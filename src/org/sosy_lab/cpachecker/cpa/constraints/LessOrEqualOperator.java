@@ -38,6 +38,17 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
+/**
+ * Less-or-equal operator of the semi-lattice of the {@link ConstraintsCPA}.
+ * Allows to check whether one {@link ConstraintsState} is less or equal another one.
+ *
+ * <p>Constraints state <code>c</code> is less or equal <code>c'</code> if a bijective mapping
+ * <code>d: SymbolicIdentifier -> SymbolicIdentifier</code> exists so that for each constraint
+ * <code>e</code> in <code>c</code> a constraint <code>e'</code> in <code>c'</code> exists that
+ * equals <code>e</code> after replacing each symbolic identifier <code>s</code> occurring in it
+ * with <code>d(s)</code>.
+ * </p>
+ */
 public class LessOrEqualOperator {
 
   private static final LessOrEqualOperator SINGLETON = new LessOrEqualOperator();
@@ -50,6 +61,20 @@ public class LessOrEqualOperator {
     return SINGLETON;
   }
 
+  /**
+   * Returns whether the first state is less or equal the second state.
+   *
+   * <p>Constraints state <code>c</code> is less or equal <code>c'</code> if a bijective mapping
+   * <code>d: SymbolicIdentifier -> SymbolicIdentifier</code> exists so that for each constraint
+   * <code>e</code> in <code>c</code> a constraint <code>e'</code> in <code>c'</code> exists that
+   * equals <code>e</code> after replacing each symbolic identifier <code>s</code> occurring in it
+   * with <code>d(s)</code>.
+   * </p>
+   *
+   * @param pLesserState the state that should be less or equal the second state
+   * @param pBiggerState the state that should be equal or bigger the first state
+   * @return <code>true</code> if the first given state is less or equal the given second state
+   */
   public boolean isLessOrEqual(
       final ConstraintsState pLesserState,
       final ConstraintsState pBiggerState
@@ -66,112 +91,120 @@ public class LessOrEqualOperator {
       return false;
     }
 
+    // we already know that the second state has less constraints or the same amount of constraints
+    // as the first state. So if it is empty, the first one has to be empty, too, and they are equal
     if (allConstraintsBiggerState.isEmpty()) {
       return true;
     }
 
-    final Set<Environment> possibleScenarios = getPossibleAliasings(allConstraintsLesserState,
-                                                                    allConstraintsBiggerState);
+    final Set<Environment> possibleScenarios = getPossibleAliases(allConstraintsLesserState,
+        allConstraintsBiggerState);
 
     return !possibleScenarios.isEmpty();
   }
 
-  public Set<Environment> getPossibleAliasings(
-      final Collection<? extends SymbolicValue> pValuesOfFirstGraph,
-      final Collection<? extends SymbolicValue> pValuesOfSecondGraph
+  public Set<Environment> getPossibleAliases(
+      final Collection<? extends SymbolicValue> pValuesOfFirstState,
+      final Collection<? extends SymbolicValue> pValuesOfSecondState
   ) {
 
-    Set<Environment> possibleScenarios = new HashSet<>();
+    Set<Environment> possibleEnvironments = new HashSet<>();
+    possibleEnvironments.add(new Environment()); // initial environment that allows everything
 
-    for (SymbolicValue v : pValuesOfSecondGraph) {
-      possibleScenarios = getPossibleAliasings(v, pValuesOfFirstGraph, possibleScenarios);
+    for (SymbolicValue v : pValuesOfSecondState) {
+      possibleEnvironments = getPossibleAliases(v, pValuesOfFirstState, possibleEnvironments);
 
-      if (possibleScenarios.isEmpty()) {
-        return possibleScenarios;
+      if (possibleEnvironments.isEmpty()) {
+        return possibleEnvironments;
       }
     }
 
-    return possibleScenarios;
+    return possibleEnvironments;
   }
 
-  private Set<Environment> getPossibleAliasings(
-      final SymbolicValue pExpressionOfSecondGraph,
-      final Collection<? extends SymbolicValue> pExpressionsOfFirstGraph,
-      final Set<Environment> pPossibleScenarios
+  private Set<Environment> getPossibleAliases(
+      final SymbolicValue pExpressionToGetAliasFor,
+      final Collection<? extends SymbolicValue> pPoolOfExpressionsToGetAliasesOf,
+      final Set<Environment> pCurrentPossibleAliases
   ) {
 
-    Set<Environment> oldScenarios = pPossibleScenarios;
-    Set<Environment> newPossibleScenarios = new HashSet<>();
+    Set<Environment> newEnvironments = new HashSet<>();
 
-    if (pPossibleScenarios.isEmpty()) {
-      oldScenarios = new HashSet<>();
-      oldScenarios.add(new Environment());
-    }
+    for (Environment e : pCurrentPossibleAliases) {
+      for (SymbolicValue v : pPoolOfExpressionsToGetAliasesOf) {
 
-    for (Environment e : oldScenarios) {
-      for (SymbolicValue v : pExpressionsOfFirstGraph) {
-
-        Environment newEnv = isAlias((SymbolicExpression) v,
-                                     (SymbolicExpression) pExpressionOfSecondGraph,
-                                     e);
+        Environment newEnv = hasSameMeaning((SymbolicExpression) pExpressionToGetAliasFor,
+                                            (SymbolicExpression) v,
+                                            e);
 
         if (newEnv == null) {
           continue;
 
         } else {
-          newEnv.counterparts.put(pExpressionOfSecondGraph, v);
-          newPossibleScenarios.add(newEnv);
+          newEnv.addCounterpart(pExpressionToGetAliasFor, v);
+          newEnvironments.add(newEnv);
         }
       }
     }
 
-    return newPossibleScenarios;
+    return newEnvironments;
   }
 
   /**
    * Checks whether two symbolic expressions represent the same expression, just using different
    * symbolic identifiers.
    *
-   * @param pExpressionOfFirstGraph
-   * @param pExpressionOfSecondGraph
-   * @param pEnvironment
-   * @return
+   * @param pExpressionOfFirstState the first expression
+   * @param pExpressionOfSecondState the second expression that could be an alias of the first one
+   * @param pEnvironment the environment to use as basis for the check
+   * @return <code>null</code> if the two expressions can't be aliases in the given environment,
+   *    a new environment in which the two expressions are aliases, otherwise
    */
-  private Environment isAlias(
-      final SymbolicExpression pExpressionOfFirstGraph,
-      final SymbolicExpression pExpressionOfSecondGraph,
+  // we use these strange parameter names for the symbolic expressions so we don't confuse
+  // the order of symbolic expressions in the algorithm above
+  private Environment hasSameMeaning(
+      final SymbolicExpression pExpressionOfFirstState,
+      final SymbolicExpression pExpressionOfSecondState,
       final Environment pEnvironment
   ) {
 
-    if (!pExpressionOfFirstGraph.getType().equals(pExpressionOfSecondGraph.getType())) {
+    // Expressions can't be aliases of each other if they don't have the same return type
+    if (!pExpressionOfFirstState.getType().equals(pExpressionOfSecondState.getType())) {
       return null;
     }
 
-    if (!pExpressionOfFirstGraph.getClass().equals(pExpressionOfSecondGraph.getClass())) {
+    // Expressions can't be aliases of each other if they don't represent the same type of
+    // expression
+    if (!pExpressionOfFirstState.getClass().equals(pExpressionOfSecondState.getClass())) {
       return null;
     }
 
-    if (pEnvironment.counterparts.containsKey(pExpressionOfFirstGraph)) {
-      if (pEnvironment.counterparts.get(pExpressionOfFirstGraph).equals(pExpressionOfSecondGraph)) {
+    if (pEnvironment.hasCounterpart(pExpressionOfFirstState)) {
+      if (pEnvironment.getCounterpart(pExpressionOfFirstState).equals(pExpressionOfSecondState)) {
+
+        // If the given second expression already is the counterpart of the first one in the given
+        // environment, we don't have to do anything else
         return pEnvironment;
       } else {
         return null;
       }
     }
 
-    if (pExpressionOfFirstGraph instanceof UnarySymbolicExpression) {
-      assert pExpressionOfSecondGraph instanceof UnarySymbolicExpression;
+    // at this point we already made sure that both expressions are of the same type, so we only
+    // have to check their operands now
+    if (pExpressionOfFirstState instanceof UnarySymbolicExpression) {
+      assert pExpressionOfSecondState instanceof UnarySymbolicExpression;
 
-      SymbolicExpression e1Op = ((UnarySymbolicExpression) pExpressionOfFirstGraph).getOperand();
-      SymbolicExpression e2Op = ((UnarySymbolicExpression) pExpressionOfSecondGraph).getOperand();
+      SymbolicExpression e1Op = ((UnarySymbolicExpression) pExpressionOfFirstState).getOperand();
+      SymbolicExpression e2Op = ((UnarySymbolicExpression) pExpressionOfSecondState).getOperand();
 
-      return isAlias(e1Op, e2Op, pEnvironment);
+      return hasSameMeaning(e1Op, e2Op, pEnvironment);
 
-    } else if (pExpressionOfFirstGraph instanceof BinarySymbolicExpression) {
-      assert pExpressionOfSecondGraph instanceof BinarySymbolicExpression;
+    } else if (pExpressionOfFirstState instanceof BinarySymbolicExpression) {
+      assert pExpressionOfSecondState instanceof BinarySymbolicExpression;
 
-      BinarySymbolicExpression e1AsBin = (BinarySymbolicExpression) pExpressionOfFirstGraph;
-      BinarySymbolicExpression e2AsBin = (BinarySymbolicExpression) pExpressionOfSecondGraph;
+      BinarySymbolicExpression e1AsBin = (BinarySymbolicExpression) pExpressionOfFirstState;
+      BinarySymbolicExpression e2AsBin = (BinarySymbolicExpression) pExpressionOfSecondState;
 
       SymbolicExpression e1Op1 = e1AsBin.getOperand1();
       SymbolicExpression e1Op2 = e1AsBin.getOperand2();
@@ -179,30 +212,37 @@ public class LessOrEqualOperator {
       SymbolicExpression e2Op1 = e2AsBin.getOperand1();
       SymbolicExpression e2Op2 = e2AsBin.getOperand2();
 
-      Environment resultOfFirstOperands = isAlias(e1Op1, e2Op1, pEnvironment);
+      // check whether the first operands of the first and second expression are aliases
+      Environment resultOfFirstOperands = hasSameMeaning(e1Op1, e2Op1, pEnvironment);
 
       if (resultOfFirstOperands == null) {
         return null;
       }
 
-      Environment resultOfSndOperands = isAlias(e1Op2, e2Op2, pEnvironment);
+      // check whether the second operands of the first and second expression are aliases
+      Environment resultOfSndOperands = hasSameMeaning(e1Op2, e2Op2, pEnvironment);
 
       if (resultOfSndOperands == null) {
         return null;
       }
 
+      // combine the information of both independent checks
       return resultOfFirstOperands.join(resultOfSndOperands);
 
     } else {
-      assert pExpressionOfFirstGraph instanceof ConstantSymbolicExpression;
-      assert pExpressionOfSecondGraph instanceof ConstantSymbolicExpression;
+      assert pExpressionOfFirstState instanceof ConstantSymbolicExpression;
+      assert pExpressionOfSecondState instanceof ConstantSymbolicExpression;
 
-      Value e1Val = ((ConstantSymbolicExpression) pExpressionOfFirstGraph).getValue();
-      Value e2Val = ((ConstantSymbolicExpression) pExpressionOfSecondGraph).getValue();
+      Value e1Val = ((ConstantSymbolicExpression) pExpressionOfFirstState).getValue();
+      Value e2Val = ((ConstantSymbolicExpression) pExpressionOfSecondState).getValue();
 
+      // Compare the values
       if (e1Val instanceof SymbolicIdentifier && e2Val instanceof SymbolicIdentifier) {
-        if (pEnvironment.aliasses.containsKey(e1Val)) {
-          if (pEnvironment.aliasses.get(e1Val).equals(e2Val)) {
+        final SymbolicIdentifier id1 = (SymbolicIdentifier) e1Val;
+        final SymbolicIdentifier id2 = (SymbolicIdentifier) e2Val;
+
+        if (pEnvironment.hasAlias(id1)) {
+          if (pEnvironment.getAlias(id1).equals(id2)) {
             return pEnvironment;
           } else {
             return null;
@@ -210,45 +250,61 @@ public class LessOrEqualOperator {
 
         } else {
           Environment newEnv = new Environment(pEnvironment);
-          newEnv.aliasses.put((SymbolicIdentifier) e2Val, (SymbolicIdentifier) e1Val);
+          newEnv.addAlias(id1, id2);
 
           return newEnv;
         }
 
       } else if (e1Val.equals(e2Val)) {
         return pEnvironment;
+
+      } else {
+        return null;
       }
     }
-
-    return null;
   }
 
+  /**
+   * Environment for comparison of sets of symbolic values. An environment contains
+   * aliases for {@link SymbolicIdentifier}s and counterparts of {@link SymbolicValue}s.
+   */
   public class Environment {
-    private Map<SymbolicIdentifier, SymbolicIdentifier> aliasses = new HashMap<>();
+    private Map<SymbolicIdentifier, SymbolicIdentifier> aliases = new HashMap<>();
     private Map<SymbolicValue, SymbolicValue> counterparts = new HashMap<>();
 
     Environment() { }
 
     Environment(final Environment pEnvironmentToClone) {
-      aliasses = new HashMap<>(pEnvironmentToClone.aliasses);
+      aliases = new HashMap<>(pEnvironmentToClone.aliases);
       counterparts = new HashMap<>(pEnvironmentToClone.counterparts);
     }
 
+    /**
+     * Joins this environment with the given one.
+     * The resulting environment will contain all aliases and counterparts of this and the given
+     * environment.
+     * If two different aliases/counterparts exist for one identifier/expression, the join of the
+     * environments is impossible and <code>null</code> is returned.
+     *
+     * @param pOther the environment to join with this one
+     * @return the join of this environment and the given one
+     */
     Environment join(final Environment pOther) {
       Environment newEnv = new Environment(this);
 
-      for (Map.Entry<SymbolicIdentifier, SymbolicIdentifier> entry : pOther.aliasses.entrySet()) {
+      // add the other environment's aliases
+      for (Map.Entry<SymbolicIdentifier, SymbolicIdentifier> entry : pOther.aliases.entrySet()) {
         SymbolicIdentifier key = entry.getKey();
 
-        if (newEnv.aliasses.containsKey(key) && !newEnv.aliasses.get(key).equals(entry.getValue())) {
+        if (newEnv.aliases.containsKey(key) && !newEnv.aliases.get(key).equals(entry.getValue())) {
           return null;
         }
 
-        newEnv.aliasses.put(key, entry.getValue());
+        newEnv.aliases.put(key, entry.getValue());
       }
 
-      for (Map.Entry<SymbolicValue, SymbolicValue> entry
-          : pOther.counterparts.entrySet()) {
+      // add the other environment's counterparts
+      for (Map.Entry<SymbolicValue, SymbolicValue> entry : pOther.counterparts.entrySet()) {
         SymbolicValue key = entry.getKey();
 
         if (newEnv.counterparts.containsKey(key)
@@ -266,8 +322,32 @@ public class LessOrEqualOperator {
       return counterparts.get(pExp);
     }
 
-    public SymbolicIdentifier getCounterpart(final SymbolicIdentifier pIdentifier) {
-      return aliasses.get(pIdentifier);
+    public SymbolicIdentifier getAlias(final SymbolicIdentifier pIdentifier) {
+      return aliases.get(pIdentifier);
+    }
+
+    /**
+     * Returns whether the given symbolic value has a counterpart in this environment.
+     * A counterpart can be the equal expression or any expression of the same form, but with
+     * different symbolic identifiers (which have to be aliases in this environment).
+     *
+     * @param pExpressionOfFirstGraph the expression to check for a counterpart
+     * @return <code>true</code> if a counterpart exists in this environment
+     */
+    public boolean hasCounterpart(final SymbolicValue pExpressionOfFirstGraph) {
+      return counterparts.containsKey(pExpressionOfFirstGraph);
+    }
+
+    public boolean hasAlias(final SymbolicIdentifier pIdentifier) {
+      return aliases.containsKey(pIdentifier);
+    }
+
+    public void addAlias(final SymbolicIdentifier pIdentifier, final SymbolicIdentifier pAlias) {
+      aliases.put(pIdentifier, pAlias);
+    }
+
+    public void addCounterpart(final SymbolicValue pValue, final SymbolicValue pCounterpart) {
+      counterparts.put(pValue, pCounterpart);
     }
   }
 }
