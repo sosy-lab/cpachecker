@@ -61,6 +61,9 @@ class WebClientError(Exception):
     def __str__(self):
         return repr(self.value)
 
+_unfinished_run_ids = set()
+_webclient_url = ''
+
 def init(config, benchmark):
     if config.cloudMaster:
         if config.revision:
@@ -81,6 +84,8 @@ def execute_benchmark(benchmark, output_handler):
     if not benchmark.config.cloudMaster[-1] == '/':
         benchmark.config.cloudMaster += '/'
     webclient = benchmark.config.cloudMaster
+    global _webclient_url
+    _webclient_url = webclient
     logging.info('Using webclient at {0}'.format(webclient))
 
     #authentification
@@ -106,9 +111,30 @@ def execute_benchmark(benchmark, output_handler):
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
 def stop():
-    # TODO: cancel runs on server
-    pass
+    executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
+    for runId in _unfinished_run_ids:
+        executor.submit(_stop_run, runId)
+    executor.shutdown(wait=True)
+            
+def _stop_run(runId):
+    request = urllib2.Request(_webclient_url + "runs/" + runId, method='DELETE')
 
+    try:
+        response = urllib2.urlopen(request)
+        if (response.getcode() == 200):
+            logging.debug("Could not delete run " + runId + ".")
+
+    except urllib2.HTTPError as e:
+        try:
+            if e.code == 404:
+                message = 'Please check the URL given to --cloudMaster.'
+            else:
+                message = e.read() #not all HTTPErrors have a read() method
+        except AttributeError:
+            message = ""
+        logging.debug('Could not submit run {0}: {1}. {2}'.\
+            format(runId, e, message))            
+        
 def _submitRunsParallel(runSet, webclient, benchmark):
 
     logging.info('Submitting runs')
@@ -126,7 +152,8 @@ def _submitRunsParallel(runSet, webclient, benchmark):
             try:
                 run = runIDsFutures[future]
                 runID = future.result().decode("utf-8")
-                runIDs.update({runID:run})
+                runIDs[runID] = run
+                _unfinished_run_ids.add(runID)
                 logging.info('Submitted run {0}/{1} with id {2}'.\
                     format(submissonCounter, len(runSet.runs), runID))
 
@@ -335,6 +362,7 @@ def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
         if response.getcode() == 200:
             zipContent = response.read()
             success = True
+            _unfinished_run_ids.remove(runID)
         else:
             sleep(1)
 
