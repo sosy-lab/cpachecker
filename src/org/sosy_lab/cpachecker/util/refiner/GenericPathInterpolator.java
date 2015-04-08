@@ -78,7 +78,7 @@ import com.google.common.collect.Multimap;
  * @param <I> the type of the interpolants created by this class
  */
 @Options(prefix="cpa.value.refinement")
-public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S>>
+public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S>>
     implements PathInterpolator<I, MemoryLocation> {
 
   /**
@@ -117,13 +117,13 @@ public class GenericPathInterpolator<S extends ForgetfulState<T>, T, I extends I
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  private final EdgeInterpolator<S, T, I> interpolator;
+  private final EdgeInterpolator<S, ?, I> interpolator;
   private final InterpolantManager<S, I> interpolantManager;
   private final FeasibilityChecker<S> checker;
   private final ErrorPathClassifier classifier;
 
   public GenericPathInterpolator(
-      final EdgeInterpolator<S, T, I> pEdgeInterpolator,
+      final EdgeInterpolator<S, ?, I> pEdgeInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
       final FeasibilityChecker<S> pFeasibilityChecker,
       final ErrorPathClassifier pPathClassifier,

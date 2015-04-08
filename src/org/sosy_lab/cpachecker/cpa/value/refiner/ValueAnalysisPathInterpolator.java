@@ -35,18 +35,17 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
-import org.sosy_lab.cpachecker.util.refiner.UseDefRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.refiner.UseDefRelation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -54,7 +53,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 @Options(prefix="cpa.value.refiner")
 public class ValueAnalysisPathInterpolator
-    extends GenericPathInterpolator<ValueAnalysisState, ValueAnalysisInformation, ValueAnalysisInterpolant> {
+    extends GenericPathInterpolator<ValueAnalysisState, ValueAnalysisInterpolant> {
 
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
