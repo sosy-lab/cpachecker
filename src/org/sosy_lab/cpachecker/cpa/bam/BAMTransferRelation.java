@@ -272,7 +272,7 @@ public class BAMTransferRelation implements TransferRelation {
 
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
         for (Block block : Lists.transform(stack, Triple.<Block>getProjectionToThird())) {
-          if (block.getCallNode().equals(e.getSuccessor())) {
+          if (block.getCallNodes().contains(e.getSuccessor())) {
             return true;
           }
         }
