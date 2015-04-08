@@ -41,6 +41,14 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
 
+/**
+ * Generic {@link EdgeInterpolator} that creates interpolants based on
+ * {@link MemoryLocation MemoryLocations}. A {@link VariableTrackingPrecision} is used as precision.
+ *
+ * @param <S> the abstract state to create interpolants based on
+ * @param <T> the type the abstract state uses for returning forgotten information
+ * @param <I> the type of interpolants that are used and will be created
+ */
 public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S>>
     implements EdgeInterpolator<S, T, I> {
 
