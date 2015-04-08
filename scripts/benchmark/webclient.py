@@ -62,14 +62,62 @@ class WebClientError(Exception):
         return repr(self.value)
 
 _unfinished_run_ids = set()
-_webclient_url = ''
+_webclient_url = None
+_svn_branch = None
+_svn_revision = None
+
+def resolveToolVersion(config, benchmark):
+    global _svn_branch, _svn_revision
+    
+    if config.revision:
+        tokens = config.revision.split(':')
+        _svn_branch = tokens[0]
+        if len(tokens) > 1:
+            revision = config.revision.split(':')[1]
+        else:
+            revision = 'HEAD'
+    else:
+        _svn_branch = 'trunk'
+        revision = 'HEAD'
+            
+    url = _webclient_url + "tool/version?svnBranch=" + _svn_branch \
+                         + "&revision=" + revision
+                         
+    request = urllib2.Request(url)
+    try:
+        response = urllib2.urlopen(request)
+        if (response.getcode() == 200):
+            _svn_revision = response.read().decode("utf-8")
+        else:
+            logging.warning("Could not resolve {0}:{1}: {2}".format(config.revision.branch, revision, response.read()))
+    except urllib2.HTTPError as e:
+        try:
+            if e.code == 404:
+                message = 'Please check the URL given to --cloudMaster.'
+            else:
+                message = e.read() #not all HTTPErrors have a read() method
+        except AttributeError:
+            message = ""
+        logging.warning("Could not resolve {0}:{1}: {2}".format(_svn_branch, revision, message))
+        return
+            
+    benchmark.tool_version = _svn_branch + ":" + _svn_revision
+    logging.info('Using tool version {0}:{1}'.format(_svn_branch, _svn_revision))
 
 def init(config, benchmark):
     if config.cloudMaster:
-        if config.revision:
-            benchmark.tool_version = config.revision
-        else:
-            benchmark.tool_version = "trunk:HEAD"
+        if not benchmark.config.cloudMaster[-1] == '/':
+            benchmark.config.cloudMaster += '/'
+
+        global _webclient_url
+        _webclient_url = benchmark.config.cloudMaster
+        logging.info('Using webclient at {0}'.format(_webclient_url))
+        
+        #authentification
+        _auth(_webclient_url, config)
+        
+        resolveToolVersion(config, benchmark)    
+            
     benchmark.executable = 'scripts/cpa.sh'
 
 def get_system_info():
@@ -81,16 +129,6 @@ def execute_benchmark(benchmark, output_handler):
         logging.warning("The web client does only support the CPAchecker.")
         return
 
-    if not benchmark.config.cloudMaster[-1] == '/':
-        benchmark.config.cloudMaster += '/'
-    webclient = benchmark.config.cloudMaster
-    global _webclient_url
-    _webclient_url = webclient
-    logging.info('Using webclient at {0}'.format(webclient))
-
-    #authentification
-    _auth(webclient, benchmark.config)
-
     STOPPED_BY_INTERRUPT = False
     try:
         for runSet in benchmark.run_sets:
@@ -99,9 +137,9 @@ def execute_benchmark(benchmark, output_handler):
                 continue
 
             output_handler.output_before_run_set(runSet)
-            runIDs = _submitRunsParallel(runSet, webclient, benchmark)
+            runIDs = _submitRunsParallel(runSet, _webclient_url, benchmark)
 
-            _getResults(runIDs, output_handler, webclient, benchmark)
+            _getResults(runIDs, output_handler, _webclient_url, benchmark)
             output_handler.output_after_run_set(runSet)
 
     except KeyboardInterrupt as e:
@@ -186,10 +224,8 @@ def _submitRun(run, webclient, benchmark, counter = 0):
     params = {'programText': programTexts}
 
     if benchmark.config.revision:
-        tokens = benchmark.config.revision.split(':')
-        params['svnBranch'] = tokens[0]
-        if len(tokens)>1:
-            params['revision'] = tokens[1]
+        params['svnBranch'] = _svn_branch
+        params['revision'] = _svn_revision
 
     if run.propertyfile:
         with open(run.propertyfile, 'r') as propertyFile:
