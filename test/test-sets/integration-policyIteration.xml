@@ -3,12 +3,11 @@
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="2000" cpuCores="1">
     <option name="-noout" />
 
-    <option name="-policy-unrolling"/>
+    <option name="-policy-ensemble"/>
     <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=true</option>
-    <option name="-setprop">analysis.reportFalseAsUnknown=true</option>
+    <option name="-setprop">cpa.reportFalseAsUnknown=true</option>
     <option name="-setprop">cpa.stator.policy.generateOctagons=true</option>
     <option name="-setprop">cpa.stator.policy.formulaSlicing=true</option>
-
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
