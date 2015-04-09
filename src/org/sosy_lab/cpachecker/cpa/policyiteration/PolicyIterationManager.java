@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
+import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -94,7 +96,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true, description="Any intermediate state with formula length "
       + "bigger than specified will be checked for reachability. "
       + "Set to 0 to disable.")
-  private int lengthLimitForSATCheck = 200;
+  private int lengthLimitForSATCheck = 300;
+
+  @Option(secure=true, description="Use simple congruence analysis")
+  private boolean runCongruence = false;
 
   private final FormulaManagerView fmgr;
 
@@ -113,6 +118,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final PolicyIterationStatistics statistics;
   private final FormulaSlicingManager formulaSlicingManager;
   private final FormulaLinearizationManager linearizationManager;
+  private final CongruenceManager congruenceManager;
 
   public PolicyIterationManager(
       Configuration config,
@@ -126,7 +132,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       ValueDeterminationManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics,
       FormulaSlicingManager pFormulaSlicingManager,
-      FormulaLinearizationManager pLinearizationManager)
+      FormulaLinearizationManager pLinearizationManager,
+      CongruenceManager pCongruenceManager)
       throws InvalidConfigurationException {
     config.inject(this, PolicyIterationManager.class);
     fmgr = pFormulaManager;
@@ -143,6 +150,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     statistics = pStatistics;
     formulaSlicingManager = pFormulaSlicingManager;
     linearizationManager = pLinearizationManager;
+    congruenceManager = pCongruenceManager;
+
     /** Compute the cache for nodes */
     ImmutableMap.Builder<Integer, CFANode> nodeMapBuilder =
         ImmutableMap.builder();
@@ -418,7 +427,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     PolicyAbstractedState stateWithUpdates =
-        oldState.withUpdates(updated, newUnbounded, allTemplates);
+        oldState.withUpdates(updated, newUnbounded, allTemplates,
+            congruenceManager.join(newState.congruence, oldState.congruence));
     oldState.setNewVersion(stateWithUpdates);
     newState.setNewVersion(stateWithUpdates);
 
@@ -549,7 +559,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     return Optional.of(prevState.withUpdates(builder.build(),
-        unbounded, templates));
+        unbounded, templates, congruenceManager.join(prevState.congruence,
+            stateWithUpdates.congruence)));
   }
 
 
@@ -761,10 +772,19 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       throw new CPATransferException("Solver error: ", e);
     }
 
+    statistics.updateCounter.add(locationID);
+    CongruenceState congruence;
+    if (runCongruence) {
+      congruence = congruenceManager.performAbstraction(
+              p, startConstraints, state.getTemplates()
+          );
+    } else {
+      congruence = CongruenceState.empty();
+    }
     return Optional.of(
         PolicyAbstractedState.of(
             abstraction, state.getTemplates(), state.getNode(), state,
-            locationID));
+            congruence, locationID));
   }
 
   private List<BooleanFormula> abstractStateToConstraints(PolicyAbstractedState
@@ -780,6 +800,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       BooleanFormula constraint = fmgr.makeLessOrEqual(
           t, fmgr.makeNumber(t, bound.getBound()), true);
       constraints.add(constraint);
+
+      constraints.add(congruenceManager.toFormula(
+          abstractState.congruence, inputPath
+      ));
     }
     return constraints;
   }
@@ -836,9 +860,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         annotatedFormula, model.entrySet());
     boolean dependsOnInitial;
 
-    // Check whether the bound can change if initial condition is dropped.
-    // todo: we can also try dropping constraints off one by one.
+    // todo: dropping constraints off one by one.
     // for constr in startConstraints: push & track in unsat core.
+    // Check whether the bound can change if initial condition is dropped.
     // assert, ask for unsat core.
     statistics.checkIndependenceTimer.start();
     try (ProverEnvironment prover = solver.newProverEnvironment()) {

@@ -150,10 +150,6 @@ analysis.reachedSet = PARTITIONED
 # disjoint.
 analysis.refinePreconditions = false
 
-# Do not report 'False' result, return UNKNOWN instead.  Useful for
-# incomplete analysis with no counterexample checking.
-analysis.reportFalseAsUnknown = false
-
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
@@ -1454,6 +1450,10 @@ cpa.reachdef.merge = "JOIN"
 cpa.reachdef.stop = "SEP"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
+# Do not report 'False' result, return UNKNOWN instead.  Useful for
+# incomplete analysis with no counterexample checking.
+cpa.reportFalseAsUnknown = false
+
 # path to a file with abstraction rules
 cpa.seplogic.partingstar.abstractionfile = no default value
 
@@ -1632,10 +1632,13 @@ cpa.stator.policy.generateUpperBound = true
 
 # Any intermediate state with formula length bigger than specified will be
 # checked for reachability. Set to 0 to disable.
-cpa.stator.policy.lengthLimitForSATCheck = 200
+cpa.stator.policy.lengthLimitForSATCheck = 300
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
+
+# Use simple congruence analysis
+cpa.stator.policy.runCongruence = false
 
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.stator.policy.runHopefulValueDetermination = true

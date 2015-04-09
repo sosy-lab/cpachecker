@@ -20,8 +20,8 @@ public class PolicyIterationStatistics implements Statistics {
 
   final Multiset<Pair<Integer, Template>> templateUpdateCounter
       = HashMultiset.create();
-
   final Multiset<Integer> abstractMergeCounter = HashMultiset.create();
+  final Multiset<Integer> updateCounter = HashMultiset.create();
 
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
@@ -91,8 +91,7 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, checkIndependenceTimer, "checking independence");
     printTimer(out, simplifyTimer, "simplifying formulas");
 
-    UpdateStats<?> updateStats =
-        getUpdateStats(PolicyAbstractedState.getUpdateCounter());
+    UpdateStats<?> updateStats = getUpdateStats(updateCounter);
     UpdateStats<?> templateUpdateStats = getUpdateStats(templateUpdateCounter);
     UpdateStats<?> mergeUpdateStats = getUpdateStats(abstractMergeCounter);
 

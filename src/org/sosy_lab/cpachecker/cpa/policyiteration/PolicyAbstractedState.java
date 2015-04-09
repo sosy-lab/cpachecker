@@ -8,20 +8,17 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multiset;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>> {
+
+  final CongruenceState congruence;
 
   /**
    * Finite bounds for templates.
@@ -33,33 +30,34 @@ public final class PolicyAbstractedState extends PolicyState
    */
   private final PolicyIntermediateState generatingState;
 
+  /**
+   * Pointer to the latest version of the state associated with the given
+   * location.
+   */
   private transient Optional<PolicyAbstractedState> newVersion =
       Optional.absent();
 
+  /**
+   * If state A and state B can potentially get merged, they share the same
+   * location.
+   */
   private final int locationID;
-
-  // the same version on nodes might be just good enough.
-  private static final Multiset<Integer> updateCounter = HashMultiset.create();
 
   private PolicyAbstractedState(CFANode node,
       Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
       PolicyIntermediateState pGeneratingState,
+      CongruenceState pCongruence,
       int pLocationID) {
     super(pTemplates, node);
-
-    updateCounter.add(pLocationID);
     abstraction = ImmutableMap.copyOf(pAbstraction);
     generatingState = pGeneratingState;
+    congruence = pCongruence;
     locationID = pLocationID;
   }
 
   public int getLocationID() {
     return locationID;
-  }
-
-  public static ImmutableMultiset<Integer> getUpdateCounter() {
-    return ImmutableMultiset.copyOf(updateCounter);
   }
 
   public void setNewVersion(PolicyAbstractedState pNewVersion) {
@@ -80,8 +78,8 @@ public final class PolicyAbstractedState extends PolicyState
     }
 
     // Update the pointers on the visited states.
-    for (PolicyAbstractedState visited : toUpdate) {
-      visited.newVersion = Optional.of(latest);
+    for (PolicyAbstractedState updated : toUpdate) {
+      updated.newVersion = Optional.of(latest);
     }
     return latest;
   }
@@ -91,16 +89,18 @@ public final class PolicyAbstractedState extends PolicyState
       Set<Template> templates,
       CFANode node,
       PolicyIntermediateState pGeneratingState,
+      CongruenceState pCongruence,
       int pLocationID
   ) {
     return new PolicyAbstractedState(node, templates, data, pGeneratingState,
-        pLocationID);
+        pCongruence, pLocationID);
   }
 
   public PolicyAbstractedState withUpdates(
       Map<Template, PolicyBound> updates,
       Set<Template> unbounded,
-      Set<Template> newTemplates) {
+      Set<Template> newTemplates,
+      CongruenceState newCongruence) {
 
     ImmutableMap.Builder<Template, PolicyBound> builder =
         ImmutableMap.builder();
@@ -119,7 +119,8 @@ public final class PolicyAbstractedState extends PolicyState
       }
     }
     return new PolicyAbstractedState(
-        getNode(), newTemplates, builder.build(),  generatingState, locationID
+        getNode(), newTemplates, builder.build(),  generatingState,
+        newCongruence, locationID
     );
   }
 
@@ -150,6 +151,7 @@ public final class PolicyAbstractedState extends PolicyState
         ImmutableSet.<Template>of(), // templates
         node, // node
         initialState, // generating state
+        CongruenceState.empty(),
         -1
     );
   }
