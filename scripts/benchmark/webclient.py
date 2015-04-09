@@ -28,10 +28,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
+import base64
 import io
 import logging
 import os
 import shutil
+import threading
 import zlib
 import zipfile
 
@@ -39,6 +41,7 @@ from time import sleep
 
 import urllib.parse as urllib
 import urllib.request as urllib2
+from  http.client import HTTPConnection
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
@@ -62,11 +65,12 @@ class WebClientError(Exception):
         return repr(self.value)
 
 _unfinished_run_ids = set()
-_webclient_url = None
+_webclient = None
+_base64_user_pwd = None
 _svn_branch = None
 _svn_revision = None
 
-def resolveToolVersion(config, benchmark):
+def resolveToolVersion(config, benchmark, webclient):
     global _svn_branch, _svn_revision
     
     if config.revision:
@@ -80,7 +84,7 @@ def resolveToolVersion(config, benchmark):
         _svn_branch = 'trunk'
         revision = 'HEAD'
             
-    url = _webclient_url + "tool/version?svnBranch=" + _svn_branch \
+    url = webclient + "tool/version?svnBranch=" + _svn_branch \
                          + "&revision=" + revision
                          
     request = urllib2.Request(url)
@@ -105,19 +109,21 @@ def resolveToolVersion(config, benchmark):
     logging.info('Using tool version {0}:{1}'.format(_svn_branch, _svn_revision))
 
 def init(config, benchmark):
+    global _webclient, _base64_user_pwd
+    
     if config.cloudMaster:
         if not benchmark.config.cloudMaster[-1] == '/':
             benchmark.config.cloudMaster += '/'
 
-        global _webclient_url
-        _webclient_url = benchmark.config.cloudMaster
-        logging.info('Using webclient at {0}'.format(_webclient_url))
+        webclient = benchmark.config.cloudMaster
+        _webclient = urllib.urlparse(webclient)
+        logging.info('Using webclient at {0}'.format(webclient))
         
-        #authentification
-        _auth(config)
+        resolveToolVersion(config, benchmark, webclient)    
         
-        resolveToolVersion(config, benchmark)    
-            
+    if config.cloudUser:
+        _base64_user_pwd = base64.b64encode(config.cloudUser.encode("utf-8")).decode("utf-8")
+        
     benchmark.executable = 'scripts/cpa.sh'
 
 def get_system_info():
@@ -149,29 +155,37 @@ def execute_benchmark(benchmark, output_handler):
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
 def stop():
+    logging.debug("Stopping tasks...")
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
+    global _unfinished_run_ids
     for runId in _unfinished_run_ids:
         executor.submit(_stop_run, runId)
     executor.shutdown(wait=True)
+    logging.debug("Stopped all tasks.")
             
 def _stop_run(runId):
-    request = urllib2.Request(_webclient_url + "runs/" + runId, method='DELETE')
+    threadLocal = threading.local()
+    connection = getattr(threadLocal, 'connection', None)
+    if connection is None:
+        threadLocal.connection = HTTPConnection(_webclient.netloc)
+        connection = threadLocal.connection
 
-    try:
-        response = urllib2.urlopen(request)
-        if (response.getcode() == 200):
-            logging.debug("Could not delete run " + runId + ".")
-
-    except urllib2.HTTPError as e:
+    headers = {"Authorization": "Basic " + _base64_user_pwd}
+    path = _webclient.path + "runs/" + runId
+    connection.request("DELETE", path, headers=headers)
+    
+    response = connection.getresponse()
+    if response.status != 200:
         try:
-            if e.code == 404:
+            if response.status == 404:
                 message = 'Please check the URL given to --cloudMaster.'
+                response.read()
             else:
-                message = e.read() #not all HTTPErrors have a read() method
+                message = response.read() #not all HTTPErrors have a read() method
         except AttributeError:
             message = ""
-        logging.debug('Could not submit run {0}: {1}. {2}'.\
-            format(runId, e, message))            
+        logging.debug('Could not delete run {0}: {1}. {2}'.\
+            format(runId, message))               
         
 def _submitRunsParallel(runSet, benchmark):
 
@@ -216,6 +230,12 @@ def _submitRunsParallel(runSet, benchmark):
     return runIDs
 
 def _submitRun(run, benchmark, counter = 0):
+    threadLocal = threading.local()
+    connection = getattr(threadLocal, 'connection', None)
+    if connection is None:
+        threadLocal.connection = HTTPConnection(_webclient.netloc)
+        connection = threadLocal.connection
+    
     programTexts = []
     for programPath in run.sourcefiles:
         with open(programPath, 'r') as programFile:
@@ -247,24 +267,19 @@ def _submitRun(run, benchmark, counter = 0):
         raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
             .format(run.options, run.identifier))
 
+    # prepare request
     headers = {"Content-Type": "application/x-www-form-urlencoded",
                "Content-Encoding": "deflate",
-               "Accept": "text/plain"}
+               "Accept": "text/plain", 
+               "Authorization": "Basic " + _base64_user_pwd}
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
-    request = urllib2.Request(_webclient_url + "runs/", paramsCompressed, headers)
-
+    path = _webclient.path + "runs/"
+    
     # send request
-    try:
-        response = urllib2.urlopen(request)
-
-    except urllib2.HTTPError as e:
-        if (e.code == 401 and counter < 3):
-            _auth(benchmark.config)
-            return _submitRun(run, benchmark, counter + 1)
-        else:
-            raise e
-
-    if response.getcode() == 200:
+    connection.request("POST", path, body=paramsCompressed, headers=headers)
+    
+    response = connection.getresponse()
+    if response.status == 200:
         runID = response.read()
         return runID
 
@@ -337,29 +352,30 @@ def _handleOptions(run, params, rlimits):
     return False
 
 def _getResults(runIDs, output_handler, benchmark):
+    connection = HTTPConnection(_webclient.netloc)
+    connection.connect()
+    
     while len(runIDs) > 0 :
         finishedRunIDs = []
         for runID in runIDs.keys():
-            if _isFinished(runID, benchmark):
-                if(_getAndHandleResult(runID, runIDs[runID], output_handler, benchmark)):
+            if _isFinished(runID, benchmark, connection):
+                if(_getAndHandleResult(runID, runIDs[runID], output_handler, benchmark, connection)):
                     finishedRunIDs.append(runID)
 
         for runID in finishedRunIDs:
             del runIDs[runID]
+    
+    connection.close()
 
-def _isFinished(runID, benchmark):
+def _isFinished(runID, benchmark, connection):
 
-    headers = {"Accept": "text/plain"}
-    request = urllib2.Request(_webclient_url + "runs/" + runID + "/state", headers=headers)
-    try:
-        response = urllib2.urlopen(request)
-    except urllib2.HTTPError as e:
-        logging.info('Could get result of run with id {0}: {1}'.format(runID, e))
-        _auth(benchmark.config)
-        sleep(10)
-        return False
+    headers = {"Accept": "text/plain", "Connection": "Keep-Alive", \
+               "Authorization": "Basic " + _base64_user_pwd}
+    path = _webclient.path + "runs/" + runID + "/state"
+    connection.request("GET", path, headers=headers)
+    response = connection.getresponse()
 
-    if response.getcode() == 200:
+    if response.status == 200:
         state = response.read().decode('utf-8')
 
         if state == "FINISHED":
@@ -376,31 +392,31 @@ def _isFinished(runID, benchmark):
             return False
 
     else:
-        logging.warning('Could not get run state: {0}'.format(runID))
+        logging.warning('Could not get run state {0}: {1}'.format(runID, response.read()))
 
         return False
 
-def _getAndHandleResult(runID, run, output_handler, benchmark):
+def _getAndHandleResult(runID, run, output_handler, benchmark, connection):
     # download result as zip file
+    headers = {"Accept": "application/zip", "Connection": "Keep-Alive", \
+               "Authorization": "Basic " + _base64_user_pwd}
+    path = _webclient.path + "runs/" + runID + "/result"
+    
     counter = 0
     success = False
     while (not success and counter < 10):
         counter += 1
-        request = urllib2.Request(_webclient_url + "runs/" + runID + "/result")
-        try:
-            response = urllib2.urlopen(request)
-        except urllib2.HTTPError as e:
-            logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
-            _auth(_webclient_url, benchmark.config)
-            sleep(10)
-            return False
 
-        if response.getcode() == 200:
+        connection.request("GET", path, headers=headers)
+        response = connection.getresponse()
+
+        if response.status == 200:
             zipContent = response.read()
             success = True
             _unfinished_run_ids.remove(runID)
         else:
-            sleep(1)
+            logging.info('Could not get result of run {0}: {1}'.format(run.identifier, response.read()))
+            sleep(10)
 
     if success:
         # unzip result
@@ -515,19 +531,3 @@ def _parseFile(file):
 
     return values
 
-def _auth(config):
-    if config.cloudUser:
-        tokens = config.cloudUser.split(':')
-        if not len(tokens) == 2:
-            logging.warning('Invalid username password format, expected {user}:{pwd}')
-            return
-        username = tokens[0]
-        password = tokens[1]
-        auth_handler = urllib2.HTTPBasicAuthHandler(urllib2.HTTPPasswordMgrWithDefaultRealm())
-        auth_handler.add_password(realm=None,\
-                        uri=_webclient_url,\
-                        user=username,\
-                        passwd=password)
-        opener = urllib2.build_opener(auth_handler)
-        # install it globally so it can be used with urlopen
-        urllib2.install_opener(opener)
