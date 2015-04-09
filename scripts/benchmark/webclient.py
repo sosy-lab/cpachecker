@@ -38,6 +38,7 @@ import zlib
 import zipfile
 
 from time import sleep
+from time import time
 
 import urllib.parse as urllib
 import urllib.request as urllib2
@@ -170,7 +171,8 @@ def _stop_run(runId):
         threadLocal.connection = HTTPConnection(_webclient.netloc)
         connection = threadLocal.connection
 
-    headers = {"Authorization": "Basic " + _base64_user_pwd}
+    headers = {"Authorization": "Basic " + _base64_user_pwd,
+               "Connection": "Keep-Alive"}
     path = _webclient.path + "runs/" + runId
     connection.request("DELETE", path, headers=headers)
     
@@ -270,7 +272,8 @@ def _submitRun(run, benchmark, counter = 0):
     # prepare request
     headers = {"Content-Type": "application/x-www-form-urlencoded",
                "Content-Encoding": "deflate",
-               "Accept": "text/plain", 
+               "Accept": "text/plain",
+               "Connection": "Keep-Alive", 
                "Authorization": "Basic " + _base64_user_pwd}
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     path = _webclient.path + "runs/"
@@ -356,6 +359,7 @@ def _getResults(runIDs, output_handler, benchmark):
     connection.connect()
     
     while len(runIDs) > 0 :
+        start = time()
         finishedRunIDs = []
         for runID in runIDs.keys():
             if _isFinished(runID, benchmark, connection):
@@ -364,6 +368,11 @@ def _getResults(runIDs, output_handler, benchmark):
 
         for runID in finishedRunIDs:
             del runIDs[runID]
+        
+        end = time();
+        duration = end - start
+        if duration < 1:
+            sleep(1 - duration)
     
     connection.close()
 
