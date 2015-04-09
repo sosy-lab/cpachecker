@@ -114,7 +114,7 @@ def init(config, benchmark):
         logging.info('Using webclient at {0}'.format(_webclient_url))
         
         #authentification
-        _auth(_webclient_url, config)
+        _auth(config)
         
         resolveToolVersion(config, benchmark)    
             
@@ -137,9 +137,9 @@ def execute_benchmark(benchmark, output_handler):
                 continue
 
             output_handler.output_before_run_set(runSet)
-            runIDs = _submitRunsParallel(runSet, _webclient_url, benchmark)
+            runIDs = _submitRunsParallel(runSet, benchmark)
 
-            _getResults(runIDs, output_handler, _webclient_url, benchmark)
+            _getResults(runIDs, output_handler, benchmark)
             output_handler.output_after_run_set(runSet)
 
     except KeyboardInterrupt as e:
@@ -173,7 +173,7 @@ def _stop_run(runId):
         logging.debug('Could not submit run {0}: {1}. {2}'.\
             format(runId, e, message))            
         
-def _submitRunsParallel(runSet, webclient, benchmark):
+def _submitRunsParallel(runSet, benchmark):
 
     logging.info('Submitting runs')
 
@@ -181,7 +181,7 @@ def _submitRunsParallel(runSet, webclient, benchmark):
     submissonCounter = 1
     #submit to executor
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
-    runIDsFutures = {executor.submit(_submitRun, run, webclient, benchmark): run for run in runSet.runs}
+    runIDsFutures = {executor.submit(_submitRun, run, benchmark): run for run in runSet.runs}
     executor.shutdown(wait=False)
 
     #collect results to executor
@@ -215,7 +215,7 @@ def _submitRunsParallel(runSet, webclient, benchmark):
 
     return runIDs
 
-def _submitRun(run, webclient, benchmark, counter = 0):
+def _submitRun(run, benchmark, counter = 0):
     programTexts = []
     for programPath in run.sourcefiles:
         with open(programPath, 'r') as programFile:
@@ -251,7 +251,7 @@ def _submitRun(run, webclient, benchmark, counter = 0):
                "Content-Encoding": "deflate",
                "Accept": "text/plain"}
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
-    request = urllib2.Request(webclient + "runs/", paramsCompressed, headers)
+    request = urllib2.Request(_webclient_url + "runs/", paramsCompressed, headers)
 
     # send request
     try:
@@ -259,8 +259,8 @@ def _submitRun(run, webclient, benchmark, counter = 0):
 
     except urllib2.HTTPError as e:
         if (e.code == 401 and counter < 3):
-            _auth(webclient, benchmark.config)
-            return _submitRun(run, webclient, benchmark, counter + 1)
+            _auth(benchmark.config)
+            return _submitRun(run, benchmark, counter + 1)
         else:
             raise e
 
@@ -336,26 +336,26 @@ def _handleOptions(run, params, rlimits):
     params['option'] = options
     return False
 
-def _getResults(runIDs, output_handler, webclient, benchmark):
+def _getResults(runIDs, output_handler, benchmark):
     while len(runIDs) > 0 :
         finishedRunIDs = []
         for runID in runIDs.keys():
-            if _isFinished(runID, webclient, benchmark):
-                if(_getAndHandleResult(runID, runIDs[runID], output_handler, webclient, benchmark)):
+            if _isFinished(runID, benchmark):
+                if(_getAndHandleResult(runID, runIDs[runID], output_handler, benchmark)):
                     finishedRunIDs.append(runID)
 
         for runID in finishedRunIDs:
             del runIDs[runID]
 
-def _isFinished(runID, webclient, benchmark):
+def _isFinished(runID, benchmark):
 
     headers = {"Accept": "text/plain"}
-    request = urllib2.Request(webclient + "runs/" + runID + "/state", headers=headers)
+    request = urllib2.Request(_webclient_url + "runs/" + runID + "/state", headers=headers)
     try:
         response = urllib2.urlopen(request)
     except urllib2.HTTPError as e:
         logging.info('Could get result of run with id {0}: {1}'.format(runID, e))
-        _auth(webclient, benchmark.config)
+        _auth(benchmark.config)
         sleep(10)
         return False
 
@@ -380,18 +380,18 @@ def _isFinished(runID, webclient, benchmark):
 
         return False
 
-def _getAndHandleResult(runID, run, output_handler, webclient, benchmark):
+def _getAndHandleResult(runID, run, output_handler, benchmark):
     # download result as zip file
     counter = 0
     success = False
     while (not success and counter < 10):
         counter += 1
-        request = urllib2.Request(webclient + "runs/" + runID + "/result")
+        request = urllib2.Request(_webclient_url + "runs/" + runID + "/result")
         try:
             response = urllib2.urlopen(request)
         except urllib2.HTTPError as e:
             logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
-            _auth(webclient, benchmark.config)
+            _auth(_webclient_url, benchmark.config)
             sleep(10)
             return False
 
@@ -515,7 +515,7 @@ def _parseFile(file):
 
     return values
 
-def _auth(webclient, config):
+def _auth(config):
     if config.cloudUser:
         tokens = config.cloudUser.split(':')
         if not len(tokens) == 2:
@@ -525,7 +525,7 @@ def _auth(webclient, config):
         password = tokens[1]
         auth_handler = urllib2.HTTPBasicAuthHandler(urllib2.HTTPPasswordMgrWithDefaultRealm())
         auth_handler.add_password(realm=None,\
-                        uri=webclient,\
+                        uri=_webclient_url,\
                         user=username,\
                         passwd=password)
         opener = urllib2.build_opener(auth_handler)
