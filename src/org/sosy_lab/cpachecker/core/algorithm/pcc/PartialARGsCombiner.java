@@ -103,22 +103,23 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
     checkArgument(pReachedSet instanceof ForwardingReachedSet, "PartialARGsCombiner needs ForwardingReachedSet");
 
     HistoryForwardingReachedSet reached = new HistoryForwardingReachedSet(pReachedSet);
 
     logger.log(Level.INFO, "Start inner algorithm to analyze program(s)");
-    boolean sound = false;
+    AlgorithmStatus status = AlgorithmStatus.ofPrecise(false);
+
     stats.analysisTime.start();
     try {
-      sound = restartAlgorithm.run(reached);
+      status = restartAlgorithm.run(reached);
     } finally {
       stats.analysisTime.stop();
     }
 
-    if (sound) {
+    if (status.isSound()) {
       shutdown.shutdownIfNecessary();
 
       logger.log(Level.INFO, "Program(s) soundly analyzed, start combining ARGs.");
@@ -132,13 +133,13 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           if (usedReachedSets.size() == 1) {
             ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
           }
-          return true;
+          return status;
         }
 
         if (from(reached.getDelegate()).anyMatch((IS_TARGET_STATE))) {
           logger.log(Level.INFO, "Error found, do not combine ARGs.");
           ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
-          return false;
+          return status;
         }
 
         logger.log(Level.FINE, "Extract root nodes of ARGs");
@@ -163,7 +164,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
         if (!combineARGs(rootNodes, (ForwardingReachedSet) pReachedSet)) {
           logger.log(Level.SEVERE, "Combination of ARGs failed.");
-          return false;
+          return status.updateSoundness(false);
         }
       } finally {
         stats.argCombineTime.stop();
@@ -178,10 +179,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       if (reached.getDelegate() != pReachedSet) {
         ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
       }
-      return false;
+      return status.updateSoundness(false);
     }
 
-    return true;
+    return status.updateSoundness(true);
   }
 
   private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReachedSet)

@@ -45,11 +45,11 @@ public class RestrictedProgramDomainAlgorithm implements Algorithm {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
     if (cfa.getVarClassification().isPresent()) {
       if (cfa.getVarClassification().get().hasRelevantNonIntAddVars()) {
-        return false;
+        return AlgorithmStatus.ofPrecise(false);
       }
     }
 

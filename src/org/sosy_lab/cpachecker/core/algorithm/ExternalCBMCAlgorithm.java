@@ -85,7 +85,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     assert pReachedSet.isEmpty();
 
     // run CBMC
@@ -102,7 +102,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
     } catch (TimeoutException e) {
       logger.log(Level.INFO, "CBMC Algorithm timed out.");
-      return false;
+      return AlgorithmStatus.ofPrecise(false);
 
     } finally {
       stats.cbmcTime.stop();
@@ -113,7 +113,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       // exit code and stderr are already logged with level WARNING
       // throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
       logger.log(Level.INFO, "CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
-      return false;
+      return AlgorithmStatus.ofPrecise(false);
     }
 
     // ERROR is REACHED
@@ -121,7 +121,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       // if this is unwinding assertions violation the analysis result is UNKNOWN
       if (cbmc.didUnwindingAssertionFail()) {
         logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
-        return false;
+        return AlgorithmStatus.ofPrecise(false);
       } else {
         pReachedSet.add(new DummyErrorState(), SingletonPrecision.getInstance());
         assert pReachedSet.size() == 1 && pReachedSet.hasWaitingState();
@@ -132,7 +132,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    return true;
+    return AlgorithmStatus.ofPrecise(true);
   }
 
   private List<String> buildCBMCArguments(String fileName) {

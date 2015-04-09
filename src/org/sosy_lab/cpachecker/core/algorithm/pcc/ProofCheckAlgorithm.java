@@ -120,12 +120,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Proof check algorithm started.");
     stats.totalTimer.start();
 
-    boolean result = false;
+    boolean result;
     result = checkingStrategy.checkCertificate(reachedSet);
 
     stats.totalTimer.stop();
@@ -135,7 +135,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       reachedSet.add(new DummyErrorState(reachedSet.getFirstState()), SingletonPrecision.getInstance());
     }
 
-    return result;
+    return AlgorithmStatus.ofPrecise(result);
   }
 
   @Override

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
@@ -224,7 +225,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     return true;
   }
 
-  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     CFANode initialLocation = extractLocation(reachedSet.getFirstState());
     invariantGenerator.start(initialLocation);
 
@@ -241,10 +242,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         for (AbstractState state : from(reachedSet.getWaitlist()).toList()) {
           reachedSet.removeOnlyFromWaitlist(state);
         }
-        return true;
+        return AlgorithmStatus.SOUND_AND_COMPLETE;
       }
 
-      boolean soundInner;
+      AlgorithmStatus status;
 
       try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration();
           @SuppressWarnings("resource")
@@ -254,14 +255,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           shutdownNotifier.shutdownIfNecessary();
 
           logger.log(Level.INFO, "Creating formula for program");
-          soundInner = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+          status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
           if (from(reachedSet)
               .skip(1) // first state of reached is always an abstraction state, so skip it
               .transform(toState(PredicateAbstractState.class))
               .anyMatch(FILTER_ABSTRACTION_STATES)) {
 
             logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
-            return soundInner;
+            return status;
           }
 
           // Perform a bounded model check on each candidate invariant
@@ -277,14 +278,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           }
           if (candidateInvariants.isEmpty()) {
             // no remaining invariants to be proven
-            return soundInner;
+            return status;
           }
 
           // second check soundness
-          boolean sound = false;
+          boolean sound;
 
           // verify soundness, but don't bother if we are unsound anyway or we have found a bug
-          if (soundInner) {
+          if (status.isSound()) {
 
             // check bounding assertions
             sound = checkBoundingAssertions(reachedSet, prover);
@@ -296,14 +297,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
               candidateInvariants.removeAll(kInductionProver.getConfirmedCandidates());
             }
             if (sound) {
-              return true;
+              return AlgorithmStatus.SOUND_AND_COMPLETE;
             }
           }
         }
-        while (soundInner && adjustConditions());
+        while (status.isSound() && adjustConditions());
       }
 
-      return false;
+      return AlgorithmStatus.ofPrecise(false);
     } finally {
     }
   }

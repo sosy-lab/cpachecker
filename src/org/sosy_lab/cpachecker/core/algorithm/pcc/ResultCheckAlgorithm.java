@@ -90,20 +90,20 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    boolean result = false;
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.ofPrecise(false);
 
     logger.log(Level.INFO, "Start analysis.");
 
     try {
       stats.analysisTimer.start();
-      result = analysisAlgorithm.run(pReachedSet);
+      status = analysisAlgorithm.run(pReachedSet);
     } finally {
       stats.analysisTimer.stop();
       logger.log(Level.INFO, "Analysis stopped.");
     }
 
-    if (result && pReachedSet.getWaitlist().size() == 0) {
+    if (status.isSound() && pReachedSet.getWaitlist().size() == 0) {
       logger.log(Level.INFO, "Analysis successful.", "Start checking analysis result");
       try {
         stats.checkTimer.start();
@@ -112,20 +112,20 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSet reached = factory.createReachedSet();
         reached.add(cpa.getInitialState(analyzedProgram.getMainFunction(), StateSpacePartition.getDefaultPartition()),
             cpa.getInitialPrecision(analyzedProgram.getMainFunction(), StateSpacePartition.getDefaultPartition()));
-        result = checker.run(reached);
+        status = checker.run(reached);
       } catch (InvalidConfigurationException e) {
-        result = false;
+        status = status.updateSoundness(false);
       } catch (InterruptedException e1) {
         logger.log(Level.INFO, "Timed out. Checking incomplete.");
-        return false;
+        return status.updateSoundness(false);
       } finally {
         stats.checkTimer.stop();
         logger.log(Level.INFO, "Stop checking analysis result.");
       }
 
-      if (result) {
+      if (status.isSound()) {
         logger.log(Level.INFO, "Analysis result checked successfully.");
-        return true;
+        return status;
       }
       logger.log(Level.INFO, "Analysis result could not be checked.");
 
@@ -133,7 +133,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.WARNING, "Analysis incomplete.");
     }
 
-    return false;
+    return status;
   }
 
   @Override

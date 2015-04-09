@@ -142,7 +142,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
     startupConfig.getShutdownNotifier().shutdownIfNecessary();
     stats.getTotalTimer().start();
@@ -187,7 +187,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER, "Identified error path.");
           if (stopOnError) {
             stats.getTotalTimer().stop();
-            return true;
+            return AlgorithmStatus.ofPrecise(true);
           }
         }
       }
@@ -204,7 +204,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
          * If we didn't find an error, the program is safe and sound, in the sense of a concolic test.
          */
         stats.getTotalTimer().stop();
-        return true;
+        return AlgorithmStatus.ofPrecise(true);
       }
 
       /*

@@ -120,15 +120,17 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
 
     logger.log(Level.INFO, " Start analysing to compute requirements.");
 
+    AlgorithmStatus status = analysis.run(pReachedSet);
+
     // analysis was unsound
-    if (!analysis.run(pReachedSet)) {
+    if (status.isSound()) {
       logger.log(Level.SEVERE, "Do not extract requirements since analysis failed.");
-      return false;
+      return status;
     }
 
     shutdownNotifier.shutdownIfNecessary();
@@ -140,18 +142,17 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
                   .parse(appliedCustomInstructionsDefinition));
     } catch (FileNotFoundException ex) {
       logger.log(Level.SEVERE, "The file '" + appliedCustomInstructionsDefinition + "' was not found", ex);
-      return false;
+      return status.updateSoundness(false);
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Parsing the file '" + appliedCustomInstructionsDefinition + "' failed.", e);
-      return false;
+      return status.updateSoundness(false);
     }
 
     shutdownNotifier.shutdownIfNecessary();
     logger.log(Level.INFO, "Start extracting requirements for applied custom instructions");
 
     extractRequirements((ARGState)pReachedSet.getFirstState(), aci);
-
-    return true;
+    return status;
   }
 
   /**

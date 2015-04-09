@@ -133,6 +133,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             name="forcedCovering")
     @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
     private Class<? extends ForcedCovering> forcedCoveringClass = null;
+
+    @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "
+        + " Useful for incomplete analysis with no counterexample checking.")
+    private boolean reportFalseAsUnknown = false;
+
     private final ForcedCovering forcedCovering;
 
     private final ConfigurableProgramAnalysis cpa;
@@ -161,7 +166,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     public CPAAlgorithm newInstance() {
-      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, iterationListener);
+      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, iterationListener, reportFalseAsUnknown);
     }
   }
 
@@ -191,20 +196,24 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final AlgorithmIterationListener  iterationListener;
 
+  private final boolean isImprecise;
+
   private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
-      AlgorithmIterationListener pIterationListener) {
+      AlgorithmIterationListener pIterationListener,
+      boolean pIsImprecise) {
 
     this.cpa = cpa;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
     this.forcedCovering = pForcedCovering;
     this.iterationListener = pIterationListener;
+    isImprecise = pIsImprecise;
   }
 
   @Override
-  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     stats.totalTimer.start();
     try {
       return run0(reachedSet);
@@ -220,7 +229,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  private AlgorithmStatus run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
@@ -334,7 +343,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               reachedSet.reAddToWaitlist(state);
             }
 
-            return true;
+            return new AlgorithmStatus(!isImprecise, true);
           }
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
@@ -406,7 +415,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         iterationListener.afterAlgorithmIteration(this, reachedSet);
       }
     }
-    return true;
+    return new AlgorithmStatus(!isImprecise, true);
   }
 
   @Override

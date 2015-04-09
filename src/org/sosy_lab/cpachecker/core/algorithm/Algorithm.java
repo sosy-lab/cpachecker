@@ -37,5 +37,41 @@ public interface Algorithm {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean run(ReachedSet reachedSet) throws CPAException, InterruptedException, PredicatedAnalysisPropertyViolationException;
+  AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException, PredicatedAnalysisPropertyViolationException;
+
+
+  class AlgorithmStatus {
+    private final boolean isPrecise;
+    private final boolean isSound;
+
+    public static final AlgorithmStatus SOUND_AND_COMPLETE = new AlgorithmStatus(true, true);
+
+    public AlgorithmStatus(boolean pIsPrecise, boolean pIsSound) {
+      isPrecise = pIsPrecise;
+      isSound = pIsSound;
+    }
+
+    public AlgorithmStatus update(AlgorithmStatus other) {
+      return new AlgorithmStatus(
+          isPrecise && other.isPrecise,
+          isSound && other.isSound
+      );
+    }
+
+    public AlgorithmStatus updateSoundness(boolean pIsSound) {
+      return new AlgorithmStatus(isPrecise, pIsSound);
+    }
+
+    public static AlgorithmStatus ofPrecise(boolean isSound) {
+      return new AlgorithmStatus(true, isSound);
+    }
+
+    public boolean isSound() {
+      return isSound;
+    }
+
+    public boolean isPrecise() {
+      return isPrecise;
+    }
+  }
 }

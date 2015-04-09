@@ -124,16 +124,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean isComplete = true;
-    boolean restartCPA = false;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_COMPLETE;
+    boolean restartCPA;
 
     // loop if restartCPA is set to false
     do {
       restartCPA = false;
       try {
         // run the inner algorithm to fill the reached set
-        isComplete &= innerAlgorithm.run(reached);
+        status = status.update(innerAlgorithm.run(reached));
 
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
@@ -169,7 +169,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         errorState.removeFromARG();
 
         restartCPA = true;
-        isComplete = false;
+        status = status.updateSoundness(false);
 
         // TODO: handle CounterexampleAnalysisFailed similar to RefinementFailedException
         // TODO: handle other kinds of CPAException?
@@ -180,7 +180,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     } while (restartCPA);
 
-    return isComplete;
+    return status;
   }
 
   private AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {

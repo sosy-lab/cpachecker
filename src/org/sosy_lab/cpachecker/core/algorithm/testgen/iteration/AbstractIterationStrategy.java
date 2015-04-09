@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.iteration;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -69,12 +70,12 @@ public abstract class AbstractIterationStrategy implements TestGenIterationStrat
   }
 
   @Override
-  public boolean runAlgorithm() throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
+  public AlgorithmStatus runAlgorithm() throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
     stats.beforeCpaAlgortihm();
-    boolean ret = model.getAlgorithm().run(model.getLocalReached());
+    AlgorithmStatus status = model.getAlgorithm().run(model.getLocalReached());
     stats.afterCpaAlgortihm(model.getAlgorithm());
     updateReached();
-    return ret;
+    return status;
   }
 
   @Override
