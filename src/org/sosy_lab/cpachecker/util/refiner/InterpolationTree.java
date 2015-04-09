@@ -441,6 +441,14 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     return interpolants.get(currentState);
   }
 
+  public Collection<ARGState> getSuccessors(final ARGState pState) {
+    return successorRelation.get(pState);
+  }
+
+  public ARGState getPredecessor(final ARGState pState) {
+    return predecessorRelation.get(pState);
+  }
+
   private interface InterpolationStrategy<S extends AbstractState, I extends Interpolant<S>> {
 
     public ARGPath getNextPathForInterpolation();

@@ -51,7 +51,6 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
   private ValueAnalysisInterpolant valueInterpolant;
   private ConstraintsInformation constraintsInformation;
 
-
   private SymbolicInterpolant() {
     valueInterpolant = ValueAnalysisInterpolant.createInitial();
     constraintsInformation = ConstraintsInformation.EMPTY;
@@ -88,13 +87,20 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
 
   @Override
   public int getSize() {
-
     return valueInterpolant == null ? 0 : valueInterpolant.getSize();
+  }
+
+  public int getConstraintsSize() {
+    return constraintsInformation.getConstraints().size();
   }
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
     return valueInterpolant.getMemoryLocations();
+  }
+
+  public Set<Constraint> getConstraints() {
+    return constraintsInformation.getConstraints();
   }
 
   @Override

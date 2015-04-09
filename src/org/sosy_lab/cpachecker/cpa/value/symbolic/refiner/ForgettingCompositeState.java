@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
 import org.sosy_lab.cpachecker.util.refiner.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -37,7 +39,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * that allows to remove and re-add values.
  */
 public class ForgettingCompositeState
-    implements ForgetfulState<ForgettingCompositeState.MemoryLocationAssociation> {
+    implements ForgetfulState<ValueAnalysisInformation> {
 
   private final ValueAnalysisState values;
   private final ConstraintsState constraints;
@@ -70,39 +72,35 @@ public class ForgettingCompositeState
   }
 
   @Override
-  public MemoryLocationAssociation forget(final MemoryLocation pLocation) {
-    final ValueAnalysisInformation forgottenInformation = values.forget(pLocation);
+  public ValueAnalysisInformation forget(final MemoryLocation pLocation) {
+    return values.forget(pLocation);
+  }
 
-    ConstraintsInformation forgottenConstraints;
+  public void forget(final Constraint pConstraint) {
+    assert constraints.contains(pConstraint);
+    constraints.remove(pConstraint);
+  }
 
-    /*if (forgottenValue instanceof SymbolicExpression) {
-      forgottenConstraints = constraints.forget((SymbolicExpression) forgottenValue);
-    } else {*/
-
-    forgottenConstraints = ConstraintsInformation.EMPTY;
-    //}
-
-    return new MemoryLocationAssociation(pLocation,
-                                         forgottenInformation,
-                                         forgottenConstraints);
+  public void remember(final Constraint pConstraint) {
+    constraints.add(pConstraint);
   }
 
   @Override
   public void remember(
       final MemoryLocation pLocation,
-      final MemoryLocationAssociation pValueAndConstraints
+      final ValueAnalysisInformation pValueInformation
   ) {
-    final ValueAnalysisInformation valueInfoToRemember = pValueAndConstraints.getValue();
 
-    values.remember(pLocation, valueInfoToRemember);
-    // don't remember anything as long as we don't remove anything
-    // final ConstraintsInformation constraintsToAdd = pValueAndConstraints.getConstraints();
-    // constraints.remember(pLocation, constraintsToAdd);
+    values.remember(pLocation, pValueInformation);
   }
 
   @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     return values.getConstantsMapView().keySet();
+  }
+
+  public Set<Constraint> getTrackedConstraints() {
+    return new HashSet<>(constraints);
   }
 
   /**
@@ -111,6 +109,13 @@ public class ForgettingCompositeState
   @Override
   public int getSize() {
     return values.getSize();
+  }
+
+  /**
+   * Returns the size of the wrapped {@link ConstraintsState}.
+   */
+  public int getConstraintsSize() {
+    return constraints.size();
   }
 
   @Override
@@ -147,41 +152,5 @@ public class ForgettingCompositeState
         values +
         ", " + constraints +
         ']';
-  }
-
-  /**
-   * This class contains a {@link MemoryLocation} and all values of a ValueAnalysisState
-   * and all constraints of a ConstraintsState that are associated with it.
-   */
-  public static class MemoryLocationAssociation {
-    private final MemoryLocation location;
-    private final ValueAnalysisInformation values;
-
-    private final ConstraintsInformation constraints;
-
-    /**
-     * Creates a new <code>MemoryLocationAssociation</code> of the given parameters.
-     */
-    public MemoryLocationAssociation(
-        final MemoryLocation pLocation,
-        final ValueAnalysisInformation pValues,
-        final ConstraintsInformation pConstraints
-    ) {
-      location = pLocation;
-      values = pValues;
-      constraints = pConstraints;
-    }
-
-    public MemoryLocation getLocation() {
-      return location;
-    }
-
-    public ValueAnalysisInformation getValue() {
-     return values;
-    }
-
-    public ConstraintsInformation getConstraints() {
-      return constraints;
-    }
   }
 }

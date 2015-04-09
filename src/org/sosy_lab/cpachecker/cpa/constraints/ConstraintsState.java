@@ -195,14 +195,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     return changed;
   }
 
-  public void remember(
-      final MemoryLocation pLocation,
-      final ConstraintsInformation pForgottenInformation
-  ) {
-    constraints.addAll(pForgottenInformation.getConstraints());
-    definiteAssignment.putAll(pForgottenInformation.getAssignments());
-  }
-
   @Override
   public boolean containsAll(Collection<?> pCollection) {
     return constraints.containsAll(pCollection);

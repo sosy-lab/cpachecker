@@ -29,34 +29,35 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
+import org.sosy_lab.cpachecker.util.refiner.EdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
+import org.sosy_lab.cpachecker.util.refiner.InterpolantManager;
+import org.sosy_lab.cpachecker.util.refiner.PathInterpolator;
 
 /**
- * Path interpolator for symbolic value analysis.
+ * {@link PathInterpolator} for
+ * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
+ * Allows creation of {@link SymbolicInterpolant SymbolicInterpolants}.
  */
 @Options(prefix="cpa.value.refinement")
 public class SymbolicPathInterpolator
-    extends GenericPathInterpolator<ForgettingCompositeState, ForgettingCompositeState.MemoryLocationAssociation, SymbolicInterpolant> {
+    extends GenericPathInterpolator<ForgettingCompositeState, SymbolicInterpolant> {
 
   public SymbolicPathInterpolator(
-      SymbolicEdgeInterpolator pEdgeInterpolator,
-      SymbolicInterpolantManager pInterpolantManager,
-      SymbolicFeasibilityChecker pFeasibilityChecker,
-      ErrorPathClassifier pPathClassifier,
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCfa
+      final EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> pEdgeInterpolator,
+      final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant> pInterpolantManager,
+      final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
+      final ErrorPathClassifier pPathClassifier,
+      final Configuration pConfig, LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pEdgeInterpolator,
-          pInterpolantManager,
-          pFeasibilityChecker,
-          pPathClassifier,
-          pConfig, pLogger,
-          pShutdownNotifier, pCfa);
+    super(pEdgeInterpolator, pInterpolantManager, pFeasibilityChecker, pPathClassifier, pConfig,
+        pLogger, pShutdownNotifier, pCfa);
   }
 }

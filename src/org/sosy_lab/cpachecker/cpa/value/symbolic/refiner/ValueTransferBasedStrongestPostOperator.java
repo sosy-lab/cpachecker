@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
@@ -82,6 +83,7 @@ public class ValueTransferBasedStrongestPostOperator
     ValueAnalysisState oldValues = getValueStateOfCompositeState(pOrigin);
     ConstraintsState oldConstraints = getConstraintsStateOfCompositeState(pOrigin);
 
+
     assert oldValues != null && oldConstraints != null;
 
     final Collection<ValueAnalysisState> successors =
@@ -94,7 +96,7 @@ public class ValueTransferBasedStrongestPostOperator
       final ValueAnalysisState onlyValueState = Iterables.getOnlyElement(successors);
 
       Optional<ConstraintsState> nextConstraints =
-          getConstraintsStateSuccessor(oldConstraints, onlyValueState, pPrecision, pOperation);
+          getConstraintsStateSuccessor(oldConstraints, onlyValueState, pOperation);
 
       if (!nextConstraints.isPresent()) {
         return Optional.absent();
@@ -186,7 +188,6 @@ public class ValueTransferBasedStrongestPostOperator
   private Optional<ConstraintsState> getConstraintsStateSuccessor(
       final ConstraintsState pConstraintsState,
       final ValueAnalysisState pValueState,
-      final Precision pPrecision,
       final CFAEdge pOperation
   ) throws CPATransferException {
 
@@ -194,7 +195,7 @@ public class ValueTransferBasedStrongestPostOperator
         constraintsTransfer.strengthen(pConstraintsState,
                                        ImmutableList.<AbstractState>of(pValueState),
                                        pOperation,
-                                       pPrecision);
+                                       SingletonPrecision.getInstance());
 
     if (successors == null) {
       // nothing changed

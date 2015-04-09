@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -32,8 +34,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,14 +43,18 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 /**
  * Configurable Program Analysis that tracks constraints for analysis.
  */
-public class ConstraintsCPA implements ConfigurableProgramAnalysis {
+public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private final LogManager logger;
 
@@ -58,6 +62,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis {
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
+  private ConstraintsPrecisionAdjustment precisionAdjustment;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ConstraintsCPA.class);
@@ -71,6 +76,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis {
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
     transferRelation = new ConstraintsTransferRelation(pCfa.getMachineModel(), logger, pConfig, pShutdownNotifier);
+    precisionAdjustment = new ConstraintsPrecisionAdjustment();
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -103,7 +109,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return precisionAdjustment;
   }
 
   @Override
@@ -113,6 +119,11 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFANode node, StateSpacePartition partition) {
-    return SingletonPrecision.getInstance();
+    return ConstraintsPrecision.EMPTY;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    precisionAdjustment.collectStatistics(statsCollection);
   }
 }

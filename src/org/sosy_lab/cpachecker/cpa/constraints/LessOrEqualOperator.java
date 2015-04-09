@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsOnlyView;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -38,9 +39,12 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * Less-or-equal operator of the semi-lattice of the {@link ConstraintsCPA}.
- * Allows to check whether one {@link ConstraintsState} is less or equal another one.
+ * Allows to check whether one {@link ConstraintsState} is less or equal another one
+ * and whether two constraints represent the same meaning.
  *
  * <p>Constraints state <code>c</code> is less or equal <code>c'</code> if a bijective mapping
  * <code>d: SymbolicIdentifier -> SymbolicIdentifier</code> exists so that for each constraint
@@ -59,6 +63,27 @@ public class LessOrEqualOperator {
 
   public static LessOrEqualOperator getInstance() {
     return SINGLETON;
+  }
+
+  /**
+   * Returns whether the given constraints are equal in their meaning.
+   * This is the case if two constraints are completely equal but in respect to the
+   * symbolic identifiers they contain.
+   *
+   * <p>Example: <code>s1 < 5</code> is equal to <code>s2 < 5</code> in respect to its meaning
+   * with <code>s1</code> and <code>s2</code> being symbolic identifiers.</p>
+   *
+   * @param pConstraint1 the first constraint
+   * @param pConstraint2 the second constraint
+   * @return <code>true</code> if both given constraints represent the same meaning
+   */
+  public boolean haveEqualMeaning(
+      final Constraint pConstraint1,
+      final Constraint pConstraint2
+  ) {
+    Set<Environment> aliases = getPossibleAliases(ImmutableSet.of(pConstraint1),
+        ImmutableSet.of(pConstraint2));
+    return !aliases.isEmpty();
   }
 
   /**

@@ -23,38 +23,67 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionIncrement;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.GenericRefiner;
+import org.sosy_lab.cpachecker.util.refiner.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refiner.PathExtractor;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 /**
  * Refiner for value analysis using symbolic values.
  */
 @Options(prefix = "cpa.value.refinement")
 public class SymbolicValueAnalysisRefiner
-    extends GenericRefiner<ForgettingCompositeState, ForgettingCompositeState.MemoryLocationAssociation, SymbolicInterpolant> {
+    extends GenericRefiner<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> {
+
+  @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
+  private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   private final ValueAnalysisRefiner explicitOnlyRefiner;
-
-  private final LogManager logger;
 
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -84,25 +113,27 @@ public class SymbolicValueAnalysisRefiner
     final ErrorPathClassifier errorPathClassifier =
         new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
 
-    final  SymbolicEdgeInterpolator edgeInterpolator =
-        new SymbolicEdgeInterpolator(strongestPostOperator,
-                                     feasibilityChecker,
-                                     SymbolicInterpolantManager.getInstance(),
-                                     config, logger, shutdownNotifier, cfa);
+    final SymbolicEdgeInterpolator edgeInterpolator =
+        new SymbolicEdgeInterpolator(feasibilityChecker,
+                                        strongestPostOperator,
+                                        SymbolicInterpolantManager.getInstance(),
+                                        config,
+                                        shutdownNotifier);
 
     final SymbolicPathInterpolator pathInterpolator =
         new SymbolicPathInterpolator(edgeInterpolator,
-                                     SymbolicInterpolantManager.getInstance(),
-                                     feasibilityChecker,
-                                     errorPathClassifier,
-                                     config,
-                                     logger,
-                                     shutdownNotifier,
-                                     cfa);
+                                    SymbolicInterpolantManager.getInstance(),
+                                    feasibilityChecker,
+                                    errorPathClassifier,
+                                    config,
+                                    logger,
+                                    shutdownNotifier,
+                                    cfa);
 
     SymbolicValueAnalysisRefiner refiner = new SymbolicValueAnalysisRefiner(
         feasibilityChecker,
         pathInterpolator,
+        new PathExtractor(logger),
         config,
         logger,
         shutdownNotifier,
@@ -115,6 +146,7 @@ public class SymbolicValueAnalysisRefiner
   protected SymbolicValueAnalysisRefiner(
       final SymbolicFeasibilityChecker pFeasibilityChecker,
       final SymbolicPathInterpolator pInterpolator,
+      final PathExtractor pPathExtractor,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -125,7 +157,7 @@ public class SymbolicValueAnalysisRefiner
     super(pFeasibilityChecker,
           pInterpolator,
           SymbolicInterpolantManager.getInstance(),
-          new PathExtractor(pLogger),
+          pPathExtractor,
           ValueAnalysisCPA.class,
           pConfig,
           pLogger,
@@ -133,9 +165,7 @@ public class SymbolicValueAnalysisRefiner
           pCfa);
 
     explicitOnlyRefiner = ValueAnalysisRefiner.create(pValueCpa);
-    logger = pLogger;
   }
-
 
   @Override
   public CounterexampleInfo performRefinement(
@@ -149,7 +179,17 @@ public class SymbolicValueAnalysisRefiner
       final CounterexampleInfo explicitOnlyCex = explicitOnlyRefiner.performRefinement(pReachedSet);
 
       if (!explicitOnlyCex.isSpurious()) {
-        return super.performRefinement(pReachedSet);
+        final CounterexampleInfo symbolicValueCex = super.performRefinement(pReachedSet);
+
+        // if the symbolic refiner reports a target state as feasible, we return the value
+        // analysis's counterexample. It might describe a path actually infeasible according to the
+        // symbolic value analysis, but we get a detailed counterexample, in exchange. (symbolic
+        // value analysis's counterexample has an empty model, at the moment)
+        if (!symbolicValueCex.isSpurious()) {
+          return explicitOnlyCex;
+        } else {
+          return symbolicValueCex;
+        }
 
       } else {
         return CounterexampleInfo.spurious();
@@ -160,8 +200,152 @@ public class SymbolicValueAnalysisRefiner
   }
 
   @Override
+  protected void refineUsingInterpolants(
+      final ARGReachedSet pReached,
+      final InterpolationTree<ForgettingCompositeState, SymbolicInterpolant> pInterpolants
+  ) {
+
+    Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
+
+    final Collection<ARGState> roots = pInterpolants.obtainRefinementRoots(restartStrategy);
+
+    for (ARGState r : roots) {
+      List<Precision> precisions = new ArrayList<>(2);
+
+      // merge the value precision of the subtree
+      Precision currPrec =
+          mergeValuePrecisionsForSubgraph(r, pReached)
+              .withIncrement(pInterpolants.extractPrecisionIncrement(r));
+
+      precisions.add(currPrec);
+
+      // merge the constraint precisions of the subtree
+      currPrec = mergeConstraintsPrecisionsForSubgraph(r, pReached)
+          .withIncrement(getConstraintsIncrement(r, pInterpolants));
+      precisions.add(currPrec);
+
+      refinementInformation.put(r, precisions);
+    }
+
+    for (Map.Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
+      List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
+
+      precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+      precisionTypes.add(Predicates.instanceOf(ConstraintsPrecision.class));
+
+      pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
+    }
+  }
+
+  private ConstraintsPrecisionIncrement getConstraintsIncrement(
+      final ARGState pRefinementRoot,
+      final InterpolationTree<ForgettingCompositeState, SymbolicInterpolant> pTree
+  ) {
+    ConstraintsPrecisionIncrement increment = new ConstraintsPrecisionIncrement();
+
+    Deque<ARGState> todo =
+        new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));
+
+    while (!todo.isEmpty()) {
+      final ARGState currentState = todo.removeFirst();
+
+      if (!currentState.isTarget()) {
+        SymbolicInterpolant itp = pTree.getInterpolantForState(currentState);
+
+        if (!itp.isTrivial()) {
+          for (Constraint c : itp.getConstraints()) {
+            increment.put(AbstractStates.extractLocation(currentState), c);
+          }
+        }
+      }
+
+      Collection<ARGState> successors = pTree.getSuccessors(currentState);
+      todo.addAll(successors);
+    }
+
+    return increment;
+  }
+
+  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+      final ARGState pRefinementRoot,
+      final ARGReachedSet pReached
+  ) {
+    // get all unique precisions from the subtree
+    Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
+
+    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+      uniquePrecisions.add(extractValuePrecision(pReached, descendant));
+    }
+
+    // join all unique precisions into a single precision
+    VariableTrackingPrecision mergedPrecision = Iterables.getLast(uniquePrecisions);
+    for (VariableTrackingPrecision precision : uniquePrecisions) {
+      mergedPrecision = mergedPrecision.join(precision);
+    }
+
+    return mergedPrecision;
+  }
+
+  private VariableTrackingPrecision extractValuePrecision(
+      final ARGReachedSet pReached,
+      final ARGState pState
+  ) {
+    return (VariableTrackingPrecision) Precisions
+        .asIterable(pReached.asReachedSet().getPrecision(pState))
+        .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+        .get(0);
+  }
+
+
+  private ConstraintsPrecision mergeConstraintsPrecisionsForSubgraph(
+      final ARGState pRefinementRoot,
+      final ARGReachedSet pReached
+  ) {
+    // get all unique precisions from the subtree
+    Set<ConstraintsPrecision> uniquePrecisions = Sets.newIdentityHashSet();
+
+    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+      uniquePrecisions.add(extractConstraintsPrecision(pReached, descendant));
+    }
+
+    // join all unique precisions into a single precision
+    ConstraintsPrecision mergedPrecision = Iterables.getLast(uniquePrecisions);
+    for (ConstraintsPrecision precision : uniquePrecisions) {
+      mergedPrecision = mergedPrecision.join(precision);
+    }
+
+    return mergedPrecision;
+  }
+
+  private ConstraintsPrecision extractConstraintsPrecision(
+      final ARGReachedSet pReached,
+      final ARGState pState
+  ) {
+    return (ConstraintsPrecision) Precisions
+        .asIterable(pReached.asReachedSet().getPrecision(pState))
+        .filter(Predicates.instanceOf(ConstraintsPrecision.class))
+        .get(0);
+  }
+
+  private Collection<ARGState> getNonCoveredStatesInSubgraph(final ARGState pRoot) {
+    Collection<ARGState> subgraph = new HashSet<>();
+    for (ARGState state : pRoot.getSubgraph()) {
+      if (!state.isCovered()) {
+        subgraph.add(state);
+      }
+    }
+    return subgraph;
+  }
+
+  @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
     explicitOnlyRefiner.collectStatistics(pStatsCollection);
     super.collectStatistics(pStatsCollection);
+  }
+
+  @Override
+  protected void printAdditionalStatistics(PrintStream out, Result pResult,
+      ReachedSet pReached) {
+    // DO NOTHING for now
   }
 }

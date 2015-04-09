@@ -23,33 +23,199 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import java.util.Deque;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
-import org.sosy_lab.cpachecker.util.refiner.GenericEdgeInterpolator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.refiner.EdgeInterpolator;
+import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refiner.InterpolantManager;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import com.google.common.base.Optional;
 
 /**
- * Edge interpolator for symbolic value analysis.
+ * Edge interpolator for
+ * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
+ * Creates {@link ConstraintsInterpolant ConstraintsInterpolants} based on a combination of
+ * {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and
+ * <code>ConstraintsCPA</code>.
  */
+@Options(prefix = "cpa.value.refinement")
 public class SymbolicEdgeInterpolator
-    extends GenericEdgeInterpolator<ForgettingCompositeState, ForgettingCompositeState.MemoryLocationAssociation, SymbolicInterpolant> {
+    implements EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> {
+
+  @Option(description = "Whether to refine the precision of ConstraintsCPA")
+  private boolean refineConstraintsCPA = true;
+
+  private final FeasibilityChecker<ForgettingCompositeState> checker;
+  private final StrongestPostOperator<ForgettingCompositeState> strongestPost;
+  private final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant>
+      interpolantManager;
+
+  private final ShutdownNotifier shutdownNotifier;
+  private Precision valuePrecision;
+
+  private int interpolationQueries = 0;
 
   public SymbolicEdgeInterpolator(
-      SymbolicStrongestPostOperator pStrongestPostOperator,
-      SymbolicFeasibilityChecker pFeasibilityChecker,
-      SymbolicInterpolantManager pInterpolantManager,
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCfa
+      final FeasibilityChecker<ForgettingCompositeState> pChecker,
+      final StrongestPostOperator<ForgettingCompositeState> pStrongestPost,
+      final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant> pInterpolantManager,
+      final Configuration pConfig,
+      final ShutdownNotifier pShutdownNotifier
   ) throws InvalidConfigurationException {
-    super(pStrongestPostOperator, pFeasibilityChecker, pInterpolantManager,
-        ForgettingCompositeState.getInitialState(),
-        ValueAnalysisCPA.class, pConfig, pLogger, pShutdownNotifier, pCfa);
+
+    pConfig.inject(this);
+
+    checker = pChecker;
+    strongestPost = pStrongestPost;
+    interpolantManager = pInterpolantManager;
+    shutdownNotifier = pShutdownNotifier;
+    valuePrecision = SingletonPrecision.getInstance();
+  }
+
+  @Override
+  public SymbolicInterpolant deriveInterpolant(
+      final ARGPath pErrorPath,
+      final CFAEdge pCurrentEdge,
+      final Deque<ForgettingCompositeState> pCallstack,
+      final int pLocationInPath,
+      final SymbolicInterpolant pInputInterpolant
+  ) throws CPAException {
+
+    interpolationQueries = 0;
+
+    ForgettingCompositeState originState = pInputInterpolant.reconstructState();
+    Optional<ForgettingCompositeState> maybeSuccessor =
+        strongestPost.getStrongestPost(originState, valuePrecision, pCurrentEdge);
+
+    if (!maybeSuccessor.isPresent()) {
+      return interpolantManager.getFalseInterpolant();
+    }
+
+    ForgettingCompositeState successorState = maybeSuccessor.get();
+
+    // if nothing changed we keep the same interpolant
+    if (originState.equals(successorState)) {
+      return pInputInterpolant;
+    }
+
+    ARGPath suffix = getSuffix(pErrorPath, pLocationInPath);
+
+    // if the suffix is contradicting by itself, the interpolant can be true
+    // (we can't use this as long as we want to keep all symbolic values in the precision)
+    if (!isPathFeasible(suffix, ForgettingCompositeState.getInitialState())) {
+      return interpolantManager.getTrueInterpolant();
+    }
+
+    try {
+      ForgettingCompositeState necessaryInfo = reduceToNecessaryState(successorState, suffix);
+
+      return interpolantManager.createInterpolant(necessaryInfo);
+
+    } catch (InterruptedException e) {
+      throw new CPAException("Interrupted while computing interpolant", e);
+    }
+  }
+
+  private ForgettingCompositeState reduceToNecessaryState(
+      final ForgettingCompositeState pSuccessorState,
+      final ARGPath pSuffix
+  ) throws CPAException, InterruptedException {
+
+    ForgettingCompositeState reducedState;
+
+    if (refineConstraintsCPA) {
+      reducedState =
+          reduceConstraintsToNecessaryState(pSuccessorState, pSuffix);
+
+    } else {
+      reducedState = pSuccessorState;
+    }
+
+    return reduceValuesToNecessaryState(reducedState, pSuffix);
+  }
+
+  private ForgettingCompositeState reduceConstraintsToNecessaryState(
+      final ForgettingCompositeState pSuccessorState,
+      final ARGPath pSuffix
+  ) throws CPAException, InterruptedException {
+
+    for (Constraint c : pSuccessorState.getTrackedConstraints()) {
+      shutdownNotifier.shutdownIfNecessary();
+      pSuccessorState.forget(c);
+
+      // if the suffix is feasible without the just removed constraint, it is necessary
+      // for proving the error path's infeasibility and as such we have to re-add it.
+      if (isPathFeasible(pSuffix, pSuccessorState)) {
+        pSuccessorState.remember(c);
+      }
+    }
+
+    return pSuccessorState;
+  }
+
+  private ForgettingCompositeState reduceValuesToNecessaryState(
+      final ForgettingCompositeState pSuccessorState,
+      final ARGPath pSuffix
+  ) throws CPAException, InterruptedException {
+
+    for (MemoryLocation l : pSuccessorState.getTrackedMemoryLocations()) {
+      shutdownNotifier.shutdownIfNecessary();
+
+      ValueAnalysisInformation forgottenInfo = pSuccessorState.forget(l);
+
+      // if the suffix is feasible without the just removed constraint, it is necessary
+      // for proving the error path's infeasibility and as such we have to re-add it.
+      //noinspection ConstantConditions
+      if (containsSymbolicValue(forgottenInfo) || isPathFeasible(pSuffix, pSuccessorState)) {
+        pSuccessorState.remember(l, forgottenInfo);
+      }
+    }
+
+    return pSuccessorState;
+  }
+
+  @SuppressWarnings("UnusedParameters")
+  private boolean containsSymbolicValue(ValueAnalysisInformation pForgottenInfo) {
+    /*for (Value v : pForgottenInfo.getAssignments().values()) {
+      if (v instanceof SymbolicValue) {
+        return true;
+      }
+    }*/
+
+    return false;
+  }
+
+  private ARGPath getSuffix(ARGPath pErrorPath, int pLocationInPath) {
+
+    return pErrorPath.obtainSuffix(pLocationInPath + 1);
+  }
+
+  private boolean isPathFeasible(
+      final ARGPath pRemainingErrorPath,
+      final ForgettingCompositeState pState
+  ) throws CPAException {
+    interpolationQueries++;
+    return checker.isFeasible(pRemainingErrorPath, pState);
+  }
+
+  @Override
+  public int getNumberOfInterpolationQueries() {
+    return interpolationQueries;
   }
 }
