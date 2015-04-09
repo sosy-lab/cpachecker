@@ -47,17 +47,17 @@ public class SymbolicExpressionTest {
   @Test
   public void testEquals_BinarySymbolicExpression() {
     AdditionExpression add1 = new AdditionExpression(CONSTANT_OP1,
-                                                     CONSTANT_OP2,
-                                                     PROMOTED_OP_TYPE,
-                                                     PROMOTED_OP_TYPE);
+        CONSTANT_OP2,
+        PROMOTED_OP_TYPE,
+        PROMOTED_OP_TYPE);
     AdditionExpression add2 = new AdditionExpression(CONSTANT_OP1,
-                                                     CONSTANT_OP2,
-                                                     PROMOTED_OP_TYPE,
-                                                     PROMOTED_OP_TYPE);
+        CONSTANT_OP2,
+        PROMOTED_OP_TYPE,
+        PROMOTED_OP_TYPE);
     SubtractionExpression sub1 = new SubtractionExpression(CONSTANT_OP1,
-                                                           CONSTANT_OP2,
-                                                           PROMOTED_OP_TYPE,
-                                                           PROMOTED_OP_TYPE);
+        CONSTANT_OP2,
+        PROMOTED_OP_TYPE,
+        PROMOTED_OP_TYPE);
 
     Assert.assertTrue(add1.equals(add2));
     Assert.assertFalse(add1.equals(sub1));

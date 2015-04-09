@@ -287,11 +287,19 @@ class FunctionScope extends AbstractScope {
 
     String labelName = label.getOrigName();
 
-    if (lookupLocalLabel(labelName) != null) {
+    if (containsLocalLabel(labelName)) {
       throw new CFAGenerationRuntimeException("Label " + labelName + " already in use");
     }
 
     labelsStack.peekLast().put(labelName, label);
+  }
+
+  public boolean containsLocalLabel(String labelName) {
+    return labelsStack.peekLast().containsKey(labelName);
+  }
+
+  public boolean containsLabelCFANode(CLabelNode node) {
+    return labelsNodeStack.peekLast().containsKey(node.getLabel());
   }
 
   public void addLabelCFANode(CLabelNode node) {

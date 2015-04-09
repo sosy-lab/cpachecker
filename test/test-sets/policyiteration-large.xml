@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="2000" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="150" hardtimelimit="200" memlimit="2000" cpuCores="1">
     <option name="-noout" />
 
     <option name="-policy"/>
@@ -15,6 +15,8 @@
         <sourcefiles>
             <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+            <includesfile>../programs/benchmarks/Simple.set</includesfile>
+            <includesfile>../programs/benchmarks/ECA.set</includesfile>
         </sourcefiles>
     </rundefinition>
 
@@ -25,8 +27,8 @@
 
         <column title="value determination time">Time spent in value determination</column>
         <column title="abstraction time">Time spent in abstraction</column>
-        <column title="SMT-satisfiability time">Time spent in checking satisfiability</column>
-        <column title="optimization">Time spent in optimization</column>
+        <column title="SMT-check">Time spent in checking bad states (SMT)</column>
+        <column title="optimization">Time spent in optimization (OPT-SMT)</column>
 
         <column title="SMT solving">Time spent in SMT solver</column>
         <column title="formula slicing">Time spent in checking inductiveness in formula slicing</column>

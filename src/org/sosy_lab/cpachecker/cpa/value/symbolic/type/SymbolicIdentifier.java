@@ -25,12 +25,15 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import com.google.common.base.Optional;
 
 /**
  * Identifier for basic symbolic values.
  * Symbolic identifiers are used to track equality between
  * variables that have non-deterministic values.
- *
+ * <p/>
  * <p>Example:
  * <pre>
  *    int a = nondet_int();
@@ -56,13 +59,21 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   // this objects unique id for identifying it
   private final long id;
 
+  private final Optional<MemoryLocation> representedLocation;
+
   public SymbolicIdentifier(long pId) {
     id = pId;
+    representedLocation = Optional.absent();
+  }
+
+  private SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
+    id = pId;
+    representedLocation = Optional.of(pRepresentedLocation);
   }
 
   /**
    * Returns a new instance of a <code>SymbolicIdentifier</code>.
-   *
+   * <p/>
    * <p>Each call to this method returns a new, unique <code>SymbolicIdentifier</code>.</p>
    *
    * @return a new instance of a <code>SymbolicIdentifier</code>
@@ -74,6 +85,16 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   @Override
   public <T> T accept(SymbolicValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);
+  }
+
+  @Override
+  public Optional<MemoryLocation> getRepresentedLocation() {
+    return representedLocation;
+  }
+
+  @Override
+  public SymbolicValue copyForLocation(MemoryLocation pLocation) {
+    return new SymbolicIdentifier(id, pLocation);
   }
 
   public long getId() {
@@ -152,13 +173,15 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
     /**
      * Converts a given {@link SymbolicIdentifier} to a String.
-     * The returned <code>String</code> contains all information necessary for uniquely identifying the given
+     * The returned <code>String</code> contains all information necessary for uniquely identifying
+     * the given
      * identifier.
-     *
-     *  <p>For a given identifier p, <code>convert(convert(p)) = p</code> is always true.
+     * <p/>
+     * <p>For a given identifier p, <code>convert(convert(p)) = p</code> is always true.
      *
      * @param pIdentifier the <code>SymbolicIdentifier</code> to convert to a string
-     * @return a <code>String</code> containing all information necessary for converting it to a identifier
+     * @return a <code>String</code> containing all information necessary for converting it to a
+     * identifier
      */
     public String convert(SymbolicIdentifier pIdentifier) {
       return PREFIX + pIdentifier.getId();
@@ -167,10 +190,11 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
     /**
      * Converts a given encoding of a {@link SymbolicIdentifier} to the corresponding
      * <code>SymbolicIdentifier</code>.
-     *
+     * <p/>
      * Only valid encodings, as produced by {@link #convert(SymbolicIdentifier)}, are allowed.
      *
-     * @param pIdentifierInformation a <code>String</code> encoding of a <code>SymbolicIdentifier</code>
+     * @param pIdentifierInformation a <code>String</code> encoding of a
+     * <code>SymbolicIdentifier</code>
      * @return the <code>SymbolicIdentifier</code> representing the given encoding
      */
     public SymbolicIdentifier convert(String pIdentifierInformation) {
@@ -182,8 +206,9 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      * Returns whether the given string is a valid encoding of a {@link SymbolicIdentifier}.
      *
      * @param pName the string to analyse
-     * @return <code>true</code> if the given string is a valid encoding of a <code>SymbolicIdentifier</code>,
-     *    <code>false</code> otherwise
+     * @return <code>true</code> if the given string is a valid encoding of a
+     * <code>SymbolicIdentifier</code>,
+     * <code>false</code> otherwise
      */
     public boolean isSymbolicEncoding(String pName) {
       return pName.matches(PREFIX + "[0-9]+");

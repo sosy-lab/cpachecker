@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -66,13 +67,18 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 @Options(prefix = "cpa.bam")
@@ -123,6 +129,9 @@ public class BAMTransferRelation implements TransferRelation {
   private final BAMCPA bamCPA;
   private final ProofChecker wrappedProofChecker;
 
+  // Callstack-CPA is used for additional recursion handling
+  private final CallstackTransferRelation callstackTransfer;
+
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private Map<Pair<ARGState, Block>, Collection<ARGState>> correctARGsForBlocks = null;
 
@@ -149,6 +158,7 @@ public class BAMTransferRelation implements TransferRelation {
     logger = pLogger;
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier, null);
     reachedSetFactory = pReachedSetFactory;
+    callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
     wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = bamCpa.getReducer();
     PCCInformation.instantiate(pConfig);
@@ -232,8 +242,45 @@ public class BAMTransferRelation implements TransferRelation {
 
     // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
     // if there are several leaving edges, the wrapped CPA should handle all of them.
-    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+
+    // The Callstack-CPA is not able to handle a recursion of the form f-g-f,
+    // because the operation Reduce splits it into f-g and g-f.
+    // Thus we check for recursion here and (if we do not handle recursion here)
+    // set a flag for the Callstack-CPA, such that it knows about the recursion.
+    final boolean foundRecursion = !handleRecursiveProcedures && isRecursiveCall(node);
+    if (foundRecursion) {
+      callstackTransfer.enableRecursiveContext();
+    }
+    final Collection<? extends AbstractState> result = wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+    if (foundRecursion) {
+      callstackTransfer.disableRecursiveContext();
+    }
+    return result;
   }
+
+
+  /**
+   * check if
+   * - the current node is before a function-block and
+   * - the block was entered before (and thus is part of the stack).
+   */
+  private boolean isRecursiveCall(final CFANode node) {
+    if (!partitioning.isCallNode(node)) {
+
+      // TODO Why filter for functionCallEdge?
+      // If only LoopBlocks are used, we can have recursive Loops, too.
+
+      for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
+        for (Block block : Lists.transform(stack, Triple.<Block>getProjectionToThird())) {
+          if (block.getCallNodes().contains(e.getSuccessor())) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
 
   private Collection<? extends AbstractState> doFixpointIterationForRecursion(
           final AbstractState pHeadOfMainFunctionState, final Precision pPrecision, final CFANode pHeadOfMainFunction)

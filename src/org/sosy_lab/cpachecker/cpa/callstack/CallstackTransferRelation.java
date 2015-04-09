@@ -74,6 +74,16 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       " Treat function call as a statement (the same as for functions without bodies)")
   protected boolean skipRecursion = false;
 
+  /**
+   * This flag might be set by external CPAs (e.g. BAM) to indicate
+   * a recursive context that might not be recognized by the CallstackCPA.
+   * (In case of BAM the operator Reduce splits an indirect recursive call f-g-f
+   * into two calls f-g and g-f, which are both non-recursive.)
+   * A function-call in a recursive context will be skipped,
+   * if the Option 'skipRecursion' is enabled.
+   */
+  private boolean isRecursiveContext = false;
+
   @Option(secure=true, description = "Skip recursion if it happens only by going via a function pointer (this is unsound)." +
       " Imprecise function pointer tracking often lead to false recursions.")
   protected boolean skipFunctionPointerRecursion = false;
@@ -244,7 +254,12 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
+  /** check, if the current function-call has already appeared in the call-stack. */
   protected boolean hasRecursion(final CallstackState pCurrentState, final String pCalledFunction) {
+    if (isRecursiveContext) { // external CPA has seen recursion
+      return true;
+    }
+    // iterate through the current stack and search for an equal name
     CallstackState e = pCurrentState;
     int counter = 0;
     while (e != null) {
@@ -323,5 +338,13 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     throw new AssertionError("Missing function call edge for function call summary edge");
+  }
+
+  public void enableRecursiveContext() {
+    isRecursiveContext = true;
+  }
+
+  public void disableRecursiveContext() {
+    isRecursiveContext = false;
   }
 }

@@ -8,14 +8,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 
 public final class PolicyAbstractedState extends PolicyState
@@ -37,7 +39,7 @@ public final class PolicyAbstractedState extends PolicyState
   private final int locationID;
 
   // the same version on nodes might be just good enough.
-  private static final Multiset<CFANode> updateCounter = HashMultiset.create();
+  private static final Multiset<Integer> updateCounter = HashMultiset.create();
 
   private PolicyAbstractedState(CFANode node,
       Set<Template> pTemplates,
@@ -46,7 +48,7 @@ public final class PolicyAbstractedState extends PolicyState
       int pLocationID) {
     super(pTemplates, node);
 
-    updateCounter.add(node);
+    updateCounter.add(pLocationID);
     abstraction = ImmutableMap.copyOf(pAbstraction);
     generatingState = pGeneratingState;
     locationID = pLocationID;
@@ -56,7 +58,7 @@ public final class PolicyAbstractedState extends PolicyState
     return locationID;
   }
 
-  public static ImmutableMultiset<CFANode> getUpdateCounter() {
+  public static ImmutableMultiset<Integer> getUpdateCounter() {
     return ImmutableMultiset.copyOf(updateCounter);
   }
 
