@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * {@link BinarySymbolicExpression} representing the 'binary or' operation.
@@ -35,6 +36,22 @@ public class BinaryOrExpression extends BinarySymbolicExpression {
   protected BinaryOrExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
+  }
+
+  protected BinaryOrExpression(
+      final SymbolicExpression pOperand1,
+      final SymbolicExpression pOperand2,
+      final Type pExpressionType,
+      final Type pCalculationType,
+      final MemoryLocation pRepresentedLocation
+  ) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
+  }
+
+  @Override
+  public BinaryOrExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
+    return new BinaryOrExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
+        pRepresentedLocation);
   }
 
   @Override

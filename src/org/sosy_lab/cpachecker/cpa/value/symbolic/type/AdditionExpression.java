@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * {@link BinarySymbolicExpression} representing addition.
@@ -35,6 +36,22 @@ public class AdditionExpression extends BinarySymbolicExpression {
   protected AdditionExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
       Type pExpressionType, Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
+  }
+
+  protected AdditionExpression(
+      final SymbolicExpression pOperand1,
+      final SymbolicExpression pOperand2,
+      final Type pExpressionType,
+      final Type pCalculationType,
+      final MemoryLocation pRepresentedLocation
+  ) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
+  }
+
+  @Override
+  public AdditionExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
+    return new AdditionExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
+        pRepresentedLocation);
   }
 
   @Override

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * {@link SymbolicExpression} that represents a pointer expression.
@@ -36,6 +37,19 @@ public class PointerExpression extends UnarySymbolicExpression {
 
   protected PointerExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
+  }
+
+  protected PointerExpression(
+      final SymbolicExpression pOperand,
+      final Type pType,
+      final MemoryLocation pRepresentedLocation
+  ) {
+    super(pOperand, pType, pRepresentedLocation);
+  }
+
+  @Override
+  public PointerExpression copyForLocation(MemoryLocation pRepresentedLocation) {
+    return new PointerExpression(getOperand(), getType(), pRepresentedLocation);
   }
 
   @Override

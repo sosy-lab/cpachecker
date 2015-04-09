@@ -27,6 +27,7 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * {@link SymbolicExpression} that represents a single constant value of a specific type.
@@ -47,6 +48,29 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   protected ConstantSymbolicExpression(Value pValue, Type pType) {
     value = pValue;
     type = pType;
+  }
+
+  /**
+   * Create a new <code>ConstantSymbolicExpression</code> object with the given value and type
+   * representing the given memory location.
+   *
+   * @param pValue the value of the new object
+   * @param pType the type of the value of the new object
+   * @param pRepresentedLocation the memory location this symbolic expression represents
+   */
+  protected ConstantSymbolicExpression(
+      final Value pValue,
+      final Type pType,
+      final MemoryLocation pRepresentedLocation
+  ) {
+    super(pRepresentedLocation);
+    value = pValue;
+    type = pType;
+  }
+
+  @Override
+  public SymbolicExpression copyForLocation(MemoryLocation pRepresentedLocation) {
+    return new ConstantSymbolicExpression(value, type, pRepresentedLocation);
   }
 
   @Override
@@ -82,7 +106,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
       return false;
     }
 
-    ConstantSymbolicExpression that = (ConstantSymbolicExpression)o;
+    ConstantSymbolicExpression that = (ConstantSymbolicExpression) o;
 
     return Objects.equals(type, that.type) && Objects.equals(value, that.value);
 
@@ -92,7 +116,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   public int hashCode() {
     int result = value.hashCode();
     result = type != null ? 31 * result + type.hashCode()
-                          : result;
+        : result;
     return result;
   }
 }

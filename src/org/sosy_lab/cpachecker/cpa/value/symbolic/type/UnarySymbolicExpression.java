@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Represents a unary {@link SymbolicExpression}. Represents all <code>SymbolicExpression</code>s that consist of
+ * Represents a unary {@link SymbolicExpression}. Represents all <code>SymbolicExpression</code>s
+ * that consist of
  * only one operand.
  */
 public abstract class UnarySymbolicExpression extends SymbolicExpression {
@@ -41,7 +43,16 @@ public abstract class UnarySymbolicExpression extends SymbolicExpression {
   public UnarySymbolicExpression(SymbolicExpression pOperand, Type pType) {
     operand = pOperand;
     type = pType;
+  }
 
+  public UnarySymbolicExpression(
+      final SymbolicExpression pOperand,
+      final Type pType,
+      final MemoryLocation pRepresentedLocation
+  ) {
+    super(pRepresentedLocation);
+    operand = pOperand;
+    type = pType;
   }
 
   @Override
@@ -67,7 +78,7 @@ public abstract class UnarySymbolicExpression extends SymbolicExpression {
       return false;
     }
 
-    UnarySymbolicExpression that = (UnarySymbolicExpression)o;
+    UnarySymbolicExpression that = (UnarySymbolicExpression) o;
 
     return operand.equals(that.operand) && type.equals(that.type);
   }

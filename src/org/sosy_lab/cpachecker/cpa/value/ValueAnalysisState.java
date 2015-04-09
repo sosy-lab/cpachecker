@@ -123,8 +123,18 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     if (blacklist.contains(MemoryLocation.valueOf(variableName))) {
       return;
     }
-    constantsMap = constantsMap.putAndCopy(
-        MemoryLocation.valueOf(variableName), checkNotNull(value));
+
+    addToConstantsMap(MemoryLocation.valueOf(variableName), value);
+  }
+
+  private void addToConstantsMap(final MemoryLocation pMemLoc, final Value pValue) {
+    Value valueToAdd = pValue;
+
+    if (valueToAdd instanceof SymbolicValue) {
+      valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
+    }
+
+    constantsMap = constantsMap.putAndCopy(pMemLoc, checkNotNull(valueToAdd));
   }
 
   /**
@@ -138,7 +148,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     if (blacklist.contains(pMemoryLocation)) {
       return;
     }
-    constantsMap = constantsMap.putAndCopy(pMemoryLocation, checkNotNull(value));
+
+    addToConstantsMap(pMemoryLocation, value);
     memLocToType = memLocToType.putAndCopy(pMemoryLocation, pType);
   }
 
