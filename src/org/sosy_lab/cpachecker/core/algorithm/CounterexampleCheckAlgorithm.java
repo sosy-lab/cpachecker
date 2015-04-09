@@ -153,7 +153,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             continue;
           }
 
-          status = status.updateSoundness(checkCounterexample(errorState, reached, status.isSound()));
+          status = AlgorithmStatus.ofPrecise(
+              checkCounterexample(errorState, reached, status.isSound()));
           if (reached.contains(errorState)) {
             checkedTargetStates.add(errorState);
             foundCounterexample = true;
