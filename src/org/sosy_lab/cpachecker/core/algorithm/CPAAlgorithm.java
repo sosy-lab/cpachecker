@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -196,7 +196,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final AlgorithmIterationListener  iterationListener;
 
-  private final boolean isImprecise;
+  private final AlgorithmStatus status;
 
   private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
       ShutdownNotifier pShutdownNotifier,
@@ -209,7 +209,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     this.shutdownNotifier = pShutdownNotifier;
     this.forcedCovering = pForcedCovering;
     this.iterationListener = pIterationListener;
-    isImprecise = pIsImprecise;
+    status = AlgorithmStatus.SOUND_AND_COMPLETE.updatePrecise(!pIsImprecise);
   }
 
   @Override
@@ -343,7 +343,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               reachedSet.reAddToWaitlist(state);
             }
 
-            return new AlgorithmStatus(!isImprecise, true);
+            return status;
           }
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
@@ -415,7 +415,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         iterationListener.afterAlgorithmIteration(this, reachedSet);
       }
     }
-    return new AlgorithmStatus(!isImprecise, true);
+    return status;
   }
 
   @Override
