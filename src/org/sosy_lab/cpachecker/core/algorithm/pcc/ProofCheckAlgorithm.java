@@ -135,7 +135,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       reachedSet.add(new DummyErrorState(reachedSet.getFirstState()), SingletonPrecision.getInstance());
     }
 
-    return AlgorithmStatus.ofPrecise(result);
+    return AlgorithmStatus.SOUND_AND_PRECISE.withSound(result);
   }
 
   @Override

@@ -304,7 +304,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         while (status.isSound() && adjustConditions());
       }
 
-      return AlgorithmStatus.ofPrecise(false);
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
     } finally {
     }
   }

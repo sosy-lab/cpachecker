@@ -49,7 +49,7 @@ public class RestrictedProgramDomainAlgorithm implements Algorithm {
       PredicatedAnalysisPropertyViolationException {
     if (cfa.getVarClassification().isPresent()) {
       if (cfa.getVarClassification().get().hasRelevantNonIntAddVars()) {
-        return AlgorithmStatus.ofPrecise(false);
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
     }
 

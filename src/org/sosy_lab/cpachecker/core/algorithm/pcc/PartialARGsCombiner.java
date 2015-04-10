@@ -110,7 +110,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     HistoryForwardingReachedSet reached = new HistoryForwardingReachedSet(pReachedSet);
 
     logger.log(Level.INFO, "Start inner algorithm to analyze program(s)");
-    AlgorithmStatus status = AlgorithmStatus.ofPrecise(false);
+    AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
 
     stats.analysisTime.start();
     try {

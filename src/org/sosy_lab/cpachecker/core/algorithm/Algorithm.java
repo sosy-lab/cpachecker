@@ -45,6 +45,7 @@ public interface Algorithm {
     private final boolean isSound;
 
     public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true);
+    public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(true, false);
 
     private AlgorithmStatus(boolean pIsPrecise, boolean pIsSound) {
       isPrecise = pIsPrecise;
@@ -64,10 +65,6 @@ public interface Algorithm {
 
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {
       return new AlgorithmStatus(pIsPrecise, isSound);
-    }
-
-    public static AlgorithmStatus ofPrecise(boolean isSound) {
-      return new AlgorithmStatus(true, isSound);
     }
 
     public boolean isSound() {

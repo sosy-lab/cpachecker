@@ -334,7 +334,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       assert (ARGUtils.checkARG(pReachedSet));
 
       // return true such that CEGAR works fine
-      return AlgorithmStatus.ofPrecise(true);
+      return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
     return status;

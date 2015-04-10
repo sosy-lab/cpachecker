@@ -186,7 +186,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 
-    AlgorithmStatus status = AlgorithmStatus.ofPrecise(false);
+    AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
       @Nullable ConfigurableProgramAnalysis currentCpa = null;

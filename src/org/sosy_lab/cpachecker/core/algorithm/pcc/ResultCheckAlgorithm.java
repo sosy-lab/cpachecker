@@ -91,7 +91,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    AlgorithmStatus status = AlgorithmStatus.ofPrecise(false);
+    AlgorithmStatus status;
 
     logger.log(Level.INFO, "Start analysis.");
 

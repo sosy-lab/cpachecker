@@ -156,7 +156,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     unwind(pReachedSet);
     pReachedSet.popFromWaitlist();
-    return AlgorithmStatus.ofPrecise(true);
+    return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
   private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
