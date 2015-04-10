@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -328,7 +329,10 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
           cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
 
       while (taskReached.hasWaitingState()) {
-        algorithm.run(taskReached);
+        if (!algorithm.run(taskReached).isSound()) {
+          // ignore unsound invariant and abort
+          return TrivialInvariantSupplier.INSTANCE;
+        }
       }
 
       return new ReachedSetBasedInvariantSupplier(
