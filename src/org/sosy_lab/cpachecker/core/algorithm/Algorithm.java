@@ -33,13 +33,26 @@ public interface Algorithm {
    * Run the algorithm on the given set of abstract states and the given waitlist.
    *
    * @param reachedSet Input.
-   * @return False if the analysis was unsound (this is not the analysis result!).
+   * @return information about how reliable the result is
    * @throws CPAException
    * @throws InterruptedException
    */
   AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException, PredicatedAnalysisPropertyViolationException;
 
-
+  /**
+   * This class serves as an indication how a result produced by an {@link Algorithm}
+   * should be interpreted. It is defined as:
+   * - if SOUND is false, any proof should be interpreted as potentially flawed and ignored
+   * - if PRECISE is false, any counterexample found should be interpreted as potentially flawed and ignored
+   *
+   * If SOUND and PRECISE are true, this means that the algorithm instance
+   * to its best knowledge produces correct proofs and counterexamples.
+   * However, this should not be interpreted as a 100% guarantee,
+   * as there may be further reasons for unsoundness or imprecision
+   * that are out-of-control of the algorithm.
+   * For example, PRECISE does not necessarily mean that a counterexample
+   * has been cross-checked by concrete interpretation.
+   */
   class AlgorithmStatus {
     private final boolean isPrecise;
     private final boolean isSound;
@@ -52,6 +65,10 @@ public interface Algorithm {
       isSound = pIsSound;
     }
 
+    /**
+     * Create a new instance of {@link AlgorithmStatus} where both SOUND and PRECISE
+     * are a *conjunction* of this instance's and the other's fields.
+     */
     public AlgorithmStatus update(AlgorithmStatus other) {
       return new AlgorithmStatus(
           isPrecise && other.isPrecise,
@@ -59,10 +76,18 @@ public interface Algorithm {
       );
     }
 
+    /**
+     * Create a new instance of {@link AlgorithmStatus} where SOUND is as given,
+     * and PRECISE is as in this instance.
+     */
     public AlgorithmStatus withSound(boolean pIsSound) {
       return new AlgorithmStatus(isPrecise, pIsSound);
     }
 
+    /**
+     * Create a new instance of {@link AlgorithmStatus} where PRECISE is as given,
+     * and SOUND is as in this instance.
+     */
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {
       return new AlgorithmStatus(pIsPrecise, isSound);
     }
