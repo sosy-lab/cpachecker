@@ -157,9 +157,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     }
 
     if (induction) {
-      CPABuilder builder = new CPABuilder(pConfig, pLogger, pShutdownNotifier, pReachedSetFactory);
+      LogManager stepCaseLogger = logger.withComponentName("InductionStepCase");
+      CPABuilder builder = new CPABuilder(pConfig, stepCaseLogger, pShutdownNotifier, pReachedSetFactory);
       stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa);
-      stepCaseAlgorithm = CPAAlgorithm.create(stepCaseCPA, pLogger, pConfig, pShutdownNotifier);
+      stepCaseAlgorithm = CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownNotifier);
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
