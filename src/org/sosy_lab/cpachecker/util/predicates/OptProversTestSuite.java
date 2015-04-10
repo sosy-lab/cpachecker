@@ -116,8 +116,7 @@ public class OptProversTestSuite {
         );
         prover.addConstraint(bfmgr.and(constraints));
         int handle = prover.maximize(obj);
-        @SuppressWarnings("unused")
-        OptStatus response = prover.check();
+        prover.check();
         Assert.assertTrue(!prover.upper(handle, Rational.ZERO).isPresent());
       }
     }
@@ -132,8 +131,7 @@ public class OptProversTestSuite {
             rfmgr.greaterThan(x, y)
         );
         prover.addConstraint(bfmgr.and(constraints));
-        @SuppressWarnings({ "UnusedDeclaration", "unused" })
-        int handle = prover.maximize(x);
+        prover.maximize(x);
         OptStatus response = prover.check();
         Assert.assertEquals(OptStatus.UNSAT,
             response);
@@ -199,10 +197,8 @@ public class OptProversTestSuite {
 
         z = ifmgr.divide(x, one);
 
-        @SuppressWarnings({ "UnusedDeclaration", "unused" })
-        int handle = prover.maximize(z);
-        @SuppressWarnings({ "UnusedDeclaration", "unused" })
-        OptStatus response = prover.check();
+        prover.maximize(z);
+        prover.check();
       }
     }
 
