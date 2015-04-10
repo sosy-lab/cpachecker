@@ -172,8 +172,7 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
 
         // Same variables are guaranteed to have same pointer addresses.
         if (expr == from) {
-          out = substituteTo.get(i);
-          return out;
+          return substituteTo.get(i);
         }
       }
 

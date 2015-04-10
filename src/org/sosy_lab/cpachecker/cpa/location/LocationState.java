@@ -118,6 +118,8 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   private static class BackwardsLocationState extends LocationState implements AbstractQueryableState, Targetable {
 
+    private static final long serialVersionUID = 6825257572921009531L;
+
     private final CFA cfa;
     private boolean followFunctionCalls;
 
@@ -150,6 +152,8 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   }
 
   private static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
+
+    private static final long serialVersionUID = -2918748452708606128L;
 
     protected BackwardsLocationStateNoTarget(CFANode pLocationNode, CFA pCfa, boolean pFollowFunctionCalls) {
       super(pLocationNode, pCfa, pFollowFunctionCalls);

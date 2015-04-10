@@ -27,8 +27,6 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.Pair;
-
 /**
  * This interface represents some formula traverse methods which should not be used on higher levels.
  * These Methods are hidden behind the View, but used in the view for methods like "extractAtoms".

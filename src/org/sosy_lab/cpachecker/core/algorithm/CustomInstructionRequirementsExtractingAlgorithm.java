@@ -72,10 +72,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   @Option(secure=true, description="Prefix for files containing the custom instruction requirements.")
   private String ciFilePrefix = "ci";
 
-  @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
-  private String requirementsStateClassName;
-
-  private Class<AbstractState> requirementsStateClass;
+  @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.",
+      name="requirementsStateClassName")
+  private Class<? extends AbstractState> requirementsStateClass;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
@@ -104,16 +103,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       throw new InvalidConfigurationException("The given path '" + appliedCustomInstructionsDefinition + "' is not a valid path to a file.");
     }
 
-    try {
-      // TODO warning?
-      requirementsStateClass = (Class<AbstractState>) Class.forName(requirementsStateClassName);
-    } catch (ClassNotFoundException e) {
-      throw new InvalidConfigurationException("The abstract state " + requirementsStateClassName + " is unknown.");
-    }
-
     if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
                                           requirementsStateClass) == null) {
-      throw new InvalidConfigurationException(requirementsStateClassName + "is not an abstract state.");
+      throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
     }
 
     // TODO to be continued: CFA integration
