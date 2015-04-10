@@ -299,27 +299,25 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     @Override
     public InvariantSupplier call() throws Exception {
       stats.invariantGeneration.start();
-      InvariantSupplier invariant;
-
       try {
-        invariant = runInvariantGeneration(initialLocation);
-        latestInvariant.set(invariant);
 
         int i = 0;
-        while (adjustConditions()) {
+        InvariantSupplier invariant;
+        do {
           shutdownNotifier.shutdownIfNecessary();
-
           logger.log(Level.INFO, "Starting iteration", ++i, "of invariant generation with abstract interpretation.");
 
           invariant = runInvariantGeneration(initialLocation);
           latestInvariant.set(invariant);
-        }
+        } while (adjustConditions());
+
+        return invariant;
+
       } finally {
         stats.invariantGeneration.stop();
         CPAs.closeCpaIfPossible(cpa, logger);
         CPAs.closeIfPossible(algorithm, logger);
       }
-      return invariant;
     }
 
     private InvariantSupplier runInvariantGeneration(CFANode pInitialLocation)
