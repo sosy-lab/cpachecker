@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -95,8 +94,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Option(secure=true, description="decides whether one (false) or two (true) successors should be created "
     + "when an inequality-check is encountered")
   private boolean splitIntervals = false;
-
-  private final Set<String> globalFieldVars = new HashSet<>();
 
   @Option(secure=true, description="at most that many intervals will be tracked per variable, -1 if number not restricted")
   private int threshold = -1;
@@ -504,15 +501,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         return soleSuccessor(newState);
       }
 
-      String varName;
-
-      // if this is a global variable, add it to the list of global variables
-      if (decl.isGlobal()) {
-        varName = decl.getName();
-        globalFieldVars.add(varName);
-      } else {
-        varName = constructLocalVariableName(decl.getName(), functionName);
-      }
+      String varName = decl.getQualifiedName();
 
       Interval interval;
 
@@ -688,11 +677,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     }
   }
 
-
-  private String constructLocalVariableName(String pVariableName, String pCalledFunctionName) {
-    return pCalledFunctionName + "::" + pVariableName;
-  }
-
   private String constructVariableName(CExpression pVariableName, String pCalledFunctionName) {
     if (pVariableName instanceof CIdExpression) {
       return ((CIdExpression)pVariableName).getDeclaration().getQualifiedName();
@@ -719,7 +703,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
    * Visitor that get's the value from an expression.
    * The result may be null, i.e., the value is unknown.
    */
-  private class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
+  private static class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
 
     private final IntervalAnalysisState readableState;
