@@ -242,7 +242,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         for (AbstractState state : from(reachedSet.getWaitlist()).toList()) {
           reachedSet.removeOnlyFromWaitlist(state);
         }
-        return AlgorithmStatus.SOUND_AND_COMPLETE;
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
       AlgorithmStatus status;
@@ -297,7 +297,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
               candidateInvariants.removeAll(kInductionProver.getConfirmedCandidates());
             }
             if (sound) {
-              return AlgorithmStatus.SOUND_AND_COMPLETE;
+              return AlgorithmStatus.SOUND_AND_PRECISE;
             }
           }
         }

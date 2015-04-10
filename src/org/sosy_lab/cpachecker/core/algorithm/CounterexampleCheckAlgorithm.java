@@ -118,7 +118,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_COMPLETE;
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     while (reached.hasWaitingState()) {
       status = status.update(algorithm.run(reached));

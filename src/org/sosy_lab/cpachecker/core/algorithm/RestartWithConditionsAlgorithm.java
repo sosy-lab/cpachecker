@@ -84,7 +84,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_COMPLETE;
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     int count = 0;
 

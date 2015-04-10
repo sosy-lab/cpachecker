@@ -209,7 +209,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     this.shutdownNotifier = pShutdownNotifier;
     this.forcedCovering = pForcedCovering;
     this.iterationListener = pIterationListener;
-    status = AlgorithmStatus.SOUND_AND_COMPLETE.withPrecise(!pIsImprecise);
+    status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
   }
 
   @Override

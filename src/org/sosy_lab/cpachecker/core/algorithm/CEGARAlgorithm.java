@@ -225,7 +225,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_COMPLETE;
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     int initialReachedSetSize = reached.size();
     boolean refinedInPreviousIteration = false;

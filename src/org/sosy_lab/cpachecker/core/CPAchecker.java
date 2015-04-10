@@ -381,7 +381,7 @@ public class CPAchecker {
 
     logger.log(Level.INFO, "Starting analysis ...");
 
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_COMPLETE;
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownNotifier);

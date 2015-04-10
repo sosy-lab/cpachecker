@@ -125,7 +125,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_COMPLETE;
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     boolean restartCPA;
 
     // loop if restartCPA is set to false
