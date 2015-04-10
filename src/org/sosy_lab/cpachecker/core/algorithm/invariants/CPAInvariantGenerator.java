@@ -324,10 +324,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
         throws CPAException, InterruptedException {
 
       ReachedSet taskReached = reachedSetFactory.create();
-      synchronized (cpa) {
-        taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
-            cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
-      }
+      taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
+          cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
 
       while (!taskReached.getWaitlist().isEmpty()) {
         algorithm.run(taskReached);
@@ -341,12 +339,11 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       if (!adjustConditions || conditionCPAs.isEmpty()) {
         return false;
       }
-      synchronized (cpa) {
-        for (AdjustableConditionCPA cpa : conditionCPAs) {
-          if (!cpa.adjustPrecision()) {
-            logger.log(Level.INFO, "Further invariant generation adjustments denied by", cpa.getClass().getSimpleName());
-            return false;
-          }
+
+      for (AdjustableConditionCPA cpa : conditionCPAs) {
+        if (!cpa.adjustPrecision()) {
+          logger.log(Level.INFO, "Further invariant generation adjustments denied by", cpa.getClass().getSimpleName());
+          return false;
         }
       }
       return true;
