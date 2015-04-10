@@ -53,7 +53,7 @@ public interface Algorithm {
    * For example, PRECISE does not necessarily mean that a counterexample
    * has been cross-checked by concrete interpretation.
    */
-  class AlgorithmStatus {
+  final class AlgorithmStatus {
     private final boolean isPrecise;
     private final boolean isSound;
 
@@ -98,6 +98,28 @@ public interface Algorithm {
 
     public boolean isPrecise() {
       return isPrecise;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + (isPrecise ? 1231 : 1237);
+      result = prime * result + (isSound ? 1231 : 1237);
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof AlgorithmStatus)) {
+        return false;
+      }
+      AlgorithmStatus other = (AlgorithmStatus) obj;
+      return isPrecise == other.isPrecise
+          && isSound == other.isSound;
     }
   }
 }
