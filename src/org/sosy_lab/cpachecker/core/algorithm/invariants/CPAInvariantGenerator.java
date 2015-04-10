@@ -346,6 +346,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
       if (!from(taskReached).anyMatch(IS_TARGET_STATE)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
+        logger.log(Level.INFO, "Invariant generation with abstract interpretation proved specification to hold.");
         programIsSafe = true;
       }
 

@@ -311,12 +311,6 @@ class KInductionProver implements AutoCloseable {
   public final boolean check(final int k,
       final Set<CandidateInvariant> candidateInvariants)
       throws CPAException, InterruptedException {
-
-    // Early return if the invariant generation proved the program correct
-    if (bfmgr.isFalse(getCurrentLoopHeadInvariants())) {
-      return true;
-    }
-
     stats.inductionPreparation.start();
 
     // Proving program safety with induction consists of two parts:

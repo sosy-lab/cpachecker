@@ -266,6 +266,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             return status;
           }
 
+          if (invariantGenerator.isProgramSafe()) {
+            // The reachedSet might contain target states which would give a wrong
+            // indication of safety to the caller. So remove them.
+            for (CandidateInvariant candidateInvariant : candidateInvariants) {
+              candidateInvariant.assumeTruth(reachedSet);
+            }
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          }
+
           // Perform a bounded model check on each candidate invariant
           Iterator<CandidateInvariant> candidateInvariantIterator = candidateInvariants.iterator();
           while (candidateInvariantIterator.hasNext()) {
@@ -275,6 +284,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
             if (!safe) {
               candidateInvariantIterator.remove();
+            }
+
+            if (invariantGenerator.isProgramSafe()) {
+              return AlgorithmStatus.SOUND_AND_PRECISE;
             }
           }
           if (candidateInvariants.isEmpty()) {
@@ -291,13 +304,17 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             // check bounding assertions
             sound = checkBoundingAssertions(reachedSet, prover);
 
+            if (invariantGenerator.isProgramSafe()) {
+              return AlgorithmStatus.SOUND_AND_PRECISE;
+            }
+
             // try to prove program safety via induction
             if (induction) {
               final int k = CPAs.retrieveCPA(cpa, LoopstackCPA.class).getMaxLoopIterations();
               sound = sound || kInductionProver.check(k, unmodifiableSet(candidateInvariants));
               candidateInvariants.removeAll(kInductionProver.getConfirmedCandidates());
             }
-            if (sound) {
+            if (sound || invariantGenerator.isProgramSafe()) {
               return AlgorithmStatus.SOUND_AND_PRECISE;
             }
           }
