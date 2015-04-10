@@ -58,7 +58,7 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
 
     if (result.isSound()) {
       logger.log(Level.INFO, "Start property checking.");
-      result = result.updateSoundness(cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection()));
+      result = result.withSound(cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection()));
       // add dummy error state to get verification result FALSE instead of UNKNOWN
       if (!result.isSound()) {
         pReachedSet.add(new DummyErrorState(pReachedSet.getLastState()), SingletonPrecision.getInstance());

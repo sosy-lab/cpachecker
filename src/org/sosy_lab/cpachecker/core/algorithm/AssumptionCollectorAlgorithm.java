@@ -169,7 +169,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         errorState.removeFromARG();
 
         restartCPA = true;
-        status = status.updateSoundness(false);
+        status = status.withSound(false);
 
         // TODO: handle CounterexampleAnalysisFailed similar to RefinementFailedException
         // TODO: handle other kinds of CPAException?

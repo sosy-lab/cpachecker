@@ -142,10 +142,10 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
                   .parse(appliedCustomInstructionsDefinition));
     } catch (FileNotFoundException ex) {
       logger.log(Level.SEVERE, "The file '" + appliedCustomInstructionsDefinition + "' was not found", ex);
-      return status.updateSoundness(false);
+      return status.withSound(false);
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Parsing the file '" + appliedCustomInstructionsDefinition + "' failed.", e);
-      return status.updateSoundness(false);
+      return status.withSound(false);
     }
 
     shutdownNotifier.shutdownIfNecessary();

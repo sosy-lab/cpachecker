@@ -164,7 +164,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
         if (!combineARGs(rootNodes, (ForwardingReachedSet) pReachedSet)) {
           logger.log(Level.SEVERE, "Combination of ARGs failed.");
-          return status.updateSoundness(false);
+          return status.withSound(false);
         }
       } finally {
         stats.argCombineTime.stop();
@@ -179,10 +179,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       if (reached.getDelegate() != pReachedSet) {
         ((ForwardingReachedSet) pReachedSet).setDelegate(reached.getDelegate());
       }
-      return status.updateSoundness(false);
+      return status.withSound(false);
     }
 
-    return status.updateSoundness(true);
+    return status.withSound(true);
   }
 
   private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReachedSet)

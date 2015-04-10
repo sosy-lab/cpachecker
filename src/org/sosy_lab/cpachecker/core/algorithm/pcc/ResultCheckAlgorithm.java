@@ -114,10 +114,10 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
             cpa.getInitialPrecision(analyzedProgram.getMainFunction(), StateSpacePartition.getDefaultPartition()));
         status = checker.run(reached);
       } catch (InvalidConfigurationException e) {
-        status = status.updateSoundness(false);
+        status = status.withSound(false);
       } catch (InterruptedException e1) {
         logger.log(Level.INFO, "Timed out. Checking incomplete.");
-        return status.updateSoundness(false);
+        return status.withSound(false);
       } finally {
         stats.checkTimer.stop();
         logger.log(Level.INFO, "Stop checking analysis result.");

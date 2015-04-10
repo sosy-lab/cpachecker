@@ -58,11 +58,11 @@ public interface Algorithm {
       );
     }
 
-    public AlgorithmStatus updateSoundness(boolean pIsSound) {
+    public AlgorithmStatus withSound(boolean pIsSound) {
       return new AlgorithmStatus(isPrecise, pIsSound);
     }
 
-    public AlgorithmStatus updatePrecise(boolean pIsPrecise) {
+    public AlgorithmStatus withPrecise(boolean pIsPrecise) {
       return new AlgorithmStatus(pIsPrecise, isSound);
     }
 
