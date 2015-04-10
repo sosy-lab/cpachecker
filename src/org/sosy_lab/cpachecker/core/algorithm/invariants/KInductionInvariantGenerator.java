@@ -198,6 +198,11 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   }
 
   @Override
+  public boolean isProgramSafe() {
+    return algorithm.isProgramSafe();
+  }
+
+  @Override
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) {
     // ignore for now (never called anyway)
   }

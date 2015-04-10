@@ -233,6 +233,11 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   }
 
   @Override
+  public boolean isProgramSafe() {
+    return programIsSafe;
+  }
+
+  @Override
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
     InvariantsCPA invariantCPA = CPAs.retrieveCPA(cpa, InvariantsCPA.class);
     if (invariantCPA != null) {

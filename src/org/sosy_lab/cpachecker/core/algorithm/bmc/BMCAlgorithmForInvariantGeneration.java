@@ -74,6 +74,10 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
     return locationInvariantsProvider;
   }
 
+  public boolean isProgramSafe() {
+    return invariantGenerator.isProgramSafe();
+  }
+
   @Override
   protected Set<CandidateInvariant> getCandidateInvariants(CFA cfa,
       Collection<CFANode> targetLocations) {
