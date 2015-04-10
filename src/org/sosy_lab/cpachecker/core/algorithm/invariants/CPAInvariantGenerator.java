@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Verify.verifyNotNull;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -135,6 +137,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   // In case of (async & adjustConditions), this will point to the last invariant
   // that the continuously-refining invariant generation produced so far.
   private final AtomicReference<InvariantSupplier> latestInvariant = new AtomicReference<>();
+
+  private volatile boolean programIsSafe = false;
 
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
@@ -310,7 +314,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
           invariant = runInvariantGeneration(initialLocation);
           latestInvariant.set(invariant);
-        } while (adjustConditions());
+        } while (!programIsSafe && adjustConditions());
 
         return invariant;
 
@@ -333,6 +337,11 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
           // ignore unsound invariant and abort
           return TrivialInvariantSupplier.INSTANCE;
         }
+      }
+
+      if (!from(taskReached).anyMatch(IS_TARGET_STATE)) {
+        // program is safe (waitlist is empty, algorithm was sound, no target states present)
+        programIsSafe = true;
       }
 
       return new ReachedSetBasedInvariantSupplier(
