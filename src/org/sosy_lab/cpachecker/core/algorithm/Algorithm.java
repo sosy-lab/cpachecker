@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import javax.annotation.CheckReturnValue;
+
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
@@ -69,6 +71,7 @@ public interface Algorithm {
      * Create a new instance of {@link AlgorithmStatus} where both SOUND and PRECISE
      * are a *conjunction* of this instance's and the other's fields.
      */
+    @CheckReturnValue
     public AlgorithmStatus update(AlgorithmStatus other) {
       return new AlgorithmStatus(
           isPrecise && other.isPrecise,
@@ -80,6 +83,7 @@ public interface Algorithm {
      * Create a new instance of {@link AlgorithmStatus} where SOUND is as given,
      * and PRECISE is as in this instance.
      */
+    @CheckReturnValue
     public AlgorithmStatus withSound(boolean pIsSound) {
       return new AlgorithmStatus(isPrecise, pIsSound);
     }
@@ -88,6 +92,7 @@ public interface Algorithm {
      * Create a new instance of {@link AlgorithmStatus} where PRECISE is as given,
      * and SOUND is as in this instance.
      */
+    @CheckReturnValue
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {
       return new AlgorithmStatus(pIsPrecise, isSound);
     }
