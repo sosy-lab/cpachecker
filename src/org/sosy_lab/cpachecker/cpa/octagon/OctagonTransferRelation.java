@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -181,6 +182,12 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     }
 
     return cleanedUpStates;
+  }
+
+  @Override
+  protected Collection<OctagonState> handleMultiEdge(MultiEdge cfaEdge)
+      throws CPATransferException {
+    return super.handleMultiEdgeReturningCollection(cfaEdge);
   }
 
   @Override

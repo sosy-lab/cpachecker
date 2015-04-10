@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -82,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -115,6 +117,12 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleBlankEdge(BlankEdge cfaEdge) {
     return soleSuccessor(state);
+  }
+
+  @Override
+  protected Collection<IntervalAnalysisState> handleMultiEdge(MultiEdge cfaEdge)
+      throws CPATransferException {
+    return super.handleMultiEdgeReturningCollection(cfaEdge);
   }
 
   /**

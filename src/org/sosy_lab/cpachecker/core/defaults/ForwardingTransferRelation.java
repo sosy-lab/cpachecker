@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -277,6 +278,25 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return (S)state;
   }
 
+  /** This method just forwards the handling to every inner edge.
+   * It uses a frontier of abstract states.
+   * This function can be used, if the generic type S is a collection of T. */
+  @SuppressWarnings("unchecked")
+  protected S handleMultiEdgeReturningCollection(MultiEdge cfaEdge) throws CPATransferException {
+    Collection<T> frontier = Collections.singleton(state);
+    for (final CFAEdge innerEdge : cfaEdge) {
+      edge = innerEdge;
+      final Collection<T> tmp = new HashSet<>();
+      for (T frontierState : frontier) {
+        state = frontierState;
+        final S intermediateResult = handleSimpleEdge(innerEdge);
+        tmp.addAll((Collection<T>)intermediateResult); // unsafe cast, part 1
+      }
+      frontier = tmp;
+    }
+    edge = cfaEdge; // reset edge
+    return (S)frontier; // unsafe cast, part 2
+  }
 
   /** This is a fast check, if the edge should be analyzed.
    * It returns NULL for further processing,
