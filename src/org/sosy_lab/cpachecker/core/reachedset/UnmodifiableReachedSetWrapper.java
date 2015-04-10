@@ -87,11 +87,6 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public int getWaitlistSize() {
-    return delegate.getWaitlistSize();
-  }
-
-  @Override
   public Precision getPrecision(AbstractState pState)
       throws UnsupportedOperationException {
     return delegate.getPrecision(pState);

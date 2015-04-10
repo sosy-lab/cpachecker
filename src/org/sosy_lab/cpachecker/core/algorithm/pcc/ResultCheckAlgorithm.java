@@ -103,7 +103,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Analysis stopped.");
     }
 
-    if (status.isSound() && pReachedSet.getWaitlist().size() == 0) {
+    if (status.isSound() && !pReachedSet.hasWaitingState()) {
       logger.log(Level.INFO, "Analysis successful.", "Start checking analysis result");
       try {
         stats.checkTimer.start();

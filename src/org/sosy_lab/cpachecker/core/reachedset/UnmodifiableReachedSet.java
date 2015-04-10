@@ -96,8 +96,6 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    */
   public Collection<AbstractState> getWaitlist();
 
-  public int getWaitlistSize();
-
   /**
    * Returns the precision for a state.
    * @param state The state to look for. Has to be in the reached set.

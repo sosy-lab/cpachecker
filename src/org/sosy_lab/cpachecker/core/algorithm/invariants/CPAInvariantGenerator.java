@@ -327,7 +327,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
 
-      while (!taskReached.getWaitlist().isEmpty()) {
+      while (taskReached.hasWaitingState()) {
         algorithm.run(taskReached);
       }
 

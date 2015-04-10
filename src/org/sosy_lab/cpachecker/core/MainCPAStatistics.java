@@ -371,7 +371,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       }
 
       if (reached.hasWaitingState()) {
-        out.println("  Size of final wait list        " + reached.getWaitlistSize());
+        out.println("  Size of final wait list        " + reached.getWaitlist().size());
       }
     }
   }

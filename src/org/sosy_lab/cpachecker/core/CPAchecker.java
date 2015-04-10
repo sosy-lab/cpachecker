@@ -499,7 +499,7 @@ public class CPAchecker {
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }
 
-    if (pReached.getWaitlistSize() == 0) {
+    if (!pReached.hasWaitingState()) {
       throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
     }
 

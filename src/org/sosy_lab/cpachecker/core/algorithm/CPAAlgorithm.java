@@ -243,7 +243,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
       // Pick next state using strategy
       // BFS, DFS or top sort according to the configuration
-      int size = reachedSet.getWaitlistSize();
+      int size = reachedSet.getWaitlist().size();
       if (size >= stats.maxWaitlistSize) {
         stats.maxWaitlistSize = size;
       }
