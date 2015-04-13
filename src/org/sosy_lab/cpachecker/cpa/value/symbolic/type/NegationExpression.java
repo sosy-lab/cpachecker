@@ -55,9 +55,8 @@ public class NegationExpression extends UnarySymbolicExpression {
     return pVisitor.visit(this);
   }
 
-
   @Override
-  public String toString() {
-    return "-(" + getOperand() + ")";
+  public String getOperationString() {
+    return "-";
   }
 }
