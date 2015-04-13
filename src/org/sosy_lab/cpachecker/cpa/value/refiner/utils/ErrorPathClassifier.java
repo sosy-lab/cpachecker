@@ -88,6 +88,10 @@ public class ErrorPathClassifier {
     ASSIGNMENTS_FEWEST_SHALLOW(FIRST_LOWEST_SCORE),
     ASSIGNMENTS_FEWEST_DEEP(LAST_LOWEST_SCORE),
 
+    // heuristic based on counting the number of assignments along the path
+    CLASSIFICATION_SHALLOW(FIRST_LOWEST_SCORE),
+    CLASSIFICATION_DEEP(LAST_LOWEST_SCORE),
+
     // heuristics based on approximating the depth of the refinement root
     REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
     REFINE_DEEP(LAST_LOWEST_SCORE),
@@ -198,6 +202,10 @@ public class ErrorPathClassifier {
     case ASSIGNMENTS_FEWEST_DEEP:
       return obtainPrefixWithFewestAssignments(pPrefixes, preference, errorPath);
 
+    case CLASSIFICATION_SHALLOW:
+    case CLASSIFICATION_DEEP:
+      return obtainClassificationBasedPrefix(pPrefixes, preference, errorPath);
+
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
     case ITP_LENGTH_SHORT_DEEP:
@@ -234,6 +242,38 @@ public class ErrorPathClassifier {
 
   private ARGPath obtainLongestPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
     return buildPath(pPrefixes.size() - 1, pPrefixes, originalErrorPath);
+  }
+
+  private ARGPath obtainClassificationBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Integer bestScore = null;
+    Integer bestIndex = 0;
+    Integer currIndex = 0;
+    for (ARGPath currentPrefix : pPrefixes) {
+      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(pathToList(currentPrefix));
+
+      UseDefRelation useDefRelation = new UseDefRelation(currentErrorPath.immutableCopy(),
+          classification.get().getIntBoolVars(),
+          "NONE");
+      int score = classification.get().obtainDomainTypeScoreFromClassification(useDefRelation.getUsesAsQualifiedName());
+
+      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
+        bestScore = score;
+        bestIndex = currIndex;
+      }
+
+      currIndex++;
+
+      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
+    }
+
+    return buildPath(bestIndex, pPrefixes, originalErrorPath);
   }
 
   private ARGPath obtainDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
@@ -349,6 +389,8 @@ public class ErrorPathClassifier {
         score = score + classification.get().getAssignedVariables().count(use);
 
         // (RERS)-input variables considered harmful (disputable!)
+        // this variable has always at least 6 values (1, 2, 3, 4, 5, 6)
+        // but it is only assigned implicitly thru assume edges
         if (use.endsWith("::input")) {
           score = Integer.MAX_VALUE;
           break;
@@ -555,6 +597,8 @@ public class ErrorPathClassifier {
     case REFINE_SHALLOW:
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
+    case ASSIGNMENTS_FEWEST_SHALLOW:
+    case CLASSIFICATION_SHALLOW:
       return pPrefixes.subList(0, Math.min(pPrefixes.size(), MAX_PREFIX_NUMBER));
 
     case DOMAIN_BEST_DEEP:
@@ -565,6 +609,8 @@ public class ErrorPathClassifier {
     case REFINE_DEEP_DOMAIN:
     case ITP_LENGTH_SHORT_DEEP:
     case ITP_LENGTH_LONG_DEEP:
+    case ASSIGNMENTS_FEWEST_DEEP:
+    case CLASSIFICATION_DEEP:
       return pPrefixes.subList(Math.max(0, pPrefixes.size() - MAX_PREFIX_NUMBER), pPrefixes.size());
 
     default:
