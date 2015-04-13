@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -155,7 +156,7 @@ public class ValueAnalysisFeasibilityChecker implements PrefixProvider {
     List<ARGPath> prefixes = new ArrayList<>();
     boolean performAbstraction = precision.allowsAbstraction();
 
-    Set<MemoryLocation> exceedingMemoryLocations = obtainExceedingMemoryLocations(path);
+    Set<MemoryLocation> exceedingMemoryLocations = new HashSet<>();// obtainExceedingMemoryLocations(path);
 
     try {
       MutableARGPath currentPrefix = new MutableARGPath();

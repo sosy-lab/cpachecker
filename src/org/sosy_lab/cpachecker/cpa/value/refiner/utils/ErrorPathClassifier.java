@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.sosy_lab.common.Pair;
@@ -38,8 +40,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -78,6 +83,10 @@ public class ErrorPathClassifier {
     DOMAIN_PRECISE_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
     DOMAIN_PRECISE_BEST_DEEP(LAST_LOWEST_SCORE),
     DOMAIN_PRECISE_WORST_DEEP(LAST_HIGHEST_SCORE),
+
+    // heuristic based on counting the number of assignments along the path
+    ASSIGNMENTS_FEWEST_SHALLOW(FIRST_LOWEST_SCORE),
+    ASSIGNMENTS_FEWEST_DEEP(LAST_LOWEST_SCORE),
 
     // heuristics based on approximating the depth of the refinement root
     REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
@@ -185,6 +194,10 @@ public class ErrorPathClassifier {
     case DOMAIN_PRECISE_WORST_DEEP:
       return obtainPreciseDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
 
+    case ASSIGNMENTS_FEWEST_SHALLOW:
+    case ASSIGNMENTS_FEWEST_DEEP:
+      return obtainPrefixWithFewestAssignments(pPrefixes, preference, errorPath);
+
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
     case ITP_LENGTH_SHORT_DEEP:
@@ -237,7 +250,18 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      int score = obtainDomainTypeScoreForPath(currentErrorPath);
+      UniqueAssignmentsInPathConditionState assignments = AbstractStates.extractStateByType(currentErrorPath.getLast().getFirst(),
+          UniqueAssignmentsInPathConditionState.class);
+      Map<MemoryLocation, Integer> thresholds = new HashMap<>();
+      if(assignments != null) {
+        thresholds = assignments.getThresholds();
+      }
+
+      //int score = obtainDomainTypeScoreForPath(currentErrorPath);
+      UseDefRelation useDefRelation = new UseDefRelation(currentErrorPath.immutableCopy(),
+          classification.get().getIntBoolVars(),
+          "NONE");
+      int score = classification.get().obtainDomainTypeScoreForVariables4(useDefRelation.getUsesAsQualifiedName(), loopStructure, thresholds);
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
@@ -285,6 +309,50 @@ public class ErrorPathClassifier {
         }
 
         score = score + temp;
+      }
+
+      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
+        bestScore = score;
+        bestIndex = currIndex;
+      }
+
+      currIndex++;
+
+      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
+    }
+
+    return buildPath(bestIndex, pPrefixes, originalErrorPath);
+  }
+
+  public ARGPath obtainPrefixWithFewestAssignments(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
+
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Integer bestScore = null;
+    Integer bestIndex = 0;
+    Integer currIndex = 0;
+    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
+      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(pathToList(currentPrefix));
+
+      ARGPath path = currentErrorPath.immutableCopy();
+      UseDefRelation useDefRelation = new UseDefRelation(path,
+          classification.get().getIntBoolVars(),
+          "NONE");
+
+      int score = 0;
+      for (String use : useDefRelation.getUsesAsQualifiedName()) {
+        score = score + classification.get().getAssignedVariables().count(use);
+
+        // (RERS)-input variables considered harmful (disputable!)
+        if (use.endsWith("::input")) {
+          score = Integer.MAX_VALUE;
+          break;
+        }
       }
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {

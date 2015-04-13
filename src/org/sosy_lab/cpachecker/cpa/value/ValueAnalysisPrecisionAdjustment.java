@@ -296,7 +296,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
         if (assignments.exceedsHardThreshold(memoryLocation)) {
           state.forget(memoryLocation);
         }
-
       } else {
         // otherwise, check against soft threshold, including the pending assignment
         if (assignments.wouldExceedSoftThreshold(state, memoryLocation)) {

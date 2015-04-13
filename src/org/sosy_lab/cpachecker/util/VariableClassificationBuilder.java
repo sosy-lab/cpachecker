@@ -26,12 +26,15 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -76,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -94,7 +98,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -114,10 +120,13 @@ import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 @Options(prefix = "cfa.variableClassification")
@@ -134,6 +143,10 @@ public class VariableClassificationBuilder {
   @Option(secure=true, description = "Dump domain type statistics to a CSV file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path domainTypeStatisticsFile = null;
+
+  @Option(secure=true, description="path to a file from which to read the variable classification")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path variableClassificationFile = null;
 
   @Option(secure=true, description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
@@ -255,7 +268,10 @@ public class VariableClassificationBuilder {
         intBoolPartitions,
         intEqualPartitions,
         intAddPartitions,
-        dependencies.edgeToPartition);
+        dependencies.edgeToPartition,
+        extractAssumedVariables(cfa.getAllNodes()),
+        extractAssignedVariables(cfa.getAllNodes()),
+        readVariableClassificationFromFile());
 
     if (printStatsOnStartup) {
       printStats(result);
@@ -378,6 +394,30 @@ public class VariableClassificationBuilder {
     logger.log(Level.INFO, str.toString());
   }
 
+  /**
+   * This method read a user-provided classification from file.
+   */
+  private Multiset<String> readVariableClassificationFromFile() {
+    Multiset<String> classification = HashMultiset.create();
+
+    if(variableClassificationFile == null) {
+      return classification;
+    }
+
+    try (BufferedReader reader = variableClassificationFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
+      String currentLine;
+      while ((currentLine = reader.readLine()) != null) {
+        for (int i = 0; i < reader.readLine().split(",").length; i++) {
+          classification.add(currentLine);
+        }
+      }
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not read variable classification from file " + variableClassificationFile);
+    }
+
+    return classification;
+  }
+
   private int countNumberOfRelevantVars(Set<String> ofVars) {
     return Sets.intersection(ofVars, relevantVariables).size();
   }
@@ -391,6 +431,54 @@ public class VariableClassificationBuilder {
         handleEdge(edge, cfa);
       }
     }
+  }
+
+  /**
+   * This method extracts all variables (i.e., their qualified name), that occur in an assumption.
+   */
+  private Multiset<String> extractAssumedVariables(Collection<CFANode> nodes) {
+    Multiset<String> assumeVariables = HashMultiset.create();
+
+    for (CFANode node : nodes) {
+      for (CAssumeEdge edge : Iterables.filter(leavingEdges(node), CAssumeEdge.class)) {
+        for (CIdExpression identifier : edge.getExpression().accept(new CIdExpressionCollectingVisitor())) {
+          assumeVariables.add(identifier.getDeclaration().getQualifiedName());
+        }
+      }
+    }
+
+    return assumeVariables;
+  }
+
+  /**
+   * This method extracts all variables (i.e., their qualified name), that occur
+   * as left-hand side in an assignment.
+   */
+  private Multiset<String> extractAssignedVariables(Collection<CFANode> nodes) {
+    Multiset<String> assignedVariables = HashMultiset.create();
+
+    for (CFANode node : nodes) {
+      for (CFAEdge leavingEdge : leavingEdges(node)) {
+        Set<CFAEdge> edges = new HashSet<>(Collections.singleton(leavingEdge));
+
+        if (leavingEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+          edges.addAll(((MultiEdge)leavingEdge).getEdges());
+        }
+
+        for (AStatementEdge edge : Iterables.filter(edges, AStatementEdge.class)) {
+          if (!(edge.getStatement() instanceof CAssignment)) {
+            continue;
+          }
+
+          CAssignment assignment = (CAssignment) edge.getStatement();
+          for (CIdExpression id : assignment.getLeftHandSide().accept(new CIdExpressionCollectingVisitor())) {
+            assignedVariables.add(id.getDeclaration().getQualifiedName());
+          }
+        }
+      }
+    }
+
+    return assignedVariables;
   }
 
   private void propagateRelevancy() {

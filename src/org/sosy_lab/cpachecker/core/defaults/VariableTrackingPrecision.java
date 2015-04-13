@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -140,6 +141,8 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @return the refined precision
    */
   public abstract VariableTrackingPrecision withIncrement(Multimap<CFANode, MemoryLocation> increment);
+
+  public abstract VariableTrackingPrecision withDecrement(Set<MemoryLocation> decrement);
 
   /**
    * This method returns the size of the refinable precision, i.e., the number of elements contained.
@@ -331,6 +334,11 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
+    public VariableTrackingPrecision withDecrement(Set<MemoryLocation> pDecrement) {
+      return this;
+    }
+
+    @Override
     public void serialize(Writer writer) throws IOException {
       writer.write("# configured precision used - nothing to show here");
     }
@@ -433,6 +441,11 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
+    public VariableTrackingPrecision withDecrement(Set<MemoryLocation> pDecrement) {
+      throw new UnsupportedOperationException("you may not call this method on this precision");
+    }
+
+    @Override
     public
     void serialize(Writer writer) throws IOException {
       for (CFANode currentLocation : rawPrecision.keySet()) {
@@ -502,6 +515,14 @@ public abstract class VariableTrackingPrecision implements Precision {
 
         return new ScopedRefinablePrecision(super.baseline, ImmutableSortedSet.copyOf(refinedPrec));
       }
+    }
+
+    @Override
+    public VariableTrackingPrecision withDecrement(Set<MemoryLocation> pDecrement) {
+      SortedSet<MemoryLocation> refinedPrec = new TreeSet<>(rawPrecision);
+      refinedPrec.removeAll(pDecrement);
+      // Syso("removing from precision: " + pDecrement);
+      return new ScopedRefinablePrecision(super.baseline, ImmutableSortedSet.copyOf(refinedPrec));
     }
 
     @Override

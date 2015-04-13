@@ -107,11 +107,13 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private UniqueAssignmentsInPathConditionState assignments = null;
 
   // statistics
+  private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
   private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
   private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
-  private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
-  private StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
+
+  private StatTimer timerPrefixes = new StatTimer("Time for infeasible sliced prefixes");
+  private StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -394,15 +396,17 @@ public class ValueAnalysisPathInterpolator implements Statistics {
           throws CPAException, InterruptedException {
 
     try {
+      timerPrefixes.start();
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
       List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
           interpolant.createValueAnalysisState(),
           new ArrayDeque<ValueAnalysisState>());
 
-      totalPrefixes.setNextValue(prefixes.size());
-
       ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
       errorPath = classifier.obtainSlicedPrefix(prefixPreference, errorPath, prefixes);
+
+      timerPrefixes.stop();
+      totalPrefixes.setNextValue(prefixes.size());
 
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
@@ -424,6 +428,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     writer.put(totalInterpolationQueries);
     writer.put(sizeOfInterpolant);
     writer.put(totalPrefixes);
+    writer.put(timerPrefixes);
   }
 
   public int getInterpolationOffset() {

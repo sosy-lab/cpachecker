@@ -454,6 +454,9 @@ cfa.variableClassification.printStatsOnStartup = false
 # Dump variable type mapping to a file.
 cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 
+# path to a file from which to read the variable classification
+cfa.variableClassification.variableClassificationFile = no default value
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
@@ -760,24 +763,26 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# This option sets the hard threshold for assignments (-1 for infinite). A
-# variable reaching this assignment threshold is not tracked anymore, even if
-# it is contained in the precision.
-cpa.conditions.path.assignments.hardThreshold = -1
+# sets the hard threshold for assignments (-1 for infinite). A variable
+# reaching this assignment threshold is not tracked anymore, even if it is
+# contained in the precision.
+cpa.conditions.path.assignments.hardThreshold = DISABLED
 
-# This option determines if there should be a single assignment state per
-# transition (more precise) or per path segment between assume edges (more
-# efficient).
-cpa.conditions.path.assignments.precise = true
+# whether or not to each variable should have its own threshold.
+cpa.conditions.path.assignments.individualThreshold = false
 
-# This option sets the soft threshold for assignments (-1 for infinite). The
-# semantics are that variables are tracked up to this threshold, even if not
-# being contained in the precison yet, and are removed once there are more
+# determines if there should be a single assignment state per transition,one
+# after each assume edge, or a global one.
+cpa.conditions.path.assignments.precision = "GLOBAL"
+
+# sets the soft threshold for assignments (-1 for infinite). The semantics
+# are that variables are tracked up to this threshold, even if not being
+# contained in the precison yet, and are removed once there are more
 # assignments for a variable then defined by this threshold. Once the
 # variable is found to be relevant, e.g., through refinement and
 # interpolation, the variable is tracked again, until reaching the  hard
 # threshold.
-cpa.conditions.path.assignments.softThreshold = -1
+cpa.conditions.path.assignments.softThreshold = DISABLED
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
@@ -1263,7 +1268,8 @@ cpa.predicate.refinement.prefixPreference = DEFAULT
   enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
              DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
              DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
-             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
+             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP,
+             ASSIGNMENTS_FEWEST_SHALLOW, ASSIGNMENTS_FEWEST_DEEP, REFINE_SHALLOW,
              REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
              ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
              RANDOM, MEDIAN, MIDDLE, FEASIBLE]
@@ -1703,7 +1709,7 @@ cpa.value.merge = "SEP"
 # one.
 cpa.value.optimizeBooleanVariables = true
 
-# target file to hold the exported precision
+# output file to hold the exported precision
 cpa.value.precisionFile = no default value
 
 # whether or not to use heuristic to avoid similar, repeated refinements
@@ -1753,7 +1759,8 @@ cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
   enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
              DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
              DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
-             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
+             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP,
+             ASSIGNMENTS_FEWEST_SHALLOW, ASSIGNMENTS_FEWEST_DEEP, REFINE_SHALLOW,
              REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
              ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
              RANDOM, MEDIAN, MIDDLE, FEASIBLE]
@@ -1781,6 +1788,9 @@ cpa.value.symbolic.useSymbolicValues = false
 # the verified program uses big or lots of arrays. Arrays in C programs will
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
+
+# output file to hold the exported variable mapping
+cpa.value.variableMappingFile = no default value
 
 # Prefix for files containing the custom instruction requirements.
 custominstructions.ciFilePrefix = "ci"

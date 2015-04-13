@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
@@ -181,7 +182,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     previousErrorPathId = obtainErrorPathId(path);
 
-    return progress;
+    return true;
   }
 
   @Override
@@ -194,6 +195,21 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     totalTime.start();
     refinementCounter++;
 
+    Set<MemoryLocation> decrement = new HashSet<>();
+    UniqueAssignmentsInPathConditionState thresholdState = AbstractStates.extractStateByType(pReached.asReachedSet().getFirstState(), UniqueAssignmentsInPathConditionState.class);
+    if(thresholdState != null) {
+      // double threshold and domain-score for all exceeding vars
+      for(MemoryLocation exceedingMemoryLocation : thresholdState.getExceedingMemoryLocations()) {
+        thresholdState.increaseThreshold(exceedingMemoryLocation);
+        decrement.add(exceedingMemoryLocation);
+      }
+
+      // SAFE TO ACTIVATE THRESHOLDS AGAIN IN FEASABILITY CHECK
+      // AS THRESHOLDS ARE INCREASED ALREADY HERE
+      // 1. RESET here, already?
+      // 2. FEASABILITY CHECK only regards hard threshold (wrong), not individuals
+    }
+
     Collection<ARGState> targets = getTargetStates(pReached);
     List<ARGPath> targetPaths = getTargetPaths(targets);
 
@@ -205,7 +221,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     CounterexampleInfo cex = isAnyPathFeasible(pReached, targetPaths);
 
     if (cex.isSpurious()) {
-      refineUsingInterpolants(pReached, obtainInterpolants(targets));
+      refineUsingInterpolants(pReached, obtainInterpolants(targets), decrement);
     }
 
     totalTime.stop();
@@ -213,7 +229,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return cex;
   }
 
-  private void refineUsingInterpolants(final ARGReachedSet pReached, ValueAnalysisInterpolationTree interpolationTree) {
+  private void refineUsingInterpolants(final ARGReachedSet pReached, ValueAnalysisInterpolationTree interpolationTree, Set<MemoryLocation> decrement) {
 
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
 
@@ -230,8 +246,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
       precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
-          .withIncrement(interpolationTree.extractPrecisionIncrement(root)));
-
+          .withIncrement(interpolationTree.extractPrecisionIncrement(root)).
+          withDecrement(decrement));
+//Syso(new TreeSet<>(interpolationTree.extractPrecisionIncrement(root).values()));
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
         precisions.add(mergePredictePrecisionsForSubgraph(root, pReached));
@@ -249,6 +266,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       }
 
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
+    }
+
+    UniqueAssignmentsInPathConditionState thresholdState = AbstractStates.extractStateByType(pReached.asReachedSet().getFirstState(), UniqueAssignmentsInPathConditionState.class);
+    if(thresholdState != null) {
+      thresholdState.reset();
     }
   }
 
