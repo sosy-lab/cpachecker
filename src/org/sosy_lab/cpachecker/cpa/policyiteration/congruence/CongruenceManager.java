@@ -7,6 +7,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.TemplateManager;
@@ -24,19 +29,30 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.Sets;
 
+@Options(prefix="cpa.stator.congruence")
 public class CongruenceManager {
+
+  @Option(secure=true,
+  description="Generate congruences for sums of variables "
+      + "(<=> x and y have same/different evenness)")
+  private boolean trackCongruenceSum = false;
 
   private final Solver solver;
   private final TemplateManager templateManager;
   private final BitvectorFormulaManager bvfmgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
+  private final PolicyIterationStatistics statistics;
 
-  public CongruenceManager(Solver pSolver, TemplateManager pTemplateManager,
-      FormulaManagerView pFmgr) {
+  public CongruenceManager(Configuration config,
+      Solver pSolver, TemplateManager pTemplateManager,
+      FormulaManagerView pFmgr, PolicyIterationStatistics pStatistics)
+      throws InvalidConfigurationException {
+    config.inject(this);
     solver = pSolver;
     templateManager = pTemplateManager;
     fmgr = pFmgr;
+    statistics = pStatistics;
     bvfmgr = fmgr.getBitvectorFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
   }
@@ -65,6 +81,7 @@ public class CongruenceManager {
 
     Map<Template, Congruence> abstraction = new HashMap<>();
 
+    statistics.startCongruenceTimer();
     try (ProverEnvironment env = solver.newProverEnvironment()) {
       //noinspection ResultOfMethodCallIgnored
       env.push(p.getFormula());
@@ -105,6 +122,8 @@ public class CongruenceManager {
       }
     } catch (SolverException ex) {
       throw new CPATransferException("Solver exception: ", ex);
+    } finally {
+      statistics.stopCongruenceTimer();
     }
 
     return new CongruenceState(abstraction);
@@ -141,9 +160,10 @@ public class CongruenceManager {
   }
 
   private boolean shouldUseTemplate(Template template) {
-    return template.getType().getType().isIntegerType() &&
-        (template.getKind() == Kind.UPPER_BOUND ||
-            template.getKind() == Kind.SUM);
+    return
+        template.getType().getType().isIntegerType()
+            && ((template.getKind() == Kind.UPPER_BOUND)
+            || (trackCongruenceSum && template.getKind() == Kind.SUM));
   }
 
   private Formula makeBv(Formula other, int value) {

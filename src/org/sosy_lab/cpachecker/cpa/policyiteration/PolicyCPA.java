@@ -103,9 +103,10 @@ public class PolicyCPA
           formulaManager,
         formulaManager.getIntegerFormulaManager());
     CongruenceManager pCongruenceManager = new CongruenceManager(
+        config,
         solver, templateManager,
-        formulaManager
-    );
+        formulaManager,
+        statistics);
     policyIterationManager = new PolicyIterationManager(
         config,
         formulaManager,

@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -10,6 +11,7 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Policy with a local bound.
@@ -33,11 +35,9 @@ public class PolicyBound {
   private final Rational bound;
 
   /**
-   * Whether the bound can change with changing initial conditions.
-   * // todo: what things on initial specifically.
-   * // how about doing that without an SMT solver?
+   * Set of incoming templates which may influence this bound.
    */
-  private final boolean dependsOnInitial;
+  private final ImmutableSet<Template> dependencies;
 
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
@@ -45,21 +45,23 @@ public class PolicyBound {
 
   private PolicyBound(PathFormula pFormula, Rational pBound,
       PolicyAbstractedState pPredecessor,
-      boolean pDependsOnInitial) {
+      Set<Template> pDependencies) {
     formula = pFormula;
     bound = pBound;
     predecessor = pPredecessor;
-    dependsOnInitial = pDependsOnInitial;
+    dependencies = ImmutableSet.copyOf(pDependencies);
   }
 
   public static PolicyBound of(PathFormula pFormula, Rational bound,
-      PolicyAbstractedState pUpdatedFrom,  boolean dependsOnInitial) {
-    return new PolicyBound(pFormula, bound, pUpdatedFrom,  dependsOnInitial);
+      PolicyAbstractedState pUpdatedFrom,
+      Set<Template> pDependencies
+  ) {
+    return new PolicyBound(pFormula, bound, pUpdatedFrom,
+        pDependencies);
   }
 
   public PolicyBound updateValue(Rational newValue) {
-    return new PolicyBound(formula, newValue, predecessor,
-        dependsOnInitial);
+    return new PolicyBound(formula, newValue, predecessor, dependencies);
   }
 
   /**
@@ -94,8 +96,8 @@ public class PolicyBound {
     return getPredecessor().getPathFormula();
   }
 
-  public boolean dependsOnInitial() {
-    return dependsOnInitial;
+  public ImmutableSet<Template> getDependencies() {
+    return dependencies;
   }
 
   @Override

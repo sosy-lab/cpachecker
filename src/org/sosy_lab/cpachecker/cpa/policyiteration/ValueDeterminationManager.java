@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 
 public class ValueDeterminationManager {
@@ -89,13 +90,12 @@ public class ValueDeterminationManager {
 
         // Update the queue, check visited.
         if ((state != stateWithUpdates || updated.containsKey(template))
-            && bound.dependsOnInitial()) {
+            && bound.getDependencies().contains(template)) {
 
           if (!visitedLocationIDs.contains(backpointer.getLocationID())) {
             queue.add(backpointer);
           }
         }
-
 
         // Give the element to the constraint generator.
         String prefix;
@@ -175,7 +175,7 @@ public class ValueDeterminationManager {
 
     // Shortcut: if the bound is not dependent on the initial value,
     // just add the numeric constraint and don't process the input policies.
-    if (!bound.dependsOnInitial()) {
+    if (bound.getDependencies().isEmpty()) {
       logger.log(Level.FINE, "Template does not depend on initial condition,"
           + "skipping");
       BooleanFormula constraint = fmgr.makeEqual(abstractDomainFormula,
@@ -198,10 +198,12 @@ public class ValueDeterminationManager {
     }
 
     // Process incoming constraints on the policy start.
-    for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
-
-      Template incomingTemplate = incomingConstraint.getKey();
-
+//    for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
+    for (Template incomingTemplate : bound.getDependencies()) {
+//      Template incomingTemplate = incomingConstraint.getKey();
+//      if (!bound.getDependencies().contains(incomingTemplate)) {
+//        continue;
+//      }
       String prevAbstractDomainElement = absDomainVarName(
           incomingState,
           incomingTemplate);

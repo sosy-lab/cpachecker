@@ -1608,6 +1608,10 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Generate congruences for sums of variables (<=> x and y have same/different
+# evenness)
+cpa.stator.congruence.trackCongruenceSum = false
+
 # Ignore the template type and encode with a rational variable
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
@@ -1618,11 +1622,18 @@ cpa.stator.policy.epsilon = Rational.ONE
 # information
 cpa.stator.policy.formulaSlicing = true
 
+# Generate cubic constraints: templates +/- x +/- y +/- z for every
+# combination (x, y, z)
+cpa.stator.policy.generateCube = false
+
 # Generate templates from assert statements
 cpa.stator.policy.generateFromAsserts = true
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
+
+# Generate even more templates (try coeff. 2 for each variable)
+cpa.stator.policy.generateMoreTemplates = false
 
 # Generate octagon templates for all combinations of variables. 
 cpa.stator.policy.generateOctagons = false
@@ -1637,11 +1648,14 @@ cpa.stator.policy.lengthLimitForSATCheck = 300
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
 
-# Use simple congruence analysis
+# Run simple congruence analysis
 cpa.stator.policy.runCongruence = false
 
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.stator.policy.runHopefulValueDetermination = true
+
+# Use syntactic check to short-circuit val. det. and abstraction operations.
+cpa.stator.policy.shortCircuitSyntactic = true
 
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true

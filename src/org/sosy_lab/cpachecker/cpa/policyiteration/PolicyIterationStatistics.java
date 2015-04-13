@@ -30,6 +30,7 @@ public class PolicyIterationStatistics implements Statistics {
   final Timer optTimer = new Timer();
   final Timer checkIndependenceTimer = new Timer();
   final Timer simplifyTimer = new Timer();
+  final Timer congruenceTimer = new Timer();
 
   public void startCheckSATTimer() {
     checkSATTimer.start();
@@ -57,6 +58,14 @@ public class PolicyIterationStatistics implements Statistics {
 
   public void startValueDeterminationTimer() {
     valueDeterminationTimer.start();
+  }
+
+  public void startCongruenceTimer() {
+    congruenceTimer.start();
+  }
+
+  public void stopCongruenceTimer() {
+    congruenceTimer.stop();
   }
 
   public void stopValueDeterminationTimer() {
@@ -90,6 +99,7 @@ public class PolicyIterationStatistics implements Statistics {
     }
     printTimer(out, checkIndependenceTimer, "checking independence");
     printTimer(out, simplifyTimer, "simplifying formulas");
+    printTimer(out, congruenceTimer, "computing congruence");
 
     UpdateStats<?> updateStats = getUpdateStats(updateCounter);
     UpdateStats<?> templateUpdateStats = getUpdateStats(templateUpdateCounter);

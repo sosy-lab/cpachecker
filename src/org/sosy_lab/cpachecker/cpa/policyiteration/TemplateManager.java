@@ -61,6 +61,15 @@ public class TemplateManager {
       description="Ignore the template type and encode with a rational variable")
   private boolean encodeTemplatesAsRationals = false;
 
+  @Option(secure=true,
+    description="Generate even more templates (try coeff. 2 for each variable)")
+  private boolean generateMoreTemplates = false;
+
+  @Option(secure=true,
+    description="Generate cubic constraints: templates +/- x +/- y +/- z for"
+        + " every combination (x, y, z)")
+  private boolean generateCube = false;
+
   private final CFA cfa;
   private final LogManager logger;
   private final NumeralFormulaManagerView<
@@ -82,6 +91,7 @@ public class TemplateManager {
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
   private static final String RET_VARIABLE = "__retval__";
 
+  // todo: do not hardcode, use automaton.
   private static final String ASSERT_FUNC_NAME = "assert";
   private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
 
@@ -166,10 +176,73 @@ public class TemplateManager {
           LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
               idExpression2);
 
-          out.add(Template.of(expr1.add(expr2), type));
-          out.add(Template.of(expr1.negate().sub(expr2), type));
-          out.add(Template.of(expr1.sub(expr2), type));
-          out.add(Template.of(expr2.sub(expr1), type));
+          out.addAll(genOctagonConstraints(expr1, expr2, type));
+
+          if (generateMoreTemplates) {
+            out.addAll(genOctagonConstraints(
+                expr1.multByConst(Rational.ofLong(2)), expr2, type));
+            out.addAll(genOctagonConstraints(expr1,
+                expr2.multByConst(Rational.ofLong(2)), type));
+          }
+        }
+      }
+    }
+
+    if (generateCube) {
+      for (ASimpleDeclaration s1 : liveVars) {
+        for (ASimpleDeclaration s2 : liveVars) {
+          for (ASimpleDeclaration s3 : liveVars) {
+            if (!shouldProcessVariable(s1)
+                || !shouldProcessVariable(s2) || !shouldProcessVariable(s3)) {
+              continue;
+            }
+
+            if (!s1.getType().equals(s2.getType())
+                || !s2.getType().equals(s3.getType())) {
+
+              // Don't pair up variables of different types.
+              continue;
+            }
+
+            if (s1.getQualifiedName().equals(s2.getQualifiedName()) ||
+                s2.getQualifiedName().equals(s3.getQualifiedName()) ||
+                s3.getQualifiedName().equals(s1.getQualifiedName())) {
+
+              // Don't pair up the same var.
+              continue;
+            }
+
+            CSimpleType type = (CSimpleType) s1.getType();
+            CIdExpression idExpression1 = new CIdExpression(
+                FileLocation.DUMMY, (CSimpleDeclaration)s1
+            );
+            CIdExpression idExpression2 = new CIdExpression(
+                FileLocation.DUMMY, (CSimpleDeclaration)s2
+            );
+            CIdExpression idExpression3 = new CIdExpression(
+                FileLocation.DUMMY, (CSimpleDeclaration)s3
+            );
+            LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
+                idExpression1);
+            LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
+                idExpression2);
+            LinearExpression<CIdExpression> expr3 = LinearExpression.ofVariable(
+                idExpression3);
+
+            out.addAll(genCubicConstraints(expr1, expr2, expr3, type));
+
+            if (generateMoreTemplates) {
+              out.addAll(
+                  genCubicConstraints(
+                      expr1.multByConst(Rational.ofLong(2)), expr2, expr3, type));
+              out.addAll(
+                  genCubicConstraints(
+                      expr1, expr2.multByConst(Rational.ofLong(2)), expr3, type));
+              out.addAll(
+                  genCubicConstraints(
+                      expr1, expr2, expr3.multByConst(Rational.ofLong(2)), type));
+            }
+          }
         }
       }
     }
@@ -177,6 +250,45 @@ public class TemplateManager {
     out.addAll(generatedTemplates);
 
     return out.build();
+  }
+
+  private Set<Template> genOctagonConstraints(
+      LinearExpression<CIdExpression> expr1,
+      LinearExpression<CIdExpression> expr2,
+      CSimpleType type
+  ) {
+    HashSet<Template> out = new HashSet<>(4);
+    out.add(Template.of(expr1.add(expr2), type));
+    out.add(Template.of(expr1.negate().sub(expr2), type));
+    out.add(Template.of(expr1.sub(expr2), type));
+    out.add(Template.of(expr2.sub(expr1), type));
+    return out;
+  }
+
+  private Set<Template> genCubicConstraints(
+      LinearExpression<CIdExpression> expr1,
+      LinearExpression<CIdExpression> expr2,
+      LinearExpression<CIdExpression> expr3,
+      CSimpleType type
+  ) {
+    HashSet<Template> out = new HashSet<>(4);
+    // No negated.
+    out.add(Template.of(expr1.add(expr2).add(expr3), type));
+
+    // 1 negated.
+    out.add(Template.of(expr1.add(expr2).sub(expr3), type));
+    out.add(Template.of(expr1.sub(expr2).add(expr3), type));
+    out.add(Template.of(expr1.negate().add(expr2).add(expr3), type));
+
+    // 2 Negated
+    out.add(Template.of(expr1.negate().add(expr2).sub(expr3), type));
+    out.add(Template.of(expr1.negate().sub(expr2).add(expr3), type));
+    out.add(Template.of(expr1.sub(expr2).sub(expr3), type));
+
+    // All negated.
+    out.add(Template.of(expr1.negate().sub(expr2).sub(expr3), type));
+
+    return out;
   }
 
 
