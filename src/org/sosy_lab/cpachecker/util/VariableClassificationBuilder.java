@@ -405,10 +405,11 @@ public class VariableClassificationBuilder {
     }
 
     try (BufferedReader reader = variableClassificationFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
-      String currentLine;
-      while ((currentLine = reader.readLine()) != null) {
-        for (int i = 0; i < reader.readLine().split(",").length; i++) {
-          classification.add(currentLine);
+      String variableName;
+      while ((variableName = reader.readLine()) != null) {
+        String[] occurances = reader.readLine().split(",");
+        for (int i = 0; i < occurances.length; i++) {
+          classification.add(variableName);
         }
       }
     } catch (IOException e) {

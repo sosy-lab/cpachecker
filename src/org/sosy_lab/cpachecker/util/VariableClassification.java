@@ -379,8 +379,7 @@ public class VariableClassification {
     return newScore;
   }
 
-  public int obtainDomainTypeScoreFromClassification(Collection<String> variableNames,
-      Optional<LoopStructure> loopStructure) {
+  public int obtainDomainTypeScoreFromClassification(Collection<String> variableNames) {
 
     final int BOOLEAN_VAR   = 2;
     final int INTEQUAL_VAR  = 4;
@@ -407,9 +406,12 @@ public class VariableClassification {
         factor = INTEQUAL_VAR;
       }
 
-      // eca-input variables are considered harmful
+      // special case for ECA-input variables
+      // treat them all the same, they all have values from 1 to 6
+      // and it does not matter if there is only one, or many of them,
+      // just return 6 always
       if (variableName.endsWith("::input")) {
-        return Integer.MAX_VALUE;
+        return 6;
       }
 
       newScore = newScore * factor;
