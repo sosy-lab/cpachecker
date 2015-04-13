@@ -29,12 +29,15 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
@@ -76,7 +79,8 @@ public class SymbolicEdgeInterpolator
       final StrongestPostOperator<ForgettingCompositeState> pStrongestPost,
       final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant> pInterpolantManager,
       final Configuration pConfig,
-      final ShutdownNotifier pShutdownNotifier
+      final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa
   ) throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -85,7 +89,8 @@ public class SymbolicEdgeInterpolator
     strongestPost = pStrongestPost;
     interpolantManager = pInterpolantManager;
     shutdownNotifier = pShutdownNotifier;
-    valuePrecision = SingletonPrecision.getInstance();
+    valuePrecision = VariableTrackingPrecision.createStaticPrecision(
+            pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
   }
 
   @Override
@@ -117,7 +122,6 @@ public class SymbolicEdgeInterpolator
     ARGPath suffix = getSuffix(pErrorPath, pLocationInPath);
 
     // if the suffix is contradicting by itself, the interpolant can be true
-    // (we can't use this as long as we want to keep all symbolic values in the precision)
     if (!isPathFeasible(suffix, ForgettingCompositeState.getInitialState())) {
       return interpolantManager.getTrueInterpolant();
     }
@@ -182,23 +186,12 @@ public class SymbolicEdgeInterpolator
       // if the suffix is feasible without the just removed constraint, it is necessary
       // for proving the error path's infeasibility and as such we have to re-add it.
       //noinspection ConstantConditions
-      if (containsSymbolicValue(forgottenInfo) || isPathFeasible(pSuffix, pSuccessorState)) {
+      if (isPathFeasible(pSuffix, pSuccessorState)) {
         pSuccessorState.remember(l, forgottenInfo);
       }
     }
 
     return pSuccessorState;
-  }
-
-  @SuppressWarnings("UnusedParameters")
-  private boolean containsSymbolicValue(ValueAnalysisInformation pForgottenInfo) {
-    /*for (Value v : pForgottenInfo.getAssignments().values()) {
-      if (v instanceof SymbolicValue) {
-        return true;
-      }
-    }*/
-
-    return false;
   }
 
   private ARGPath getSuffix(ARGPath pErrorPath, int pLocationInPath) {

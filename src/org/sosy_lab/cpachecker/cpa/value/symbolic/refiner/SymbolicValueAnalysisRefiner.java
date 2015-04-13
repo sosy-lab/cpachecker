@@ -118,7 +118,8 @@ public class SymbolicValueAnalysisRefiner
                                         strongestPostOperator,
                                         SymbolicInterpolantManager.getInstance(),
                                         config,
-                                        shutdownNotifier);
+                                        shutdownNotifier,
+                                        cfa);
 
     final SymbolicPathInterpolator pathInterpolator =
         new SymbolicPathInterpolator(edgeInterpolator,

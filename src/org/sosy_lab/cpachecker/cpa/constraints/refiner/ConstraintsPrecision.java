@@ -25,16 +25,18 @@ package org.sosy_lab.cpachecker.cpa.constraints.refiner;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.LessOrEqualOperator;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -66,26 +68,13 @@ public class ConstraintsPrecision implements Precision {
    * Returns whether the given <code>Constraint</code> is tracked by this precision.
    */
   public boolean isTracked(final Constraint pConstraint, final CFANode pLocation) {
-    boolean same = false;
     for (Constraint c : trackedConstraints.get(pLocation)) {
-      if (pConstraint instanceof BinaryConstraint) {
-        same = c.getClass().equals(pConstraint.getClass());
-      } else if (pConstraint instanceof UnaryConstraint) {
-        same = c.getClass().equals(pConstraint.getClass())
-            && ((UnaryConstraint) pConstraint).getOperand().getClass()
-            .equals(((UnaryConstraint) c).getOperand().getClass());
-      }
-
-      if (same) {
-        break;
-      }
-
-      /*if (leqOperator.haveEqualMeaning(c, pConstraint)) {
+      if (leqOperator.haveEqualMeaning(c, pConstraint)) {
         return true;
-      }*/
+      }
     }
 
-    return same;
+    return false;
   }
 
   /**
@@ -98,12 +87,12 @@ public class ConstraintsPrecision implements Precision {
   public ConstraintsPrecision join(final ConstraintsPrecision pOther) {
     Multimap<CFANode, Constraint> joinedSet = HashMultimap.create(trackedConstraints);
 
-    addConstraintsWithNewMeaning(joinedSet, pOther.trackedConstraints);
+    addNewConstraints(joinedSet, pOther.trackedConstraints);
 
     return new ConstraintsPrecision(joinedSet);
   }
 
-  private void addConstraintsWithNewMeaning(
+  private void addNewConstraints(
       Multimap<CFANode, Constraint> pMapToAddTo,
       Multimap<CFANode, Constraint> pNewConstraints
   ) {
@@ -142,7 +131,7 @@ public class ConstraintsPrecision implements Precision {
 
     } else {
       HashMultimap<CFANode, Constraint> newPrecision = HashMultimap.create(trackedConstraints);
-      addConstraintsWithNewMeaning(newPrecision, pIncrement);
+      addNewConstraints(newPrecision, pIncrement);
 
       return new ConstraintsPrecision(newPrecision);
     }
@@ -168,6 +157,22 @@ public class ConstraintsPrecision implements Precision {
 
   @Override
   public String toString() {
-    return trackedConstraints.toString();
+    StringBuilder sb = new StringBuilder("ConstraintsPrecision[\n");
+    List<CFANode> nodes = new ArrayList<>(trackedConstraints.keySet());
+    Collections.sort(nodes); // we always want the same node order
+
+    for (CFANode n : nodes) {
+      sb.append("\t").append(n).append(" -> ");
+
+      // unfortunately, constraints aren't comparable, so we won't have a deterministic order.
+      for (Constraint c : trackedConstraints.get(n)) {
+        sb.append(c.getRepresentation() + ", ");
+      }
+
+      sb.append("\n");
+    }
+
+    sb.append("]");
+    return sb.toString();
   }
 }
