@@ -1094,10 +1094,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       Value rightValue  = rVarInBinaryExp.accept(this);
 
       if (isEqualityAssumption(binaryOperator)) {
-        if (leftValue.isUnknown() && !rightValue.isUnknown() && isAssignable(lVarInBinaryExp)) {
+        if (leftValue.isUnknown() && rightValue.isExplicitlyKnown() && isAssignable(lVarInBinaryExp)) {
           assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue, pE.getExpressionType());
 
-        } else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
+        } else if (rightValue.isUnknown() && leftValue.isExplicitlyKnown() && isAssignable(rVarInBinaryExp)) {
           assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue, pE.getExpressionType());
         }
       }
