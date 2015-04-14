@@ -158,7 +158,6 @@ public class ValueAnalysisRefiner
                                             pConfig, pLogger, pShutdownNotifier, pCfa),
           ValueAnalysisInterpolantManager.getInstance(),
           pPathExtractor,
-          ValueAnalysisCPA.class,
           pConfig,
           pLogger,
           pShutdownNotifier,

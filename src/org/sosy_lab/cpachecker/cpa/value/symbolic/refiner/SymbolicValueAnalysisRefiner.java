@@ -163,7 +163,6 @@ public class SymbolicValueAnalysisRefiner
           pInterpolator,
           SymbolicInterpolantManager.getInstance(),
           pPathExtractor,
-          ValueAnalysisCPA.class,
           pConfig,
           pLogger,
           pShutdownNotifier,

@@ -94,8 +94,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<T>, T, I extends I
 
   private final PathExtractor pathExtractor;
 
-  private final Class<? extends ConfigurableProgramAnalysis> cpa;
-
   private int previousErrorPathId = -1;
 
   // statistics
@@ -107,7 +105,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<T>, T, I extends I
       final PathInterpolator<I, MemoryLocation> pPathInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
       final PathExtractor pPathExtractor,
-      final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -121,8 +118,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<T>, T, I extends I
     interpolantManager = pInterpolantManager;
     checker = pFeasibilityChecker;
     pathExtractor = pPathExtractor;
-
-    cpa = pCpaToRefine;
   }
 
   private boolean madeProgress(ARGPath path) {
