@@ -50,10 +50,11 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
 
   public ValueAnalysisStrongestPostOperator(
       final LogManager pLogger,
+      final Configuration pConfig,
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    transfer = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
+    transfer = new ValueAnalysisTransferRelation(pConfig, pLogger, pCfa);
   }
 
   @Override

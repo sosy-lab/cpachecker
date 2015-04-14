@@ -122,7 +122,7 @@ public class ValueAnalysisRefiner
         new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
-        new ValueAnalysisStrongestPostOperator(logger, cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     final ErrorPathClassifier pathClassifier = new ErrorPathClassifier(cfa.getVarClassification(),
                                                                        cfa.getLoopStructure());

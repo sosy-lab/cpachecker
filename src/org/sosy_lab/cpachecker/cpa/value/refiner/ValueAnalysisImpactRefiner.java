@@ -138,7 +138,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     final CFA cfa = valueAnalysisCpa.getCFA();
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
-        new ValueAnalysisStrongestPostOperator(logger, cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     final ValueAnalysisFeasibilityChecker feasibilityChecker =
         new ValueAnalysisFeasibilityChecker(logger, cfa, config);

@@ -71,14 +71,14 @@ public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<V
       final Configuration config
   ) throws InvalidConfigurationException {
 
-    super(new ValueAnalysisStrongestPostOperator(pLogger, pCfa),
+    super(new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
           new ValueAnalysisState(),
           ValueAnalysisCPA.class,
           pLogger,
           config,
           pCfa);
 
-    strongestPostOp = new ValueAnalysisStrongestPostOperator(pLogger, pCfa);
+    strongestPostOp = new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa);
     logger    = pLogger;
     precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
   }

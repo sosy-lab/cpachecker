@@ -147,7 +147,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
         new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
     final StrongestPostOperator<ValueAnalysisState> valuePostOp =
-        new ValueAnalysisStrongestPostOperator(logger, cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     OctagonDelegatingRefiner refiner =
         new OctagonDelegatingRefiner(valueChecker, valuePostOp, cpa, octagonCPA);

@@ -118,7 +118,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
         new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
-        new ValueAnalysisStrongestPostOperator(logger, cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     return new BddRefiner(
         feasibilityChecker,

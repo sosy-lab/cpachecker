@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -178,7 +179,6 @@ public class SymbolicValueAnalysisRefiner
       // We require a lot less resources if it is possible to identify the target states as
       // infeasible without using symbolic values (and as such, also without SAT checks).
       final CounterexampleInfo explicitOnlyCex = explicitOnlyRefiner.performRefinement(pReachedSet);
-
       if (!explicitOnlyCex.isSpurious()) {
         final CounterexampleInfo symbolicValueCex = super.performRefinement(pReachedSet);
 

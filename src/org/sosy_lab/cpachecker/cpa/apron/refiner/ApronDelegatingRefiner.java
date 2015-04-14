@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -147,7 +148,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
         new ValueAnalysisFeasibilityChecker(logger, cfa, apronCPA.getConfiguration());
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
-        new ValueAnalysisStrongestPostOperator(logger, cfa);
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     ApronDelegatingRefiner refiner = new ApronDelegatingRefiner(feasibilityChecker,
                                                                 strongestPostOp,
