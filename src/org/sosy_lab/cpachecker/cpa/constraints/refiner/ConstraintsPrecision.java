@@ -31,11 +31,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.constraints.LessOrEqualOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
 import com.google.common.collect.HashMultimap;
@@ -50,7 +49,8 @@ public class ConstraintsPrecision implements Precision {
 
   private Multimap<CFANode, Constraint> trackedConstraints;
 
-  private final LessOrEqualOperator leqOperator = LessOrEqualOperator.getInstance();
+  private final AliasedSubsetLessOrEqualOperator leqOperator =
+      AliasedSubsetLessOrEqualOperator.getInstance();
 
   /**
    * Creates a new <code>ConstraintsPrecision</code> with the given constraints as precision.

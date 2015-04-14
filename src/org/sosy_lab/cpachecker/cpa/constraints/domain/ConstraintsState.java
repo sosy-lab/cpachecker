@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints;
+package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -33,11 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
+import org.sosy_lab.cpachecker.cpa.constraints.VariableMap;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
-import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -49,14 +51,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Lists;
 
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState implements LatticeAbstractState<ConstraintsState>, Set<Constraint> {
+@Options(prefix = "cpa.constraints")
+public class ConstraintsState implements AbstractState, Set<Constraint> {
 
   /**
    * Stores identifiers and their corresponding constraints
@@ -70,8 +72,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   private FormulaManagerView formulaManager;
 
   private IdentifierAssignment definiteAssignment;
-
-  private LessOrEqualOperator lessOrEqualOperator = LessOrEqualOperator.getInstance();
 
   /**
    * Creates a new, initial <code>ConstraintsState</code> object.
@@ -128,45 +128,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
 
   protected FormulaCreator getFormulaCreator() {
     return formulaCreator;
-  }
-
-  /**
-   * Join this <code>ConstraintsState</code> with the given one.
-   *
-   * Join is defined as the intersection of both states.
-   *
-   * @param other the state to join this state with
-   *
-   * @return the join (that is, intersection) of both states
-   */
-  @Override
-  public ConstraintsState join(ConstraintsState other) {
-    throw new UnsupportedOperationException("ConstraintStates can't be joined");
-  }
-
-  /**
-   * Returns whether this state is less or equal than another given state.
-   *
-   * <p>A <code>ConstraintsState</code> is less or equal another given state, if it is a super set of it.</p>
-   *
-   * @param other the other state to check against
-   * @return <code>true</code> if this state is less or equal than the given state, <code>false</code> otherwise
-   */
-  @Override
-  public boolean isLessOrEqual(ConstraintsState other) {
-    /* Alternative method: A state s is less or equal another states s', if s' implies s.
-
-    if (solver == null) {
-      // an uninitialized solver means there can be no constraints
-      return true;
-    }
-
-    BooleanFormula thisRepresentingFormula = getFullFormula();
-    BooleanFormula otherRepresentingFormula = other.getFullFormula();
-
-    return solver.implies(otherRepresentingFormula, thisRepresentingFormula);*/
-
-    return lessOrEqualOperator.isLessOrEqual(this, other);
   }
 
   /**
@@ -412,7 +373,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
    * @throws UnrecognizedCCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
+  BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
     createMissingConstraintFormulas();
 
     return formulaManager.getBooleanFormulaManager().and(Lists.newArrayList(constraintFormulas.values()));

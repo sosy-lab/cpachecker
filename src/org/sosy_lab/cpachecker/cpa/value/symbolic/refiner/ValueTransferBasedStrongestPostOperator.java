@@ -36,12 +36,13 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -57,6 +58,7 @@ public class ValueTransferBasedStrongestPostOperator
   private final ConstraintsTransferRelation constraintsTransfer;
 
   public ValueTransferBasedStrongestPostOperator(
+      final Solver pSolver,
       final LogManager pLogger,
       final Configuration pConfig,
       final CFA pCfa,
@@ -68,7 +70,8 @@ public class ValueTransferBasedStrongestPostOperator
         new ValueAnalysisTransferRelation(pConfig, pLogger, pCfa);
 
     constraintsTransfer =
-        new ConstraintsTransferRelation(pCfa.getMachineModel(),
+        new ConstraintsTransferRelation(pSolver,
+                                        pCfa.getMachineModel(),
                                         pLogger,
                                         pConfig,
                                         pShutdownNotifier);

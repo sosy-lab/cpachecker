@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;

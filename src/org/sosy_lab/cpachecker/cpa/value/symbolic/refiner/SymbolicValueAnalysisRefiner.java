@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.GenericRefiner;
 import org.sosy_lab.cpachecker.util.refiner.InterpolationTree;
@@ -101,8 +102,10 @@ public class SymbolicValueAnalysisRefiner
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
+    final Solver solver = Solver.create(config, logger, shutdownNotifier);
+
     final SymbolicStrongestPostOperator strongestPostOperator =
-        new ValueTransferBasedStrongestPostOperator(logger, config, cfa, shutdownNotifier);
+        new ValueTransferBasedStrongestPostOperator(solver, logger, config, cfa, shutdownNotifier);
 
     final SymbolicFeasibilityChecker feasibilityChecker =
         new SymbolicValueAnalysisFeasibilityChecker(strongestPostOperator,

@@ -27,12 +27,13 @@ import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -47,14 +48,21 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.*;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 
 /**
  * Configurable Program Analysis that tracks constraints for analysis.
  */
+@Options(prefix = "cpa.constraints")
 public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+
+  private enum ComparisonType { SUBSET, ALIASED_SUBSET, IMPLICATION }
+
+  @Option(description = "Type of less-or-equal operator to use", toUppercase = true)
+  private ComparisonType lessOrEqualType = ComparisonType.ALIASED_SUBSET;
 
   private final LogManager logger;
 
@@ -64,18 +72,25 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private TransferRelation transferRelation;
   private ConstraintsPrecisionAdjustment precisionAdjustment;
 
+  private Solver solver;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ConstraintsCPA.class);
   }
 
   private ConstraintsCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
-    logger = pLogger;
 
-    abstractDomain = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
+    pConfig.inject(this);
+
+    logger = pLogger;
+    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+
+    abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
-    transferRelation = new ConstraintsTransferRelation(pCfa.getMachineModel(), logger, pConfig, pShutdownNotifier);
+    transferRelation =
+        new ConstraintsTransferRelation(solver, pCfa.getMachineModel(), logger, pConfig, pShutdownNotifier);
     precisionAdjustment = new ConstraintsPrecisionAdjustment();
   }
 
@@ -85,6 +100,27 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   private StopOperator initializeStopOperator() {
     return new StopSepOperator(abstractDomain);
+  }
+
+  private AbstractDomain initializeAbstractDomain() {
+    switch (lessOrEqualType) {
+      case SUBSET:
+        abstractDomain = SubsetLessOrEqualOperator.getInstance();
+        break;
+
+      case ALIASED_SUBSET:
+        abstractDomain = AliasedSubsetLessOrEqualOperator.getInstance();
+        break;
+
+      case IMPLICATION:
+        abstractDomain = new ImplicationLessOrEqualOperator(solver);
+        break;
+
+      default:
+        throw new AssertionError("Unhandled type for less-or-equal operator: " + lessOrEqualType);
+    }
+
+    return abstractDomain;
   }
 
   @Override

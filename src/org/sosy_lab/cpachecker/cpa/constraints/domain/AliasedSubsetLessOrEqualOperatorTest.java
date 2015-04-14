@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints;
+package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -37,20 +37,26 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 /**
- * Unit tests for {@link ConstraintsState}.
+ * Tests for {@link AliasedSubsetLessOrEqualOperator}.
  */
-public class ConstraintsStateTest {
+public class AliasedSubsetLessOrEqualOperatorTest {
+
+  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("a");
+  private final MemoryLocation memLoc2 = MemoryLocation.valueOf("b");
 
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+  private final Type defType = CNumericTypes.INT;
+
+  private final AliasedSubsetLessOrEqualOperator
+      leqOp = AliasedSubsetLessOrEqualOperator.getInstance();
 
   private final IdentifierAssignment emptyDefiniteAssignment = new IdentifierAssignment();
-
-  private final Type defType = CNumericTypes.INT;
 
   private final SymbolicIdentifier id1 = factory.newIdentifier();
   private final SymbolicIdentifier id2 = factory.newIdentifier();
@@ -58,13 +64,13 @@ public class ConstraintsStateTest {
   private final SymbolicIdentifier alias2 = factory.newIdentifier();
 
   private final SymbolicExpression idExp1 = factory.asConstant(id1,
-                                                               defType);
+      defType);
   private final SymbolicExpression idExp2 = factory.asConstant(id2,
-                                                               defType);
+      defType);
   private final SymbolicExpression aliasExp1 = factory.asConstant(alias1,
-                                                                  defType);
+      defType);
   private final SymbolicExpression aliasExp2 = factory.asConstant(alias2,
-                                                                  defType);
+      defType);
 
   private final NumericValue num1 = new NumericValue(5);
   private final SymbolicExpression numExp1 = factory.asConstant(num1, defType);
@@ -74,40 +80,63 @@ public class ConstraintsStateTest {
   private final Constraint cAlias1 = (Constraint) factory.lessThan(aliasExp1, numExp1, defType, defType);
   private final Constraint cAlias2 = (Constraint) factory.equal(aliasExp2, aliasExp1, defType, defType);
 
+  @Test
+  public void testhaveEqualMeaning() {
+    final SymbolicExpression locLessExp1 = factory.add(idExp1, idExp2, defType, defType);
+    final SymbolicExpression locLessExp2 = factory.add(idExp1, numExp1, defType, defType);
+
+    SymbolicExpression exp1 = locLessExp1.copyForLocation(memLoc1);
+    SymbolicExpression exp2 = locLessExp1.copyForLocation(memLoc2);
+    SymbolicExpression exp3 = locLessExp2.copyForLocation(memLoc2);
+
+    SymbolicExpression constr1 = factory.lessThan(exp1, exp3, defType, defType);
+    SymbolicExpression constr2 = factory.lessThan(exp1, exp2, defType, defType);
+
+    Assert.assertTrue(leqOp.haveEqualMeaning(exp1, exp1));
+    Assert.assertTrue(leqOp.haveEqualMeaning(constr1, constr2));
+    Assert.assertFalse(leqOp.haveEqualMeaning(exp1, exp2));
+  }
 
   @Test
   public void testIsLessOrEqual_reflexive() {
-    ConstraintsState state = new ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        state = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
 
-    Assert.assertTrue(state.isLessOrEqual(state));
+    Assert.assertTrue(leqOp.isLessOrEqual(state, state));
   }
 
   @Test
   public void testIsLessOrEqual_BiggerOneEmpty() {
-    ConstraintsState emptyState = new ConstraintsState();
-    ConstraintsState state = new ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        emptyState = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState();
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        state = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
 
-    Assert.assertTrue(state.isLessOrEqual(emptyState));
+    Assert.assertTrue(leqOp.isLessOrEqual(state, emptyState));
   }
 
   @Test
   public void testIsLessOrEqual_BiggerOneSubsetWithSameIdentifierIds() {
-    ConstraintsState state = new ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        state = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
     Set<Constraint> subset = getConstraintSet();
     subset.remove(Iterables.get(subset, 0));
-    ConstraintsState subsetState = new ConstraintsState(subset, emptyDefiniteAssignment);
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        subsetState = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(subset, emptyDefiniteAssignment);
 
-    Assert.assertTrue(state.isLessOrEqual(subsetState));
+    Assert.assertTrue(leqOp.isLessOrEqual(state, subsetState));
   }
 
   @Test
   public void testIsLessOrEqual_BiggerOneSubsetWithOtherIdentifierIds() {
-    ConstraintsState state = new ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        state = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
     Set<Constraint> subset = getAliasConstraintSet();
     subset.remove(Iterables.get(subset, 0));
-    ConstraintsState subsetState = new ConstraintsState(subset, emptyDefiniteAssignment);
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        subsetState = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(subset, emptyDefiniteAssignment);
 
-    Assert.assertTrue(state.isLessOrEqual(subsetState));
+    Assert.assertTrue(leqOp.isLessOrEqual(state, subsetState));
   }
 
   @Test
@@ -115,14 +144,17 @@ public class ConstraintsStateTest {
     Constraint lesserConstraint = factory.equal(idExp1, numExp1, defType, defType);
     Set<Constraint> constraints = ImmutableSet.of(lesserConstraint);
 
-    ConstraintsState biggerState = new ConstraintsState(constraints, emptyDefiniteAssignment);
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        biggerState = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(constraints, emptyDefiniteAssignment);
 
     IdentifierAssignment definiteAssignment = new IdentifierAssignment();
     definiteAssignment.put(id1, num1);
 
-    ConstraintsState lesserState = new ConstraintsState(Collections.<Constraint>emptySet(),
-                                                        definiteAssignment);
-    Assert.assertTrue(lesserState.isLessOrEqual(biggerState));
+    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
+        lesserState = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(
+        Collections.<Constraint>emptySet(),
+        definiteAssignment);
+    Assert.assertTrue(leqOp.isLessOrEqual(lesserState, biggerState));
   }
 
   private Set<Constraint> getConstraintSet() {

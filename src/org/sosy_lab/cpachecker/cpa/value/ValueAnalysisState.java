@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.cpa.constraints.LessOrEqualOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -477,9 +477,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       return true;
     }
 
-    final LessOrEqualOperator leqOperator = LessOrEqualOperator.getInstance();
+    final AliasedSubsetLessOrEqualOperator
+        leqOperator = AliasedSubsetLessOrEqualOperator.getInstance();
 
-    final Set<LessOrEqualOperator.Environment> possibleScenarios =
+    final Set<AliasedSubsetLessOrEqualOperator.Environment> possibleScenarios =
         leqOperator.getPossibleAliases(thisSymbolicAssignments.values(),
             otherSymbolicAssignments.values());
 
@@ -488,7 +489,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     // check whether a possible aliasing of symbolic expressions fits the correct memory locations.
-    for (LessOrEqualOperator.Environment e : possibleScenarios) {
+    for (AliasedSubsetLessOrEqualOperator.Environment e : possibleScenarios) {
       boolean memoryLocationsAndAliassesConsistent = true;
 
       for (Map.Entry<SymbolicIdentifier, Value> entry : pOther.identifierMap.entrySet()) {

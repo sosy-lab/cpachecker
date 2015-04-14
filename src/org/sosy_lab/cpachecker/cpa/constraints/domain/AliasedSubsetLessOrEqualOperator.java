@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints;
+package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,6 +29,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsOnlyView;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -37,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
@@ -53,15 +57,16 @@ import com.google.common.base.Optional;
  * with <code>d(s)</code>.
  * </p>
  */
-public class LessOrEqualOperator {
+public class AliasedSubsetLessOrEqualOperator implements AbstractDomain {
 
-  private static final LessOrEqualOperator SINGLETON = new LessOrEqualOperator();
+  private static final AliasedSubsetLessOrEqualOperator SINGLETON =
+      new AliasedSubsetLessOrEqualOperator();
 
-  private LessOrEqualOperator() {
+  private AliasedSubsetLessOrEqualOperator() {
     // DO NOTHING
   }
 
-  public static LessOrEqualOperator getInstance() {
+  public static AliasedSubsetLessOrEqualOperator getInstance() {
     return SINGLETON;
   }
 
@@ -120,6 +125,12 @@ public class LessOrEqualOperator {
     }
   }
 
+  @Override
+  public AbstractState join(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    throw new UnsupportedOperationException("ConstraintsCPA's domain does not support join");
+  }
+
   /**
    * Returns whether the first state is less or equal the second state.
    *
@@ -134,17 +145,23 @@ public class LessOrEqualOperator {
    * @param pBiggerState the state that should be equal or bigger the first state
    * @return <code>true</code> if the first given state is less or equal the given second state
    */
+  @Override
   public boolean isLessOrEqual(
-      final ConstraintsState pLesserState,
-      final ConstraintsState pBiggerState
+      final AbstractState pLesserState,
+      final AbstractState pBiggerState
   ) {
+    assert pLesserState instanceof ConstraintsState;
+    assert pBiggerState instanceof ConstraintsState;
+
+    ConstraintsState lesserState = (ConstraintsState) pLesserState;
+    ConstraintsState biggerState = (ConstraintsState) pBiggerState;
 
     // Get all constraints of the state, including definite assignments of symbolic identifiers.
     // This simplifies comparison between states because we don't have to look at these separately.
     final ConstraintsOnlyView allConstraintsLesserState =
-        new ConstraintsOnlyView(pLesserState);
+        new ConstraintsOnlyView(lesserState);
     final ConstraintsOnlyView allConstraintsBiggerState =
-        new ConstraintsOnlyView(pBiggerState);
+        new ConstraintsOnlyView(biggerState);
 
     if (allConstraintsBiggerState.size() > allConstraintsLesserState.size()) {
       return false;

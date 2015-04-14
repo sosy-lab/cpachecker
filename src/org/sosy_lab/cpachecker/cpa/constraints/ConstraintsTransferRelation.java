@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -94,22 +95,21 @@ public class ConstraintsTransferRelation
   private CtoFormulaConverter converter;
   private StateSimplifier simplifier;
 
-  public ConstraintsTransferRelation(MachineModel pMachineModel, LogManager pLogger,
-      Configuration pConfig, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+  public ConstraintsTransferRelation(
+      final Solver pSolver,
+      final MachineModel pMachineModel,
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final ShutdownNotifier pShutdownNotifier
+  ) throws InvalidConfigurationException {
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(machineModel, logger);
-    initializeSolver(pLogger, pConfig, pShutdownNotifier);
-    initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
-  }
 
-  private void initializeSolver(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-
-    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    solver = pSolver;
     formulaManager = solver.getFormulaManager();
+    initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
   }
 
   // Can only be called after machineModel and formulaManager are set
