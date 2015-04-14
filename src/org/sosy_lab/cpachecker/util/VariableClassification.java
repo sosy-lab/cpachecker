@@ -25,7 +25,10 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -34,6 +37,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -45,6 +50,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
@@ -72,7 +78,7 @@ public class VariableClassification {
   private final Multiset<String> assumedVariables;
   private final Multiset<String> assignedVariables;
 
-  private final Multiset<String> classification;
+  private Multiset<String> classification;
 
   /** Fields information doesn't take any aliasing information into account,
    *  fields are considered per type, not per composite instance */
@@ -379,6 +385,33 @@ public class VariableClassification {
     return newScore;
   }
 
+  /**
+   * This method read a user-provided classification from file.
+   */
+  private Multiset<String> readVariableClassificationFromFile() {
+    Multiset<String> classification = HashMultiset.create();
+
+    Path variableClassificationFile = Paths.get("output/variableMapping.txt");
+
+    if(variableClassificationFile == null) {
+      return classification;
+    }
+
+    try (BufferedReader reader = variableClassificationFile.asCharSource(Charset.defaultCharset()).openBufferedStream()) {
+      String variableName;
+      while ((variableName = reader.readLine()) != null) {
+        String[] occurances = reader.readLine().split(",");
+        for (int i = 0; i < occurances.length; i++) {
+          classification.add(variableName);
+        }
+      }
+    } catch (IOException e) {
+      //logger.logUserException(Level.WARNING, e, "Could not read variable classification from file " + variableClassificationFile);
+    }
+
+    return classification;
+  }
+
   public int obtainDomainTypeScoreFromClassification(Collection<String> variableNames) {
 
     final int BOOLEAN_VAR   = 2;
@@ -389,21 +422,42 @@ public class VariableClassification {
       return UNKNOWN_VAR;
     }
 
+    if(classification.isEmpty()) {
+      classification = readVariableClassificationFromFile();
+    }
+
     int newScore = 1;
     int oldScore = newScore;
     for (String variableName : variableNames) {
       int factor = UNKNOWN_VAR;
 
       if(classification.contains(variableName)) {
-        factor = classification.count(variableName);
+        int count = classification.count(variableName);
+        if(count > 15) {
+          factor = 128;
+        }
+
+        else if(count > 10) {
+          factor = 64;
+        }
+
+        else if(count > 5) {
+          factor = 32;
+        }
+
+        else {
+          factor = count;
+        }
       }
 
-      else if (getIntBoolVars().contains(variableName)) {
-        factor = BOOLEAN_VAR;
-      }
+      else {
+        if (getIntBoolVars().contains(variableName)) {
+          factor = BOOLEAN_VAR;
+        }
 
-      else if (getIntEqualVars().contains(variableName)) {
-        factor = INTEQUAL_VAR;
+        else if (getIntEqualVars().contains(variableName)) {
+          factor = INTEQUAL_VAR;
+        }
       }
 
       // special case for ECA-input variables
