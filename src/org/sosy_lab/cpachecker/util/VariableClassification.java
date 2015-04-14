@@ -507,6 +507,8 @@ public class VariableClassification {
         if(factor == -1) {// DISABLED
           factor = 128;
         }
+
+        factor *= 4;
       }
 
       // else, use static domain-types
