@@ -198,10 +198,12 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     Set<MemoryLocation> decrement = new HashSet<>();
     UniqueAssignmentsInPathConditionState thresholdState = AbstractStates.extractStateByType(pReached.asReachedSet().getFirstState(), UniqueAssignmentsInPathConditionState.class);
     if(thresholdState != null) {
-      // double threshold and domain-score for all exceeding vars
+      // increase/double threshold and domain-score for all exceeding vars
       for(MemoryLocation exceedingMemoryLocation : thresholdState.getExceedingMemoryLocations()) {
         thresholdState.increaseThreshold(exceedingMemoryLocation);
-        decrement.add(exceedingMemoryLocation);
+        if(thresholdState.getThresholds().get(exceedingMemoryLocation) != -1) {
+          decrement.add(exceedingMemoryLocation);
+        }
       }
 
       // SAFE TO ACTIVATE THRESHOLDS AGAIN IN FEASABILITY CHECK
@@ -246,9 +248,10 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
       precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
-          .withIncrement(interpolationTree.extractPrecisionIncrement(root)).
-          withDecrement(decrement));
-//Syso(new TreeSet<>(interpolationTree.extractPrecisionIncrement(root).values()));
+          .withDecrement(decrement)
+          .withIncrement(interpolationTree.extractPrecisionIncrement(root)));
+//Syso("removing from precision:" + decrement);
+//Syso("adding to precision:" + new TreeSet<>(interpolationTree.extractPrecisionIncrement(root).values()));
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
         precisions.add(mergePredictePrecisionsForSubgraph(root, pReached));

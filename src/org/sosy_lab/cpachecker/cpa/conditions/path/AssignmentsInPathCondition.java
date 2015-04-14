@@ -52,7 +52,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
 
 /**
  * A {@link PathCondition} where the condition is based on the number of assignments (per identifier)
@@ -60,7 +62,6 @@ import com.google.common.collect.Multimap;
  */
 @Options(prefix="cpa.conditions.path.assignments")
 public class AssignmentsInPathCondition implements PathCondition, Statistics {
-
   /**
    * constant to signal that thresholds are disabled
    */
@@ -95,6 +96,11 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
    * the map handling which variable has which (individual) threshold
    */
   private Map<MemoryLocation, Integer> thresholds = new HashMap<>();
+
+  /**
+   * the data structure that keeps track how often a threshold was increased for a variable
+   */
+  private Multiset<MemoryLocation> incrementCounter = HashMultiset.create();
 
   public Map<MemoryLocation, Integer> getThres() {
     return thresholds;
@@ -227,8 +233,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
       if(thresholds.containsKey(memoryLocation)) {
         Integer individualThreshold = thresholds.get(memoryLocation);
-        return mapping.get(memoryLocation).size() > individualThreshold
-            && individualThreshold < 50;
+        return individualThreshold != DISABLED && mapping.get(memoryLocation).size() > individualThreshold;
       }
 
       else {
@@ -275,7 +280,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     public Set<MemoryLocation> getExceedingMemoryLocations() {
       Set<MemoryLocation> exceedingMemoryLocations = new HashSet<>();
       for (MemoryLocation memoryLocation : mapping.keys()) {
-        if(mapping.get(memoryLocation).size() > thresholds.get(memoryLocation)) {
+        if(exceedsHardThreshold(memoryLocation)) {
           exceedingMemoryLocations.add(memoryLocation);
         }
       }
@@ -285,7 +290,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     public void increaseThreshold(MemoryLocation pMemoryLocation) {
       thresholds.put(pMemoryLocation, thresholds.get(pMemoryLocation) * 2);
+      //thresholds.put(pMemoryLocation, mapping.get(pMemoryLocation).size());
       //Syso("increasing threshold to " + thresholds.get(pMemoryLocation) + " for " + pMemoryLocation);
+      incrementCounter.add(pMemoryLocation);
+
+      if(incrementCounter.count(pMemoryLocation) >= 4) {
+        thresholds.put(pMemoryLocation, DISABLED);
+      }
     }
 
     public Map<MemoryLocation, Integer> getThresholds() {
