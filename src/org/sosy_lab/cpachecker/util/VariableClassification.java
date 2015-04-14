@@ -488,22 +488,17 @@ public class VariableClassification {
     int newScore = 1;
     int oldScore = newScore;
     for (String variableName : variableNames) {
-      /*
-      // this solves 11 more ldv-drivers + 6 ECAs (most close to TO) + 2 loops
-      int factor = 2;
-
-      if (thresholds.containsKey(MemoryLocation.valueOf(variableName))) {
-        factor = thresholds.get(MemoryLocation.valueOf(variableName));
-      }*/
-
-
-      // solves 23 PDLs more than the one above
       int factor = 0;
 
+      // if an individual threshold is set, use that
       if (thresholds.containsKey(MemoryLocation.valueOf(variableName))) {
         factor = thresholds.get(MemoryLocation.valueOf(variableName));
+        if(factor == -1) {// DISABLED
+          factor = 128;
+        }
       }
 
+      // else, use static domain-types
       else {
 
         if (getIntBoolVars().contains(variableName)) {
@@ -520,6 +515,10 @@ public class VariableClassification {
 
         else {
           factor = UNKNOWN_VAR;
+        }
+
+        if (loopStructure.isPresent() && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
+          factor = UNKNOWN_VAR * UNKNOWN_VAR * UNKNOWN_VAR;
         }
       }
 

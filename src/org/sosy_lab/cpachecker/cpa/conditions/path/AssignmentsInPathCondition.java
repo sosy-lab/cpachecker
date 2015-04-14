@@ -249,11 +249,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     public void updateAssignmentInformation(MemoryLocation memoryLocation, Value value) {
       mapping.put(memoryLocation, value.asNumericValue().longValue());
       maximum = Math.max(maximum, mapping.get(memoryLocation).size());
-
-      // lazy-initialization of the the individual thresholds
-      if(!thresholds.containsKey(memoryLocation)) {
-        thresholds.put(memoryLocation, hardThreshold);
-      }
     }
 
     @Override
@@ -289,12 +284,15 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     public void increaseThreshold(MemoryLocation pMemoryLocation) {
-      thresholds.put(pMemoryLocation, thresholds.get(pMemoryLocation) * 2);
-      //thresholds.put(pMemoryLocation, mapping.get(pMemoryLocation).size());
-      //Syso("increasing threshold to " + thresholds.get(pMemoryLocation) + " for " + pMemoryLocation);
-      incrementCounter.add(pMemoryLocation);
+      // lazy-initialization of the the individual thresholds
+      if(!thresholds.containsKey(pMemoryLocation)) {
+        thresholds.put(pMemoryLocation, hardThreshold);
+      }
 
-      if(incrementCounter.count(pMemoryLocation) >= 4) {
+      thresholds.put(pMemoryLocation, thresholds.get(pMemoryLocation) * 2);
+
+      incrementCounter.add(pMemoryLocation);
+      if(incrementCounter.count(pMemoryLocation) >= 5) {
         thresholds.put(pMemoryLocation, DISABLED);
       }
     }
