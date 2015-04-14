@@ -157,19 +157,22 @@ public class ConstraintsPrecision implements Precision {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("ConstraintsPrecision[\n");
+    StringBuilder sb = new StringBuilder("ConstraintsPrecision[");
     List<CFANode> nodes = new ArrayList<>(trackedConstraints.keySet());
     Collections.sort(nodes); // we always want the same node order
 
-    for (CFANode n : nodes) {
-      sb.append("\t").append(n).append(" -> ");
-
-      // unfortunately, constraints aren't comparable, so we won't have a deterministic order.
-      for (Constraint c : trackedConstraints.get(n)) {
-        sb.append(c.getRepresentation() + ", ");
-      }
-
+    if (!nodes.isEmpty()) {
       sb.append("\n");
+      for (CFANode n : nodes) {
+        sb.append("\t").append(n).append(" -> ");
+
+        // unfortunately, constraints aren't comparable, so we won't have a deterministic order.
+        for (Constraint c : trackedConstraints.get(n)) {
+          sb.append(c.getRepresentation() + ", ");
+        }
+
+        sb.append("\n");
+      }
     }
 
     sb.append("]");
