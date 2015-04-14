@@ -268,8 +268,7 @@ public class ErrorPathClassifier {
 
       ARGPath path = currentErrorPath.immutableCopy();
       UseDefRelation useDefRelation = new UseDefRelation(path,
-          classification.get().getIntBoolVars(),
-          "NONE");
+          classification.get().getIntBoolVars());
 
       int score = 0;
       for (Collection<ASimpleDeclaration> uses : useDefRelation.getExpandedUses(path).values()) {
@@ -316,8 +315,7 @@ public class ErrorPathClassifier {
 
       ARGPath path = currentErrorPath.immutableCopy();
       UseDefRelation useDefRelation = new UseDefRelation(path,
-          classification.get().getIntBoolVars(),
-          "NONE");
+          classification.get().getIntBoolVars());
 
       // values are in reverse order, with the first item being the use of the failing
       // assume, hence, the index of first empty element, in relation to the first element
@@ -370,7 +368,7 @@ public class ErrorPathClassifier {
       currentErrorPath.addAll(pathToList(currentPrefix));
 
       ARGPath slicedPrefix = currentErrorPath.immutableCopy();
-      UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars(), "EQUALITY");
+      UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars());
 
       int depth = getDepthOfRefinementRoot(slicedPrefix, useDefRelation) * (-1);
 
@@ -402,7 +400,7 @@ public class ErrorPathClassifier {
       currentErrorPath.addAll(pathToList(currentPrefix));
 
       ARGPath slicedPrefix = currentErrorPath.immutableCopy();
-      UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars(), "EQUALITY");
+      UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars());
 
       int depthAndScore = getDepthAndScoreOfRefinementRoot(slicedPrefix, useDefRelation) * (-1);
 
@@ -508,8 +506,7 @@ public class ErrorPathClassifier {
 
   private int obtainDomainTypeScoreForPath(MutableARGPath currentErrorPath) {
     UseDefRelation useDefRelation = new UseDefRelation(currentErrorPath.immutableCopy(),
-      classification.get().getIntBoolVars(),
-      "NONE");
+      classification.get().getIntBoolVars());
 
     return classification.get().obtainDomainTypeScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
   }

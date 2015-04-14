@@ -87,11 +87,6 @@ public class UseDefRelation {
   private Set<String> booleanVariables = new HashSet<>();
 
   /**
-   * defines how to handle feasible assume edges
-   */
-  private final String handleFeasibleAssumeEdges;
-
-  /**
    * the use-def relation
    *
    * The key of the map has to be the {@link Pair} of {@link ARGState} and {@link CFAEdge}.
@@ -116,11 +111,9 @@ public class UseDefRelation {
   private boolean hasContradictingAssumeEdgeBeenHandled = false;
 
   public UseDefRelation(ARGPath path,
-      Set<String> pBooleanVariables,
-      String pHandleFeasibleAssumeEdges) {
+      Set<String> pBooleanVariables) {
 
-    booleanVariables          = pBooleanVariables;
-    handleFeasibleAssumeEdges = pHandleFeasibleAssumeEdges;
+    booleanVariables = pBooleanVariables;
 
     buildRelation(path);
   }
@@ -304,7 +297,7 @@ public class UseDefRelation {
 
     case AssumeEdge:
       if (hasContradictingAssumeEdgeBeenHandled) {
-        handleFeasibleAssumption(state, edge);
+        handleFeasibleAssumption(state, (CAssumeEdge)edge);
       } else {
         hasContradictingAssumeEdgeBeenHandled = true;
         addUseDef(state, edge, acceptAll(((CAssumeEdge)edge).getExpression()));
@@ -327,92 +320,36 @@ public class UseDefRelation {
     }
   }
 
-  private void handleFeasibleAssumption(ARGState state, CFAEdge edge) {
+  private void handleFeasibleAssumption(ARGState state, CAssumeEdge assumeEdge) {
 
-    // option 1)
-    // returning here immediately  without doing anything would lead to
-    // actual assignments ending up in the interpolant
-    // this, however, would lead to failing refinements if for a variable
-    // no assignment to a known value exists
-    if(handleFeasibleAssumeEdges.equals("NONE")) {
-      return;
-    }
-
-    CAssumeEdge assumeEdge = (CAssumeEdge)edge;
     CExpression expression = assumeEdge.getExpression();
 
-    // option 2)
-    // treat [a == 1] or [!(a != 1)] like an assignment,
-    // so that such an assume removes an open dependency
-    // for an equality with a constant, we can remove the dependency
-    // this still could fail if this assume is the "same" as the final, failing one
-    //
-    // also leave in inequalities like [a != 1] or [!(a )= 1)], as even the
-    // value analysis can deduce valuations of a, if a has boolean character
-    if (handleFeasibleAssumeEdges.equals("EQUALITY")) {
-      CBinaryExpression binaryExpression = ((CBinaryExpression) expression);
+    // One can treat [x == c] or [!(x != c)] as an assignment of the constant c
+    // to the variable x, so that such an assume resolves an unresolved use.
+    // If the variable "x" has boolean character, this also works for assumes
+    // like [x != c] or [!(x == c)].
+    CBinaryExpression binaryExpression = ((CBinaryExpression) expression);
 
-      ASimpleDeclaration operand = null;
-      if (binaryExpression.getOperand1() instanceof CIdExpression
-          && binaryExpression.getOperand2() instanceof CLiteralExpression) {
-        operand = ((CIdExpression)binaryExpression.getOperand1()).getDeclaration();
-      }
-
-      else if (binaryExpression.getOperand2() instanceof CIdExpression
-          && binaryExpression.getOperand1() instanceof CLiteralExpression) {
-        operand = ((CIdExpression)binaryExpression.getOperand2()).getDeclaration();
-      }
-
-      if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {
-        addUseDef(state, assumeEdge, operand, Collections.<ASimpleDeclaration>emptySet());
-      }
-
-      else {
-        if(isInequality(assumeEdge, binaryExpression.getOperator())
-            && hasUnresolvedUse(operand)
-            && hasBooleanCharacter(operand)) {
-          addUseDef(state, assumeEdge, operand, Collections.<ASimpleDeclaration>emptySet());
-        }
-      }
+    ASimpleDeclaration operand = null;
+    if (binaryExpression.getOperand1() instanceof CIdExpression
+        && binaryExpression.getOperand2() instanceof CLiteralExpression) {
+      operand = ((CIdExpression)binaryExpression.getOperand1()).getDeclaration();
     }
 
-    // option 3)
-    // in addition to option 2, we can add new dependencies
-    // from all kinds of assumptions (e.g., [a < 1]).
-    // These can never lead to a contradiction, as the given path
-    // is sliced (infeasible) prefix, that must only fail at the
-    // very last assume edge.
-    // However, these extra assumptions might help the SMT solver.
-    // For the value domain, this would only introduce overhead
-    // for interpolation, because it can't deal with anything
-    // but equality-assumptions. However, adding more than one
-    // equality-assumption cannot have a positive effect in the
-    // value domain, because it must be such that it "assigns"
-    // a variable to a value it already is assigned to, because
-    // otherwise, it would be contradicting, which can't be the case
-    // because only the final assumption is contradicting.
-    //
-    // for all other binary operations, we keep/readd/update the dependency,
-    // plus, we add the new dependencies for all variables that occur
-    // in the "other" side of the binary relation
-    else if (handleFeasibleAssumeEdges.equals("ALL")) {
-      CBinaryExpression binExpr = ((CBinaryExpression) expression);
+    else if (binaryExpression.getOperand2() instanceof CIdExpression
+        && binaryExpression.getOperand1() instanceof CLiteralExpression) {
+      operand = ((CIdExpression)binaryExpression.getOperand2()).getDeclaration();
+    }
 
-      Set<ASimpleDeclaration> leftSide = acceptAll(binExpr.getOperand1());
-      Set<ASimpleDeclaration> rightSide = acceptAll(binExpr.getOperand2());
+    if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {
+      addUseDef(state, assumeEdge, operand, Collections.<ASimpleDeclaration>emptySet());
+    }
 
-      for(ASimpleDeclaration leftDeclaration : leftSide) {
-        if (hasUnresolvedUse(leftDeclaration)) {
-          addUseDef(state, assumeEdge, Collections.singleton(leftDeclaration));
-          addUseDef(state, assumeEdge, rightSide);
-        }
-      }
-
-      for(ASimpleDeclaration rightDeclaration : rightSide) {
-        if (hasUnresolvedUse(rightDeclaration)) {
-          addUseDef(state, assumeEdge, Collections.singleton(rightDeclaration));
-          addUseDef(state, assumeEdge, leftSide);
-        }
+    else {
+      if(isInequality(assumeEdge, binaryExpression.getOperator())
+          && hasUnresolvedUse(operand)
+          && hasBooleanCharacter(operand)) {
+        addUseDef(state, assumeEdge, operand, Collections.<ASimpleDeclaration>emptySet());
       }
     }
   }
