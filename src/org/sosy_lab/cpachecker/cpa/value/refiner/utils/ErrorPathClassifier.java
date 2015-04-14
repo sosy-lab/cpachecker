@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -49,7 +49,6 @@ import com.google.common.collect.Iterables;
 
 public class ErrorPathClassifier {
 
-  private static final int MAX_PREFIX_LENGTH = 1000;
   private static final int MAX_PREFIX_NUMBER = 1000;
 
   public static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this edge in suffix";
@@ -66,10 +65,12 @@ public class ErrorPathClassifier {
     SHORTEST(),
     LONGEST(),
 
+    // use this only if you are feeling lucky
+    RANDOM(),
+
     // heuristics based on approximating cost via variable domain types
     DOMAIN_BEST_SHALLOW(FIRST_LOWEST_SCORE),
     DOMAIN_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
-    DOMAIN_BEST_BOUNDED(BOUNDED_LOWEST_SCORE),
     DOMAIN_BEST_DEEP(LAST_LOWEST_SCORE),
     DOMAIN_WORST_DEEP(LAST_HIGHEST_SCORE),
 
@@ -83,77 +84,22 @@ public class ErrorPathClassifier {
     REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
     REFINE_DEEP(LAST_LOWEST_SCORE),
 
-    // heuristic that combines refinement-root depth and domain-type score
-    REFINE_DEEP_DOMAIN(LAST_LOWEST_SCORE),
-
     // heuristic based on the length of the interpolant sequence (+ loop-counter heuristic)
     ITP_LENGTH_SHORT_SHALLOW(FIRST_LOWEST_SCORE),
     ITP_LENGTH_LONG_SHALLOW(FIRST_HIGHEST_SCORE),
     ITP_LENGTH_SHORT_DEEP(LAST_LOWEST_SCORE),
     ITP_LENGTH_LONG_DEEP(LAST_HIGHEST_SCORE),
 
-    // use these only if you are feeling lucky
-    RANDOM(),
-    MEDIAN(),
-    MIDDLE(),
-
     FEASIBLE();
 
     private PrefixPreference () {}
 
-    private PrefixPreference (Function<Triple<Integer, Integer, Integer>, Boolean> scorer) {
+    private PrefixPreference (Function<Pair<Integer, Integer>, Boolean> scorer) {
       this.scorer = scorer;
     }
 
-    private Function<Triple<Integer, Integer, Integer>, Boolean> scorer = INDIFFERENT_SCOREKEEPER;
+    private Function<Pair<Integer, Integer>, Boolean> scorer = INDIFFERENT_SCOREKEEPER;
   }
-
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> INDIFFERENT_SCOREKEEPER = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
-      return Boolean.TRUE;
-    }};
-
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FIRST_HIGHEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
-      return prefixParameters.getSecond() == null
-          || prefixParameters.getFirst() > prefixParameters.getSecond();
-    }};
-
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> LAST_HIGHEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
-      return prefixParameters.getSecond() == null
-          || prefixParameters.getFirst() >= prefixParameters.getSecond();
-    }};
-
-
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> FIRST_LOWEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
-      return prefixParameters.getSecond() == null
-          || prefixParameters.getFirst() < prefixParameters.getSecond();
-    }};
-
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> LAST_LOWEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
-      return prefixParameters.getSecond() == null
-          || prefixParameters.getFirst() <= prefixParameters.getSecond();
-    }};
-
-  private static final Function<Triple<Integer, Integer, Integer>, Boolean> BOUNDED_LOWEST_SCORE = new Function<Triple<Integer, Integer, Integer>, Boolean>() {
-    @Override
-    public Boolean apply(Triple<Integer, Integer, Integer> prefixParameters) {
-      if (prefixParameters.getSecond() == null) {
-        return true;
-      } else if (prefixParameters.getThird() < MAX_PREFIX_LENGTH) {
-        return prefixParameters.getFirst() <= prefixParameters.getSecond();
-      } else {
-        return prefixParameters.getFirst() < prefixParameters.getSecond();
-      }
-    }};
 
   public ErrorPathClassifier(Optional<VariableClassification> pClassification,
                              Optional<LoopStructure> pLoopStructure) {
@@ -161,9 +107,7 @@ public class ErrorPathClassifier {
     loopStructure   = pLoopStructure;
   }
 
-  public ARGPath obtainSlicedPrefix(PrefixPreference preference,
-      ARGPath errorPath,
-      List<ARGPath> pPrefixes) {
+  public ARGPath obtainSlicedPrefix(PrefixPreference preference, ARGPath errorPath, List<ARGPath> pPrefixes) {
 
     switch (preference) {
     case SHORTEST:
@@ -172,60 +116,56 @@ public class ErrorPathClassifier {
     case LONGEST:
       return obtainLongestPrefix(pPrefixes, errorPath);
 
+    case RANDOM:
+      return obtainRandomPrefix(pPrefixes, errorPath);
+
+    // scoring based on domain-types
     case DOMAIN_BEST_SHALLOW:
-    case DOMAIN_BEST_BOUNDED:
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_SHALLOW:
     case DOMAIN_WORST_DEEP:
-      return obtainDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
-
     case DOMAIN_PRECISE_BEST_SHALLOW:
     case DOMAIN_PRECISE_BEST_DEEP:
     case DOMAIN_PRECISE_WORST_SHALLOW:
     case DOMAIN_PRECISE_WORST_DEEP:
-      return obtainPreciseDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
-
+    //
+    // scoring based on length of itp-sequence
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
     case ITP_LENGTH_SHORT_DEEP:
     case ITP_LENGTH_LONG_DEEP:
-      return obtainItpSequenceLengthHeuristicBasedPrefix(pPrefixes, preference, errorPath);
-
+    //
+    // scoring based on depth of pivot state
     case REFINE_SHALLOW:
     case REFINE_DEEP:
-      return obtainRefinementRootHeuristicBasedPrefix(pPrefixes, preference, errorPath);
-
-    case REFINE_DEEP_DOMAIN:
-      return obtainRefinementRootAndDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
-
-    case RANDOM:
-      return obtainRandomPrefix(pPrefixes, errorPath);
-
-    case MEDIAN:
-      return obtainMedianPrefix(pPrefixes, errorPath);
-
-    case MIDDLE:
-      return obtainMiddlePrefix(pPrefixes, errorPath);
+      return obtainScoreBasedPrefix(pPrefixes, preference, errorPath);
 
     case FEASIBLE:
-      return buildPath(pPrefixes, errorPath);
+      return buildFeasiblePath(pPrefixes, errorPath);
 
     default:
       return errorPath;
     }
   }
 
+  // picks the very first infeasible prefix
   private ARGPath obtainShortestPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
-    return buildPath(0, pPrefixes, originalErrorPath);
+    return buildInfeasiblePath(0, pPrefixes, originalErrorPath);
   }
 
+  // picks the last infeasible prefix
   private ARGPath obtainLongestPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
-    return buildPath(pPrefixes.size() - 1, pPrefixes, originalErrorPath);
+    return buildInfeasiblePath(pPrefixes.size() - 1, pPrefixes, originalErrorPath);
   }
 
-  private ARGPath obtainDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
+  // not really a sensible heuristic at all, just here for comparison reasons
+  private ARGPath obtainRandomPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
+    return buildInfeasiblePath(new Random().nextInt(pPrefixes.size()), pPrefixes, originalErrorPath);
+  }
+
+  private ARGPath obtainScoreBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
     if (!classification.isPresent()) {
-      return concatPrefixes(pPrefixes);
+      return originalErrorPath;
     }
 
     MutableARGPath currentErrorPath = new MutableARGPath();
@@ -237,9 +177,8 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      int score = obtainDomainTypeScoreForPath(currentErrorPath);
-
-      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
+      int score = obtainScoreForPath(currentErrorPath.immutableCopy(), preference);
+      if (preference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
         bestIndex = currIndex;
       }
@@ -249,178 +188,98 @@ public class ErrorPathClassifier {
       replaceAssumeEdgeWithBlankEdge(currentErrorPath);
     }
 
-    return buildPath(bestIndex, pPrefixes, originalErrorPath);
+    return buildInfeasiblePath(bestIndex, pPrefixes, originalErrorPath);
   }
 
-  private ARGPath obtainPreciseDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
-    if (!classification.isPresent()) {
-      return concatPrefixes(pPrefixes);
+  private int obtainScoreForPath(ARGPath pPrefix, PrefixPreference pPreference) {
+    switch (pPreference) {
+    case DOMAIN_BEST_SHALLOW:
+    case DOMAIN_BEST_DEEP:
+    case DOMAIN_WORST_SHALLOW:
+    case DOMAIN_WORST_DEEP:
+      return obtainDomainTypeScoreForPath(pPrefix);
+
+    case DOMAIN_PRECISE_BEST_SHALLOW:
+    case DOMAIN_PRECISE_BEST_DEEP:
+    case DOMAIN_PRECISE_WORST_SHALLOW:
+    case DOMAIN_PRECISE_WORST_DEEP:
+      return obtainPreciseDomainTypeScoreForPath(pPrefix);
+
+    case ITP_LENGTH_SHORT_SHALLOW:
+    case ITP_LENGTH_LONG_SHALLOW:
+    case ITP_LENGTH_SHORT_DEEP:
+    case ITP_LENGTH_LONG_DEEP:
+      return obtainItpSequenceLengthForPath(pPrefix);
+
+    case REFINE_SHALLOW:
+    case REFINE_DEEP:
+      return obtainPivotStateDepthForPath(pPrefix);
+
+    default:
+      assert false;
+      return -1;
     }
+  }
 
-    MutableARGPath currentErrorPath = new MutableARGPath();
-    Integer bestScore = null;
-    Integer bestIndex = 0;
-    Integer currIndex = 0;
-    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
-      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
+  private int obtainDomainTypeScoreForPath(final ARGPath prefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
 
-      currentErrorPath.addAll(pathToList(currentPrefix));
+    return classification.get().obtainDomainTypeScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
+  }
 
-      ARGPath path = currentErrorPath.immutableCopy();
-      UseDefRelation useDefRelation = new UseDefRelation(path,
-          classification.get().getIntBoolVars());
+  private int obtainPreciseDomainTypeScoreForPath(final ARGPath prefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
 
-      int score = 0;
-      for (Collection<ASimpleDeclaration> uses : useDefRelation.getExpandedUses(path).values()) {
-        int temp = classification.get().obtainDomainTypeScoreForVariables2(FluentIterable.from(uses).transform(new Function<ASimpleDeclaration, String>() {
+    int score = 0;
+    for (Collection<ASimpleDeclaration> uses : useDefRelation.getExpandedUses(prefix).values()) {
+      int temp = classification.get().obtainDomainTypeScoreForVariables2(
+          FluentIterable.from(uses).transform(ASimpleDeclaration.GET_QUALIFIED_NAME).toSet(),
+          loopStructure);
+
+      // check for overflow
+      if(score + temp < score) {
+        score = Integer.MAX_VALUE;
+        break;
+      }
+
+      score = score + temp;
+    }
+    return score;
+  }
+
+  private int obtainItpSequenceLengthForPath(final ARGPath prefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
+
+    // values are in reverse order, with the first item being the use of the failing
+    // assume, hence, the index of first empty element, in relation to the first element,
+    // is equal to the length of the itp-sequence
+    Collection<Collection<ASimpleDeclaration>> expandedUses = useDefRelation.getExpandedUses(prefix).values();
+    int length = Iterables.indexOf(expandedUses,
+        new Predicate<Collection<ASimpleDeclaration>>() {
           @Override
-          public String apply(ASimpleDeclaration pArg0) {
-            return pArg0.getQualifiedName();
-          }}).toSet(), loopStructure);
+          public boolean apply(Collection<ASimpleDeclaration> values) {
+            return values.isEmpty();
+          }
+    });
 
-        if(score + temp < score) {
-          score = Integer.MAX_VALUE;
-          break;
-        }
+    assert (length != -1) : "No empty 'use' found, but itp-sequence can never start from initial node";
 
-        score = score + temp;
-      }
-
-      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
-        bestScore = score;
-        bestIndex = currIndex;
-      }
-
-      currIndex++;
-
-      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
-    }
-
-    return buildPath(bestIndex, pPrefixes, originalErrorPath);
+    // mixing this heuristic with a loop-counter heuristic
+    // gives slightly better results (evaluated with value analysis)
+    // if(obtainDomainTypeScoreForPath(prefix) == Integer.MAX_VALUE) {
+    //   length = 0;
+    // }
+    return length;
   }
 
-  private ARGPath obtainItpSequenceLengthHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
-    if (!classification.isPresent()) {
-      return concatPrefixes(pPrefixes);
-    }
+  private int obtainPivotStateDepthForPath(final ARGPath prefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
 
-    MutableARGPath currentErrorPath = new MutableARGPath();
-    Integer bestScore = null;
-    Integer bestIndex = 0;
-    Integer currIndex = 0;
-    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
-      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
-
-      currentErrorPath.addAll(pathToList(currentPrefix));
-
-      ARGPath path = currentErrorPath.immutableCopy();
-      UseDefRelation useDefRelation = new UseDefRelation(path,
-          classification.get().getIntBoolVars());
-
-      // values are in reverse order, with the first item being the use of the failing
-      // assume, hence, the index of first empty element, in relation to the first element
-      // is equal to the length of the itp-sequence
-      Collection<Collection<ASimpleDeclaration>> expandedUses = useDefRelation.getExpandedUses(path).values();
-      int length = Iterables.indexOf(expandedUses,
-          new Predicate<Collection<ASimpleDeclaration>>() {
-            @Override
-            public boolean apply(Collection<ASimpleDeclaration> values) {
-              return values.isEmpty();
-            }
-      });
-
-      // no pure heuristic, as it includes domain-types (loop-counter heuristic)
-      // which gives slightly better results (eval'ed with value-analysis)
-      if(obtainDomainTypeScoreForPath(currentErrorPath) == Integer.MAX_VALUE) {
-        length = 0;
-      }
-
-      assert (length != -1) : useDefRelation.getExpandedUses(path).values() + " \n\n " + currentErrorPath;
-      if(length == -1) {
-        length = path.size();
-      }
-
-      if (preference.scorer.apply(Triple.of(length, bestScore, currentErrorPath.size()))) {
-        bestScore = length;
-        bestIndex = currIndex;
-      }
-
-      currIndex++;
-
-      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
-    }
-
-    return buildPath(bestIndex, pPrefixes, originalErrorPath);
-  }
-
-  private ARGPath obtainRefinementRootHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
-    if (!classification.isPresent()) {
-      return concatPrefixes(pPrefixes);
-    }
-
-    MutableARGPath currentErrorPath = new MutableARGPath();
-    Integer bestDepth = null;
-    Integer bestIndex = 0;
-    Integer currIndex = 0;
-    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
-      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
-
-      currentErrorPath.addAll(pathToList(currentPrefix));
-
-      ARGPath slicedPrefix = currentErrorPath.immutableCopy();
-      UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars());
-
-      int depth = getDepthOfRefinementRoot(slicedPrefix, useDefRelation) * (-1);
-
-      if (preference.scorer.apply(Triple.of(depth, bestDepth, currentErrorPath.size()))) {
-        bestDepth = depth;
-        bestIndex = currIndex;
-      }
-
-      currIndex++;
-
-      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
-    }
-
-    return buildPath(bestIndex, pPrefixes, originalErrorPath);
-  }
-
-  private ARGPath obtainRefinementRootAndDomainTypeHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
-    if (!classification.isPresent()) {
-      return concatPrefixes(pPrefixes);
-    }
-
-    MutableARGPath currentErrorPath = new MutableARGPath();
-    Integer bestDepthAndScore = null;
-    Integer bestIndex = 0;
-
-    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
-      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
-
-      currentErrorPath.addAll(pathToList(currentPrefix));
-
-      ARGPath slicedPrefix = currentErrorPath.immutableCopy();
-      UseDefRelation useDefRelation = new UseDefRelation(slicedPrefix, classification.get().getIntBoolVars());
-
-      int depthAndScore = getDepthAndScoreOfRefinementRoot(slicedPrefix, useDefRelation) * (-1);
-
-      if (preference.scorer.apply(Triple.of(depthAndScore, bestDepthAndScore, currentErrorPath.size()))) {
-        bestDepthAndScore = depthAndScore;
-        bestIndex = pPrefixes.indexOf(currentPrefix);
-      }
-
-      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
-    }
-
-    return buildPath(bestIndex, pPrefixes, originalErrorPath);
-  }
-
-  private int getDepthOfRefinementRoot(ARGPath slicedPrefix, UseDefRelation useDefRelation) {
-    PathIterator iterator = slicedPrefix.pathIterator();
+    PathIterator iterator = prefix.pathIterator();
     while(iterator.hasNext()) {
 
       if(useDefRelation.hasDef(iterator.getAbstractState(), iterator.getOutgoingEdge())) {
-        return iterator.getIndex();
+        return iterator.getIndex()  * (-1);
       }
 
       iterator.advance();
@@ -431,53 +290,17 @@ public class ErrorPathClassifier {
     return -1;
   }
 
-  private int getDepthAndScoreOfRefinementRoot(ARGPath slicedPrefix, UseDefRelation useDefRelation) {
-
-    int depth = getDepthOfRefinementRoot(slicedPrefix, useDefRelation);
-    int score = classification.get().obtainDomainTypeScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
-
-    return depth - score;
-  }
-
-  // not really a sensible heuristic at all, just here for comparison reasons
-  private ARGPath obtainRandomPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
-    return buildPath(new Random().nextInt(pPrefixes.size()), pPrefixes, originalErrorPath);
-  }
-
-  // not really a sensible heuristic at all, just here for comparison reasons
-  private ARGPath obtainMedianPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
-    return buildPath(pPrefixes.size() / 2, pPrefixes, originalErrorPath);
-  }
-
-  // not really a sensible heuristic at all, just here for comparison reasons
-  private ARGPath obtainMiddlePrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
-    int totalLength = 0;
-    for (ARGPath p : pPrefixes) {
-      totalLength += p.size();
-    }
-
-    int length = 0;
-    int index = 0;
-    for (ARGPath p : pPrefixes) {
-      length += p.size();
-      if (length > totalLength / 2) {
-        break;
-      }
-      index++;
-    }
-
-    return buildPath(index, pPrefixes, originalErrorPath);
-  }
-
-
   /**
    * This method limits the number of prefixes to analyze (in case it is ridiculously high)
    */
   private List<ARGPath> limitNumberOfPrefixesToAnalyze(List<ARGPath> pPrefixes, PrefixPreference preference) {
 
+    if(pPrefixes.size() <= MAX_PREFIX_NUMBER) {
+      return pPrefixes;
+    }
+
     switch (preference) {
 
-    case DOMAIN_BEST_BOUNDED:
     case DOMAIN_BEST_SHALLOW:
     case DOMAIN_WORST_SHALLOW:
     case DOMAIN_PRECISE_BEST_SHALLOW:
@@ -492,23 +315,30 @@ public class ErrorPathClassifier {
     case DOMAIN_PRECISE_BEST_DEEP:
     case DOMAIN_PRECISE_WORST_DEEP:
     case REFINE_DEEP:
-    case REFINE_DEEP_DOMAIN:
     case ITP_LENGTH_SHORT_DEEP:
     case ITP_LENGTH_LONG_DEEP:
-      return pPrefixes.subList(Math.max(0, pPrefixes.size() - MAX_PREFIX_NUMBER), pPrefixes.size());
+
+      // merge all prefixes up to index "extraPrefixes" into a single prefix
+      int extraPrefixes = pPrefixes.size() - MAX_PREFIX_NUMBER;
+      MutableARGPath firstPrefix = new MutableARGPath();
+      for (ARGPath prefix : pPrefixes.subList(0, extraPrefixes)) {
+        firstPrefix.addAll(pathToList(prefix));
+        replaceAssumeEdgeWithBlankEdge(firstPrefix);
+      }
+      firstPrefix.addAll(pathToList(pPrefixes.get(extraPrefixes)));
+
+      // merge with the remaining ones
+      List<ARGPath> prefixes = new ArrayList<>();
+      prefixes.add(firstPrefix.immutableCopy());
+      prefixes.addAll(pPrefixes.subList(extraPrefixes + 1, pPrefixes.size()));
+
+      return prefixes;
 
     default:
       assert (false) : "No need to filter for " + preference;
     }
 
     return pPrefixes;
-  }
-
-  private int obtainDomainTypeScoreForPath(MutableARGPath currentErrorPath) {
-    UseDefRelation useDefRelation = new UseDefRelation(currentErrorPath.immutableCopy(),
-      classification.get().getIntBoolVars());
-
-    return classification.get().obtainDomainTypeScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
   }
 
   /**
@@ -521,56 +351,41 @@ public class ErrorPathClassifier {
    * @param originalErrorPath the original error path
    * @return a new path with the last assumption leading to a contradiction
    */
-  private ARGPath buildPath(final int bestIndex, final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
-    MutableARGPath errorPath = new MutableARGPath();
+  private ARGPath buildInfeasiblePath(final int bestIndex, final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
+    MutableARGPath infeasibleErrorPath = new MutableARGPath();
     for (int j = 0; j <= bestIndex; j++) {
-      List<Pair<ARGState, CFAEdge>> list = pathToList(pPrefixes.get(j));
-
-      errorPath.addAll(list);
+      infeasibleErrorPath.addAll(pathToList(pPrefixes.get(j)));
 
       if (j != bestIndex) {
-        replaceAssumeEdgeWithBlankEdge(errorPath);
+        replaceAssumeEdgeWithBlankEdge(infeasibleErrorPath);
       }
     }
 
-    // append the (feasible) suffix
-    for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
-      // keep the original target ...
-      if(element.getFirst().isTarget()) {
-        errorPath.add(element);
-      }
+    appendFeasibleSuffix(originalErrorPath, infeasibleErrorPath);
 
-      // ... while replacing each transition by a no-op (should make, e.g., interpolation simpler/faster)
-      else {
-        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
-            FileLocation.DUMMY,
-            element.getSecond().getPredecessor(),
-            element.getSecond().getSuccessor(),
-            SUFFIX_REPLACEMENT)));
-      }
-    }
-
-    return errorPath.immutableCopy();
+    return infeasibleErrorPath.immutableCopy();
   }
 
-
-  private ARGPath buildPath(final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
-    MutableARGPath errorPath = new MutableARGPath();
+  private ARGPath buildFeasiblePath(final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
+    MutableARGPath feasibleErrorPath = new MutableARGPath();
     for (ARGPath prefix : pPrefixes) {
-      List<Pair<ARGState, CFAEdge>> list = pathToList(prefix);
-
-      errorPath.addAll(list);
-      replaceAssumeEdgeWithBlankEdge(errorPath);
+      feasibleErrorPath.addAll(pathToList(prefix));
+      replaceAssumeEdgeWithBlankEdge(feasibleErrorPath);
     }
 
-    // append the (feasible) suffix
+    appendFeasibleSuffix(originalErrorPath, feasibleErrorPath);
+
+    return feasibleErrorPath.immutableCopy();
+  }
+
+  private void appendFeasibleSuffix(final ARGPath originalErrorPath, MutableARGPath errorPath) {
     for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
-      // keep the original target ...
+      // when encountering the original target, add it as is, ...
       if(element.getFirst().isTarget()) {
         errorPath.add(element);
       }
 
-      // ... while replacing each transition by a no-op (should make, e.g., interpolation simpler/faster)
+      // ... but replace all other transitions by no-op operations
       else {
         errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
             FileLocation.DUMMY,
@@ -579,8 +394,6 @@ public class ErrorPathClassifier {
             SUFFIX_REPLACEMENT)));
       }
     }
-
-    return errorPath.immutableCopy();
   }
 
   private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
@@ -606,15 +419,6 @@ public class ErrorPathClassifier {
         PREFIX_REPLACEMENT)));
   }
 
-  private ARGPath concatPrefixes(List<ARGPath> pPrefixes) {
-    MutableARGPath errorPath = new MutableARGPath();
-    for (ARGPath currentPrefix : pPrefixes) {
-      errorPath.addAll(pathToList(currentPrefix));
-    }
-
-    return errorPath.immutableCopy();
-  }
-
   public int obtainScoreForPrefixes(List<ARGPath> pPrefixes, PrefixPreference preference) {
     if (!classification.isPresent()) {
       return Integer.MAX_VALUE;
@@ -627,13 +431,50 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      int score = obtainDomainTypeScoreForPath(currentErrorPath);
+      int score = obtainDomainTypeScoreForPath(currentErrorPath.immutableCopy());
 
-      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
+      if (preference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
       }
     }
 
     return bestScore;
   }
+
+  // functions for
+
+  private static final Function<Pair<Integer, Integer>, Boolean> INDIFFERENT_SCOREKEEPER = new Function<Pair<Integer, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
+      return Boolean.TRUE;
+    }};
+
+  private static final Function<Pair<Integer, Integer>, Boolean> FIRST_HIGHEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
+      return prefixParameters.getSecond() == null
+          || prefixParameters.getFirst() > prefixParameters.getSecond();
+    }};
+
+  private static final Function<Pair<Integer, Integer>, Boolean> LAST_HIGHEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
+      return prefixParameters.getSecond() == null
+          || prefixParameters.getFirst() >= prefixParameters.getSecond();
+    }};
+
+
+  private static final Function<Pair<Integer, Integer>, Boolean> FIRST_LOWEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
+      return prefixParameters.getSecond() == null
+          || prefixParameters.getFirst() < prefixParameters.getSecond();
+    }};
+
+  private static final Function<Pair<Integer, Integer>, Boolean> LAST_LOWEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Pair<Integer, Integer> prefixParameters) {
+      return prefixParameters.getSecond() == null
+          || prefixParameters.getFirst() <= prefixParameters.getSecond();
+    }};
 }

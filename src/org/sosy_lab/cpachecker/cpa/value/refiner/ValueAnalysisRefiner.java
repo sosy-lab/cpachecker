@@ -577,8 +577,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
             List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1);
             List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2);
 
-            int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_BEST_BOUNDED);
-            int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_BEST_BOUNDED);
+            int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_BEST_SHALLOW);
+            int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_BEST_SHALLOW);
 
             if(score1 == score2) {
               return 0;
