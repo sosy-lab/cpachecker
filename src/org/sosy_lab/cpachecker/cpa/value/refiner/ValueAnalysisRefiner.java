@@ -163,7 +163,6 @@ public class ValueAnalysisRefiner
           pLogger,
           pShutdownNotifier,
           pCfa);
-          pConfig.inject(this);
 
     pConfig.inject(this);
 
