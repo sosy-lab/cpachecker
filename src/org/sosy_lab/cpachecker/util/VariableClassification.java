@@ -412,11 +412,12 @@ public class VariableClassification {
     return classification;
   }
 
-  public int obtainDomainTypeScoreFromClassification(Collection<String> variableNames) {
+  public int obtainDomainTypeScoreFromClassification(Collection<String> variableNames, Optional<LoopStructure> loopStructure) {
 
     final int BOOLEAN_VAR   = 2;
     final int INTEQUAL_VAR  = 4;
-    final int UNKNOWN_VAR   = 8;
+    final int INTADD_VAR    = 8;
+    final int UNKNOWN_VAR   = 16;
 
     if(variableNames.isEmpty()) {
       return UNKNOWN_VAR;
@@ -433,6 +434,7 @@ public class VariableClassification {
 
       if(classification.contains(variableName)) {
         int count = classification.count(variableName);
+
         if(count > 15) {
           factor = 128;
         }
@@ -451,6 +453,7 @@ public class VariableClassification {
       }
 
       else {
+
         if (getIntBoolVars().contains(variableName)) {
           factor = BOOLEAN_VAR;
         }
@@ -458,6 +461,14 @@ public class VariableClassification {
         else if (getIntEqualVars().contains(variableName)) {
           factor = INTEQUAL_VAR;
         }
+
+        else if (getIntAddVars().contains(variableName)) {
+          factor = INTADD_VAR;
+        }
+      }
+
+      if (loopStructure.isPresent() && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
+        return Integer.MAX_VALUE;
       }
 
       // special case for ECA-input variables

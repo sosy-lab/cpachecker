@@ -50,7 +50,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -136,7 +138,11 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       for (MemoryLocation memoryLocation : mapping.keySet()) {
         writer.append(memoryLocation.getAsSimpleString());
         writer.append(System.lineSeparator());
-        writer.append(Joiner.on(", ").join(mapping.get(memoryLocation)));
+        writer.append(Joiner.on(", ").join(FluentIterable.from(mapping.get(memoryLocation)).transform(new Function<Value, Long>() {
+          @Override
+          public Long apply(Value value) {
+            return value.asNumericValue().longValue();
+          }}).toSet()));
         writer.append(System.lineSeparator());
       }
     } catch (IOException e) {

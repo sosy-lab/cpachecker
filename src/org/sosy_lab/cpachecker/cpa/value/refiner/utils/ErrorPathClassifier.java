@@ -261,7 +261,7 @@ public class ErrorPathClassifier {
       UseDefRelation useDefRelation = new UseDefRelation(currentErrorPath.immutableCopy(),
           classification.get().getIntBoolVars(),
           "NONE");
-      int score = classification.get().obtainDomainTypeScoreFromClassification(useDefRelation.getUsesAsQualifiedName());
+      int score = classification.get().obtainDomainTypeScoreFromClassification(useDefRelation.getUsesAsQualifiedName(), loopStructure);
 
       if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
