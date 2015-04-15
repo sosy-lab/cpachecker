@@ -109,7 +109,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
   private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
   private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
-  private StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
+  protected StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
 
   private final CFA cfa;
   private final LogManager logger;

@@ -23,17 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import java.util.ArrayDeque;
+import java.util.List;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refiner.EdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refiner.InterpolantManager;
@@ -44,9 +51,15 @@ import org.sosy_lab.cpachecker.util.refiner.PathInterpolator;
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
  * Allows creation of {@link SymbolicInterpolant SymbolicInterpolants}.
  */
-@Options(prefix="cpa.value.refiner")
+@Options(prefix="cpa.value.symbolic.refiner")
 public class SymbolicPathInterpolator
     extends GenericPathInterpolator<ForgettingCompositeState, SymbolicInterpolant> {
+
+  private final FeasibilityChecker<ForgettingCompositeState> checker;
+  private final ErrorPathClassifier classifier;
+
+  @Option(description = "How to choose which prefix to use for interpolation")
+  private PrefixPreference prefixPreference = PrefixPreference.REFINE_STRAIGHT;
 
   public SymbolicPathInterpolator(
       final EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> pEdgeInterpolator,
@@ -61,5 +74,24 @@ public class SymbolicPathInterpolator
         pLogger, pShutdownNotifier, pCfa);
 
     pConfig.inject(this);
+
+    checker = pFeasibilityChecker;
+    classifier = pPathClassifier;
+  }
+
+  @Override
+  protected ARGPath obtainErrorPathPrefix(
+      final ARGPath pErrorPath,
+      final SymbolicInterpolant pInterpolant
+  ) throws CPAException {
+
+    final List<ARGPath> prefixes =
+        checker.getInfeasiblePrefixes(pErrorPath,
+                                      pInterpolant.reconstructState(),
+                                      new ArrayDeque<ForgettingCompositeState>());
+
+    totalPrefixes.setNextValue(prefixes.size());
+
+    return classifier.obtainSlicedPrefix(prefixPreference, pErrorPath, prefixes);
   }
 }
