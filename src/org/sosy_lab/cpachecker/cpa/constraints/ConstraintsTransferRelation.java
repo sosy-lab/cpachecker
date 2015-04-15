@@ -482,7 +482,7 @@ public class ConstraintsTransferRelation
       assert pStrengtheningState instanceof AutomatonState;
 
       if (checkStrategy != CheckStrategy.AT_TARGET) {
-        return null;
+        return Optional.absent();
       }
 
       final AutomatonState automatonState = (AutomatonState) pStrengtheningState;
