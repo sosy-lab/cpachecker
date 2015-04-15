@@ -487,8 +487,6 @@ public class ErrorPathClassifier {
     case REFINE_SHALLOW:
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
-    case REFINE_STRAIGHT:
-    case REFINE_CURVY:
       return pPrefixes.subList(0, Math.min(pPrefixes.size(), MAX_PREFIX_NUMBER));
 
     case DOMAIN_BEST_DEEP:
