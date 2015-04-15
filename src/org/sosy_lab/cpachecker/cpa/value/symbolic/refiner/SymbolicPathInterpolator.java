@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.refiner.PathInterpolator;
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
  * Allows creation of {@link SymbolicInterpolant SymbolicInterpolants}.
  */
-@Options(prefix="cpa.value.refinement")
+@Options(prefix="cpa.value.refiner")
 public class SymbolicPathInterpolator
     extends GenericPathInterpolator<ForgettingCompositeState, SymbolicInterpolant> {
 
@@ -59,5 +59,7 @@ public class SymbolicPathInterpolator
 
     super(pEdgeInterpolator, pInterpolantManager, pFeasibilityChecker, pPathClassifier, pConfig,
         pLogger, pShutdownNotifier, pCfa);
+
+    pConfig.inject(this);
   }
 }

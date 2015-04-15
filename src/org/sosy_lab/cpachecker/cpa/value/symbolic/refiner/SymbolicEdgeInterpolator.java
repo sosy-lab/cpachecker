@@ -57,7 +57,7 @@ import com.google.common.base.Optional;
  * {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and
  * <code>ConstraintsCPA</code>.
  */
-@Options(prefix = "cpa.value.refinement")
+@Options(prefix = "cpa.value.refiner")
 public class SymbolicEdgeInterpolator
     implements EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> {
 

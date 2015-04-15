@@ -74,10 +74,9 @@ import com.google.common.collect.Multimap;
  * Generic path interpolator. Always performs edge interpolation.
  *
  * @param <S> the state type to create interpolants for
- * @param <T> the type type S returns its forgotten information as
  * @param <I> the type of the interpolants created by this class
  */
-@Options(prefix="cpa.value.refinement")
+@Options(prefix="cpa.value.refiner")
 public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S>>
     implements PathInterpolator<I, MemoryLocation> {
 
