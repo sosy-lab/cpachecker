@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionIncrement;
@@ -91,11 +91,20 @@ public class SymbolicValueAnalysisRefiner
       throws InvalidConfigurationException {
 
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
+    final ConstraintsCPA constraintsCpa = CPAs.retrieveCPA(pCpa, ConstraintsCPA.class);
+
     if (valueAnalysisCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
+      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName()
+          + " needs a ValueAnalysisCPA");
+    }
+
+    if (constraintsCpa == null) {
+      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName()
+          + " needs a ConstraintsCPA");
     }
 
     valueAnalysisCpa.injectRefinablePrecision();
+    constraintsCpa.injectRefinablePrecision();
 
     final LogManager logger = valueAnalysisCpa.getLogger();
     final CFA cfa = valueAnalysisCpa.getCFA();

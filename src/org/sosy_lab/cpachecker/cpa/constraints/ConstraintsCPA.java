@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,6 +72,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private ConstraintsPrecisionAdjustment precisionAdjustment;
+  private ConstraintsPrecision precision;
 
   private Solver solver;
 
@@ -92,6 +94,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     transferRelation =
         new ConstraintsTransferRelation(solver, pCfa.getMachineModel(), logger, pConfig, pShutdownNotifier);
     precisionAdjustment = new ConstraintsPrecisionAdjustment();
+    precision = ConstraintsPrecision.getFullPrecision();
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -155,7 +158,11 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Override
   public Precision getInitialPrecision(CFANode node, StateSpacePartition partition) {
-    return ConstraintsPrecision.EMPTY;
+    return precision;
+  }
+
+  public void injectRefinablePrecision() {
+    precision = ConstraintsPrecision.getEmptyPrecision();
   }
 
   @Override

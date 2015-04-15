@@ -45,12 +45,20 @@ import com.google.common.collect.Multimap;
  */
 public class ConstraintsPrecision implements Precision {
 
-  public final static ConstraintsPrecision EMPTY = new ConstraintsPrecision();
+  private final static ConstraintsPrecision EMPTY = new ConstraintsPrecision();
 
   private Multimap<CFANode, Constraint> trackedConstraints;
 
   private final AliasedSubsetLessOrEqualOperator leqOperator =
       AliasedSubsetLessOrEqualOperator.getInstance();
+
+  public static ConstraintsPrecision getFullPrecision() {
+    return new FullPrecision();
+  }
+
+  public static ConstraintsPrecision getEmptyPrecision() {
+    return EMPTY;
+  }
 
   /**
    * Creates a new <code>ConstraintsPrecision</code> with the given constraints as precision.
@@ -177,5 +185,13 @@ public class ConstraintsPrecision implements Precision {
 
     sb.append("]");
     return sb.toString();
+  }
+
+  private static class FullPrecision extends ConstraintsPrecision {
+
+    @Override
+    public boolean isTracked(final Constraint pConstraint, final CFANode pNode) {
+      return true;
+    }
   }
 }
