@@ -90,6 +90,18 @@ public class ErrorPathClassifier {
     ITP_LENGTH_SHORT_DEEP(LAST_LOWEST_SCORE),
     ITP_LENGTH_LONG_DEEP(LAST_HIGHEST_SCORE),
 
+    // heuristic based on counting the number of assignments related to the use-def-chain
+    ASSIGNMENTS_FEWEST_SHALLOW(FIRST_LOWEST_SCORE),
+    ASSIGNMENTS_FEWEST_DEEP(LAST_LOWEST_SCORE),
+    ASSIGNMENTS_MOST_SHALLOW(FIRST_HIGHEST_SCORE),
+    ASSIGNMENTS_MOST_DEEP(LAST_HIGHEST_SCORE),
+
+    // heuristic based on counting the number of assumption related to the use-def-chain
+    ASSUMPTIONS_FEWEST_SHALLOW(FIRST_LOWEST_SCORE),
+    ASSUMPTIONS_FEWEST_DEEP(LAST_LOWEST_SCORE),
+    ASSUMPTIONS_MOST_SHALLOW(FIRST_HIGHEST_SCORE),
+    ASSUMPTIONS_MOST_DEEP(LAST_HIGHEST_SCORE),
+
     FEASIBLE();
 
     private PrefixPreference () {}
@@ -138,6 +150,16 @@ public class ErrorPathClassifier {
     // scoring based on depth of pivot state
     case REFINE_SHALLOW:
     case REFINE_DEEP:
+    //
+    //
+    case ASSIGNMENTS_FEWEST_SHALLOW:
+    case ASSIGNMENTS_FEWEST_DEEP:
+    case ASSIGNMENTS_MOST_SHALLOW:
+    case ASSIGNMENTS_MOST_DEEP:
+    case ASSUMPTIONS_FEWEST_SHALLOW:
+    case ASSUMPTIONS_FEWEST_DEEP:
+    case ASSUMPTIONS_MOST_SHALLOW:
+    case ASSUMPTIONS_MOST_DEEP:
       return obtainScoreBasedPrefix(pPrefixes, preference, errorPath);
 
     case FEASIBLE:
@@ -215,6 +237,17 @@ public class ErrorPathClassifier {
     case REFINE_DEEP:
       return obtainPivotStateDepthForPath(pPrefix);
 
+    case ASSIGNMENTS_FEWEST_SHALLOW:
+    case ASSIGNMENTS_FEWEST_DEEP:
+    case ASSIGNMENTS_MOST_SHALLOW:
+    case ASSIGNMENTS_MOST_DEEP:
+      return obtainAssignmentCountForPath(pPrefix);
+    case ASSUMPTIONS_FEWEST_SHALLOW:
+    case ASSUMPTIONS_FEWEST_DEEP:
+    case ASSUMPTIONS_MOST_SHALLOW:
+    case ASSUMPTIONS_MOST_DEEP:
+      return obtainAssumptionCountForPath(pPrefix);
+
     default:
       assert false;
       return -1;
@@ -290,6 +323,36 @@ public class ErrorPathClassifier {
     return -1;
   }
 
+  private int obtainAssignmentCountForPath(final ARGPath prefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
+
+    int count = 0;
+    for (String use : useDefRelation.getUsesAsQualifiedName()) {
+      count = count + classification.get().getAssignedVariables().count(use);
+
+      // special case for (RERS)-input variables
+      // this variable has always (at least) 6 values (1, 2, 3, 4, 5, 6)
+      // but it is only assigned implicitly thru assume edges
+      if (use.endsWith("::input")) {
+        count = 6;
+        break;
+      }
+    }
+
+    return count;
+  }
+
+  private int obtainAssumptionCountForPath(final ARGPath prefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
+
+    int count = 0;
+    for (String use : useDefRelation.getUsesAsQualifiedName()) {
+      count = count + classification.get().getAssumedVariables().count(use);
+    }
+
+    return count;
+  }
+
   /**
    * This method limits the number of prefixes to analyze (in case it is ridiculously high)
    */
@@ -308,6 +371,10 @@ public class ErrorPathClassifier {
     case REFINE_SHALLOW:
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
+    case ASSIGNMENTS_FEWEST_SHALLOW:
+    case ASSIGNMENTS_MOST_SHALLOW:
+    case ASSUMPTIONS_FEWEST_SHALLOW:
+    case ASSUMPTIONS_MOST_SHALLOW:
       return pPrefixes.subList(0, Math.min(pPrefixes.size(), MAX_PREFIX_NUMBER));
 
     case DOMAIN_BEST_DEEP:
@@ -317,6 +384,10 @@ public class ErrorPathClassifier {
     case REFINE_DEEP:
     case ITP_LENGTH_SHORT_DEEP:
     case ITP_LENGTH_LONG_DEEP:
+    case ASSIGNMENTS_MOST_DEEP:
+    case ASSIGNMENTS_FEWEST_DEEP:
+    case ASSUMPTIONS_FEWEST_DEEP:
+    case ASSUMPTIONS_MOST_DEEP:
 
       // merge all prefixes up to index "extraPrefixes" into a single prefix
       int extraPrefixes = pPrefixes.size() - MAX_PREFIX_NUMBER;
