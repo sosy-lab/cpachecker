@@ -118,11 +118,11 @@ public class ValueAnalysisRefiner
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
 
-    final ValueAnalysisFeasibilityChecker checker =
-        new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final ValueAnalysisFeasibilityChecker checker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
     final ErrorPathClassifier pathClassifier = new ErrorPathClassifier(cfa.getVarClassification(),
                                                                        cfa.getLoopStructure());

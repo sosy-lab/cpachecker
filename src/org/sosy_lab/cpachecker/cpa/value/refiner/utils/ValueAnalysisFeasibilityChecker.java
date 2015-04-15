@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refiner.GenericFeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
@@ -54,7 +55,7 @@ import com.google.common.base.Optional;
 public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<ValueAnalysisState> {
 
   private final LogManager logger;
-  private final ValueAnalysisStrongestPostOperator strongestPostOp;
+  private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
   private final VariableTrackingPrecision precision;
 
   /**
@@ -66,19 +67,20 @@ public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<V
    * @throws InvalidConfigurationException
    */
   public ValueAnalysisFeasibilityChecker(
+      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOp,
       final LogManager pLogger,
       final CFA pCfa,
       final Configuration config
   ) throws InvalidConfigurationException {
 
-    super(new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
+    super(pStrongestPostOp,
           new ValueAnalysisState(),
           ValueAnalysisCPA.class,
           pLogger,
           config,
           pCfa);
 
-    strongestPostOp = new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa);
+    strongestPostOp = pStrongestPostOp;
     logger    = pLogger;
     precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
   }

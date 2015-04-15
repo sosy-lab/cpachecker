@@ -114,11 +114,11 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
 
     pBddCpa.injectRefinablePrecision();
 
-    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
-        new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
     final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
 
     return new BddRefiner(
         feasibilityChecker,

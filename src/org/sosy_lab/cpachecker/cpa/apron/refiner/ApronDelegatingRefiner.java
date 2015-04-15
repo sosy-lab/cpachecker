@@ -144,11 +144,11 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     final LogManager logger = apronCPA.getLogger();
     final CFA cfa = apronCPA.getCFA();
 
-    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
-        new ValueAnalysisFeasibilityChecker(logger, cfa, apronCPA.getConfiguration());
-
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, apronCPA.getConfiguration());
 
     ApronDelegatingRefiner refiner = new ApronDelegatingRefiner(feasibilityChecker,
                                                                 strongestPostOp,

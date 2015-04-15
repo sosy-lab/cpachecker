@@ -48,11 +48,13 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -139,13 +141,16 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     LogManager logger         = valueCpa.getLogger();
     CFA controlFlowAutomaton  = valueCpa.getCFA();
 
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), controlFlowAutomaton);
+
     return new ValueAnalysisDelegatingRefiner(
         config,
         logger,
         controlFlowAutomaton,
         cpa,
         ValueAnalysisRefiner.create(cpa),
-        new ValueAnalysisFeasibilityChecker(logger, controlFlowAutomaton, config),
+        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, controlFlowAutomaton, config),
         PredicateRefiner.create(cpa),
         new PredicateBasedPrefixProvider(logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
   }

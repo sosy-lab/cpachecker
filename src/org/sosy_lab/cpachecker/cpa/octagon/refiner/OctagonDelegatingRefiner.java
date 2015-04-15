@@ -143,11 +143,11 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     final Configuration config = octagonCPA.getConfiguration();
     final CFA cfa = octagonCPA.getCFA();
 
-    final FeasibilityChecker<ValueAnalysisState> valueChecker =
-        new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
     final StrongestPostOperator<ValueAnalysisState> valuePostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final FeasibilityChecker<ValueAnalysisState> valueChecker =
+        new ValueAnalysisFeasibilityChecker(valuePostOp, logger, cfa, config);
 
     OctagonDelegatingRefiner refiner =
         new OctagonDelegatingRefiner(valueChecker, valuePostOp, cpa, octagonCPA);
