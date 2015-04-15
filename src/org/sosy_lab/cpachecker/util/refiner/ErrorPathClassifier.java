@@ -31,7 +31,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -92,10 +91,6 @@ public class ErrorPathClassifier {
     ITP_LENGTH_LONG_SHALLOW(FIRST_HIGHEST_SCORE),
     ITP_LENGTH_SHORT_DEEP(LAST_LOWEST_SCORE),
     ITP_LENGTH_LONG_DEEP(LAST_HIGHEST_SCORE),
-
-    // heuristic based on the number of assume edges
-    REFINE_STRAIGHT(FIRST_LOWEST_SCORE),
-    REFINE_CURVY(FIRST_HIGHEST_SCORE),
 
     // use these only if you are feeling lucky
     RANDOM(),
@@ -203,10 +198,6 @@ public class ErrorPathClassifier {
     case REFINE_DEEP_DOMAIN:
       return obtainRefinementRootAndDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
 
-    case REFINE_STRAIGHT:
-    case REFINE_CURVY:
-      return obtainAssumeEdgeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
-
     case RANDOM:
       return obtainRandomPrefix(pPrefixes, errorPath);
 
@@ -222,46 +213,6 @@ public class ErrorPathClassifier {
     default:
       return errorPath;
     }
-  }
-
-  private ARGPath obtainAssumeEdgeHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
-    MutableARGPath currentErrorPath = new MutableARGPath();
-
-    // initial value - every real score will be positive, as we just count the number of assume edges
-    int bestScore = -1;
-    int bestIndex = 0;
-    int currIndex = 0;
-
-    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
-      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
-
-      currentErrorPath.addAll(pathToList(currentPrefix));
-
-      int score = obtainAssumeEdgeNumber(currentErrorPath);
-
-      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
-        bestScore = score;
-        bestIndex = currIndex;
-      }
-
-      currIndex++;
-
-      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
-    }
-
-    return buildPath(bestIndex, pPrefixes, originalErrorPath);
-
-  }
-
-  private int obtainAssumeEdgeNumber(MutableARGPath pCurrentErrorPath) {
-    int assumeEdgeAmount = 0;
-    for (CFAEdge edge : pCurrentErrorPath.asEdgesList()) {
-      if (edge instanceof AssumeEdge) {
-        assumeEdgeAmount++;
-      }
-    }
-
-    return assumeEdgeAmount;
   }
 
   private ARGPath obtainShortestPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
