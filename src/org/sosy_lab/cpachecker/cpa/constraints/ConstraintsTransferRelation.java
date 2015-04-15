@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.math.BigInteger;
+import java.security.spec.PSSParameterSpec;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -86,8 +88,16 @@ import com.google.common.collect.Iterables;
 /**
  * Transfer relation for Symbolic Execution Analysis.
  */
+@Options(prefix = "cpa.constraints")
 public class ConstraintsTransferRelation
     extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
+
+  private enum CheckStrategy { AT_ASSUME, AT_TARGET }
+
+  @Option(name = "satCheckStrategy",
+      description = "When to check the satisfiability of constraints")
+  private CheckStrategy checkStrategy = CheckStrategy.AT_ASSUME;
+
 
   private final LogManagerWithoutDuplicates logger;
 
@@ -105,6 +115,8 @@ public class ConstraintsTransferRelation
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier
   ) throws InvalidConfigurationException {
+
+    pConfig.inject(this);
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
@@ -215,7 +227,7 @@ public class ConstraintsTransferRelation
       } else {
         newState.add(newConstraint);
 
-        if (newState.isUnsat()) {
+        if (checkStrategy == CheckStrategy.AT_ASSUME && newState.isUnsat()) {
           return null;
 
         } else {
@@ -348,6 +360,9 @@ public class ConstraintsTransferRelation
 
       if (currStrengtheningState instanceof ValueAnalysisState) {
         strengthenOperator = new ValueAnalysisStrengthenOperator();
+
+      } else if (currStrengtheningState instanceof AutomatonState) {
+        strengthenOperator = new AutomatonStrengthenOperator();
       }
 
       if (strengthenOperator != null) {
@@ -452,6 +467,39 @@ public class ConstraintsTransferRelation
         }
       }
       return Optional.of(newStates);
+    }
+  }
+
+  private class AutomatonStrengthenOperator implements StrengthenOperator {
+
+    @Override
+    public Optional<Collection<ConstraintsState>> strengthen(
+        final ConstraintsState pStateToStrengthen,
+        final AbstractState pStrengtheningState,
+        final String pFunctionName,
+        final CFAEdge pEdge
+    ) throws CPATransferException {
+      assert pStrengtheningState instanceof AutomatonState;
+
+      if (checkStrategy != CheckStrategy.AT_TARGET) {
+        return null;
+      }
+
+      final AutomatonState automatonState = (AutomatonState) pStrengtheningState;
+
+      try {
+        if (automatonState.isTarget()
+            && pStateToStrengthen.isInitialized()
+            && pStateToStrengthen.isUnsat()) {
+
+          return Optional.<Collection<ConstraintsState>>of(Collections.<ConstraintsState>emptySet());
+
+        } else {
+          return Optional.absent();
+        }
+      } catch (SolverException | InterruptedException e) {
+        throw new CPATransferException("Error while strengthening.", e);
+      }
     }
   }
 
