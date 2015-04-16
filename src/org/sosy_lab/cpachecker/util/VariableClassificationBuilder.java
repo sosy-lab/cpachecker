@@ -279,7 +279,8 @@ public class VariableClassificationBuilder {
         intEqualPartitions,
         intAddPartitions,
         intArithPartitions,
-        dependencies.edgeToPartition);
+        dependencies.edgeToPartition,
+        logger);
 
     if (printStatsOnStartup) {
       printStats(result);
