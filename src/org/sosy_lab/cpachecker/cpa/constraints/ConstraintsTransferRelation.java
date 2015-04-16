@@ -403,7 +403,7 @@ public class ConstraintsTransferRelation
         final AbstractState pValueState,
         final String pFunctionName,
         final CFAEdge pCfaEdge
-    ) throws UnrecognizedCodeException {
+    ) throws CPATransferException {
 
       assert pValueState instanceof ValueAnalysisState;
 
@@ -434,7 +434,8 @@ public class ConstraintsTransferRelation
             fileLocation);
 
       } catch (SolverException | InterruptedException e) {
-        logger.logUserException(Level.WARNING, e, fileLocation.toString());
+        throw new CPATransferException(
+            "Error while strengthening ConstraintsState with ValueAnalysisState", e);
       }
 
       // newState == null represents the bottom element, so we return an empty collection
