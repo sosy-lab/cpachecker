@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 /**
@@ -154,6 +155,10 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     }
 
     return changed;
+  }
+
+  Constraint getLastAddedConstraint() {
+    return checkNotNull(constraints.get(constraints.size() - 1));
   }
 
   @Override

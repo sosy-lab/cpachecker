@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -68,7 +66,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final LogManager logger;
 
   private AbstractDomain abstractDomain;
-  private MergeOperator mergeOperator;
+  private ConstraintsMergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private ConstraintsPrecisionAdjustment precisionAdjustment;
@@ -97,8 +95,8 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     precision = ConstraintsPrecision.getFullPrecision();
   }
 
-  private MergeOperator initializeMergeOperator() {
-    return MergeSepOperator.getInstance();
+  private ConstraintsMergeOperator initializeMergeOperator() {
+    return new ConstraintsMergeOperator();
   }
 
   private StopOperator initializeStopOperator() {
@@ -168,5 +166,6 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     precisionAdjustment.collectStatistics(statsCollection);
+    statsCollection.add(mergeOperator);
   }
 }

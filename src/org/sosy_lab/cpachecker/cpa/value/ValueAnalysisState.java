@@ -374,7 +374,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       Value otherValue = otherEntry.getValue();
       Value thisValue = constantsMap.get(key);
 
-      if (!otherValue.equals(thisValue)) {
+      if (!(otherValue instanceof SymbolicValue && thisValue instanceof SymbolicValue)
+          && !otherValue.equals(thisValue)) {
         return false;
       }
     }
