@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.LogManager;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
@@ -57,6 +58,7 @@ public class VariableClassification {
   private final Set<String> intBoolVars;
   private final Set<String> intEqualVars;
   private final Set<String> intAddVars;
+  private final Set<String> intArithVars;
 
   /** These sets contain all variables even ones of array, pointer or structure types.
    *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
@@ -76,6 +78,7 @@ public class VariableClassification {
   private final Set<Partition> intBoolPartitions;
   private final Set<Partition> intEqualPartitions;
   private final Set<Partition> intAddPartitions;
+  private final Set<Partition> intArithPartitions;
 
   private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartitions;
 
@@ -83,6 +86,7 @@ public class VariableClassification {
       Set<String> pIntBoolVars,
       Set<String> pIntEqualVars,
       Set<String> pIntAddVars,
+      Set<String> pIntArithVars,
       Set<String> pRelevantVariables,
       Set<String> pAddressedVariables,
       Multimap<CCompositeType, String> pRelevantFields,
@@ -90,11 +94,13 @@ public class VariableClassification {
       Set<Partition> pIntBoolPartitions,
       Set<Partition> pIntEqualPartitions,
       Set<Partition> pIntAddPartitions,
+      Set<Partition> pIntArithPartitions,
       Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
     intAddVars = ImmutableSet.copyOf(pIntAddVars);
+    intArithVars = pIntArithVars;
     relevantVariables = ImmutableSet.copyOf(pRelevantVariables);
     addressedVariables = ImmutableSet.copyOf(pAddressedVariables);
     relevantFields = ImmutableSetMultimap.copyOf(pRelevantFields);
@@ -102,6 +108,7 @@ public class VariableClassification {
     intBoolPartitions = ImmutableSet.copyOf(pIntBoolPartitions);
     intEqualPartitions = ImmutableSet.copyOf(pIntEqualPartitions);
     intAddPartitions = ImmutableSet.copyOf(pIntAddPartitions);
+    intArithPartitions = ImmutableSet.copyOf(pIntArithPartitions);
     edgeToPartitions = ImmutableMap.copyOf(pEdgeToPartitions);
   }
 
@@ -113,7 +120,9 @@ public class VariableClassification {
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
+        ImmutableSet.<String>of(),
         ImmutableSetMultimap.<CCompositeType, String>of(),
+        ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
@@ -207,6 +216,18 @@ public class VariableClassification {
    * This collection does not contains anypartition from "IntBool" or "IntEq". */
   public Set<Partition> getIntAddPartitions() {
     return intAddPartitions;
+  }
+
+  /**
+   * Returns the names of all vars that are only used in simple arithmetic or boolean calculations
+   * (+, -, <, >, <=, >=, ==, !=, &&, ||) and are not floats.
+   */
+  public Set<String> getIntArithVars() {
+    return intArithVars;
+  }
+
+  public Set<Partition> getIntArithPartitions() {
+    return intArithPartitions;
   }
 
   /** This function returns a collection of partitions.
@@ -345,6 +366,51 @@ public class VariableClassification {
     }
 
     return newScore;
+  }
+
+  public int obtainFloatAndBitvectorScoreForVariables(Collection<String> variableNames,
+      Optional<LoopStructure> loopStructure) {
+    final int BOOLEAN_VAR = 2;
+    final int INTEQUAL_VAR = 4;
+    final int INTARITH_VAR = 16;
+    final int INTADD_VAR = 64;
+    final int VAR = 72;
+
+    int score = 1;
+    int oldScore = score;
+
+    for (String n : variableNames) {
+      int factor = VAR;
+
+      if (intBoolVars.contains(n)) {
+        factor = BOOLEAN_VAR;
+
+      } else if (intEqualVars.contains(n)) {
+        factor = INTEQUAL_VAR;
+
+      } else if (intArithVars.contains(n)) {
+        factor = INTARITH_VAR;
+
+      } else if (intAddVars.contains(n)) {
+        factor = INTADD_VAR;
+      }
+
+      score *= factor;
+
+      if (loopStructure.isPresent()
+          && loopStructure.get().getLoopIncDecVariables().contains(n)) {
+        return Integer.MAX_VALUE;
+      }
+
+      // check for overflow
+      if (score < oldScore) {
+        return Integer.MAX_VALUE - 1;
+      }
+
+      oldScore = score;
+    }
+
+    return score;
   }
 
   /**

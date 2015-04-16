@@ -59,7 +59,7 @@ public class SymbolicPathInterpolator
   private final ErrorPathClassifier classifier;
 
   @Option(description = "How to choose which prefix to use for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.REFINE_STRAIGHT;
+  private PrefixPreference prefixPreference = PrefixPreference.FLOAT_AND_BITVECTOR_BEST;
 
   public SymbolicPathInterpolator(
       final EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> pEdgeInterpolator,

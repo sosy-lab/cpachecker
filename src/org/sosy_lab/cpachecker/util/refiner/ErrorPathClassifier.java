@@ -79,6 +79,9 @@ public class ErrorPathClassifier {
     DOMAIN_PRECISE_BEST_DEEP(LAST_LOWEST_SCORE),
     DOMAIN_PRECISE_WORST_DEEP(LAST_HIGHEST_SCORE),
 
+    FLOAT_AND_BITVECTOR_BEST(FIRST_LOWEST_SCORE),
+    FLOAT_AND_BITVECTOR_WORST(FIRST_HIGHEST_SCORE),
+
     // heuristics based on approximating the depth of the refinement root
     REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
     REFINE_DEEP(LAST_LOWEST_SCORE),
@@ -191,6 +194,10 @@ public class ErrorPathClassifier {
     case ITP_LENGTH_LONG_DEEP:
       return obtainItpSequenceLengthHeuristicBasedPrefix(pPrefixes, preference, errorPath);
 
+    case FLOAT_AND_BITVECTOR_BEST:
+    case FLOAT_AND_BITVECTOR_WORST:
+      return obtainFloatBitvectorHeuristicBasedPrefix(pPrefixes, preference, errorPath);
+
     case REFINE_SHALLOW:
     case REFINE_DEEP:
       return obtainRefinementRootHeuristicBasedPrefix(pPrefixes, preference, errorPath);
@@ -298,6 +305,44 @@ public class ErrorPathClassifier {
     }
 
     return buildPath(bestIndex, pPrefixes, originalErrorPath);
+  }
+
+  private ARGPath obtainFloatBitvectorHeuristicBasedPrefix(List<ARGPath> pPrefixes,
+      PrefixPreference preference, ARGPath originalErrorPath) {
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Integer bestScore = null;
+    Integer bestIndex = 0;
+    Integer currIndex = 0;
+    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
+      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(pathToList(currentPrefix));
+
+      int score = obtainFloatBitvectorScoreForPath(currentErrorPath);
+
+      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
+        bestScore = score;
+        bestIndex = currIndex;
+      }
+
+      currIndex++;
+
+      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
+    }
+
+    return buildPath(bestIndex, pPrefixes, originalErrorPath);
+  }
+
+  private int obtainFloatBitvectorScoreForPath(MutableARGPath currentErrorPath) {
+    UseDefRelation useDefRelation = new UseDefRelation(currentErrorPath.immutableCopy(),
+        classification.get().getIntBoolVars(),
+        "NONE");
+
+    return classification.get().obtainFloatAndBitvectorScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
   }
 
   private ARGPath obtainItpSequenceLengthHeuristicBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
@@ -487,6 +532,8 @@ public class ErrorPathClassifier {
     case REFINE_SHALLOW:
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
+    case FLOAT_AND_BITVECTOR_BEST:
+    case FLOAT_AND_BITVECTOR_WORST:
       return pPrefixes.subList(0, Math.min(pPrefixes.size(), MAX_PREFIX_NUMBER));
 
     case DOMAIN_BEST_DEEP:
