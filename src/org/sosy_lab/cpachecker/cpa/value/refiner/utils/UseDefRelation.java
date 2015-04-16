@@ -417,16 +417,11 @@ public class UseDefRelation {
   private Set<ASimpleDeclaration> getVariablesUsedInDeclaration(CDeclaration declaration) {
     AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
 
-    Set<ASimpleDeclaration> uses = new HashSet<>();
     if (initializer == null) {
-      assert (declaration.isGlobal()) : "Found non-global declaration without an initializer.";
+      return Collections.emptySet();
     }
 
-    else {
-      uses.addAll(getVariablesUsedForInitialization(initializer));
-    }
-
-    return uses;
+    return getVariablesUsedForInitialization(initializer);
   }
 
   /**
