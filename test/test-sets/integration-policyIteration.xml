@@ -1,13 +1,12 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="2000" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="100" hardtimelimit="120" memlimit="2000" cpuCores="1">
     <option name="-noout" />
 
     <option name="-policy-ensemble"/>
     <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=true</option>
     <option name="-setprop">cpa.reportFalseAsUnknown=true</option>
-    <option name="-setprop">cpa.stator.policy.generateOctagons=true</option>
-    <option name="-setprop">cpa.stator.policy.formulaSlicing=true</option>
+    <option name="-setprop">cpa.stator.policy.formulaSlicing=false</option>
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
