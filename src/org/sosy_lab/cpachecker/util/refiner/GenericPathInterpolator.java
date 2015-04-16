@@ -201,7 +201,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     while (pathIterator.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      // interpolate at each edge as long the previous interpolant is not false
+      // interpolate at each edge as long as the previous interpolant is not false
       if (!interpolant.isFalse()) {
         interpolant = interpolator.deriveInterpolant(errorPathPrefix,
                                                      pathIterator.getOutgoingEdge(),
