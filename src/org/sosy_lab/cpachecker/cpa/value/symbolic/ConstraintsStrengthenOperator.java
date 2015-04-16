@@ -79,20 +79,15 @@ public class ConstraintsStrengthenOperator {
       IdentifierAssignment pAssignment, ValueAnalysisState pValueState) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
-    boolean somethingChanged = false;
 
     for (Map.Entry<? extends SymbolicIdentifier, Value> onlyValidAssignment : pAssignment.entrySet()) {
       final SymbolicIdentifier identifierToReplace = onlyValidAssignment.getKey();
       final Value newIdentifierValue = onlyValidAssignment.getValue();
 
-      if (!newElement.hasKnownValue(identifierToReplace)) {
-        somethingChanged = true;
-      }
-
       newElement.assignConstant(identifierToReplace, newIdentifierValue);
     }
 
-    if (somethingChanged) {
+    if (!newElement.equals(pValueState)) {
       return Optional.of(newElement);
     } else {
       return Optional.absent();

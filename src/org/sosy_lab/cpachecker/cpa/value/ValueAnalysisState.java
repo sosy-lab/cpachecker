@@ -40,6 +40,7 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -85,14 +86,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
-  /**
-   * Mapping of {@link SymbolicIdentifier}s to their concrete value.
-   * This map only contains <code>SymbolicIdentifier</code>s for which a concrete value is known.
-   *
-   * If symbolic execution is not in use, this map will remain empty.
-   */
-  private PersistentMap<SymbolicIdentifier, Value> identifierMap = PathCopyingPersistentTreeMap.of();
-
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
@@ -102,17 +95,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     this.memLocToType = pLocToTypeMap;
   }
 
-  public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap,
-                            PersistentMap<MemoryLocation, Type> pLocToTypeMap,
-                            PersistentMap<SymbolicIdentifier, Value> pIdentifierToValueMap) {
-
-    constantsMap = pConstantsMap;
-    memLocToType = pLocToTypeMap;
-    identifierMap = pIdentifierToValueMap;
-  }
-
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.constantsMap, state.memLocToType, state.identifierMap);
+    return new ValueAnalysisState(state.constantsMap, state.memLocToType);
   }
 
   /**
@@ -162,10 +146,20 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @param pValue value to be assigned.
    */
   public void assignConstant(SymbolicIdentifier pSymbolicIdentifier, Value pValue) {
-    // the value of an identifier will not change once it's known
-    assert identifierMap.get(pSymbolicIdentifier) == null || identifierMap.get(pSymbolicIdentifier).equals(pValue);
+    for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
+      MemoryLocation currMemloc = entry.getKey();
+      Value currVal = entry.getValue();
 
-    identifierMap = identifierMap.putAndCopy(pSymbolicIdentifier, pValue);
+      if (currVal instanceof ConstantSymbolicExpression) {
+        currVal = ((ConstantSymbolicExpression) currVal).getValue();
+      }
+
+      if (currVal instanceof SymbolicIdentifier
+          && ((SymbolicIdentifier) currVal).getId() == pSymbolicIdentifier.getId()) {
+
+        assignConstant(currMemloc, pValue, getTypeForMemoryLocation(currMemloc));
+      }
+    }
   }
 
   /**
@@ -205,20 +199,15 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     return new ValueAnalysisInformation(ImmutableMap.of(pMemoryLocation, value),
-                                        typeAssignment,
-                                        Collections.<SymbolicIdentifier, Value>emptyMap());
+                                        typeAssignment);
   }
 
   @Override
   public void remember(final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {
     final Value value = pValueAndType.getAssignments().get(pLocation);
     final Type valueType = pValueAndType.getLocationTypes().get(pLocation);
-    final Map<SymbolicIdentifier, Value> symIdAssignments = pValueAndType.getIdentifierValues();
 
     assignConstant(pLocation, value, valueType);
-    for (Map.Entry<SymbolicIdentifier, Value> a : symIdAssignments.entrySet()) {
-      identifierMap = identifierMap.putAndCopy(a.getKey(), a.getValue());
-    }
   }
 
   /**
@@ -278,19 +267,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   /**
-   * This method returns the value for the given {@link SymbolicIdentifier}.
-   *
-   * <p>A value must exist for the given identifier. Otherwise, an error occurs.
-   * To ensure this, {@link #hasKnownValue(SymbolicIdentifier)} can be called beforehand.</p>
-   *
-   * @param pSymbolicIdentifier the <code>SymbolicIdentifier</code> for which to get the value
-   * @return the value of the given <code>SymbolicIdentifier</code>
-   */
-  public Value getValueFor(SymbolicIdentifier pSymbolicIdentifier) {
-    return checkNotNull(identifierMap.get(pSymbolicIdentifier));
-  }
-
-  /**
    * This method returns the type for the given memory location.
    *
    * @param loc the memory location for which to get the type
@@ -320,17 +296,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   public boolean contains(MemoryLocation pMemoryLocation) {
     return constantsMap.containsKey(pMemoryLocation);
-  }
-
-  /**
-   * This method checks whether or not the given {@link SymbolicIdentifier}
-   * has a known concrete value.
-   *
-   * @param pSymbolicIdentifier the <code>SymbolicIdentifier</code> to check for
-   * @return <code>true</code> if the identifier has a known concrete value, else <code>false</code>
-   */
-  public boolean hasKnownValue(SymbolicIdentifier pSymbolicIdentifier) {
-    return identifierMap.containsKey(pSymbolicIdentifier);
   }
 
   /**
@@ -409,57 +374,12 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       Value otherValue = otherEntry.getValue();
       Value thisValue = constantsMap.get(key);
 
-      // if both values are symbolic values, we will check whether they actually represent the same
-      // value space later.
-      if (!(thisValue instanceof SymbolicValue && otherValue instanceof SymbolicValue)) {
-        if (isSymbolicIdentifierWithKnownValue(thisValue)) {
-          thisValue = getKnownValueOfSymbolicIdentifier(thisValue);
-        }
-
-        if (isSymbolicIdentifierWithKnownValue(otherValue)) {
-          otherValue = getKnownValueOfSymbolicIdentifier(otherValue);
-        }
-
-        if (!otherValue.equals(thisValue)) {
-          return false;
-        }
+      if (!otherValue.equals(thisValue)) {
+        return false;
       }
     }
 
     return hasLessOrEqualSymbolicCoverage(other);
-  }
-
-  private Value getKnownValueOfSymbolicIdentifier(final Value pThisValue) {
-    SymbolicIdentifier identifier = null;
-
-    if (pThisValue instanceof SymbolicIdentifier) {
-      identifier = (SymbolicIdentifier) pThisValue;
-
-    } else if (pThisValue instanceof ConstantSymbolicExpression) {
-      final Value innerValue = ((ConstantSymbolicExpression) pThisValue).getValue();
-
-      if (innerValue instanceof SymbolicIdentifier) {
-        identifier = (SymbolicIdentifier) innerValue;
-      }
-    }
-
-    if (identifier == null) {
-      throw new IllegalArgumentException("Given value can't be resolved to symbolic identifier: "
-          + pThisValue);
-    }
-
-    return identifierMap.get(identifier);
-  }
-
-  private boolean isSymbolicIdentifierWithKnownValue(final Value pThisValue) {
-    Value relevantValue = pThisValue;
-
-    if (relevantValue instanceof ConstantSymbolicExpression) {
-      relevantValue = ((ConstantSymbolicExpression) pThisValue).getValue();
-    }
-
-    return relevantValue instanceof SymbolicIdentifier
-        && hasKnownValue((SymbolicIdentifier) relevantValue);
   }
 
   private boolean hasLessOrEqualSymbolicCoverage(final ValueAnalysisState pOther) {
@@ -492,27 +412,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     for (AliasedSubsetLessOrEqualOperator.Environment e : possibleScenarios) {
       boolean memoryLocationsAndAliassesConsistent = true;
 
-      for (Map.Entry<SymbolicIdentifier, Value> entry : pOther.identifierMap.entrySet()) {
-        SymbolicIdentifier id = entry.getKey();
-        SymbolicIdentifier alias = e.getAlias(id);
-
-        // definite assignments are not cleaned up when symbolic identifiers are forgotten,
-        // so it is possible that no alias exists, because the identifier is not part of the state
-        // anymore
-        if (alias == null) {
-          continue;
-        }
-
-        if (!entry.getValue().equals(identifierMap.get(alias))) {
-          memoryLocationsAndAliassesConsistent = false;
-          break;
-        }
-      }
-
-      if (!memoryLocationsAndAliassesConsistent) {
-        continue;
-      }
-
       for (Map.Entry<MemoryLocation, SymbolicValue> entry : otherSymbolicAssignments.entrySet()) {
         MemoryLocation memLoc = entry.getKey();
         SymbolicValue value = entry.getValue();
@@ -540,8 +439,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
       Value currVal = entry.getValue();
 
-      // we only want symbolic values that do not have a definite assignment
-      if (currVal instanceof SymbolicValue && !isSymbolicIdentifierWithKnownValue(currVal)) {
+      if (currVal instanceof SymbolicValue) {
         assignmentMap.put(entry.getKey(), (SymbolicValue) currVal);
       }
     }
@@ -827,7 +725,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   public ValueAnalysisInformation getInformation() {
-    return new ValueAnalysisInformation(constantsMap, memLocToType, identifierMap);
+    return new ValueAnalysisInformation(constantsMap, memLocToType);
   }
 
 

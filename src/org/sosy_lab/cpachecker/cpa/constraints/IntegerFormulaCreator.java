@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -109,7 +110,7 @@ public class IntegerFormulaCreator
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
 
-  private final ValueAnalysisState valueState;
+  private final IdentifierAssignment definiteIdentifiers;
 
   private final FunctionSet declaredFunctions = new FunctionSet();
 
@@ -118,7 +119,8 @@ public class IntegerFormulaCreator
 
   private List<BooleanFormula> conditions = new ArrayList<>();
 
-  public IntegerFormulaCreator(FormulaManagerView pFormulaManager, ValueAnalysisState pValueState) {
+  public IntegerFormulaCreator(
+      FormulaManagerView pFormulaManager, IdentifierAssignment pDefiniteAssignment) {
     formulaManager = pFormulaManager;
     numeralFormulaManager = formulaManager.getIntegerFormulaManager();
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
@@ -127,7 +129,7 @@ public class IntegerFormulaCreator
     oneFormula = numeralFormulaManager.makeNumber(1);
     zeroFormula = numeralFormulaManager.makeNumber(0);
 
-    valueState = pValueState;
+    definiteIdentifiers = pDefiniteAssignment;
   }
 
   @Override
@@ -363,8 +365,8 @@ public class IntegerFormulaCreator
   @Override
   public Formula visit(SymbolicIdentifier pValue) {
 
-    if (valueState.hasKnownValue(pValue)) {
-      return createFormulaFromConcreteValue(valueState.getValueFor(pValue));
+    if (definiteIdentifiers.containsKey(pValue)) {
+      return createFormulaFromConcreteValue(definiteIdentifiers.get(pValue));
 
     } else {
       return formulaManager.makeVariable(FormulaType.IntegerType, getVariableName(pValue));

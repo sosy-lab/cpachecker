@@ -40,22 +40,18 @@ public class ValueAnalysisInformation {
 
   private final Map<MemoryLocation, Value> assignments;
   private final Map<MemoryLocation, Type> locationTypes;
-  private final Map<SymbolicIdentifier, Value> concreteIdentifierValues;
 
   protected ValueAnalysisInformation(
       final Map<MemoryLocation, Value> pAssignments,
-      final Map<MemoryLocation, Type> pLocationTypes,
-      final Map<SymbolicIdentifier, Value> pConcreteIdentifierValues
+      final Map<MemoryLocation, Type> pLocationTypes
   ) {
     assignments = pAssignments;
     locationTypes = pLocationTypes;
-    concreteIdentifierValues = pConcreteIdentifierValues;
   }
 
   private ValueAnalysisInformation() {
     assignments = Collections.emptyMap();
     locationTypes = Collections.emptyMap();
-    concreteIdentifierValues = Collections.emptyMap();
   }
 
   public Map<MemoryLocation, Value> getAssignments() {
@@ -64,10 +60,6 @@ public class ValueAnalysisInformation {
 
   public Map<MemoryLocation, Type> getLocationTypes() {
     return locationTypes;
-  }
-
-  public Map<SymbolicIdentifier, Value> getIdentifierValues() {
-    return concreteIdentifierValues;
   }
 
   @Override
@@ -84,9 +76,7 @@ public class ValueAnalysisInformation {
     if (!assignments.equals(that.assignments)) {
       return false;
     }
-    if (!concreteIdentifierValues.equals(that.concreteIdentifierValues)) {
-      return false;
-    }
+
     if (!locationTypes.equals(that.locationTypes)) {
       return false;
     }
@@ -98,7 +88,6 @@ public class ValueAnalysisInformation {
   public int hashCode() {
     int result = assignments.hashCode();
     result = 31 * result + locationTypes.hashCode();
-    result = 31 * result + concreteIdentifierValues.hashCode();
     return result;
   }
 
