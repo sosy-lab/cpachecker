@@ -133,6 +133,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -154,6 +155,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Option(secure=true, description = "Assume that variables used only in a boolean context are either zero or one.")
   private boolean optimizeBooleanVariables = true;
+
+  @Option(secure=true, description = "whether or not to stop exploration of a path after an infeasible assume edge")
+  private boolean stopAfterInfeasibleAssume = true;
 
   @Option(secure=true, description = "Track Java array values in explicit value analysis. " +
       "This may be costly if the verified program uses big or lots of arrays. " +
@@ -212,6 +216,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     unknownValueHandler = new SymbolicValueAssigner(config);
+
+    if(!stopAfterInfeasibleAssume && ValueAnalysisState.globalValueMap == null) {
+      ValueAnalysisState.globalValueMap = HashMultimap.create();
+    }
   }
 
   @Override
@@ -515,9 +523,17 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // we need to return a copy, otherwise precision adjustment might reset too much information, even on the original state
       return ValueAnalysisState.copyOf(state);
 
-    } else {
-      // assumption not fulfilled
-      return null;
+    }
+
+    // assumption not fulfilled
+    else {
+      if(stopAfterInfeasibleAssume) {
+        return null;
+      }
+
+      else {
+        return ValueAnalysisState.copyOf(state);
+      }
     }
   }
 

@@ -76,6 +76,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     blacklist.add(checkNotNull(var));
   }
 
+  public static Multimap<MemoryLocation, Long> globalValueMap;
+
   /**
    * the map that keeps the name of variables and their constant values
    */
@@ -129,6 +131,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   private void addToConstantsMap(final MemoryLocation pMemLoc, final Value pValue) {
     Value valueToAdd = pValue;
+
+    if(globalValueMap != null) {
+      globalValueMap.put(pMemLoc, pValue.asNumericValue().longValue());
+    }
 
     if (valueToAdd instanceof SymbolicValue) {
       valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);

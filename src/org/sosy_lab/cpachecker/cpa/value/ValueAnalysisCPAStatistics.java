@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,17 +42,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value")
@@ -125,24 +120,17 @@ public class ValueAnalysisCPAStatistics implements Statistics {
    * @param reached the set of reached states.
    */
   private void exportVariableMapping(final ReachedSet reached) {
-    Multimap<MemoryLocation, Value> mapping = HashMultimap.create();
-    for (AbstractState currentAbstractState : reached) {
-      ValueAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);
 
-      for (Entry<MemoryLocation, Value> entry : currentState.getConstantsMap().entrySet()) {
-        mapping.put(entry.getKey(), entry.getValue());
-      }
+    if(ValueAnalysisState.globalValueMap == null) {
+      return;
     }
 
+    Multimap<MemoryLocation, Long> mapping = ValueAnalysisState.globalValueMap;
     try (Writer writer = Files.openOutputFile(variableMappingFile)) {
       for (MemoryLocation memoryLocation : mapping.keySet()) {
         writer.append(memoryLocation.getAsSimpleString());
         writer.append(System.lineSeparator());
-        writer.append(Joiner.on(", ").join(FluentIterable.from(mapping.get(memoryLocation)).transform(new Function<Value, Long>() {
-          @Override
-          public Long apply(Value value) {
-            return value.asNumericValue().longValue();
-          }}).toSet()));
+        writer.append(Joiner.on(", ").join(mapping.get(memoryLocation)));
         writer.append(System.lineSeparator());
       }
     } catch (IOException e) {
