@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -752,8 +753,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             Model model = optEnvironment.getModel();
 
             // Lower bound on unsigned variables is at least zero.
-            boolean unsignedAndLower = template.type.isUnsigned() &&
-                template.getKind() == Template.Kind.NEG_LOWER_BOUND;
+            boolean unsignedAndLower = template.isUnsigned() &&
+                (template.getKind() == Kind.NEG_LOWER_BOUND ||
+                template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
             if (bound.isPresent() || unsignedAndLower) {
               Rational boundValue;
               if (bound.isPresent() && unsignedAndLower) {

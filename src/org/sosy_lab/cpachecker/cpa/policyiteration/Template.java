@@ -19,7 +19,7 @@ import com.google.common.collect.Iterables;
  */
 public class Template {
   final LinearExpression<CIdExpression> linearExpression;
-  final CSimpleType type;
+  private final CSimpleType type;
   final Kind kind;
 
   /**
@@ -48,6 +48,17 @@ public class Template {
 
   public Kind getKind() {
     return kind;
+  }
+
+  public boolean isUnsigned() {
+    for (Entry<CIdExpression, Rational> e: linearExpression) {
+      CIdExpression expr = e.getKey();
+      CSimpleType type = (CSimpleType)expr.getExpressionType();
+      if (!type.isUnsigned()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public CSimpleType getType() {
@@ -107,6 +118,7 @@ public class Template {
   /**
    * @return Expression converted to C-like string, e.g. "x + 3 y".
    */
+  @SuppressWarnings("unused")
   public String toCString() {
     StringBuilder b = new StringBuilder();
     for (Entry<CIdExpression, Rational> e : linearExpression) {

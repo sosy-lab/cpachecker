@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.stator.policy")
@@ -126,7 +128,8 @@ public class TemplateManager {
   public ImmutableSet<Template> templatesForNode(CFANode node) {
     ImmutableSet.Builder<Template> out = ImmutableSet.builder();
     LiveVariables liveVariables = cfa.getLiveVariables().get();
-    Iterable<ASimpleDeclaration> liveVars = liveVariables.getLiveVariablesForNode(node);
+    List<ASimpleDeclaration> liveVars = ImmutableList.copyOf(
+        liveVariables.getLiveVariablesForNode(node));
     for (ASimpleDeclaration s : liveVars) {
 
       if (!shouldProcessVariable(s)) {
@@ -158,19 +161,21 @@ public class TemplateManager {
             // Don't pair up the same var.
             continue;
           }
-          if (!s1.getType().equals(s2.getType())) {
+          if (!((CSimpleType)s1.getType()).getType().equals(
+              ((CSimpleType)s2.getType()).getType())) {
 
             // Don't pair up variables of different types.
             continue;
           }
 
-          CSimpleType type = (CSimpleType) s1.getType();
           CIdExpression idExpression1 = new CIdExpression(
               FileLocation.DUMMY, (CSimpleDeclaration)s1
           );
           CIdExpression idExpression2 = new CIdExpression(
               FileLocation.DUMMY, (CSimpleDeclaration)s2
           );
+
+          CSimpleType type = (CSimpleType) s1.getType();
           LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
               idExpression1);
           LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
@@ -347,24 +352,9 @@ public class TemplateManager {
   }
 
   public boolean shouldUseRationals(Template template) {
-    if (encodeTemplatesAsRationals) {
-      return true;
-    }
-    if (!template.linearExpression.isIntegral()) {
-      return true;
-    }
-    switch (template.type.getType()) {
-      case BOOL:
-      case INT:
-        return false;
-      case UNSPECIFIED:
-      case CHAR:
-      case FLOAT:
-      case DOUBLE:
-        return true;
-      default:
-        throw new IllegalArgumentException("Unexpected type: " + template.type);
-    }
+    return encodeTemplatesAsRationals
+        || !template.linearExpression.isIntegral()
+        || !template.getType().getType().isIntegerType();
   }
 
   /**
@@ -426,7 +416,7 @@ public class TemplateManager {
           // Add template and its negation.
           templates.add(t);
           templates.add(
-              Template.of(t.linearExpression.negate(), t.type)
+              Template.of(t.linearExpression.negate(), t.getType())
           );
         }
 
@@ -506,7 +496,7 @@ public class TemplateManager {
       CIntegerLiteralExpression literal, Template other) {
     Rational coeff = Rational.ofBigInteger(literal.getValue());
     return Template.of(other.linearExpression.multByConst(coeff),
-        other.type
+        other.getType()
     );
   }
 }
