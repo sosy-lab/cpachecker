@@ -210,11 +210,17 @@ public class UseDefRelation {
     updateRelation(state, edge, Sets.newHashSet(def), uses);
   }
 
+  private void addUseDef(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
+    updateRelation(state, edge, defs, uses);
+  }
+
   private void addUseDef(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> uses) {
     updateRelation(state, edge, Collections.<ASimpleDeclaration>emptySet(), uses);
   }
 
   private void updateRelation(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
+    assert(!relation.containsKey(Pair.of(state, edge))) : "There is already a use-def entry for this pair of state, edge";
+
     relation.put(Pair.of(state, edge), Pair.of(defs, uses));
     unresolvedUses.removeAll(defs);
     unresolvedUses.addAll(uses);
@@ -262,10 +268,7 @@ public class UseDefRelation {
 
       // only variable declarations are of interest
       if (declaration instanceof AVariableDeclaration && hasUnresolvedUse(declaration)) {
-        AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
-        if (initializer != null) {
-          addUseDef(state, edge, declaration, getVariablesUsedForInitialization(initializer));
-        }
+        addUseDef(state, edge, declaration, getVariablesUsedInDeclaration(declaration));
       }
 
       break;
@@ -287,11 +290,15 @@ public class UseDefRelation {
         parameters.add(parameterDeclaration);
       }
 
+      Set<ASimpleDeclaration> defs = new HashSet<>();
+      Set<ASimpleDeclaration> uses = new HashSet<>();
       for (int parameterIndex = 0; parameterIndex < parameters.size(); parameterIndex++) {
         if (hasUnresolvedUse(parameters.get(parameterIndex))) {
-          addUseDef(state, edge, parameters.get(parameterIndex), acceptAll(functionCallEdge.getArguments().get(parameterIndex)));
+          defs.add(parameters.get(parameterIndex));
+          uses.addAll(acceptAll(functionCallEdge.getArguments().get(parameterIndex)));
         }
       }
+      addUseDef(state, edge, defs, uses);
 
       break;
 
@@ -403,8 +410,27 @@ public class UseDefRelation {
                 DeclarationCollectingVisitor>accept_(new DeclarationCollectingVisitor());
   }
 
+
   /**
-   * This method computes the variables that are used for initializing an other variable from a given initializer.
+   * This method computes the variables that are used in the declaration of a variable.
+   */
+  private Set<ASimpleDeclaration> getVariablesUsedInDeclaration(CDeclaration declaration) {
+    AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
+
+    Set<ASimpleDeclaration> uses = new HashSet<>();
+    if (initializer == null) {
+      assert (declaration.isGlobal()) : "Found non-global declaration without an initializer.";
+    }
+
+    else {
+      uses.addAll(getVariablesUsedForInitialization(initializer));
+    }
+
+    return uses;
+  }
+
+  /**
+   * This method computes the variables that are used for initializing another variable from a given initializer.
    */
   private Set<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
