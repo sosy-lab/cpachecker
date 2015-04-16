@@ -28,7 +28,10 @@
   <echo message="Using Google AppEngine SDK ${gae-sdk.version}"/>
 
   <property name="gae-sdk.name" value="appengine-java-sdk-${gae-sdk.version}" />
+  <!-- Since 1.9.19, the directory in the ZIP has no version number.
   <property name="gae-sdk.dir" location="${lib.dir}/${gae-sdk.name}" />
+  -->
+  <property name="gae-sdk.dir" location="${lib.dir}/appengine-java-sdk" />
   <property name="gae-dev.port" value="8888" />
   <property name="gae-dev.host" value="localhost" />
   <property name="gae-dev.debugport" value="9999" />
@@ -104,7 +107,7 @@
     <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
   </target>
 
-  <available file="${lib.dir}/${gae-sdk.name}" property="gae-sdk.expanded"/>
+  <available file="${lib.dir}/${gae-sdk.name}.zip" property="gae-sdk.expanded"/>
   <target name="getsdk" description="Downloads the Google App Engine SDK." unless="gae-sdk.expanded">
     <get dest="${lib.dir}" src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
     <unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}" />
