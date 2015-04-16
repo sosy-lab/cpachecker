@@ -396,26 +396,7 @@ public class ConstraintsTransferRelation
   }
 
   private class ValueAnalysisStrengthenOperator implements StrengthenOperator {
-    /**
-     * Strengthen the given {@link ConstraintsState} with the provided {@link ValueAnalysisState}.
-     * <p/>
-     * If the returned {@link Optional} instance is empty, strengthening of the given
-     * <code>ConstraintsState</code>
-     * changed nothing.
-     * <p/>
-     * Otherwise, the returned <code>Collection</code> contained in the <code>Optional</code> has
-     * the same
-     * meaning as the <code>Collection</code> returned by {@link #strengthen(AbstractState, List,
-     * CFAEdge, Precision)}.
-     *
-     * @param pStateToStrengthen the state to strengthen
-     * @param pCfaEdge the current {@link CFAEdge} we are at
-     * @return an empty <code>Optional</code> instance, if <code>pStateToStrengthen</code> was not
-     * changed after
-     * strengthening. A <code>Optional</code> instance containing a <code>Collection</code> with the
-     * strengthened state,
-     * otherwise
-     */
+
     @Override
     public Optional<Collection<ConstraintsState>> strengthen(
         final ConstraintsState pStateToStrengthen,
@@ -504,6 +485,27 @@ public class ConstraintsTransferRelation
   }
 
   private interface StrengthenOperator {
+
+    /**
+     * Strengthen the given {@link ConstraintsState} with the provided {@link AbstractState}.
+     * <p/>
+     * If the returned {@link Optional} instance is empty, strengthening of the given
+     * <code>ConstraintsState</code>
+     * changed nothing.
+     * <p/>
+     * Otherwise, the returned <code>Collection</code> contained in the <code>Optional</code> has
+     * the same
+     * meaning as the <code>Collection</code> returned by {@link #strengthen(AbstractState, List,
+     * CFAEdge, Precision)}.
+     *
+     * @param stateToStrengthen the state to strengthen
+     * @param strengtheningState the strengthening state
+     * @param functionName the name of the current location's function
+     * @param edge the current {@link CFAEdge} we treat
+     * @return an empty <code>Optional</code> instance, if <code>pStateToStrengthen</code> was not
+     *    changed after strengthening. A <code>Optional</code> instance containing a
+     *    <code>Collection</code> with the strengthened state, otherwise
+     */
     Optional<Collection<ConstraintsState>> strengthen(
         ConstraintsState stateToStrengthen,
         AbstractState strengtheningState,
