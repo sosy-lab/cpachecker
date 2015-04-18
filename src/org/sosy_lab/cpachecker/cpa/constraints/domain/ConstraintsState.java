@@ -468,10 +468,15 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
 
     @Override
     public void remove() {
+      if (index < 0) {
+        throw new IllegalStateException("Iterator not at valid location");
+      }
+
       Constraint constraintToRemove = constraints.get(index);
 
       constraints.remove(index);
       constraintFormulas.remove(constraintToRemove);
+      index--;
     }
   }
 
