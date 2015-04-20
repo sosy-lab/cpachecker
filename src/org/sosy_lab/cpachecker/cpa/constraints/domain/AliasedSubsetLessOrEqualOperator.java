@@ -65,8 +65,10 @@ public class AliasedSubsetLessOrEqualOperator implements AbstractDomain {
   private static final AliasedSubsetLessOrEqualOperator SINGLETON =
       new AliasedSubsetLessOrEqualOperator();
 
+  private final SubsetLessOrEqualOperator simpleSubsetOperator;
+
   private AliasedSubsetLessOrEqualOperator() {
-    // DO NOTHING
+    simpleSubsetOperator = SubsetLessOrEqualOperator.getInstance();
   }
 
   public static AliasedSubsetLessOrEqualOperator getInstance() {
@@ -100,6 +102,10 @@ public class AliasedSubsetLessOrEqualOperator implements AbstractDomain {
   ) {
     assert pLesserState instanceof ConstraintsState;
     assert pBiggerState instanceof ConstraintsState;
+
+    if (simpleSubsetOperator.isLessOrEqual(pLesserState, pBiggerState)) {
+      return true;
+    }
 
     ConstraintsState lesserState = (ConstraintsState) pLesserState;
     ConstraintsState biggerState = (ConstraintsState) pBiggerState;
