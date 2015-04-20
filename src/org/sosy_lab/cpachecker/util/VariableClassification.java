@@ -430,56 +430,47 @@ public class VariableClassification {
     int newScore = 1;
     int oldScore = newScore;
     for (String variableName : variableNames) {
-      int factor = UNKNOWN_VAR;
+      // if we have no clue at all, make variable expensive
+      int factor = UNKNOWN_VAR * UNKNOWN_VAR;
 
-      if(classification.contains(variableName)) {
+      // for boolean ...
+      if (getIntBoolVars().contains(variableName)) {
+        factor = BOOLEAN_VAR;
+      }
+
+      // ... and int-equal, same as with static domain types
+      else if (getIntEqualVars().contains(variableName)) {
+        factor = INTEQUAL_VAR;
+      }
+
+      // for all other cases, ask "dynamic" classification
+      else if(classification.contains(variableName)) {
         int count = classification.count(variableName);
 
-        if(count > 15) {
-          factor = 128;
+        if(count >= 16) {
+          factor = INTADD_VAR * 16;
         }
 
-        else if(count > 10) {
-          factor = 64;
+        else if(count >= 8) {
+          factor = INTADD_VAR * 8;
         }
 
-        else if(count > 5) {
-          factor = 32;
+        else if(count >= 4) {
+          factor = INTADD_VAR * 4;
         }
 
         else {
-          factor = count;
+          factor = INTADD_VAR * 2;
         }
-      }
-
-      else {
-
-        if (getIntBoolVars().contains(variableName)) {
-          factor = BOOLEAN_VAR;
-        }
-
-        else if (getIntEqualVars().contains(variableName)) {
-          factor = INTEQUAL_VAR;
-        }
-
-        else if (getIntAddVars().contains(variableName)) {
-          factor = INTADD_VAR;
-        }
-      }
-
-      if (loopStructure.isPresent() && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-        return Integer.MAX_VALUE;
-      }
-
-      // special case for ECA-input variables
-      // treat them all the same, they all have values from 1 to 6
-      // and it does not matter if there is only one, or many of them,
-      // just return 6 always
-      if (variableName.endsWith("::input")) {
-        return 6;
       }
 
       newScore = newScore * factor;
+
+      /* disabled, because "dynamic" classification hopefully finds the (really expensive) loop-counters
+      if (loopStructure.isPresent()
+          && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
+        return Integer.MAX_VALUE;
+      }*/
 
       // check for overflow
       if(newScore < oldScore) {
@@ -490,6 +481,7 @@ public class VariableClassification {
 
     return newScore;
   }
+
   public int obtainDomainTypeScoreForVariables4(Collection<String> variableNames,
       Optional<LoopStructure> loopStructure, Map<MemoryLocation, Integer> thresholds) {
     final int BOOLEAN_VAR   = 2;
