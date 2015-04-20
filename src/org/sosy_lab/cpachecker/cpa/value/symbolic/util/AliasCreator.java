@@ -117,6 +117,10 @@ public interface AliasCreator {
       return counterparts.containsKey(pExpressionOfFirstGraph);
     }
 
+    public boolean isCounterpart(final SymbolicValue pExpression) {
+      return counterparts.containsValue(pExpression);
+    }
+
     public boolean hasAlias(final SymbolicIdentifier pIdentifier) {
       return aliases.containsKey(pIdentifier);
     }
