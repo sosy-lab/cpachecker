@@ -130,6 +130,12 @@ public class RealAliasCreator implements AliasCreator {
       }
     }
 
+    // if the second expression already is the counterpart of another expression, it can't be a
+    // counterpart for the first expression (since the relation has to be bijective)
+    if (pEnvironment.isCounterpart(pExpressionOfSecondState)) {
+      return null;
+    }
+
     // at this point we already made sure that both expressions are of the same type, so we only
     // have to check their operands now
     if (pExpressionOfFirstState instanceof UnarySymbolicExpression) {
