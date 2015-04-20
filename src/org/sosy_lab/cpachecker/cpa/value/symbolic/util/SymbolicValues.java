@@ -64,7 +64,7 @@ public class SymbolicValues {
   }
 
   /**
-   * Returns whether the given constraints are equal in their meaning.
+   * Returns whether the given constraints represent the same C code (string wise).
    * This is the case if two constraints are completely equal after replacing symbolic expressions
    * with the program variables they represent.
    *
@@ -74,9 +74,9 @@ public class SymbolicValues {
    *
    * @param pValue1 the first symbolic value
    * @param pValue2 the second symbolic value
-   * @return <code>true</code> if both symbolic values represent the same meaning
+   * @return <code>true</code> if both symbolic values represent the same C code
    */
-  public static boolean haveEqualMeaning(
+  public static boolean representSameCCodeExpression(
       final SymbolicValue pValue1,
       final SymbolicValue pValue2
   ) {
@@ -99,7 +99,7 @@ public class SymbolicValues {
       final SymbolicValue val1Op = ((UnarySymbolicExpression) pValue1).getOperand();
       final SymbolicValue val2Op = ((UnarySymbolicExpression) pValue2).getOperand();
 
-      return maybeRepLocVal1.equals(maybeRepLocVal2) && haveEqualMeaning(val1Op, val2Op);
+      return maybeRepLocVal1.equals(maybeRepLocVal2) && representSameCCodeExpression(val1Op, val2Op);
 
     } else if (pValue1 instanceof BinarySymbolicExpression) {
       assert pValue2 instanceof BinarySymbolicExpression;
@@ -110,8 +110,8 @@ public class SymbolicValues {
       final SymbolicValue val2Op2 = ((BinarySymbolicExpression) pValue2).getOperand2();
 
       return maybeRepLocVal1.equals(maybeRepLocVal2)
-          && haveEqualMeaning(val1Op1, val2Op1)
-          && haveEqualMeaning(val1Op2, val2Op2);
+          && representSameCCodeExpression(val1Op1, val2Op1)
+          && representSameCCodeExpression(val1Op2, val2Op2);
 
     } else {
       throw new AssertionError("Unhandled symbolic value type " + pValue1.getClass());

@@ -34,17 +34,9 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -82,7 +74,7 @@ public class ConstraintsPrecision implements Precision {
    */
   public boolean isTracked(final Constraint pConstraint, final CFANode pLocation) {
     for (Constraint c : trackedConstraints.get(pLocation)) {
-      if (SymbolicValues.haveEqualMeaning(c, pConstraint)) {
+      if (SymbolicValues.representSameCCodeExpression(c, pConstraint)) {
         return true;
       }
     }
@@ -129,7 +121,7 @@ public class ConstraintsPrecision implements Precision {
       final Collection<Constraint> constraintsOnLocation = pTrackedConstraints.get(pLoc);
 
       for (Constraint c : constraintsOnLocation) {
-        if (SymbolicValues.haveEqualMeaning(c, pConstraint)) {
+        if (SymbolicValues.representSameCCodeExpression(c, pConstraint)) {
           return true;
         }
       }

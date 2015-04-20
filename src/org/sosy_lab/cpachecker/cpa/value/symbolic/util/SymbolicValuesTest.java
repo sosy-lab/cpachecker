@@ -27,10 +27,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -71,8 +67,8 @@ public class SymbolicValuesTest {
     SymbolicExpression constr1 = factory.lessThan(exp1, exp3, defType, defType);
     SymbolicExpression constr2 = factory.lessThan(exp1, exp2, defType, defType);
 
-    Assert.assertTrue(SymbolicValues.haveEqualMeaning(exp1, exp1));
-    Assert.assertTrue(SymbolicValues.haveEqualMeaning(constr1, constr2));
-    Assert.assertFalse(SymbolicValues.haveEqualMeaning(exp1, exp2));
+    Assert.assertTrue(SymbolicValues.representSameCCodeExpression(exp1, exp1));
+    Assert.assertTrue(SymbolicValues.representSameCCodeExpression(constr1, constr2));
+    Assert.assertFalse(SymbolicValues.representSameCCodeExpression(exp1, exp2));
   }
 }
