@@ -128,5 +128,33 @@ public interface AliasCreator {
     public void addCounterpart(final SymbolicValue pValue, final SymbolicValue pCounterpart) {
       counterparts.put(pValue, pCounterpart);
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      Environment that = (Environment) o;
+
+      if (!aliases.equals(that.aliases)) {
+        return false;
+      }
+      if (!counterparts.equals(that.counterparts)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = aliases.hashCode();
+      result = 31 * result + counterparts.hashCode();
+      return result;
+    }
   }
 }
