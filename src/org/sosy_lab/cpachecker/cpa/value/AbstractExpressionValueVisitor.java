@@ -300,7 +300,8 @@ public abstract class AbstractExpressionValueVisitor
     final CType expressionType = pExpression.getExpressionType();
     final CType calculationType = pExpression.getCalculationType();
 
-    return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator, expressionType,
+    return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator,
+        expressionType,
         calculationType, pLocation);
   }
 
@@ -593,11 +594,25 @@ public abstract class AbstractExpressionValueVisitor
         break;
       }
       case FLOAT: {
-        cmp = Float.compare(l.floatValue(), r.floatValue());
+        float lVal = l.floatValue();
+        float rVal = r.floatValue();
+
+        if (Float.isNaN(lVal) && Float.isNaN(rVal)) {
+          return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
+        }
+
+        cmp = Float.compare(lVal, rVal);
         break;
       }
       case DOUBLE: {
-        cmp = Double.compare(l.doubleValue(),r.doubleValue());
+        double lVal = l.floatValue();
+        double rVal = r.floatValue();
+
+        if (Double.isNaN(lVal) && Double.isNaN(rVal)) {
+          return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
+        }
+
+        cmp = Double.compare(lVal, rVal);
         break;
       }
       default: {
