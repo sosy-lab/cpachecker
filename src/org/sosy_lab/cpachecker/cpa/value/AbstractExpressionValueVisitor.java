@@ -597,7 +597,7 @@ public abstract class AbstractExpressionValueVisitor
         float lVal = l.floatValue();
         float rVal = r.floatValue();
 
-        if (Float.isNaN(lVal) && Float.isNaN(rVal)) {
+        if (Float.isNaN(lVal) || Float.isNaN(rVal)) {
           return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
         }
 
@@ -608,7 +608,7 @@ public abstract class AbstractExpressionValueVisitor
         double lVal = l.floatValue();
         double rVal = r.floatValue();
 
-        if (Double.isNaN(lVal) && Double.isNaN(rVal)) {
+        if (Double.isNaN(lVal) || Double.isNaN(rVal)) {
           return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
         }
 
