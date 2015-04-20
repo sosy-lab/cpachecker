@@ -36,7 +36,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -48,9 +56,6 @@ public class ConstraintsPrecision implements Precision {
   private final static ConstraintsPrecision EMPTY = new ConstraintsPrecision();
 
   private Multimap<CFANode, Constraint> trackedConstraints;
-
-  private final AliasedSubsetLessOrEqualOperator leqOperator =
-      AliasedSubsetLessOrEqualOperator.getInstance();
 
   public static ConstraintsPrecision getFullPrecision() {
     return new FullPrecision();
@@ -77,7 +82,7 @@ public class ConstraintsPrecision implements Precision {
    */
   public boolean isTracked(final Constraint pConstraint, final CFANode pLocation) {
     for (Constraint c : trackedConstraints.get(pLocation)) {
-      if (leqOperator.haveEqualMeaning(c, pConstraint)) {
+      if (SymbolicValues.haveEqualMeaning(c, pConstraint)) {
         return true;
       }
     }
@@ -124,7 +129,7 @@ public class ConstraintsPrecision implements Precision {
       final Collection<Constraint> constraintsOnLocation = pTrackedConstraints.get(pLoc);
 
       for (Constraint c : constraintsOnLocation) {
-        if (leqOperator.haveEqualMeaning(c, pConstraint)) {
+        if (SymbolicValues.haveEqualMeaning(c, pConstraint)) {
           return true;
         }
       }

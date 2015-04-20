@@ -31,6 +31,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
@@ -46,9 +47,6 @@ import com.google.common.collect.Iterables;
  * Tests for {@link AliasedSubsetLessOrEqualOperator}.
  */
 public class AliasedSubsetLessOrEqualOperatorTest {
-
-  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("a");
-  private final MemoryLocation memLoc2 = MemoryLocation.valueOf("b");
 
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
   private final Type defType = CNumericTypes.INT;
@@ -79,23 +77,6 @@ public class AliasedSubsetLessOrEqualOperatorTest {
   private final Constraint c2 = (Constraint) factory.equal(idExp2, idExp1, defType, defType);
   private final Constraint cAlias1 = (Constraint) factory.lessThan(aliasExp1, numExp1, defType, defType);
   private final Constraint cAlias2 = (Constraint) factory.equal(aliasExp2, aliasExp1, defType, defType);
-
-  @Test
-  public void testhaveEqualMeaning() {
-    final SymbolicExpression locLessExp1 = factory.add(idExp1, idExp2, defType, defType);
-    final SymbolicExpression locLessExp2 = factory.add(idExp1, numExp1, defType, defType);
-
-    SymbolicExpression exp1 = locLessExp1.copyForLocation(memLoc1);
-    SymbolicExpression exp2 = locLessExp1.copyForLocation(memLoc2);
-    SymbolicExpression exp3 = locLessExp2.copyForLocation(memLoc2);
-
-    SymbolicExpression constr1 = factory.lessThan(exp1, exp3, defType, defType);
-    SymbolicExpression constr2 = factory.lessThan(exp1, exp2, defType, defType);
-
-    Assert.assertTrue(leqOp.haveEqualMeaning(exp1, exp1));
-    Assert.assertTrue(leqOp.haveEqualMeaning(constr1, constr2));
-    Assert.assertFalse(leqOp.haveEqualMeaning(exp1, exp2));
-  }
 
   @Test
   public void testIsLessOrEqual_reflexive() {
@@ -158,6 +139,7 @@ public class AliasedSubsetLessOrEqualOperatorTest {
   }
 
   private Set<Constraint> getConstraintSet() {
+
     Set<Constraint> set = new HashSet<>();
 
     set.add(c1);
