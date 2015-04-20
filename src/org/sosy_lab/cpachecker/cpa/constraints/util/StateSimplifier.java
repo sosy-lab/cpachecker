@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Predicate;
@@ -236,13 +236,12 @@ public class StateSimplifier {
   }
 
   private Set<SymbolicIdentifier> getExistingSymbolicIds(final ValueAnalysisState pValueState) {
-    final SymbolicIdentifierLocator locator = SymbolicIdentifierLocator.getInstance();
     final Collection<Value> valueStateConstants = pValueState.getConstantsMapView().values();
     Set<SymbolicIdentifier> symbolicValues = new HashSet<>();
 
     for (Value v : valueStateConstants) {
       if (v instanceof SymbolicValue) {
-        symbolicValues.addAll(((SymbolicValue) v).accept(locator));
+        symbolicValues.addAll(SymbolicValues.getContainedSymbolicIdentifiers((SymbolicValue) v));
       }
     }
 
@@ -254,10 +253,10 @@ public class StateSimplifier {
   ) {
 
     Map<ActivityInfo, Set<ActivityInfo>> activityMap = new HashMap<>();
-    final SymbolicIdentifierLocator symIdLocator = SymbolicIdentifierLocator.getInstance();
 
     for (Constraint c : pState) {
-      final Set<SymbolicIdentifier> usedIdentifiers = c.accept(symIdLocator);
+      final Collection<SymbolicIdentifier> usedIdentifiers =
+          SymbolicValues.getContainedSymbolicIdentifiers(c);
 
       for (SymbolicIdentifier i : usedIdentifiers) {
         Set<SymbolicIdentifier> otherIdentifiers = new HashSet<>(usedIdentifiers);

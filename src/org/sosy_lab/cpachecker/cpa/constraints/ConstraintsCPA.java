@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.*;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 
 /**
@@ -58,7 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 @Options(prefix = "cpa.constraints")
 public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
-  private enum ComparisonType { SUBSET, ALIASED_SUBSET, IMPLICATION }
+  public enum ComparisonType { SUBSET, ALIASED_SUBSET, IMPLICATION }
 
   @Option(description = "Type of less-or-equal operator to use", toUppercase = true)
   private ComparisonType lessOrEqualType = ComparisonType.ALIASED_SUBSET;
@@ -86,6 +87,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     logger = pLogger;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
 
+    SymbolicValues.initialize(lessOrEqualType);
     abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();

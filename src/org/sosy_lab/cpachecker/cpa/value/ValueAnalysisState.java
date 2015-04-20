@@ -50,6 +50,8 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -398,11 +400,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       return true;
     }
 
-    final AliasedSubsetLessOrEqualOperator
-        leqOperator = AliasedSubsetLessOrEqualOperator.getInstance();
-
-    final Set<AliasedSubsetLessOrEqualOperator.Environment> possibleScenarios =
-        leqOperator.getPossibleAliases(thisSymbolicAssignments.values(),
+    final Set<Environment> possibleScenarios =
+        SymbolicValues.getPossibleAliases(thisSymbolicAssignments.values(),
             otherSymbolicAssignments.values());
 
     if (possibleScenarios.isEmpty()) {
@@ -410,7 +409,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     // check whether a possible aliasing of symbolic expressions fits the correct memory locations.
-    for (AliasedSubsetLessOrEqualOperator.Environment e : possibleScenarios) {
+    for (Environment e : possibleScenarios) {
       boolean memoryLocationsAndAliassesConsistent = true;
 
       for (Map.Entry<MemoryLocation, SymbolicValue> entry : otherSymbolicAssignments.entrySet()) {

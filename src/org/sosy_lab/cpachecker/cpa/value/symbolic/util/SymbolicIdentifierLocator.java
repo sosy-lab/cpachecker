@@ -61,7 +61,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Locates all {@link SymbolicIdentifier}s contained in a {@link SymbolicValue}.
  */
-public class SymbolicIdentifierLocator
+class SymbolicIdentifierLocator
     implements SymbolicValueVisitor<Set<SymbolicIdentifier>> {
 
   private final static SymbolicIdentifierLocator SINGLETON = new SymbolicIdentifierLocator();

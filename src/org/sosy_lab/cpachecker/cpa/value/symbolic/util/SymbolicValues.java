@@ -23,19 +23,45 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
 
 /**
  * Util class for {@link SymbolicValue}.
+ * Before using this class, {@link #initialize(ComparisonType)} has to be called at least once.
  */
 public class SymbolicValues {
+
+  private static AliasCreator aliasCreator;
+  private static SymbolicIdentifierLocator identifierLocator;
+
+  public static void initialize(final ComparisonType pLessOrEqualComparison) {
+    switch (pLessOrEqualComparison) {
+      case SUBSET:
+      case IMPLICATION:
+        aliasCreator = new IdentityAliasCreator();
+        break;
+      case ALIASED_SUBSET:
+        aliasCreator = new RealAliasCreator();
+        break;
+      default:
+        throw new AssertionError("Unhandled comparison type: " + pLessOrEqualComparison);
+    }
+
+    identifierLocator = SymbolicIdentifierLocator.getInstance();
+  }
 
   /**
    * Returns whether the given constraints are equal in their meaning.
@@ -90,5 +116,30 @@ public class SymbolicValues {
     } else {
       throw new AssertionError("Unhandled symbolic value type " + pValue1.getClass());
     }
+  }
+
+  public static Collection<SymbolicIdentifier> getContainedSymbolicIdentifiers(
+      final SymbolicValue pValue
+  ) {
+    return pValue.accept(identifierLocator);
+  }
+
+  public static Collection<SymbolicIdentifier> getContainedSymbolicIdentifiers(
+      final Collection<? extends SymbolicValue> pValues
+  ) {
+    Collection<SymbolicIdentifier> ret = new HashSet<>();
+
+    for (SymbolicValue v : pValues) {
+      ret.addAll(v.accept(identifierLocator));
+    }
+
+    return ret;
+  }
+
+  public static Set<Environment> getPossibleAliases(
+      final Collection<? extends SymbolicValue> pFirstValues,
+      final Collection<? extends SymbolicValue> pSecondValues
+  ) {
+    return aliasCreator.getPossibleAliases(pFirstValues, pSecondValues);
   }
 }
