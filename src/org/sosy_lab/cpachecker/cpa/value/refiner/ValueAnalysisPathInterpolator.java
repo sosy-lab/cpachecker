@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -392,10 +393,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
           throws CPAException, InterruptedException {
 
     try {
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
-          interpolant.createValueAnalysisState(),
-          new ArrayDeque<ValueAnalysisState>());
+      ValueAnalysisPrefixProvider prefixProvider = new ValueAnalysisPrefixProvider(logger, cfa, config);
+      List<ARGPath> prefixes = prefixProvider.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
 
       totalPrefixes.setNextValue(prefixes.size());
 

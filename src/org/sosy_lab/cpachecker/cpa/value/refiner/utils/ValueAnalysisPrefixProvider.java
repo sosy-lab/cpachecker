@@ -51,11 +51,13 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
-public class ValueAnalysisFeasibilityChecker {
+public class ValueAnalysisPrefixProvider implements PrefixProvider {
 
   private final LogManager logger;
   private final ValueAnalysisTransferRelation transfer;
@@ -69,7 +71,7 @@ public class ValueAnalysisFeasibilityChecker {
    * @param pInitial the initial state for starting the exploration
    * @throws InvalidConfigurationException
    */
-  public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa, Configuration config) throws InvalidConfigurationException {
+  public ValueAnalysisPrefixProvider(LogManager pLogger, CFA pCfa, Configuration config) throws InvalidConfigurationException {
     logger    = pLogger;
 
     transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
@@ -77,46 +79,34 @@ public class ValueAnalysisFeasibilityChecker {
   }
 
   /**
-   * This method checks if the given path is feasible, when not tracking the given set of variables.
+   * This method obtains a list of prefixes of the path, that are infeasible by themselves. If the path is feasible, the whole path
+   * is returned as the only element of the list.
    *
    * @param path the path to check
-   * @return true, if the path is feasible, else false
+   * @return the list of prefix of the path that are feasible by themselves
    * @throws CPAException
-   * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
-    return isFeasible(path, new ValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
+  @Override
+  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path)
+      throws CPAException {
+    return getInfeasilbePrefixes(path, new ValueAnalysisState());
   }
 
   /**
-   * This method checks if the given path is feasible, starting with the given initial state.
+   * This method obtains a list of prefixes of the path, that are infeasible by themselves. If the path is feasible, the whole path
+   * is returned as the only element of the list.
    *
    * @param path the path to check
    * @param pInitial the initial state
-   * @param pCallstack the initial callstack
-   * @return true, if the path is feasible, else false
+   * @return the list of prefix of the path that are feasible by themselves
    * @throws CPAException
-   * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial)
-          throws CPAException, InterruptedException {
-    return isFeasible(path, pInitial, new ArrayDeque<ValueAnalysisState>());
-  }
+  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path, final ValueAnalysisState pInitial)
+      throws CPAException {
 
-  /**
-   * This method checks if the given path is feasible, starting with the given initial state.
-   *
-   * @param path the path to check
-   * @param pInitial the initial state
-   * @param pCallstack the initial callstack
-   * @return true, if the path is feasible, else false
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial, final Deque<ValueAnalysisState> pCallstack)
-      throws CPAException, InterruptedException {
-
+    List<ARGPath> prefixes = new ArrayList<>();
     boolean performAbstraction = precision.allowsAbstraction();
+    Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
 
     Set<MemoryLocation> exceedingMemoryLocations = obtainExceedingMemoryLocations(path);
 
@@ -130,13 +120,13 @@ public class ValueAnalysisFeasibilityChecker {
 
         // we enter a function, so lets add the previous state to the stack
         if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          pCallstack.addLast(next);
+          callstack.addLast(next);
         }
 
         // we leave a function, so rebuild return-state before assigning the return-value.
-        if (!pCallstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           // rebuild states with info from previous state
-          final ValueAnalysisState callState = pCallstack.removeLast();
+          final ValueAnalysisState callState = callstack.removeLast();
           next = next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)edge.getPredecessor());
         }
 
@@ -149,9 +139,15 @@ public class ValueAnalysisFeasibilityChecker {
 
         // no successors => path is infeasible
         if (successors.isEmpty()) {
-          logger.log(Level.FINE, "found path to be infeasible: ", iterator.getOutgoingEdge(), " did not yield a successor");
+          logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " did not yield a successor");
 
-          return false;
+          // add infeasible prefix
+          prefixes.add(currentPrefix.immutableCopy());
+
+          // continue with feasible prefix
+          currentPrefix.replaceFinalEdgeWithBlankEdge();
+
+          successors = Sets.newHashSet(next);
         }
 
         // extract singleton successor state
@@ -176,7 +172,13 @@ public class ValueAnalysisFeasibilityChecker {
         iterator.advance();
       }
 
-      return true;
+      // prefixes is empty => path is feasible, so add complete path
+      if (prefixes.isEmpty()) {
+        logger.log(Level.FINE, "no infeasible prefixes found - path is feasible");
+        prefixes.add(path);
+      }
+
+      return prefixes;
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
@@ -192,37 +194,5 @@ public class ValueAnalysisFeasibilityChecker {
     }
 
     return assignments.getMemoryLocationsExceedingHardThreshold();
-  }
-
-  public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)
-      throws CPAException {
-
-    try {
-      List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
-      ValueAnalysisState next = new ValueAnalysisState();
-
-      PathIterator iterator = path.pathIterator();
-      while (iterator.hasNext()) {
-        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
-            next,
-            precision,
-            iterator.getOutgoingEdge());
-
-        if(successors.isEmpty()) {
-          return reevaluatedPath;
-        }
-
-        // extract singleton successor state
-        next = Iterables.getOnlyElement(successors);
-
-        reevaluatedPath.add(Pair.of(next, iterator.getOutgoingEdge()));
-
-        iterator.advance();
-      }
-
-      return reevaluatedPath;
-    } catch (CPATransferException e) {
-      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
-    }
   }
 }

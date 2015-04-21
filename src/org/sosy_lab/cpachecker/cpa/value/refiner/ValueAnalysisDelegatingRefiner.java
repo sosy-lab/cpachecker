@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -145,7 +145,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         controlFlowAutomaton,
         cpa,
         ValueAnalysisRefiner.create(cpa),
-        new ValueAnalysisFeasibilityChecker(logger, controlFlowAutomaton, config),
+        new ValueAnalysisPrefixProvider(logger, controlFlowAutomaton, config),
         PredicateRefiner.create(cpa),
         new PredicateBasedPrefixProvider(logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
   }

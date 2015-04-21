@@ -29,6 +29,8 @@ import java.util.List;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 import com.google.common.base.Joiner;
@@ -74,5 +76,20 @@ public class MutableARGPath extends LinkedList<Pair<ARGState, CFAEdge>> implemen
     return new ARGPath(
         Lists.transform(this, Pair.<ARGState>getProjectionToFirst()),
         Lists.transform(this, Pair.<CFAEdge>getProjectionToSecond()));
+  }
+
+  /**
+   * This method replaces the final (assume) edge of a path with a blank edge.
+   *
+   * @param pPath the path from which to replace the final (assume) edge
+   */
+  public void replaceFinalEdgeWithBlankEdge() {
+    Pair<ARGState, CFAEdge> assumeState = this.removeLast();
+
+    this.add(Pair.<ARGState, CFAEdge>of(assumeState.getFirst(), new BlankEdge("",
+        FileLocation.DUMMY,
+        assumeState.getSecond().getPredecessor(),
+        assumeState.getSecond().getSuccessor(),
+        "REPLACEMENT")));
   }
 }

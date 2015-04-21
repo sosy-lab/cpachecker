@@ -98,9 +98,12 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         if (isUnsat) {
           logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
           prover.pop();
+
+          // add infeasible prefix
           prefixes.add(currentPrefix.immutableCopy());
 
-          currentPrefix = new MutableARGPath();
+          // continue with feasible prefix
+          currentPrefix.replaceFinalEdgeWithBlankEdge();
         }
 
         iterator.advance();
