@@ -75,7 +75,8 @@ public interface AliasCreator {
       for (Map.Entry<SymbolicIdentifier, SymbolicIdentifier> entry : pOther.aliases.entrySet()) {
         SymbolicIdentifier key = entry.getKey();
 
-        if (newEnv.aliases.containsKey(key) && !newEnv.aliases.get(key).equals(entry.getValue())) {
+        if (newEnv.aliases.containsKey(key)
+            && !SymbolicValues.representSameSymbolicMeaning(newEnv.aliases.get(key), entry.getValue())) {
           return null;
         }
 
@@ -87,7 +88,7 @@ public interface AliasCreator {
         SymbolicValue key = entry.getKey();
 
         if (newEnv.counterparts.containsKey(key)
-            && !newEnv.counterparts.get(key).equals(entry.getValue())) {
+            && !SymbolicValues.representSameSymbolicMeaning(newEnv.counterparts.get(key), entry.getValue())) {
           return null;
         }
 

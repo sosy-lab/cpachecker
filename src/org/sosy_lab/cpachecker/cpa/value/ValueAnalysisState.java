@@ -420,7 +420,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
         assert alias != null;
 
-        if (!thisSymbolicAssignments.containsKey(memLoc) || !thisSymbolicAssignments.get(memLoc).equals(alias)) {
+        if (!thisSymbolicAssignments.containsKey(memLoc)
+            || !SymbolicValues.representSameSymbolicMeaning(thisSymbolicAssignments.get(memLoc), alias)) {
           memoryLocationsAndAliassesConsistent = false;
         }
       }

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
@@ -112,6 +113,57 @@ public class SymbolicValues {
       return maybeRepLocVal1.equals(maybeRepLocVal2)
           && representSameCCodeExpression(val1Op1, val2Op1)
           && representSameCCodeExpression(val1Op2, val2Op2);
+
+    } else {
+      throw new AssertionError("Unhandled symbolic value type " + pValue1.getClass());
+    }
+  }
+
+  public static boolean representSameSymbolicMeaning(
+      final SymbolicValue pValue1,
+      final SymbolicValue pValue2
+  ) {
+
+    if (!pValue1.getClass().equals(pValue2.getClass())) {
+      return false;
+    }
+
+    if (pValue1 instanceof SymbolicIdentifier) {
+      assert pValue2 instanceof SymbolicIdentifier;
+
+      return ((SymbolicIdentifier) pValue1).getId() == ((SymbolicIdentifier) pValue2).getId();
+
+    } else if (pValue1 instanceof ConstantSymbolicExpression) {
+      assert pValue2 instanceof ConstantSymbolicExpression;
+
+      final Value innerVal1 = ((ConstantSymbolicExpression) pValue1).getValue();
+      final Value innerVal2 = ((ConstantSymbolicExpression) pValue2).getValue();
+
+      if (innerVal1 instanceof SymbolicValue && innerVal2 instanceof SymbolicValue) {
+        return representSameSymbolicMeaning((SymbolicValue) innerVal1, (SymbolicValue) innerVal2);
+
+      } else {
+        return innerVal1.equals(innerVal2);
+      }
+
+    } else if (pValue1 instanceof UnarySymbolicExpression) {
+      assert pValue2 instanceof UnarySymbolicExpression;
+
+      final SymbolicValue val1Op = ((UnarySymbolicExpression) pValue1).getOperand();
+      final SymbolicValue val2Op = ((UnarySymbolicExpression) pValue2).getOperand();
+
+      return representSameSymbolicMeaning(val1Op, val2Op);
+
+    } else if (pValue1 instanceof BinarySymbolicExpression) {
+      assert pValue2 instanceof BinarySymbolicExpression;
+
+      final SymbolicValue val1Op1 = ((BinarySymbolicExpression) pValue1).getOperand1();
+      final SymbolicValue val1Op2 = ((BinarySymbolicExpression) pValue1).getOperand2();
+      final SymbolicValue val2Op1 = ((BinarySymbolicExpression) pValue2).getOperand1();
+      final SymbolicValue val2Op2 = ((BinarySymbolicExpression) pValue2).getOperand2();
+
+      return representSameSymbolicMeaning(val1Op1, val2Op1)
+          && representSameSymbolicMeaning(val1Op2, val2Op2);
 
     } else {
       throw new AssertionError("Unhandled symbolic value type " + pValue1.getClass());

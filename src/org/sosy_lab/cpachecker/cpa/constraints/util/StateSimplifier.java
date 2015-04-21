@@ -368,11 +368,7 @@ public class StateSimplifier {
 
       ActivityInfo that = (ActivityInfo)o;
 
-      if (!identifier.equals(that.identifier)) {
-        return false;
-      }
-
-      return true;
+      return SymbolicValues.representSameSymbolicMeaning(identifier, that.identifier);
     }
 
     @Override

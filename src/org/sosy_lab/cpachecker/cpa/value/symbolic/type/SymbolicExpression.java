@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -110,11 +112,12 @@ public abstract class SymbolicExpression implements SymbolicValue {
 
   @Override
   public int hashCode() {
-    return 0;
+    return Objects.hashCode(representedLocation);
   }
 
   @Override
   public boolean equals(final Object pObj) {
-    return pObj.getClass().equals(getClass());
+    return pObj.getClass().equals(getClass())
+      && Objects.equals(representedLocation, ((SymbolicExpression) pObj).representedLocation);
   }
 }

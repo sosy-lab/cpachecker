@@ -120,7 +120,8 @@ public class RealAliasCreator implements AliasCreator {
     }
 
     if (pEnvironment.hasCounterpart(pExpressionOfFirstState)) {
-      if (pEnvironment.getCounterpart(pExpressionOfFirstState).equals(pExpressionOfSecondState)) {
+      if (SymbolicValues.representSameSymbolicMeaning(
+          pEnvironment.getCounterpart(pExpressionOfFirstState), pExpressionOfSecondState)) {
 
         // If the given second expression already is the counterpart of the first one in the given
         // environment, we don't have to do anything else
@@ -188,7 +189,7 @@ public class RealAliasCreator implements AliasCreator {
         final SymbolicIdentifier id2 = (SymbolicIdentifier) e2Val;
 
         if (pEnvironment.hasAlias(id1)) {
-          if (pEnvironment.getAlias(id1).equals(id2)) {
+          if (SymbolicValues.representSameSymbolicMeaning(pEnvironment.getAlias(id1), id2)) {
             return pEnvironment;
           } else {
             return null;

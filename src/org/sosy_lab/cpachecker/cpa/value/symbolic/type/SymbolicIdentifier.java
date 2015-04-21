@@ -112,12 +112,13 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public int hashCode() {
-    return ((int) (id ^ (id >>> 32)));
+    return getRepresentedLocation().hashCode() + ((int) (id ^ (id >>> 32)));
   }
 
   @Override
   public boolean equals(Object pOther) {
-    return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id;
+    return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id
+        && ((SymbolicIdentifier) pOther).getRepresentedLocation().equals(getRepresentedLocation());
   }
 
   @Override
