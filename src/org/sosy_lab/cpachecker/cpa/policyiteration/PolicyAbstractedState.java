@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>> {
@@ -44,12 +43,11 @@ public final class PolicyAbstractedState extends PolicyState
   private final int locationID;
 
   private PolicyAbstractedState(CFANode node,
-      Set<Template> pTemplates,
       Map<Template, PolicyBound> pAbstraction,
       PolicyIntermediateState pGeneratingState,
       CongruenceState pCongruence,
       int pLocationID) {
-    super(pTemplates, node);
+    super(node);
     abstraction = ImmutableMap.copyOf(pAbstraction);
     generatingState = pGeneratingState;
     congruence = pCongruence;
@@ -86,26 +84,24 @@ public final class PolicyAbstractedState extends PolicyState
 
   public static PolicyAbstractedState of(
       Map<Template, PolicyBound> data,
-      Set<Template> templates,
       CFANode node,
       PolicyIntermediateState pGeneratingState,
       CongruenceState pCongruence,
       int pLocationID
   ) {
-    return new PolicyAbstractedState(node, templates, data, pGeneratingState,
+    return new PolicyAbstractedState(node, data, pGeneratingState,
         pCongruence, pLocationID);
   }
 
   public PolicyAbstractedState withUpdates(
       Map<Template, PolicyBound> updates,
       Set<Template> unbounded,
-      Set<Template> newTemplates,
       CongruenceState newCongruence) {
 
     ImmutableMap.Builder<Template, PolicyBound> builder =
         ImmutableMap.builder();
 
-    for (Template template : newTemplates) {
+    for (Template template : abstraction.keySet()) {
       if (unbounded.contains(template)) {
         continue;
       }
@@ -119,7 +115,7 @@ public final class PolicyAbstractedState extends PolicyState
       }
     }
     return new PolicyAbstractedState(
-        getNode(), newTemplates, builder.build(),  generatingState,
+        getNode(), builder.build(),  generatingState,
         newCongruence, locationID
     );
   }
@@ -143,12 +139,10 @@ public final class PolicyAbstractedState extends PolicyState
       PathFormula initial) {
     PolicyIntermediateState initialState = PolicyIntermediateState.of(
         node,
-        ImmutableSet.<Template>of(),
         initial,  ImmutableMap.<Integer, PolicyAbstractedState>of()
     );
     return PolicyAbstractedState.of(
         ImmutableMap.<Template, PolicyBound>of(), // abstraction
-        ImmutableSet.<Template>of(), // templates
         node, // node
         initialState, // generating state
         CongruenceState.empty(),

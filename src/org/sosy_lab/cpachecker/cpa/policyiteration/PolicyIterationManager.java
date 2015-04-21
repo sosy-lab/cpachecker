@@ -107,6 +107,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       + " val. det. and abstraction operations.")
   private boolean shortCircuitSyntactic = true;
 
+  @Option(secure=true, description="Check whether the policy depends on the initial value")
+  private boolean checkPolicyInitialCondition = true;
+
   private final FormulaManagerView fmgr;
 
   @SuppressWarnings({"unused", "FieldCanBeLocal"})
@@ -234,13 +237,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     PolicyState out = PolicyIntermediateState.of(
         node,
-
-        // We take the variables alive at the location + templates for the
-        // previous location (variable may be not alive at {@code node},
-        // but required for the guard associated with {@code edge}
-        // nevertheless.
-        Sets.union(templateManager.templatesForNode(node),
-            oldState.getTemplates()),
         outPath,
         iOldState.getGeneratingStates());
 
@@ -366,8 +362,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return newState;
     }
 
-    Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
-        newState.getTemplates());
 
     PathFormula newPath = newState.getPathFormula();
     PathFormula oldPath = oldState.getPathFormula();
@@ -384,7 +378,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // and the tracked templates.
     PolicyIntermediateState out = PolicyIntermediateState.of(
         newState.getNode(),
-        allTemplates,
         mergedPath,
         updateMergeGenStates(newState, oldState)
     );
@@ -404,24 +397,21 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     statistics.abstractMergeCounter.add(oldState.getLocationID());
 
-    Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
-        newState.getTemplates());
     Map<Template, PolicyBound> updated = new HashMap<>();
     Set<Template> newUnbounded = new HashSet<>();
 
     // Simple join:
     // Pick the biggest bound, and keep the biggest trace to match.
-    for (Template template : allTemplates) {
-      Optional<PolicyBound> oldValue, newValue;
-      oldValue = oldState.getBound(template);
-      newValue = newState.getBound(template);
+    for (Entry<Template, PolicyBound> entry : oldState) {
+      Template template = entry.getKey();
+      PolicyBound oldValue = entry.getValue();
 
-      if (!oldValue.isPresent()) {
-        continue;
-      } else if (!newValue.isPresent()) {
+      Optional<PolicyBound> newValue = newState.getBound(template);
+
+      if (!newValue.isPresent()) {
         newUnbounded.add(template);
         continue;
-      } else if (newValue.get().getBound().compareTo(oldValue.get().getBound()) > 0) {
+      } else if (newValue.get().getBound().compareTo(oldValue.getBound()) > 0) {
         updated.put(template, newValue.get());
         statistics.templateUpdateCounter.add(Pair.of(newState.getLocationID(),
             template));
@@ -433,7 +423,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     PolicyAbstractedState stateWithUpdates =
-        oldState.withUpdates(updated, newUnbounded, allTemplates,
+        oldState.withUpdates(updated, newUnbounded,
             congruenceManager.join(newState.congruence, oldState.congruence));
     oldState.setNewVersion(stateWithUpdates);
     newState.setNewVersion(stateWithUpdates);
@@ -457,7 +447,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             valueDeterminationMaximization(
                 stateWithUpdates,
                 oldState,
-                allTemplates,
                 updated,
                 constraints.getFirst(),
                 constraints.getSecond());
@@ -471,7 +460,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         out = valueDeterminationMaximization(
             stateWithUpdates,
             oldState,
-            allTemplates,
             updated,
             constraints.getFirst(),
             constraints.getSecond()).get();
@@ -489,11 +477,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   Optional<PolicyAbstractedState> valueDeterminationMaximization(
       PolicyAbstractedState stateWithUpdates,
       PolicyAbstractedState prevState,
-      Set<Template> templates,
       Map<Template, PolicyBound> updated,
       Map<String, FormulaType<?>> types,
       Set<BooleanFormula> pValueDeterminationConstraints
   ) throws InterruptedException, CPATransferException {
+//    logger.log(Level.INFO, "Constraints", pValueDeterminationConstraints);
+//    logger.flush();
 
     ImmutableMap.Builder<Template, PolicyBound> builder =
         ImmutableMap.builder();
@@ -511,6 +500,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
         Template template = policyValue.getKey();
+//        logger.log(Level.INFO, "Maximizing for", template);
+//        logger.flush();
 
         Formula objective;
         String varName = vdfmgr.absDomainVarName(stateWithUpdates, template);
@@ -565,7 +556,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     return Optional.of(prevState.withUpdates(builder.build(),
-        unbounded, templates, congruenceManager.join(prevState.congruence,
+        unbounded, congruenceManager.join(prevState.congruence,
             stateWithUpdates.congruence)));
   }
 
@@ -631,9 +622,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     for (final PolicyAbstractedState startingState : state.getGeneratingStates().values()) {
       final PolicyAbstractedState latestState = startingState.getLatestVersion();
 
-      PathFormula startPath = latestState.getPathFormula();
-      List<BooleanFormula> constraints = abstractStateToConstraints(
-          latestState, startPath);
+      List<BooleanFormula> constraints = abstractStateToConstraints(latestState);
 
       BooleanFormula startConstraint = bfmgr.and(
           genInitialConstraint(latestState),
@@ -689,7 +678,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         return Optional.absent();
       }
 
-      for (Template template : state.getTemplates()) {
+      for (Template template : templateManager.templatesForNode(state.getNode())) {
         shutdownNotifier.shutdownIfNecessary();
 
         // Optimize for the template subject to the
@@ -797,20 +786,23 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     CongruenceState congruence;
     if (runCongruence) {
       congruence = congruenceManager.performAbstraction(
-              p, startConstraints, state.getTemplates()
-          );
+              state.getNode(), p, startConstraints);
     } else {
       congruence = CongruenceState.empty();
     }
+
     return Optional.of(
         PolicyAbstractedState.of(
-            abstraction, state.getTemplates(), state.getNode(), state,
+            abstraction,
+            state.getNode(), state,
             congruence, locationID));
   }
 
 
   private List<BooleanFormula> abstractStateToConstraints(PolicyAbstractedState
-      abstractState, PathFormula inputPath) {
+      abstractState) {
+
+    PathFormula inputPath = abstractState.getPathFormula();
 
     List<BooleanFormula> constraints = new ArrayList<>();
     constraints.add(congruenceManager.toFormula(
@@ -860,7 +852,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PathFormula path = generatingFormula.updateFormula(initialConstraint);
 
     return PolicyIntermediateState.of(
-        node, abstractState.getTemplates(), path,
+        node, path,
         ImmutableMap.of(abstractState.getLocationID(), abstractState)
     );
   }
@@ -881,22 +873,26 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         annotatedFormula, model.entrySet());
     boolean dependsOnInitial;
 
-    statistics.checkIndependenceTimer.start();
-    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+    if (checkPolicyInitialCondition) {
+        statistics.checkIndependenceTimer.start();
+        try (ProverEnvironment prover = solver.newProverEnvironment()) {
 
-      //noinspection ResultOfMethodCallIgnored
-      prover.push(policyFormula);
+          //noinspection ResultOfMethodCallIgnored
+          prover.push(policyFormula);
 
-      //noinspection ResultOfMethodCallIgnored
-      prover.push(fmgr.makeGreaterThan(
-          templateObjective,
-          fmgr.makeNumber(templateObjective, bound), true));
-      try {
-        dependsOnInitial = !prover.isUnsat();
-      } finally {
-        statistics.checkIndependenceTimer.stop();
-        prover.pop();
-      }
+          //noinspection ResultOfMethodCallIgnored
+          prover.push(fmgr.makeGreaterThan(
+              templateObjective,
+              fmgr.makeNumber(templateObjective, bound), true));
+          try {
+            dependsOnInitial = !prover.isUnsat();
+          } finally {
+            statistics.checkIndependenceTimer.stop();
+            prover.pop();
+          }
+        }
+    } else {
+        dependsOnInitial = true;
     }
 
     int prevLocID = ((BigInteger)model.get(
@@ -910,10 +906,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     if (!dependsOnInitial) {
       dependencies = ImmutableSet.of();
     } else if (!shortCircuitSyntactic) {
-      dependencies = backpointer.getTemplates();
+      dependencies = templateManager.templatesForNode(backpointer.getNode());
     } else {
       dependencies = new HashSet<>();
-      for (Template t : backpointer.getTemplates()) {
+      for (Template t : templateManager.templatesForNode(backpointer.getNode())) {
         Formula f = templateManager.toFormula(t, backpointer.getPathFormula());
         Set<String> fVars = fmgr.extractFunctionNames(f, true);
         if (!Sets.intersection(fVars, policyVars).isEmpty()) {

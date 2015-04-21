@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -26,11 +25,10 @@ public final class PolicyIntermediateState extends PolicyState {
 
   private PolicyIntermediateState(
       CFANode node,
-      Set<Template> pTemplates,
       PathFormula pPathFormula,
       Map<Integer, PolicyAbstractedState> pGeneratingStates
       ) {
-    super(pTemplates, node);
+    super(node);
 
     pathFormula = pPathFormula;
     generatingStates = ImmutableMap.copyOf(pGeneratingStates);
@@ -38,12 +36,11 @@ public final class PolicyIntermediateState extends PolicyState {
 
   public static PolicyIntermediateState of(
       CFANode node,
-      Set<Template> pTemplates,
       PathFormula pPathFormula,
       Map<Integer, PolicyAbstractedState> generatingStates
   ) {
     return new PolicyIntermediateState(
-        node, pTemplates, pPathFormula, generatingStates);
+        node, pPathFormula, generatingStates);
   }
 
   public void setMergedInto(PolicyIntermediateState other) {
