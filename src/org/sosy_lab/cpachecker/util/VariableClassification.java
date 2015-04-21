@@ -486,8 +486,13 @@ public class VariableClassification {
       Optional<LoopStructure> loopStructure, Map<MemoryLocation, Integer> thresholds) {
     final int BOOLEAN_VAR   = 2;
     final int INTEQUAL_VAR  = 4;
-    final int INTADD_VAR    = 8;
     final int UNKNOWN_VAR   = 16;
+
+    if(classification.isEmpty()) {
+      classification = readVariableClassificationFromFile();
+      //Syso(classification);
+    }
+
     int newScore = 1;
     int oldScore = newScore;
     for (String variableName : variableNames) {
@@ -497,7 +502,7 @@ public class VariableClassification {
       if (thresholds.containsKey(MemoryLocation.valueOf(variableName))) {
         factor = thresholds.get(MemoryLocation.valueOf(variableName));
         if(factor == -1) {// DISABLED
-          factor = 128;
+          factor = 512;
         }
 
         factor *= 4;
@@ -506,26 +511,52 @@ public class VariableClassification {
       // else, use static domain-types
       else {
 
+        factor = UNKNOWN_VAR * UNKNOWN_VAR;
+
+        // for boolean same as with static domain types
         if (getIntBoolVars().contains(variableName)) {
           factor = BOOLEAN_VAR;
         }
 
+        /* FOR ECA, MANY ARE INTEQUAL, SO ONLY TRUST IN BOOLEANS
+         * MAYBE CATCH THIS CASE, IF INTEQUAL_VARS == ALL, then use classification, else, use INTEQUAL_VAR-score below
+        // ... and int-equal,
         else if (getIntEqualVars().contains(variableName)) {
           factor = INTEQUAL_VAR;
-        }
+        }*/
 
-        else if (getIntAddVars().contains(variableName)) {
-          factor = INTADD_VAR;
-        }
+        // for all other cases, ask "dynamic" classification
+        else if(classification.contains(variableName)) {
+          int count = classification.count(variableName);
 
-        else {
-          factor = UNKNOWN_VAR;
-        }
+          if(count >= 16) {
+            factor = INTEQUAL_VAR * count;
+          }
 
-        if (loopStructure.isPresent() && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-          factor = UNKNOWN_VAR * UNKNOWN_VAR * UNKNOWN_VAR;
+          else if(count >= 8) {
+            factor = INTEQUAL_VAR * count;
+          }
+
+          else if(count >= 4) {
+            factor = INTEQUAL_VAR * count;
+          }
+
+          else {
+            factor = INTEQUAL_VAR * count;
+          }
         }
       }
+
+      // hack for ECA, to treat all input variables alike,
+      // no matter how many ({input} == {input1, input2, ...})
+      // if(variableName.endsWith("::input")) {
+      //  return INTADD_VAR * 6;
+      //}
+
+      // max good for ECA, because all input have same score
+      // no matter how many ({input} == {input1, input2, ...})
+      // bad for PDL
+      // newScore = Math.max(newScore, factor);
 
       newScore = newScore * factor;
 

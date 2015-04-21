@@ -227,12 +227,29 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
         // run algorithm
         try {
-          status = currentAlgorithm.run(currentReached);
+          do {
+            if(configFilesIterator.hasNext()) {
+              logger.log(Level.INFO, "pre-analysis starts / continues ...");
+            }
+            else {
+              logger.log(Level.INFO, "main analysis starts ...");
+            }
+
+            status = currentAlgorithm.run(currentReached);
+
+            // either run only once (if stopAfterError == true)
+            // or until the waitlist is empty
+          } while (configFilesIterator.hasNext() && currentReached.hasWaitingState());
 
           if (from(currentReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
 
             // If the algorithm is not _precise_, verdict "false" actually means "unknown".
-            return status;
+            if(!configFilesIterator.hasNext()) {
+              return status;
+            }
+            else {
+              logger.log(Level.INFO, "pre-analysis finished, continue with main analysis in a bit");
+            }
           }
 
           if (!status.isSound()) {
@@ -247,7 +264,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
           } else {
             // sound analysis and completely finished, terminate
-            return status;
+            if(!configFilesIterator.hasNext()) {
+              return status;
+            }
+
+            else {
+              logger.log(Level.INFO, "pre-analysis finished, continue with main analysis in a bit");
+            }
           }
           lastAnalysisTerminated = true;
 

@@ -289,10 +289,12 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
         thresholds.put(pMemoryLocation, hardThreshold);
       }
 
-      thresholds.put(pMemoryLocation, thresholds.get(pMemoryLocation) * 2);
+      thresholds.put(pMemoryLocation, thresholds.get(pMemoryLocation) * 16);
+//Syso("threashold increased to " + thresholds.get(pMemoryLocation) + " for " + pMemoryLocation);
 
       incrementCounter.add(pMemoryLocation);
-      if(incrementCounter.count(pMemoryLocation) >= 5) {
+      if(incrementCounter.count(pMemoryLocation) > 1) {
+//Syso("threashold disabled for " + pMemoryLocation);
         thresholds.put(pMemoryLocation, DISABLED);
       }
     }

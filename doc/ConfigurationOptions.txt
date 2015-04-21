@@ -1771,6 +1771,10 @@ cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# whether or not to stop exploration of a path after an infeasible assume
+# edge
+cpa.value.stopAfterInfeasibleAssume = true
+
 # If this option is set to true, an own symbolic identifier is assigned to
 # each array slot when handling non-deterministic arrays of fixed length. If
 # the length of the array can't be determined, it won't be handled in either
