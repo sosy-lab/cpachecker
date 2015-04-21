@@ -32,6 +32,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface PrefixProvider {
 
-  public abstract List<ARGPath> getInfeasilbePrefixes(ARGPath path)
+  public abstract List<ARGPath> extractInfeasilbePrefixes(ARGPath path)
       throws CPAException, InterruptedException;
 }
