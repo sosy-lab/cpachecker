@@ -32,7 +32,6 @@ public interface BitvectorFormulaManager {
 
   public BitvectorFormula makeBitvector(int length, long pI);
   public BitvectorFormula makeBitvector(int length, BigInteger pI);
-  public BitvectorFormula makeBitvector(int length, String pI);
 
   public BitvectorFormula makeVariable(int length, String pVar);
 
@@ -50,12 +49,16 @@ public interface BitvectorFormulaManager {
 
   public BitvectorFormula modulo(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
 
+  /**
+   * @see NumeralFormulaManager#modularCongruence(NumeralFormula, NumeralFormula, long)
+   */
+  public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, long pModulo);
+
   public BitvectorFormula multiply(BitvectorFormula number1, BitvectorFormula number2);
 
   // ----------------- Numeric relations -----------------
 
   public BooleanFormula equal(BitvectorFormula number1, BitvectorFormula number2);
-  public boolean isEqual(BooleanFormula number);
 
   public BooleanFormula greaterThan(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
 

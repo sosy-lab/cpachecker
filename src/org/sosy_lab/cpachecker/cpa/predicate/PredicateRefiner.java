@@ -31,11 +31,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+
+import com.google.common.base.Optional;
 
 public abstract class PredicateRefiner implements Refiner {
 
@@ -47,17 +50,18 @@ public abstract class PredicateRefiner implements Refiner {
 
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
-    FormulaManagerView fmgr = predicateCpa.getFormulaManager();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
     PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
     MachineModel machineModel = predicateCpa.getMachineModel();
+    Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
+    Optional<VariableClassification> variableClassification = predicateCpa.getCfa().getVarClassification();
 
     InterpolationManager manager = new InterpolationManager(
-        fmgr,
         pfmgr,
         solver,
-        predicateCpa.getFormulaManagerFactory(),
+        loopStructure,
+        variableClassification,
         config,
         predicateCpa.getShutdownNotifier(),
         logger);
@@ -68,7 +72,6 @@ public abstract class PredicateRefiner implements Refiner {
         config,
         logger,
         predicateCpa.getShutdownNotifier(),
-        fmgr,
         predicateCpa.getPredicateManager(),
         staticRefiner,
         solver);
@@ -79,9 +82,10 @@ public abstract class PredicateRefiner implements Refiner {
         pCpa,
         manager,
         pathChecker,
-        fmgr,
         pfmgr,
         strategy,
+        solver,
+        predicateCpa.getAssumesStore(),
         predicateCpa.getCfa());
   }
 }

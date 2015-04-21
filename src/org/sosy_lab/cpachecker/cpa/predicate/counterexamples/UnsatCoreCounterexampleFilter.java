@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,8 +32,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
@@ -50,24 +52,26 @@ import com.google.common.collect.ImmutableList;
  */
 public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexampleFilter<ImmutableList<BooleanFormula>> {
 
-  private final FormulaManagerFactory solverFactory;
+  private final LogManager logger;
+  private final Solver solver;
 
   public UnsatCoreCounterexampleFilter(Configuration pConfig, LogManager pLogger,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
+    logger = pLogger;
 
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(UnsatCoreCounterexampleFilter.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    solverFactory = predicateCpa.getFormulaManagerFactory();
+    solver = predicateCpa.getSolver();
   }
 
   @Override
   protected Optional<ImmutableList<BooleanFormula>> getCounterexampleRepresentation(List<BooleanFormula> formulas) throws InterruptedException {
 
-    try (ProverEnvironment thmProver = solverFactory.newProverEnvironment(false, true)) {
+    try (ProverEnvironment thmProver = solver.newProverEnvironmentWithUnsatCoreGeneration()) {
 
       for (BooleanFormula f : formulas) {
         thmProver.push(f);
@@ -80,6 +84,10 @@ public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexa
       }
 
       return Optional.of(ImmutableList.copyOf(thmProver.getUnsatCore()));
+
+    } catch (SolverException e) {
+      logger.logUserException(Level.WARNING, e, "Solving failed on counterexample path, cannot filter this counterexample");
+      return Optional.absent();
     }
   }
 }

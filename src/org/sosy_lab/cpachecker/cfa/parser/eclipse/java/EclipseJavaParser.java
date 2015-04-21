@@ -41,6 +41,7 @@ import java.util.logging.Level;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -66,31 +67,31 @@ import com.google.common.base.Splitter;
  *
  */
 @Options
-public class EclipseJavaParser implements Parser {
+class EclipseJavaParser implements Parser {
 
-  @Option(name ="java.encoding",
+  @Option(secure=true, name ="java.encoding",
       description="use the following encoding for java files")
   private Charset encoding = StandardCharsets.UTF_8;
 
-  @Option(name ="java.version",
+  @Option(secure=true, name ="java.version",
       description="Specifies the java version of source code accepted")
   private String version = JavaCore.VERSION_1_7;
 
-  @Option(name ="java.sourcepath",
+  @Option(secure=true, name ="java.sourcepath",
       description="Specify the source code path to " +
           "search for java class or interface definitions")
   private String javaSourcepath = "";
 
-  @Option(name ="java.classpath",
+  @Option(secure=true, name ="java.classpath",
       description="Specify the class code path to " +
           "search for java class or interface definitions")
   private String javaClasspath = "";
 
-  @Option(name="java.exportTypeHierarchy",
+  @Option(secure=true, name="java.exportTypeHierarchy",
       description="export TypeHierarchy as .dot file")
   private boolean exportTypeHierarchy = true;
 
-  @Option(name="java.typeHierarchyFile",
+  @Option(secure=true, name="java.typeHierarchyFile",
       description="export TypeHierarchy as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");
@@ -191,7 +192,7 @@ public class EclipseJavaParser implements Parser {
 
     TypeHierarchy typeHierarchy = TypeHierarchy.createTypeHierachy(logger, astsOfFoundFiles);
 
-    return new Scope(mainClassName, typeHierarchy);
+    return new Scope(mainClassName, typeHierarchy, logger);
   }
 
   private List<JavaFileAST> getASTsOfProgram() throws JParserException {
@@ -220,7 +221,7 @@ public class EclipseJavaParser implements Parser {
     return sourceFileToBeParsed;
   }
 
-  private Set<Path> getJavaFilesInPath(String path) throws JParserException {
+  private Set<Path> getJavaFilesInPath(String path) {
 
     Path mainDirectory = Paths.get(path);
 
@@ -335,8 +336,12 @@ public class EclipseJavaParser implements Parser {
 
       ast.accept(builder);
 
-      String nextClassToBeParsed = builder.getScope().getNextClass();
+      while (scope.hasLocalClassPending()) {
+        AnonymousClassDeclaration nextLocalClassToBeParsed = scope.getNextLocalClass();
+        nextLocalClassToBeParsed.accept(builder);
+      }
 
+      String nextClassToBeParsed = scope.getNextClass();
       while (nextClassToBeParsed != null) {
 
         Path classFile = searchForClassFile(nextClassToBeParsed);
@@ -351,7 +356,12 @@ public class EclipseJavaParser implements Parser {
           astNext.accept(builder);
         }
 
-        nextClassToBeParsed = builder.getScope().getNextClass();
+        while (scope.hasLocalClassPending()) {
+          AnonymousClassDeclaration nextLocalClassToBeParsed = scope.getNextLocalClass();
+          nextLocalClassToBeParsed.accept(builder);
+        }
+        
+        nextClassToBeParsed = scope.getNextClass();
       }
 
       DynamicBindingCreator tracker = new DynamicBindingCreator(builder);

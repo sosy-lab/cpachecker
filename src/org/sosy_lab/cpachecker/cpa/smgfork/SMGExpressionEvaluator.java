@@ -1410,8 +1410,7 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    private boolean isUnequal(SMGState pSmgState, SMGSymbolicValue pLVal, SMGSymbolicValue pRVal)
-        throws SMGInconsistentException {
+    private boolean isUnequal(SMGState pSmgState, SMGSymbolicValue pLVal, SMGSymbolicValue pRVal) {
 
       if (pLVal.isUnknown() || pRVal.isUnknown()) {
         return false;

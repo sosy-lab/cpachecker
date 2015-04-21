@@ -73,5 +73,10 @@ public abstract class DefaultCTypeVisitor<R, X extends Exception>
   public R visit(final CTypedefType t) throws X {
     return visitDefault(t);
   }
+
+  @Override
+  public R visit(final CVoidType t) throws X {
+    return visitDefault(t);
+  }
 }
 

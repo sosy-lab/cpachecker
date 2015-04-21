@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,9 +36,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
@@ -57,19 +59,22 @@ import com.google.common.collect.ImmutableSet;
  */
 public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPathCounterexampleFilter<ImmutableSet<AbstractionPredicate>> {
 
-  private final FormulaManagerFactory solverFactory;
+  private final LogManager logger;
+
+  private final Solver solver;
   private final PredicateAbstractionManager predAbsMgr;
 
   public InterpolantPredicatesCounterexampleFilter(Configuration pConfig, LogManager pLogger,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
+    logger = pLogger;
 
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(InterpolantPredicatesCounterexampleFilter.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    solverFactory = predicateCpa.getFormulaManagerFactory();
+    solver = predicateCpa.getSolver();
     predAbsMgr = predicateCpa.getPredicateManager();
   }
 
@@ -83,7 +88,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
 
     try (@SuppressWarnings("unchecked")
          InterpolatingProverEnvironment<T> itpProver =
-           (InterpolatingProverEnvironment<T>) solverFactory.newProverEnvironmentWithInterpolation(false)) {
+           (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation()) {
 
       List<T> itpGroupIds = new ArrayList<>(formulas.size());
       for (BooleanFormula f : formulas) {
@@ -102,6 +107,9 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
         predicates.addAll(predAbsMgr.extractPredicates(itp));
       }
       return Optional.of(ImmutableSet.copyOf(predicates));
+    } catch (SolverException e) {
+      logger.logUserException(Level.WARNING, e, "Interpolation failed on counterexample path, cannot filter this counterexample");
+      return Optional.absent();
     }
   }
 }

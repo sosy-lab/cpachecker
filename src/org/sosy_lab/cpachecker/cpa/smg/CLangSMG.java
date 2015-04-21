@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -435,6 +436,7 @@ public class CLangSMG extends SMG {
 
   @Override
   public void mergeValues(int v1, int v2) {
+
     super.mergeValues(v1, v2);
 
     if (CLangSMG.performChecks()) {
@@ -445,6 +447,24 @@ public class CLangSMG extends SMG {
   final public void removeHeapObjectAndEdges(SMGObject pObject) {
     heap_objects.remove(pObject);
     removeObjectAndEdges(pObject);
+  }
+
+  public IDExpression createIDExpression(SMGObject pObject) {
+
+    if (global_objects.containsValue(pObject)) {
+      // TODO Breaks if label is changed
+      return new IDExpression(pObject.getLabel());
+    }
+
+    for (CLangStackFrame frame : stack_objects) {
+      if (frame.getVariables().containsValue(pObject)) {
+        // TODO Breaks if label is changed
+
+        return new IDExpression(pObject.getLabel(), frame.getFunctionDeclaration().getName());
+      }
+    }
+
+    return null;
   }
 }
 

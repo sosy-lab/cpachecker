@@ -39,6 +39,8 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -61,20 +64,26 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 
@@ -96,26 +105,26 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
 
-    @Option(values={"JOIN", "SEP", "PRECISIONDEPENDENT"}, toUppercase=true,
+    @Option(secure=true, values={"JOIN", "SEP", "PRECISIONDEPENDENT"}, toUppercase=true,
         description="which merge operator to use for InvariantCPA")
     private String merge = "PRECISIONDEPENDENT";
 
-    @Option(description="determine target locations in advance and analyse paths to the target locations only.")
+    @Option(secure=true, description="determine target locations in advance and analyse paths to the target locations only.")
     private boolean analyzeTargetPathsOnly = true;
 
-    @Option(description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
+    @Option(secure=true, description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 
-    @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
+    @Option(secure=true, description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private volatile int interestingVariableLimit = 2;
 
-    @Option(description="the maximum tree depth of a formula recorded in the environment.")
+    @Option(secure=true, description="the maximum tree depth of a formula recorded in the environment.")
     private int maximumFormulaDepth = 4;
 
-    @Option(description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
+    @Option(secure=true, description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
     private AbstractionStateFactories abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
 
-    @Option(description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
+    @Option(secure=true, description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
     private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
 
   }
@@ -156,10 +165,12 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private boolean relevantVariableLimitReached = false;
 
-  private final Map<CFANode, InvariantsState> invariants = new HashMap<>();
+  private final Map<CFANode, InvariantsFormula<CompoundInterval>> invariants
+      = Collections.synchronizedMap(new HashMap<CFANode, InvariantsFormula<CompoundInterval>>());
 
   private final ConditionAdjuster conditionAdjuster;
 
+  @GuardedBy("itself")
   private final Set<String> interestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
@@ -186,7 +197,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
   public InvariantsCPA(Configuration pConfig, LogManager pLogManager, InvariantsOptions pOptions,
-      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) {
     this.config = pConfig;
     this.logManager = pLogManager;
     this.shutdownNotifier = pShutdownNotifier;
@@ -232,7 +243,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   @Override
-  public InvariantsState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Set<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
@@ -329,9 +340,10 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     initialPrecisionMap.put(pNode, precision);
 
-    InvariantsState invariant = invariants.get(pNode);
+    InvariantsFormula<CompoundInterval> invariant = invariants.get(pNode);
     if (invariant != null) {
-      return new InvariantsState(variableSelection, machineModel, invariant, options.abstractionStateFactory.getAbstractionState());
+      InvariantsState state = new InvariantsState(variableSelection, machineModel, options.abstractionStateFactory.getAbstractionState());
+      state = state.assume(invariant);
     }
 
     // Create the configured initial state
@@ -339,17 +351,36 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   @Override
-  public InvariantsPrecision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     InvariantsPrecision precision = initialPrecisionMap.get(pNode);
     if (precision != null) {
       return precision;
     }
-    getInitialState(pNode);
-    return initialPrecisionMap.get(pNode);
+    getInitialState(pNode, pPartition);
+    precision = initialPrecisionMap.get(pNode);
+
+    // If no precision was mapped to the state, use the empty precision
+    if (precision == null) {
+      return InvariantsPrecision.getEmptyPrecision();
+    }
+    return precision;
   }
 
-  public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {
-    this.invariants.put(pLocation, pInvariant);
+  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
+    if (pAssumption instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) pAssumption;
+      VariableNameExtractor vne = new VariableNameExtractor(pAssumption);
+      ExpressionToFormulaVisitor etfv = new ExpressionToFormulaVisitor(vne);
+      InvariantsFormula<CompoundInterval> assumption = assumeEdge.getExpression().accept(etfv);
+      if (!pAssumption.getTruthAssumption()) {
+        assumption = CompoundIntervalFormulaManager.INSTANCE.logicalNot(assumption);
+      }
+      injectInvariant(pLocation, assumption);
+    }
+  }
+
+  public void injectInvariant(CFANode pLocation, InvariantsFormula<CompoundInterval> pAssumption) {
+    invariants.put(pLocation, pAssumption);
   }
 
   public void addInterestingVariables(Iterable<String> pInterestingVariables) {
@@ -583,7 +614,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return new CompoundConditionAdjuster(pCPA);
       }
 
-    };
+    }
 
   }
 

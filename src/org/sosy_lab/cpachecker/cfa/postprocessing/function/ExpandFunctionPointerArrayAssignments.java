@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 import java.math.BigInteger;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -42,8 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -73,7 +71,7 @@ public class ExpandFunctionPointerArrayAssignments {
 
   private final LogManager logger;
 
-  public ExpandFunctionPointerArrayAssignments(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  public ExpandFunctionPointerArrayAssignments(LogManager pLogger, Configuration config) {
     logger = pLogger;
   }
 
@@ -93,13 +91,13 @@ public class ExpandFunctionPointerArrayAssignments {
         case 2:
           break;
         default:
-          throw new CFAGenerationRuntimeException("Too much leaving Edges on CFANode");
+          throw new AssertionError("Too many leaving edges on CFANode");
         }
       }
     }
   }
 
-  private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) throws CParserException {
+  private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) {
     if (!(edge instanceof CStatementEdge)) {
       return;
     }
@@ -147,7 +145,8 @@ public class ExpandFunctionPointerArrayAssignments {
       CExpression index = new CIntegerLiteralExpression(subscript.getFileLocation(),
                                                         CNumericTypes.INT,
                                                         BigInteger.valueOf(i));
-      CExpression assumeExp = builder.buildBinaryExpression(subscript, index, BinaryOperator.EQUALS);
+      CExpression assumeExp = builder.buildBinaryExpressionUnchecked(
+          subscript, index, BinaryOperator.EQUALS);
       CAssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
                                              edge.getFileLocation(),
                                              predecessor,

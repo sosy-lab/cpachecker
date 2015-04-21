@@ -101,11 +101,6 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public int getWaitlistSize() {
-    return delegate.getWaitlistSize();
-  }
-
-  @Override
   public Precision getPrecision(AbstractState pState)
       throws UnsupportedOperationException {
     return delegate.getPrecision(pState);

@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -77,6 +79,39 @@ public final class LoopStructure {
 
   /**
    * Class representing one loop in a CFA.
+   * A loop is a subset of CFA nodes which are strongly connected,
+   * i.e., it is possible to find infinite paths within this subset.
+   *
+   * Note that this definition is based on the structure of the CFA,
+   * not on the syntax of the program.
+   * This means that loops created with "goto" (without and "while" or "for" keyword)
+   * are considered loops, while something like "while (1) { break; }" is not.
+   *
+   * Loops represented by this class do not span across several functions,
+   * i.e., if there is a function call inside a loop,
+   * the called function is not considered part of the loop.
+   *
+   * For finding all loops in a CFA, use {@link LoopStructure#getLoopStructure(MutableCFA)}.
+   * However, when you already have a {@link org.sosy_lab.cpachecker.cfa.CFA} object
+   * (as you have inside any analysis),
+   * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()}.
+   *
+   * Usual loop-detection algorithms for graphs
+   * do not distinguish between nested loops,
+   * but as this is a somewhat important concept at source code level,
+   * the algorithm we use to find loops tries to do so.
+   * A loop is nested in another loop if the outer loop contains all
+   * incoming and outgoing edges of the inner loop
+   * (this also means that the outer loop has a super-set of inner edges
+   * and loop nodes of the inner loop).
+   * The loop-head nodes of two nested nodes are usually not related.
+   * This definition works quite well for "typical" nested loops,
+   * i.e., two nested "while" statements,
+   * but may not cover some edge-cases
+   * (for example, when there is an edge from the inner loop
+   * directly leaving both loops).
+   * In such cases, both loops are considered only one loop
+   * (which is legal according to the definition above).
    */
   public static class Loop {
     // Technically not immutable, but all modifying methods are private
@@ -142,12 +177,13 @@ public final class LoopStructure {
       addNodes(l);
     }
 
-    public boolean intersectsWith(Loop l) {
+    private boolean intersectsWith(Loop l) {
       return !Sets.intersection(nodes, l.nodes).isEmpty();
     }
 
     /**
-     * Check if this loop is an outer loop of another, given one.
+     * Check if this loop is an outer loop of a given one
+     * according to the above definition (c.f. {@link Loop}).
      */
     public boolean isOuterLoopOf(Loop other) {
       this.computeSets();
@@ -157,24 +193,71 @@ public final class LoopStructure {
           && this.innerLoopEdges.containsAll(other.outgoingEdges);
     }
 
+    /**
+     * Get the set of all CFA nodes that are part of this loop.
+     * This also contains the nodes of any inner nested loops.
+     * @return a non-empty set of CFA nodes (sorted according to the natural ordering of CFANodes)
+     */
     public ImmutableSortedSet<CFANode> getLoopNodes() {
       return nodes;
     }
 
+    /**
+     * Get the set of all CFA edges that are inside the loop,
+     * i.e., which connect two CFA nodes of the loop.
+     * This also contains the edges of any inner nested loops.
+     * @return a non-empty set of CFA edges
+     */
     public ImmutableSet<CFAEdge> getInnerLoopEdges() {
       computeSets();
       return innerLoopEdges;
     }
 
+    /**
+     * Get the set of loop-head nodes of this loop.
+     *
+     * Important: The definition of loop head is not related to the syntax
+     * of the program, i.e., a loop head is not necessarily related
+     * to the first node after a "which" statement.
+     *
+     * The set of loop heads is a subset of the set of all loop nodes
+     * such that all infinite paths inside the loop
+     * visit at least one of the loop-head nodes infinitely often.
+     * (In practice, this means there is at least one loop head visited
+     * in every loop iteration.)
+     *
+     * The heuristic that selects loop heads tries to
+     * - select as few nodes as possible,
+     * - select nodes close to the beginning of the loop,
+     * - select nodes that are visited even on paths with zero loop iterations, and
+     * - select nodes that are also syntactic loop heads if possible.
+     * However, all of this is not guaranteed for strange loops created with gotos.
+     *
+     * @return non-empty subset of {@link #getLoopNodes()}
+     */
     public ImmutableSet<CFANode> getLoopHeads() {
       return loopHeads;
     }
 
+    /**
+     * Get the set of all incoming CFA edges,
+     * i.e., edges which connect a non-loop CFA node inside the same function with a loop node.
+     * Although called functions are not considered loop nodes,
+     * this set does not contain any edges from called functions to inside the loop.
+     * @return a non-empty set of CFA edges
+     */
     public ImmutableSet<CFAEdge> getIncomingEdges() {
       computeSets();
       return incomingEdges;
     }
 
+    /**
+     * Get the set of all incoming CFA edges,
+     * i.e., edges which connect a loop node with a non-loop CFA node inside the same function.
+     * Although called functions are not considered loop nodes,
+     * this set does not contain any edges from inside the loop to called functions.
+     * @return a possibly empty (if the loop does never terminate) set of CFA edges
+     */
     public ImmutableSet<CFAEdge> getOutgoingEdges() {
       computeSets();
       return outgoingEdges;
@@ -241,6 +324,20 @@ public final class LoopStructure {
     return loopHeads;
   }
 
+  public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
+    return from(loops.values())
+        .transform(new Function<Loop, Loop>() {
+          @Override
+          public Loop apply(Loop loop) {
+            if (loop.getLoopHeads().contains(loopHead)) {
+              return loop;
+            } else {
+              return null;
+            }
+          }})
+        .filter(Predicates.notNull())
+        .toSet();
+  }
 
   /**
    * Return all variables appearing in loop exit conditions.
@@ -261,7 +358,7 @@ public final class LoopStructure {
       for (CFAEdge e : l.getOutgoingEdges()) {
         if (e instanceof CAssumeEdge) {
           CExpression expr = ((CAssumeEdge) e).getExpression();
-          result.addAll(VariableClassification.getVariablesOfExpression(expr));
+          result.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(expr));
         }
       }
     }
@@ -320,7 +417,7 @@ public final class LoopStructure {
 
         if (assign.getLeftHandSide() instanceof CIdExpression) {
           CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
-          String assignToVar = VariableClassification.scopeVar(assignementToId);
+          String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
           if (assign.getRightHandSide() instanceof CBinaryExpression) {
             CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
@@ -340,7 +437,7 @@ public final class LoopStructure {
                 }
 
                 if (operandId != null) {
-                  String operandVar = VariableClassification.scopeVar(operandId);
+                  String operandVar = operandId.getDeclaration().getQualifiedName();
                   if (assignToVar.equals(operandVar)) {
                     return assignToVar;
                   }
@@ -357,12 +454,12 @@ public final class LoopStructure {
 
   /**
    * Gets the loop structure of a control flow automaton with one single loop.
-   *
+   * Do not call this method outside of the frontend,
+   * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
    * @param pSingleLoopHead the loop head of the single loop.
-   *
    * @return the loop structure of the control flow automaton.
    */
-  public static LoopStructure getLoopStructureForSingleLoop(CFANode pSingleLoopHead) throws InterruptedException {
+  public static LoopStructure getLoopStructureForSingleLoop(CFANode pSingleLoopHead) {
     Predicate<CFAEdge> noFunctionReturnEdge = not(edgeHasType(FunctionReturnEdge));
 
     // First, find all nodes reachable via the loop head
@@ -441,6 +538,8 @@ public final class LoopStructure {
 
   /**
    * Build loop-structure information for a CFA.
+   * Do not call this method outside of the frontend,
+   * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
    * @throws ParserException If the structure of the CFA is too complex for determining loops.
    */
   public static LoopStructure getLoopStructure(MutableCFA cfa) throws ParserException {
@@ -463,7 +562,7 @@ public final class LoopStructure {
    * @return A collection of found loops.
    * @throws ParserException
    */
-  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
+  private static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
 
     // if there are no backwards directed edges, there are no loops, so we do
     // not need to search for them
@@ -578,43 +677,45 @@ public final class LoopStructure {
     // THIRD step:
     // check all pairs of loops if one is an inner loop of the other
     // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
-
     NavigableSet<Integer> toRemove = new TreeSet<>();
-    for (int i1 = 0; i1 < loops.size(); i1++) {
-      Loop l1 = loops.get(i1);
+    do {
+      toRemove.clear();
+      for (int i1 = 0; i1 < loops.size(); i1++) {
+        Loop l1 = loops.get(i1);
 
-      for (int i2 = i1+1; i2 < loops.size(); i2++) {
-        Loop l2 = loops.get(i2);
+        for (int i2 = i1+1; i2 < loops.size(); i2++) {
+          Loop l2 = loops.get(i2);
 
-        if (!l1.intersectsWith(l2)) {
-          // loops have nothing in common
-          continue;
-        }
+          if (!l1.intersectsWith(l2)) {
+            // loops have nothing in common
+            continue;
+          }
 
-        if (l1.isOuterLoopOf(l2)) {
+          if (l1.isOuterLoopOf(l2)) {
 
-          // l2 is an inner loop
-          // add it's nodes to l1
-          l1.addNodes(l2);
+            // l2 is an inner loop
+            // add it's nodes to l1
+            l1.addNodes(l2);
 
-        } else if (l2.isOuterLoopOf(l1)) {
+          } else if (l2.isOuterLoopOf(l1)) {
 
-          // l1 is an inner loop
-          // add it's nodes to l2
-          l2.addNodes(l1);
+            // l1 is an inner loop
+            // add it's nodes to l2
+            l2.addNodes(l1);
 
-        } else {
-          // strange goto loop, merge the two together
+          } else {
+            // strange goto loop, merge the two together
 
-          l1.mergeWith(l2);
-          toRemove.add(i2);
+            l1.mergeWith(l2);
+            toRemove.add(i2);
+          }
         }
       }
-    }
 
-    for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
-      loops.remove(i);
-    }
+      for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
+        loops.remove(i);
+      }
+    } while (!toRemove.isEmpty());
 
     return loops;
   }

@@ -29,6 +29,7 @@ import java.util.List;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -152,5 +153,20 @@ public class CompositeReducer implements Reducer {
       result.add(wrappedReducers.get(i++).getVariableExpandedStateForProofChecking(p.getFirst(), pReducedContext, p.getSecond()));
     }
     return new CompositeState(result);
+  }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
+      AbstractState pExpandedState, FunctionExitNode exitLocation) {
+    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<AbstractState> entryStates = ((CompositeState)pEntryState).getWrappedStates();
+    List<AbstractState> expandedStates = ((CompositeState)pExpandedState).getWrappedStates();
+
+    List<AbstractState> results = new ArrayList<>();
+    for (int i = 0; i < rootStates.size(); i++) {
+      results.add(wrappedReducers.get(i).rebuildStateAfterFunctionCall(
+              rootStates.get(i), entryStates.get(i), expandedStates.get(i), exitLocation));
+    }
+    return new CompositeState(results);
   }
 }

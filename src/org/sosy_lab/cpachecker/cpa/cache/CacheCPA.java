@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -87,11 +88,11 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     AbstractState lInitialState = mInitialStatesCache.get(pNode);
 
     if (lInitialState == null) {
-      lInitialState = mCachedCPA.getInitialState(pNode);
+      lInitialState = mCachedCPA.getInitialState(pNode, pPartition);
       mInitialStatesCache.put(pNode, lInitialState);
     }
 
@@ -99,11 +100,11 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     Precision lInitialPrecision = mInitialPrecisionsCache.get(pNode);
 
     if (lInitialPrecision == null) {
-      lInitialPrecision = mCachedCPA.getInitialPrecision(pNode);
+      lInitialPrecision = mCachedCPA.getInitialPrecision(pNode, pPartition);
       mInitialPrecisionsCache.put(pNode, lInitialPrecision);
     }
 

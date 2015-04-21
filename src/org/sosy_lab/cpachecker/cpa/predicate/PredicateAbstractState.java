@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.Serializable;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
@@ -67,7 +67,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     private static final long serialVersionUID = 8341054099315063986L;
 
-    private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf,
+    private AbstractionState(PathFormula pf,
         AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
@@ -182,10 +182,10 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  public static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
+  public static PredicateAbstractState mkAbstractionState(
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
-    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations);
+    return new AbstractionState(pF, pA, pAbstractionLocations);
   }
 
   public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
@@ -203,7 +203,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   private AbstractionFormula abstractionFormula;
 
   /** How often each abstraction location was visited on the path to the current state. */
-  private final PersistentMap<CFANode, Integer> abstractionLocations;
+  private final transient PersistentMap<CFANode, Integer> abstractionLocations;
 
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
@@ -255,5 +255,34 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   public PathFormula getPathFormula() {
     return pathFormula;
+  }
+
+  protected Object readResolve() {
+    if (this instanceof AbstractionState) {
+      // consistency check
+      /*Pair<String,Integer> splitName;
+      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
+      SSAMap ssa = pathFormula.getSsa();
+
+      for (String var : mgr.extractFreeVariableMap(abstractionFormula.asInstantiatedFormula()).keySet()) {
+        splitName = FormulaManagerView.parseName(var);
+
+        if (splitName.getSecond() == null) {
+          if (ssa.containsVariable(splitName.getFirst())) {
+            throw new StreamCorruptedException("Proof is corrupted, abort reading");
+          }
+          continue;
+        }
+
+        if(splitName.getSecond()!=ssa.getIndex(splitName.getFirst())) {
+          throw new StreamCorruptedException("Proof is corrupted, abort reading");
+        }
+      }*/
+
+      return new AbstractionState(pathFormula,
+          abstractionFormula, PathCopyingPersistentTreeMap.<CFANode, Integer> of());
+    }
+    return new NonAbstractionState(pathFormula, abstractionFormula,
+        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
   }
 }

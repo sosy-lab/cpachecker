@@ -30,6 +30,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -52,6 +53,7 @@ class ImmutableCFA implements CFA {
   private final FunctionEntryNode mainFunction;
   private final Optional<LoopStructure> loopStructure;
   private final Optional<VariableClassification> varClassification;
+  private final Optional<LiveVariables> liveVariables;
   private final Language language;
 
   ImmutableCFA(
@@ -61,6 +63,7 @@ class ImmutableCFA implements CFA {
       FunctionEntryNode pMainFunction,
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
+      Optional<LiveVariables> pLiveVariables,
       Language pLanguage) {
 
     machineModel = pMachineModel;
@@ -69,6 +72,7 @@ class ImmutableCFA implements CFA {
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
     varClassification = pVarClassification;
+    liveVariables = pLiveVariables;
     language = pLanguage;
 
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
@@ -81,6 +85,7 @@ class ImmutableCFA implements CFA {
     mainFunction = null;
     loopStructure = Optional.absent();
     varClassification = Optional.absent();
+    liveVariables = Optional.absent();
     language = pLanguage;
   }
 
@@ -152,7 +157,13 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
+  public Optional<LiveVariables> getLiveVariables() {
+    return liveVariables;
+  }
+
+  @Override
   public Language getLanguage() {
     return language;
   }
+
 }

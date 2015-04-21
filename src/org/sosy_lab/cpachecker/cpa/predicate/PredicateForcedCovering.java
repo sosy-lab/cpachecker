@@ -122,14 +122,15 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       throw new InvalidConfigurationException(PredicateForcedCovering.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    imgr = new InterpolationManager(predicateCpa.getFormulaManager(),
+    imgr = new InterpolationManager(
                                                    predicateCpa.getPathFormulaManager(),
                                                    predicateCpa.getSolver(),
-                                                   predicateCpa.getFormulaManagerFactory(),
+                                                   predicateCpa.getCfa().getLoopStructure(),
+                                                   predicateCpa.getCfa().getVarClassification(),
                                                    config,
                                                    predicateCpa.getShutdownNotifier(),
                                                    pLogger);
-    fmgr = predicateCpa.getFormulaManager();
+    fmgr = predicateCpa.getSolver().getFormulaManager();
     predAbsMgr = predicateCpa.getPredicateManager();
     impact = new ImpactUtility(config, fmgr, predAbsMgr);
   }

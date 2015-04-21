@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 
 @Options(prefix = "pcc.partial")
 public class PartialCertificateTypeProvider {
@@ -35,10 +36,10 @@ public class PartialCertificateTypeProvider {
     ALL,
     HEURISTIC,
     ARG,
-    MONOTONESTOPARG;
+    MONOTONESTOPARG
   }
 
-  @Option(
+  @Option(secure=true,
       description = "Selects the strategy used for partial certificate construction")
   private PartialCertificateTypes certificateType = PartialCertificateTypes.HEURISTIC;
 
@@ -50,8 +51,26 @@ public class PartialCertificateTypeProvider {
     }
   }
 
-  public PartialCertificateTypes getCertificateType() {
-    return certificateType;
+  public PartialReachedConstructionAlgorithm getPartialCertificateConstructor() {
+    return getPartialCertificateConstructor(false);
+  }
+
+  private PartialReachedConstructionAlgorithm getPartialCertificateConstructor(boolean pKeepARGState) {
+    switch (certificateType) {
+    case ARG:
+      return new ARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
+    case MONOTONESTOPARG:
+      return new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
+    default:// HEURISTIC
+      return new HeuristicPartialReachedSetConstructionAlgorithm();
+    }
+  }
+
+  public PartialReachedConstructionAlgorithm getCertificateConstructor() {
+    if (certificateType == PartialCertificateTypes.ALL) {
+      return new CompleteCertificateConstructionAlgorithm();
+    }
+    return getPartialCertificateConstructor(true);
   }
 
 }

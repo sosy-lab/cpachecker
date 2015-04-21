@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -50,7 +51,7 @@ import com.google.common.collect.Iterables;
 
 public class CallstackCPABackwards extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  private final Reducer reducer = new CallstackReducer();
+  private final Reducer reducer;
   private final CFA cfa;
 
   public static CPAFactory factory() {
@@ -60,6 +61,7 @@ public class CallstackCPABackwards extends AbstractCPA implements ConfigurablePr
   public CallstackCPABackwards(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super("sep", "sep", new CallstackTransferRelationBackwards(config, pLogger));
     this.cfa = pCFA;
+    reducer = new CallstackReducer();
   }
 
   @Override
@@ -68,7 +70,7 @@ public class CallstackCPABackwards extends AbstractCPA implements ConfigurablePr
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (cfa.getLoopStructure().isPresent()) {
       LoopStructure loopStructure = cfa.getLoopStructure().get();
       Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
@@ -77,12 +79,16 @@ public class CallstackCPABackwards extends AbstractCPA implements ConfigurablePr
       if (!artificialLoops.isEmpty()) {
         Loop singleLoop = Iterables.getOnlyElement(artificialLoops);
         if (singleLoop.getLoopNodes().contains(pNode)) {
-          return new CallstackState(null,
-              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, pNode);
+          return new CallstackState(
+              null,
+              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, pNode
+          );
         }
       }
     }
-    return new CallstackState(null, pNode.getFunctionName(), pNode);
+    return new CallstackState(
+        null, pNode.getFunctionName(), pNode
+    );
   }
 
   @Override

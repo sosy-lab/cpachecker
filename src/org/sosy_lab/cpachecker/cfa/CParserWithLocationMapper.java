@@ -66,12 +66,12 @@ public class CParserWithLocationMapper implements CParser {
 
   private final boolean readLineDirectives;
 
-  @Option(name="locmapper.dumpTokenizedProgramToFile",
+  @Option(secure=true, name="locmapper.dumpTokenizedProgramToFile",
       description="Write the tokenized version of the input program to this file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpTokenizedProgramToFile = null;
 
-  @Option(name="parser.transformTokensToLines",
+  @Option(secure=true, name="parser.transformTokensToLines",
       description="Preprocess the given C files before parsing: Put every single token onto a new line. "
       + "Then the line number corresponds to the token number.")
   private boolean tokenizeCode = false;
@@ -143,22 +143,34 @@ public class CParserWithLocationMapper implements CParser {
           relativeLineNumber += 1;
 
           // Evaluate the preprocessor directive...
-          if (directiveTokens.size() > 0) {
-            String firstTokenImage = directiveTokens.get(0).getImage();
-            if (firstTokenImage.equals("line")) {
+          if (readLineDirectives && directiveTokens.size() > 0) {
+            String firstTokenImage = directiveTokens.get(0).getImage().trim();
 
+            final int lineNumberTokenIndex;
+
+            if (directiveTokens.size() > 1
+                && firstTokenImage.equals("line")
+                && directiveTokens.get(1).getImage().matches("[0-9]+")) {
+              lineNumberTokenIndex = 1;
             } else if (firstTokenImage.matches("[0-9]+")) {
-              if (readLineDirectives) {
-                sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
-              }
+              lineNumberTokenIndex = 0;
+            } else {
+              lineNumberTokenIndex = -1;
+            }
+            if (lineNumberTokenIndex >= 0) {
 
+              sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+
+              final String lineNumberToken = directiveTokens.get(lineNumberTokenIndex).getImage().trim();
               includeStartedWithAbsoluteLine = absoluteLineNumber;
-              relativeLineNumber = Integer.parseInt(firstTokenImage);
-              String file = directiveTokens.get(1).getImage();
-              if (file.charAt(0) == '"' && file.charAt(file.length()-1) == '"') {
-                file = file.substring(1, file.length()-1);
+              relativeLineNumber = Integer.parseInt(lineNumberToken);
+              if (directiveTokens.size() > lineNumberTokenIndex + 1) {
+                String file = directiveTokens.get(lineNumberTokenIndex + 1).getImage().trim();
+                if (file.charAt(0) == '"' && file.charAt(file.length()-1) == '"') {
+                  file = file.substring(1, file.length()-1);
+                }
+                rangeLinesOriginFilename = file;
               }
-              rangeLinesOriginFilename = file;
             }
           }
         } else if (!token.getImage().trim().isEmpty()) {
@@ -214,7 +226,7 @@ public class CParserWithLocationMapper implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      programFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
+      programFragments.add(new FileContentToParse(f.getFileName(), programCode));
     }
     return realParser.parseString(programFragments, sourceOriginMapping);
   }
@@ -229,7 +241,7 @@ public class CParserWithLocationMapper implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
+      tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode));
     }
 
     return realParser.parseString(tokenizedFragments, sourceOriginMapping);

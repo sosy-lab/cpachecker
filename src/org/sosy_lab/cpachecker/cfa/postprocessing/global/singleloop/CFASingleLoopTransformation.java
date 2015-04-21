@@ -63,11 +63,14 @@ import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -92,8 +95,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -107,6 +110,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -149,7 +153,7 @@ public class CFASingleLoopTransformation {
    */
   private final ShutdownNotifier shutdownNotifier;
 
-  @Option(
+  @Option(secure=true,
       description="Single loop transformation builds a decision tree based on" +
         " the program counter values. This option causes the last program" +
         " counter value not to be explicitly assumed in the decision tree," +
@@ -157,7 +161,7 @@ public class CFASingleLoopTransformation {
         " falsehood for all other assumptions in the decision tree.")
   private boolean omitExplicitLastProgramCounterAssumption = false;
 
-  @Option(
+  @Option(secure=true,
       description="This option controls the size of the subgraphs referred" +
           " to by program counter values. The larger the subgraphs, the" +
           " fewer program counter values are required. Possible values are " +
@@ -364,7 +368,7 @@ public class CFASingleLoopTransformation {
   /**
    * All function call edges calling functions where the summary edge
    * successor, i.e. the node succeeding the function call predecessor in the
-   * caller function, is now a successor of the artificial decision tree need
+   * caller function, is now a successor of the artificial decision tree, need
    * to be fixed in that their summary edge must now point to a different
    * successor: The predecessor of the assignment edge assigning the program
    * counter value that leads to the old successor.
@@ -379,7 +383,7 @@ public class CFASingleLoopTransformation {
    */
   private void fixSummaryEdges(FunctionEntryNode pStartNode,
       ImmutableBiMap<Integer, CFANode> pNewSuccessorsToPC,
-      Map<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
+      Map<CFANode, CFANode> pGlobalNewToOld) {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
@@ -741,7 +745,7 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private MutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
-      MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
+      MachineModel pMachineModel, Language pLanguage) throws InterruptedException {
 
     SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
 
@@ -778,8 +782,13 @@ public class CFASingleLoopTransformation {
       Map<String, FunctionEntryNode> functions) throws InterruptedException {
     SortedSetMultimap<String, CFANode> allNodes = TreeMultimap.create();
     FunctionExitNode artificialFunctionExitNode = new FunctionExitNode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+    CFunctionDeclaration artificialFunctionDeclaration = new CFunctionDeclaration(
+        FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION,
+        ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, ImmutableList.<CParameterDeclaration>of());
     FunctionEntryNode artificialFunctionEntryNode =
-        new FunctionEntryNode(FileLocation.DUMMY, ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, artificialFunctionExitNode, null, Collections.<String>emptyList());
+        new CFunctionEntryNode(FileLocation.DUMMY, artificialFunctionDeclaration,
+            artificialFunctionExitNode, Collections.<String>emptyList(),
+            Optional.<CVariableDeclaration>absent());
     Set<CFANode> nodes = getAllNodes(pStartNode);
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node).toList()) {
@@ -930,7 +939,6 @@ public class CFASingleLoopTransformation {
       CFANode connectionNode = connectionNodes.get(pcToSet);
       if (connectionNode == null) {
         connectionNode = new CFANode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-        connectionNodes.put(pcToSet, connectionNode);
         connectionNodes.put(pcToSet, connectionNode);
         CFAEdge edgeToLoopHead = createProgramCounterAssignmentEdge(connectionNode, pLoopHead, pPCIdExpression, pcToSet);
         addToNodes(edgeToLoopHead);
@@ -1084,14 +1092,30 @@ public class CFASingleLoopTransformation {
           } else {
             newCallstack = currentCallstack;
           }
-          waitlist.offer(leavingEdge.getSuccessor());
+          ignoredNodes.addAll(CFAUtils.predecessorsOf(current).toList());
+          waitlist.offer(successor);
           callstacks.offer(currentCallstack);
         }
       }
     }
+
     ignoredNodes.removeAll(nodes);
     for (CFANode ignoredNode : ignoredNodes) {
       removeFromGraph(ignoredNode);
+    }
+    for (CFANode node : nodes) {
+      for (CFANode predecessor : CFAUtils.predecessorsOf(node).toList()) {
+        if (!nodes.contains(predecessor)) {
+          assert !CFAUtils.predecessorsOf(predecessor).anyMatch(in(nodes));
+          removeFromGraph(predecessor);
+        }
+      }
+      for (CFANode successor : CFAUtils.successorsOf(node).toList()) {
+        if (!nodes.contains(successor)) {
+          assert !CFAUtils.successorsOf(successor).anyMatch(in(nodes));
+          removeFromGraph(successor);
+        }
+      }
     }
     return nodes;
   }
@@ -1233,27 +1257,23 @@ public class CFASingleLoopTransformation {
 
       FunctionEntryNode oldEntryNode = oldFunctionExitNode.getEntryNode();
       FileLocation entryFileLocation = oldEntryNode.getFileLocation();
-      String entryFunctionName = oldEntryNode.getFunctionName();
       final FunctionEntryNode functionEntryNode;
       if (oldEntryNode instanceof CFunctionEntryNode) {
         functionEntryNode = new CFunctionEntryNode(
             entryFileLocation,
             ((CFunctionEntryNode) oldEntryNode).getFunctionDefinition(),
             functionExitNode,
-            oldEntryNode.getFunctionParameterNames());
+            oldEntryNode.getFunctionParameterNames(),
+            ((CFunctionEntryNode)oldEntryNode).getReturnVariable());
       } else if (oldEntryNode instanceof JMethodEntryNode) {
         functionEntryNode = new JMethodEntryNode(
             entryFileLocation,
             ((JMethodEntryNode) oldEntryNode).getFunctionDefinition(),
             functionExitNode,
-            oldEntryNode.getFunctionParameterNames());
+            oldEntryNode.getFunctionParameterNames(),
+            ((JMethodEntryNode) oldEntryNode).getReturnVariable());
       } else {
-        functionEntryNode = new FunctionEntryNode(
-            entryFileLocation,
-            entryFunctionName,
-            functionExitNode,
-            oldEntryNode.getFunctionDefinition(),
-            oldEntryNode.getFunctionParameterNames());
+        throw new AssertionError();
       }
       functionExitNode.setEntryNode(functionEntryNode);
 
@@ -1386,7 +1406,9 @@ public class CFASingleLoopTransformation {
       return new CStatementEdge(rawStatement, statementEdge.getStatement(), fileLocation, pNewPredecessor, pNewSuccessor);
     case CallToReturnEdge:
       CFunctionSummaryEdge cFunctionSummaryEdge = (CFunctionSummaryEdge) pEdge;
-      return new CFunctionSummaryEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression());
+      return new CFunctionSummaryEdge(rawStatement, fileLocation,
+          pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression(),
+          (CFunctionEntryNode)getOrCreateNewFromOld(cFunctionSummaryEdge.getFunctionEntry(), pNewToOldMapping));
     default:
       throw new IllegalArgumentException("Unsupported edge type: " + pEdge.getEdgeType());
     }

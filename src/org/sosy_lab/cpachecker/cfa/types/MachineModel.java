@@ -23,9 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -38,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -243,7 +249,6 @@ public enum MachineModel {
 
   public int getSizeof(CSimpleType type) {
     switch (type.getType()) {
-    case VOID:        return getSizeofVoid();
     case BOOL:        return getSizeofBool();
     case CHAR:        return getSizeofChar();
     case FLOAT:       return getSizeofFloat();
@@ -269,6 +274,10 @@ public enum MachineModel {
     }
   }
 
+  public int getSizeofInBits(CSimpleType type) {
+    return getSizeof(type) * getSizeofCharInBits();
+  }
+
   /** returns INT, if the type is smaller than INT, else the type itself. */
   public CSimpleType getPromotedCType(CSimpleType pType) {
 
@@ -284,6 +293,41 @@ public enum MachineModel {
     } else {
       return pType;
     }
+  }
+
+  /**
+   * Get the minimal representable value for an integer type.
+   * @throws IllegalArgumentException If the type is not an integer type as defined by {@link CBasicType#isIntegerType()}.
+   */
+  public BigInteger getMinimalIntegerValue(CSimpleType pType) {
+    checkArgument(pType.getType().isIntegerType());
+    if (isSigned(pType)) {
+      return twoToThePowerOf(getSizeofInBits(pType) - 1).negate();
+    } else {
+      return BigInteger.ZERO;
+    }
+  }
+
+  /**
+   * Get the maximal representable value for an integer type.
+   * @throws IllegalArgumentException If the type is not an integer type as defined by {@link CBasicType#isIntegerType()}.
+   */
+  public BigInteger getMaximalIntegerValue(CSimpleType pType) {
+    checkArgument(pType.getType().isIntegerType());
+    if (pType.getType() == CBasicType.BOOL) {
+      return BigInteger.ONE;
+    } else if (isSigned(pType)) {
+      return twoToThePowerOf(getSizeofInBits(pType) - 1).subtract(BigInteger.ONE);
+    } else {
+      return twoToThePowerOf(getSizeofInBits(pType)).subtract(BigInteger.ONE);
+    }
+  }
+
+  private static BigInteger twoToThePowerOf(int exp) {
+    assert exp > 0 : "Exponent " + exp + " is not greater than zero.";
+    BigInteger result = BigInteger.ZERO.setBit(exp);
+    assert BigInteger.valueOf(2).pow(exp).equals(result);
+    return result;
   }
 
   private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor = new BaseSizeofVisitor(this);
@@ -398,6 +442,11 @@ public enum MachineModel {
     public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
       return pTypedefType.getRealType().accept(this);
     }
+
+    @Override
+    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
+      return model.getSizeofVoid();
+    }
   }
 
   public int getSizeof(CType type) {
@@ -477,6 +526,11 @@ public enum MachineModel {
     @Override
     public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
       return pTypedefType.getRealType().accept(this);
+    }
+
+    @Override
+    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
+      return model.getSizeofVoid();
     }
   }
 

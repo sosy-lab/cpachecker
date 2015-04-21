@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.validvars;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,6 +33,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -41,13 +44,15 @@ public class ValidVars implements Serializable {
 
   private final ImmutableSet<String> globalValidVars;
   private final ImmutableMap<String, Set<String>> localValidVars;
+  private final ImmutableMap<String,Byte> numFunctionCalled;
 
   public static final ValidVars initial = new ValidVars(Collections.<String> emptySet(),
-      Collections.<String, Set<String>> emptyMap());
+      Collections.<String, Set<String>> emptyMap(), Collections.<String, Byte> emptyMap());
 
-  ValidVars(Set<String> pGlobalValidVars, Map<String, ? extends Set<String>> pLocal) {
+  ValidVars(Set<String> pGlobalValidVars, Map<String, ? extends Set<String>> pLocal, Map<String,Byte> pNumFunctionCalled) {
     globalValidVars = ImmutableSet.copyOf(pGlobalValidVars);
     localValidVars = ImmutableMap.copyOf(pLocal);
+    numFunctionCalled = ImmutableMap.copyOf(pNumFunctionCalled);
   }
 
   public boolean containsVar(String varName) {
@@ -81,6 +86,7 @@ public class ValidVars implements Serializable {
     ImmutableSet<String> newLocalsForFun;
     ImmutableMap.Builder<String,ImmutableSet<String>> builderMap = ImmutableMap.builder();
     for (String funName: localValidVars.keySet()) {
+      checkArgument(numFunctionCalled.get(funName).equals(pOther.numFunctionCalled.get(funName)), "Require Callstack CPA to separate different function calls.");
       builder = ImmutableSet.builder();
       builder.addAll(pOther.localValidVars.get(funName));
       builder.addAll(localValidVars.get(funName));
@@ -94,7 +100,7 @@ public class ValidVars implements Serializable {
     }
 
     if (changed) {
-      return new ValidVars(newGlobals, builderMap.build());
+      return new ValidVars(newGlobals, builderMap.build(), numFunctionCalled);
     }
 
     return pOther;
@@ -118,7 +124,7 @@ public class ValidVars implements Serializable {
       ImmutableSet.Builder<String> builder = ImmutableSet.builder();
       builder.addAll(globalValidVars);
       builder.add(varName);
-      return new ValidVars(builder.build(), localValidVars);
+      return new ValidVars(builder.build(), localValidVars, numFunctionCalled);
     }
     return this;
   }
@@ -127,7 +133,14 @@ public class ValidVars implements Serializable {
     return extendLocalVars(funName, ImmutableSet.of(newLocalVarName));
   }
 
-  public ValidVars extendLocalVars(String funName, Collection<String> newLocalVarsNames) {
+  private ValidVars extendLocalVars(String funName, Collection<String> newLocalVarsNames) {
+    if (newLocalVarsNames != null) {
+      return new ValidVars(globalValidVars, updateLocalVars(funName, newLocalVarsNames), numFunctionCalled);
+    }
+    return this;
+  }
+
+  private Map<String, Set<String>> updateLocalVars(String funName, Collection<String> newLocalVarsNames) {
     if (newLocalVarsNames != null) {
       ImmutableMap.Builder<String, Set<String>> builderMap = ImmutableMap.builder();
       for (String functionName : localValidVars.keySet()) {
@@ -142,23 +155,82 @@ public class ValidVars implements Serializable {
       }
       builder.addAll(newLocalVarsNames);
       builderMap.put(funName, builder.build());
+      return builderMap.build();
+    }
+    return localValidVars;
+  }
 
-      return new ValidVars(globalValidVars, builderMap.build());
+  public ValidVars extendLocalVarsFunctionCall(String funName, Collection<String> newLocalVarsNames) {
+    if (newLocalVarsNames != null) {
+      return new ValidVars(globalValidVars, updateLocalVars(funName, newLocalVarsNames), increaseNumForFunction(funName));
     }
     return this;
   }
 
   public ValidVars removeVarsOfFunction(String funName) {
-    if (localValidVars.containsKey(funName)) {
+    if (localValidVars != null && localValidVars.containsKey(funName)) {
+      if (numFunctionCalled.get(funName) > 1) { return new ValidVars(globalValidVars, localValidVars,
+          decreaseNumForFunction(funName)); }
       ImmutableMap.Builder<String, Set<String>> builderMap = ImmutableMap.builder();
       for (String functionName : localValidVars.keySet()) {
         if (!functionName.equals(funName)) {
           builderMap.put(functionName, localValidVars.get(functionName));
         }
       }
-      return new ValidVars(globalValidVars, builderMap.build());
+      return new ValidVars(globalValidVars, builderMap.build(), decreaseNumForFunction(funName));
     }
     return this;
   }
 
+  private Map<String, Byte> decreaseNumForFunction(String pFunctionName) {
+    ImmutableMap.Builder<String, Byte> builder = ImmutableMap.builder();
+    for (String functionName : numFunctionCalled.keySet()) {
+      if (!functionName.equals(pFunctionName)) {
+        builder.put(functionName, numFunctionCalled.get(functionName));
+      } else {
+        if (numFunctionCalled.get(functionName) > 1) {
+          builder.put(functionName, (byte) (numFunctionCalled.get(functionName).byteValue() - 1));
+        }
+      }
+    }
+    return builder.build();
+  }
+
+  private Map<String, Byte> increaseNumForFunction(String pFunctionName) {
+    ImmutableMap.Builder<String, Byte> builder = ImmutableMap.builder();
+    for (String functionName : numFunctionCalled.keySet()) {
+      if (!functionName.equals(pFunctionName)) {
+        builder.put(functionName, numFunctionCalled.get(functionName));
+      } else {
+        builder.put(functionName, (byte) (numFunctionCalled.get(functionName).byteValue() + 1));
+      }
+    }
+    if (!numFunctionCalled.containsKey(pFunctionName)) {
+      builder.put(pFunctionName, (byte) 1);
+    }
+    return builder.build();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("(");
+    sb.append("global:\n");
+    sb.append(globalValidVars.toString());
+    sb.append("\n");
+    Joiner.on("\n").withKeyValueSeparator(":\n").appendTo(sb, localValidVars);
+    sb.append(")");
+    return sb.toString();
+  }
+
+  public String toStringInDOTFormat(){
+    StringBuilder sb = new StringBuilder();
+    sb.append("(\\n");
+    sb.append("global:\\n");
+    sb.append(globalValidVars.toString());
+    sb.append("\\n");
+    Joiner.on("\\n").withKeyValueSeparator(":\\n").appendTo(sb, localValidVars);
+    sb.append(")");
+    return sb.toString();
+  }
 }

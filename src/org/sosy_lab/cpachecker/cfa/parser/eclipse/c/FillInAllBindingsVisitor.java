@@ -29,25 +29,30 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 
 /**
  * Visitor that fills in missing bindings of CElaboratedTypes with matching
  * types from the scope (if name and kind match, of course).
  */
-class FillInAllBindingsVisitor implements CTypeVisitor<Void, RuntimeException> {
+class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
 
   private final Scope scope;
+  private final ProgramDeclarations programDeclarations;
 
-  FillInAllBindingsVisitor(Scope pScope) {
+  FillInAllBindingsVisitor(Scope pScope, ProgramDeclarations pProgramDeclarations) {
     scope = pScope;
+    programDeclarations = pProgramDeclarations;
+
+  }
+
+  @Override
+  public Void visitDefault(CType pT) {
+    return null;
   }
 
   @Override
@@ -69,6 +74,9 @@ class FillInAllBindingsVisitor implements CTypeVisitor<Void, RuntimeException> {
     if (pElaboratedType.getRealType() == null) {
 
       CComplexType realType = scope.lookupType(pElaboratedType.getQualifiedName());
+      if (realType == null) {
+        realType = programDeclarations.lookupType(pElaboratedType.getQualifiedName(), pElaboratedType.getOrigName());
+      }
       while (realType instanceof CElaboratedType) {
         realType = ((CElaboratedType)realType).getRealType();
       }
@@ -76,11 +84,6 @@ class FillInAllBindingsVisitor implements CTypeVisitor<Void, RuntimeException> {
         pElaboratedType.setRealType(realType);
       }
     }
-    return null;
-  }
-
-  @Override
-  public Void visit(CEnumType pEnumType) {
     return null;
   }
 
@@ -96,16 +99,6 @@ class FillInAllBindingsVisitor implements CTypeVisitor<Void, RuntimeException> {
   @Override
   public Void visit(CPointerType pPointerType) {
     pPointerType.getType().accept(this);
-    return null;
-  }
-
-  @Override
-  public Void visit(CProblemType pProblemType) {
-    return null;
-  }
-
-  @Override
-  public Void visit(CSimpleType pSimpleType) {
     return null;
   }
 

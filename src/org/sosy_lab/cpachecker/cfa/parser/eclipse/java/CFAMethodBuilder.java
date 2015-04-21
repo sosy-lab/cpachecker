@@ -40,6 +40,7 @@ import java.util.Set;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
@@ -69,13 +70,14 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
@@ -94,7 +96,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -108,6 +112,9 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -221,8 +228,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     Map<String, JFieldDeclaration> fieldDecl = scope.getNonStaticFieldDeclarationOfClass(currentClassType);
 
-    Collection<JFieldDeclaration> classFieldDeclaration =
-      fieldDecl.values();
+    Collection<JFieldDeclaration> classFieldDeclaration = fieldDecl.values();
 
     for (JDeclaration decl : classFieldDeclaration) {
 
@@ -259,7 +265,8 @@ class CFAMethodBuilder extends ASTVisitor {
     cfaNodes.add(returnNode);
 
     final JMethodEntryNode startNode =
-        new JMethodEntryNode(fdef.getFileLocation(), fdef, returnNode, parameterNames);
+        new JMethodEntryNode(fdef.getFileLocation(), fdef, returnNode, parameterNames,
+            scope.getReturnVariable());
     returnNode.setEntryNode(startNode);
     cfaNodes.add(startNode);
     cfa = startNode;
@@ -310,7 +317,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private void handleReturnFromObject(FileLocation fileloc,
                                        String rawSignature, ITypeBinding cb) {
 
-    assert cb.isClass() : cb.getName() + "is no Object Return";
+    assert cb.isClass() : cb.getName() + " is no Object Return";
 
     CFANode prevNode = locStack.pop();
     FunctionExitNode functionExitNode = cfa.getExitNode();
@@ -582,7 +589,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
       scope.registerDeclarationOfThisClass(newD);
 
-      IAInitializer initializer = ((JVariableDeclaration) newD).getInitializer();
+      AInitializer initializer = ((JVariableDeclaration) newD).getInitializer();
 
       // resolve Boolean Initializer for easier analysis
       // if initializer is boolean. Not necessary for simple boolean literal.
@@ -605,7 +612,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private CFANode resolveBooleanInitializer(JVariableDeclaration newD,
                                                         CFANode prevNode) {
 
-    IAInitializer initializer = newD.getInitializer();
+    AInitializer initializer = newD.getInitializer();
 
     CFANode afterResolvedBooleanExpressionNode =
         new CFANode(cfa.getFunctionName());
@@ -2446,7 +2453,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     if (locStack.size() != 0) {
       throw new CFAGenerationRuntimeException("Nested function declarations?");
-      }
+    }
 
     assert cfa == null;
 
@@ -2455,9 +2462,164 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     addNonStaticFieldMember();
 
     //TODO insertFileOfType
-    handleReturnFromObject(
-        FileLocation.DUMMY, classBinding.getName(), classBinding);
+    handleReturnFromObject(FileLocation.DUMMY, classBinding.getName(), classBinding);
     handleEndVisitMethodDeclaration();
+  }
 
+  public void createConstructors(AnonymousClassDeclaration pAnonymousDeclaration) {
+
+    final ITypeBinding classBinding = pAnonymousDeclaration.resolveBinding();
+
+    if (classBinding.getInterfaces().length > 0) {
+      // Anonymous declaration's direct super type is an interface.
+      // This means the constructor doesn't have to do anything but initializing fields
+      createDefaultConstructor(classBinding);
+
+    } else {
+      final ITypeBinding directSuperClassBinding = classBinding.getSuperclass();
+      final JClassOrInterfaceType directSuperClass =
+          astCreator.convertClassOrInterfaceType(directSuperClassBinding);
+
+      assert directSuperClass instanceof JClassType
+          : "AstCreator converted binding of class into interface type";
+
+      final Set<JConstructorDeclaration> constructors =
+          getConstructors((JClassType) directSuperClass);
+
+      for (JConstructorDeclaration d : constructors) {
+        createLocalClassConstructor(classBinding, d);
+      }
+    }
+  }
+
+  private Set<JConstructorDeclaration> getConstructors(JClassType pClass) {
+    Set<JConstructorDeclaration> constructors = new HashSet<>();
+
+    final Set<JMethodDeclaration> classMethods =
+        scope.getTypeHierarchy().getMethodDeclarations(pClass);
+
+    for (JMethodDeclaration d : classMethods) {
+      if (d instanceof JConstructorDeclaration) {
+        constructors.add((JConstructorDeclaration) d);
+      }
+    }
+
+    return constructors;
+  }
+
+  /**
+   * Creates a constructor for the given class that invokes the given constructor of a super class.
+   * The created constructor will have the same parameters as the given constructor and its body
+   * will only invoke this super constructor.
+   *
+   * @param pClassToCreateFor class to create the constructor for
+   * @param pSuperConstructorToInvoke the super constructor to base the constructor on
+   */
+  private void createLocalClassConstructor(
+      ITypeBinding pClassToCreateFor, JConstructorDeclaration pSuperConstructorToInvoke) {
+
+    final JClassOrInterfaceType classType = astCreator.convertClassOrInterfaceType(pClassToCreateFor);
+    assert classType instanceof JClassType : "Can't create constructor for interface!";
+
+    final JConstructorType superConstructorType = pSuperConstructorToInvoke.getType();
+    final List<JType> parameterTypes = superConstructorType.getParameters();
+    final boolean takesVarArgs = superConstructorType.takesVarArgs();
+
+    final JConstructorType constructorType =
+        new JConstructorType(classType, parameterTypes, takesVarArgs);
+
+    String constructorName =
+        NameConverter.convertAnonymousClassConstructorName(pClassToCreateFor, parameterTypes);
+    List<JParameterDeclaration> parameters =
+        getDeclarationsForMethod(pSuperConstructorToInvoke.getParameters(), constructorName);
+
+
+    final JConstructorDeclaration constructorDeclaration =
+        new JConstructorDeclaration(FileLocation.DUMMY,
+                                    constructorType,
+                                    constructorName,
+                                    constructorName,
+                                    parameters,
+                                    VisibilityModifier.PRIVATE, // since it's a local class
+                                    pSuperConstructorToInvoke.isStrictfp(),
+                                    classType);
+
+    List<JIdExpression> parametersAsIdExpressions = createIdExpressionsFromParameters(parameters);
+
+    handleMethodDeclaration(constructorDeclaration);
+
+    addSuperInvocation(pSuperConstructorToInvoke, parametersAsIdExpressions);
+
+    handleReturnFromObject(FileLocation.DUMMY, pClassToCreateFor.getName(), pClassToCreateFor);
+    handleEndVisitMethodDeclaration();
+  }
+
+  private List<JIdExpression> createIdExpressionsFromParameters(
+      List<JParameterDeclaration> pParameters) {
+
+    List<JIdExpression> idExpressions = new ArrayList<>(pParameters.size());
+
+    for (JParameterDeclaration d : pParameters) {
+      JIdExpression newIdExpression = new JIdExpression(d.getFileLocation(),
+                                                        d.getType(),
+                                                        d.getName(),
+                                                        d);
+      idExpressions.add(newIdExpression);
+    }
+
+    return idExpressions;
+  }
+
+  private List<JParameterDeclaration> getDeclarationsForMethod(
+      List<JParameterDeclaration> pParameters, String pMethodName) {
+
+    List<JParameterDeclaration> parameters = new ArrayList<>(pParameters.size());
+
+    for (JParameterDeclaration d : pParameters) {
+      String varName = d.getName();
+      parameters.add(new JParameterDeclaration(FileLocation.DUMMY,
+                                               d.getType(),
+                                               varName,
+                                               NameConverter.createQualifiedName(pMethodName, varName),
+                                               d.isFinal()));
+    }
+
+    return parameters;
+  }
+
+  private void addSuperInvocation(
+      JConstructorDeclaration pConstructorToInvoke, List<JIdExpression> pParametersToCallWith) {
+
+    final FileLocation constructorFileLocation = pConstructorToInvoke.getFileLocation();
+    final JClassType constructorType = (JClassType) pConstructorToInvoke.getDeclaringClass();
+    final String constructorName = pConstructorToInvoke.getName();
+
+    JIdExpression constructorNameExp = new JIdExpression(constructorFileLocation,
+                                                         constructorType,
+                                                         constructorName,
+                                                         pConstructorToInvoke);
+
+    JSuperConstructorInvocation superInvocation =
+        new JSuperConstructorInvocation(constructorFileLocation,
+                                        constructorType,
+                                        constructorNameExp,
+                                        pParametersToCallWith,
+                                        pConstructorToInvoke);
+    JStatement superInvocationStatement = new JMethodInvocationStatement(FileLocation.DUMMY, superInvocation);
+
+
+    CFANode prevNode = locStack.pop();
+    CFANode nextNode = new CFANode(cfa.getFunctionName());
+    cfaNodes.add(nextNode);
+
+    String rawStatement = superInvocation.toASTString();
+    JStatementEdge edge = new JStatementEdge(rawStatement,
+                                             superInvocationStatement,
+                                             FileLocation.DUMMY,
+                                             prevNode,
+                                             nextNode);
+    addToCFA(edge);
+
+    locStack.push(nextNode);
   }
 }

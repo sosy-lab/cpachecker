@@ -40,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -48,21 +50,31 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
@@ -106,9 +118,9 @@ public class ARGUtils {
   /**
    * Get all abstract states without parents.
    */
-  public static Set<AbstractState> getRootStates(ReachedSet pReached) {
+  public static Set<ARGState> getRootStates(ReachedSet pReached) {
 
-    Set<AbstractState> result = new HashSet<>();
+    Set<ARGState> result = new HashSet<>();
 
     Iterator<AbstractState> it = pReached.iterator();
     while (it.hasNext()) {
@@ -155,6 +167,106 @@ public class ARGUtils {
       currentARGState = parentElement;
     }
     return new ARGPath(Lists.reverse(states));
+  }
+
+  public static Optional<ARGPath> getOnePathTo(
+      final ARGState pEndState, final Collection<ARGPath> pOtherPathThan) {
+
+    List<ARGState> states = new ArrayList<>(); // reversed order
+    Set<ARGState> seenElements = new HashSet<>();
+
+    // each element of the path consists of the abstract state and the outgoing
+    // edge to its successor
+
+    ARGState currentARGState = pEndState;
+    CFANode currentLocation = AbstractStates.extractLocation(pEndState);
+    states.add(currentARGState);
+    seenElements.add(currentARGState);
+
+    Collection<PathPosition> tracePrefixesToAvoid = Collections2.transform(pOtherPathThan,
+        new Function<ARGPath, PathPosition>() {
+          @Override
+          public PathPosition apply(ARGPath pArg0) {
+            PathPosition result = pArg0.reversePathIterator().getPosition();
+            CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
+            Verify.verify(result.getLocation().equals(expectedPostfixLoc));
+            return result;
+          }
+    });
+
+    // Get all traces from pTryCoverOtherStatesThan that start at the same location
+    tracePrefixesToAvoid = getTracePrefixesBeforePostfix(tracePrefixesToAvoid, currentLocation);
+
+    boolean lastTransitionIsDifferent = false;
+    while (!currentARGState.getParents().isEmpty()) {
+      List<ARGState> potentialParents = Lists.newArrayList();
+      potentialParents.addAll(currentARGState.getParents());
+      if (!tracePrefixesToAvoid.isEmpty()) {
+        potentialParents.addAll(currentARGState.getCoveredByThis());
+      }
+      Iterator<ARGState> parents = potentialParents.iterator();
+
+      boolean uniqueParentFound = false;
+      ARGState parentElement = parents.next();
+
+      do {
+        while (!seenElements.add(parentElement) && parents.hasNext()) {
+          // while seenElements already contained parentElement, try next parent
+          parentElement = parents.next();
+        }
+
+        // goal: choosen a path that has not yet been taken
+        uniqueParentFound = true;
+        final CFANode parentLocation = extractLocation(parentElement);
+        for (PathPosition t: tracePrefixesToAvoid) {
+          if (t.getLocation().equals(parentLocation)) {
+            uniqueParentFound = false;
+            lastTransitionIsDifferent = false;
+            break;
+          }
+        }
+
+        lastTransitionIsDifferent = tracePrefixesToAvoid.isEmpty();
+      } while (!uniqueParentFound && parents.hasNext());
+
+      states.add(parentElement);
+
+      currentARGState = parentElement;
+      currentLocation = AbstractStates.extractLocation(currentARGState);
+      tracePrefixesToAvoid = getTracePrefixesBeforePostfix(tracePrefixesToAvoid, currentLocation);
+    }
+
+    if (!lastTransitionIsDifferent) {
+      return Optional.absent();
+    }
+
+    return Optional.of(new ARGPath(Lists.reverse(states)));
+  }
+
+  public static Collection<PathPosition> getTracePrefixesBeforePostfix(
+      final Collection<PathPosition> pTracePosition,
+      final CFANode pPostfixLocation) {
+
+    Preconditions.checkNotNull(pTracePosition);
+    Preconditions.checkNotNull(pPostfixLocation);
+
+    Builder<PathPosition> result = ImmutableList.builder();
+
+    for (PathPosition p: pTracePosition) {
+
+      if (pPostfixLocation.equals(p.getLocation())) {
+        PathIterator it = p.reverseIterator();
+
+        if (!it.hasNext()) {
+          continue;
+        }
+
+        it.advance();
+        result.add(it.getPosition());
+      }
+    }
+
+    return result.build();
   }
 
   /**
@@ -449,7 +561,7 @@ public class ARGUtils {
    * @param s an ARGState
    * @return The children with covered states transparently replaced.
    */
-  public static final Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
+  public static Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
     return new AbstractCollection<ARGState>() {
 
       @Override
@@ -533,15 +645,15 @@ public class ARGUtils {
       throws IOException {
 
     Model model = pCounterExampleTrace.getModel();
-    CFAPathWithAssignments assignmentCFAPath = model.getCFAPathWithAssignments();
+    CFAPathWithAssumptions assignmentCFAPath = model.getCFAPathWithAssignments();
 
     int stateCounter = 1;
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
     sb.append("INITIAL STATE STATE" + stateCounter + ";\n\n");
 
-    for (Iterator<CFAEdgeWithAssignments> it = assignmentCFAPath.iterator(); it.hasNext();) {
-      CFAEdgeWithAssignments edge = it.next();
+    for (Iterator<CFAEdgeWithAssumptions> it = assignmentCFAPath.iterator(); it.hasNext();) {
+      CFAEdgeWithAssumptions edge = it.next();
 
       sb.append("STATE USEFIRST STATE" + stateCounter + " :\n");
 
@@ -551,7 +663,7 @@ public class ARGUtils {
 
       if (it.hasNext()) {
         String code = edge.getAsCode();
-        String assumption = code == null ? "" : "ASSUME {" + code + "}";
+        String assumption = code.isEmpty() ? "" : "ASSUME {" + code + "}";
         sb.append(assumption + "GOTO STATE" + ++stateCounter);
       } else {
         sb.append("GOTO EndLoop");
@@ -588,10 +700,10 @@ public class ARGUtils {
       Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample, boolean generateAssumes) throws IOException {
     checkNotNull(pCounterExample);
 
-    Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
+    Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
     Model model = pCounterExample.getTargetPathModel();
-    CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
+    CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
     if (cfaPath != null) {
       ARGPath targetPath = pCounterExample.getTargetPath();
       valueMap = model.getExactVariableValues(targetPath);
@@ -657,11 +769,10 @@ public class ARGUtils {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            String assumption ="";
             if (generateAssumes) {
-              assumption = getAssumption(valueMap, s);
+              addAssumption(valueMap, s, sb);
             }
-            sb.append(assumption + "GOTO ARG" + child.getStateId());
+            sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
         }
@@ -704,17 +815,20 @@ public class ARGUtils {
    * @throws IOException
    */
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample) throws IOException {
+      Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
+    Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
     if (pCounterExample != null) {
       Model model = pCounterExample.getTargetPathModel();
-      CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
+      CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
       if (cfaPath != null) {
         ARGPath targetPath = pCounterExample.getTargetPath();
         valueMap = model.getExactVariableValues(targetPath);
       }
+    }
+    if (valueMap == null) {
+      valueMap = ImmutableMap.of();
     }
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
@@ -722,7 +836,7 @@ public class ARGUtils {
 
     int multiEdgeCount = 0; // see below
 
-    for (ARGState s : pPathStates) {
+    for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
 
       CFANode loc = AbstractStates.extractLocation(s);
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
@@ -778,8 +892,8 @@ public class ARGUtils {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            String assumption = getAssumption(valueMap, s);
-            sb.append(assumption + "GOTO ARG" + child.getStateId());
+            addAssumption(valueMap, s, sb);
+            sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
         }
@@ -789,22 +903,18 @@ public class ARGUtils {
     sb.append("END AUTOMATON\n");
   }
 
-  private static String getAssumption(Map<ARGState, CFAEdgeWithAssignments> pValueMap, ARGState pState) {
+  private static void addAssumption(Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      ARGState pState, Appendable sb) throws IOException {
 
-    String assumption = "";
+    CFAEdgeWithAssumptions cfaEdgeWithAssignments = pValueMap.get(pState);
 
-    if (pValueMap != null && pValueMap.containsKey(pState)) {
-
-      CFAEdgeWithAssignments cfaEdgeWithAssignments = pValueMap.get(pState);
-
+    if (cfaEdgeWithAssignments != null) {
       String code = cfaEdgeWithAssignments.getAsCode();
 
-      if (code != null) {
-        assumption = "ASSUME {" + code + "}";
+      if (!code.isEmpty()) {
+        sb.append("ASSUME {" + code + "} ");
       }
     }
-
-    return assumption;
   }
 
   private static void escape(String s, Appendable appendTo) throws IOException {

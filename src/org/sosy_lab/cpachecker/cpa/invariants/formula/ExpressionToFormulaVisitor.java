@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Arrays;
-import java.util.List;
+import java.math.BigInteger;
+import java.util.Collections;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -45,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
@@ -63,12 +62,15 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.VariableNameExtractor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -76,29 +78,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * expressions to compound state invariants formulae.
  */
 public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<InvariantsFormula<CompoundInterval>, UnrecognizedCodeException> implements CRightHandSideVisitor<InvariantsFormula<CompoundInterval>, UnrecognizedCodeException>, JRightHandSideVisitor<InvariantsFormula<CompoundInterval>, UnrecognizedCodeException> {
-
-  /**
-   * The set of allowed operators. Logical AND and logical OR are not allowed
-   * because they are deprecated.
-   */
-  private static final List<CBinaryExpression.BinaryOperator> allowedOperators = Arrays.asList(
-    BinaryOperator.BINARY_AND,
-    BinaryOperator.BINARY_OR,
-    BinaryOperator.BINARY_XOR,
-    BinaryOperator.DIVIDE,
-    BinaryOperator.EQUALS,
-    BinaryOperator.GREATER_EQUAL,
-    BinaryOperator.GREATER_THAN,
-    BinaryOperator.LESS_EQUAL,
-    BinaryOperator.LESS_THAN,
-    BinaryOperator.MINUS,
-    BinaryOperator.MODULO,
-    BinaryOperator.MULTIPLY,
-    BinaryOperator.NOT_EQUALS,
-    BinaryOperator.PLUS,
-    BinaryOperator.SHIFT_LEFT,
-    BinaryOperator.SHIFT_RIGHT
-  );
 
   /**
    * The compound state invariants formula representing the top state.
@@ -122,6 +101,17 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
    *
    * @param pVariableNameExtractor the variable name extractor used to obtain
    * variable names for c id expressions.
+   */
+  public ExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor) {
+    this(pVariableNameExtractor, Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap());
+  }
+
+  /**
+   * Creates a new visitor for converting c expressions to compound state
+   * invariants formulae with the given variable name extractor.
+   *
+   * @param pVariableNameExtractor the variable name extractor used to obtain
+   * variable names for c id expressions.
    * @param pEnvironment the current environment information.
    */
   public ExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
@@ -136,17 +126,17 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CIdExpression pCIdExpression) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCIdExpression));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.getVarName(pCIdExpression));
   }
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CFieldReference pCFieldReference) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCFieldReference));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.getVarName(pCFieldReference));
   }
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CArraySubscriptExpression pCArraySubscriptExpression) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCArraySubscriptExpression));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.getVarName(pCArraySubscriptExpression));
   }
 
   @Override
@@ -170,7 +160,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     case MINUS:
       return CompoundIntervalFormulaManager.INSTANCE.negate(pCUnaryExpression.getOperand().accept(this));
     case TILDE:
-      return CompoundIntervalFormulaManager.INSTANCE.binaryNot(pCUnaryExpression.getOperand().accept(this));
+      return TOP;
     default:
       return super.visit(pCUnaryExpression);
     }
@@ -178,7 +168,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CPointerExpression pCPointerExpression) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCPointerExpression));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.getVarName(pCPointerExpression));
   }
 
   @Override
@@ -195,11 +185,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     right = topIfProblematicType(pCBinaryExpression.getCalculationType(), right);
     switch (pCBinaryExpression.getOperator()) {
     case BINARY_AND:
-      return fmgr.binaryAnd(left, right);
+      return TOP;
     case BINARY_OR:
-      return fmgr.binaryOr(left, right);
+      return TOP;
     case BINARY_XOR:
-      return fmgr.binaryXor(left, right);
+      return TOP;
     case DIVIDE:
       return fmgr.divide(left, right);
     case EQUALS:
@@ -227,13 +217,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     case SHIFT_RIGHT:
       return fmgr.shiftRight(left, right);
     default:
-      /*
-       * While invariants formulae support logical AND and logical NOT and thus
-       * also logical OR, logical AND and logical OR are deprecated c binary
-       * operators in CPAchecker.
-       */
-      assert allowedOperators.contains(pCBinaryExpression.getOperator())
-          : ("Unexpected operator: " + pCBinaryExpression.getOperator());
       return TOP;
     }
   }
@@ -241,26 +224,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   @Override
   public InvariantsFormula<CompoundInterval> visit(CFunctionCallExpression pIastFunctionCallExpression) {
     return TOP;
-  }
-
-  /**
-   * Instances of implementing classes are used to obtain variable names for c
-   * id expressions.
-   */
-  public interface VariableNameExtractor {
-
-    /**
-     * Provides a variable name for the given c expression.
-     *
-     * @param pCExpression the c id expression to provide a variable name
-     * for.
-     *
-     * @return the variable name for the given c id expression.
-     * @throws UnrecognizedCodeException if the extraction process cannot be
-     * completed because involved code is unrecognized.
-     */
-    String extract(IAExpression pIAExpression) throws UnrecognizedCodeException;
-
   }
 
   private InvariantsFormula<CompoundInterval> topIfProblematicType(CType pType, InvariantsFormula<CompoundInterval> pFormula) {
@@ -297,15 +260,15 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     InvariantsFormula<CompoundInterval> right = pBinaryExpression.getOperand2().accept(this);
     switch (pBinaryExpression.getOperator()) {
       case BINARY_AND:
-        return fmgr.binaryAnd(left, right);
+        return TOP;
       case BINARY_OR:
-        return fmgr.binaryOr(left, right);
+        return TOP;
       case BINARY_XOR:
-        return fmgr.binaryXor(left, right);
+        return TOP;
       case CONDITIONAL_AND:
-        return fmgr.logicalAnd(left, right);
+        return TOP;
       case CONDITIONAL_OR:
-        return fmgr.logicalOr(left, right);
+        return TOP;
       case DIVIDE:
         return fmgr.divide(left, right);
       case EQUALS:
@@ -383,7 +346,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     case MINUS:
       return CompoundIntervalFormulaManager.INSTANCE.negate(pUnaryExpression.getOperand().accept(this));
     case COMPLEMENT:
-      return CompoundIntervalFormulaManager.INSTANCE.binaryNot(pUnaryExpression.getOperand().accept(this));
+      return TOP;
     case NOT:
       return CompoundIntervalFormulaManager.INSTANCE.logicalNot(pUnaryExpression.getOperand().accept(this));
     case PLUS:
@@ -420,6 +383,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   @Override
   public InvariantsFormula<CompoundInterval> visit(JArrayInitializer pArrayInitializer)
       throws UnrecognizedCodeException {
+    return TOP;
+  }
+
+  @Override
+  public InvariantsFormula<CompoundInterval> visit(JArrayLengthExpression pArrayLengthExpression) {
     return TOP;
   }
 
@@ -465,7 +433,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(JIdExpression pIdExpression) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(variableNameExtractor.extract(pIdExpression));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(variableNameExtractor.getVarName(pIdExpression));
   }
 
   @Override
@@ -479,4 +447,73 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
       throws UnrecognizedCodeException {
     return TOP;
   }
+
+  public static InvariantsFormula<CompoundInterval> handlePotentialOverflow(
+      InvariantsFormula<CompoundInterval> pFormula,
+      MachineModel pMachineModel,
+      Type pTargetType,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundIntervalFormulaManager fm = CompoundIntervalFormulaManager.INSTANCE;
+    final boolean isSigned;
+    final int bitLength;
+
+    Type type = pTargetType;
+    if (type instanceof CType) {
+      type = ((CType) type).getCanonicalType();
+    }
+
+    if (type instanceof CSimpleType) {
+      CSimpleType targetType = ((CSimpleType) type).getCanonicalType();
+      isSigned = pMachineModel.isSigned(targetType);
+      bitLength = pMachineModel.getSizeof(targetType) * pMachineModel.getSizeofCharInBits();
+    } else if (type instanceof CType) {
+      isSigned = false;
+      bitLength = pMachineModel.getSizeof((CType) type) * pMachineModel.getSizeofCharInBits();
+    } else {
+      // TODO java types
+      return TOP;
+    }
+
+    BigInteger lowerInclusiveBound = BigInteger.ZERO;
+    BigInteger upperExclusiveBound = BigInteger.ONE.shiftLeft(bitLength);
+
+    CompoundInterval value = pFormula.accept(new FormulaCompoundStateEvaluationVisitor(), pEnvironment);
+
+    if (isSigned) {
+      upperExclusiveBound = upperExclusiveBound.shiftRight(1);
+      lowerInclusiveBound = upperExclusiveBound.negate();
+      if (!value.hasLowerBound() || !value.hasUpperBound()) {
+        return TOP;
+      }
+      if (value.getLowerBound().compareTo(lowerInclusiveBound) < 0) {
+        return TOP;
+      }
+      if (value.getUpperBound().compareTo(upperExclusiveBound) >= 0) {
+        return TOP;
+      }
+      return pFormula;
+    }
+
+    assert lowerInclusiveBound.compareTo(upperExclusiveBound) < 0;
+
+    if (!value.hasLowerBound()) {
+      return TOP;
+    }
+
+    if (value.getLowerBound().compareTo(lowerInclusiveBound) >= 0
+        && value.hasUpperBound()
+        && value.getUpperBound().compareTo(upperExclusiveBound) < 0) {
+      return pFormula;
+    }
+
+    CompoundInterval negativePart = value.intersectWith(CompoundInterval.one().negate().extendToNegativeInfinity());
+    CompoundInterval negativePartMod = negativePart.modulo(upperExclusiveBound);
+    CompoundInterval negativePartResult = CompoundInterval.singleton(upperExclusiveBound).add(negativePartMod);
+
+    CompoundInterval nonNegativePart = value.intersectWith(CompoundInterval.zero().extendToPositiveInfinity());
+    CompoundInterval nonNegativePartResult = nonNegativePart.modulo(upperExclusiveBound);
+
+    return fm.asConstant(negativePartResult.unionWith(nonNegativePartResult));
+  }
+
 }

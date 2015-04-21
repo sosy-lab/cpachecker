@@ -30,9 +30,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -54,10 +59,12 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState pElement, Precision pPrecision,
+      UnmodifiableReachedSet pElements, Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
     if (trans.breakAnalysis) {
-      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
+      return Optional.of(
+          PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK));
     }
 
     // precision might be outdated, if comes from a block-start and the inner part was refined.
@@ -71,16 +78,25 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       validPrecision = pPrecision;
     }
 
-    PrecisionAdjustmentResult result = wrappedPrecisionAdjustment.prec(pElement, validPrecision, pElements);
-
-    result = result.withAbstractState(trans.attachAdditionalInfoToCallNode(result.abstractState()));
-
-    if (pElement != result.abstractState()) {
-      logger.log(Level.ALL, "before PREC:", pElement);
-      logger.log(Level.ALL, "after PREC:", result.abstractState());
-      trans.replaceStateInCaches(pElement, result.abstractState(), false);
+    Optional<PrecisionAdjustmentResult> result = wrappedPrecisionAdjustment.prec(
+        pElement,
+        validPrecision,
+        pElements,
+        projection,
+        fullState);
+    if (!result.isPresent()) {
+      return result;
     }
 
-    return result;
+    PrecisionAdjustmentResult updatedResult = result.get().withAbstractState(
+        trans.attachAdditionalInfoToCallNode(result.get().abstractState()));
+
+    if (pElement != updatedResult.abstractState()) {
+      logger.log(Level.ALL, "before PREC:", pElement);
+      logger.log(Level.ALL, "after PREC:", updatedResult.abstractState());
+      trans.replaceStateInCaches(pElement, updatedResult.abstractState(), false);
+    }
+
+    return Optional.of(updatedResult);
   }
 }

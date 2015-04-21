@@ -90,13 +90,13 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public Term equal(Term pNumber1, Term pNumber2) {
-    return env.term("=", pNumber1, pNumber2);
+  protected Term modularCongruence(Term pNumber1, Term pNumber2, long pModulo) {
+    return env.getTheory().mTrue;
   }
 
   @Override
-  public boolean isEqual(Term pNumber) {
-    return SmtInterpolUtil.isNumeralEqual(pNumber);
+  public Term equal(Term pNumber1, Term pNumber2) {
+    return env.term("=", pNumber1, pNumber2);
   }
 
   @Override

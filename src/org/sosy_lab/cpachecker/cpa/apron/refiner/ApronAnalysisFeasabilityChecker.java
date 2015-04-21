@@ -24,16 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -43,14 +41,13 @@ import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.apron.ApronTransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.ApronException;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
@@ -70,12 +67,13 @@ public class ApronAnalysisFeasabilityChecker {
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new ApronTransferRelation(logger, cfa);
+    transfer  = new ApronTransferRelation(logger, cfa.getLoopStructure().get(), cpa.isSplitDisequalites());
     checkedPath = path;
 
     // use a new configuration which only has a static precision
     foundPath = getInfeasiblePrefix(VariableTrackingPrecision.createStaticPrecision(cpa.getConfiguration(),
-                                                                                    cfa.getVarClassification()),
+                                                                                    cfa.getVarClassification(),
+                                                                                    ApronCPA.class),
                                     new ApronState(logger, cpa.getManager()));
   }
 
@@ -95,30 +93,24 @@ public class ApronAnalysisFeasabilityChecker {
     if (isFeasible()) {
       return ArrayListMultimap.<CFANode, MemoryLocation>create();
     } else {
-      Set<MemoryLocation> varNames = new HashSet<>();
-      LinkedList<CFAEdge> edgesList = new LinkedList<>(foundPath.asEdgesList());
-
-      // search for new trackable variables until we find some
-      do {
-        varNames.addAll(FluentIterable.from(new AssumptionUseDefinitionCollector().obtainUseDefInformation(edgesList)).transform(new Function<String, MemoryLocation>() {
-          @Override
-          public MemoryLocation apply(String pInput) {
-            return MemoryLocation.valueOf(pInput);
-          }}).toSet());
-        edgesList.removeLast();
-        while (!edgesList.isEmpty() && !(edgesList.getLast() instanceof AssumeEdge)) {
-          edgesList.removeLast();
-        }
-      } while (varNames.isEmpty() && !edgesList.isEmpty());
 
       Multimap<CFANode, MemoryLocation> increment = ArrayListMultimap.<CFANode, MemoryLocation>create();
-
-      for (MemoryLocation loc : varNames) {
+      for (MemoryLocation loc : getMemoryLocationsFromUseDefRelation()) {
         increment.put(new CFANode("BOGUS-NODE"), loc);
       }
 
       return increment;
     }
+  }
+
+  /**
+   * This method returns the variables contained in the use-def relation
+   * of the last (failing) assume edge in the found error path.
+   */
+  private FluentIterable<MemoryLocation> getMemoryLocationsFromUseDefRelation() {
+    UseDefRelation useDefRelation = new UseDefRelation(foundPath.immutableCopy(), Collections.<String>emptySet());
+
+    return FluentIterable.from(useDefRelation.getUsesAsQualifiedName()).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
   }
 
   /**
@@ -133,7 +125,7 @@ public class ApronAnalysisFeasabilityChecker {
    * @throws InterruptedException
    */
   private MutableARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final ApronState pInitial)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     try {
       Collection<ApronState> next = Lists.newArrayList(pInitial);
 

@@ -83,12 +83,6 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
-  public Long makeBitvectorImpl(int pLength, String pI) {
-    return msat_make_bv_number(mathsatEnv, pI, pLength, 10);
-  }
-
-
-  @Override
   public Long makeVariableImpl(int length, String var) {
     long bvType = getFormulaCreator().getBitvectorType(length);
     return getFormulaCreator().makeVariable(bvType, var);
@@ -167,6 +161,11 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
+  public Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return msat_make_true(mathsatEnv);
+  }
+
+  @Override
   public Long multiply(Long pNumber1, Long pNumber2) {
     return msat_make_bv_times(mathsatEnv, pNumber1, pNumber2);
   }
@@ -202,10 +201,5 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   @Override
   public Long greaterOrEquals(Long pNumber1, Long pNumber2, boolean signed) {
     return lessOrEquals(pNumber2, pNumber1, signed);
-  }
-
-  @Override
-  public boolean isEqual(Long pNumber) {
-    return msat_term_is_equal(mathsatEnv, pNumber);
   }
 }

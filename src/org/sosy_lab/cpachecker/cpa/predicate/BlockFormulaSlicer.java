@@ -35,36 +35,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -81,10 +73,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -95,8 +87,6 @@ public class BlockFormulaSlicer {
   /** if important or not, this does not matter, because it will be ignored later,
    * so it can be used for optimization. */
   private static final boolean IS_BLANK_EDGE_IMPORTANT = false;
-
-  private static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
 
   final private PathFormulaManager pfmgr;
   final private boolean sliceBlockFormulas;
@@ -179,28 +169,9 @@ public class BlockFormulaSlicer {
       pfs.add(pf);
     }
 
-    final ImmutableList<BooleanFormula> list = from(pfs)
+    return from(pfs)
         .transform(GET_BOOLEAN_FORMULA)
         .toList();
-
-    //    System.out.println("\n\nFORMULA::");
-    //    for (BooleanFormula formula : list) {
-    //      System.out.println(formula);
-    //      //System.out.println(printFormula(formula.toString()));
-    //    }
-    //
-    //    ImmutableList<BooleanFormula> origlist = from(path)
-    //        .transform(toState(PredicateAbstractState.class))
-    //        .transform(GET_BLOCK_FORMULA)
-    //        .toList();
-    //
-    //    System.out.println("\n\nORIG FORMULA::");
-    //    for (BooleanFormula formula : origlist) {
-    //      System.out.println(formula);
-    //      //System.out.println(printFormula(formula.toString()));
-    //    }
-
-    return list;
   }
 
   /** This function returns all states, that are contained in a block.
@@ -286,20 +257,6 @@ public class BlockFormulaSlicer {
         }
       }
     }
-
-    // logging
-    //    System.out.println("START::  " + (start == null ? null : start.getStateId()));
-    //    System.out.println("END::    " + end.getStateId());
-    //    System.out.print("BLOCK::  ");
-    //    for (ARGState current : block) {
-    //      System.out.print(current.getStateId() + ", ");
-    //    }
-    //    System.out.println();
-    //    System.out.print("VISITED::  ");
-    //    for (ARGState current : s2v.keySet()) {
-    //      System.out.print(current.getStateId() + ", ");
-    //    }
-    //    System.out.println("\n\n");
 
     return s2v.get(start);
   }
@@ -485,7 +442,7 @@ public class BlockFormulaSlicer {
    * @param pImportantVars */
   private boolean handleStatement(CStatementEdge edge,
       Collection<String> importantVars) {
-    final IAStatement statement = edge.getStatement();
+    final AStatement statement = edge.getStatement();
 
     // expression is an assignment operation, e.g. a = b;
     if (statement instanceof CAssignment) {
@@ -509,7 +466,7 @@ public class BlockFormulaSlicer {
   }
 
 
-  private boolean handleAssignment(CAssignment statement, CStatementEdge edge,
+  private boolean handleAssignment(CAssignment statement, CFAEdge edge,
       Collection<String> importantVars) {
     final CExpression lhs = statement.getLeftHandSide();
 
@@ -520,7 +477,7 @@ public class BlockFormulaSlicer {
       final String varName = ((CIdExpression) lhs).getName();
 
       if (importantVars.remove(buildVarName(scopedFunctionName, varName))) {
-        final IARightHandSide rhs = statement.getRightHandSide();
+        final ARightHandSide rhs = statement.getRightHandSide();
 
         // a = b + c
         if (rhs instanceof CExpression) {
@@ -555,19 +512,11 @@ public class BlockFormulaSlicer {
   private boolean handleReturnStatement(CReturnStatementEdge edge,
       Collection<String> importantVars) {
 
-    if (!edge.getExpression().isPresent()) {
+    if (!edge.asAssignment().isPresent()) {
       return false;
 
     } else {
-      CExpression rhs = edge.getExpression().get();
-
-      String functionName = edge.getPredecessor().getFunctionName();
-      if (importantVars.remove(buildVarName(functionName, FUNCTION_RETURN_VARIABLE))) {
-        addAllVarsFromExpr(rhs, functionName, importantVars);
-        return true;
-      } else {
-        return false;
-      }
+      return handleAssignment(edge.asAssignment().get(), edge, importantVars);
     }
   }
 
@@ -591,12 +540,13 @@ public class BlockFormulaSlicer {
       final String outerFunctionName = isGlobal(lhs) ? null : edge.getSuccessor().getFunctionName();
 
       if (importantVars.remove(buildVarName(outerFunctionName, lhs.toASTString()))) {
-        importantVars.add(buildVarName(innerFunctionName, FUNCTION_RETURN_VARIABLE));
-        return true;
-
-      } else {
-        return false;
+        Optional<CVariableDeclaration> returnVar = edge.getFunctionEntry().getReturnVariable();
+        if (returnVar.isPresent()) {
+          importantVars.add(buildVarName(innerFunctionName, returnVar.get().getName()));
+          return true;
+        }
       }
+      return false;
 
       // f(x); --> function could change global vars, the 'return' is unimportant
     } else if (call instanceof CFunctionCallStatement) {
@@ -648,7 +598,7 @@ public class BlockFormulaSlicer {
   }
 
   /** This Visitor collects all var-names in the expression. */
-  private class VarCollector implements CExpressionVisitor<Void, RuntimeException> {
+  private class VarCollector extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
     final Collection<String> vars;
     final private String functionName;
@@ -659,7 +609,7 @@ public class BlockFormulaSlicer {
     }
 
     @Override
-    public Void visit(CArraySubscriptExpression exp) {
+    protected Void visitDefault(CExpression pExp) {
       return null;
     }
 
@@ -683,45 +633,10 @@ public class BlockFormulaSlicer {
     }
 
     @Override
-    public Void visit(CFieldReference exp) {
-      return null;
-    }
-
-    @Override
     public Void visit(CIdExpression exp) {
       String var = exp.getName();
       String function = isGlobal(exp) ? null : functionName;
       vars.add(buildVarName(function, var));
-      return null;
-    }
-
-    @Override
-    public Void visit(CCharLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CFloatLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CIntegerLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CStringLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CImaginaryLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CTypeIdExpression exp) {
       return null;
     }
 
@@ -867,8 +782,6 @@ public class BlockFormulaSlicer {
     while (pos != -1) {
       int open = formula.indexOf('(', pos + 1);
       int close = formula.indexOf(')', pos + 1);
-
-      //  System.out.println(open + "   " + close + "    " + pos + "\n" + str.toString());
 
       if (open != -1 && open < close) { // new child
 

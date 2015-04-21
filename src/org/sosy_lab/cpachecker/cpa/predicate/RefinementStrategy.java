@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -47,6 +48,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * Abstract class for the refinement strategy that should be used after a spurious
@@ -92,15 +95,16 @@ public abstract class RefinementStrategy {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
-  public RefinementStrategy(BooleanFormulaManagerView pBfmgr, Solver pSolver) {
-    bfmgr = pBfmgr;
+  public RefinementStrategy(Solver pSolver) {
     solver = pSolver;
+    bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
   }
 
   public boolean needsInterpolants() {
     return true;
   }
 
+  @ForOverride
   protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
     int equalPrecisions = 0;
     int differentPrecisions = 0;
@@ -176,7 +180,10 @@ public abstract class RefinementStrategy {
           // We can add this information to the cache to speed up later sat checks.
           PredicateAbstractState s = getPredicateState(w);
           BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
-          solver.addUnsatisfiableFormulaToCache(blockFormula);
+          // solver.addUnsatisfiableFormulaToCache(blockFormula);
+          // TODO disabled, because tree-interpolation returns true-false-interpolants
+          // without an unsatisfiable intermediate formula
+          // TODO: Move caching to InterpolationManager.buildCounterexampleTrace
         }
         break;
       }
@@ -195,7 +202,6 @@ public abstract class RefinementStrategy {
       previousItpWasTrue = false;
 
       if (!performRefinementForState(itp, w)) {
-        infeasiblePartOfART = w;
         changedElements.add(w);
       }
     }
@@ -226,6 +232,7 @@ public abstract class RefinementStrategy {
     assert !pReached.asReachedSet().contains(lastElement);
   }
 
+  @ForOverride
   protected abstract void startRefinementOfPath();
 
   /**
@@ -237,7 +244,8 @@ public abstract class RefinementStrategy {
    * @return True if no refinement was necessary (this implies that refinement
    *          on all of the state's parents is also not necessary)
    */
-  protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state) throws InterruptedException;
+  @ForOverride
+  protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state) throws InterruptedException, SolverException;
 
   /**
    * Do any necessary work after one path has been refined.
@@ -250,6 +258,7 @@ public abstract class RefinementStrategy {
    * @throws CPAException
    * @throws InterruptedException
    */
+  @ForOverride
   protected abstract void finishRefinementOfPath(
       final ARGState unreachableState,
       List<ARGState> affectedStates,

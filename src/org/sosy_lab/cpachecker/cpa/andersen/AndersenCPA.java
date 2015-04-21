@@ -29,7 +29,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.*;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -38,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
@@ -48,11 +56,11 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
     return AutomaticCPAFactory.forType(AndersenCPA.class);
   }
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for PointerACPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for PointerACPA")
   private String stopType = "SEP";
 
@@ -124,12 +132,12 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new AndersenState();
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return new AndersenPrecision();
   }
 

@@ -46,14 +46,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
@@ -142,14 +139,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  @Option(name="refiner", required = true,
+  @Option(secure=true, name="refiner", required = true,
       description = "Which refinement algorithm to use? "
       + "(give class name, required for CEGAR) If the package name starts with "
       + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
 
-  @Option(name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
+  @Option(secure=true, name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
 
   private final LogManager logger;
@@ -219,7 +216,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InvalidConfigurationException
    * @throws CPAException
    */
-  public CEGARAlgorithm(Algorithm algorithm, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  public CEGARAlgorithm(Algorithm algorithm, Refiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;
@@ -227,8 +224,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean isComplete        = true;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+
     int initialReachedSetSize = reached.size();
     boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
@@ -238,7 +236,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         refinementSuccessful = false;
 
         // run algorithm
-        isComplete &= algorithm.run(reached);
+        status = status.update(algorithm.run(reached));
 
         // if there is any target state do refinement
         if (refinementNecessary(reached)) {
@@ -258,10 +256,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
             break;
           }
 
-          ARGState firstChild = ((ARGState)reached.getFirstState()).getChildren().iterator().next();
-          new ARGReachedSet(reached).removeSubtree(firstChild,
-              ((UnsoundRefiner)mRefiner).getGlobalPrecision(),
-              VariableTrackingPrecision.class);
+          ((UnsoundRefiner)mRefiner).forceRestart(reached);
           refinementSuccessful        = true;
           refinedInPreviousIteration  = false;
         }
@@ -271,7 +266,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
-    return isComplete;
+    return status;
   }
 
   private boolean refinementNecessary(ReachedSet reached) {

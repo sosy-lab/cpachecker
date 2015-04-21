@@ -1,0 +1,9 @@
+(declare-fun al () Int) 
+(declare-fun |copy::bl| () Int) 
+(declare-fun |copy::i| () Int) 
+
+*:
+(assert  (>= al |copy::bl|))
+(assert  (<= |copy::bl| 0))
+(assert  (<= |copy::bl| |copy::i|))
+

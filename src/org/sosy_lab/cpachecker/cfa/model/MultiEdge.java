@@ -119,4 +119,9 @@ public class MultiEdge extends AbstractCFAEdge implements Iterable<CFAEdge> {
     MultiEdge otherEdge = (MultiEdge) pOther;
     return edges.equals(otherEdge.edges);
   }
+
+  @Override
+  public int hashCode() {
+    return edges.hashCode();
+  }
 }

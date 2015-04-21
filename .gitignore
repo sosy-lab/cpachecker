@@ -11,6 +11,7 @@
 /FindBugs.diff.xml
 /JUnit.html
 /.factorypath
+*.pyc
 
 # /META-INF/
 /META-INF/.hg*
@@ -217,4 +218,6 @@
 /war/WEB-INF/configurations
 /war/WEB-INF/specifications
 
-.idea
+.idea/workspace.xml
+.idea/uiDesigner.xml
+.idea/dictionaries

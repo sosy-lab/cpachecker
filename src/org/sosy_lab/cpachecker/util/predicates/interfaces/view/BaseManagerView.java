@@ -23,26 +23,44 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-import com.google.common.base.Function;
+/**
+ * Abstract helper class that does nothing more than providing access
+ * to the methods from {@link FormulaWrappingHandler} with less typing.
+ */
+abstract class BaseManagerView {
 
+  private final FormulaWrappingHandler wrappingHandler;
 
-abstract class BaseManagerView<ParamFormula extends Formula, ResultFormula extends Formula> extends AbstractBaseManagerView {
-  protected final Function<ParamFormula, ParamFormula> extractor =
-      new Function<ParamFormula, ParamFormula>() {
-        @Override
-        public ParamFormula apply(ParamFormula pInput) {
-          return extractFromView(pInput);
-        }
-      };
-
-  protected ResultFormula wrapInView(ResultFormula formula) {
-    return formula;
+  BaseManagerView(FormulaWrappingHandler pWrappingHandler) {
+    wrappingHandler = pWrappingHandler;
   }
 
-  protected ParamFormula extractFromView(ParamFormula pFormula) {
-    return pFormula;
+  final <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+    return wrappingHandler.getFormulaType(pFormula);
   }
 
+  final <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
+    return wrappingHandler.wrap(targetType, toWrap);
+  }
+
+  final Formula unwrap(Formula f) {
+    return wrappingHandler.unwrap(f);
+  }
+
+  final List<Formula> unwrap(List<? extends Formula> f) {
+    return wrappingHandler.unwrap(f);
+  }
+
+  final FormulaType<?> unwrapType(FormulaType<?> pType) {
+    return wrappingHandler.unwrapType(pType);
+  }
+
+  final List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
+    return wrappingHandler.unwrapType(pTypes);
+  }
 }

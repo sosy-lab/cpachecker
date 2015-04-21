@@ -152,4 +152,5 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, 
   public boolean isIfThenElse(Long pBits) {
     return msat_term_is_term_ite(mathsatEnv, pBits);
   }
+
 }

@@ -33,6 +33,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
@@ -47,7 +48,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 
-public final class TypeHierarchy {
+final class TypeHierarchy {
 
   private Map<String, JClassOrInterfaceType> types;
 
@@ -64,7 +65,7 @@ public final class TypeHierarchy {
    * This class stores the same type information in mutable Maps.
    * It is used to update the type hierarchy.
    */
-  private final THTypeTable typeTable;
+  private THTypeTable typeTable;
 
   private TypeHierarchy(THTypeTable pTypeTable) {
 
@@ -206,9 +207,28 @@ public final class TypeHierarchy {
 
     converter.convertClassOrInterfaceType(classOrInterfaceBinding);
 
-    types = typeTable.getTypes();
-    fileOfTypes = typeTable.getTypeOfFiles();
-    methodDeclarationsOfType = typeTable.getMethodDeclarationsOfType();
+    updateFromTypeTable(typeTable);
+  }
+
+  private void updateFromTypeTable(THTypeTable pTypeTable) {
+    types = pTypeTable.getTypes();
+    fileOfTypes = pTypeTable.getTypeOfFiles();
+    methodDeclarationsOfType = pTypeTable.getMethodDeclarationsOfType();
+    fieldDeclarationsOfType = pTypeTable.getFieldDeclarationsOfType();
+
+    typeTable = pTypeTable;
+  }
+
+  void updateTypeHierarchy(AnonymousClassDeclaration pDeclaration, String pFileName,
+      LogManager pLogger) {
+
+    // this hierarchyCreator has to be initialized after fileOfTypes was updated,
+    // so we don't overwrite this update below
+    TypeHierachyCreator hierarchyCreator = new TypeHierachyCreator(pLogger, typeTable, pFileName);
+
+    pDeclaration.accept(hierarchyCreator);
+
+    updateFromTypeTable(hierarchyCreator.getTypeTable());
   }
 
   static class THTypeTable {
@@ -233,7 +253,7 @@ public final class TypeHierarchy {
     }
 
     public Map<JClassOrInterfaceType, String> getTypeOfFiles() {
-      return ImmutableMap.copyOf(typeOfFiles);
+      return new HashMap<>(typeOfFiles);
     }
 
     public void registerType(JClassOrInterfaceType pType) {

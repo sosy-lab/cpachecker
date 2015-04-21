@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -43,18 +43,21 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
+import com.google.errorprone.annotations.ForOverride;
 
 public abstract class VariableTrackingPrecision implements Precision {
 
@@ -68,9 +71,9 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @return
    * @throws InvalidConfigurationException
    */
-  public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc)
+  public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc, Class<? extends ConfigurableProgramAnalysis> cpaClass)
           throws InvalidConfigurationException {
-    return new ConfigurablePrecision(config, vc);
+    return new ConfigurablePrecision(config, vc, cpaClass);
   }
 
   /**
@@ -95,6 +98,18 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
   }
 
+  public static Predicate<Precision> isMatchingCPAClass(final Class<? extends ConfigurableProgramAnalysis> cpaClass) {
+     return new Predicate<Precision>() {
+
+      @Override
+      public boolean apply(Precision pPrecision) {
+        if (!(pPrecision instanceof VariableTrackingPrecision)) {
+          return false;
+        }
+          return ((VariableTrackingPrecision)pPrecision).getCPAClass() == cpaClass;
+      }};
+  }
+
   /**
    * This method determines if this precision allows for abstraction, i.e., if
    * it ignores variables from some variable class, if it maintains a refinable
@@ -117,7 +132,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   public abstract boolean isTracking(MemoryLocation variable, Type pType, CFANode location);
-
 
   /**
    * This method refines the precision with the given increment.
@@ -148,16 +162,34 @@ public abstract class VariableTrackingPrecision implements Precision {
    */
   public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
 
+  /**
+   * This method checks if the caller precision is empty, thus there is
+   * no variable that should be tracked.
+   *
+   * @return indicates whether there are variables that should be tracked or not
+   */
+  public abstract boolean isEmpty();
+
+  /**
+   * This method returns the CPA class to which this Precision belongs. This way
+   * more CPAs can have a VariableTrackingPrecision without interfering with
+   * each other.
+   *
+   * @return the owner CPA of this precision
+   */
+  @ForOverride
+  protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
+
 
   @Options(prefix="precision")
   private static class RefinablePrecisionOptions {
 
     enum Sharing {
       SCOPE,
-      LOCATION;
+      LOCATION
     }
 
-    @Option(description = "whether to track relevant variables only at the exact "
+    @Option(secure=true, description = "whether to track relevant variables only at the exact "
         + "program location (sharing=location), or within their respective"
         + " (function-/global-) scope (sharing=scoped).")
     private Sharing sharing = Sharing.SCOPE;
@@ -170,30 +202,46 @@ public abstract class VariableTrackingPrecision implements Precision {
   @Options(prefix="precision")
   public static class ConfigurablePrecision extends VariableTrackingPrecision{
 
-    @Option(name="variableBlacklist",
-        description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
+    @Option(secure=true, name="variableBlacklist",
+        description="blacklist regex for variables that won't be tracked by the CPA using this precision")
     private Pattern variableBlacklist = Pattern.compile("");
 
-    @Option(description = "If this option is used, booleans from the cfa are tracked.")
+    @Option(secure = true, name="variableWhitelist",
+        description="whitelist regex for variables that will always be tracked by the CPA using this precision")
+    private Pattern variableWhitelist = Pattern.compile("");
+
+    @Option(secure=true, description = "If this option is used, booleans from the cfa are tracked.")
     private boolean trackBooleanVariables = true;
 
-    @Option(description = "If this option is used, variables that are only compared"
+    @Option(secure=true, description = "If this option is used, variables that are only compared"
         + " for equality are tracked.")
     private boolean trackIntEqualVariables = true;
 
-    @Option(description = "If this option is used, variables, that are only used in"
+    @Option(secure=true, description = "If this option is used, variables, that are only used in"
         + " simple calculations (add, sub, lt, gt, eq) are tracked.")
     private boolean trackIntAddVariables = true;
 
-    @Option(description ="If this option is used, variables that have type double"
+    @Option(secure=true, description ="If this option is used, variables that have type double"
         + " or float are tracked.")
     private boolean trackFloatVariables = true;
 
-    private Optional<VariableClassification> vc;
+    @Option(secure=true, description ="If this option is used, variables that are addressed"
+        + " may get tracked depending on the rest of the precision. When this option"
+        + " is disabled, a variable that is addressed is definitely not tracked.")
+    private boolean trackAddressedVariables = true;
 
-    private ConfigurablePrecision(Configuration config, Optional<VariableClassification> pVc) throws InvalidConfigurationException {
+    @Option(secure=true, description ="If this option is used, all variables that are"
+        + " of a different classification than IntAdd, IntEq and Boolean get tracked"
+        + " by the precision.")
+    private boolean trackVariablesBesidesEqAddBool = true;
+
+    private Optional<VariableClassification> vc;
+    private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
+
+    private ConfigurablePrecision(Configuration config, Optional<VariableClassification> pVc, Class<? extends ConfigurableProgramAnalysis> cpaClass) throws InvalidConfigurationException {
       super();
       config.inject(this);
+      this.cpaClass = cpaClass;
       this.vc = pVc;
     }
 
@@ -202,6 +250,8 @@ public abstract class VariableTrackingPrecision implements Precision {
     return !trackBooleanVariables
       || !trackIntEqualVariables
       || !trackIntAddVariables
+      || !trackAddressedVariables
+      || !trackVariablesBesidesEqAddBool
       || !variableBlacklist.toString().isEmpty();
     }
 
@@ -221,28 +271,58 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     private boolean isTracking(MemoryLocation pVariable) {
-      return !isOnBlacklist(pVariable.getIdentifier())
-              && !isInIgnoredVarClass(pVariable);
+      return  isOnWhitelist(pVariable.getIdentifier())
+              || (!isOnBlacklist(pVariable.getIdentifier())
+                  && isInTrackedVarClass(pVariable.getAsSimpleString()));
     }
 
     private boolean isOnBlacklist(String variable) {
-      return variableBlacklist.matcher(variable).matches();
+      return !variableBlacklist.toString().isEmpty() && variableBlacklist.matcher(variable).matches();
+    }
+
+    private boolean isOnWhitelist(String variable) {
+      return !variableWhitelist.toString().isEmpty() && variableWhitelist.matcher(variable).matches();
     }
 
     /** returns true, iff the variable is in an varClass, that should be ignored. */
-    private boolean isInIgnoredVarClass(final MemoryLocation variable) {
-      if (!vc.isPresent()) { return false; }
+    private boolean isInTrackedVarClass(final String variableName) {
+      // when there is no variable classification we cannot make any assumptions
+      // about the tracking of variables and say that all variables are tracked
+      if (!vc.isPresent()) {
+        return true;
+      }
       VariableClassification varClass = vc.get();
 
-      final boolean isBoolean = varClass.getIntBoolVars().contains(variable.getAsSimpleString());
-      final boolean isIntEqual = varClass.getIntEqualVars().contains(variable.getAsSimpleString());
-      final boolean isIntAdd = varClass.getIntAddVars().contains(variable.getAsSimpleString());
+      final boolean varIsAddressed = varClass.getAddressedVariables().contains(variableName);
 
-      final boolean isIgnoredBoolean = !trackBooleanVariables && isBoolean;
-      final boolean isIgnoredIntEqual = !trackIntEqualVariables && isIntEqual;
-      final boolean isIgnoredIntAdd = !trackIntAddVariables && isIntAdd;
+      // addressed variables do not belong to a specific type, so they have to
+      // be handled extra. We want the precision to be as strict as possible,
+      // therefore, when a variable is addressed but addressed variables should
+      // not be tracked, we do not consider the other parts of the variable classification
+      if (varIsAddressed && !trackAddressedVariables) {
+        return false;
 
-      return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
+
+        // in this case addressed variables can at most be included in the
+        // tracking variables and the rest of the variable classification is
+        // the limiting factor
+      } else {
+        final boolean varIsBoolean = varClass.getIntBoolVars().contains(variableName);
+        final boolean varIsIntEqual = varClass.getIntEqualVars().contains(variableName);
+        final boolean varIsIntAdd = varClass.getIntAddVars().contains(variableName);
+
+        // if the variable is not in a matching classification we have to check
+        // if other variables should be tracked
+        if (!(varIsBoolean || varIsIntAdd || varIsIntEqual)) {
+          return trackVariablesBesidesEqAddBool;
+        }
+
+        final boolean isTrackedBoolean = trackBooleanVariables && varIsBoolean;
+        final boolean isTrackedIntEqual = trackIntEqualVariables && varIsIntEqual;
+        final boolean isTrackedIntAdd = trackIntAddVariables && varIsIntAdd;
+
+        return isTrackedBoolean || isTrackedIntAdd || isTrackedIntEqual;
+      }
     }
 
     @Override
@@ -265,6 +345,28 @@ public abstract class VariableTrackingPrecision implements Precision {
     public int getSize() {
       return -1;
     }
+
+    @Override
+    public boolean isEmpty() {
+      if (!variableWhitelist.toString().isEmpty()) { return false; }
+      if (!vc.isPresent()) { return true; }
+      VariableClassification varClass = vc.get();
+
+      boolean trackSomeIntBools = trackBooleanVariables &&
+          !varClass.getIntBoolVars().isEmpty();
+      boolean trackSomeIntEquals = trackIntEqualVariables &&
+          !varClass.getIntEqualVars().isEmpty();
+      boolean trackSomeIntAdds = trackIntAddVariables &&
+          !varClass.getIntAddVars().isEmpty();
+
+      return !(trackSomeIntBools || trackSomeIntEquals || trackSomeIntAdds || trackVariablesBesidesEqAddBool);
+    }
+
+    @Override
+    protected Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+      return cpaClass;
+    }
+
   }
 
 
@@ -284,11 +386,19 @@ public abstract class VariableTrackingPrecision implements Precision {
 
     @Override
     public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
+      checkNotNull(pVariable);
+      checkNotNull(pType);
+      checkNotNull(pLocation);
       return baseline.isTracking(pVariable, pType, pLocation);
     }
 
     protected VariableTrackingPrecision getBaseline() {
       return baseline;
+    }
+
+    @Override
+    protected final Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+      return baseline.getCPAClass();
     }
   }
 
@@ -355,9 +465,14 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
+    public boolean isEmpty() {
+      return rawPrecision.isEmpty();
+    }
+
+    @Override
     public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
       return super.isTracking(pVariable, pType, pLocation)
-              && rawPrecision.containsValue(pVariable);
+              && rawPrecision.containsEntry(pLocation, pVariable);
     }
   }
 
@@ -435,6 +550,11 @@ public abstract class VariableTrackingPrecision implements Precision {
     @Override
     public String toString() {
       return rawPrecision.toString();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return rawPrecision.isEmpty();
     }
 
     @Override

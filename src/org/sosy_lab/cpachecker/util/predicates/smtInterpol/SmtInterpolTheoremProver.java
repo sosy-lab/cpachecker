@@ -78,12 +78,13 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public void push(BooleanFormula f) {
+  public Void push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
     final Term t = mgr.extractInfo(f);
     assertedTerms.add(t);
     env.push(1);
     env.assertTerm(t);
+    return null;
   }
 
   @Override

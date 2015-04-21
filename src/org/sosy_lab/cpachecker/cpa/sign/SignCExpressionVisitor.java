@@ -280,7 +280,7 @@ public class SignCExpressionVisitor
     return SIGN.EMPTY;
   }
 
-  private SIGN evaluateDivideOperator(SIGN left, SIGN right) throws UnsupportedCCodeException {
+  private SIGN evaluateDivideOperator(SIGN left, SIGN right) {
     if (right == SIGN.ZERO) {
       transferRel.logger.log(Level.WARNING, "Possibly dividing by zero", edgeOfExpr);
       return SIGN.ALL;

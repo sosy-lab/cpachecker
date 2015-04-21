@@ -37,10 +37,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -53,6 +53,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
@@ -76,6 +78,11 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
       return getSuccessorState(null);
     }
 
+    @Override
+    public AbstractionState from(AbstractionState pOther) {
+      return getAbstractionState();
+    }
+
   },
 
   ENTERING_EDGES {
@@ -86,7 +93,16 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
     }
 
     @Override
-    public AbstractionState getSuccessorState(final AbstractionState pPrevious) {
+    public AbstractionState from(AbstractionState pOther) {
+      return from(pOther, true);
+    }
+
+    @Override
+    public AbstractionState getSuccessorState(AbstractionState pOther) {
+      return from(pOther, false);
+    }
+
+    private AbstractionState from(final AbstractionState pPrevious, boolean pWithEnteringEdges) {
       class EnteringEdgesBasedAbstractionState implements AbstractionState {
 
         private final Set<CFAEdge> visitedEdges;
@@ -167,20 +183,20 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
               AStatementEdge edge = (AStatementEdge) lastEdge;
               if (edge.getStatement() instanceof AExpressionStatement) {
                 AExpressionStatement expressionStatement = (AExpressionStatement) edge.getStatement();
-                IAExpression expression = expressionStatement.getExpression();
+                AExpression expression = expressionStatement.getExpression();
                 if (expression instanceof ALiteralExpression) {
                   continue;
                 }
-                if (expression instanceof IALeftHandSide) {
+                if (expression instanceof ALeftHandSide) {
                   continue;
                 }
               } else if (edge.getStatement() instanceof AExpressionAssignmentStatement) {
                 AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) edge.getStatement();
-                IAExpression expression = expressionAssignmentStatement.getRightHandSide();
+                AExpression expression = expressionAssignmentStatement.getRightHandSide();
                 if (expression instanceof ALiteralExpression) {
                   continue;
                 }
-                if (expression instanceof IALeftHandSide) {
+                if (expression instanceof ALeftHandSide) {
                   continue;
                 }
               }
@@ -190,19 +206,19 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
             }
             if (lastEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
               ADeclarationEdge edge = (ADeclarationEdge) lastEdge;
-              IADeclaration declaration = edge.getDeclaration();
+              ADeclaration declaration = edge.getDeclaration();
               if (declaration instanceof AVariableDeclaration) {
                 AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
-                IAInitializer initializer = variableDeclaration.getInitializer();
+                AInitializer initializer = variableDeclaration.getInitializer();
                 if (initializer == null) {
                   continue;
                 }
                 if (initializer instanceof AInitializerExpression) {
-                  IAExpression expression = ((AInitializerExpression) initializer).getExpression();
+                  AExpression expression = ((AInitializerExpression) initializer).getExpression();
                   if (expression instanceof ALiteralExpression) {
                     continue;
                   }
-                  if (expression instanceof IALeftHandSide) {
+                  if (expression instanceof ALeftHandSide) {
                     continue;
                   }
                 }
@@ -230,11 +246,12 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
           Set<String> newWideningTargets = determineWideningTargets(pEdge);
           Set<InvariantsFormula<CompoundInterval>> newWideningHints = determineWideningHints(pEdge);
           if (visitedEdges.contains(pEdge)
-              && wideningTargets.equals(newWideningTargets)
+              && wideningTargets.containsAll(newWideningTargets)
               && wideningHints.containsAll(newWideningHints)) {
             return this;
           }
           newWideningHints = union(wideningHints, newWideningHints);
+          newWideningTargets = union(wideningTargets, newWideningTargets);
           return new EnteringEdgesBasedAbstractionState(
               add(visitedEdges, pEdge),
               newWideningTargets, newWideningHints);
@@ -243,13 +260,18 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
         private Set<InvariantsFormula<CompoundInterval>> determineWideningHints(CFAEdge pEdge) {
           if (pEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
             AssumeEdge assumeEdge = (AssumeEdge) pEdge;
-            IAExpression expression = assumeEdge.getExpression();
+            AExpression expression = assumeEdge.getExpression();
             final InvariantsFormula<CompoundInterval> wideningHint;
             try {
+              ExpressionToFormulaVisitor expressionToFormulaVisitor =
+                  new ExpressionToFormulaVisitor(
+                      new VariableNameExtractor(
+                          pEdge,
+                          Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap()));
               if (expression instanceof CExpression) {
-                wideningHint = ((CExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
+                wideningHint = ((CExpression) expression).accept(expressionToFormulaVisitor);
               } else if (expression instanceof JExpression) {
-                wideningHint = ((JExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
+                wideningHint = ((JExpression) expression).accept(expressionToFormulaVisitor);
               } else {
                 return Collections.emptySet();
               }
@@ -276,6 +298,12 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
                 toNormalize.offer(((LogicalAnd<CompoundInterval>) hint).getOperand2());
               } else {
                 builder.add(hint);
+                builder.add(CompoundIntervalFormulaManager.INSTANCE.negate(hint));
+                if (hint instanceof Equal) {
+                  Equal<CompoundInterval> eq = (Equal<CompoundInterval>) hint;
+                  toNormalize.offer(CompoundIntervalFormulaManager.INSTANCE.lessThan(eq.getOperand1(), eq.getOperand2()));
+                  toNormalize.offer(CompoundIntervalFormulaManager.INSTANCE.greaterThan(eq.getOperand1(), eq.getOperand2()));
+                }
               }
             }
           }
@@ -348,6 +376,9 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
         }
 
       }
+      if (pWithEnteringEdges && pPrevious instanceof EnteringEdgesBasedAbstractionState) {
+        return pPrevious;
+      }
       final Set<String> previousWideningTargets;
       final Set<InvariantsFormula<CompoundInterval>> previousWideningHints;
       if (pPrevious instanceof EnteringEdgesBasedAbstractionState) {
@@ -372,6 +403,11 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
     @Override
     public AbstractionState getAbstractionState() {
       return getSuccessorState(null);
+    }
+
+    @Override
+    public AbstractionState from(AbstractionState pOther) {
+      return getAbstractionState();
     }
 
   };
@@ -477,7 +513,7 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
         return Collections.emptySet();
       }
 
-    };
+    }
 
   }
 

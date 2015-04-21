@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
@@ -38,17 +39,17 @@ import org.restlet.engine.header.Header;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.util.Series;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
-import org.sosy_lab.common.configuration.AbstractConfigurationBuilderFactory;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.ConfigurationBuilderFactory;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.FileLogFormatter;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.appengine.common.GAEConfigurationBuilder;
 import org.sosy_lab.cpachecker.appengine.dao.TaskDAO;
 import org.sosy_lab.cpachecker.appengine.dao.TaskFileDAO;
@@ -69,7 +70,6 @@ import com.google.appengine.api.LifecycleManager;
 import com.google.appengine.api.LifecycleManager.ShutdownHook;
 import com.google.appengine.api.ThreadManager;
 import com.google.apphosting.api.ApiProxy;
-import java.nio.charset.StandardCharsets;
 import com.google.common.io.FileWriteMode;
 
 
@@ -373,7 +373,7 @@ public class TaskExecutorServerResource extends WadlServerResource implements Ta
   }
 
   private void buildConfiguration() throws IOException, InvalidConfigurationException {
-    Configuration.setBuilderFactory(new AbstractConfigurationBuilderFactory() {
+    Configuration.setBuilderFactory(new ConfigurationBuilderFactory() {
       @Override
       public ConfigurationBuilder getBuilder() {
         return new GAEConfigurationBuilder();
@@ -393,7 +393,7 @@ public class TaskExecutorServerResource extends WadlServerResource implements Ta
 
     Configuration configuration = configurationBuilder.build();
 
-    FileTypeConverter fileTypeConverter = new FileTypeConverter(configuration);
+    FileTypeConverter fileTypeConverter = FileTypeConverter.createWithSafePathsOnly(configuration);
 
     config = Configuration.builder()
         .copyFrom(configuration)

@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 /**
@@ -47,18 +47,18 @@ public interface PathSelector {
    * @param pExecutedPath
    * @param reachedStates
    * @return the new path and model if a valid path was found or {@link PredicatePathAnalysisResult#INVALID} otherwise.
-   * @throws CPATransferException
+   * @throws CPAException
    * @throws InterruptedException
    */
-  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath, final ReachedSet reachedStates) throws CPATransferException, InterruptedException;
+  public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath, final ReachedSet reachedStates) throws CPAException, InterruptedException;
 
   /**
    * performs a SMT check on the given path using the underlying solver of this strategy.
    * @param pExecutedPath
    * @return
-   * @throws CPATransferException
+   * @throws CPAException
    * @throws InterruptedException
    */
-  public CounterexampleTraceInfo computePredicateCheck(final ARGPath pExecutedPath) throws CPATransferException, InterruptedException;
+  public CounterexampleTraceInfo computePredicateCheck(final ARGPath pExecutedPath) throws CPAException, InterruptedException;
 
 }

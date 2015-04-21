@@ -27,7 +27,10 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
+import com.google.common.collect.ImmutableList;
+
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.LetTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -58,6 +61,9 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
 
   @Override
   public int getArity(Term pT) {
+    assert !(pT instanceof LetTerm)
+        : "Formulas used by CPAchecker are expected to not have LetTerms."
+            + " Check how this formula was created: " + pT;
     return SmtInterpolUtil.getArity(pT);
   }
 
@@ -111,6 +117,22 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
     }
   }
 
+  @Override
+  protected List<Term> splitNumeralEqualityIfPossible(Term pF) {
+    if (SmtInterpolUtil.isFunction(pF, "=") && SmtInterpolUtil.getArity(pF) == 2) {
+      Term arg0 = SmtInterpolUtil.getArg(pF, 0);
+      Term arg1 = SmtInterpolUtil.getArg(pF, 1);
+      assert arg0.getSort().equals(arg1.getSort());
+      if (!SmtInterpolUtil.isBoolean(arg0)) {
+        return ImmutableList.of(
+            getFormulaCreator().getEnv().term("<=", arg0, arg1),
+            getFormulaCreator().getEnv().term("<=", arg1, arg0)
+        );
+      }
+    }
+    return ImmutableList.of(pF);
+  }
+
   Term createUIFCallImpl(String funcDecl, Term[] args) {
     Term ufc = getFormulaCreator().getEnv().term(funcDecl, args);
     assert SmtInterpolUtil.isUIF(ufc);
@@ -132,5 +154,29 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
     return getFormulaCreator().getEnv().simplify(pF);
   }
 
+  @Override
+  protected boolean isQuantification(Term pT) {
+    return false;
+  }
+
+  @Override
+  protected Term getQuantifiedBody(Term pT) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected Term replaceQuantifiedBody(Term pF, Term pBody) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected boolean isFreeVariable(Term pT) {
+    return isVariable(pT);
+  }
+
+  @Override
+  protected boolean isBoundVariable(Term pT) {
+    return false;
+  }
 
 }

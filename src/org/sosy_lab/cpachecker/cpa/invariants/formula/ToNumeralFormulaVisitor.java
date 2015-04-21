@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.math.BigInteger;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -297,7 +296,7 @@ public class ToNumeralFormulaVisitor<T extends NumeralFormula> implements ToForm
 
   @Override
   public BooleanFormula asBoolean(T pOp1) {
-    return this.bfmgr.not(this.nfmgr.equal(pOp1, this.nfmgr.makeNumber(BigInteger.ZERO)));
+    return this.bfmgr.not(this.nfmgr.equal(pOp1, this.nfmgr.makeNumber(0)));
   }
 
 }

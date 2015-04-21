@@ -52,12 +52,12 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -126,38 +126,37 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Option(description="enable the Forced Covering optimization")
+  @Option(secure=true, description="enable the Forced Covering optimization")
   private boolean useForcedCovering = true;
 
 
   public ImpactAlgorithm(Configuration config, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException, CPAException {
+      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;
 
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger, pShutdownNotifier);
-    fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
+    solver = Solver.create(config, pLogger, pShutdownNotifier);
+    fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
-    solver = new Solver(fmgr, factory);
-    imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, pShutdownNotifier, logger);
+    imgr = new InterpolationManager(pfmgr, solver, cfa.getLoopStructure(), cfa.getVarClassification(), config, pShutdownNotifier, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {
-    return new Vertex(bfmgr, bfmgr.makeBoolean(true), cpa.getInitialState(location));
+    return new Vertex(bfmgr, bfmgr.makeBoolean(true), cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
   }
 
   public Precision getInitialPrecision(CFANode location) {
-    return cpa.getInitialPrecision(location);
+    return cpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition());
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     unwind(pReachedSet);
     pReachedSet.popFromWaitlist();
-    return true;
+    return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
   private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {

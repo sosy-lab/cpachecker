@@ -28,14 +28,14 @@ import static com.google.common.collect.Iterables.transform;
 import java.util.List;
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 
-public class CInitializerList extends AInitializer implements CInitializer, CAstNode {
+public class CInitializerList extends AbstractInitializer implements CInitializer, CAstNode {
 
   private final List<CInitializer> initializerList;
 

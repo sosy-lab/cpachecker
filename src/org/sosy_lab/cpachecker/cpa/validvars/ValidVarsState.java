@@ -23,46 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.validvars;
 
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import java.io.Serializable;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
-public class ValidVarsState extends AbstractSingleWrapperState implements AbstractQueryableState, TargetableWithPredicatedAnalysis{
+public class ValidVarsState implements AbstractState, AbstractQueryableState, Graphable, Serializable {
 
   private static final long serialVersionUID = 9159663474411886276L;
   private final ValidVars validVariables;
 
-  public ValidVarsState(AbstractState pWrappedState, ValidVars pValidVars) {
-    super(pWrappedState);
+  public ValidVarsState(ValidVars pValidVars) {
     validVariables = pValidVars;
   }
 
   public ValidVars getValidVariables() {
     return validVariables;
-  }
-
-  @Override
-  public boolean isTarget() {
-    AbstractState wrappedState = getWrappedState();
-    if ((wrappedState instanceof AbstractStateWithTargetVariable)
-        && validVariables.containsVar(((AbstractStateWithTargetVariable) wrappedState).getTargetVariableName())) { return super
-        .isTarget(); }
-    return false;
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    AbstractState wrappedState = getWrappedState();
-    if (wrappedState instanceof TargetableWithPredicatedAnalysis && isTarget()) {
-      return ((TargetableWithPredicatedAnalysis)wrappedState).getErrorCondition(pFmgr);
-    }
-    return pFmgr.getBooleanFormulaManager().makeBoolean(false);
   }
 
   @Override
@@ -84,7 +63,15 @@ public class ValidVarsState extends AbstractSingleWrapperState implements Abstra
   public void modifyProperty(String pModification) throws InvalidQueryException {
     throw new InvalidQueryException("Cannot modify values of valid vars state (" + this.getClass().getCanonicalName()
         + ").");
-
   }
 
+  @Override
+  public String toDOTLabel() {
+    return validVariables.toStringInDOTFormat();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
 }

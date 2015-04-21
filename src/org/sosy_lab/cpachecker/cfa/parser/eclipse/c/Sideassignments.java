@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import com.google.common.base.Preconditions;
 
 
-public class Sideassignments {
+class Sideassignments {
 
   private final Deque<List<CAstNode>> preSideAssignments;
   private final Deque<List<CAstNode>> postSideAssignments;
@@ -116,7 +116,7 @@ public class Sideassignments {
   }
 
   public void addConditionalExpression(IASTExpression e, CIdExpression tempVar) {
-    conditionalExpressions.peek().add(Pair.of(checkNotNull(e), checkNotNull(tempVar)));
+    conditionalExpressions.peek().add(Pair.of(checkNotNull(e), tempVar));
   }
 
   public void addPreSideAssignment(CAstNode node) {

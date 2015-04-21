@@ -54,27 +54,27 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final Stats stats = new Stats();
 
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
+  @Option(secure=true, name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
       description="entry function")
       private String mainFunctionName = "main";
 
-  @Option(name="cbmc.timelimit",
+  @Option(secure=true, name="cbmc.timelimit",
       description="maximum time limit for CBMC (0 is infinite)")
       private int timelimit = 0; // milliseconds
 
-  @Option(name="cbmc.options.intWidth",
+  @Option(secure=true, name="cbmc.options.intWidth",
       description="set width of int (16, 32 or 64)")
       private int intWidth = 32;
 
-  @Option(name="cbmc.options.errorLabel",
+  @Option(secure=true, name="cbmc.options.errorLabel",
       description="specify the name of the error label")
       private String errorLabel = "ERROR";
 
-  @Option(name="cbmc.options.unwindings",
+  @Option(secure=true, name="cbmc.options.unwindings",
       description="specify the limit for unwindings (0 is infinite)")
       private int unwind = 0;
 
-  @Option(name="cbmc.options.nuaf",
+  @Option(secure=true, name="cbmc.options.nuaf",
       description="disable unwinding assertions violation error")
       private boolean noUnwindingAssertions = false;
 
@@ -85,7 +85,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     assert pReachedSet.isEmpty();
 
     // run CBMC
@@ -102,7 +102,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
     } catch (TimeoutException e) {
       logger.log(Level.INFO, "CBMC Algorithm timed out.");
-      return false;
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
 
     } finally {
       stats.cbmcTime.stop();
@@ -113,7 +113,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       // exit code and stderr are already logged with level WARNING
       // throw new CPAException("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
       logger.log(Level.INFO, "CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
-      return false;
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
     // ERROR is REACHED
@@ -121,7 +121,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       // if this is unwinding assertions violation the analysis result is UNKNOWN
       if (cbmc.didUnwindingAssertionFail()) {
         logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
-        return false;
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
       } else {
         pReachedSet.add(new DummyErrorState(), SingletonPrecision.getInstance());
         assert pReachedSet.size() == 1 && pReachedSet.hasWaitingState();
@@ -132,7 +132,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    return true;
+    return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
   private List<String> buildCBMCArguments(String fileName) {

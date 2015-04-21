@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Optional;
@@ -66,7 +66,7 @@ public class BasicPathSelector implements PathSelector {
   @Override
   public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath,
       ReachedSet reachedStates)
-      throws CPATransferException, InterruptedException {
+      throws CPAException, InterruptedException {
     /*
      * create copy of the given path, because it will be modified with this algorithm.
      * represents the current new valid path.
@@ -190,7 +190,7 @@ public class BasicPathSelector implements PathSelector {
 
 
   @Override
-  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPAException,
       InterruptedException {
     return pathValidator.validatePath(pExecutedPath.getInnerEdges()
         );

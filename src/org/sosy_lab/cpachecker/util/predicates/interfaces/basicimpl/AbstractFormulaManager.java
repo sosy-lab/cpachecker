@@ -26,18 +26,23 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 /**
  * Simplifies building a solver from the specific theories.
  * @param <TFormulaInfo> The solver specific type.
  */
 public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implements FormulaManager {
+
+  private final AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager;
 
   private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
@@ -47,9 +52,13 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   private final AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
+  private final AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager;
+
+  private final AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager;
 
   private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
+
+  private final AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager;
 
   private final FormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
 
@@ -65,14 +74,22 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   protected AbstractFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator,
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
-      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
+      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
-      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager) {
+      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager,
+      AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager,
+      AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager,
+      AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager) {
+
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
+
+    this.arrayManager = arrayManager;
+
+    this.quantifiedManager = quantifiedManager;
 
     this.functionManager = functionManager;
 
@@ -84,6 +101,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
     this.bitvectorManager = bitvectorManager;
 
+    this.floatingPointManager = floatingPointManager;
+
     this.unsafeManager = unsafeManager;
 
     this.formulaCreator = pFormulaCreator;
@@ -94,13 +113,14 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
             || (integerManager != null && integerManager.getFormulaCreator() != formulaCreator)
             || (rationalManager != null && rationalManager.getFormulaCreator() != formulaCreator)
         || (bitvectorManager != null && bitvectorManager.getFormulaCreator() != formulaCreator)
+        || (floatingPointManager != null && floatingPointManager.getFormulaCreator() != formulaCreator)
         ) {
       throw new IllegalArgumentException("The creator instances must match across the managers!");
     }
 
   }
 
-  protected final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
+  public final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
   }
 
@@ -136,16 +156,32 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   }
 
   @Override
-  public AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> getFunctionFormulaManager() {
+  public FloatingPointFormulaManager getFloatingPointFormulaManager() {
+    if (floatingPointManager == null) {
+      throw new UnsupportedOperationException();
+    }
+    return floatingPointManager;
+  }
+
+  @Override
+  public AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> getFunctionFormulaManager() {
     return functionManager;
   }
 
   @Override
   public AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> getUnsafeFormulaManager() {
-
     return unsafeManager;
   }
 
+  @Override
+  public AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> getQuantifiedFormulaManager() {
+    return quantifiedManager;
+  }
+
+  @Override
+  public ArrayFormulaManager getArrayFormulaManager() {
+    return arrayManager;
+  }
 
   public abstract Appender dumpFormula(TFormulaInfo t);
 
@@ -167,5 +203,10 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   public final TFormulaInfo extractInfo(Formula f) {
     return formulaCreator.extractInfo(f);
+  }
+
+  @Override
+  public SmtAstMatcher getSmtAstMatcher() {
+    throw new UnsupportedOperationException("There is not yet an implementation for formula-ast matching for this solver!");
   }
 }

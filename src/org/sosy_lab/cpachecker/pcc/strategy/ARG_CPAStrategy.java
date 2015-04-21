@@ -41,13 +41,15 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker;
 
 @Options(prefix="pcc")
 public class ARG_CPAStrategy extends AbstractARGStrategy {
 
-  @Option(
+  @Option(secure=true,
       name = "checkPropertyPerElement",
       description = "Enable if used property checker implements satisfiesProperty(AbstractState) and checked property is violated for a set iff an element in this set exists for which violates the property")
   private boolean singleCheck = false;
@@ -57,10 +59,18 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
 
   public ARG_CPAStrategy(final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa.getPropChecker(), pShutdownNotifier);
+    super(pConfig, pLogger, pCpa == null ? new DefaultPropertyChecker() : pCpa.getPropChecker(), pShutdownNotifier);
     pConfig.inject(this);
-    stop = pCpa.getWrappedCPAs().get(0).getStopOperator();
-    transfer = pCpa.getWrappedCPAs().get(0).getTransferRelation();
+    if (pCpa == null) {
+      stop = null;
+      transfer = null;
+    } else {
+      if(!(pCpa.getWrappedCPAs().get(0) instanceof ARGCPA)) {
+        throw new InvalidConfigurationException("Expect that the property checker cpa wraps an ARG cpa");
+      }
+      stop = ((ARGCPA)pCpa.getWrappedCPAs().get(0)).getWrappedCPAs().get(0).getStopOperator();
+      transfer = ((ARGCPA)pCpa.getWrappedCPAs().get(0)).getWrappedCPAs().get(0).getTransferRelation();
+    }
   }
 
   @Override
@@ -122,7 +132,6 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
 
      for (AbstractState succ : computedSuccessors) {
        if (!checkCoverWithStopOp(succ, wrappedSuccessors, pPrecision)) {
-         stats.transferTimer.stop();
          return false;
        }
      }

@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -63,7 +64,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 @Options(prefix="cpa.conditions.path")
 public class PathConditionsCPA implements ConfigurableProgramAnalysis, AdjustableConditionCPA, StatisticsProvider {
 
-  @Option(description="The condition", name="condition", required=true)
+  @Option(secure=true, description="The condition", name="condition", required=true)
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.conditions.path")
   private Class<? extends PathCondition> conditionClass;
 
@@ -73,13 +74,13 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   private final TransferRelation transfer = new SingleEdgeTransferRelation() {
       @Override
       public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-          AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-        return Collections.singleton(condition.getAbstractSuccessor(pElement, pCfaEdge));
+          AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+        return Collections.singleton(condition.getAbstractSuccessor(pState, pCfaEdge));
       }
 
       @Override
-      public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-          List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+      public Collection<? extends AbstractState> strengthen(AbstractState pState,
+          List<AbstractState> pOtherStates, CFAEdge pCfaEdge, Precision pPrecision) {
         return null;
       }
     };
@@ -108,12 +109,12 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return condition.getInitialState(pNode);
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 

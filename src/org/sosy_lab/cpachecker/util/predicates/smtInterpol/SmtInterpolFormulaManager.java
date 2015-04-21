@@ -41,13 +41,16 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FormulaLet;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -62,17 +65,16 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
       SmtInterpolBooleanFormulaManager pBooleanManager,
       SmtInterpolIntegerFormulaManager pIntegerManager,
       SmtInterpolRationalFormulaManager pRationalManager) {
-    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null, null, null, null);
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile)
+      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile,
+      long randomSeed)
           throws InvalidConfigurationException {
 
-    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile);
-
-    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env,
-        env.sort(TermType.Boolean), env.sort(TermType.Integer), env.sort(TermType.Real));
+    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile, randomSeed);
+    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env);
 
     // Create managers
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);
@@ -85,12 +87,19 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
             booleanTheory, integerTheory, rationalTheory);
   }
 
-  public SmtInterpolInterpolatingProver createInterpolator() {
+  @Override
+  public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
+    return getEnvironment().createProver(this);
+  }
+
+  @Override
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean pShared) {
     return getEnvironment().getInterpolator(this);
   }
 
-  SmtInterpolTheoremProver createProver() {
-    return getEnvironment().createProver(this);
+  @Override
+  public OptEnvironment newOptEnvironment() {
+    throw new UnsupportedOperationException("SMTInterpol does not support optimization");
   }
 
   BooleanFormula encapsulateBooleanFormula(Term t) {
@@ -99,7 +108,8 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
 
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    return encapsulateBooleanFormula(getOnlyElement(getEnvironment().parseStringToTerms(pS)));
+    Term term = getOnlyElement(getEnvironment().parseStringToTerms(pS));
+    return encapsulateBooleanFormula(new FormulaUnLet().unlet(term));
   }
 
 
@@ -110,6 +120,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
       @Override
       public void appendTo(Appendable out) throws IOException {
         Set<Term> seen = new HashSet<>();
+        Set<FunctionSymbol> declaredFunctions = new HashSet<>();
         Deque<Term> todo = new ArrayDeque<>();
         PrintTerm termPrinter = new PrintTerm();
 
@@ -134,17 +145,22 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
           }
 
           if (func.getDefinition() == null) {
-            out.append("(declare-fun ");
-            out.append(PrintTerm.quoteIdentifier(func.getName()));
-            out.append(" (");
-            for (Sort paramSort : func.getParameterSorts()) {
-              termPrinter.append(out, paramSort);
-              out.append(' ');
-            }
-            out.append(") ");
-            termPrinter.append(out, func.getReturnSort());
-            out.append(")\n");
+            if (declaredFunctions.add(func)) {
+              out.append("(declare-fun ");
+              out.append(PrintTerm.quoteIdentifier(func.getName()));
+              out.append(" (");
+              int counter = 0;
+              for (Sort paramSort : func.getParameterSorts()) {
+                termPrinter.append(out, paramSort);
 
+                if (++counter < func.getParameterSorts().length) {
+                  out.append(' ');
+                }
+              }
+              out.append(") ");
+              termPrinter.append(out, func.getReturnSort());
+              out.append(")\n");
+            }
           } else {
             // We would have to print a (define-fun) command and
             // recursively traverse into func.getDefinition() (in post-order!).

@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -63,7 +63,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -73,17 +76,20 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  */
 @Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  @Option(name="dotExport",
+  @Option(secure=true, name="dotExport",
       description="export automaton to file")
   private boolean export = false;
 
-  @Option(name="dotExportFile",
+  @Option(secure=true, name="dotExportFile",
       description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportFile = PathTemplate.ofFormatString("%s.dot");
@@ -92,17 +98,20 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
-  @Option(required=false,
+  @Option(secure=true, required=false,
       description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path inputFile = null;
 
-  @Option(description="signal the analysis to break in case the given number of error state is reached ")
+  @Option(secure=true, description="signal the analysis to break in case the given number of error state is reached ")
   private int breakOnTargetState = 1;
 
-  @Option(description="the maximum number of iterations performed after the initial error is found, despite the limit"
+  @Option(secure=true, description="the maximum number of iterations performed after the initial error is found, despite the limit"
       + "given as cpa.automaton.breakOnTargetState is not yet reached")
   private int extraIterationsLimit = -1;
+
+  @Option(secure=true, description="Whether to treat automaton states with an internal error state as targets. This should be the standard use case.")
+  private boolean treatErrorsAsTargets = true;
 
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
@@ -117,7 +126,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final CFA cfa;
   private final LogManager logger;
 
-  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCFA)
+  protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
 
     pConfig.inject(this, ControlAutomatonCPA.class);
@@ -139,13 +148,22 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     precisionAdjustment = new PrecisionAdjustment() { // Handle the BREAK state
 
       @Override
-      public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
-          UnmodifiableReachedSet pStates) throws CPAException, InterruptedException {
+      public Optional<PrecisionAdjustmentResult> prec(
+          AbstractState pState, Precision pPrecision,
+          UnmodifiableReachedSet pStates,
+          Function<AbstractState, AbstractState> projection,
+          AbstractState fullState) throws CPAException, InterruptedException {
 
-        PrecisionAdjustmentResult wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates);
+        Optional<PrecisionAdjustmentResult> wrappedPrec
+            = lPrecisionAdjustment.prec(pState, pPrecision, pStates, projection, fullState);
+
+        if (!wrappedPrec.isPresent()) {
+          // Bottom.
+          return wrappedPrec;
+        }
 
         if (((AutomatonState) pState).getInternalStateName().equals("_predefinedState_BREAK")) {
-          return wrappedPrec.withAction(Action.BREAK);
+          return Optional.of(wrappedPrec.get().withAction(Action.BREAK));
         }
 
         return wrappedPrec;
@@ -197,7 +215,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       }
     }
 
-    GlobalInfo.getInstance().storeAutomaton(automaton);
+    GlobalInfo.getInstance().storeAutomaton(automaton, this);
   }
 
   Automaton getAutomaton() {
@@ -210,12 +228,12 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 
@@ -274,5 +292,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   LogManager getLogManager() {
     return logger;
+  }
+
+  boolean isTreatingErrorsAsTargets() {
+    return treatErrorsAsTargets;
   }
 }

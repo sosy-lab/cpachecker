@@ -28,7 +28,6 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
@@ -40,16 +39,8 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
     super(pCreator);
   }
 
-  protected TFormulaInfo extractInfo(Formula pNumber) {
-    return getFormulaCreator().extractInfo(pNumber);
-  }
-
-  protected BitvectorFormula wrap(TFormulaInfo pTerm) {
+  private BitvectorFormula wrap(TFormulaInfo pTerm) {
     return getFormulaCreator().encapsulateBitvector(pTerm);
-  }
-
-  protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulateBoolean(pTerm);
   }
 
   @Override
@@ -118,6 +109,17 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
+  public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumber2, long pModulo) {
+    TFormulaInfo param1 = extractInfo(pNumber1);
+    TFormulaInfo param2 = extractInfo(pNumber2);
+
+    return wrapBool(modularCongruence(param1, param2, pModulo));
+  }
+
+  protected abstract TFormulaInfo modularCongruence(TFormulaInfo pNumber1, TFormulaInfo pNumber2, long pModulo);
+
+
+  @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2)
         : "Can't multiply bitvectors with different sizes (" + getLength(pNumber1) + " and " + getLength(pNumber2) + ")";
@@ -143,7 +145,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   protected abstract TFormulaInfo equal(TFormulaInfo pParam1, TFormulaInfo pParam2);
-
 
   @Override
   public BooleanFormula greaterThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
@@ -201,14 +202,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isEqual(param);
-  }
-  protected abstract boolean isEqual(TFormulaInfo pParam) ;
-
-
-  @Override
   public BitvectorFormula not(BitvectorFormula pBits) {
     TFormulaInfo param1 = extractInfo(pBits);
     return wrap(not(param1));
@@ -262,13 +255,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
     return wrap(makeBitvectorImpl(pLength, i));
   }
   protected abstract TFormulaInfo makeBitvectorImpl(int pLength, BigInteger pI) ;
-
-  @Override
-  public BitvectorFormula makeBitvector(int pLength, String i) {
-    return wrap(makeBitvectorImpl(pLength, i));
-  }
-  protected abstract TFormulaInfo makeBitvectorImpl(int pLength, String pI) ;
-
 
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {

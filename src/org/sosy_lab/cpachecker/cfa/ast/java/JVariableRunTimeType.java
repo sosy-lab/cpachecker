@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JVariableRunTimeType extends AExpression implements JRunTimeTypeExpression {
+public class JVariableRunTimeType extends AbstractExpression implements JRunTimeTypeExpression {
 
   private final JIdExpression referencedVariable;
 

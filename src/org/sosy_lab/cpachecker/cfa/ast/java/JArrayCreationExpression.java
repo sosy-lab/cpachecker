@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.util.List;
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  *  Array creation expression AST node type.
@@ -50,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  *   There is an expression in the list for each array dimension from left to right.
  *
  */
-public class JArrayCreationExpression extends AExpression implements JExpression {
+public class JArrayCreationExpression extends AbstractExpression implements JExpression {
 
   private final List<JExpression> length;
   private final JArrayInitializer initializer;
@@ -58,7 +60,7 @@ public class JArrayCreationExpression extends AExpression implements JExpression
 
   public JArrayCreationExpression(FileLocation pFileLocation, JArrayType pType, JArrayInitializer pInitializer, List<JExpression> pLength) {
     super(pFileLocation, pType);
-    length = pLength;
+    length = ImmutableList.copyOf(pLength);
     initializer = pInitializer;
 
   }
@@ -87,9 +89,7 @@ public class JArrayCreationExpression extends AExpression implements JExpression
         astString.append("]");
       }
 
-
-
-      return   astString.toString();
+      return  astString.toString();
     }
   }
 

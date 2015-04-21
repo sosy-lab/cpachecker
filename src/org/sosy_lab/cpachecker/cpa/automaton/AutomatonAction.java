@@ -44,7 +44,7 @@ abstract class AutomatonAction {
 
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
   // more important is if the action was evaluated (ResultValue.canNotEvaluate())
-  abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
+  abstract ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
   /**
    * Returns if the action can execute on the given AutomatonExpressionArguments.
@@ -59,7 +59,7 @@ abstract class AutomatonAction {
   //abstract void execute(AutomatonExpressionArguments pArgs);
 
   /**
-   * Prints a string to System.out when executed.
+   * Logs a String when executed.
    */
   static class Print extends AutomatonAction {
     private List<AutomatonExpression> toPrint;
@@ -77,7 +77,7 @@ abstract class AutomatonAction {
       }
       return true;
     }
-    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+    @Override ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       StringBuilder sb = new StringBuilder();
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
@@ -106,7 +106,7 @@ abstract class AutomatonAction {
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
       return ! var.eval(pArgs).canNotEvaluate();
     }
-    @Override  ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
+    @Override  ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> res = var.eval(pArgs);
       if (res.canNotEvaluate()) {
         return res;
@@ -151,7 +151,7 @@ abstract class AutomatonAction {
       return false;
     }
     @Override
-    ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace transition variables
       String processedModificationString = pArgs.replaceVariables(modificationString);
       if (processedModificationString == null) {

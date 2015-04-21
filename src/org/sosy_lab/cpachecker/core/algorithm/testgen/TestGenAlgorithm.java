@@ -30,12 +30,13 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -78,30 +79,36 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     CUTE_LIKE
   }
 
-  @Option(name = "simulationStrategy", description = "Selects the simulation Strategy for TestGenAlgorithm")
+  @Option(secure=true, name = "simulationStrategy", description = "Selects the simulation Strategy for TestGenAlgorithm")
   private IterationStrategySelector iterationStrategySelector = IterationStrategySelector.AUTOMATON_CONTROLLED;
 
-  @Option(name = "pathSelector", description = "The path selector for TestGenAlgorithm")
+  @Option(secure=true, name = "pathSelector", description = "The path selector for TestGenAlgorithm")
   private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CUTE_PATH_SELECTOR;
 
-  @Option(
+  @Option(secure=true,
       name = "produceDebugFiles",
       description = "Set this to true to get the automaton files for exploring new Paths."
           + " You also get the ARG as dot file and the local reached set for every algoritm iteration"
           + " in subdirs under output.")
   private boolean produceDebugFiles = false;
 
-  @Option(name = "testcaseOutputFile", description = "Output file Template under which the"
+  @Option(secure=true, name = "testcaseOutputFile", description = "Output file Template under which the"
       + " testcase automatons will be stored. Must include one %s somewhere.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testcaseOutputFile = Paths.get("testcase%s.spc");
 
-  @Option(
+  @Option(secure=true,
       name = "stopOnError",
       description = "algorithm stops on first found error path. Otherwise the algorithms tries to reach 100% coverage")
   private boolean stopOnError = false;
 
+  @Option(secure=true, description="Where to write the reached sets to.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathCounterTemplate reachedSetExportPaths = PathCounterTemplate.ofFormatString("reachedsets/reached%d.txt");
 
+  @Option(secure=true, description="Where to write the ARGS to.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathCounterTemplate argExportPaths = PathCounterTemplate.ofFormatString("args/arg%d.dot");
 
   private TestGenIterationStrategy iterationStrategy;
   private PathSelector pathSelector;
@@ -112,14 +119,12 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   private StartupConfig startupConfig;
   private StartupConfig singleRunConfig;
   private LogManager logger;
-  private int reachedSetCounter = 0;
   private int testCaseCounter = 0;
 
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException,
-      CPAException {
+      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
@@ -137,7 +142,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
     startupConfig.getShutdownNotifier().shutdownIfNecessary();
     stats.getTotalTimer().start();
@@ -182,7 +187,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER, "Identified error path.");
           if (stopOnError) {
             stats.getTotalTimer().stop();
-            return true;
+            return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
       }
@@ -199,7 +204,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
          * If we didn't find an error, the program is safe and sound, in the sense of a concolic test.
          */
         stats.getTotalTimer().stop();
-        return true;
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
       /*
@@ -236,31 +241,16 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private void dumpReachedAndARG(ReachedSet pReached) {
-    try {
-      String outputDir = new FileTypeConverter(startupConfig.getConfig()).getOutputDirectory();
+    try (Writer w = Files.openOutputFile(reachedSetExportPaths.getFreshPath())) {
+      Joiner.on('\n').appendTo(w, pReached);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
+    }
 
-      Path reachedFile = Paths.get(outputDir, "reachedsets/reached" + reachedSetCounter + ".txt");
-
-      try (Writer w = Files.openOutputFile(reachedFile)) {
-        Joiner.on('\n').appendTo(w, pReached);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
-      } catch (OutOfMemoryError e) {
-        logger.logUserException(Level.WARNING, e,
-            "Could not write reached set to file due to memory problems");
-      }
-
-      Path argFile = Paths.get(outputDir, "args/arg" + reachedSetCounter + ".dot");
-
-      try (Writer w = Files.openOutputFile(argFile)) {
-        ARGUtils.writeARGAsDot(w, (ARGState) pReached.getFirstState());
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-      }
-
-      reachedSetCounter++;
-    } catch (InvalidConfigurationException e1) {
-      throw new IllegalStateException(e1);
+    try (Writer w = Files.openOutputFile(argExportPaths.getFreshPath())) {
+      ARGUtils.writeARGAsDot(w, (ARGState) pReached.getFirstState());
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
     }
   }
 }

@@ -38,11 +38,11 @@ public class ApronMergeOperator {
 
   private final ApronDomain domain;
 
-  @Option(name="type", toUppercase=true, values={"SEP", "JOIN", "WIDENING"},
+  @Option(secure=true, name="type", toUppercase=true, values={"SEP", "JOIN", "WIDENING"},
       description="of which type should the merge be?")
   private String type = "SEP";
 
-  @Option(name="onlyMergeAtLoopHeads", description="with this option enabled"
+  @Option(secure=true, name="onlyMergeAtLoopHeads", description="with this option enabled"
       + " the states are only merged at loop heads")
   private boolean onlyMergeAtLoopHeads = false;
 

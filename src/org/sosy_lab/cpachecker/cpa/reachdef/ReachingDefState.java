@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import java.io.IOException;
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,15 +35,17 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class ReachingDefState implements AbstractState, Serializable,
-    LatticeAbstractState<ReachingDefState> {
+    LatticeAbstractState<ReachingDefState>, Graphable {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
@@ -300,7 +301,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     return result;
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     if (this==topElement) {
       return proxy;
     } else {
@@ -335,7 +336,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     public SerialProxyReach() {}
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       return topElement;
     }
   }
@@ -361,7 +362,7 @@ public class ReachingDefState implements AbstractState, Serializable,
       return "?";
     }
 
-    private Object writeReplace() throws ObjectStreamException {
+    private Object writeReplace() {
       return writeReplace;
     }
 
@@ -371,7 +372,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
       public SerialProxy() {}
 
-      private Object readResolve() throws ObjectStreamException {
+      private Object readResolve() {
         return instance;
       }
     }
@@ -444,7 +445,7 @@ public class ReachingDefState implements AbstractState, Serializable,
       out.writeInt(exit.getNodeNumber());
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
       CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
       entry = cfaInfo.getNodeByNodeNumber(nodeNumber);
@@ -452,6 +453,63 @@ public class ReachingDefState implements AbstractState, Serializable,
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);
     }
 
+  }
+
+  @Override
+  public String toDOTLabel() {
+
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("{");
+    sb.append("\\n");
+
+    sb.append(System.identityHashCode(this));
+    sb.append("\\n");
+
+    // create a string like: global:  [varName1; varName2; ... ; ...]
+    sb.append("global:");
+    sb.append(createStringOfMap(globalReachDefs));
+    sb.append("\\n");
+
+    // create a string like: local:  [varName1; varName2; ... ; ...]
+    sb.append("local:");
+    sb.append(createStringOfMap(localReachDefs));
+    sb.append("\\n");
+
+    sb.append(System.identityHashCode(stateOnLastFunctionCall));
+    sb.append("\\n");
+
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  private String createStringOfMap(Map<String, Set<DefinitionPoint>> map) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(" [");
+
+    boolean first=true;
+
+    for (Entry<String, Set<DefinitionPoint>> entry : map.entrySet()) {
+      if (first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+
+      sb.append(" (");
+      sb.append(entry.getKey());
+      sb.append(": [");
+      Joiner.on("; ").appendTo(sb, entry.getValue());
+      sb.append("])");
+    }
+    sb.append("]");
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
 }

@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +36,7 @@ import java.util.Set;
 import java.util.Stack;
 
 import org.sosy_lab.common.Appenders.AbstractAppender;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 
@@ -68,7 +70,9 @@ public class RTTState extends AbstractAppender implements
    */
   private final Map<String, String> classTypeMap;
 
+  private final Set<String> staticFieldVariables = new HashSet<>();
 
+  private final Set<String> nonStaticFieldVariables = new HashSet<>();
 
   /**
    * Marks the current unique Object Scope this states belons to.
@@ -122,6 +126,28 @@ public class RTTState extends AbstractAppender implements
     classTypeMap.remove(value);
   }
 
+  void addFieldVariable(JFieldDeclaration pFieldDeclaration) {
+    String name = pFieldDeclaration.getName();
+
+    if (pFieldDeclaration.isStatic()) {
+      staticFieldVariables.add(name);
+    } else {
+      nonStaticFieldVariables.add(name);
+    }
+  }
+
+  public boolean isKnown(String pFieldName) {
+    return staticFieldVariables.contains(pFieldName) || nonStaticFieldVariables.contains(pFieldName);
+  }
+
+  public boolean isKnownAsStatic(String pFieldName) {
+    return staticFieldVariables.contains(pFieldName);
+  }
+
+  public boolean isKnownAsDynamic(String pFieldName) {
+    return nonStaticFieldVariables.contains(pFieldName);
+  }
+
   /**
    * Assigns a Java Run Time Class Type to the variable and puts it in the map
    * @param variableName name of the variable.
@@ -132,16 +158,17 @@ public class RTTState extends AbstractAppender implements
     checkNotNull(javaRunTimeClassName);
 
 
-
-    String iD ;
-
+    String iD;
+    String uniqueObject;
     if (javaRunTimeClassName.equals(NULL_REFERENCE)) {
-     iD = "";
+      iD = "";
+      uniqueObject = javaRunTimeClassName;
+
     } else {
-     iD = Integer.toString(RTTTransferRelation.nextId());
+      iD = Integer.toString(RTTTransferRelation.nextId());
+      uniqueObject = NameProvider.getInstance().getUniqueObjectName(javaRunTimeClassName, iD);
     }
 
-    String uniqueObject = javaRunTimeClassName + iD;
     identificationMap.put(uniqueObject, iD);
     classTypeMap.put(uniqueObject, javaRunTimeClassName);
     constantsMap.put(variableName, uniqueObject);

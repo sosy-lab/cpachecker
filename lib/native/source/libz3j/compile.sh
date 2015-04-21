@@ -15,8 +15,18 @@ set -o pipefail
 
 JNI_HEADERS="$(../get_jni_headers.sh)"
 
-OUTFILENAME="libz3j.so"
-Z3_SO_FILENAME="libz3.so"
+if [[ `uname` == CYGWIN* ]] ; then
+    OUTFILENAME="libz3j.dll"
+    Z3_SO_FILENAME="libz3.dll"
+    # the 64bit environment of Cygwin is not yet stable. We have to use a cross compiler.
+    COMPILER_CMD="./gcc64/bin/x86_64-pc-mingw32-gcc.exe"
+    LIB_SHARING="-shared"
+else
+    OUTFILENAME="libz3j.so"
+    Z3_SO_FILENAME="libz3.so"
+    COMPILER_CMD="gcc"
+    LIB_SHARING="-shared"
+fi
 Z3_LIBNAME="-lz3"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -34,7 +44,7 @@ echo "Building the C wrapper code"
 echo "Compiling the C wrapper code and creating the \"z3j\" library"
 
 # This will compile the JNI wrapper part, given the JNI and the Z3 header files
-gcc -g $JNI_HEADERS -I$Z3_SRC_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.c -fPIC -c
+$COMPILER_CMD -g $JNI_HEADERS -I$Z3_SRC_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.c -fPIC -c
 
 if [ $? -eq 0 ]; then
 	echo "JNI wrapper compiled"
@@ -43,27 +53,35 @@ else
 	exit 1
 fi
 
-gcc -Wall -g -o $OUTFILENAME -shared -Wl,-soname,$OUTFILENAME -Wl,-rpath,'$ORIGIN' -L. -L$Z3_LIB_DIR -L$Z3_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.o -lc $Z3_LIBNAME
-
-if [ $? -eq 0 ]; then
-	strip $OUTFILENAME
-else
-	echo "There was a problem during compilation of \"org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.c\""
-	exit 1
+if [[ `uname` == CYGWIN* ]] ; then
+    echo "A failure in the following steps might be due to a wrong compiler environment. Has libz3.dll been compiled for 64bit?"
 fi
 
-MISSING_SYMBOLS="$(readelf -Ws $OUTFILENAME | grep NOTYPE | grep GLOBAL | grep UND)"
-if [ ! -z "$MISSING_SYMBOLS" ]; then
-	echo "Warning: There are the following unresolved dependencies in libz3j.so:"
-	readelf -Ws $OUTFILENAME | grep NOTYPE | grep GLOBAL | grep UND
-	exit 1
-fi
+$COMPILER_CMD -Wall -g -o $OUTFILENAME $LIB_SHARING -Wl,-soname,$OUTFILENAME -Wl,-rpath,'$ORIGIN' -L. -L$Z3_LIB_DIR -L$Z3_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.o $Z3_LIBNAME
 
-MISSING_SYMBOLS="$(readelf -Ws $Z3_LIB_DIR/$Z3_SO_FILENAME | grep NOTYPE | grep GLOBAL | grep UND)"
-if [ ! -z "$MISSING_SYMBOLS" ]; then
-	echo "Warning: There are the following unresolved dependencies in libz3.so:"
-	readelf -Ws $Z3_LIB_DIR/$Z3_SO_FILENAME | grep NOTYPE | grep GLOBAL | grep UND
-	exit 1
+
+if [[ ! `uname` == CYGWIN* ]] ; then
+
+    if [ $? -eq 0 ]; then
+    	strip $OUTFILENAME
+    else
+    	echo "There was a problem during compilation of \"org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.c\""
+    	exit 1
+    fi
+
+    MISSING_SYMBOLS="$(readelf -Ws $OUTFILENAME | grep NOTYPE | grep GLOBAL | grep UND)"
+    if [ ! -z "$MISSING_SYMBOLS" ]; then
+    	echo "Warning: There are the following unresolved dependencies in libz3j.so:"
+    	readelf -Ws $OUTFILENAME | grep NOTYPE | grep GLOBAL | grep UND
+    	exit 1
+    fi
+
+    MISSING_SYMBOLS="$(readelf -Ws $Z3_LIB_DIR/$Z3_SO_FILENAME | grep NOTYPE | grep GLOBAL | grep UND)"
+    if [ ! -z "$MISSING_SYMBOLS" ]; then
+    	echo "Warning: There are the following unresolved dependencies in libz3.so:"
+    	readelf -Ws $Z3_LIB_DIR/$Z3_SO_FILENAME | grep NOTYPE | grep GLOBAL | grep UND
+    	exit 1
+    fi
 fi
 
 echo "All Done"

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -48,7 +49,9 @@ public class CallstackReducer implements Reducer {
     } else {
       assert element.getPreviousState() != null;
       CallstackState recursiveResult = copyCallstackUpToCallNode(element.getPreviousState(), callNode);
-      return new CallstackState(recursiveResult, element.getCurrentFunction(), element.getCallNode());
+      return new CallstackState(recursiveResult,
+          element.getCurrentFunction(),
+          element.getCallNode());
     }
   }
 
@@ -69,11 +72,16 @@ public class CallstackReducer implements Reducer {
   private CallstackState copyCallstackExceptLast(CallstackState target, CallstackState source) {
     if (source.getDepth() == 1) {
       assert source.getPreviousState() == null;
-      assert source.getCurrentFunction().equals(target.getCurrentFunction());
+      assert source.getCurrentFunction().equals(target.getCurrentFunction()):
+              "names of functions do not match: '" + source.getCurrentFunction() + "' != '" + target.getCurrentFunction() + "'";
       return target;
     } else {
       CallstackState recursiveResult = copyCallstackExceptLast(target, source.getPreviousState());
-      return new CallstackState(recursiveResult, source.getCurrentFunction(), source.getCallNode());
+
+      return new CallstackState(
+          recursiveResult,
+          source.getCurrentFunction(),
+          source.getCallNode());
     }
   }
 
@@ -143,5 +151,11 @@ public class CallstackReducer implements Reducer {
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
     return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
+  }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
+      AbstractState expandedState, FunctionExitNode exitLocation) {
+    return expandedState;
   }
 }

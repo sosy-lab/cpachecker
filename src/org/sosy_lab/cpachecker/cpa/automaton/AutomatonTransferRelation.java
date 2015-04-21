@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -69,7 +71,7 @@ import com.google.common.collect.Sets;
 @Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(description = "Collect information about matched (and traversed) tokens.")
+  @Option(secure=true, description = "Collect information about matched (and traversed) tokens.")
   private boolean collectTokenInformation = false;
 
   private final ControlAutomatonCPA cpa;
@@ -96,8 +98,15 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     Preconditions.checkArgument(pElement instanceof AutomatonState);
 
+    if (pElement instanceof AutomatonUnknownState) {
+      // the last CFA edge could not be processed properly
+      // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
+      AutomatonState top = cpa.getTopState();
+      return Collections.singleton(top);
+    }
+
     if (!(pCfaEdge instanceof MultiEdge)) {
-      Collection<? extends AbstractState> result = getAbstractSuccessors0(pElement, pPrecision, pCfaEdge);
+      Collection<? extends AbstractState> result = getAbstractSuccessors0((AutomatonState)pElement, pPrecision, pCfaEdge);
       automatonSuccessors.setNextValue(result.size());
       return result;
     }
@@ -161,23 +170,18 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+      AutomatonState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     totalPostTime.start();
     try {
-
       if (pElement instanceof AutomatonUnknownState) {
-        // the last CFA edge could not be processed properly
-        // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
-        AutomatonState top = cpa.getTopState();
-        return Collections.singleton(top);
-      }
-      if (! (pElement instanceof AutomatonState)) {
-        throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-AutomatonState AbstractStates.");
+        // happens only inside MultiEdges,
+        // here we have no chance (because strengthen is called only at the end of the edge),
+        // so we just stay in the previous state
+        pElement = ((AutomatonUnknownState)pElement).getPreviousState();
       }
 
-      AutomatonState lCurrentAutomatonState = (AutomatonState)pElement;
-      return getFollowStates(lCurrentAutomatonState, null, pCfaEdge, false);
+      return getFollowStates(pElement, null, pCfaEdge, false);
 
     } finally {
       totalPostTime.stop();
@@ -227,14 +231,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       ResultValue<Boolean> match = t.match(exprArgs);
       matchTime.stop();
 
-//      System.out.println("----------------------");
-//      System.out.println(t.getTrigger());
-//      System.out.println(t.getFollowState().getName());
-//      System.out.println(edge.getPredecessor().getNodeNumber());
-//      System.out.println(edge.getCode());
-//      System.out.println(match.getValue());
-
-
       if (match.canNotEvaluate()) {
         if (failOnUnknownMatch) {
           throw new CPATransferException("Automaton transition condition could not be evaluated: " + match.getFailureMessage());
@@ -270,7 +266,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, "");
+            String violatedPropertyDescription = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
+            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, violatedPropertyDescription);
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
@@ -344,10 +341,64 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     } else {
       totalStrengthenTime.start();
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
-      Collection<? extends AbstractState> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
+
+      /*
+       * Strengthening might depend on the strengthening of other automaton
+       * states, so we do a fixed-point iteration.
+       */
+      Collection<List<AbstractState>> strengtheningCombinations = new HashSet<>();
+      strengtheningCombinations.add(pOtherElements);
+      boolean changed = from(pOtherElements).anyMatch(instanceOf(AutomatonUnknownState.class));
+      while (changed) {
+        changed = false;
+        Collection<List<AbstractState>> newCombinations = new HashSet<>();
+        for (List<AbstractState> otherStates : strengtheningCombinations) {
+          Collection<List<AbstractState>> newPartialCombinations = new ArrayList<>();
+          newPartialCombinations.add(new ArrayList<AbstractState>());
+          for (AbstractState otherState : otherStates) {
+            AbstractState toAdd = otherState;
+            if (otherState instanceof AutomatonUnknownState) {
+              AutomatonUnknownState unknownState = (AutomatonUnknownState) otherState;
+
+              // Compute the successors of the other unknown state
+              List<AbstractState> statesOtherToCurrent = new ArrayList<>(otherStates);
+              statesOtherToCurrent.remove(unknownState);
+              statesOtherToCurrent.add(lUnknownState);
+              Collection<? extends AbstractState> successors =
+                  getFollowStates(unknownState.getPreviousState(), statesOtherToCurrent, pCfaEdge, true);
+
+              // There might be zero or more than one successor,
+              // so the list of states is multiplied with the list of successors
+              Collection<List<AbstractState>> multipliedPartialCrossProduct = new ArrayList<>();
+              for (List<AbstractState> newOtherStates : newPartialCombinations) {
+                for (AbstractState successor : successors) {
+                  List<AbstractState> multipliedNewOtherStates = new ArrayList<>(newOtherStates);
+                  multipliedNewOtherStates.add(successor);
+                  multipliedPartialCrossProduct.add(multipliedNewOtherStates);
+                }
+              }
+              newPartialCombinations = multipliedPartialCrossProduct;
+            } else {
+              // Not an (unknown) automaton state, so just add it at the end of each list
+              for (List<AbstractState> newOtherStates : newPartialCombinations) {
+                newOtherStates.add(toAdd);
+              }
+            }
+          }
+          newCombinations.addAll(newPartialCombinations);
+        }
+        changed = !strengtheningCombinations.equals(newCombinations);
+        strengtheningCombinations = newCombinations;
+      }
+
+      // For each list of other states, do the strengthening
+      Collection<AbstractState> successors = new HashSet<>();
+      for (List<AbstractState> otherStates : strengtheningCombinations) {
+        successors.addAll(getFollowStates(lUnknownState.getPreviousState(), otherStates, pCfaEdge, true));
+      }
       totalStrengthenTime.stop();
-      assert !from(lSuccessors).anyMatch(instanceOf(AutomatonUnknownState.class));
-      return lSuccessors;
+      assert !from(successors).anyMatch(instanceOf(AutomatonUnknownState.class));
+      return successors;
     }
   }
 }

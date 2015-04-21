@@ -34,7 +34,6 @@ import org.eclipse.jdt.core.dom.QualifiedType;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.Type;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
@@ -42,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public abstract class TypeConverter {
+abstract class TypeConverter {
 
   public final JType convert(Type t) {
 
@@ -63,7 +62,7 @@ public abstract class TypeConverter {
     } else if (t.getNodeType() == ASTNode.PARAMETERIZED_TYPE) {
       return convert(((ParameterizedType) t).getType());
     } else {
-      return new JSimpleType(JBasicType.UNSPECIFIED);
+      return JSimpleType.getUnspecified();
     }
   }
 
@@ -75,7 +74,7 @@ public abstract class TypeConverter {
     if (canBeResolved) {
       return convert(binding);
     } else {
-      return new JSimpleType(JBasicType.UNSPECIFIED);
+      return JSimpleType.getUnspecified();
     }
   }
 
@@ -86,7 +85,7 @@ public abstract class TypeConverter {
     if (canBeResolved) {
       return convert(binding);
     } else {
-      return new JSimpleType(JBasicType.UNSPECIFIED);
+      return JSimpleType.getUnspecified();
     }
   }
 
@@ -94,9 +93,9 @@ public abstract class TypeConverter {
     //TODO Needs to be completed (Wildcard, Parameterized type etc)
 
     if (t == null) {
-      return new JSimpleType(JBasicType.UNSPECIFIED);
+      return JSimpleType.getUnspecified();
     } else if (t.isPrimitive()) {
-      return new JSimpleType(convertPrimitiveType(t.getName()));
+      return convertPrimitiveType(t.getName());
     } else if (t.isArray()) {
       return new JArrayType(convert(t.getElementType()), t.getDimensions());
     } else if (t.isClass() || t.isEnum()) {
@@ -104,7 +103,7 @@ public abstract class TypeConverter {
     } else if (t.isInterface()) {
       return convertInterfaceType(t);
     } else {
-      return new JSimpleType(JBasicType.UNSPECIFIED);
+      return JSimpleType.getUnspecified();
     }
   }
 
@@ -126,33 +125,42 @@ public abstract class TypeConverter {
   private JSimpleType convert(final PrimitiveType t) {
 
     PrimitiveType.Code primitiveTypeName = t.getPrimitiveTypeCode();
-    return new JSimpleType(convertPrimitiveType(primitiveTypeName.toString()));
+    return convertPrimitiveType(primitiveTypeName.toString());
   }
 
-  private JBasicType convertPrimitiveType(String primitiveTypeName) {
+  private JSimpleType convertPrimitiveType(String primitiveTypeName) {
 
-    JBasicType type;
-    if (primitiveTypeName.equals("boolean")) {
-      type = JBasicType.BOOLEAN;
-    } else if (primitiveTypeName.equals("char")) {
-      type = JBasicType.CHAR;
-    } else if (primitiveTypeName.equals("double")) {
-      type = JBasicType.DOUBLE;
-    } else if (primitiveTypeName.equals("float")) {
-      type = JBasicType.FLOAT;
-    } else if (primitiveTypeName.equals("int")) {
-      type = JBasicType.INT;
-    } else if (primitiveTypeName.equals("void")) {
-      type = JBasicType.VOID;
-    } else if (primitiveTypeName.equals("long")) {
-      type = JBasicType.LONG;
-    } else if (primitiveTypeName.equals("short")) {
-      type = JBasicType.SHORT;
-    } else if (primitiveTypeName.equals("byte")) {
-      type = JBasicType.BYTE;
-    } else {
-      throw new CFAGenerationRuntimeException(
-                   "Unknown primitive type " + primitiveTypeName);
+    JSimpleType type;
+    switch (primitiveTypeName) {
+      case "boolean":
+        type = JSimpleType.getBoolean();
+        break;
+      case "char":
+        type = JSimpleType.getChar();
+        break;
+      case "double":
+        type = JSimpleType.getDouble();
+        break;
+      case "float":
+        type = JSimpleType.getFloat();
+        break;
+      case "int":
+        type = JSimpleType.getInt();
+        break;
+      case "void":
+        type = JSimpleType.getVoid();
+        break;
+      case "long":
+        type = JSimpleType.getLong();
+        break;
+      case "short":
+        type = JSimpleType.getShort();
+        break;
+      case "byte":
+        type = JSimpleType.getByte();
+        break;
+      default:
+        throw new CFAGenerationRuntimeException("Unknown primitive type " + primitiveTypeName);
     }
 
     return type;

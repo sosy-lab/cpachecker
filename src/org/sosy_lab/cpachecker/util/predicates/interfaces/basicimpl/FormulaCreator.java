@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
@@ -81,6 +84,10 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
 
   public abstract TType getBitvectorType(int bitwidth);
 
+  public abstract TType getFloatingPointType(FormulaType.FloatingPointType type);
+
+  public abstract TType getArrayType(TType indexType, TType elementType);
+
   public abstract TFormulaInfo makeVariable(TType type, String varName);
 
   public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm) {
@@ -91,8 +98,18 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return new BitvectorFormulaImpl<>(pTerm);
   }
 
+  protected FloatingPointFormula encapsulateFloatingPoint(TFormulaInfo pTerm) {
+    return new FloatingPointFormulaImpl<>(pTerm);
+  }
+
+  protected <TI extends Formula, TE extends Formula>
+  ArrayFormula<TI, TE>
+  encapsulateArray(TFormulaInfo pTerm, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    return new ArrayFormulaImpl<>(pTerm, pIndexType, pElementType);
+  }
+
   @SuppressWarnings("unchecked")
-  protected <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
+  public <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
     if (pType.isBooleanType()) {
       return (T)new BooleanFormulaImpl<>(pTerm);
     } else if (pType.isIntegerType()) {
@@ -101,15 +118,34 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
       return (T)new RationalFormulaImpl<>(pTerm);
     } else if (pType.isBitvectorType()) {
       return (T)new BitvectorFormulaImpl<>(pTerm);
+    } else if (pType.isFloatingPointType()) {
+      return (T)new FloatingPointFormulaImpl<>(pTerm);
+    } else if (pType.isArrayType()) {
+      ArrayFormulaType<?, ?> arrayType = (ArrayFormulaType<?, ?>) pType;
+      return (T) encapsulateArray(pTerm, arrayType.getIndexType(), arrayType.getElementType());
     }
-    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
+    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in the Solver!");
   }
 
   @SuppressWarnings("unchecked")
   protected TFormulaInfo extractInfo(Formula pT) {
-    return ((AbstractFormula<TFormulaInfo>)pT).getFormulaInfo();
+    if (pT instanceof AbstractFormula) {
+      return ((AbstractFormula<TFormulaInfo>)pT).getFormulaInfo();
+    }
+    throw new IllegalArgumentException("Cannot get the formula info of type " + pT.getClass().getSimpleName() + " in the Solver!");
   }
 
+  @SuppressWarnings("unchecked")
+  protected <TI extends Formula, TE extends Formula>
+  FormulaType<TE> getArrayFormulaElementType(ArrayFormula<TI, TE> pArray) {
+    return ((ArrayFormulaImpl<TI, TE, TFormulaInfo>)pArray).getElementType();
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <TI extends Formula, TE extends Formula>
+  FormulaType<TI> getArrayFormulaIndexType(ArrayFormula<TI, TE> pArray) {
+    return ((ArrayFormulaImpl<TI, TE, TFormulaInfo>)pArray).getIndexType();
+  }
 
   /**
    * Returns the type of the given Formula.
@@ -124,6 +160,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
       t = FormulaType.IntegerType;
     } else if (formula instanceof RationalFormula) {
       t = FormulaType.RationalType;
+    } else if (formula instanceof ArrayFormula) {
+      throw new UnsupportedOperationException("SMT solvers with support for arrays needs to overwrite FormulaCreator.getFormulaType()");
     } else if (formula instanceof BitvectorFormula) {
       throw new UnsupportedOperationException("SMT solvers with support for bitvectors needs to overwrite FormulaCreator.getFormulaType()");
     } else {
@@ -132,5 +170,6 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return (FormulaType<T>) t;
   }
 
-  protected abstract FormulaType<?> getFormulaType(TFormulaInfo formula);
+  public abstract FormulaType<?> getFormulaType(TFormulaInfo formula);
+
 }

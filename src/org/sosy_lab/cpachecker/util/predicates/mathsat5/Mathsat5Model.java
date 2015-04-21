@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.ModelIterator;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedLong;
 
 class Mathsat5Model {
 
@@ -63,6 +65,8 @@ class Mathsat5Model {
       return TermType.Real;
     } else if (msat_is_bv_type(e, mType)) {
       return TermType.Bitvector; // all other values are bitvectors of different sizes
+    } else if (msat_is_fp_type(e, mType)) {
+      return TermType.FloatingPoint;
     } else {
       throw new IllegalArgumentException("Given parameter is not a mathsat type!");
     }
@@ -107,11 +111,14 @@ class Mathsat5Model {
 
       Object lValue;
       long msatType = msat_term_get_type(lArgument);
-      if (msat_is_integer_type(env, msatType)
-          || msat_is_rational_type(env, msatType)) {
+      if (msat_is_integer_type(env, msatType)) {
+        lValue = new BigInteger(lTermRepresentation);
+      } else if (msat_is_rational_type(env, msatType)) {
         lValue = parseReal(lTermRepresentation);
       } else if (msat_is_bv_type(env, msatType)) {
         lValue = interpreteBitvector(lTermRepresentation);
+      } else if (msat_is_fp_type(env, msatType)) {
+        lValue = interpreteFloatingPoint(lTermRepresentation);
       } else {
         throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
       }
@@ -131,8 +138,7 @@ class Mathsat5Model {
     }
   }
 
-  static Model createMathsatModel(final long sourceEnvironment,
-       final Mathsat5FormulaManager fmgr) throws SolverException {
+  static Model createMathsatModel(final long sourceEnvironment) throws SolverException {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
     ModelIterator lModelIterator;
@@ -185,6 +191,10 @@ class Mathsat5Model {
         lValue = interpreteBitvector(lTermRepresentation);
         break;
 
+      case FloatingPoint:
+        lValue = interpreteFloatingPoint(lTermRepresentation);
+        break;
+
       default:
         throw new IllegalArgumentException("Mathsat term with unhandled type " + lAssignable.getType());
       }
@@ -199,7 +209,7 @@ class Mathsat5Model {
   private static Pattern BITVECTOR_PATTERN = Pattern.compile("^(\\d+)_(\\d+)$");
 
   //TODO: change this to the latest version (if possible try to use a BitvectorFormula instance here)
-  public static Object interpreteBitvector(String lTermRepresentation) {
+  private static Object interpreteBitvector(String lTermRepresentation) {
     // the term is of the format "<VALUE>_<WIDTH>"
     Matcher matcher =  BITVECTOR_PATTERN.matcher(lTermRepresentation);
     if (!matcher.matches()) {
@@ -218,6 +228,28 @@ class Mathsat5Model {
     }
 
     return value;
+  }
+
+  private static Pattern FLOATING_POINT_PATTERN = Pattern.compile("^(\\d+)_(\\d+)_(\\d+)$");
+
+  private static Object interpreteFloatingPoint(String lTermRepresentation) {
+    // the term is of the format "<VALUE>_<EXPWIDTH>_<MANTWIDTH>"
+    Matcher matcher =  FLOATING_POINT_PATTERN.matcher(lTermRepresentation);
+    if (!matcher.matches()) {
+      throw new NumberFormatException("Unknown floating-point format: " + lTermRepresentation);
+    }
+
+    int expWidth = Integer.parseInt(matcher.group(2));
+    int mantWidth = Integer.parseInt(matcher.group(3));
+
+    if (expWidth == 11 && mantWidth == 52) {
+      return Double.longBitsToDouble(UnsignedLong.valueOf(matcher.group(1)).longValue());
+    } else if (expWidth == 8 && mantWidth == 23) {
+      return Float.intBitsToFloat(UnsignedInteger.valueOf(matcher.group(1)).intValue());
+    }
+
+    // TODO to be fully correct, we would need to interpret this string
+    return new BigInteger(matcher.group(1));
   }
 
   private static Object parseReal(String lTermRepresentation) {

@@ -39,6 +39,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -118,8 +120,9 @@ public class BlockToDotWriter {
       }
     }
 
-    assert hierarchy.values().size() == blockPartitioning.getBlocks().size() - 1 :
-            "all blocks except mainBlock must appear exact once as child.";
+    assert hierarchy.values().size() <= blockPartitioning.getBlocks().size() - 1 :
+            "all blocks except mainBlock might appear at most once as child.";
+            // there might also be blocks, that are not part of the hierarchy, for example unused functions.
 
     return hierarchy;
   }
@@ -195,6 +198,10 @@ public class BlockToDotWriter {
     sb.append("\"");
     if (edge instanceof FunctionSummaryEdge) {
       sb.append(" style=\"dotted\" arrowhead=\"empty\"");
+    } else if (edge instanceof FunctionCallEdge) {
+      sb.append(" style=\"dashed\" arrowhead=\"empty\"");
+    } else if (edge instanceof FunctionReturnEdge) {
+      sb.append(" style=\"dashed\" arrowhead=\"empty\"");
     }
     sb.append("]\n");
     return sb.toString();

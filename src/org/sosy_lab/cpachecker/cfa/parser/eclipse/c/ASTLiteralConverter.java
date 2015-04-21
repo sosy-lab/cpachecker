@@ -113,22 +113,19 @@ class ASTLiteralConverter {
 
   private CImaginaryLiteralExpression handleImaginaryNumber(FileLocation fileLoc, CSimpleType type, IASTLiteralExpression exp, String valueStr) {
     valueStr = valueStr.substring(0, valueStr.length()-1);
-    String imaginary = valueStr.charAt(valueStr.length()-1) + "";
     type = new CSimpleType(type.isConst(), type.isVolatile(), type.getType(), type.isLong(),
         type.isShort(), type.isSigned(), type.isUnsigned(), type.isComplex(), true, type.isLongLong());
     switch (exp.getKind()) {
     case IASTLiteralExpression.lk_char_constant:
       return new CImaginaryLiteralExpression(fileLoc,
                                              type,
-                                             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)),
-                                             imaginary) ;
+                                             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp))) ;
 
 
     case IASTLiteralExpression.lk_integer_constant:
       return new CImaginaryLiteralExpression(fileLoc,
                                              type,
-                                             new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, exp)),
-                                             imaginary) ;
+                                             new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, exp))) ;
 
     case IASTLiteralExpression.lk_float_constant:
       BigDecimal val;
@@ -154,8 +151,7 @@ class ASTLiteralConverter {
 
       return new CImaginaryLiteralExpression(fileLoc,
                                              type,
-                                             new CFloatLiteralExpression(fileLoc, type, val),
-                                             imaginary);
+                                             new CFloatLiteralExpression(fileLoc, type, val));
 
     default:
       throw new CFAGenerationRuntimeException("Unknown imaginary literal", exp, niceFileNameFunction);
@@ -249,6 +245,10 @@ class ASTLiteralConverter {
     int bytes = machine.getSizeofInt();
     boolean signed = true;
 
+    if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
+      last--;
+      signed = false;
+    }
     if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
       last--;
       // one 'L' is a long int
@@ -260,6 +260,9 @@ class ASTLiteralConverter {
       bytes = machine.getSizeofLongLongInt();
     }
     if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
+      if (!signed) {
+        throw new CFAGenerationRuntimeException("invalid duplicate modifier U in integer literal", e, niceFileNameFunction);
+      }
       last--;
       signed = false;
     }

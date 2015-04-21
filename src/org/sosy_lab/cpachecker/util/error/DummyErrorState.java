@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.error;
 
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 
-public class DummyErrorState extends AbstractSingleWrapperState {
+public class DummyErrorState extends ARGState {
 
 
   private static final long serialVersionUID = 1338393013733003150L;
 
   public DummyErrorState(final AbstractState pWrapped) {
-    super(pWrapped);
+    super(pWrapped, null);
   }
 
   @Override

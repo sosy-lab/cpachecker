@@ -49,6 +49,19 @@ public enum JBasicType {
      code = pCode;
   }
 
+  public boolean isFloatingPointType() {
+    return this == FLOAT
+        || this == DOUBLE;
+  }
+
+  public boolean isIntegerType() {
+    return this == BYTE
+        || this == CHAR
+        || this == SHORT
+        || this == INT
+        || this == LONG;
+  }
+
   /**
    * Returns an unambiguous String representation of this type.
    * from all other <code>JBasicType</code> enum constants.

@@ -34,15 +34,15 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 
-public abstract class AFunctionCallExpression extends ARightHandSide {
+public abstract class AFunctionCallExpression extends AbstractRightHandSide {
 
-  private final IAExpression functionName;
-  private final List<? extends IAExpression> parameters;
+  private final AExpression functionName;
+  private final List<? extends AExpression> parameters;
   private final AFunctionDeclaration declaration;
 
 
-  public AFunctionCallExpression(FileLocation pFileLocation, Type pType, final IAExpression pFunctionName,
-      final List<? extends IAExpression> pParameters,
+  public AFunctionCallExpression(FileLocation pFileLocation, Type pType, final AExpression pFunctionName,
+      final List<? extends AExpression> pParameters,
       final AFunctionDeclaration pDeclaration) {
     super(pFileLocation, pType);
     functionName = pFunctionName;
@@ -50,11 +50,11 @@ public abstract class AFunctionCallExpression extends ARightHandSide {
     declaration = pDeclaration;
   }
 
-  public IAExpression getFunctionNameExpression() {
+  public AExpression getFunctionNameExpression() {
     return functionName;
   }
 
-  public List<? extends IAExpression> getParameterExpressions() {
+  public List<? extends AExpression> getParameterExpressions() {
     return parameters;
   }
 
@@ -77,7 +77,7 @@ public abstract class AFunctionCallExpression extends ARightHandSide {
 
     lASTString.append(functionName.toParenthesizedASTString());
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(parameters, IAExpression.TO_AST_STRING));
+    Joiner.on(", ").appendTo(lASTString, transform(parameters, AExpression.TO_AST_STRING));
     lASTString.append(")");
 
     return lASTString.toString();

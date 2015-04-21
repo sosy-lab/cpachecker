@@ -29,21 +29,21 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public abstract class AIdExpression extends ALeftHandSide {
+public abstract class AIdExpression extends AbstractLeftHandSide {
 
   private final String name;
-  private final IASimpleDeclaration declaration;
+  private final ASimpleDeclaration declaration;
 
 
   public AIdExpression(FileLocation pFileLocation, Type pType, final String pName,
-      final IASimpleDeclaration pDeclaration) {
+      final ASimpleDeclaration pDeclaration) {
     super(pFileLocation, pType);
     name = pName.intern();
     declaration = pDeclaration;
   }
 
 
-  public AIdExpression(FileLocation pFileLocation, IASimpleDeclaration pDeclaration) {
+  public AIdExpression(FileLocation pFileLocation, ASimpleDeclaration pDeclaration) {
     this(pFileLocation, pDeclaration.getType(),
         pDeclaration.getName(), pDeclaration);
   }
@@ -62,7 +62,7 @@ public abstract class AIdExpression extends ALeftHandSide {
     return name;
   }
 
-  public IASimpleDeclaration getDeclaration() {
+  public ASimpleDeclaration getDeclaration() {
     return   declaration;
   }
 

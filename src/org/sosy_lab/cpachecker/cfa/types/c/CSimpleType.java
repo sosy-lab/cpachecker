@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -30,9 +31,10 @@ import java.util.Objects;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
-public final class CSimpleType implements CType {
+public final class CSimpleType implements CType, Serializable {
 
 
+  private static final long serialVersionUID = -8279630814725098867L;
   private final CBasicType type;
   private final boolean isLong;
   private final boolean isShort;

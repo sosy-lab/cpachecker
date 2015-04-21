@@ -24,14 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 
 import com.google.common.base.Preconditions;
 
 
-public class ASTTypeConverter extends TypeConverter {
+class ASTTypeConverter extends TypeConverter {
 
   private final Scope scope;
 
@@ -55,7 +54,7 @@ public class ASTTypeConverter extends TypeConverter {
 
       Preconditions.checkArgument(t.isInterface());
 
-      String typeName = NameConverter.convertClassOrInterfaceName(t);
+      String typeName = NameConverter.convertClassOrInterfaceToFullName(t);
 
       if (scope.containsInterfaceType(typeName)) {
         return scope.getInterfaceType(typeName);
@@ -77,7 +76,7 @@ public class ASTTypeConverter extends TypeConverter {
 
       Preconditions.checkArgument(t.isClass() || t.isEnum());
 
-      String typeName = NameConverter.convertClassOrInterfaceName(t);
+      String typeName = NameConverter.convertClassOrInterfaceToFullName(t);
 
       if (scope.containsClassType(typeName)) {
         return scope.getClassType(typeName);

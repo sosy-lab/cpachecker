@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Predicates;
@@ -115,7 +114,7 @@ public class CFASimplifier {
 
         if (current.getNumLeavingEdges() > 1) {
           if (current.getNumLeavingEdges() > 2) {
-            throw new CFAGenerationRuntimeException("More than 2 leaving edges on node " + current + " in function " + current.getFunctionName());
+            throw new AssertionError("More than 2 leaving edges on node " + current + " in function " + current.getFunctionName());
           }
           assert CFAUtils.allLeavingEdges(current).allMatch(Predicates.instanceOf(AssumeEdge.class));
 
@@ -166,8 +165,8 @@ public class CFASimplifier {
       final CFANode endpoint2 = findEndOfBlankEdgeChain(endpoint);
       removeChainOfNodes(endpoint, endpoint2, cfa, removedFileLocations);
 
-      CFAEdge blankEdge = new BlankEdge("skipped uneccesary edges",
-          FileLocation.merge(removedFileLocations), branchingPoint, endpoint2, "skipped uneccesary edges");
+      CFAEdge blankEdge = new BlankEdge("skipped unnecessary edges",
+          FileLocation.merge(removedFileLocations), branchingPoint, endpoint2, "skipped unnecessary edges");
       CFACreationUtils.addEdgeUnconditionallyToCFA(blankEdge);
     }
   }

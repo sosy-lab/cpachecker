@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 @Options(prefix="cpa.conditions.path.length")
 public class PathLengthCondition implements PathCondition, Statistics {
 
-  @Option(description="maximum path length (-1 for infinite)",
+  @Option(secure=true, description="maximum path length (-1 for infinite)",
       name="limit")
   @IntegerOption(min=-1)
   private int threshold = -1;
@@ -69,14 +69,14 @@ public class PathLengthCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
+  public AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge) {
 
-    PathLengthConditionState element = (PathLengthConditionState)pElement;
-    if (element.thresholdReached) {
-      return element;
+    PathLengthConditionState current = (PathLengthConditionState)pState;
+    if (current.thresholdReached) {
+      return current;
     }
 
-    int pathLength = element.pathLength + 1;
+    int pathLength = current.pathLength + 1;
     boolean thresholdReached = (threshold >= 0) && (pathLength >= threshold);
 
     maxPathLength = Math.max(pathLength, maxPathLength);

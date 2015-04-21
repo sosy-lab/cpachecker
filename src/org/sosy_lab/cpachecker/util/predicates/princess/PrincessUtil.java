@@ -43,12 +43,11 @@ import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFormulaITE;
 import ap.parser.IFunApp;
-import ap.parser.IIntFormula;
+import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.INot;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
-import ap.parser.ITimes;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful static functions. */
@@ -154,25 +153,11 @@ class PrincessUtil {
   }
 
   public static int getArity(IExpression t) {
-    if (t instanceof IIntFormula) {
-      return 2;
-    }
-    if (t instanceof ITimes) {
-      return 2;
-    }
     return t.length();
   }
 
   public static IExpression getArg(IExpression t, int i) {
     assert i < getArity(t) : String.format("index %d out of bounds %d in expression %s", i, getArity(t), t);
-
-    if (t instanceof IIntFormula && i == 1) {
-      return new IIntLit(IdealInt.apply(0));
-    }
-
-    if (t instanceof ITimes && i == 1) {
-      return new IIntLit(((ITimes) t).coeff());
-    }
 
     return t.apply(i);
     /*
@@ -234,9 +219,10 @@ class PrincessUtil {
 
   /** this function returns all variables in the terms.
    * Doubles are removed. */
-  public static Set<IExpression> getVars(Collection<IExpression> exprList) {
-    Set<IExpression> vars = new HashSet<>();
+  public static Set<IExpression> getVarsAndUIFs(Collection<IExpression> exprList) {
+    Set<IExpression> result = new HashSet<>();
     Set<IExpression> seen = new HashSet<>();
+    Set<IFunction> uifs = new HashSet<>();
     Deque<IExpression> todo = new ArrayDeque<>(exprList);
 
     while (!todo.isEmpty()) {
@@ -246,20 +232,22 @@ class PrincessUtil {
       }
 
       if (isVariable(t)) {
-        vars.add(t);
-      } else if (t.length() > 0) {
+        result.add(t);
+        // this is a real variable we can skip here
+        continue;
+
+      } else if (isUIF(t) && uifs.add(((IFunApp)t).fun())) {
+        result.add(t);
+      }
+
+      if (t.length() > 0) {
         Iterator<IExpression> it = t.iterator();
         while (it.hasNext()) {
           todo.add(it.next());
         }
       }
     }
-    return vars;
-  }
-
-  /** this function can be used to print a bigger term */
-  public static String prettyPrint(IExpression t) {
-    return t.toString();
+    return result;
   }
 
 }

@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options(prefix = "pcc.partial")
 public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy {
 
-  @Option(
+  @Option(secure=true,
       description = "If enabled, distributes checking of partial elements depending on actual checking costs, else uses the number of elements")
   private boolean enableLoadDistribution = false;
 
@@ -194,13 +194,13 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
         coordination.release();
 
       } catch (CPATransferException e) {
-        logger.logException(Level.FINE, e, "Computation of successors failed.");
+        logger.logUserException(Level.FINE, e, "Computation of successors failed.");
         abort();
       } catch (CPAException e) {
-        logger.logException(Level.FINE, e, "Stop check failed for successor.");
+        logger.logUserException(Level.FINE, e, "Stop check failed for successor.");
         abort();
       } catch (Exception e) {
-        e.printStackTrace();
+        logger.logException(Level.WARNING, e, "Unknown problem");
         abort();
       }
     }

@@ -40,7 +40,7 @@ abstract class PrincessAbstractProver {
   /** This function causes the SatSolver to check all the terms on the stack,
    * if their conjunction is SAT or UNSAT.
    */
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() {
     return !stack.checkSat();
   }
 

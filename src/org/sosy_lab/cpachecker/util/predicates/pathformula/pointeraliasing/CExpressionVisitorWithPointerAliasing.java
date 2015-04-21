@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -64,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
@@ -81,7 +81,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       return convert0(value, rhs);
     }
 
-    private Formula convert0(Expression value, CRightHandSide rhs) throws UnrecognizedCCodeException {
+    private Formula convert0(Expression value, CRightHandSide rhs) {
       CType type = CTypeUtils.simplifyType(rhs.getExpressionType());
       return ((CExpressionVisitorWithPointerAliasing)delegate).asValueFormula(value, type);
     }
@@ -100,7 +100,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                           final ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts) {
 
-    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cfaEdge, function, ssa, constraints) {
+    delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cToFormulaConverter.fmgr, cfaEdge, function, ssa, constraints) {
       @Override
       protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
         return asValueFormula(e.accept(CExpressionVisitorWithPointerAliasing.this),
@@ -181,6 +181,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final Formula index = conv.makeCast(subscriptType,
                                         CPointerType.POINTER_TO_VOID,
                                         asValueFormula(subscript.accept(this), subscriptType),
+                                        constraints,
                                         edge);
 
     final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
@@ -256,7 +257,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
     if (CTypeUtils.isSimpleType(resultType)) {
-      return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
+      return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), constraints, edge));
     } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
       // Special case: conversion of non-scalar type to itself is allowed (and ignored)
       // Change of const modifier is ignored, too.
@@ -298,66 +299,81 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   public Value visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     if (e.getOperator() == UnaryOperator.AMPER) {
       final CExpression operand = e.getOperand();
-      final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
 
-      if (!(resultType instanceof CFunctionType)) {
-        final Variable baseVariable = operand.accept(baseVisitor);
-        if (baseVariable == null) {
-          AliasedLocation addressExpression = null;
+      final Variable baseVariable = operand.accept(baseVisitor);
+      if (baseVariable == null) {
+        AliasedLocation addressExpression = null;
 
-          if (errorConditions != null && operand instanceof CFieldReference) {
-            // for &(s->f) and &((*s).f) do special case because the pointer is
-            // not actually dereferenced and thus we don't want to add error conditions
-            // for invalid-deref
-            final CFieldReference field = (CFieldReference) operand;
-            CExpression fieldOwner = field.getFieldOwner();
-            boolean isDeref = field.isPointerDereference();
-            if (!isDeref && fieldOwner instanceof CPointerExpression) {
-              fieldOwner = ((CPointerExpression)fieldOwner).getOperand();
-              isDeref = true;
-            }
-            if (isDeref) {
-              final CPointerType pointerType = (CPointerType)CTypeUtils.simplifyType(fieldOwner.getExpressionType());
-              final Formula base = asSafeValueFormula(fieldOwner.accept(this), pointerType);
-              final String fieldName = field.getFieldName();
-              final CCompositeType compositeType = (CCompositeType)CTypeUtils.simplifyType(pointerType.getType());
-              usedFields.add(Pair.of(compositeType, fieldName));
-              final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                          conv.ptsMgr.getOffset(compositeType, fieldName));
-              addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
-              addEqualBaseAdressConstraint(base, addressExpression.getAddress());
-            }
+        // addressedFields is used to treat structure assignment and field addressing separately:
+        // assuming s1 and s2 both have substructure ss1, which in its turn has fields f1 and f2,
+        // and there is also outer structure ss2 of the same type as ss1, in
+        // s1.ss1 = s2.ss1;
+        // ss2.f1 = 0;
+        // it isn't necessary to start tracking
+        // either s1.ss1.f{1,2} or s2.ss1.f{1,2}, because as s{1,2}.ss1 itself is not tracked,
+        // it's known that their values remain undefined and only some other outer structure field is assigned.
+        // But in
+        // p2 = &(s2.ss1);
+        // p2->f1 = 0;
+        // the fields f1 and f2 along with the field s{1,2}.ss1 should be tracked from the first line onwards, because
+        // it's too hard to determine (without the help of some alias analysis)
+        // whether f1 assigned in the second line is an outer or inner structure field.
+        final List<Pair<CCompositeType, String>> alreadyUsedFields = ImmutableList.copyOf(usedFields);
+        usedFields.clear();
+
+        if (errorConditions.isEnabled() && operand instanceof CFieldReference) {
+          // for &(s->f) and &((*s).f) do special case because the pointer is
+          // not actually dereferenced and thus we don't want to add error conditions
+          // for invalid-deref
+          final CFieldReference field = (CFieldReference) operand;
+          CExpression fieldOwner = field.getFieldOwner();
+          boolean isDeref = field.isPointerDereference();
+          if (!isDeref && fieldOwner instanceof CPointerExpression) {
+            fieldOwner = ((CPointerExpression)fieldOwner).getOperand();
+            isDeref = true;
           }
-
-          if (addressExpression == null) {
-            addressExpression = operand.accept(this).asAliasedLocation();
+          if (isDeref) {
+            final CPointerType pointerType = (CPointerType)CTypeUtils.simplifyType(fieldOwner.getExpressionType());
+            final Formula base = asSafeValueFormula(fieldOwner.accept(this), pointerType);
+            final String fieldName = field.getFieldName();
+            final CCompositeType compositeType = (CCompositeType)CTypeUtils.simplifyType(pointerType.getType());
+            usedFields.add(Pair.of(compositeType, fieldName));
+            final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
+                                                        conv.ptsMgr.getOffset(compositeType, fieldName));
+            addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
+            addEqualBaseAdressConstraint(base, addressExpression.getAddress());
           }
-
-          return Value.ofValue(addressExpression.getAddress());
-        } else {
-          final Variable base = baseVisitor.getLastBase();
-          final Formula baseAddress = conv.makeConstant(PointerTargetSet.getBaseName(base.getName()),
-                                                        CTypeUtils.getBaseType(base.getType()));
-          conv.addValueImportConstraints(edge,
-                                         baseAddress,
-                                         base,
-                                         initializedFields,
-                                         ssa,
-                                         constraints,
-                                         pts);
-          if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
-            ssa.deleteVariable(base.getName());
-          }
-          conv.addPreFilledBase(base.getName(),
-                                base.getType(),
-                                pts.isPreparedBase(base.getName()),
-                                false,
-                                constraints,
-                                pts);
-          return visit(e);
         }
+
+        if (addressExpression == null) {
+          addressExpression = operand.accept(this).asAliasedLocation();
+        }
+
+        addressedFields.addAll(usedFields);
+        usedFields.addAll(alreadyUsedFields);
+
+        return Value.ofValue(addressExpression.getAddress());
       } else {
-        return operand.accept(this).asValue();
+        final Variable base = baseVisitor.getLastBase();
+        final Formula baseAddress = conv.makeConstant(PointerTargetSet.getBaseName(base.getName()),
+                                                      CTypeUtils.getBaseType(base.getType()));
+        conv.addValueImportConstraints(edge,
+                                       baseAddress,
+                                       base,
+                                       initializedFields,
+                                       ssa,
+                                       constraints,
+                                       pts);
+        if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
+          ssa.deleteVariable(base.getName());
+        }
+        conv.addPreFilledBase(base.getName(),
+                              base.getType(),
+                              pts.isPreparedBase(base.getName()),
+                              false,
+                              constraints,
+                              pts);
+        return visit(e);
       }
     } else {
       return visitDefault(e);
@@ -461,6 +477,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return Collections.unmodifiableList(initializedFields);
   }
 
+  List<Pair<CCompositeType, String>> getAddressedFields() {
+    return Collections.unmodifiableList(addressedFields);
+  }
+
   Map<String, CType> getUsedDeferredAllocationPointers() {
     return Collections.unmodifiableMap(usedDeferredAllocationPointers);
   }
@@ -477,5 +497,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);
   private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
   private final Map<String, CType> usedDeferredAllocationPointers = Maps.newHashMapWithExpectedSize(1);
 }

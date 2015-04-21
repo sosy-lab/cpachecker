@@ -31,9 +31,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
@@ -59,14 +61,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
@@ -157,9 +156,11 @@ public class CProgramScope implements Scope {
     }
   };
 
-  final String currentFile = "";
+  private final String currentFile = "";
 
-  private final Multimap<String, CSimpleDeclaration> simpleDeclarations;
+  private final Set<String> variableNames;
+
+  private final Map<String, CSimpleDeclaration> uniqueSimpleDeclarations;
 
   private final Multimap<String, CFunctionDeclaration> functionDeclarations;
 
@@ -176,8 +177,9 @@ public class CProgramScope implements Scope {
    * Returns an empty program scope.
    */
   private CProgramScope() {
+    variableNames = Collections.emptySet();
     qualifiedDeclarations = Collections.emptyMap();
-    simpleDeclarations = ImmutableListMultimap.of();
+    uniqueSimpleDeclarations = Collections.emptyMap();
     functionDeclarations = ImmutableListMultimap.of();
     qualifiedTypes = Collections.emptyMap();
     qualifiedTypeDefs = Collections.emptyMap();
@@ -191,7 +193,8 @@ public class CProgramScope implements Scope {
    * @param pFunctionName the new function name.
    */
   private CProgramScope(CProgramScope pScope, String pFunctionName) {
-    simpleDeclarations = pScope.simpleDeclarations;
+    variableNames = pScope.variableNames;
+    uniqueSimpleDeclarations = pScope.uniqueSimpleDeclarations;
     functionDeclarations = pScope.functionDeclarations;
     qualifiedDeclarations = pScope.qualifiedDeclarations;
     qualifiedTypes = pScope.qualifiedTypes;
@@ -229,39 +232,13 @@ public class CProgramScope implements Scope {
 
     qualifiedTypeDefs = extractTypeDefs(typeDcls, pLogger);
 
-    simpleDeclarations = nonFunctionDcls.index(GET_NAME);
-
     functionDeclarations = functionDcls.index(GET_ORIGINAL_QUALIFIED_NAME);
 
+    variableNames = nonFunctionDcls.transform(GET_NAME).toSet();
+
     qualifiedDeclarations = extractQualifiedDeclarations(nonFunctionDcls, pLogger);
-  }
 
-  private boolean hasUniqueDeclarationForSimpleName(String simpleName) {
-
-    return simpleDeclarations.get(simpleName).size() == 1;
-  }
-
-  private CSimpleDeclaration getUniqueDeclarationForSimpleName(String simpleName) {
-    Collection<CSimpleDeclaration> dcls = simpleDeclarations.get(simpleName);
-
-    Preconditions.checkArgument(dcls.size() == 1, "Simple name not unique.");
-
-    return dcls.iterator().next();
-  }
-
-  @SuppressWarnings("unused")
-  private boolean contains(String qualifiedName) {
-    return qualifiedDeclarations.containsKey(qualifiedName);
-  }
-
-  @SuppressWarnings("unused")
-  private CSimpleDeclaration getDeclaration(String qualifiedName) {
-
-    if (!qualifiedDeclarations.containsKey(qualifiedName)) {
-      throw new AssertionError("Qualified name not in Scope.");
-    }
-
-    return qualifiedDeclarations.get(qualifiedName);
+    uniqueSimpleDeclarations = extractUniqueSimpleDeclarations(qualifiedDeclarations);
   }
 
   public static CProgramScope empty() {
@@ -274,8 +251,8 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public boolean variableNameInUse(String pName, String pOrigName) {
-    return hasUniqueDeclarationForSimpleName(pName);
+  public boolean variableNameInUse(String pName) {
+    return variableNames.contains(pName);
   }
 
   @Override
@@ -294,11 +271,7 @@ public class CProgramScope implements Scope {
       return result;
     }
 
-    if (hasUniqueDeclarationForSimpleName(pName)) {
-      return getUniqueDeclarationForSimpleName(pName);
-    }
-
-    return null;
+    return uniqueSimpleDeclarations.get(pName);
   }
 
   @Override
@@ -384,8 +357,17 @@ public class CProgramScope implements Scope {
    * Returns the name for the type as it would be if it is renamed.
    */
   @Override
-  public String getRenamedTypeName(String type) {
-    return type + "__" + currentFile;
+  public String getFileSpecificTypeName(String type) {
+    if (isFileSpecificTypeName(type)) {
+      return type;
+    } else {
+      return type + "__" + currentFile;
+    }
+  }
+
+  @Override
+  public boolean isFileSpecificTypeName(String type) {
+    return type.endsWith("__" + currentFile);
   }
 
   /**
@@ -569,6 +551,25 @@ public class CProgramScope implements Scope {
     return Collections.unmodifiableMap(uniqueTypeDefs);
   }
 
+  private static Map<String, CSimpleDeclaration> extractUniqueSimpleDeclarations(
+      Map<String, CSimpleDeclaration> pQualifiedDeclarations) {
+    return Maps.transformEntries(Maps.filterEntries(from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(), new Predicate<Map.Entry<String, Collection<CSimpleDeclaration>>>() {
+
+      @Override
+      public boolean apply(Entry<String, Collection<CSimpleDeclaration>> pArg0) {
+        return pArg0.getValue().size() == 1;
+      }
+
+    }), new Maps.EntryTransformer<String, Collection<CSimpleDeclaration>, CSimpleDeclaration>() {
+
+      @Override
+      public CSimpleDeclaration transformEntry(String pArg0, @Nonnull Collection<CSimpleDeclaration> pArg1) {
+        return pArg1.iterator().next();
+      }
+
+    });
+  }
+
   private static <T extends CType> void putIfUnique(Map<String, ? super T> pTarget, String pQualifiedName, Iterable<? extends T> pValues, LogManager pLogger) {
     if (!Iterables.isEmpty(pValues)) {
       Iterator<? extends T> typeIterator = pValues.iterator();
@@ -618,7 +619,7 @@ public class CProgramScope implements Scope {
     return null;
   }
 
-  private static class TypeCollector implements CTypeVisitor<Void, RuntimeException> {
+  private static class TypeCollector extends DefaultCTypeVisitor<Void, RuntimeException> {
 
     private final Set<CType> collectedTypes;
 
@@ -635,7 +636,13 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CArrayType pArrayType) throws RuntimeException {
+    public Void visitDefault(CType pT) {
+      collectedTypes.add(pT);
+      return null;
+    }
+
+    @Override
+    public Void visit(CArrayType pArrayType) {
       if (!collectedTypes.contains(pArrayType)) {
         collectedTypes.add(pArrayType);
         pArrayType.getType().accept(this);
@@ -647,7 +654,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CCompositeType pCompositeType) throws RuntimeException {
+    public Void visit(CCompositeType pCompositeType) {
       if (!collectedTypes.contains(pCompositeType)) {
         collectedTypes.add(pCompositeType);
         for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
@@ -658,7 +665,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CElaboratedType pElaboratedType) throws RuntimeException {
+    public Void visit(CElaboratedType pElaboratedType) {
       if (!collectedTypes.contains(pElaboratedType)) {
         collectedTypes.add(pElaboratedType);
         if (pElaboratedType.getRealType() != null) {
@@ -669,15 +676,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CEnumType pEnumType) throws RuntimeException {
-      if (!collectedTypes.contains(pEnumType)) {
-        collectedTypes.add(pEnumType);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CFunctionType pFunctionType) throws RuntimeException {
+    public Void visit(CFunctionType pFunctionType) {
       if (!collectedTypes.contains(pFunctionType)) {
         collectedTypes.add(pFunctionType);
         for (CType parameterType : pFunctionType.getParameters()) {
@@ -688,7 +687,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CPointerType pPointerType) throws RuntimeException {
+    public Void visit(CPointerType pPointerType) {
       if (!collectedTypes.contains(pPointerType)) {
         collectedTypes.add(pPointerType);
         pPointerType.getType().accept(this);
@@ -697,30 +696,13 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CProblemType pProblemType) throws RuntimeException {
-      if (!collectedTypes.contains(pProblemType)) {
-        collectedTypes.add(pProblemType);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CSimpleType pSimpleType) throws RuntimeException {
-      if (!collectedTypes.contains(pSimpleType)) {
-        collectedTypes.add(pSimpleType);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visit(CTypedefType pTypedefType) throws RuntimeException {
+    public Void visit(CTypedefType pTypedefType) {
       if (!collectedTypes.contains(pTypedefType)) {
         collectedTypes.add(pTypedefType);
         pTypedefType.getRealType().accept(this);
       }
       return null;
     }
-
   }
 
 }

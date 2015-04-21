@@ -30,7 +30,7 @@ import org.junit.Test;
 public class SMGRegionTest {
 
   @Before
-  public void setUp() throws Exception {}
+  public void setUp() {}
 
   @Test
   public void testIsAbstract() {

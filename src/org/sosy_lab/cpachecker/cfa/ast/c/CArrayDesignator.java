@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 
 public class CArrayDesignator extends CDesignator {
 
-  private final IAExpression subscriptExpression;
+  private final AExpression subscriptExpression;
 
   public CArrayDesignator(final FileLocation pFileLocation,
                           final CExpression pSubscriptExpression) {

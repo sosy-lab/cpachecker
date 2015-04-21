@@ -54,7 +54,6 @@ import org.eclipse.cdt.internal.core.parser.InternalParserUtil;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Path;
@@ -79,7 +78,7 @@ import com.google.common.collect.Lists;
 /**
  * Wrapper for Eclipse CDT 7.0 and 8.* (internal version number since 5.2.*)
  */
-public class EclipseCParser implements CParser {
+class EclipseCParser implements CParser {
 
   protected final ILanguage language;
 
@@ -133,7 +132,7 @@ public class EclipseCParser implements CParser {
     return FileContent.create(fixPath(pFileName), pCode.toCharArray());
   }
 
-  private final FileContent wrapFile(String pFileName) throws IOException {
+  private FileContent wrapFile(String pFileName) throws IOException {
     String code = Paths.get(pFileName).asCharSource(Charset.defaultCharset()).read();
     return wrapCode(fixPath(pFileName), code);
   }
@@ -141,9 +140,9 @@ public class EclipseCParser implements CParser {
   @Override
   public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
 
-    List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
+    List<IASTTranslationUnit> astUnits = new ArrayList<>();
     for (FileToParse f: pFilenames) {
-      astUnits.add(Pair.of(parse(wrapFile(f.getFileName())), f.getStaticVariablePrefix()));
+      astUnits.add(parse(wrapFile(f.getFileName())));
     }
     return buildCFA(astUnits, sourceOriginMapping);
   }
@@ -151,9 +150,9 @@ public class EclipseCParser implements CParser {
   @Override
   public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
 
-    List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
+    List<IASTTranslationUnit> astUnits = new ArrayList<>();
     for (FileContentToParse f : codeFragments) {
-      astUnits.add(Pair.of(parse(wrapCode(f)), f.getStaticVariablePrefix()));
+      astUnits.add(parse(wrapCode(f)));
     }
     return buildCFA(astUnits, sourceOriginMapping);
   }
@@ -165,9 +164,8 @@ public class EclipseCParser implements CParser {
   public ParseResult parseFile(String pFilename, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
 
     IASTTranslationUnit unit = parse(wrapFile(pFilename));
-    String prefix = "";
-    List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
-    returnParam.add(Pair.of(unit, prefix));
+    List<IASTTranslationUnit> returnParam = new ArrayList<>();
+    returnParam.add(unit);
     return buildCFA(returnParam, sourceOriginMapping);
   }
 
@@ -178,9 +176,8 @@ public class EclipseCParser implements CParser {
   public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
 
     IASTTranslationUnit unit = parse(wrapCode(pFilename, pCode));
-    String prefix = "";
-    List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
-    returnParam.add(Pair.of(unit, prefix));
+    List<IASTTranslationUnit> returnParam = new ArrayList<>();
+    returnParam.add(unit);
     return buildCFA(returnParam, sourceOriginMapping);
   }
 
@@ -299,7 +296,7 @@ public class EclipseCParser implements CParser {
     }
   }
 
-  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CParserException, CFAGenerationRuntimeException, CoreException {
+  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CFAGenerationRuntimeException, CoreException {
     return language.getASTTranslationUnit(pCode,
                                           StubScannerInfo.instance,
                                           FileContentProvider.instance,
@@ -316,7 +313,7 @@ public class EclipseCParser implements CParser {
    * @throws CParserException
    * @throws InvalidConfigurationException
    */
-  private ParseResult buildCFA(List<Pair<IASTTranslationUnit, String>> asts,
+  private ParseResult buildCFA(List<IASTTranslationUnit> asts,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
@@ -324,8 +321,19 @@ public class EclipseCParser implements CParser {
     Function<String, String> niceFileNameFunction = createNiceFileNameFunction(asts);
     try {
       CFABuilder builder = new CFABuilder(config, logger, niceFileNameFunction, sourceOriginMapping, machine);
-      for (Pair<IASTTranslationUnit, String> ast : asts) {
-        builder.analyzeTranslationUnit(ast.getFirst(), ast.getSecond());
+
+      // we don't need any file prefix if we only have one file
+      if (asts.size() == 1) {
+        builder.analyzeTranslationUnit(asts.get(0), "");
+
+        // in case of several files we need to add a file prefix to global variables
+        // as there could be several equally named files in different directories
+        // we consider not only the file name but also the path for creating
+        // the prefix
+      } else {
+        for (IASTTranslationUnit ast : asts) {
+          builder.analyzeTranslationUnit(ast, niceFileNameFunction.apply(ast.getFilePath()).replace("/", "_").replaceAll("\\W", "_"));
+        }
       }
 
       return builder.createCFA();
@@ -344,11 +352,11 @@ public class EclipseCParser implements CParser {
    * The result may be the empty string, if for example CPAchecker only uses
    * one file (we expect the user to know its name in this case).
    */
-  private Function<String, String> createNiceFileNameFunction(List<Pair<IASTTranslationUnit, String>> asts) {
-    Iterator<String> fileNames = Lists.transform(asts, new Function<Pair<IASTTranslationUnit, String>, String>() {
+  private Function<String, String> createNiceFileNameFunction(List<IASTTranslationUnit> asts) {
+    Iterator<String> fileNames = Lists.transform(asts, new Function<IASTTranslationUnit, String>() {
       @Override
-      public String apply(Pair<IASTTranslationUnit, String> pInput) {
-        return pInput.getFirst().getFilePath();
+      public String apply(IASTTranslationUnit pInput) {
+        return pInput.getFilePath();
       }}).iterator();
 
     if (asts.size() == 1) {

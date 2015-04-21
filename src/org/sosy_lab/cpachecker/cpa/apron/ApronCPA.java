@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -42,22 +45,30 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import apron.ApronException;
 
 @Options(prefix="cpa.apron")
-public final class ApronCPA implements ConfigurableProgramAnalysis {
+public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);
   }
 
-  @Option(name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
+  @Option(secure=true, name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
+
+  @Option(secure=true, name="splitDisequalities",
+      description="split disequalities considering integer operands into two states or use disequality provided by apron library ")
+  private boolean splitDisequalities = true;
 
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
@@ -73,14 +84,18 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
 
   private ApronCPA(Configuration config, LogManager log,
                      ShutdownNotifier shutdownNotifier, CFA cfa)
-                     throws InvalidConfigurationException, InvalidCFAException {
+                     throws InvalidConfigurationException, CPAException {
+    if (!cfa.getLoopStructure().isPresent()) {
+      throw new CPAException("ApronCPA cannot work without loop-structure information in CFA.");
+    }
     config.inject(this);
     logger = log;
     ApronDomain apronDomain = new ApronDomain(logger);
 
     apronManager = new ApronManager(config);
+    GlobalInfo.getInstance().storeApronManager(apronManager);
 
-    this.transferRelation = new ApronTransferRelation(logger, cfa);
+    this.transferRelation = new ApronTransferRelation(logger, cfa.getLoopStructure().get(), splitDisequalities);
 
     MergeOperator apronMergeOp = ApronMergeOperator.getInstance(apronDomain, config);
 
@@ -96,11 +111,11 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config,
-          VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification()));
+          VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
 
       // static full precision is default
     } else {
-      precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification());
+      precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
     }
   }
 
@@ -134,7 +149,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     try {
       return new ApronState(logger, apronManager);
     } catch (ApronException e) {
@@ -143,7 +158,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return precision;
   }
 
@@ -161,5 +176,40 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
 
   public CFA getCFA() {
     return cfa;
+  }
+
+  public boolean isSplitDisequalites() {
+    return splitDisequalities;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+    try {
+      Collection<? extends AbstractState> computedSuccessors =
+          transferRelation.getAbstractSuccessorsForEdge(
+              pState, precision, pCfaEdge);
+      boolean found;
+      for (AbstractState comp:computedSuccessors) {
+        found = false;
+        for (AbstractState e:pSuccessors) {
+          if (isCoveredBy(comp, e)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          return false;
+        }
+      }
+    } catch (CPAException e) {
+      throw new CPATransferException("Cannot compare abstract successors", e);
+    }
+    return true;
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
+     return abstractDomain.isLessOrEqual(pState, pOtherState);
   }
 }

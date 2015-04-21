@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 
@@ -38,14 +37,6 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
   extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements
     BooleanFormulaManager {
-
-  private final Function<BooleanFormula, TFormulaInfo> extractor =
-      new Function<BooleanFormula, TFormulaInfo>() {
-        @Override
-        public TFormulaInfo apply(BooleanFormula pInput) {
-          return extractInfo(pInput);
-        }
-      };
 
   protected AbstractBooleanFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
@@ -60,10 +51,6 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
 
   private BooleanFormula wrap(TFormulaInfo formulaInfo) {
     return getFormulaCreator().encapsulateBoolean(formulaInfo);
-  }
-
-  private TFormulaInfo extractInfo(Formula pBits) {
-    return getFormulaCreator().extractInfo(pBits);
   }
 
   @Override

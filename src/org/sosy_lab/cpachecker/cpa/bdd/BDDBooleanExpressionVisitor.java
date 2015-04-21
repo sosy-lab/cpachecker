@@ -31,7 +31,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
@@ -42,14 +44,16 @@ public class BDDBooleanExpressionVisitor
 
   private final static int BOOLEAN_SIZE = 1;
   private final PredicateManager predMgr;
-  private final BDDPrecision precision;
+  private final VariableTrackingPrecision precision;
   protected final RegionManager rmgr;
+  private final CFANode location;
 
   /** This Visitor returns the boolean value for an expression. */
-  protected BDDBooleanExpressionVisitor(final PredicateManager pPredMgr, final RegionManager pRmgr, final BDDPrecision pPrecision) {
+  protected BDDBooleanExpressionVisitor(final PredicateManager pPredMgr, final RegionManager pRmgr, final VariableTrackingPrecision pPrecision, final CFANode pLocation) {
     this.predMgr = pPredMgr;
     this.rmgr = pRmgr;
     this.precision = pPrecision;
+    this.location = pLocation;
   }
 
   @Override
@@ -112,7 +116,7 @@ public class BDDBooleanExpressionVisitor
       }
     }
 
-    final Region[] result = predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), BOOLEAN_SIZE, precision);
+    final Region[] result = predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), location, BOOLEAN_SIZE, precision);
     if (result == null) {
       return null;
     } else {

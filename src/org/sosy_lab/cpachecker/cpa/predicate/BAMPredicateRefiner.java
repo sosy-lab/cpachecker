@@ -42,10 +42,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -72,11 +75,12 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -123,10 +127,11 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     LogManager logger = predicateCpa.getLogger();
 
-    InterpolationManager manager = new InterpolationManager(predicateCpa.getFormulaManager(),
+    InterpolationManager manager = new InterpolationManager(
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getSolver(),
-                                          predicateCpa.getFormulaManagerFactory(),
+                                          predicateCpa.getCfa().getLoopStructure(),
+                                          predicateCpa.getCfa().getVarClassification(),
                                           predicateCpa.getConfiguration(),
                                           predicateCpa.getShutdownNotifier(),
                                           logger);
@@ -141,7 +146,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           predicateCpa.getConfiguration(),
                                           logger,
                                           predicateCpa,
-                                          predicateCpa.getFormulaManager(),
                                           predicateCpa.getSolver(),
                                           predicateCpa.getPredicateManager(),
                                           predicateCpa.getStaticRefiner());
@@ -152,9 +156,11 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           pCpa,
                                           manager,
                                           pathChecker,
-                                          predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          strategy);
+                                          strategy,
+                                          predicateCpa.getSolver(),
+                                          predicateCpa.getAssumesStore(),
+                                          predicateCpa.getCfa());
   }
 
   @Override
@@ -172,20 +178,28 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     private final Timer ssaRenamingTimer = new Timer();
 
-    private final PathFormulaManager pfmgr;
-
     private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
         final ConfigurableProgramAnalysis pCpa,
         final InterpolationManager pInterpolationManager,
         final PathChecker pPathChecker,
-        final FormulaManagerView pFormulaManager,
         final PathFormulaManager pPathFormulaManager,
-        final RefinementStrategy pStrategy)
+        final RefinementStrategy pStrategy,
+        final Solver pSolver,
+        final PredicateAssumeStore pAssumesStore,
+        final CFA pCfa)
             throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pFormulaManager, pPathFormulaManager, pStrategy, null);
+      super(config,
+          logger,
+          pCpa,
+          pInterpolationManager,
+          pPathChecker,
+          pPathFormulaManager,
+          pStrategy,
+          pSolver,
+          pAssumesStore,
+          pCfa);
 
-      pfmgr = pPathFormulaManager;
     }
 
     @Override
@@ -205,12 +219,14 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     private List<BooleanFormula> computeBlockFormulas(final ARGState pRoot) throws CPATransferException, InterruptedException {
 
+      final Map<ARGState, ARGState> callStacks = new HashMap<>(); // contains states and their next higher callstate
       final Map<ARGState, PathFormula> finishedFormulas = new HashMap<>();
       final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
       final Deque<ARGState> waitlist = new ArrayDeque<>();
 
       // initialize
       assert pRoot.getParents().isEmpty() : "rootState must be the first state of the program";
+      callStacks.put(pRoot, null); // main-start has no callstack
       finishedFormulas.put(pRoot, pfmgr.makeEmptyPathFormula());
       waitlist.addAll(pRoot.getChildren());
 
@@ -228,42 +244,90 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         }
 
         // collect formulas for current location
-        List<PathFormula> currentFormulas = new ArrayList<>(currentState.getParents().size());
+        final List<PathFormula> currentFormulas = new ArrayList<>(currentState.getParents().size());
+        final List<ARGState> currentStacks = new ArrayList<>(currentState.getParents().size());
         for (ARGState parentElement : currentState.getParents()) {
           PathFormula parentFormula = finishedFormulas.get(parentElement);
-          CFAEdge edge = parentElement.getEdgeToChild(currentState);
-          PathFormula currentFormula = pfmgr.makeAnd(parentFormula, edge);
-          currentFormulas.add(currentFormula);
-        }
-        assert currentFormulas.size() >= 1 : "each state except root must have parents";
+          final CFAEdge edge = parentElement.getEdgeToChild(currentState);
+          assert edge != null: "ARG is invalid: parent has no edge to child";
 
-        PredicateAbstractState predicateElement = extractStateByType(currentState, PredicateAbstractState.class);
+          final ARGState prevCallState;
+          // we enter a function, so lets add the previous state to the stack
+          if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+            prevCallState = parentElement;
+
+          } else if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+            // we leave a function, so rebuild return-state before assigning the return-value.
+            // rebuild states with info from previous state
+            assert callStacks.containsKey(parentElement);
+            final ARGState callState = callStacks.get(parentElement);
+
+            assert extractLocation(callState).getLeavingSummaryEdge().getSuccessor() == extractLocation(currentState) :
+                    "callstack does not match entry of current function-exit.";
+            assert callState != null || currentState.getChildren().isEmpty() :
+                    "returning from empty callstack is only possible at program-exit";
+
+            prevCallState = callStacks.get(callState);
+            parentFormula = rebuildStateAfterFunctionCall(parentFormula,
+                finishedFormulas.get(callState), (FunctionExitNode)extractLocation(parentElement));
+
+          } else {
+            assert callStacks.containsKey(parentElement); // check for null is not enough
+            prevCallState = callStacks.get(parentElement);
+          }
+
+          final PathFormula currentFormula = pfmgr.makeAnd(parentFormula, edge);
+          currentFormulas.add(currentFormula);
+          currentStacks.add(prevCallState);
+        }
+
+        assert currentFormulas.size() >= 1 : "each state except root must have parents";
+        assert currentStacks.size() == currentFormulas.size() : "number of callstacks must match predecessors";
+
+        // merging after functioncall with different callstates is ugly.
+        // this is also guaranteed by the abstraction-locations at function-entries
+        // (--> no merge of states with different latest abstractions).
+        assert Sets.newHashSet(currentStacks).size() <= 1 : "function with multiple entry-states not supported";
+
+        callStacks.put(currentState, currentStacks.get(0));
+
+        PathFormula currentFormula;
+        final PredicateAbstractState predicateElement = extractStateByType(currentState, PredicateAbstractState.class);
         if (predicateElement.isAbstractionState()) {
           // abstraction element is the start of a new part of the ARG
 
           assert waitlist.isEmpty() : "todo should be empty, because of the special ARG structure";
           assert currentState.getParents().size() == 1 : "there should be only one parent, because of the special ARG structure";
-          finishedFormulas.clear(); // free some memory
+
+          // finishedFormulas.clear(); // free some memory
+          // TODO disabled, we need to keep callStates for later usage
 
           // start new block with empty formula
-          PathFormula currentFormula = getOnlyElement(currentFormulas);
+          currentFormula = getOnlyElement(currentFormulas);
           abstractionFormulas.add(currentFormula.getFormula());
-          finishedFormulas.put(currentState, pfmgr.makeEmptyPathFormula(currentFormula));
+          currentFormula = pfmgr.makeEmptyPathFormula(currentFormula);
 
         } else {
           // merge the formulas
           Iterator<PathFormula> it = currentFormulas.iterator();
-          PathFormula currentFormula = it.next();
+          currentFormula = it.next();
           while (it.hasNext()) {
             currentFormula = pfmgr.makeOr(currentFormula, it.next());
           }
-
-          finishedFormulas.put(currentState, currentFormula);
         }
 
+        assert !finishedFormulas.containsKey(currentState) : "a state should only be finished once";
+        finishedFormulas.put(currentState, currentFormula);
         waitlist.addAll(currentState.getChildren());
       }
       return abstractionFormulas;
+    }
+
+    /* rebuild indices from outer scope */
+    private PathFormula rebuildStateAfterFunctionCall(final PathFormula parentFormula, final PathFormula rootFormula,
+        final FunctionExitNode functionExitNode) {
+      final SSAMap newSSA = BAMPredicateReducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa(), functionExitNode);
+      return pfmgr.makeNewPathFormula(parentFormula, newSSA);
     }
 
     @Override
@@ -292,12 +356,12 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     private BAMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
         final BAMPredicateCPA predicateCpa,
-        final FormulaManagerView pFormulaManager, final Solver pSolver,
+        final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr,
         final PredicateStaticRefiner pStaticRefiner)
             throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, predicateCpa.getShutdownNotifier(), pFormulaManager, pPredAbsMgr, pStaticRefiner, pSolver);
+      super(config, logger, predicateCpa.getShutdownNotifier(), pPredAbsMgr, pStaticRefiner, pSolver);
 
       RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
       if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
@@ -318,7 +382,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         }
       };
 
-    private List<Region> getRegionsForPath(List<ARGState> path) throws CPATransferException {
+    private List<Region> getRegionsForPath(List<ARGState> path) {
       return from(path)
               .transform(toState(PredicateAbstractState.class))
               .transform(GET_REGION)
@@ -382,7 +446,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         }
       }
 
-      ((BAMPredicateReducer)predicateCpa.getReducer()).clearCaches();
+      predicateCpa.getReducer().clearCaches();
     }
 
     @Override

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -65,7 +66,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
    * Theory and Practice of Logic Programming, Vol. 13, Special Issue 02, 2013, pp. 175-199
    * DOI: http://dx.doi.org/10.1017/S1471068411000627
    */
-  @Option(name="firingRelation", values={"Always","Maxcoeff","Sumcoeff","Homeocoeff"},
+  @Option(secure=true, name="firingRelation", values={"Always","Maxcoeff","Sumcoeff","Homeocoeff"},
       description="firing relation to be used in the precision adjustment operator")
   private String firingRelation = "Always";
 
@@ -76,7 +77,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
    * Theory and Practice of Logic Programming, Vol. 13, Special Issue 02, 2013, pp. 175-199
    * DOI: http://dx.doi.org/10.1017/S1471068411000627
    */
-  @Option(name="generalizationOperator", values={"Top","Widen","WidenMax","WidenSum"},
+  @Option(secure=true, name="generalizationOperator", values={"Top","Widen","WidenMax","WidenSum"},
       description="generalization operator to be used in the precision adjustment operator")
   private String generalizationOperator = "Widen";
 
@@ -84,7 +85,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
    * SEP = identity
    * JOIN = convex hull
    */
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="merge operator to be used")
   private String mergeType = "SEP";
 
@@ -139,14 +140,14 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     CHCState initialState = new CHCState();
     initialState.setNodeNumber(1);
     return initialState;
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return precision;
   }
 

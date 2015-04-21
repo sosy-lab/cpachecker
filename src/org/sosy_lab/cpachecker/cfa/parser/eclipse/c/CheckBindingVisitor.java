@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 import com.google.common.collect.Sets;
 
@@ -121,7 +123,7 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   public Void visit(CIdExpression e) {
     if (e.getDeclaration() == null) {
       if (printedWarnings.add(e.getName())) {
-        logger.log(Level.WARNING, "Undefined identifier", e.getName(), "found, first referenced in line", e.getFileLocation().getStartingLineNumber());
+        logger.log(Level.WARNING, "Undefined identifier", e.getName(), "found, first referenced in", e.getFileLocation());
         foundUndefinedIdentifiers = true;
       }
     }
@@ -176,9 +178,9 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
     if (e.getFunctionNameExpression() instanceof CIdExpression) {
       CIdExpression f = (CIdExpression) e.getFunctionNameExpression();
       if (f.getDeclaration() == null) {
-        if (!f.getName().startsWith("__builtin_") // GCC builtin functions
+        if (!BuiltinFunctions.isBuiltinFunction(f.getName()) // GCC builtin functions
             && printedWarnings.add(f.getName())) {
-          logger.log(Level.WARNING, "Undefined function", f.getName(), "found, first called in line", e.getFileLocation().getStartingLineNumber());
+          logger.log(Level.WARNING, "Undefined function", f.getName(), "found, first called in", e.getFileLocation());
         }
       }
 
@@ -255,6 +257,11 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   @Override
   public Void visit(CFieldDesignator e) throws CFAGenerationRuntimeException {
+    return null;
+  }
+
+  @Override
+  public Void visit(CAddressOfLabelExpression e) throws CFAGenerationRuntimeException {
     return null;
   }
 }

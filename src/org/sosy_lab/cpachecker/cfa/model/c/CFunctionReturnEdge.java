@@ -41,7 +41,11 @@ public class CFunctionReturnEdge extends FunctionReturnEdge {
 
   @Override
   public CFunctionSummaryEdge getSummaryEdge() {
-    return (CFunctionSummaryEdge) summaryEdge;
+    return (CFunctionSummaryEdge)super.getSummaryEdge();
   }
 
+  @Override
+  public CFunctionEntryNode getFunctionEntry() {
+    return (CFunctionEntryNode)super.getFunctionEntry();
+  }
 }

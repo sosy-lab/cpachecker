@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
+import org.sosy_lab.cpachecker.core.algorithm.realctools.RealCChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -80,15 +81,15 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   private final Set<ARGState> checkedTargetStates = Collections.newSetFromMap(new WeakHashMap<ARGState, Boolean>());
 
-  @Option(name="checker", toUppercase=true, values={"CBMC", "CPACHECKER"},
+  @Option(secure=true, name="checker", toUppercase=true, values={"CBMC", "CPACHECKER", "REALC"},
           description="which model checker to use for verifying counterexamples as a second check\n"
                     + "Currently CBMC or CPAchecker with a different config can be used.")
   private String checkerName = "CBMC";
 
-  @Option(description="continue analysis after an counterexample was found that was denied by the second check")
+  @Option(secure=true, description="continue analysis after an counterexample was found that was denied by the second check")
   private boolean continueAfterInfeasibleError = true;
 
-  @Option(description="If continueAfterInfeasibleError is true, remove the infeasible counterexample before continuing."
+  @Option(secure=true, description="If continueAfterInfeasibleError is true, remove the infeasible counterexample before continuing."
               + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound")
   private boolean removeInfeasibleErrors = false;
 
@@ -108,17 +109,19 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       checker = new CBMCChecker(config, logger, cfa);
     } else if (checkerName.equals("CPACHECKER")) {
       checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename, cpa);
+    }else if (checkerName.equals("REALC")){
+      checker = new RealCChecker(config, logger, cfa, cpa);
     } else {
       throw new AssertionError();
     }
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean sound = true;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     while (reached.hasWaitingState()) {
-      sound &= algorithm.run(reached);
+      status = status.update(algorithm.run(reached));
       assert ARGUtils.checkARG(reached);
 
       ARGState lastState = (ARGState)reached.getLastState();
@@ -150,7 +153,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             continue;
           }
 
-          sound = checkCounterexample(errorState, reached, sound);
+          status = AlgorithmStatus.SOUND_AND_PRECISE.withSound(
+              checkCounterexample(errorState, reached, status.isSound()));
           if (reached.contains(errorState)) {
             checkedTargetStates.add(errorState);
             foundCounterexample = true;
@@ -164,7 +168,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         checkTime.stop();
       }
     }
-    return sound;
+    return status;
   }
 
   private boolean checkCounterexample(ARGState errorState, ReachedSet reached,

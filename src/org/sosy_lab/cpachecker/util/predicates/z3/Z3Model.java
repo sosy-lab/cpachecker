@@ -36,8 +36,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -104,18 +103,12 @@ class Z3Model {
       int sortKind = get_sort_kind(z3context, argSort);
       switch (sortKind) {
       case Z3_INT_SORT: {
-        PointerToInt p = new PointerToInt();
-        boolean check = get_numeral_int(z3context, arg, p);
-        Preconditions.checkState(check);
-        lValue = p.value;
+        lValue = new BigInteger(get_numeral_string(z3context, arg));
         break;
       }
       case Z3_REAL_SORT: {
-        long numerator = get_numerator(z3context, arg);
-        long denominator = get_denominator(z3context, arg);
-        BigInteger num = BigInteger.valueOf(numerator);
-        BigInteger den = BigInteger.valueOf(denominator);
-        lValue = num.divide(den);
+        String s = get_numeral_string(z3context, arg);
+        lValue = Rational.ofString(s);
         break;
       }
       case Z3_BV_SORT: {
@@ -199,15 +192,12 @@ class Z3Model {
         break;
 
       case Integer:
-        PointerToInt p = new PointerToInt();
-        boolean check = get_numeral_int(z3context, value, p);
-        Preconditions.checkState(check);
-        lValue = p.value;
+        lValue = new BigInteger(get_numeral_string(z3context, value));
         break;
 
       case Real:
         String s = get_numeral_string(z3context, value);
-        lValue = ExtendedRational.ofString(s);
+        lValue = Rational.ofString(s);
         break;
 
       case Bitvector:

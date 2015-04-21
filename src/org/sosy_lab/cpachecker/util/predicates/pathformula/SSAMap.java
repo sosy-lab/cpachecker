@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -61,11 +60,7 @@ public class SSAMap implements Serializable {
   private static final long serialVersionUID = 7618801653203679876L;
 
   // Default value for the default value
-  public static final int DEFAULT_DEFAULT_IDX = -1;
-
-  // Default difference for two SSA-indizes of the same name.
-  @VisibleForTesting
-  static final int DEFAULT_INCREMENT = 1;
+  private static final int DEFAULT_DEFAULT_IDX = -1;
 
   private final int defaultValue;
 
@@ -103,6 +98,7 @@ public class SSAMap implements Serializable {
 
     private SSAMap ssa;
     private PersistentSortedMap<String, Integer> vars; // Do not update without updating varsHashCode!
+    private FreshValueProvider freshValueProvider;
     private PersistentSortedMap<String, CType> varTypes;
 
     // Instead of computing vars.hashCode(),
@@ -113,6 +109,8 @@ public class SSAMap implements Serializable {
     private SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
       this.vars = ssa.vars;
+      this.freshValueProvider = ssa.freshValueProvider;
+
       this.varTypes = ssa.varTypes;
       this.varsHashCode = ssa.varsHashCode;
     }
@@ -122,11 +120,7 @@ public class SSAMap implements Serializable {
     }
 
     public int getFreshIndex(String variable) {
-      Integer value = vars.get(variable);
-      if (value == null) {
-        value = ssa.defaultValue;
-      }
-      return value + SSAMap.DEFAULT_INCREMENT; // increment for a new index
+      return freshValueProvider.getFreshValue(variable, SSAMap.getIndex(variable, vars, ssa.defaultValue));
     }
 
     public CType getType(String name) {
@@ -157,6 +151,10 @@ public class SSAMap implements Serializable {
       return this;
     }
 
+    public void mergeFreshValueProviderWith(final FreshValueProvider fvp) {
+      this.freshValueProvider = freshValueProvider.merge(fvp);
+    }
+
     public SSAMapBuilder deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != ssa.defaultValue) {
@@ -181,11 +179,11 @@ public class SSAMap implements Serializable {
      * Returns an immutable SSAMap with all the changes made to the builder.
      */
     public SSAMap build() {
-      if (vars == ssa.vars) {
+      if (vars == ssa.vars && freshValueProvider == ssa.freshValueProvider) {
         return ssa;
       }
 
-      ssa = new SSAMap(vars, varsHashCode, varTypes, ssa.defaultValue);
+      ssa = new SSAMap(vars, freshValueProvider, varsHashCode, varTypes, ssa.defaultValue);
       return ssa;
     }
 
@@ -200,6 +198,7 @@ public class SSAMap implements Serializable {
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
       PathCopyingPersistentTreeMap.<String, Integer>of(),
+      new FreshValueProvider.DefaultFreshValueProvider(),
       0,
       PathCopyingPersistentTreeMap.<String, CType>of());
 
@@ -211,7 +210,7 @@ public class SSAMap implements Serializable {
   }
 
   public SSAMap withDefault(final int defaultValue) {
-    return new SSAMap(this.vars, this.varsHashCode, this.varTypes, defaultValue);
+    return new SSAMap(this.vars, this.freshValueProvider, this.varsHashCode, this.varTypes, defaultValue);
   }
 
   /**
@@ -229,8 +228,9 @@ public class SSAMap implements Serializable {
     // probably never be the case on a merge.
 
     PersistentSortedMap<String, Integer> vars;
+    FreshValueProvider freshValueProvider;
     List<Triple<String, Integer, Integer>> differences;
-    if (s1.vars == s2.vars) {
+    if (s1.vars == s2.vars && s1.freshValueProvider == s2.freshValueProvider) {
       differences = ImmutableList.of();
       // both are absolutely identical
       return Pair.of(s1, differences);
@@ -239,6 +239,7 @@ public class SSAMap implements Serializable {
       differences = new ArrayList<>();
       vars = PersistentSortedMaps.merge(s1.vars, s2.vars, Equivalence.equals(),
           PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), differences);
+      freshValueProvider = s1.freshValueProvider.merge(s2.freshValueProvider);
     }
 
     PersistentSortedMap<String, CType> varTypes = PersistentSortedMaps.merge(
@@ -247,20 +248,23 @@ public class SSAMap implements Serializable {
         TYPE_CONFLICT_CHECKER,
         null);
 
-    return Pair.of(new SSAMap(vars, 0, varTypes), differences);
+    return Pair.of(new SSAMap(vars, freshValueProvider, 0, varTypes), differences);
   }
 
   private final PersistentSortedMap<String, Integer> vars;
+  private final FreshValueProvider freshValueProvider;
   private final PersistentSortedMap<String, CType> varTypes;
 
   // Cache hashCode of potentially big map
   private final int varsHashCode;
 
   private SSAMap(PersistentSortedMap<String, Integer> vars,
+                 FreshValueProvider freshValueProvider,
                  int varsHashCode,
                  PersistentSortedMap<String, CType> varTypes,
                  int defaultSSAIdx) {
     this.vars = vars;
+    this.freshValueProvider = freshValueProvider;
     this.varTypes = varTypes;
 
     if (varsHashCode == 0) {
@@ -274,9 +278,10 @@ public class SSAMap implements Serializable {
   }
 
   private SSAMap(PersistentSortedMap<String, Integer> vars,
+                 FreshValueProvider freshValueProvider,
                  int varsHashCode,
                  PersistentSortedMap<String, CType> varTypes) {
-    this(vars, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
+    this(vars, freshValueProvider, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
   }
 
   /**
@@ -336,7 +341,8 @@ public class SSAMap implements Serializable {
       SSAMap other = (SSAMap)obj;
       // Do a few cheap checks before the expensive ones.
       return varsHashCode == other.varsHashCode
-          && vars.equals(other.vars);
+          && vars.equals(other.vars)
+          && freshValueProvider.equals(other.freshValueProvider);
     }
   }
 }

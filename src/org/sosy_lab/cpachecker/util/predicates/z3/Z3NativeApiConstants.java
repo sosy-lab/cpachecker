@@ -26,10 +26,14 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 /** This class contains many constants (enums) from Z3. */
-class Z3NativeApiConstants {
+public class Z3NativeApiConstants {
 
   /** returns, if the function of the expression is the given operation. */
   public static boolean isOP(long z3context, long expr, int op) {
+    if (!is_app(z3context, expr)) {
+      return false;
+    }
+
     long decl = get_app_decl(z3context, expr);
     return get_decl_kind(z3context, decl) == op;
   }
@@ -234,4 +238,11 @@ class Z3NativeApiConstants {
   public static final int Z3_OP_DT_RECOGNISER = 2049;
   public static final int Z3_OP_DT_ACCESSOR = 2050;
   public static final int Z3_OP_UNINTERPRETED = 2051;
+
+  // Z3_ast_print_mode
+  public static final int Z3_PRINT_SMTLIB_FULL = 0;
+  public static final int Z3_PRINT_LOW_LEVEL = 1;
+  public static final int Z3_PRINT_SMTLIB_COMPLIANT = 2;
+  public static final int Z3_PRINT_SMTLIB2_COMPLIANT = 3;
+
 }

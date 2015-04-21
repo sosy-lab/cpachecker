@@ -28,14 +28,14 @@ import java.util.Objects;
 
 
 
-public abstract class AFunctionCallAssignmentStatement extends AStatement implements IAssignment, AFunctionCall {
+public abstract class AFunctionCallAssignmentStatement extends AbstractStatement implements AAssignment, AFunctionCall {
 
 
-  private final IALeftHandSide leftHandSide;
+  private final ALeftHandSide leftHandSide;
   private final AFunctionCallExpression rightHandSide;
 
   public AFunctionCallAssignmentStatement(FileLocation pFileLocation,
-                                          IALeftHandSide pLeftHandSide,
+                                          ALeftHandSide pLeftHandSide,
                                           AFunctionCallExpression pRightHandSide) {
     super(pFileLocation);
 
@@ -45,7 +45,7 @@ public abstract class AFunctionCallAssignmentStatement extends AStatement implem
   }
 
   @Override
-  public IALeftHandSide getLeftHandSide() {
+  public ALeftHandSide getLeftHandSide() {
     return leftHandSide;
   }
 

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.*;
 
@@ -47,7 +46,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -60,8 +58,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWr
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
@@ -74,43 +74,54 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 class PredicateCPAStatistics extends AbstractStatistics {
 
-  @Option(description="export final predicate map",
+  @Option(secure=true, description="export final predicate map",
           name="predmap.export")
   private boolean exportPredmap = true;
 
-  @Option(description="file for exporting final predicate map",
+  @Option(secure=true, description="file for exporting final predicate map",
           name="predmap.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path predmapFile = Paths.get("predmap.txt");
 
-  @Option(name="precondition.file", description="File for exporting the weakest precondition.")
+  @Option(secure=true, name="precondition.file", description="File for exporting the weakest precondition.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path preconditionFile = Paths.get("precondition.txt");
-  @Option(name="precondition.export", description="Export the weakest precondition?")
+  @Option(secure=true, name="precondition.export", description="Export the weakest precondition?")
   private boolean preconditionExport = false;
 
-  @Option(description="export final loop invariants",
+  @Option(secure=true, description="export final loop invariants",
           name="invariants.export")
   private boolean exportInvariants = true;
 
-  @Option(description="export invariants as precision file?",
+  @Option(secure=true, description="export invariants as precision file?",
       name="invariants.exportAsPrecision")
   private boolean exportInvariantsAsPrecision = true;
 
-  @Option(description="file for exporting final loop invariants",
+  @Option(secure=true, description="file for exporting final loop invariants",
           name="invariants.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path invariantsFile = Paths.get("invariants.txt");
 
-  @Option(description="file for precision that consists of invariants.",
+  @Option(secure=true, description="file for precision that consists of invariants.",
           name="invariants.precisionFile")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
-  @Option(description="file that consists of one abstraction formula for each abstraction state",
+  @Option(description="Export one abstraction formula for each abstraction state into a file?",
+      name="abstractions.export")
+  private boolean abstractionsExport = true;
+  @Option(secure=true, description="file that consists of one abstraction formula for each abstraction state",
       name="abstractions.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path abstractionsFile = Paths.get("abstractions.txt");
+
+  @Option(description="enable export of all relations that were collected to synthecise the abstract precision?",
+      name="relations.export")
+  private boolean relationsExport = false;
+  @Option(description="file that consists all relations that were collected to synthecise the abstract precision",
+      name="relations.file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path relationsFile = Paths.get("relations.txt");
 
   private final PredicateCPA cpa;
   private final BlockOperator blk;
@@ -118,30 +129,26 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final AbstractionManager absmgr;
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
-  private final PreconditionWriter preconditionWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
-
-  private final Timer invariantGeneratorTime;
 
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      PreconditionWriter pPreconditions, Timer pInvariantGeneratorTimer, Configuration pConfig)
+      Configuration pConfig)
           throws InvalidConfigurationException {
 
     cpa = pCpa;
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
-    invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
 
     pConfig.inject(this, PredicateCPAStatistics.class);
 
-    loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
-    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());
-    preconditionWriter = checkNotNull(pPreconditions);
+    final FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
+    loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, fmgr, pRmgr);
+    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), fmgr);
 
     if (exportPredmap && predmapFile != null) {
-      precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());
+      precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), fmgr);
     } else {
       precisionWriter = null;
     }
@@ -237,15 +244,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
     int allDistinctPreds = absmgr.getNumberOfPredicates();
 
-    if (preconditionExport && preconditionFile != null) {
-      preconditionWriter.writePrecondition(preconditionFile, reached, cpa.logger);
-    }
-
     if (exportInvariants && invariantsFile != null) {
       loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);
     }
 
-    if (abstractionsFile != null) {
+    if (abstractionsExport && abstractionsFile != null) {
       abstractionsWriter.writeAbstractions(abstractionsFile, reached);
     }
 
@@ -347,10 +350,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
     }
     out.println("Time for prec operator:              " + prec.totalPrecTime);
     if (prec.numAbstractions > 0) {
-      if (invariantGeneratorTime.getNumberOfIntervals() > 0) {
-        out.println("  Time for generating invariants:    " + invariantGeneratorTime);
-        out.println("  Time for extracting invariants:    " + prec.invariantGenerationTime);
-      }
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);

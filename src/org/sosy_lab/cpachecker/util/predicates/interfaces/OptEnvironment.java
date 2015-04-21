@@ -25,38 +25,76 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
+
+import com.google.common.base.Optional;
 
 public interface OptEnvironment extends AutoCloseable {
+
   /**
    * Add constraint to the context.
    */
   void addConstraint(BooleanFormula constraint);
 
-  void setObjective(Formula objective);
+  /**
+   * Add the maximization <code>objective</code>.
+   *
+   * <b>Note: {@code push/pop} may be used for switching objectives</b>
+   *
+   * @return Objective handle, to be used for retrieving the value.
+   */
+  int maximize(Formula objective);
+
+  /**
+   * Add minimization <code>objective</code>.
+   *
+   * <b>Note: {@code push/pop} may be used for switching objectives</b>
+   *
+   * @return Objective handle, to be used for retrieving the value.
+   */
+  int minimize(Formula objective);
 
   /**
    * Optimize the objective function subject to the previously
    * imposed constraints.
-   * Value of the objective function can be obtained using the
-   * {@link #getModel()} call.
    *
    * @return Status of the optimization problem.
-   *
-   * @throws InterruptedException
-   * @throws UnsupportedOperationException If solver does not support optimization.
    */
-  OptResult maximize() throws InterruptedException;
+  OptStatus check() throws InterruptedException, SolverException;
+
+  /**
+   * Create backtracking point.
+   */
+  void push();
+
+  /**
+   * Backtrack one level.
+   */
+  void pop();
+
+  /**
+   * @param epsilon Value to substitute for the {@code epsilon}.
+   * @return Upper approximation of the optimized value, or
+   *  absent optional if the objective is unbounded.
+   */
+  Optional<Rational> upper(int handle, Rational epsilon);
+
+  /**
+   * @param epsilon Value to substitute for the {@code epsilon}.
+   * @return Lower approximation of the optimized value, or
+   *  absent optional if the objective is unbounded.
+   */
+  Optional<Rational> lower(int handle, Rational epsilon);
 
   Model getModel() throws SolverException;
 
   /**
-   * Optimization result.
+   * Status of the optimization problem.
    */
-  enum OptResult {
-    OPT, // All good, the solution was found.
+  public enum OptStatus {
+    OPT, // All good, the solution was found (may be unbounded).
     UNSAT,  // SMT problem is unsatisfiable.
-    UNDEF, // The result is unknown.
-    UNBOUNDED // The optimization problem is unbounded.
+    UNDEF // The result is unknown.
   }
 
   @Override

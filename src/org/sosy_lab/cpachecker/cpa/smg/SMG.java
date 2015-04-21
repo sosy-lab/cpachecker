@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
+import com.google.common.collect.ImmutableList;
+
 public class SMG {
   final private HashSet<SMGObject> objects = new HashSet<>();
   final private HashSet<Integer> values = new HashSet<>();
@@ -871,6 +873,11 @@ final class NeqRelation {
   private final Map<Integer, List<Integer>> smgValues = new HashMap<>();
 
   public void add_relation(Integer pOne, Integer pTwo) {
+
+    if(pOne.intValue() == pTwo.intValue()) {
+      return;
+    }
+
     if (! smgValues.containsKey(pOne)) {
       smgValues.put(pOne, new ArrayList<Integer>());
     }
@@ -927,11 +934,15 @@ final class NeqRelation {
       smgValues.put(pTwo, new ArrayList<Integer>());
     }
 
-    List<Integer> values = smgValues.get(pTwo);
+    List<Integer> values = ImmutableList.copyOf(smgValues.get(pTwo));
     removeValue(pTwo);
 
     List<Integer> my = smgValues.get(pOne);
     for (Integer value : values) {
+      if(!smgValues.containsKey(value)) {
+        continue;
+      }
+
       List<Integer> other = smgValues.get(value);
       if ((! value.equals(pOne)) && (! other.contains(pOne))) {
         other.add(pOne);

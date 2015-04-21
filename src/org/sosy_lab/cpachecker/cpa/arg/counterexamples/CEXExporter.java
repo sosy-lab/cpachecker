@@ -49,9 +49,9 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssignments;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExport;
@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.PathToRealCTranslator;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -69,57 +70,61 @@ import com.google.common.collect.Sets;
 public class CEXExporter {
 
 
-  @Option(name="enabled",
+  @Option(secure=true, name="enabled",
       description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
 
-  @Option(name="file",
+  @Option(secure=true, name="file",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("ErrorPath.%d.txt");
 
-  @Option(name="core",
+  @Option(secure=true, name="core",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathCoreFile = PathTemplate.ofFormatString("ErrorPath.%d.core.txt");
 
-  @Option(name="source",
+  @Option(secure=true, name="source",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathSourceFile = PathTemplate.ofFormatString("ErrorPath.%d.c");
 
-  @Option(name="exportAsSource",
+  @Option(secure=true, name="exportAsSource",
       description="translate error path to C program")
   private boolean exportSource = true;
 
-  @Option(name="json",
+  @Option(secure=true, name="json",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathJson = PathTemplate.ofFormatString("ErrorPath.%d.json");
 
-  @Option(name="assignment",
+  @Option(secure=true, name="assignment",
       description="export one variable assignment for error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAssignment = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
 
-  @Option(name="graph",
+  @Option(secure=true, name="graph",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathGraphFile = PathTemplate.ofFormatString("ErrorPath.%d.dot");
 
-  @Option(name="automaton",
+  @Option(secure=true, name="automaton",
       description="export error path to file as an automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("ErrorPath.%d.spc");
 
-  @Option(name="graphml",
+  @Option(secure=true, name="graphml",
       description="export error path to file as an automaton to a graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = null;
 
-  @Option(name="exportImmediately",
+  @Option(secure=true, name="exportImmediately",
           description="export error paths to files immediately after they were found")
   private boolean dumpErrorPathImmediately = false;
+
+  @Option(secure=true, name="codeStyle",
+          description="use either CMBC or real C")
+  private String codeStyle = "CMBC";
 
   private final LogManager logger;
   private final ARGPathExport witnessExporter;
@@ -212,7 +217,11 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (errorPathSourceFile != null) {
-        pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+        if (codeStyle.equals("REALC")) {
+          pathProgram = PathToRealCTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
+        } else {
+          pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+        }
       }
 
     } else {
@@ -223,7 +232,11 @@ public class CEXExporter {
       pathElements = ARGUtils.getAllStatesOnPathsTo(lastState);
 
       if (errorPathSourceFile != null) {
-        pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+        if (codeStyle.equals("REALC")) {
+          pathProgram = PathToRealCTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
+        } else {
+          pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+        }
       }
     }
 
@@ -268,7 +281,6 @@ public class CEXExporter {
         witnessExporter.writePath(pAppendable, rootState,
                 ARGUtils.CHILDREN_OF_STATE,
                 Predicates.in(pathElements),
-                isTargetPathEdge,
                 counterexample);
       }
     });
@@ -281,7 +293,7 @@ public class CEXExporter {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        CFAPathWithAssignments exactValuePath = model.getExactVariableValuePath(edgePath);
+        CFAPathWithAssumptions exactValuePath = model.getExactVariableValuePath(edgePath);
 
         if (exactValuePath != null) {
           printPreciseValues(out, exactValuePath);
@@ -306,12 +318,12 @@ public class CEXExporter {
       }
 
       private void printPreciseValues(Appendable out,
-                                      CFAPathWithAssignments pExactValuePath) throws IOException {
+                                      CFAPathWithAssumptions pExactValuePath) throws IOException {
 
-        for (CFAEdgeWithAssignments edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
+        for (CFAEdgeWithAssumptions edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
 
-          if (edgeWithAssignments instanceof CFAMultiEdgeWithAssignments) {
-            for (CFAEdgeWithAssignments singleEdge : (CFAMultiEdgeWithAssignments) edgeWithAssignments) {
+          if (edgeWithAssignments instanceof CFAMultiEdgeWithAssumptions) {
+            for (CFAEdgeWithAssumptions singleEdge : (CFAMultiEdgeWithAssumptions) edgeWithAssignments) {
               printPreciseValues(out, singleEdge);
             }
           } else {
@@ -320,18 +332,18 @@ public class CEXExporter {
         }
       }
 
-      private void printPreciseValues(Appendable out, CFAEdgeWithAssignments edgeWithAssignments) throws IOException {
+      private void printPreciseValues(Appendable out, CFAEdgeWithAssumptions edgeWithAssignments) throws IOException {
         out.append(edgeWithAssignments.getCFAEdge().toString());
         out.append(System.lineSeparator());
 
         String cCode = edgeWithAssignments.prettyPrintCode(1);
-        if (cCode != null) {
+        if (!cCode.isEmpty()) {
           out.append(cCode);
         }
 
         String comment = edgeWithAssignments.getComment();
 
-        if (comment != null) {
+        if (!comment.isEmpty()) {
           out.append('\t');
           out.append(comment);
           out.append(System.lineSeparator());

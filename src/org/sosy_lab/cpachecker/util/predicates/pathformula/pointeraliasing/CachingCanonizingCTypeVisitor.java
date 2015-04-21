@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 
 class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
@@ -103,6 +104,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                                  !ignoreVolatile && t.isVolatile(),
                                  t.getKind(),
                                  t.getName(),
+                                 t.getOrigName(),
                                  realType);
     }
 
@@ -170,7 +172,8 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
              new CEnumType(!ignoreConst && t.isConst(),
                            !ignoreVolatile && t.isVolatile(),
                            t.getEnumerators(),
-                           t.getName());
+                           t.getName(),
+                           t.getOrigName());
     }
 
     @Override
@@ -191,6 +194,12 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                               t.isComplex(),
                               t.isImaginary(),
                               t.isLongLong());
+    }
+
+    @Override
+    public CType visit(CVoidType t) {
+      return CVoidType.create(!ignoreConst && t.isConst(),
+                              !ignoreVolatile && t.isVolatile());
     }
 
     private final boolean ignoreConst;
@@ -215,7 +224,8 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                                            !typeVisitor.ignoreVolatile && canonicalType.isVolatile(),
                                            canonicalType.getKind(),
                                            canonicalType.getMembers(),
-                                           canonicalType.getName());
+                                           canonicalType.getName(),
+                                           canonicalType.getOrigName());
       }
       typeCache.put(t, canonicalType);
       return typeVisitor.visit(canonicalType);

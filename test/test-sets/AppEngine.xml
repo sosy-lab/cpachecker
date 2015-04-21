@@ -4,9 +4,9 @@
   <option name="-noout"/>
   <option name="-nolog"/>
   <option name="-heap">1200M</option>
-  
+
   <option name="-setprop">limits.time.wall=540</option>
-  
+
   <!-- these options are set by default on App Engine -->
   <option name="-setprop">analysis.checkCounterexamples=false</option>
   <option name="-setprop">statistics.memory=false</option>
@@ -26,44 +26,22 @@
   <option name="-setprop">cpa.conditions.global.memory.heap=-1</option>
   <option name="-setprop">cpa.conditions.global.memory.process=-1</option>
   <option name="-setprop">cpa.conditions.global.reached.size=-1</option>
-  
+
   <sourcefiles name="ControlFlowInteger">
   	<includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  	<!-- program too large for App Engine -->
-  	<exclude>../programs/benchmarks/eca/Problem07_20_false-unreach-call.c</exclude>
-  	<exclude>../programs/benchmarks/eca/Problem07_30_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_40_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_60_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_10_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_50_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_60_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_10_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_20_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_60_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_00_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_10_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_50_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_00_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_20_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_30_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_40_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_00_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_30_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_40_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_50_true-unreach-call.c</exclude>
   </sourcefiles>
-  
+
   <sourcefiles name="Loops">
   	<includesfile>../programs/benchmarks/Loops.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
-  
+
   <sourcefiles name="ProductLines">
   	<includesfile>../programs/benchmarks/ProductLines.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
-  
+
   <sourcefiles name="DeviceDrivers64">
   	<option name="-setprop">analysis.machineModel=Linux64</option>
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
@@ -84,7 +62,7 @@
 	<exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-msp3400.ko_true-unreach-call.cil.out.i.pp.i</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.i</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-vhost-vhost_net.ko_true-unreach-call.cil.out.i.pp.i</exclude>
-	
+
 	<exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_true-unreach-call_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-mxl111sf.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_true-unreach-call_ok_nondet_linux-3.4-32_1-drivers--media--dvb--dvb-usb--dvb-usb-mxl111sf.ko-ldv_main3_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_7_cilled_false-unreach-call_const_ok_linux-32_1-drivers--gpu--drm--vmwgfx--vmwgfx.ko-ldv_main3_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
@@ -99,17 +77,17 @@
 	<exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_false-unreach-call_ok_linux-43_1a-drivers--scsi--dpt_i2o.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-mxl111sf.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--dvb--dvb-usb--dvb-usb-mxl111sf.ko-ldv_main3_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
-	
+
 	<exclude>../programs/benchmarks/ldv-linux-3.7.3/main1_false-unreach-call_drivers-usb-core-usbcore-ko--32_7a--linux-3.7.3.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.7.3/main3_false-unreach-call_drivers-gpu-drm-vmwgfx-vmwgfx-ko--32_7a--linux-3.5.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.7.3/main4_false-unreach-call_drivers-scsi-mpt2sas-mpt2sas-ko--32_7a--linux-3.7.3.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.7.3/main11_false-unreach-call_drivers-usb-core-usbcore-ko--32_7a--linux-3.7.3.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.7.3/main15_false-unreach-call_drivers-usb-core-usbcore-ko--32_7a--linux-3.7.3.c</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.7.3/main17_false-unreach-call_drivers-gpu-drm-vmwgfx-vmwgfx-ko--32_7a--linux-3.5.c</exclude>
-	
+
 	<exclude>../programs/benchmarks/ldv-commit-tester/main0_false-unreach-call_drivers-net-wireless-ath-carl9170-carl9170-ko--32_7a--8a9f335-1.c</exclude>
 	<exclude>../programs/benchmarks/ldv-commit-tester/main0_true-unreach-call_drivers-net-wireless-ath-carl9170-carl9170-ko--32_7a--8a9f335.c</exclude>
-	
+
 	<exclude>../programs/benchmarks/ldv-consumption/32_7a_cilled_false-unreach-call_linux-3.8-rc1-32_7a-drivers--ata--libata.ko-ldv_main4_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-consumption/32_7a_cilled_false-unreach-call_linux-3.8-rc1-32_7a-drivers--gpu--drm--vmwgfx--vmwgfx.ko-ldv_main2_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-consumption/32_7a_cilled_false-unreach-call_linux-3.8-rc1-32_7a-drivers--net--wireless--zd1211rw--zd1211rw.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
@@ -173,26 +151,26 @@
 	<exclude>../programs/benchmarks/ldv-consumption/linux-3.8-rc1-32_7a-drivers--scsi--mpt3sas--mpt3sas.ko-ldv_main4_false-unreach-call.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-consumption/linux-3.8-rc1-32_7a-drivers--usb--core--usbcore.ko-ldv_main13_false-unreach-call.cil.out.c</exclude>
   </sourcefiles>
-  
+
   <sourcefiles name="Sequentialized">
   	<includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
-  
+
   <sourcefiles name="Simple">
   	<includesfile>../programs/benchmarks/Simple.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
-  
-  <rundefinition name="explicitAnalysis-Simple">
-  	<option name="-explicitAnalysis-NoRefiner"></option>
+
+  <rundefinition name="valueAnalysis-Simple">
+  	<option name="-valueAnalysis-NoRefiner"></option>
   </rundefinition>
-  
-  <rundefinition name="explicitAnalysis">
-    <option name="-explicitAnalysis-ItpRefiner"/>
+
+  <rundefinition name="valueAnalysis">
+    <option name="-valueAnalysis-ItpRefiner"/>
   </rundefinition>
-  
+
   <rundefinition name="predicateAnalysis">
     <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
   </rundefinition>

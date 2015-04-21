@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -44,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -94,16 +94,17 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     NumericValue numericResult = value.asNumericValue();
     if (numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
       CSimpleType type = (CSimpleType) expr.getExpressionType();
-      switch (type.getType()) {
-        case INT:
-        case CHAR: {
-          return new CIntegerLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue()));
-        }
-        case FLOAT:
-        case DOUBLE: {
+      if (type.getType().isIntegerType()) {
+        return new CIntegerLiteralExpression(expr.getFileLocation(),
+                expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue()));
+      } else if (type.getType().isFloatingPointType()) {
+        try {
           return new CFloatLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), numericResult.bigDecimalValue());
+              expr.getExpressionType(), numericResult.bigDecimalValue());
+        } catch (NumberFormatException nfe) {
+          // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
+          logger.logf(Level.FINE, "Cannot simplify expression to numeric value %s, keeping original expression %s instead", numericResult, expr.toASTString());
+          return expr;
         }
       }
     }
@@ -138,7 +139,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         newExpr = expr;
       } else {
         final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
-        newExpr = binExprBuilder.buildBinaryExpression(
+        newExpr = binExprBuilder.buildBinaryExpressionUnchecked(
             op1, op2, binaryOperator);
       }
       return newExpr;

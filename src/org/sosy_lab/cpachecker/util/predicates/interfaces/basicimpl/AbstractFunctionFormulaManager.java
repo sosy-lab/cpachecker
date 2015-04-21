@@ -23,24 +23,27 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 /**
  * This class simplifies the implementation of the FunctionFormulaManager by converting the types to the solver specific type.
  * It depends on UnsafeFormulaManager to make clear that the UnsafeFormulaManager should not depend on FunktionFormulaManager.
  * @param <TFormulaInfo> The solver specific type.
+ * @param <TFunctionDecl> The solver specific type of declarations of uninterpreted functions
  * @param <TType> The solver specific type of formula-types.
  */
-public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
+public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TFunctionDecl, TType, TEnv>
     extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
     implements FunctionFormulaManager {
 
@@ -53,47 +56,51 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
     this.unsafeManager = unsafeManager;
   }
 
+  protected abstract TFunctionDecl declareUninterpretedFunctionImpl(
+      String pName, TType pReturnType, List<TType> pArgTypes);
+
   @Override
-  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+  public final <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgTypes) {
+    checkArgument(!pArgTypes.contains(FormulaType.BooleanType),
+        "Uninterpreted functions with boolean arguments are currently not supported in CPAchecker.");
+
+    List<TType> argTypes = new ArrayList<>(pArgTypes.size());
+    for (FormulaType<?> argtype : pArgTypes) {
+      argTypes.add(toSolverType(argtype));
+    }
+
+    return new AbstractUninterpretedFunctionDeclaration<>(pReturnType,
+        declareUninterpretedFunctionImpl(pName, toSolverType(pReturnType), argTypes),
+        pArgTypes);
+  }
+
+  @Override
+  public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
 
     return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
-  protected abstract <TFormula extends Formula> TFormulaInfo
-    createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType, List<TFormulaInfo> pArgs);
+  protected abstract TFormulaInfo createUninterpretedFunctionCallImpl(
+      TFunctionDecl func, List<TFormulaInfo> pArgs);
 
   @Override
-  public final <T extends Formula> T callUninterpretedFunction(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
-    FormulaType<T> retType = pFuncType.getReturnType();
-    List<TFormulaInfo> list = Lists.transform(pArgs,
-        new Function<Formula, TFormulaInfo>() {
-          @SuppressWarnings("unchecked")
-          @Override
-          public TFormulaInfo apply(Formula pArg0) {
-            return
-                getFormulaCreator().extractInfo(pArg0);
-          }
-        });
+  public final <T extends Formula> T callUninterpretedFunction(
+      UninterpretedFunctionDeclaration<T> pFunc, List<? extends Formula> pArgs) {
+    FormulaType<T> retType = pFunc.getReturnType();
+    List<TFormulaInfo> list = Lists.transform(pArgs, extractor);
 
-    TFormulaInfo formulaInfo = createUninterpretedFunctionCallImpl(pFuncType, list);
+    TFormulaInfo formulaInfo = createUninterpretedFunctionCallImpl(pFunc, list);
     return unsafeManager.typeFormula(retType, formulaInfo);
   }
 
-  public TType toSolverType(FormulaType<?> formulaType) {
-    TType t;
-    if (formulaType.isBooleanType()) {
-      t = getFormulaCreator().getBoolType();
-    } else if (formulaType.isIntegerType()) {
-      t = getFormulaCreator().getIntegerType();
-    } else if (formulaType.isRationalType()) {
-      t = getFormulaCreator().getRationalType();
-    } else if (formulaType.isBitvectorType()) {
-      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
-      t = getFormulaCreator().getBitvectorType(bitPreciseType.getSize());
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return t;
+  final <T extends Formula> TFormulaInfo createUninterpretedFunctionCallImpl(
+      UninterpretedFunctionDeclaration<T> pFunc, List<TFormulaInfo> pArgs) {
+    @SuppressWarnings("unchecked")
+    AbstractUninterpretedFunctionDeclaration<T, TFunctionDecl> func =
+        (AbstractUninterpretedFunctionDeclaration<T, TFunctionDecl>)pFunc;
+
+    return createUninterpretedFunctionCallImpl(func.getFuncDecl(), pArgs);
   }
 }

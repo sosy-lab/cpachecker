@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 
 /**
@@ -58,19 +58,34 @@ public interface InvariantGenerator {
   void cancel();
 
   /**
-   * Retrieve the generated ReachedSet with the invariants.
+   * Retrieve the generated invariant.
    * Can be called only after {@link #start(CFANode)} was called.
-   * May be called more than once and returns the same result.
+   *
+   * Depending on the invariant generator, this method may either block
+   * for some time during the invariant generation runs,
+   * or return a current snapshot of the invariants quickly.
+   *
    * @return
    * @throws CPAException If the invariant generation failed.
    * @throws InterruptedException If the invariant generation was interrupted.
    */
-  UnmodifiableReachedSet get() throws CPAException, InterruptedException;
+  InvariantSupplier get() throws CPAException, InterruptedException;
 
-  /*
-   * Returns a Timer from which the time that was necessary to generate
-   * the invariants can be read.
-   * For correct measurements, the caller should not modify the Timer.
+  /**
+   * Return whether the invariant generation has already proved
+   * that the specification holds, and no further checks are necessary.
+   * If possible, this method should be cheap.
    */
-  Timer getTimeOfExecution();
+  boolean isProgramSafe();
+
+  /**
+   * Add a specific invariant that is guaranteed to hold to the set of facts
+   * this invariant generator may return.
+   * Note that it is not guaranteed that the invariant returned
+   * by a call to {@link #get()} includes or implies the injected invariant.
+   * @param pLocation The location where the invariant holds.
+   * @param pAssumption A guard that is guaranteed to hold at the given location.
+   * @throws UnrecognizedCodeException if a problem occurred during the injection.
+   */
+  void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException;
 }

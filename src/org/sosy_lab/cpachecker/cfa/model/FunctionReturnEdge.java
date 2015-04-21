@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class FunctionReturnEdge extends AbstractCFAEdge {
 
-  protected final FunctionSummaryEdge summaryEdge;
+  private final FunctionSummaryEdge summaryEdge;
 
   protected FunctionReturnEdge(FileLocation pFileLocation,
       FunctionExitNode pPredecessor, CFANode pSuccessor,
@@ -63,4 +63,7 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
     return (FunctionExitNode)super.getPredecessor();
   }
 
+  public FunctionEntryNode getFunctionEntry() {
+    return summaryEdge.getFunctionEntry();
+  }
 }

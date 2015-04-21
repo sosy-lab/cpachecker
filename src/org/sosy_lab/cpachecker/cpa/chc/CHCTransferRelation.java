@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -216,7 +216,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
 
     FunctionEntryNode functionEntryNode = fcallEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    List<? extends IAExpression> arguments = fcallEdge.getArguments();
+    List<? extends AExpression> arguments = fcallEdge.getArguments();
 
     Collection<Constraint> cnList = ConstraintManager.getConstraint(paramNames, arguments);
     CHCState newState = new CHCState();

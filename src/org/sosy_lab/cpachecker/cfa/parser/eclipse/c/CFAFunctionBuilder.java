@@ -82,12 +82,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -120,8 +121,9 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -164,7 +166,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // There can be global declarations in a function
   // because we move some declarations to the global scope (e.g., static variables)
-  private final List<Pair<IADeclaration, String>> globalDeclarations = new ArrayList<>();
+  private final List<Pair<ADeclaration, String>> globalDeclarations = new ArrayList<>();
 
   private final FunctionScope scope;
   private final ASTConverter astCreator;
@@ -176,9 +178,15 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private boolean encounteredAsm = false;
 
-  @Option(description="Also initialize local variables with default values, "
+  @Option(secure=true, description="Also initialize local variables with default values, "
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
+
+  @Option(secure=true, description="Show messages when dead code is encountered during parsing.")
+  private boolean showDeadCode = true;
+
+  @Option(secure=true, description="Allow then/else branches to be swapped in order to obtain simpler conditions.")
+  private boolean allowBranchSwapping = true;
 
   public CFAFunctionBuilder(Configuration config, LogManagerWithoutDuplicates pLogger, FunctionScope pScope,
       Function<String, String> pNiceFileNameFunction,
@@ -219,7 +227,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     return encounteredAsm;
   }
 
-  List<Pair<IADeclaration, String>> getGlobalDeclarations() {
+  List<Pair<ADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
@@ -336,8 +344,8 @@ class CFAFunctionBuilder extends ASTVisitor {
           init.accept(checkBinding);
 
           // this case has to be extra, as there should never be an initializer for labels
-        } else if (((CVariableDeclaration)newD).getType() instanceof CTypedefType
-                   && ((CTypedefType)((CVariableDeclaration)newD).getType()).getName().equals("__label__")) {
+        } else if (newD.getType() instanceof CProblemType
+                   && newD.getType().toString().equals("__label__")) {
 
           scope.registerLocalLabel((CVariableDeclaration)newD);
           CFANode nextNode = newCFANode();
@@ -377,7 +385,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       if (newD.isGlobal()) {
-        globalDeclarations.add(Pair.<IADeclaration, String>of(newD, rawSignature));
+        globalDeclarations.add(Pair.<ADeclaration, String>of(newD, rawSignature));
 
       } else {
         CFANode nextNode = newCFANode();
@@ -424,7 +432,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
 
     final FunctionEntryNode startNode = new CFunctionEntryNode(
-        fileloc, fdef, returnNode, parameterNames);
+        fileloc, fdef, returnNode, parameterNames, scope.getReturnVariable());
     returnNode.setEntryNode(startNode);
     cfa = startNode;
 
@@ -510,8 +518,8 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private void logDeadLabel(CLabelNode n) {
     Level level = Level.INFO;
-    if (n.getLabel().matches("(switch|while)_(\\d+_[a-z0-9]+|[a-z0-9]+___\\d+)")) {
-      // don't mention dead code produced by CIL on normal log levels
+    if (n.getLabel().matches("(switch|while|ldv)_(\\d+$|\\d+_[a-z0-9]+|[a-z0-9]+___\\d+)")) {
+      // don't mention dead code produced by CIL/LDV on normal log levels
       level = Level.FINER;
     }
     logger.log(level, "Dead code detected: Label", n.getLabel(), "is not reachable.");
@@ -680,6 +688,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (localLabel == null) {
       labelMap.put(labelName, labelNode);
     } else {
+      if (scope.containsLabelCFANode(labelNode)){
+        throw new CFAGenerationRuntimeException("Duplicate label " + labelName
+            + " in function " + cfa.getFunctionName(), labelStatement, niceFileNameFunction);
+      }
       scope.addLabelCFANode(labelNode);
     }
 
@@ -855,7 +867,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category helper
    */
   private void addToCFA(CFAEdge edge) {
-    CFACreationUtils.addEdgeToCFA(edge, logger);
+    CFACreationUtils.addEdgeToCFA(edge, logger, showDeadCode);
   }
 
   /**
@@ -959,7 +971,13 @@ class CFAFunctionBuilder extends ASTVisitor {
       String rawSignature = expression.getRawSignature();
       final CStatement stmt = astCreator.convertExpressionToStatement(expression);
 
-      prevNode = handleAllSideEffects(prevNode, fileLocation, rawSignature, true);
+      // this is just a placeholder signalising that the sideeffects do not
+      // need to have a return value
+      if (stmt instanceof CExpressionStatement && ((CExpressionStatement)stmt).getExpression() == CIntegerLiteralExpression.ZERO) {
+        return handleAllSideEffects(prevNode, fileLocation, rawSignature, false);
+      } else {
+        prevNode = handleAllSideEffects(prevNode, fileLocation, rawSignature, true);
+      }
 
       stmt.accept(checkBinding);
       if (lastNode == null) {
@@ -969,6 +987,18 @@ class CFAFunctionBuilder extends ASTVisitor {
       final CStatementEdge lastEdge = new CStatementEdge(rawSignature, stmt, fileLocation, prevNode, lastNode);
       addToCFA(lastEdge);
       return lastNode;
+    }
+  }
+
+  /**
+   * @category helper
+   */
+  private CBinaryExpression buildBinaryExpression(
+      CExpression operand1, CExpression operand2, BinaryOperator op) {
+    try {
+      return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
+    } catch (UnrecognizedCCodeException e) {
+      throw new CFAGenerationRuntimeException(e);
     }
   }
 
@@ -1019,7 +1049,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     assert condition != null;
 
-    return buildConditionTree(condition, fileLocation, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
+    return buildConditionTree(condition, fileLocation, rootNode, thenNode, elseNode, thenNode, elseNode, true, true, false);
   }
 
   /**
@@ -1028,17 +1058,18 @@ class CFAFunctionBuilder extends ASTVisitor {
   private Optional<CExpression> buildConditionTree(IASTExpression condition, final FileLocation fileLocation,
                                   CFANode rootNode, CFANode thenNode, final CFANode elseNode,
                                   CFANode thenNodeForLastThen, CFANode elseNodeForLastElse,
-                                  boolean furtherThenComputation, boolean furtherElseComputation) {
+                                  boolean furtherThenComputation, boolean furtherElseComputation,
+                                  boolean flippedThenElse) {
 
     // unwrap (a)
     if (condition instanceof IASTUnaryExpression
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-      return buildConditionTree(((IASTUnaryExpression)condition).getOperand(), fileLocation, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
+      return buildConditionTree(((IASTUnaryExpression)condition).getOperand(), fileLocation, rootNode, thenNode, elseNode, thenNode, elseNode, true, true, flippedThenElse);
 
       // !a --> switch branches
     } else if (condition instanceof IASTUnaryExpression
         && ((IASTUnaryExpression) condition).getOperator() == IASTUnaryExpression.op_not) {
-      buildConditionTree(((IASTUnaryExpression) condition).getOperand(), fileLocation, rootNode, elseNode, thenNode, elseNode, thenNode, true, true);
+      buildConditionTree(((IASTUnaryExpression) condition).getOperand(), fileLocation, rootNode, elseNode, thenNode, elseNode, thenNode, true, true, !flippedThenElse);
       return Optional.absent();
 
       // a && b
@@ -1048,8 +1079,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       // but it prevents the need for a temporary variable in the common case of
       // "if (a && b)"
       CFANode innerNode = newCFANode();
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), fileLocation, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, false);
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), fileLocation, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), fileLocation, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, false, flippedThenElse);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), fileLocation, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true, flippedThenElse);
       return Optional.absent();
 
       // a || b
@@ -1059,8 +1090,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       // but it prevents the need for a temporary variable in the common case of
       // "if (a || b)"
       CFANode innerNode = newCFANode();
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), fileLocation, rootNode, thenNode, innerNode, thenNodeForLastThen, elseNodeForLastElse, false, true);
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), fileLocation, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), fileLocation, rootNode, thenNode, innerNode, thenNodeForLastThen, elseNodeForLastElse, false, true, flippedThenElse);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), fileLocation, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true, flippedThenElse);
       return Optional.absent();
 
     } else {
@@ -1082,7 +1113,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         addToCFA(falseEdge);
 
         // reset side assignments which are not necessary
-        return Optional.<CExpression>of(CNumericTypes.ZERO);
+        return Optional.<CExpression>of(CIntegerLiteralExpression.ZERO);
 
       case ALWAYS_TRUE:
         final BlankEdge trueEdge = new BlankEdge(rawSignature, fileLocation, rootNode, thenNode, "");
@@ -1090,7 +1121,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
-        return Optional.<CExpression>of(CNumericTypes.ONE);
+        return Optional.<CExpression>of(CIntegerLiteralExpression.ONE);
 
       default:
         throw new AssertionError();
@@ -1106,17 +1137,46 @@ class CFAFunctionBuilder extends ASTVisitor {
         elseNodeForLastElse = elseNode;
       }
 
-      if (ASTOperatorConverter.isBooleanExpression(exp)) {
-        addConditionEdges(exp, rootNode, thenNodeForLastThen, elseNodeForLastElse,
-            astCreator.getLocation(condition));
+      FileLocation loc = astCreator.getLocation(condition);
+      if (fileLocation.getStartingLineNumber() < loc.getStartingLineNumber()) {
+        loc = new FileLocation(
+            loc.getEndingLineNumber(),
+            loc.getFileName(),
+            niceFileNameFunction.apply(loc.getFileName()),
+            loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
+            fileLocation.getNodeOffset(),
+            fileLocation.getStartingLineNumber(),
+            fileLocation.getStartingLineInOrigin());
+      }
+
+     CExpression expression = exp;
+      if (flippedThenElse && !allowBranchSwapping) {
+        expression = buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+        CFANode tmp = thenNodeForLastThen;
+        thenNodeForLastThen = elseNodeForLastElse;
+        elseNodeForLastElse = tmp;
+      }
+
+      if (ASTOperatorConverter.isBooleanExpression(expression)) {
+        addConditionEdges(expression, rootNode, thenNodeForLastThen, elseNodeForLastElse,
+            loc);
         return Optional.of(exp);
 
-      } else {
-        // build new boolean expression: a==0 and switch branches
-        CExpression conv = binExprBuilder.buildBinaryExpression(exp, CNumericTypes.ZERO, BinaryOperator.EQUALS);
+      } else if (allowBranchSwapping) {
+        // build new boolean expression: a==0 and swap branches
+        CExpression conv = buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 
-        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen,
-            astCreator.getLocation(condition));
+        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen, loc);
+
+        return Optional.<CExpression>of(exp);
+      } else {
+        // build new double-negation boolean expression: (a==0)==0
+        CExpression conv = buildBinaryExpression(
+            buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS),
+            CIntegerLiteralExpression.ZERO,
+            BinaryOperator.EQUALS);
+
+        addConditionEdges(conv, rootNode, thenNodeForLastThen, elseNodeForLastElse, loc);
 
         return Optional.<CExpression>of(exp);
       }
@@ -1499,7 +1559,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // build condition, left part "a", right part "2" --> "a==2"
     final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(right);
-    final CBinaryExpression binExp = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression binExp = buildBinaryExpression(
               switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
 
     final CExpression exp = astCreator.simplifyExpressionOneStep(binExp);
@@ -1544,9 +1604,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     // 2 ... 4  -->  2<=x && x<=4
     final CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(range.getOperand1());
     final CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(range.getOperand2());
-    final CBinaryExpression firstPart = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression firstPart = buildBinaryExpression(
               smallEnd, switchExpr, CBinaryExpression.BinaryOperator.LESS_EQUAL);
-    final CBinaryExpression secondPart = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression secondPart = buildBinaryExpression(
               switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL);
 
     final CExpression firstExp = astCreator.simplifyExpressionOneStep(firstPart);
@@ -1806,12 +1866,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       CExpression one = new CIntegerLiteralExpression(loc, intType, BigInteger.ONE);
       CStatement assignOne = createStatement(loc, tempVar, one);
-      CFAEdge trueEdge = new CStatementEdge(binExp.getRawSignature(), assignOne, fileLocation, thenNode, lastNode);
+      CFAEdge trueEdge = new CStatementEdge(binExp.getRawSignature(), assignOne, FileLocation.DUMMY, thenNode, lastNode);
       addToCFA(trueEdge);
 
       CExpression zero = new CIntegerLiteralExpression(loc, intType, BigInteger.ZERO);
       CStatement assignZero = createStatement(loc, tempVar, zero);
-      CFAEdge falseEdge = new CStatementEdge(binExp.getRawSignature(), assignZero, fileLocation, elseNode, lastNode);
+      CFAEdge falseEdge = new CStatementEdge(binExp.getRawSignature(), assignZero, FileLocation.DUMMY, elseNode, lastNode);
       addToCFA(falseEdge);
 
     } else {

@@ -113,6 +113,68 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
     return getInterpolant(termA, termB);
   }
 
+  @Override
+  public List<BooleanFormula> getSeqInterpolants(List<Set<String>> partitionedTermNames) {
+    Preconditions.checkNotNull(env);
+
+    final Term[] formulas = new Term[partitionedTermNames.size()];
+    for (int i = 0; i < formulas.length; i++) {
+      formulas[i] = buildConjunctionOfNamedTerms(partitionedTermNames.get(i));
+    }
+
+    // get interpolants of groups
+    final Term[] itps = env.getInterpolants(formulas);
+
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (Term itp : itps) {
+      result.add(mgr.encapsulateBooleanFormula(itp));
+    }
+    return result;
+  }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<String>> partitionedTermNames, int[] startOfSubTree) {
+    Preconditions.checkNotNull(env);
+
+    final Term[] formulas = new Term[partitionedTermNames.size()];
+    for (int i = 0; i < formulas.length; i++) {
+      formulas[i] = buildConjunctionOfNamedTerms(partitionedTermNames.get(i));
+    }
+
+    assert checkSubTrees(partitionedTermNames, startOfSubTree);
+
+    // get interpolants of groups
+    final Term[] itps = env.getTreeInterpolants(formulas, startOfSubTree);
+
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (Term itp : itps) {
+      result.add(mgr.encapsulateBooleanFormula(itp));
+    }
+    return result;
+  }
+
+  /** checks for a valid subtree-structure.
+   * This code is taken from SMTinterpol itself, where it is disabled. */
+  private static boolean checkSubTrees(List<Set<String>> partitionedTermNames, int[] startOfSubTree) {
+    for (int i = 0; i < partitionedTermNames.size(); i++) {
+      if (startOfSubTree[i] < 0) {
+        throw new AssertionError("subtree array must not contain negative element");
+      }
+      int j = i;
+      while (startOfSubTree[i] < j) {
+        j = startOfSubTree[j - 1];
+      }
+      if (startOfSubTree[i] != j) {
+        throw new AssertionError("malformed subtree array.");
+      }
+    }
+    if (startOfSubTree[partitionedTermNames.size() - 1] != 0) {
+      throw new AssertionError("malformed subtree array.");
+    }
+
+    return true;
+  }
+
   protected BooleanFormula getInterpolant(Term termA, Term termB) {
     // get interpolant of groups
     Term[] itp = env.getInterpolants(new Term[] {termA, termB});

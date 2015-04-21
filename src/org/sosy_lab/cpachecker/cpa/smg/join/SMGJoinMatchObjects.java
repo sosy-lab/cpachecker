@@ -39,7 +39,7 @@ final class SMGJoinMatchObjects {
   private boolean defined = false;
   private SMGJoinStatus status;
 
-  final private static boolean checkNull(SMGObject pObj1, SMGObject pObj2) {
+  private static boolean checkNull(SMGObject pObj1, SMGObject pObj2) {
     if (pObj1.notNull() && pObj2.notNull()) {
       return false;
     }
@@ -47,7 +47,7 @@ final class SMGJoinMatchObjects {
     return true;
   }
 
-  final private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,
+  private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,
                                                     SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                                                     SMG pSMG1, SMG pSMG2) {
     if (pMapping1.containsKey(pObj1) && pMapping2.containsKey(pObj2) &&
@@ -58,7 +58,7 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
-  final private static boolean checkConsistentMapping(SMGObject pObj1, SMGObject pObj2,
+  private static boolean checkConsistentMapping(SMGObject pObj1, SMGObject pObj2,
                                                       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
                                                       SMG pSMG1, SMG pSMG2) {
     if ((pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1))) ||
@@ -69,7 +69,7 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
-  final private static boolean checkConsistentObjects(SMGObject pObj1, SMGObject pObj2,
+  private static boolean checkConsistentObjects(SMGObject pObj1, SMGObject pObj2,
                                                       SMG pSMG1, SMG pSMG2) {
     if ((pObj1.getSize() != pObj2.getSize()) ||
         (pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2))) {
@@ -79,7 +79,7 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
-  final private static boolean checkConsistentFields(SMGObject pObj1, SMGObject pObj2,
+  private static boolean checkConsistentFields(SMGObject pObj1, SMGObject pObj2,
       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
       SMG pSMG1, SMG pSMG2) {
 

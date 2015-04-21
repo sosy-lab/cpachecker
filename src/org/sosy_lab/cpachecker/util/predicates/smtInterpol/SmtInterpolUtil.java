@@ -32,10 +32,9 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
-
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -116,7 +115,11 @@ class SmtInterpolUtil {
         return value;
       } else if (value instanceof Rational) {
         Rational rat = (Rational)value;
-        return ExtendedRational.ofBigIntegers(rat.numerator(), rat.denominator());
+        if (t.getSort().getName().equals("Int") && rat.isIntegral()) {
+          return rat.numerator();
+        }
+        return org.sosy_lab.cpachecker.util.rationals.Rational.of(
+            rat.numerator(), rat.denominator());
       }
 
       // ApplicationTerm with negative Number --> "-123"
@@ -137,8 +140,8 @@ class SmtInterpolUtil {
           return -((Double)value).doubleValue();
         } else if (value instanceof Float) {
           return -((Float)value).floatValue();
-        } else if (value instanceof ExtendedRational) {
-          return ((ExtendedRational)value).negate();
+        } else if (value instanceof org.sosy_lab.cpachecker.util.rationals.Rational) {
+          return ((org.sosy_lab.cpachecker.util.rationals.Rational)value).negate();
         }
       }
     }
@@ -194,11 +197,6 @@ class SmtInterpolUtil {
     return isFunction(t, "=") && getArity(t) == 2 && isBoolean(getArg(t, 0)) && isBoolean(getArg(t, 1));
   }
 
-  /** num1 = num2, non-boolean version */
-  public static boolean isNumeralEqual(Term t) {
-    return isFunction(t, "=") && getArity(t) == 2 && !isBoolean(getArg(t, 0)) && !isBoolean(getArg(t, 1));
-  }
-
   public static boolean isFunction(Term t, String name) {
     return (t instanceof ApplicationTerm)
         && name.equals(((ApplicationTerm) t).getFunction().getName());
@@ -246,7 +244,7 @@ class SmtInterpolUtil {
       }
 
       FunctionSymbol funcSymb = at.getFunction();
-      return env.term(funcSymb.getName(), newParams);
+      return env.term(funcSymb.getName(), funcSymb.getIndices(), null, newParams);
     } else {
       // ConstantTerm:            numeral, nothing to replace
       // AnnotatedTerm, LetTerm:  should not happen here
@@ -254,12 +252,17 @@ class SmtInterpolUtil {
     }
   }
 
-  /** this function returns all variables in the terms.
-   * Doubles are removed. */
-  public static Term[] getVars(Collection<Term> termList) {
-    Set<Term> vars = new HashSet<>();
+  /**
+   * This function returns all variables and applications of uninterpreted functions
+   * in the terms without duplicates.
+   */
+  public static Set<Term> getVarsAndUIFs(Collection<Term> termList) {
+    Set<Term> result = new HashSet<>();
     Set<Term> seen = new HashSet<>();
-    Deque<Term> todo = new ArrayDeque<>(termList);
+    Deque<Term> todo = new ArrayDeque<>();
+    for (Term t : termList) {
+      todo.add(new FormulaUnLet().unlet(t));
+    }
 
     while (!todo.isEmpty()) {
       Term t = todo.removeLast();
@@ -267,14 +270,16 @@ class SmtInterpolUtil {
         continue;
       }
 
-      if (isVariable(t)) {
-        vars.add(t);
-      } else if (t instanceof ApplicationTerm) {
+      if (isVariable(t) || isUIF(t)) {
+        result.add(t);
+      }
+
+      if (t instanceof ApplicationTerm) {
         Term[] params = ((ApplicationTerm) t).getParameters();
         Collections.addAll(todo, params);
       }
     }
-    return toTermArray(vars);
+    return result;
   }
 
   static Term[] toTermArray(Collection<? extends Term> terms) {

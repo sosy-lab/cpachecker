@@ -62,19 +62,19 @@ import com.google.common.collect.Sets;
 @Options(prefix="blockreducer")
 public class BlockedCFAReducer implements BlockComputer {
 
-  @Option(description="Do at most n summarizations on a node.")
+  @Option(secure=true, description="Do at most n summarizations on a node.")
   private int reductionThreshold = 100;
 
-  @Option(description="Allow reduction of loop heads; calculate abstractions alwasy at loop heads?")
+  @Option(secure=true, description="Allow reduction of loop heads; calculate abstractions always at loop heads?")
   private boolean allowReduceLoopHeads = false;
 
-  @Option(description="Allow reduction of function entries; calculate abstractions alwasy at function entries?")
+  @Option(secure=true, description="Allow reduction of function entries; calculate abstractions always at function entries?")
   private boolean allowReduceFunctionEntries = true;
 
-  @Option(description="Allow reduction of function exits; calculate abstractions alwasy at function exits?")
+  @Option(secure=true, description="Allow reduction of function exits; calculate abstractions always at function exits?")
   private boolean allowReduceFunctionExits = true;
 
-  @Option(name="reducedCfaFile", description="write the reduced cfa to the specified file.")
+  @Option(secure=true, name="reducedCfaFile", description="write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reducedCfaFile = Paths.get("ReducedCfa.rsf");
 

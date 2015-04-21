@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -62,8 +65,8 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   private final LocationTransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
-  public LocationCPA(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa, LocationStateType.FORWARD);
+  public LocationCPA(CFA pCfa, Configuration config) throws InvalidConfigurationException {
+    stateFactory = new LocationStateFactory(pCfa, LocationStateType.FORWARD, config);
     transferRelation = new LocationTransferRelation(stateFactory);
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
@@ -107,12 +110,12 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    return stateFactory.getState(node);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return stateFactory.getState(pNode);
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 

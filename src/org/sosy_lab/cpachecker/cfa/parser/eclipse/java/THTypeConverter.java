@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter.convertClassOrInterfaceName;
+import static org.sosy_lab.cpachecker.cfa.parser.eclipse.java.NameConverter.convertClassOrInterfaceToFullName;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -32,12 +32,11 @@ import java.util.Set;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.ASTConverter.ModifierBean;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.TypeHierarchy.THTypeTable;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 
-public class THTypeConverter extends TypeConverter {
+class THTypeConverter extends TypeConverter {
 
   private final THTypeTable typeTable;
 
@@ -50,7 +49,7 @@ public class THTypeConverter extends TypeConverter {
 
     checkArgument(t.isClass() || t.isEnum());
 
-    String typeName = convertClassOrInterfaceName(t);
+    String typeName = convertClassOrInterfaceToFullName(t);
 
     // check if type is was already converted.
     if (typeTable.containsType(typeName)) {
@@ -64,7 +63,7 @@ public class THTypeConverter extends TypeConverter {
       }
     }
 
-    // convert Super Class. Type of class object terminates this recursion.
+    // convert super class. Type of class 'Object' terminates this recursion.
     ITypeBinding superClass = t.getSuperclass();
 
     JClassType superClassType;
@@ -105,7 +104,7 @@ public class THTypeConverter extends TypeConverter {
 
     checkArgument(t.isInterface());
 
-    String typeName = convertClassOrInterfaceName(t);
+    String typeName = convertClassOrInterfaceToFullName(t);
 
     // check if type is was already converted.
     if (typeTable.containsType(typeName)) {
@@ -160,7 +159,7 @@ public class THTypeConverter extends TypeConverter {
 
     checkArgument(t.isTopLevel());
 
-    String name = NameConverter.convertClassOrInterfaceName(t);
+    String name = NameConverter.convertClassOrInterfaceToFullName(t);
     String simpleName = t.getName();
 
     ModifierBean mB = ModifierBean.getModifiers(t);
@@ -173,7 +172,7 @@ public class THTypeConverter extends TypeConverter {
 
     checkArgument(t.isTopLevel());
 
-    String name = NameConverter.convertClassOrInterfaceName(t);
+    String name = NameConverter.convertClassOrInterfaceToFullName(t);
     String simpleName = t.getName();
 
     ModifierBean mB = ModifierBean.getModifiers(t);
@@ -185,8 +184,13 @@ public class THTypeConverter extends TypeConverter {
 
     checkArgument(!t.isTopLevel());
 
-    String name = NameConverter.convertClassOrInterfaceName(t);
+    String name = NameConverter.convertClassOrInterfaceToFullName(t);
     String simpleName = t.getName();
+
+    if (simpleName.isEmpty()) {
+      // if type has no name, use its full name as simple name
+      simpleName = name;
+    }
 
     ModifierBean mB = ModifierBean.getModifiers(t);
     return JClassType.valueOf(name, simpleName, mB.getVisibility(), mB.isFinal(), mB.isNative(),
@@ -198,7 +202,7 @@ public class THTypeConverter extends TypeConverter {
 
     checkArgument(!t.isTopLevel());
 
-    String name = NameConverter.convertClassOrInterfaceName(t);
+    String name = NameConverter.convertClassOrInterfaceToFullName(t);
     String simpleName = t.getName();
 
     ModifierBean mB = ModifierBean.getModifiers(t);

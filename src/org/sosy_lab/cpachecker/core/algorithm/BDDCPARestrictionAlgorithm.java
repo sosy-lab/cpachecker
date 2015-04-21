@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableList;
 @Options(prefix="counterexample")
 public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
+  @Option(secure=true, description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate presenceConditionFile = PathTemplate.ofFormatString("ErrorPath.%d.presenceCondition.txt");
 
@@ -71,7 +71,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
   public BDDCPARestrictionAlgorithm(Algorithm algorithm,
       ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException, CPAException {
+      ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
@@ -88,11 +88,11 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean sound = true;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     while (reached.hasWaitingState()) {
-      sound &= algorithm.run(reached);
+      status = status.update(algorithm.run(reached));
       assert ARGUtils.checkARG(reached);
 
       final AbstractState lastState = reached.getLastState();
@@ -132,7 +132,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       // END BDD specials
     }
 
-    return sound;
+    return status;
   }
 
   @Override

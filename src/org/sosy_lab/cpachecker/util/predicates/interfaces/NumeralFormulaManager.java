@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
@@ -35,8 +36,25 @@ import java.util.List;
 public interface NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula,
          ResultFormulaType extends NumeralFormula>  {
-  public ResultFormulaType makeNumber(long pI);
-  public ResultFormulaType makeNumber(BigInteger pI);
+
+  public ResultFormulaType makeNumber(long number);
+
+  public ResultFormulaType makeNumber(BigInteger number);
+
+  /**
+   * Create a numeric literal with a given value.
+   * Note: if the theory represented by this instance cannot handle rational numbers,
+   * the value may get rounded or otherwise represented imprecisely.
+   */
+  public ResultFormulaType makeNumber(double number);
+
+  /**
+   * Create a numeric literal with a given value.
+   * Note: if the theory represented by this instance cannot handle rational numbers,
+   * the value may get rounded or otherwise represented imprecisely.
+   */
+  public ResultFormulaType makeNumber(BigDecimal number);
+
   public ResultFormulaType makeNumber(String pI);
 
   public ResultFormulaType makeVariable(String pVar);
@@ -56,12 +74,18 @@ public interface NumeralFormulaManager
 
   public ResultFormulaType modulo(ParamFormulaType number1, ParamFormulaType number2);
 
+  /**
+   * Create a term stating that (n1 == n2) when using modulo arithmetic regarding mod).
+   * This is an optional operation,
+   * and instead may return `true`.
+   */
+  public BooleanFormula modularCongruence(ParamFormulaType number1, ParamFormulaType number2, long mod);
+
   public ResultFormulaType multiply(ParamFormulaType number1, ParamFormulaType number2);
 
   // ----------------- Numeric relations, return type BooleanFormula -----------------
 
   public BooleanFormula equal(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isEqual(BooleanFormula number);
 
   public BooleanFormula greaterThan(ParamFormulaType number1, ParamFormulaType number2);
 

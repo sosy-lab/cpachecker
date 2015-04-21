@@ -27,19 +27,19 @@ package org.sosy_lab.cpachecker.util.rationals;
  * Container class for constraints of the form Ax <= b.
  */
 public class LinearConstraint {
-  final LinearExpression expression;
-  final ExtendedRational bound;
+  final LinearExpression<?> expression;
+  final Rational bound;
 
-  public LinearConstraint(LinearExpression pExpression, ExtendedRational pBound) {
+  public LinearConstraint(LinearExpression<?> pExpression, Rational pBound) {
     expression = pExpression;
     bound = pBound;
   }
 
-  public LinearExpression getExpression() {
+  public LinearExpression<?> getExpression() {
     return expression;
   }
 
-  public ExtendedRational getBound() {
+  public Rational getBound() {
     return bound;
   }
 }

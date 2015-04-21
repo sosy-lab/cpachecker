@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.programcounter;
 
 import java.math.BigInteger;
+import java.util.Objects;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -89,7 +90,7 @@ public class ProgramCounterState implements AbstractState, LatticeAbstractState<
 
   @Override
   public int hashCode() {
-    return values.hashCode();
+    return Objects.hash(values);
   }
 
   @Override

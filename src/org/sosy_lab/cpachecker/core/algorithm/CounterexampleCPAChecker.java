@@ -31,6 +31,7 @@ import java.io.Writer;
 import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -43,9 +44,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -55,30 +58,40 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+import com.google.common.collect.ImmutableSet;
+
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
+  // The following options will be forced in the counterexample check
+  // to have the same value as in the actual analysis.
+  private static final ImmutableSet<String> OVERWRITE_OPTIONS = ImmutableSet.of(
+      "analysis.machineModel", "cpa.predicate.handlePointerAliasing"
+      );
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
   private final CFA cfa;
   private final String filename;
 
   private final ARGCPA cpa;
 
-  @Option(name = "path.file",
+  @Option(secure=true, name = "path.file",
       description = "File name where to put the path specification that is generated "
       + "as input for the counterexample check. A temporary file is used if this is unspecified.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path specFile;
 
-  @Option(name="config",
+  @Option(secure=true, name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path configFile = Paths.get("config/explicitAnalysis-no-cbmc.properties");
+  private Path configFile = Paths.get("config/valueAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
     this.logger = logger;
+    this.config = config;
     config.inject(this);
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
@@ -90,6 +103,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename,
       ARGCPA pCpa) throws InvalidConfigurationException {
     this.logger = logger;
+    this.config = config;
     config.inject(this);
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
@@ -129,26 +143,38 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     }
 
     CFANode entryNode = extractLocation(pRootState);
+    LogManager lLogger = logger.withComponentName("CounterexampleCheck");
 
     try {
-      Configuration lConfig = Configuration.builder()
+      ConfigurationBuilder lConfigBuilder = Configuration.builder()
               .loadFromFile(configFile)
-              .setOption("specification", automatonFile.toAbsolutePath().toString())
-              .build();
-      ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-      ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownNotifier).start();
+              .setOption("specification", automatonFile.toAbsolutePath().toString());
 
-      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, lShutdownNotifier);
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, true);
+      for (String option : OVERWRITE_OPTIONS) {
+        if (config.hasProperty(option)) {
+          lConfigBuilder.copyOptionFrom(config, option);
+        } else {
+          lConfigBuilder.clearOption(option);
+        }
+      }
+
+      Configuration lConfig = lConfigBuilder.build();
+      ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+      ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownNotifier).start();
+
+      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, lLogger, lShutdownNotifier);
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
-      lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));
+      lReached.add(
+          lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
+          lCpas.getInitialPrecision(entryNode, StateSpacePartition.getDefaultPartition()));
 
       lAlgorithm.run(lReached);
 
       lShutdownNotifier.requestShutdown("Analysis terminated");
-      CPAs.closeCpaIfPossible(lCpas, logger);
-      CPAs.closeIfPossible(lAlgorithm, logger);
+      CPAs.closeCpaIfPossible(lCpas, lLogger);
+      CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       // counterexample is feasible if a target state is reachable
       return from(lReached).anyMatch(IS_TARGET_STATE);

@@ -25,10 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -36,9 +40,12 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
-public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
+class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
 
   private final Z3FormulaManager mgr;
   private long z3context;
@@ -47,11 +54,12 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   private int level = 0;
   private List<Long> assertedFormulas = new LinkedList<>();
 
-  public Z3InterpolatingProver(Z3FormulaManager mgr) {
+  Z3InterpolatingProver(Z3FormulaManager mgr, long z3params) {
     this.mgr = mgr;
     this.z3context = mgr.getEnvironment();
     this.z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
+    solver_set_params(z3context, z3solver, z3params);
     this.smtLogger = mgr.getSmtLogger();
   }
 
@@ -87,7 +95,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   }
 
   @Override
-  public boolean isUnsat() {
+  public boolean isUnsat() throws Z3SolverException {
     Preconditions.checkState(z3context != 0);
     Preconditions.checkState(z3solver != 0);
     int result = solver_check(z3context, z3solver);
@@ -99,55 +107,116 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<Long> formulasOfA) {
+  @SuppressWarnings({"unchecked", "varargs"})
+  public BooleanFormula getInterpolant(final List<Long> formulasOfA) {
 
     // calc difference: formulasOfB := assertedFormulas - formulasOfA
-    List<Long> formulasOfB = new ArrayList<>();
-    for (long af : assertedFormulas) {
-      if (!formulasOfA.contains(af)) {
-        formulasOfB.add(af);
-      }
+    // we have to handle equal formulas on the stack, so we copy the whole stack and remove the formulas of A once.
+    final List<Long> formulasOfB = Lists.newLinkedList(assertedFormulas);
+    for (long af : formulasOfA) {
+      boolean check = formulasOfB.remove(af); // remove only first occurrence
+      assert check : "formula from A must be part of all asserted formulas";
     }
 
-    // build 2 groups:  (and A1 A2 A3...) , (and B1 B2 B3...)
-    assert formulasOfA.size() != 0;
-    assert formulasOfB.size() != 0;
-    long[] groupA = Longs.toArray(formulasOfA);
-    long[] groupB = Longs.toArray(formulasOfB);
-    long fA = mk_and(z3context, groupA);
-    inc_ref(z3context, fA);
-    long fB = mk_and(z3context, groupB);
-    inc_ref(z3context, fB);
+    // binary interpolant is a sequence interpolant of only 2 elements
+    return Iterables.getOnlyElement(getSeqInterpolants(Lists.<Set<Long>>newArrayList(
+            Sets.newHashSet(formulasOfA), Sets.newHashSet(formulasOfB))));
+  }
 
-    // 2 groups -> 1 interpolant
-    long[] itps = new long[1];
-    itps[0] = 1; // initialize with value != 0
+  @Override
+  public List<BooleanFormula> getSeqInterpolants(List<Set<Long>> partitionedFormulas) {
+    Preconditions.checkArgument(partitionedFormulas.size() >= 2, "at least 2 partitions needed for interpolation");
 
-    PointerToLong labels = new PointerToLong();
-    PointerToLong model = new PointerToLong();
+    // a 'tree' with all subtrees starting at 0 is called a 'sequence'
+    return getTreeInterpolants(partitionedFormulas, new int[partitionedFormulas.size()]);
+  }
 
-    // next lines are not needed due to a direct implementation in the C-code.
-    //    long options = mk_params(z3context);
-    //    inc_ref(z3context, options);
-    //    int[] parents = new int[0]; // this line is not working
-    long[] theory = new long[0]; // do we need a theory?
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<Long>> partitionedFormulas, int[] startOfSubTree) {
 
-    long[] interpolationFormulas = new long[] { fA, fB };
+    final long[] conjunctionFormulas = new long[partitionedFormulas.size()];
 
-    smtLogger.logInterpolation(formulasOfA, formulasOfB, fA, fB);
+    // build conjunction of each partition
+    for (int i = 0; i < partitionedFormulas.size(); i++) {
+      Preconditions.checkState(!partitionedFormulas.get(i).isEmpty());
+      long conjunction = mk_and(z3context, Longs.toArray(partitionedFormulas.get(i)));
+      inc_ref(z3context, conjunction);
+      conjunctionFormulas[i] = conjunction;
+    }
 
-    // get interpolant of groups
-    int isSat = interpolateSeq(
-        z3context, interpolationFormulas, itps, model, labels, 0, theory);
+    // build tree of interpolation-points
+    final long[] interpolationFormulas = new long[partitionedFormulas.size()];
+    final Deque<Pair<Integer,Long>> stack = new ArrayDeque<>(); // contains <subtree,interpolationPoint>
 
-    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
-    BooleanFormula f = mgr.encapsulateBooleanFormula(itps[0]);
+    int lastSubtree = -1; // subtree starts with 0. With -1<0 we start a new subtree.
+    for (int i = 0; i < startOfSubTree.length; i++) {
+      final int currentSubtree = startOfSubTree[i];
+      final long conjunction;
+      if (currentSubtree > lastSubtree) {
+        // start of a new subtree -> first element has no children
+        conjunction = conjunctionFormulas[i];
+
+      } else { // if (currentSubtree <= lastSubtree) {
+        // merge-point in tree, several children at a node -> pop from stack and conjunct
+        final List<Long> children = new ArrayList<>();
+        while (!stack.isEmpty() && currentSubtree <= stack.peekLast().getFirst()) {
+          // adding at front is important for tree-structure!
+          children.add(0, stack.pollLast().getSecond());
+        }
+        children.add(conjunctionFormulas[i]); // add the node itself
+        conjunction = mk_and(z3context, Longs.toArray(children));
+      }
+
+      final long interpolationPoint;
+      if (i == startOfSubTree.length - 1) {
+        // the last node in the tree (=root) does not need the interpolation-point-flag
+        interpolationPoint = conjunction;
+        Preconditions.checkState(currentSubtree == 0, "subtree of root should start at 0.");
+        Preconditions.checkState(stack.isEmpty(), "root should be the last element in the stack.");
+      } else {
+        interpolationPoint = mk_interpolant(z3context, conjunction);
+      }
+
+      inc_ref(z3context, interpolationPoint);
+      interpolationFormulas[i] = interpolationPoint;
+      stack.addLast(Pair.of(currentSubtree, interpolationPoint));
+      lastSubtree = currentSubtree;
+    }
+
+    Preconditions.checkState(stack.peekLast().getFirst() == 0, "subtree of root should start at 0.");
+    long root = stack.pollLast().getSecond();
+    Preconditions.checkState(stack.isEmpty(), "root should have been the last element in the stack.");
+
+    final PointerToLong model = new PointerToLong();
+    final PointerToLong interpolant = new PointerToLong();
+    int isSat = compute_interpolant(
+        z3context,
+        root, // last element is end of chain (root of tree)
+        0,
+        interpolant,
+        model
+    );
+
+    Preconditions.checkState(isSat == Z3_LBOOL.Z3_L_FALSE.status,
+            "interpolation not possible, because SAT-check returned status '%s'", isSat);
+
+    // n partitions -> n-1 interpolants
+    // the given tree interpolants are sorted in post-order,
+    // so we only need to copy them
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (int i = 0; i < partitionedFormulas.size() - 1; i++) {
+      result.add(mgr.encapsulateBooleanFormula(ast_vector_get(z3context, interpolant.value, i)));
+    }
 
     // cleanup
-    dec_ref(z3context, fA);
-    dec_ref(z3context, fB);
+    for (long partition : conjunctionFormulas) {
+      dec_ref(z3context, partition);
+    }
+    for (long partition : interpolationFormulas) {
+      dec_ref(z3context, partition);
+    }
 
-    return f;
+    return result;
   }
 
   @Override

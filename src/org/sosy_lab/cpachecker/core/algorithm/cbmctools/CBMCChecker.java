@@ -73,14 +73,14 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(name = "cbmc.dumpCBMCfile",
+  @Option(secure=true, name = "cbmc.dumpCBMCfile",
       description = "File name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified. "
       + "If specified, the file name should end with '.i' because otherwise CBMC runs the pre-processor on the file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path cbmcFile;
 
-  @Option(name="cbmc.timelimit",
+  @Option(secure=true, name="cbmc.timelimit",
       description="maximum time limit for CBMC (use milliseconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
         defaultUserUnit=TimeUnit.MILLISECONDS,
@@ -89,7 +89,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final MachineModel machineModel;
 
-  public CBMCChecker(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException, CPAException {
+  public CBMCChecker(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     this.logger = logger;
 
     if (cfa.getLanguage() == Language.JAVA) {

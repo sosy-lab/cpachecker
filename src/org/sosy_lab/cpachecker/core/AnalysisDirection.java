@@ -31,5 +31,5 @@ package org.sosy_lab.cpachecker.core;
  */
 public enum AnalysisDirection {
   FORWARD,
-  BACKWARD;
+  BACKWARD
 }

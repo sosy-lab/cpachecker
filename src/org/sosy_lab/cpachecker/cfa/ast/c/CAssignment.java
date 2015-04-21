@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 
 
 
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
  * Interface for all statements that contain an assignment.
  * Only sub-classes of {@link CStatement} may implement this interface.
  */
-public interface CAssignment extends IAssignment, CStatement {
+public interface CAssignment extends AAssignment, CStatement {
 
   @Override
   CLeftHandSide getLeftHandSide();

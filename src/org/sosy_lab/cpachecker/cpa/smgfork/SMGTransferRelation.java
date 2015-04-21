@@ -89,7 +89,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -108,23 +107,23 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix = "cpa.smgfork")
 public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
+  @Option(secure=true, name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
   private Path exportSMGFilePattern = Paths.get("smg-%s.dot");
 
-  @Option(description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
+  @Option(secure=true, description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
-  @Option(description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
+  @Option(secure=true, description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
   private boolean handleNonFreedMemoryInMainAsMemLeak = false;
 
-  @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
+  @Option(secure=true, name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
   private String exportSMG = "never";
 
-  @Option(name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
+  @Option(secure=true, name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
   private boolean enableMallocFailure = true;
 
-  @Option(name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
+  @Option(secure=true, name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
   private String handleUnknownFunctions = "strict";
 
   final private LogManagerWithoutDuplicates logger;
@@ -525,7 +524,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private SMGState handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
@@ -1484,7 +1483,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
       CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
+    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());
 
     SMGState newElement = new SMGState(pElement);
 
@@ -1568,12 +1567,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     private SMGKnownValue(long pValue) {
-      checkNotNull(pValue);
       value = BigInteger.valueOf(pValue);
     }
 
     private SMGKnownValue(int pValue) {
-      checkNotNull(pValue);
       value = BigInteger.valueOf(pValue);
     }
 
@@ -1639,7 +1636,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       super(pValue);
     }
 
-    public static final SMGKnownSymValue valueOf(int pValue) {
+    public static SMGKnownSymValue valueOf(int pValue) {
 
       if (pValue == 0) {
         return ZERO;
@@ -1650,7 +1647,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    public static final SMGKnownSymValue valueOf(long pValue) {
+    public static SMGKnownSymValue valueOf(long pValue) {
 
       if (pValue == 0) {
         return ZERO;
@@ -1661,7 +1658,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    public static final SMGKnownSymValue valueOf(BigInteger pValue) {
+    public static SMGKnownSymValue valueOf(BigInteger pValue) {
 
       checkNotNull(pValue);
 
@@ -1808,7 +1805,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return valueOf(getValue().add(pRVal.getValue()));
     }
 
-    public static final SMGKnownExpValue valueOf(int pValue) {
+    public static SMGKnownExpValue valueOf(int pValue) {
 
       if (pValue == 0) {
         return ZERO;
@@ -1819,7 +1816,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    public static final SMGKnownExpValue valueOf(long pValue) {
+    public static SMGKnownExpValue valueOf(long pValue) {
 
       if (pValue == 0) {
         return ZERO;
@@ -1830,7 +1827,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    public static final SMGKnownExpValue valueOf(BigInteger pValue) {
+    public static SMGKnownExpValue valueOf(BigInteger pValue) {
 
       checkNotNull(pValue);
 
@@ -2067,7 +2064,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return new SMGKnownAddress(pObject, SMGKnownExpValue.valueOf(pOffset));
       }
 
-      public static final SMGKnownAddress valueOf(SMGObject object, SMGKnownExpValue offset) {
+      public static SMGKnownAddress valueOf(SMGObject object, SMGKnownExpValue offset) {
         return new SMGKnownAddress(object, offset);
       }
 
@@ -2134,7 +2131,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return object;
     }
 
-    public static final SMGAddress valueOf(SMGObject object, SMGExplicitValue offset) {
+    public static SMGAddress valueOf(SMGObject object, SMGExplicitValue offset) {
       return new SMGAddress(object, offset);
     }
 

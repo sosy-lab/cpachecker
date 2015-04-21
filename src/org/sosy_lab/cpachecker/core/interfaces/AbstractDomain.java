@@ -30,7 +30,7 @@ public interface AbstractDomain {
 
   /**
    * Returns the smallest state of the lattice that is greater than both
-   * state (the join).
+   * states (the join).
    *
    * This is an optional method. If a domain is expected to be used only with
    * merge-sep, it does not have to provide an implementation of this method.

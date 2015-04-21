@@ -44,13 +44,13 @@ import ap.parser.IFormula;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public class PrincessInterpolatingProver extends PrincessAbstractProver implements InterpolatingProverEnvironment<Integer> {
+class PrincessInterpolatingProver extends PrincessAbstractProver implements InterpolatingProverEnvironment<Integer> {
 
   private final List<Integer> assertedFormulas = new ArrayList<>(); // Collection of termNames
   private final Map<Integer, IFormula> annotatedTerms = new HashMap<>(); // Collection of termNames
   private static final UniqueIdGenerator counter = new UniqueIdGenerator(); // for different indices
 
-  public PrincessInterpolatingProver(PrincessFormulaManager pMgr) {
+  PrincessInterpolatingProver(PrincessFormulaManager pMgr) {
     super(pMgr, true);
   }
 
@@ -91,6 +91,25 @@ public class PrincessInterpolatingProver extends PrincessAbstractProver implemen
     assert itp.size() == 1; // 2 groups -> 1 interpolant
 
     return mgr.encapsulateBooleanFormula(itp.get(0));
+  }
+
+  @Override
+  public List<BooleanFormula> getSeqInterpolants(final List<Set<Integer>> pTermNamesOfA) {
+
+    // get interpolant of groups
+    final List<IFormula> itps = stack.getInterpolants(pTermNamesOfA);
+
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (final IFormula itp : itps) {
+      result.add(mgr.encapsulateBooleanFormula(itp));
+    }
+    return result;
+  }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<Integer>> partitionedFormulas, int[] startOfSubTree) {
+    throw new UnsupportedOperationException("directly receiving of tree interpolants is not supported." +
+        "Use another solver or another strategy for interpolants.");
   }
 
   @Override

@@ -155,7 +155,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
    * @return a <code>JClassType</code> instance that describes the class
    * <code>java.lang.Object</code>
    */
-  public static final JClassType getTypeOfObject() {
+  public static JClassType getTypeOfObject() {
     return typeOfObject;
   }
 
@@ -202,7 +202,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
    * properties
    */
   // TODO check the concrete meaning of pStrictFp
-  public static final JClassType valueOf(
+  public static JClassType valueOf(
       String fullyQualifiedName, String pSimpleName,
       final VisibilityModifier pVisibility, final boolean pIsFinal,
       final boolean pIsAbstract, final boolean pStrictFp,
@@ -255,7 +255,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
    * @return an instance of <code>JClassType</code> that describes a class with the given
    * properties
    */
-  public static final JClassType valueOf(
+  public static JClassType valueOf(
       String fullyQualifiedName, String pSimpleName,
       final VisibilityModifier pVisibility, final boolean pIsFinal,
       final boolean pIsAbstract, final boolean pStrictFp,
@@ -266,7 +266,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
         pIsAbstract, pStrictFp, pSuperClass, pImplementedInterfaces, pEnclosingType);
   }
 
-  private final void notifyImplementedInterfacesOfThisClass() {
+  private void notifyImplementedInterfacesOfThisClass() {
     for (JInterfaceType implementedInterface : implementedInterfaces) {
       implementedInterface.registerSubType(this);
     }
@@ -336,7 +336,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     return implementedInterfaces;
   }
 
-  private final void registerSubType(JClassType pChild) {
+  private void registerSubType(JClassType pChild) {
       checkArgument(!directSubClasses.contains(pChild));
       directSubClasses.add(pChild);
   }

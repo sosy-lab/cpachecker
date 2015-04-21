@@ -52,7 +52,7 @@ class Z3SmtLogger {
 
     private final @Nullable PathCounterTemplate basicLogfile;
 
-    @Option(description = "Export solver queries in Smtlib2 format, " +
+    @Option(secure=true, description = "Export solver queries in Smtlib2 format, " +
             "there are small differences for different solvers, " +
             "choose target-solver.",
             values = { Z3, MATHSAT5 }, toUppercase = true)
@@ -195,6 +195,29 @@ class Z3SmtLogger {
 
       itpQuery.append(")");
       break;
+    default:
+      throw new AssertionError();
+    }
+
+    logCheck(); // TODO remove check?
+    logBracket(itpQuery.toString());
+  }
+
+  public void logSeqInterpolation(long[] interpolationFormulas) {
+    if (logfile == null) { return; }
+
+    StringBuilder itpQuery = new StringBuilder();
+    switch (settings.target) {
+    case Z3:
+      itpQuery.append("get-interpolants ");
+      for (long f : interpolationFormulas) {
+        itpQuery.append(ast_to_string(z3context, f));
+      }
+      break;
+
+    case MATHSAT5:
+      throw new AssertionError("not supported via SMT-input/output??");
+
     default:
       throw new AssertionError();
     }

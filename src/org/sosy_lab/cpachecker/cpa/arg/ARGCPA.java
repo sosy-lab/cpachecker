@@ -44,6 +44,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -81,12 +83,17 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return AutomaticCPAFactory.forType(ARGCPA.class);
   }
 
-  @Option(
+  @Option(secure=true,
   description="inform ARG CPA if it is run in a predicated analysis because then it must"
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;
 
-  @Option(name="errorPath.filters",
+  @Option(secure=true,
+      description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node"
+        + "which is required to get at most one successor per CFA edge.")
+      private boolean deleteInPredicatedAnalysis = false;
+
+  @Option(secure=true, name="errorPath.filters",
       description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
       + " Only relevant with analysis.stopAfterErrors=false and cpa.arg.errorPath.exportImmediately=true."
       + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")
@@ -109,6 +116,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   private final CEXExporter cexExporter;
   private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
+  private final MachineModel machineModel;
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     super(cpa);
@@ -146,7 +154,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
       mergeOperator = MergeSepOperator.getInstance();
     } else {
       if (inPredicatedAnalysis) {
-        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge);
+        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge, deleteInPredicatedAnalysis);
       } else {
         mergeOperator = new ARGMergeJoin(wrappedMerge);
       }
@@ -155,6 +163,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     cexFilter = createCounterexampleFilter(config, logger, cpa);
     cexExporter = new CEXExporter(config, logger);
     stats = new ARGStatistics(config, this);
+    machineModel = cfa.getMachineModel();
   }
 
   private CounterexampleFilter createCounterexampleFilter(Configuration config,
@@ -212,9 +221,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
-    return new ARGState(getWrappedCpa().getInitialState(pNode), null);
+    return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 
   protected LogManager getLogger() {
@@ -282,5 +291,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }
     }
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 }

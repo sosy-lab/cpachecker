@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSele
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 /**
@@ -42,9 +42,9 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
  */
 public interface PathValidator {
 
-  public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)throws CPATransferException, InterruptedException;
+  public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)throws CPAException, InterruptedException;
 
-  public CounterexampleTraceInfo validatePath(List<CFAEdge> pAsEdgesList) throws CPATransferException, InterruptedException;
+  public CounterexampleTraceInfo validatePath(List<CFAEdge> pAsEdgesList) throws CPAException, InterruptedException;
 
   /**
    * checks if the given node is a possible candidate for a new path branching point.

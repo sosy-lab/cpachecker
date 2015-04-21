@@ -1,12 +1,11 @@
-Main Authors/Maintainers:
+Maintainers:
   Dirk Beyer (since 2007), Simon Fraser University, Canada / University of Passau, Germany
-  Stefan Löwe (since 2010), University of Passau, Germany
   Philipp Wendler (since 2009), University of Passau, Germany
 
 Former Maintainers:
   Erkan Keremoglu (2008 - 2011), Simon Fraser University, Canada
 
-Contributors:
+Developers/Contributors:
   Pavel Andrianov (since 2014), Russian Academy of Sciences, Russia
   Matthias Dangl (since 2012), University of Passau, Germany
   Alexander Driemeyer (since 2012), University of Passau, Germany
@@ -15,13 +14,14 @@ Contributors:
   Marie-Christine Jakobs (since 2012), University of Paderborn, Germany
   George Karpenkov (since 2014), Verimag, Grenoble
   Thomas Lemberger (since 2014), University of Passau, Germany
+  Stefan Löwe (since 2010), University of Passau, Germany
   Mikhail Mandrykin (since 2013), Russian Academy of Sciences, Russia
   Petr Muller (since 2012), Brno University of Technology, Czech Republic
   Vadim Mutilin (since 2012), Russian Academy of Sciences, Russia
   Andreas Stahlbauer (since 2011), University of Passau, Germany / GrammaTech, USA
   Thomas Stieglmaier (since 2011), University of Passau, Germany
 
-Former Contributors:
+Former Developers/Contributors:
   Christian Bielert (2013 - 2014), University of Passau, Germany
   Mike Czech (2013), University of Paderborn, Germany
   Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark

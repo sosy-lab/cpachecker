@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -57,16 +58,14 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
   }
 
-  @Option(description="print warnings during analysis when uninitialized variables are used")
+  @Option(secure=true, description="print warnings during analysis when uninitialized variables are used")
   private String printWarnings = "true";
-  @Option(name="merge", values={"sep", "join"},
+  @Option(secure=true, name="merge", values={"sep", "join"},
       description="which merge operator to use for UninitializedVariablesCPA?")
   private String mergeType = "sep";
-  @Option(name="stop", values={"sep", "join"},
+  @Option(secure=true, name="stop", values={"sep", "join"},
       description="which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
-  @Option (description="if enabled checks if states are target states (there exist warning for uninitilized use of variables")
-  private boolean checkTarget = false;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -96,11 +95,6 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
       stopOp = new StopJoinOperator(domain);
     }
 
-    if (checkTarget) {
-      printWarnings = "true";
-    }
-    UninitializedVariablesState.init(checkTarget);
-
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;
     this.stopOperator = stopOp;
@@ -116,12 +110,12 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new UninitializedVariablesState(pNode.getFunctionName());
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 

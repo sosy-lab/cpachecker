@@ -102,7 +102,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
         logger.log(Level.FINE, "Looking at state", state);
 
-        if (checkForStatePropertyAndOtherStateActions(state)) {
+        if (!checkForStatePropertyAndOtherStateActions(state)) {
           logger.log(Level.INFO, "Property violation at state", state);
           return false;
         }

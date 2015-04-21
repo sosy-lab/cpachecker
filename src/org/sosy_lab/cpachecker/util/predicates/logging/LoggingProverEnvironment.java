@@ -51,10 +51,10 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   }
 
   @Override
-  public void push(BooleanFormula f) {
+  public Void push(BooleanFormula f) {
     logger.log(Level.FINE, "up to level " + level++);
     logger.log(Level.FINE, "formula pushed:", f);
-    wrapped.push(f);
+    return wrapped.push(f);
   }
 
   @Override
@@ -64,7 +64,7 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() throws SolverException, InterruptedException {
     boolean result = wrapped.isUnsat();
     logger.log(Level.FINE, "unsat-check returned:", result);
     return result;
@@ -86,7 +86,7 @@ public class LoggingProverEnvironment implements ProverEnvironment {
 
   @Override
   public AllSatResult allSat(Collection<BooleanFormula> important,
-      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException {
+      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException, SolverException {
     AllSatResult asr = wrapped.allSat(important, mgr, solveTime, enumTime);
     logger.log(Level.FINE, "allsat-result:", asr);
     return asr;
@@ -97,4 +97,5 @@ public class LoggingProverEnvironment implements ProverEnvironment {
     wrapped.close();
     logger.log(Level.FINER, "closed");
   }
+
 }

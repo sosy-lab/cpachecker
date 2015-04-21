@@ -44,15 +44,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 
-public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis, Graphable {
+public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, Graphable {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -125,7 +122,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    */
   @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
-    checkArgument(children.contains(pChild));
+    // Disabled the following check:
+    //    checkArgument(children.contains(pChild));
+    // In some cases we want to iterate all traces that have been explored
+    // by an analysis. Possible traces might be 'interrupted' by covered states.
+    // Covered states do not have children, so we expect the return value null in this case.
 
     CFANode currentLoc = extractLocation(this);
     CFANode childLoc = extractLocation(pChild);
@@ -338,7 +339,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return false;
   }
 
-  private final Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
+  private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
     return from(elements).transform(TO_STATE_ID);
   }
 
@@ -445,14 +446,5 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     }
 
     destroyed = true;
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    if (isTarget() && super.getWrappedState() instanceof TargetableWithPredicatedAnalysis) {
-      return ((TargetableWithPredicatedAnalysis) super.getWrappedState()).getErrorCondition(pFmgr);
-    } else {
-      return pFmgr.getBooleanFormulaManager().makeBoolean(false);
-    }
   }
 }

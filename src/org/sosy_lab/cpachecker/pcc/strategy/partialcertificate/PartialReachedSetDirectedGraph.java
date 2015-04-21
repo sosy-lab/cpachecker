@@ -29,10 +29,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 public class PartialReachedSetDirectedGraph {
 
@@ -69,9 +73,22 @@ public class PartialReachedSetDirectedGraph {
     this.adjacencyList = ImmutableList.copyOf(newList);
   }
 
+  public Set<Integer> getPredecessorsOf(int node) {
+    Set<Integer> ret = new HashSet<>();
+    for(int i = 0; i < getNumNodes(); i++) {
+      if(i != node) {
+        if(getAdjacencyList().get(i).contains(node)) {
+          ret.add(i);
+        }
+      }
+    }
+    return ret;
+  }
+
   public int getNumNodes() {
     return numNodes;
   }
+
   public List<AbstractState> getNodes() {
     return ImmutableList.copyOf(nodes);
   }
@@ -81,18 +98,29 @@ public class PartialReachedSetDirectedGraph {
     return adjacencyList;
   }
 
-  public AbstractState[] getAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
-    CollectingOutsideSuccessorVisitor visitor = new CollectingOutsideSuccessorVisitor(pAsARGState);
+  public AbstractState[] getSuccessorNodesOutsideSet(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
+    CollectingNodeVisitor visitor = new CollectingNodeVisitor(pAsARGState);
     visitOutsideSuccessors(pNodeSetIndices, visitor);
 
     return visitor.setRes.toArray(new AbstractState[visitor.setRes.size()]);
   }
 
-  public long getNumAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices) {
-    CountingOutsideSuccessorVisitor visitor = new CountingOutsideSuccessorVisitor();
+  public long getNumSuccessorNodesOutsideSet(final Set<Integer> pNodeSetIndices) {
+    CountingNodeVisitor visitor = new CountingNodeVisitor();
     visitOutsideSuccessors(pNodeSetIndices, visitor);
 
     return visitor.numOutside;
+  }
+
+  public long getNumEdgesBetween(final Set<Integer> pSrcNodeSetIndices, final Set<Integer> pDstNodeSetIndices){
+    CountingNodeVisitor visitor = new CountingNodeVisitor();
+    visitOutsideAdjacentNodes(pSrcNodeSetIndices, pDstNodeSetIndices, visitor);
+
+    return visitor.numOutside;
+  }
+
+  public long getNumEdgesBetween(final Integer pSrcNodeIndex, final Set<Integer> pDstNodeSetIndices) {
+    return getNumEdgesBetween(Sets.newHashSet(pSrcNodeIndex), pDstNodeSetIndices);
   }
 
   public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
@@ -113,16 +141,26 @@ public class PartialReachedSetDirectedGraph {
      return listRes.toArray(new AbstractState[listRes.size()]);
   }
 
-  private void visitOutsideSuccessors(final Set<Integer> pNodeSetIndices, final OutsideSuccessorVisitor pVisitor) {
+  private void visitOutsideSuccessorsOf(final int pPredecessor, final NodeVisitor pVisitor,
+      final Predicate<Integer> pMustVisit) {
+    for (Integer successor : adjacencyList.get(pPredecessor)) {
+      if (pMustVisit.apply(successor)) {
+        pVisitor.visit(successor);
+      }
+    }
+  }
+
+  private void visitOutsideSuccessors(final Set<Integer> pNodeSet, final NodeVisitor pVisitor) {
     try {
-      List<Integer> successors;
-      for (Integer predecessor : pNodeSetIndices) {
-        successors = adjacencyList.get(predecessor);
-        for (int successor : successors) {
-          if (!pNodeSetIndices.contains(successor)) {
-            pVisitor.visit(successor);
-          }
+      Predicate<Integer> isOutsideSet = new Predicate<Integer>() {
+
+        @Override
+        public boolean apply(@Nullable Integer pNode) {
+          return !pNodeSet.contains(pNode);
         }
+      };
+      for (int predecessor : pNodeSet) {
+        visitOutsideSuccessorsOf(predecessor, pVisitor, isOutsideSet);
       }
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
       throw new IllegalArgumentException("Wrong index set must not be null and all indices be within [0;" + numNodes
@@ -130,18 +168,44 @@ public class PartialReachedSetDirectedGraph {
     }
   }
 
-  private interface OutsideSuccessorVisitor {
+  private void visitOutsideAdjacentNodes(final Set<Integer> pSrcNodeSetIndices, final Set<Integer> pDstNodeSetIndices,
+      final NodeVisitor pVisitor) {
+    try {
+      visitSuccessorsInOtherSet(pSrcNodeSetIndices, pDstNodeSetIndices, pVisitor);
+      visitSuccessorsInOtherSet(pDstNodeSetIndices, pSrcNodeSetIndices, pVisitor);
+    } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      throw new IllegalArgumentException("Wrong index set must not be null and all indices be within [0;" + numNodes
+          + "-1].");
+    }
+  }
+
+  private void visitSuccessorsInOtherSet(final Set<Integer> pNodeSet, final Set<Integer> pOtherNodeSet,
+      final NodeVisitor pVisitor) {
+    Predicate<Integer> isInOtherSet = new Predicate<Integer>() {
+
+      @Override
+      public boolean apply(@Nullable Integer pNode) {
+        return pOtherNodeSet.contains(pNode);
+      }
+    };
+    for (int predecessor : pNodeSet) {
+      visitOutsideSuccessorsOf(predecessor, pVisitor, isInOtherSet);
+    }
+  }
+
+
+  private interface NodeVisitor {
 
     void visit(int pSuccessor);
 
   }
 
-  private class CollectingOutsideSuccessorVisitor implements OutsideSuccessorVisitor {
+  private class CollectingNodeVisitor implements NodeVisitor {
 
     private final Set<AbstractState> setRes = new HashSet<>();
     private final boolean collectAsARGState;
 
-    public CollectingOutsideSuccessorVisitor(final boolean pCollectAsARGState) {
+    public CollectingNodeVisitor(final boolean pCollectAsARGState) {
       collectAsARGState = pCollectAsARGState;
     }
 
@@ -155,7 +219,7 @@ public class PartialReachedSetDirectedGraph {
     }
   }
 
-  private static class CountingOutsideSuccessorVisitor implements OutsideSuccessorVisitor {
+  private static class CountingNodeVisitor implements NodeVisitor {
 
     private long numOutside = 0;
 

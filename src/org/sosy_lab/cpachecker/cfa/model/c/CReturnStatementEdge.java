@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.model.c;
 
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -47,6 +48,12 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
   @Override
   public Optional<CExpression> getExpression() {
     return (Optional<CExpression>)rawAST.getReturnValue();
+  }
+
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  @Override
+  public Optional<CAssignment> asAssignment() {
+    return (Optional<CAssignment>)super.asAssignment();
   }
 
   @Override

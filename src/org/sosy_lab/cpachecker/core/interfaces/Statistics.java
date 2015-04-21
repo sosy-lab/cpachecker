@@ -45,7 +45,7 @@ public interface Statistics {
      * to the disk. Please add a configuration option of the following form
      * in order to determine the file name for output files:
      * <code>
-     * @Option(description="...", name="...)
+     * @Option(secure=true, description="...", name="...)
      * @FileOption(FileOption.Type.OUTPUT_FILE)
      * private File outputFile = new File("Default Filename.txt");
      * </code>

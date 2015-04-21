@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
@@ -50,7 +50,7 @@ class AutomatonTransition {
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final AutomatonBoolExpr trigger;
   private final AutomatonBoolExpr assertion;
-  private final ImmutableList<IAStatement> assumption;
+  private final ImmutableList<AStatement> assumption;
   private final ImmutableList<AutomatonAction> actions;
   private final StringExpression violatedPropertyDescription;
 
@@ -101,7 +101,7 @@ class AutomatonTransition {
     if (pAssumption == null) {
       this.assumption = ImmutableList.of();
     } else {
-      this.assumption = ImmutableList.<IAStatement>copyOf(pAssumption);
+      this.assumption = ImmutableList.<AStatement>copyOf(pAssumption);
     }
 
     this.actions = ImmutableList.copyOf(pActions);
@@ -163,7 +163,7 @@ class AutomatonTransition {
    */
   public void executeActions(AutomatonExpressionArguments pArgs) throws CPATransferException {
     for (AutomatonAction action : actions) {
-      ResultValue<? extends Object> res = action.eval(pArgs);
+      ResultValue<?> res = action.eval(pArgs);
       if (res.canNotEvaluate()) {
         pArgs.getLogger().log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
       }
@@ -201,6 +201,9 @@ class AutomatonTransition {
   }
 
   public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
+    if (violatedPropertyDescription == null) {
+      return null;
+    }
     return (String)violatedPropertyDescription.eval(pArgs).getValue();
   }
 
@@ -241,7 +244,7 @@ class AutomatonTransition {
     return true;
   }
 
-  public ImmutableList<IAStatement> getAssumptions() {
+  public ImmutableList<AStatement> getAssumptions() {
     return assumption;
   }
 }

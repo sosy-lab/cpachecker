@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
@@ -113,6 +114,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   private static final InvariantsFormula<CompoundInterval> BOTTOM = CompoundIntervalFormulaManager.INSTANCE
       .asConstant(CompoundInterval.bottom());
+
+  private static final Predicate<? super String> IS_UNSUPPORTED_VARIABLE = new Predicate<String>() {
+
+      @Override
+      public boolean apply(String pArg0) {
+        return pArg0 == null || pArg0.contains("[");
+      }};
 
   private final Predicate<InvariantsFormula<CompoundInterval>> implies = new Predicate<InvariantsFormula<CompoundInterval>>() {
 
@@ -229,13 +237,17 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   }
 
   public AbstractionState determineAbstractionState(InvariantsPrecision pPrecision) {
-    return determineAbstractionState(pPrecision.getAbstractionStateFactory().getSuccessorState(abstractionState));
+    return determineAbstractionState(
+        pPrecision.getAbstractionStateFactory()
+        .from(abstractionState));
   }
 
   public InvariantsState updateAbstractionState(InvariantsPrecision pPrecision, CFAEdge pEdge) {
-    AbstractionState state = determineAbstractionState(pPrecision);
+    AbstractionState state =
+        pPrecision.getAbstractionStateFactory()
+        .getSuccessorState(abstractionState);
     state = state.addEnteringEdge(pEdge);
-    if (state.equals(this.abstractionState)) {
+    if (state.equals(abstractionState)) {
       return this;
     }
     return new InvariantsState(environment, variableSelection, machineModel, variableTypes, state);
@@ -327,6 +339,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue) {
     Preconditions.checkNotNull(pValue);
+    // Only use information from supported variables
+    if (IS_UNSUPPORTED_VARIABLE.apply(pVarName)) {
+      return this;
+    }
+    if (FluentIterable.from(pValue.accept(new CollectVarsVisitor<CompoundInterval>())).anyMatch(IS_UNSUPPORTED_VARIABLE)) {
+      return this;
+    }
 
     // Check if the assigned variable is selected (newVariableSelection != null)
     VariableSelection<CompoundInterval> newVariableSelection = this.variableSelection.acceptAssignment(pVarName, pValue);
@@ -496,7 +515,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
       assert !atomic.isEmpty();
       Iterator<InvariantsFormula<CompoundInterval>> iterator = atomic.iterator();
-      InvariantsFormula<CompoundInterval> assumption = ifm.equal(variable, iterator.next());
+      InvariantsFormula<CompoundInterval> assumption = ifm.asConstant(CompoundInterval.logicalFalse());
       while (iterator.hasNext()) {
         InvariantsFormula<CompoundInterval> equation = ifm.equal(variable, iterator.next());
         if (isExclusion) {
@@ -566,6 +585,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (assumptionParts.size() > 1) { return assumeInternal(assumptionParts, pEvaluationVisitor, pNewVariableSelection); }
     // If the assumption is top, it adds no value
     if (assumption.equals(TOP)) { return this; }
+
+    // Only use information from supported variables
+    if (FluentIterable.from(assumption.accept(new CollectVarsVisitor<CompoundInterval>())).anyMatch(IS_UNSUPPORTED_VARIABLE)) {
+      return this;
+    }
 
     if (assumption instanceof Constant<?>) {
       return !((Constant<CompoundInterval>) assumption).getValue().isDefinitelyFalse() ? this : null;
@@ -718,8 +742,12 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    *
    * @return the environment of this state.
    */
-  public Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> getEnvironment() {
+  public Map<String, InvariantsFormula<CompoundInterval>> getEnvironment() {
     return Collections.unmodifiableMap(environment);
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   @Override
@@ -751,8 +779,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
     Set<String> wideningTargets = pWideningTargets == null ? environment.keySet() : pWideningTargets;
 
-    FluentIterable<InvariantsFormula<CompoundInterval>> matchingHints = FluentIterable.from(pWideningHints).filter(this.implies);
-
     if (wideningTargets.isEmpty()) {
       return this;
     }
@@ -768,9 +794,20 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       if (oldFormula != null && (!currentFormula.equals(oldFormula)
           || currentFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > pPrecision.getMaximumFormulaDepth())) {
         InvariantsFormula<CompoundInterval> newValueFormula =
-        CompoundIntervalFormulaManager.INSTANCE.union(
+          CompoundIntervalFormulaManager.INSTANCE.union(
             currentFormula.accept(this.partialEvaluator, EVALUATION_VISITOR),
             oldFormula.accept(pOlderState.partialEvaluator, EVALUATION_VISITOR)).accept(new PartialEvaluator(), EVALUATION_VISITOR);
+
+        // Allow only (singleton) constants for formula depth 0
+        if (pPrecision.getMaximumFormulaDepth() == 0) {
+          CompoundInterval value = currentFormula.accept(EVALUATION_VISITOR, environment)
+              .unionWith(oldFormula.accept(EVALUATION_VISITOR, pOlderState.getEnvironment()));
+          if (!value.isSingleton()) {
+            value = CompoundInterval.top();
+          }
+          newValueFormula = CompoundIntervalFormulaManager.INSTANCE.asConstant(value);
+        }
+
         resultEnvironment = resultEnvironment.putAndCopy(varName, newValueFormula);
         toDo.put(varName, newValueFormula);
       }
@@ -810,7 +847,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     }
     InvariantsState result = new InvariantsState(resultEnvironment, variableSelection, machineModel, variableTypes, abstractionState);
 
-    for (InvariantsFormula<CompoundInterval> hint : matchingHints) {
+    for (InvariantsFormula<CompoundInterval> hint : FluentIterable.from(pWideningHints).filter(this.implies)) {
       result = result.assume(hint);
     }
     if (equals(result)) {
@@ -928,6 +965,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       if (result.equalsState(state1)) {
         result = state1;
       }
+    }
+    return result;
+  }
+
+  public InvariantsFormula<CompoundInterval> asFormula() {
+    InvariantsFormula<CompoundInterval> result = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalTrue());
+    for (InvariantsFormula<CompoundInterval> assumption : getEnvironmentAsAssumptions()) {
+      result = CompoundIntervalFormulaManager.INSTANCE.logicalAnd(result, assumption);
     }
     return result;
   }

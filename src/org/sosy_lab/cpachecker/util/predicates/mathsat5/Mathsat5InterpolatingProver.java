@@ -26,17 +26,20 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.List;
+import java.util.Set;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
-public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironment<Integer> {
+class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironmentWithAssumptions<Integer> {
 
   private final boolean useSharedEnv;
 
-  public Mathsat5InterpolatingProver(Mathsat5FormulaManager pMgr, boolean shared) {
+  Mathsat5InterpolatingProver(Mathsat5FormulaManager pMgr, boolean shared) {
     super(pMgr, createConfig(pMgr), shared, false);
     useSharedEnv = shared;
   }
@@ -66,7 +69,7 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<Integer> formulasOfA) {
+  public BooleanFormula getInterpolant(List<Integer> formulasOfA) throws SolverException {
     Preconditions.checkState(curEnv != 0);
 
     int[] groupsOfA = new int[formulasOfA.size()];
@@ -74,11 +77,44 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
     for (Integer f : formulasOfA) {
       groupsOfA[i++] = f;
     }
-    long itp = msat_get_interpolant(curEnv, groupsOfA);
+
+    long itp;
+    try {
+      itp = msat_get_interpolant(curEnv, groupsOfA);
+    } catch (IllegalArgumentException e) {
+      String msg = Strings.nullToEmpty(e.getMessage());
+      if (msg.contains("impossible to build a suitable congruence graph")
+          || msg.contains("can't build ie-local interpolant")
+          || msg.contains("splitting of AB-mixed terms not supported")) {
+        // This is not a bug in CPAchecker, but a problem of MathSAT which happens during interpolation
+        throw new SolverException(e.getMessage(), e);
+      }
+      throw e;
+    }
 
     if (!useSharedEnv) {
       itp = msat_make_copy_from(mgr.getEnvironment(), itp, curEnv);
     }
     return mgr.encapsulateBooleanFormula(itp);
+  }
+
+  @Override
+  public List<BooleanFormula> getSeqInterpolants(List<Set<Integer>> partitionedFormulas) {
+    // TODO is fallback to loop sound?
+
+    //final List<BooleanFormula> itps = new ArrayList<>();
+    //for (int i = 0; i < partitionedFormulas.size(); i++) {
+    //  itps.add(getInterpolant(Lists.newArrayList(Iterables.concat(partitionedFormulas.subList(0, i)))));
+    //}
+    //return itps;
+
+    throw new UnsupportedOperationException("directly receiving an inductive sequence of interpolants is not supported." +
+            "Use another solver or another strategy for interpolants.");
+  }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<Integer>> partitionedFormulas, int[] startOfSubTree) {
+    throw new UnsupportedOperationException("directly receiving of tree interpolants is not supported." +
+            "Use another solver or another strategy for interpolants.");
   }
 }

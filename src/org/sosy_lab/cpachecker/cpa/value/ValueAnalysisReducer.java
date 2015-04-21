@@ -27,10 +27,12 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class ValueAnalysisReducer implements Reducer {
@@ -50,7 +52,7 @@ public class ValueAnalysisReducer implements Reducer {
     ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
 
     ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(expandedState);
-    for (ValueAnalysisState.MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
+    for (MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
       if (!occursInBlock(pContext, simpleName)) {
@@ -73,7 +75,7 @@ public class ValueAnalysisReducer implements Reducer {
     // - not the variables of rootState used in the block -> just ignore those values
     ValueAnalysisState diffElement = ValueAnalysisState.copyOf(reducedState);
 
-    for (ValueAnalysisState.MemoryLocation trackedVar : rootState.getTrackedMemoryLocations()) {
+    for (MemoryLocation trackedVar : rootState.getTrackedMemoryLocations()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
       if (!occursInBlock(pReducedContext, simpleName)) {
@@ -84,10 +86,6 @@ public class ValueAnalysisReducer implements Reducer {
         // (or might even be deleted, then they must stay unknown)
       }
     }
-
-    // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
-    // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
-    diffElement.addToDelta(diffElement);
 
     return diffElement;
   }
@@ -137,4 +135,13 @@ public class ValueAnalysisReducer implements Reducer {
     return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
 
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState,
+      AbstractState pExpandedState, FunctionExitNode exitLocation) {
+
+    ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
+    ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
+
+    return expandedState.rebuildStateAfterFunctionCall(rootState, exitLocation);
+  }
 }

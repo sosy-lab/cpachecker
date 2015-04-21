@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.truth.Truth.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -33,12 +37,9 @@ import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
@@ -51,8 +52,14 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.io.CharStreams;
+import com.google.common.truth.FailureStrategy;
+import com.google.common.truth.Subject;
+import com.google.common.truth.SubjectFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -66,9 +73,7 @@ public class AutomatonInternalTest {
   private static final Path defaultSpec = Paths.get("test/config/automata/defaultSpecification.spc");
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
-    config = Configuration.builder()
-        .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
-        .build();
+    config = TestDataTools.configurationForTest().build();
     logger = TestLogManager.getInstance();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
@@ -113,166 +118,222 @@ public class AutomatonInternalTest {
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
 
     ex = new AutomatonBoolExpr.And(myTrue, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+
     ex = new AutomatonBoolExpr.And(myTrue, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+
     ex = new AutomatonBoolExpr.And(myTrue, cannot);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).canNotEvaluate()).isTrue();
+
     ex = new AutomatonBoolExpr.And(myFalse, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+
     ex = new AutomatonBoolExpr.And(myFalse, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+
     ex = new AutomatonBoolExpr.And(myFalse, cannot);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+
     ex = new AutomatonBoolExpr.And(cannot, myTrue);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).canNotEvaluate()).isTrue();
+
     ex = new AutomatonBoolExpr.And(cannot, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+
     ex = new AutomatonBoolExpr.And(cannot, cannot);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).canNotEvaluate()).isTrue();
 
     ex = new AutomatonBoolExpr.Or(myTrue, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myTrue, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myTrue, cannot);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myFalse, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myFalse, myFalse);
-    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(myFalse, cannot);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(cannot, myTrue);
-    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(cannot, myFalse);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
-    ex = new AutomatonBoolExpr.Or(cannot, cannot);
-    if (!ex.eval(args).canNotEvaluate()) {
-      Assert.fail();
-    }
+    assertThat(ex.eval(args).getValue()).isEqualTo(true);
 
+    ex = new AutomatonBoolExpr.Or(myTrue, myFalse);
+    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+
+    ex = new AutomatonBoolExpr.Or(myTrue, cannot);
+    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+
+    ex = new AutomatonBoolExpr.Or(myFalse, myTrue);
+    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+
+    ex = new AutomatonBoolExpr.Or(myFalse, myFalse);
+    assertThat(ex.eval(args).getValue()).isEqualTo(false);
+
+    ex = new AutomatonBoolExpr.Or(myFalse, cannot);
+    assertThat(ex.eval(args).canNotEvaluate()).isTrue();
+
+    ex = new AutomatonBoolExpr.Or(cannot, myTrue);
+    assertThat(ex.eval(args).getValue()).isEqualTo(true);
+
+    ex = new AutomatonBoolExpr.Or(cannot, myFalse);
+    assertThat(ex.eval(args).canNotEvaluate()).isTrue();
+
+    ex = new AutomatonBoolExpr.Or(cannot, cannot);
+    assertThat(ex.eval(args).canNotEvaluate()).isTrue();
   }
 
   @Test
   public void testJokerReplacementInPattern() {
     // tests the replacement of Joker expressions in the AST comparison
     String result = AutomatonASTComparator.replaceJokersInPattern("$20 = $?");
-    Assert.assertTrue(result.contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num20  =  CPAchecker_AutomatonAnalysis_JokerExpression"));
+    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num20  =  CPAchecker_AutomatonAnalysis_JokerExpression");
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $?");
-    Assert.assertTrue(result.contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression"));
+    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression");
     result = AutomatonASTComparator.replaceJokersInPattern("$? = $?");
-    Assert.assertTrue(result.contains("CPAchecker_AutomatonAnalysis_JokerExpression  =  CPAchecker_AutomatonAnalysis_JokerExpression"));
+    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression  =  CPAchecker_AutomatonAnalysis_JokerExpression");
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $5");
-    Assert.assertTrue(result.contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression_Num5 "));
+    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression_Num5 ");
   }
 
   @Test
   public void testJokerReplacementInAST() throws InvalidAutomatonException, InvalidConfigurationException {
     // tests the replacement of Joker expressions in the AST comparison
-    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);", parser, CProgramScope.empty());
-    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);", parser, CProgramScope.empty());
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
+    final String pattern = "$20 = $5($1, $?);";
+    final String source = "var1 = function(var2, egal);";
 
-    boolean result = patternAST.matches(sourceAST, args);
-    Assert.assertTrue(result);
-    Assert.assertTrue(args.getTransitionVariable(20).equals("var1"));
-    Assert.assertTrue(args.getTransitionVariable(1).equals("var2"));
-    Assert.assertTrue(args.getTransitionVariable(5).equals("function"));
+    assert_().about(astMatcher).that(pattern).matches(source).withVariableValue(20, "var1");
+    assert_().about(astMatcher).that(pattern).matches(source).withVariableValue(1, "var2");
+    assert_().about(astMatcher).that(pattern).matches(source).withVariableValue(5, "function");
   }
 
   @Test
-  public void transitionVariableReplacement() throws Exception {
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, logger);
+  public void transitionVariableReplacement() {
+    LogManager mockLogger = mock(LogManager.class);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, mockLogger);
     args.putTransitionVariable(1, "hi");
     args.putTransitionVariable(2, "hello");
     // actual test
     String result = args.replaceVariables("$1 == $2");
-    Assert.assertTrue("hi == hello".equals(result));
+    assertThat(result).isEqualTo("hi == hello");
     result = args.replaceVariables("$1 == $1");
-    Assert.assertTrue("hi == hi".equals(result));
+    assertThat(result).isEqualTo("hi == hi");
 
-    logger.log(Level.WARNING, "Warning expected in the next line (concerning $5)");
     result = args.replaceVariables("$1 == $5");
-    Assert.assertTrue(result == null); // $5 has not been found
+    assertThat(result).isNull(); // $5 has not been found
     // this test should issue a log message!
+    verify(mockLogger).log(eq(Level.WARNING), anyVararg());
   }
 
   @Test
   public void testASTcomparison() throws InvalidAutomatonException, InvalidConfigurationException {
 
-   testAST("x=5;", "x= $?;", true);
-   testAST("x=5;", "x= 10;", false);
-   testAST("x=5;", "$? =10;", false);
-   testAST("x  = 5;", "$?=$?;", true);
+   assert_().about(astMatcher).that("x= $?;").matches("x=5;");
+   assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
+   assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
+   assert_().about(astMatcher).that("$?=$?;").matches("x  = 5;");
 
-   testAST("a = 5;", "b    = 5;", false);
+   assert_().about(astMatcher).that("b    = 5;").doesNotMatch("a = 5;");
 
-   testAST("init(a);", "init($?);", true);
-   testAST("init();", "init($?);", true);
-   testAST("init();", "init($1);", false);
+   assert_().about(astMatcher).that("init($?);").matches("init(a);");
+   assert_().about(astMatcher).that("init($?);").matches("init();");
+   assert_().about(astMatcher).that("init($1);").doesNotMatch("init();");
 
-   testAST("init(a, b);", "init($?, b);", true);
-   testAST("init(a, b);", "init($?, c);", false);
+   assert_().about(astMatcher).that("init($?, b);").matches("init(a, b);");
+   assert_().about(astMatcher).that("init($?, c);").doesNotMatch("init(a, b);");
 
-   testAST("x = 5;", "x=$?", true);
-   testAST("x = 5", "x=$?;", true);
+   assert_().about(astMatcher).that("x=$?").matches("x = 5;");
+   assert_().about(astMatcher).that("x=$?;").matches("x = 5");
 
 
-   testAST("f();", "f($?);", true);
-   testAST("f(x);", "f($?);", true);
-   testAST("f(x, y);", "f($?);", true);
+   assert_().about(astMatcher).that("f($?);").matches("f();");
+   assert_().about(astMatcher).that("f($?);").matches("f(x);");
+   assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
 
-   testAST("f(x);", "f(x, $?);", false);
-   testAST("f(x, y);", "f(x, $?);", true);
-   testAST("f(x, y, z);", "f(x, $?);", false);
-
+   assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x);");
+   assert_().about(astMatcher).that("f(x, $?);").matches("f(x, y);");
+   assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x, y, z);");
   }
-  /**
-   * Tests the equality of two strings as used the ASTComparison transition.
-   * @param src sourcecode string
-   * @param pattern string in the automaton definition (may contain $?)
-   * @throws InvalidConfigurationException
-   */
-  public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException, InvalidConfigurationException {
-    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
-    CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
-    ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern, parser, CProgramScope.empty());
 
-    Assert.assertEquals(result, patternAST.matches(sourceAST, args));
+  private final SubjectFactory<ASTMatcherSubject, String> astMatcher =
+      new SubjectFactory<ASTMatcherSubject, String>() {
+        @Override
+        public ASTMatcherSubject getSubject(FailureStrategy pFs, String pThat) {
+          return new ASTMatcherSubject(pFs, pThat);
+        }
+      };
+
+  /**
+   * {@link Subject} subclass for testing ASTMatchers with Truth
+   * (allows to use assert_().about(astMatcher).that("ast pattern").matches(...)).
+   */
+  @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
+  private class ASTMatcherSubject extends Subject<ASTMatcherSubject, String> {
+
+    private final AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, null);
+
+    public ASTMatcherSubject(FailureStrategy pFailureStrategy, String pPattern) {
+      super(pFailureStrategy, pPattern);
+    }
+
+    @Override
+    protected String getDisplaySubject() {
+      if (internalCustomName() != null) {
+        return super.getDisplaySubject();
+      }
+      return "ASTMatcher pattern " + super.getDisplaySubject();
+    }
+
+    private boolean matches0(String src) throws InvalidAutomatonException, InvalidConfigurationException {
+      CAstNode sourceAST;
+      ASTMatcher matcher;
+      sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
+      matcher = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
+
+      return matcher.matches(sourceAST, args);
+    }
+
+    public Matches matches(final String src) {
+      boolean matches;
+      try {
+        matches = matches0(src);
+      } catch (InvalidAutomatonException | InvalidConfigurationException e) {
+        failureStrategy.fail("Cannot parse source or pattern", e);
+        return new Matches() {
+              @Override
+              public void withVariableValue(int pVar, String pValue) {
+                ASTMatcherSubject.this.fail("Cannot test value of variable with failed parsing.");
+              }
+            };
+      }
+
+      if (!matches) {
+        fail("matches", src);
+        return new Matches() {
+            @Override
+            public void withVariableValue(int pVar, String pValue) {
+              ASTMatcherSubject.this.fail("Cannot test value of variable if pattern does not match.");
+            }
+          };
+      }
+      return new Matches() {
+            @Override
+            public void withVariableValue(int pVar, String pExpectedValue) {
+              if (!args.getTransitionVariables().containsKey(pVar)) {
+                ASTMatcherSubject.this.failWithBadResults(
+                    "has variable", pVar, "has variables", args.getTransitionVariables().keySet());
+              }
+              final String actualValue = args.getTransitionVariable(pVar);
+              if (!actualValue.equals(pExpectedValue)) {
+                ASTMatcherSubject.this.failWithBadResults(
+                    "matches <" + src + "> with value of variable $" + pVar + " being",
+                    pExpectedValue, "has value", actualValue);
+              }
+            }
+          };
+    }
+
+    public void doesNotMatch(String src) {
+      try {
+        if (matches0(src)) {
+          fail("does not match", src);
+        }
+      } catch (InvalidAutomatonException | InvalidConfigurationException e) {
+        failureStrategy.fail("Cannot parse source or pattern", e);
+      }
+    }
+  }
+
+  private static interface Matches {
+    void withVariableValue(int var, String value);
   }
 }

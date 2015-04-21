@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -38,7 +37,7 @@ abstract class Z3NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
-  private final long z3context;
+  protected final long z3context;
 
   public Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
@@ -96,17 +95,6 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public Long divide(Long pNumber1, Long pNumber2) {
-    long result;
-    if (is_numeral_ast(z3context, pNumber2)) {
-      result = mk_div(z3context, pNumber1, pNumber2);
-    } else {
-      result = super.divide(pNumber1, pNumber2);
-    }
-    return result;
-  }
-
-  @Override
   public Long multiply(Long pNumber1, Long pNumber2) {
     long result;
     if (is_numeral_ast(z3context, pNumber1) || is_numeral_ast(z3context, pNumber2)) {
@@ -118,18 +106,13 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public Long equal(Long pNumber1, Long pNumber2) {
-    return mk_eq(z3context, pNumber1, pNumber2);
+  protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return mk_true(z3context);
   }
 
   @Override
-  public boolean isEqual(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_EQ)
-        && get_app_num_args(z3context, pNumber) == 2
-        && (get_sort(z3context, get_app_arg(z3context, pNumber, 0)) == Z3_INT_SORT
-            || get_sort(z3context, get_app_arg(z3context, pNumber, 0)) == Z3_REAL_SORT)
-        && (get_sort(z3context, get_app_arg(z3context, pNumber, 1)) == Z3_INT_SORT
-        || get_sort(z3context, get_app_arg(z3context, pNumber, 1)) == Z3_REAL_SORT);
+  public Long equal(Long pNumber1, Long pNumber2) {
+    return mk_eq(z3context, pNumber1, pNumber2);
   }
 
   @Override

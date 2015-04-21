@@ -23,37 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.IOException;
-import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.util.List;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 
 
-public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable,
-    LatticeAbstractState<SignState> {
+public class SignState implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
 
   private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
 
-  private static SignTargetChecker targetChecker;
-
-  static void init(Configuration config) throws InvalidConfigurationException {
-    targetChecker = new SignTargetChecker(config);
-  }
+  private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
   private PersistentMap<String, SIGN> signMap;
 
@@ -173,29 +166,7 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     return signMap.hashCode();
   }
 
-  @Override
-  public boolean isTarget() {
-    return targetChecker == null ? false : targetChecker.isTarget(this);
-  }
-
-  @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
-    checkState(isTarget());
-    return "";
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    return targetChecker == null ? pFmgr.getBooleanFormulaManager().makeBoolean(false) : targetChecker
-        .getErrorCondition(this, pFmgr);
-  }
-
-  @Override
-  public String getTargetVariableName() {
-    return targetChecker == null ? "" : targetChecker.getErrorVariableName();
-  }
-
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     if (this == TOP) {
       return proxy;
     } else {
@@ -217,9 +188,72 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
 
     public SerialProxySign() {}
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       return TOP;
     }
+  }
+
+  @Override
+  public String getCPAName() {
+    return "SignAnalysis";
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    return Boolean.valueOf(checkProperty(pProperty));
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    // TODO Auto-generated method stub
+    List<String> parts = propertySplitter.splitToList(pProperty);
+
+    if (parts.size() == 2) {
+
+      // pProperty = value <= varName
+      if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
+        SIGN value = SIGN.valueOf(parts.get(0));
+        SIGN varName = getSignForVariable(parts.get(1));
+        return (varName.covers(value));
+      }
+
+      // pProperty = varName <= value
+      else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))){
+        SIGN varName = getSignForVariable(parts.get(0));
+        SIGN value = SIGN.valueOf(parts.get(1));
+        return (value.covers(varName));
+      }
+
+      // pProperty = varName1 <= varName2
+      else {
+        SIGN varName1 = getSignForVariable(parts.get(0));
+        SIGN varName2 = getSignForVariable(parts.get(1));
+        return (varName2.covers(varName1));
+      }
+    }
+
+    return false;
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("{");
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, signMap);
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
 }

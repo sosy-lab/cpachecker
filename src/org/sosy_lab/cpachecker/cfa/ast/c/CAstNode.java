@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
 
-import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 
 
-public interface CAstNode extends IAstNode {
+public interface CAstNode extends AAstNode {
 
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> v) throws X;
 

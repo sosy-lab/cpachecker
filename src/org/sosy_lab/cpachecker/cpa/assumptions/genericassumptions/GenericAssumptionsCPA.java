@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
@@ -55,7 +55,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
 
-  private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private GenericAssumptionsCPA(Configuration config, LogManager logger) {
     transferRelation = new GenericAssumptionsTransferRelation();
     topState = new GenericAssumptionsState(ImmutableList.<CExpression>of());
     abstractDomain = new GenericAssumptionsDomain(topState);
@@ -67,12 +67,12 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return topState;
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 

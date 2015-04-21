@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
@@ -56,7 +57,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(DefUseCPA.class);
   }
 
-  @Option(name="merge", values={"sep", "join"},
+  @Option(secure=true, name="merge", values={"sep", "join"},
       description="which merge operator to use for DefUseCPA")
   private String mergeType = "sep";
 
@@ -108,10 +109,10 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
 
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<>();
-    if (node instanceof CFunctionEntryNode) {
-      List<String> parameterNames = ((CFunctionEntryNode)node).getFunctionParameterNames();
+    if (pNode instanceof CFunctionEntryNode) {
+      List<String> parameterNames = ((CFunctionEntryNode)pNode).getFunctionParameterNames();
 
       for (String parameterName : parameterNames) {
         DefUseDefinition newDef = new DefUseDefinition(parameterName, null);
@@ -123,7 +124,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 }

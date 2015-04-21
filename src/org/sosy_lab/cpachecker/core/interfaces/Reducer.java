@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 
 public interface Reducer {
@@ -53,4 +54,31 @@ public interface Reducer {
 
   AbstractState getVariableExpandedStateForProofChecking(AbstractState rootState, Block reducedContext, AbstractState reducedState);
 
-}
+  /**
+   * Use the expandedState as basis for a new state,
+   * that can be used as rebuildState for the next funcion-return-edge.
+   *
+   * @param rootState state before the function-call. this is the predecessor of the block-start-state, that will be reduced.
+   * @param entryState state after the function-call. this is the block-start-state, that will be reduced.
+   * @param expandedState expanded state at function-return, before the function-return-dge.
+   * @param exitLocation location of expandedState and also reducedExitState,
+   *                     must be the location of rebuildState,
+   *                     TODO should be instance of FunctionExitNode?
+   *
+   *                                             +---------- BLOCK ----------+
+   *                                             |                           |
+   * rootState ---------------> entryState - - - - - -> reducedEntryState    |
+   *     |     functionCallEdge               reduce          |              |
+   *     |                                       |            V              |
+   *     |function-                              |         function-         |
+   *     |summary-                               |         execution         |
+   *     |edge                                   |            |              |
+   *     |                                    expand          V              |
+   *     |                     expandedState <- - - - - reducedExitState     |
+   *     |                         | | |         |                           |
+   *     V     functionReturnEdge  V V V         +---------------------------+
+   * returnState <------------  rebuildState
+   */
+  AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
+      AbstractState expandedState, FunctionExitNode exitLocation);
+  }

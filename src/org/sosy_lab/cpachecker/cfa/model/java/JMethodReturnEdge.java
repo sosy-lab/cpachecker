@@ -41,7 +41,11 @@ public class JMethodReturnEdge extends FunctionReturnEdge {
 
   @Override
   public JMethodSummaryEdge getSummaryEdge() {
-    return (JMethodSummaryEdge) summaryEdge;
+    return (JMethodSummaryEdge)super.getSummaryEdge();
   }
 
+  @Override
+  public JMethodEntryNode getFunctionEntry() {
+    return (JMethodEntryNode)super.getFunctionEntry();
+  }
 }

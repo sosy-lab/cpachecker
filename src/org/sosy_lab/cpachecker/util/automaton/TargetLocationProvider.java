@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
-import java.util.HashSet;
-import java.util.Scanner;
-import java.util.Set;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -40,13 +39,13 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -58,92 +57,74 @@ public class TargetLocationProvider {
   private final Configuration config;
   private final CFA cfa;
 
-  final static String specificationPropertyName = "specification";
+  private final static String specificationPropertyName = "specification";
 
   public TargetLocationProvider(ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier,
       LogManager pLogManager, Configuration pConfig, CFA pCfa) {
     super();
     reachedSetFactory = pReachedSetFactory;
     shutdownNotifier = pShutdownNotifier;
-    logManager = pLogManager;
+    logManager = pLogManager.withComponentName("TargetLocationProvider");
     config = pConfig;
     cfa = pCfa;
   }
 
   public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
-    String specification = config.getProperty(specificationPropertyName);
-    return tryGetAutomatonTargetLocations(pRootNode, specification);
-  }
-
-  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode, @Nullable String specification) {
     try {
-      // Create new configuration based on existing config but with default set of CPAs
-
-      ConfigurationBuilder configurationBuilder = extractOptionFrom(config, specificationPropertyName);
+      // Create new configuration with default set of CPAs
+      ConfigurationBuilder configurationBuilder = Configuration.builder();
+      if (config.hasProperty(specificationPropertyName)) {
+        configurationBuilder.copyOptionFrom(config, specificationPropertyName);
+      }
       configurationBuilder.setOption("output.disable", "true");
       configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
       configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
 
-      if (specification == null) {
-        String defaultSpecification = "config/specification/default.spc";
-        configurationBuilder.setOption(specificationPropertyName, defaultSpecification);
-      }
-
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
-      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAs(cfa);
+      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAWithSpecAutomatas(cfa);
 
       ReachedSet reached = reachedSetFactory.create();
-      reached.add(cpa.getInitialState(pRootNode), cpa.getInitialPrecision(pRootNode));
+      reached.add(
+          cpa.getInitialState(pRootNode, StateSpacePartition.getDefaultPartition()),
+          cpa.getInitialPrecision(pRootNode, StateSpacePartition.getDefaultPartition()));
       CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
+      try {
 
-      Set<CFANode> result = new HashSet<>();
+        while (reached.hasWaitingState()) {
+          targetFindingAlgorithm.run(reached);
+        }
 
-      boolean changed = true;
-      while (changed) {
-        targetFindingAlgorithm.run(reached);
-        changed = result.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
+      } finally {
+        CPAs.closeCpaIfPossible(cpa, logManager);
+        CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
       }
 
-      CPAs.closeCpaIfPossible(cpa, logManager);
-      CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
+      // Order of reached is the order in which states were created,
+      // toSet() keeps ordering, so the result is deterministic.
+      return from(reached)
+          .filter(AbstractStates.IS_TARGET_STATE)
+          .transform(AbstractStates.EXTRACT_LOCATION)
+          .toSet();
 
-      return ImmutableSet.copyOf(result);
+    } catch (InvalidConfigurationException | CPAException e) {
 
-    } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
-
-      if (!shutdownNotifier.shouldShutdown()) {
-        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
+      if (!e.toString().toLowerCase().contains("recursion")) {
+        logManager.logUserException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
+      } else {
+        logManager.log(Level.INFO, "Recursion detected. Defaulting to selecting all locations as potential target locations.");
+        logManager.logDebugException(e);
       }
 
       return null;
-    }
-  }
 
-  private ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
-    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
-
-    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
-      pairScanner.useDelimiter("\\s+");
-
-      while (pairScanner.hasNext()) {
-        String pair = pairScanner.next();
-
-        try (Scanner keyScanner = new Scanner(pair)) {
-          keyScanner.useDelimiter("\\s*=\\s*.*");
-
-          if (keyScanner.hasNext()) {
-            String key = keyScanner.next();
-
-            if (!key.equals(pKey)) {
-              builder.clearOption(key);
-            }
-          }
-        }
+    } catch (InterruptedException e) {
+      if (!shutdownNotifier.shouldShutdown()) {
+        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations as potential target locations.");
+      } else {
+        logManager.logDebugException(e);
       }
+      return null;
     }
-
-    return builder;
   }
-
 }

@@ -27,9 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,15 +40,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public final class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
+public class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 3629687385150064994L;
-  private final CallstackState previousState;
-  private final String currentFunction;
-  private transient CFANode callerNode;
+  protected final CallstackState previousState;
+  protected final String currentFunction;
+  protected transient CFANode callerNode;
   private final int depth;
 
-  CallstackState(CallstackState previousElement, @Nonnull String function, @Nonnull CFANode callerNode) {
+  public CallstackState(CallstackState previousElement, @Nonnull String function, @Nonnull CFANode callerNode) {
     this.previousState = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);
@@ -72,6 +75,17 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
     return depth;
   }
 
+  /** for logging and debugging */
+  private List<String> getStack() {
+    final List<String> stack = new ArrayList<>();
+    CallstackState state = this;
+    while (state != null) {
+      stack.add(state.getCurrentFunction());
+      state = state.getPreviousState();
+    }
+    return Lists.reverse(stack);
+  }
+
   @Override
   public Object getPartitionKey() {
     return this;
@@ -82,7 +96,8 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
     return "Function " + getCurrentFunction()
         + " called from node " + getCallNode()
         + ", stack depth " + getDepth()
-        + " [" + Integer.toHexString(super.hashCode()) + "]";
+        + " [" + Integer.toHexString(super.hashCode())
+        + "], stack " + getStack();
   }
 
   public boolean sameStateInProofChecking(CallstackState pOther) {

@@ -38,6 +38,15 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -49,9 +58,30 @@ import com.google.common.io.CharStreams;
 
 public class AutomatonGraphmlCommon {
 
-  public final static String SINK_NODE_ID = "sink";
+  public static final String SINK_NODE_ID = "sink";
 
-  public enum KeyDef {
+  public static enum AssumeCase {
+
+    THEN("condition-true"),
+    ELSE("condition-false");
+
+    private final String name;
+
+    private AssumeCase(String pName) {
+      this.name = pName;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public String toString() {
+      return getName();
+    }
+  }
+
+  public static enum KeyDef {
     INVARIANT("invariant", "node", "invariant", "string"),
     NAMED("named", "node", "namedValue", "string"),
 
@@ -61,17 +91,18 @@ public class AutomatonGraphmlCommon {
     ISVIOLATIONNODE("violation","node","isViolationNode","boolean"),
     ISENTRYNODE("entry","node","isEntryNode","boolean"),
     ISSINKNODE("sink","node","isSinkNode","boolean"),
+    VIOLATEDPROPERTY("violatedProperty", "node", "violatedProperty", "string"),
 
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
 
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
-    TOKENS("tokens", "edge", "tokenSet", "string"),
-    ORIGINTOKENS("origintokens", "edge", "originTokenSet", "string"),
-    ORIGINLINE("originline", "edge", "lineNumberInOrigin", "int"),
+    ORIGINLINE("startline", "edge", "startline", "int"),
+    OFFSET("startoffset", "edge", "startoffset", "int"),
     ORIGINFILE("originfile", "edge", "originFileName", "string"),
     LINECOLS("lineCols", "edge", "lineColSet", "string"),
-    TOKENSNEGATED("negated", "edge", "negativeCase", "string"),
+    CONTROLCASE("control", "edge", "control", "string"),
     ASSUMPTION("assumption", "edge", "assumption", "string"),
+    ASSUMPTIONSCOPE("assumption.scope", "edge", "assumption.scope", "string"),
 
     FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),
@@ -241,7 +272,7 @@ public class AutomatonGraphmlCommon {
       return result;
     }
 
-    public Element createNodeElement(String nodeId, NodeType nodeType) throws IOException {
+    public Element createNodeElement(String nodeId, NodeType nodeType) {
       Element result = createElement(GraphMlTag.NODE);
       result.setAttribute("id", nodeId);
 
@@ -302,6 +333,40 @@ public class AutomatonGraphmlCommon {
       target.append("</graphml>\n");
     }
 
+  }
+
+  public static boolean handleAsEpsilonEdge(CFAEdge edge) {
+    if (handleAsEpsilonEdge0(edge)) {
+      if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
+    if (edge instanceof BlankEdge) {
+      return !(edge.getSuccessor() instanceof FunctionExitNode);
+    } else if (edge instanceof CFunctionReturnEdge) {
+      return true;
+    } else if (edge instanceof CDeclarationEdge) {
+      CDeclarationEdge declEdge = (CDeclarationEdge) edge;
+      CDeclaration decl = declEdge.getDeclaration();
+      if (decl instanceof CFunctionDeclaration) {
+        return true;
+      } else if (decl instanceof CTypeDeclaration) {
+        return true;
+      } else if (decl instanceof CVariableDeclaration) {
+        CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+        if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
+          return true; // Dirty hack; would be better if these edges had no file location
+        }
+        return false;
+      }
+    }
+
+    return false;
   }
 
 

@@ -31,6 +31,9 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
+
+import com.google.common.base.Optional;
 
 /**
  * Wrapper for an optimizing solver.
@@ -52,15 +55,44 @@ public class LoggingOptEnvironment implements OptEnvironment {
   }
 
   @Override
-  public void setObjective(Formula objective) {
-    logger.log(Level.FINE, "Setting objective: " + objective);
-    wrapped.setObjective(objective);
+  public int maximize(Formula objective) {
+    logger.log(Level.FINE, "Maximizing: " + objective);
+    return wrapped.maximize(objective);
   }
 
   @Override
-  public OptResult maximize() throws InterruptedException {
-    logger.log(Level.FINE, "Performing maximization");
-    return wrapped.maximize();
+  public int minimize(Formula objective) {
+    logger.log(Level.FINE, "Minimizing: " + objective);
+    return wrapped.minimize(objective);
+  }
+
+  @Override
+  public OptStatus check()
+      throws InterruptedException, SolverException {
+    logger.log(Level.FINE, "Performing optimization");
+    return wrapped.check();
+  }
+
+  @Override
+  public void push() {
+    logger.log(Level.FINE, "Creating backtracking point");
+    wrapped.push();
+  }
+
+  @Override
+  public void pop() {
+    logger.log(Level.FINE, "Backtracking one level");
+    wrapped.pop();
+  }
+
+  @Override
+  public Optional<Rational> upper(int handle, Rational epsilon) {
+    return wrapped.upper(handle, epsilon);
+  }
+
+  @Override
+  public Optional<Rational> lower(int handle, Rational epsilon) {
+    return wrapped.lower(handle, epsilon);
   }
 
   @Override

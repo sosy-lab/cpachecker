@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 import com.google.common.base.Optional;
 
@@ -32,10 +32,10 @@ import com.google.common.base.Optional;
 public class AssumeEdge extends AbstractCFAEdge {
 
   private final boolean truthAssumption;
-  protected final IAExpression expression;
+  protected final AExpression expression;
 
   protected AssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
-      CFANode pSuccessor, IAExpression pExpression, boolean pTruthAssumption) {
+      CFANode pSuccessor, AExpression pExpression, boolean pTruthAssumption) {
 
     super("[" + pRawStatement + "]", pFileLocation, pPredecessor, pSuccessor);
     truthAssumption = pTruthAssumption;
@@ -51,7 +51,7 @@ public class AssumeEdge extends AbstractCFAEdge {
     return truthAssumption;
   }
 
-  public IAExpression getExpression() {
+  public AExpression getExpression() {
     return expression;
   }
 
@@ -75,7 +75,7 @@ public class AssumeEdge extends AbstractCFAEdge {
    * of {@link #getRawStatement()} (it misses the outer negation of the expression).
    */
   @Override
-  public Optional<? extends IAExpression> getRawAST() {
+  public Optional<? extends AExpression> getRawAST() {
     return Optional.of(expression);
   }
 }

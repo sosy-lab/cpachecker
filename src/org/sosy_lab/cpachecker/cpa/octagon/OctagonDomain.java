@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -41,7 +40,7 @@ class OctagonDomain implements AbstractDomain {
   private static long totaltime = 0;
   private final LogManager logger;
 
-  public OctagonDomain(LogManager log) throws InvalidConfigurationException {
+  public OctagonDomain(LogManager log) {
     logger = log;
   }
 

@@ -10,7 +10,7 @@
 <!-- benchmark tool="cpachecker" timelimit="1800" memlimit="2000"> -->
   <option name="-noout"/>
   <option name="-heap">1200M</option>
- <!-- 
+ <!--
   <sourcefiles name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   </sourcefiles>
@@ -20,12 +20,12 @@
   </sourcefiles>
   <sourcefiles name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-call.i</exclude>  for_infinite_loop_1_true-unreach-label_false-termination.i 
+    <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-call.i</exclude>  for_infinite_loop_1_true-unreach-label_false-termination.i
   </sourcefiles>
- <!-- 
+ <!--
  <sourcefiles name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-  </sourcefiles> 
+  </sourcefiles>
   <sourcefiles name="Nested">
     <includesfile>nested.set</includesfile>
   </sourcefiles>
@@ -49,14 +49,14 @@
 
   <!--
   <rundefinition name="without-cbmc">
-    <option name="-explicitAnalysis-no-cbmc"/>
+    <option name="-valueAnalysis-no-cbmc"/>
   </rundefinition>
 
   <rundefinition name="with-cbmc">
-    <option name="-explicitAnalysis"/>
+    <option name="-valueAnalysis"/>
   </rundefinition>
   -->
-  
+
   <rundefinition name="testgen_automaton_controlled_stop_on_error">
     <option name="-testGen"/>
     <option name="-setprop">testgen.stopOnError=true</option>

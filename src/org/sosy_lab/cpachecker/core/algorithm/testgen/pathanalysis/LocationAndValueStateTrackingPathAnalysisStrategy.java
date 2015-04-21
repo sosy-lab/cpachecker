@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -72,7 +72,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
   @Override
   public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath, final ReachedSet reached)
-      throws CPATransferException, InterruptedException {
+      throws CPAException, InterruptedException {
     /*
      * create copy of the given path, because it will be modified with this algorithm.
      * represents the current new valid path.
@@ -185,7 +185,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
 
   @Override
-  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPAException, InterruptedException {
     return pathChecker.checkPath(pExecutedPath.getInnerEdges());
   }
 

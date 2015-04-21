@@ -18,14 +18,6 @@
             <include>../programs/benchmarks/ssh-simplified/*_true-unreach-call*.cil.c</include>
             <include>../programs/benchmarks/locks/*_false-unreach-call*.c</include>
             <include>../programs/benchmarks/locks/*_true-unreach-call*.c</include>
-            <include>../programs/benchmarks/eca/Problem0*_false-unreach-call*.c</include>
-            <include>../programs/benchmarks/eca/Problem0*_true-unreach-call*.c</include>
-                <exclude>../programs/benchmarks/eca/Problem03*.c</exclude>
-        <exclude>../programs/benchmarks/eca/Problem04*.c</exclude>
-                <exclude>../programs/benchmarks/eca/Problem06*.c</exclude>
-                <exclude>../programs/benchmarks/eca/Problem07*.c</exclude>
-                <exclude>../programs/benchmarks/eca/Problem08*.c</exclude>
-                <exclude>../programs/benchmarks/eca/Problem09*.c</exclude>
           </sourcefiles>
       <sourcefiles name="Sequentialized">
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>

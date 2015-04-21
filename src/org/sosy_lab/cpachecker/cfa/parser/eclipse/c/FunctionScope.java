@@ -41,9 +41,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -54,16 +58,20 @@ import com.google.common.collect.ImmutableMap;
  */
 class FunctionScope extends AbstractScope {
 
-  private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
+  private final Map<String, CFunctionDeclaration> localFunctions = new HashMap<>();
+  private final Map<String, CFunctionDeclaration> globalFunctions;
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
-  private final Map<String, CTypeDefDeclaration> typedefs = new HashMap<>();
+  private final Map<String, CTypeDefDeclaration> typedefs;
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
+  private final Deque<Map<String, CSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
+  private final Deque<Map<String, CSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
 
 
-  private String currentFunctionName = null;
+  private CFunctionDeclaration currentFunction = null;
+  private Optional<CVariableDeclaration> returnVariable = null;
 
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
@@ -72,11 +80,14 @@ class FunctionScope extends AbstractScope {
       String currentFile) {
     super(currentFile);
 
-    functions.putAll(pFunctions);
+    globalFunctions = pFunctions;
+    typedefs = pTypedefs;
+
     typesStack.addLast(pTypes);
-    typedefs.putAll(pTypedefs);
+    varsStack.push(pGlobalVars);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
+    varsListWithNewNames.push(pGlobalVars);
 
     enterBlock();
   }
@@ -95,9 +106,20 @@ class FunctionScope extends AbstractScope {
   }
 
   public void enterFunction(CFunctionDeclaration pFuncDef) {
-    checkState(currentFunctionName == null);
-    currentFunctionName = pFuncDef.getOrigName();
-    checkArgument(functions.containsKey(currentFunctionName));
+    checkState(currentFunction == null);
+    currentFunction = checkNotNull(pFuncDef);
+    checkArgument(globalFunctions.containsKey(getCurrentFunctionName()) || localFunctions.containsKey(getCurrentFunctionName()));
+
+    if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
+      returnVariable = Optional.absent();
+    } else {
+      @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
+      String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
+      returnVariable = Optional.of(
+          new CVariableDeclaration(currentFunction.getFileLocation(), false,
+            CStorageClass.AUTO, currentFunction.getType().getReturnType(),
+            name, name, createScopedNameOf(name), null));
+    }
   }
 
   public void enterBlock() {
@@ -105,32 +127,29 @@ class FunctionScope extends AbstractScope {
     labelsStack.addLast(new HashMap<String, CVariableDeclaration>());
     labelsNodeStack.addLast(new HashMap<String, CLabelNode>());
     varsStack.addLast(new HashMap<String, CSimpleDeclaration>());
+    varsStackWitNewNames.addLast(new HashMap<String, CSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
+    varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
   }
 
   public void leaveBlock() {
     checkState(varsStack.size() > 2);
     varsStack.removeLast();
+    varsStackWitNewNames.removeLast();
     typesStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
   }
 
   @Override
-  public boolean variableNameInUse(String name, String origName) {
+  public boolean variableNameInUse(String name) {
       checkNotNull(name);
-      checkNotNull(origName);
 
-      Iterator<Map<String, CSimpleDeclaration>> it = varsList.descendingIterator();
+      Iterator<Map<String, CSimpleDeclaration>> it = varsListWithNewNames.descendingIterator();
       while (it.hasNext()) {
         Map<String, CSimpleDeclaration> vars = it.next();
 
-        CSimpleDeclaration binding = vars.get(origName);
-        if (binding != null && binding.getName().equals(name)) {
-          return true;
-        }
-        binding = vars.get(name);
-        if (binding != null && binding.getName().equals(name)) {
+        if (vars.get(name) != null) {
           return true;
         }
       }
@@ -155,7 +174,14 @@ class FunctionScope extends AbstractScope {
 
   @Override
   public CFunctionDeclaration lookupFunction(String name) {
-    return functions.get(checkNotNull(name));
+    checkNotNull(name);
+
+    // we look at first if the function is available in the local functions
+    CFunctionDeclaration returnDecl = localFunctions.get(name);
+    if (returnDecl != null) {
+      return returnDecl;
+    }
+    return globalFunctions.get(name);
   }
 
   @Override
@@ -166,7 +192,7 @@ class FunctionScope extends AbstractScope {
     while (it.hasNext()) {
       Map<String, CComplexTypeDeclaration> types = it.next();
 
-      CComplexTypeDeclaration declaration = types.get(getRenamedTypeName(name));
+      CComplexTypeDeclaration declaration = types.get(getFileSpecificTypeName(name));
       if (declaration != null) {
         return declaration.getType();
       } else {
@@ -193,7 +219,7 @@ class FunctionScope extends AbstractScope {
 
   @Override
   public String createScopedNameOf(String pName) {
-    return createQualifiedName(currentFunctionName, pName);
+    return createQualifiedName(getCurrentFunctionName(), pName);
   }
 
   /**
@@ -216,6 +242,7 @@ class FunctionScope extends AbstractScope {
     assert name != null;
 
     Map<String, CSimpleDeclaration> vars = varsStack.getLast();
+    Map<String, CSimpleDeclaration> varsWithNewNames = varsStackWitNewNames.getLast();
 
     // multiple declarations of the same variable are disallowed
     if (vars.containsKey(name)) {
@@ -223,6 +250,7 @@ class FunctionScope extends AbstractScope {
     }
 
     vars.put(name, declaration);
+    varsWithNewNames.put(declaration.getName(), declaration);
   }
 
   @Override
@@ -259,11 +287,19 @@ class FunctionScope extends AbstractScope {
 
     String labelName = label.getOrigName();
 
-    if (lookupLocalLabel(labelName) != null) {
+    if (containsLocalLabel(labelName)) {
       throw new CFAGenerationRuntimeException("Label " + labelName + " already in use");
     }
 
     labelsStack.peekLast().put(labelName, label);
+  }
+
+  public boolean containsLocalLabel(String labelName) {
+    return labelsStack.peekLast().containsKey(labelName);
+  }
+
+  public boolean containsLabelCFANode(CLabelNode node) {
+    return labelsNodeStack.peekLast().containsKey(node.getLabel());
   }
 
   public void addLabelCFANode(CLabelNode node) {
@@ -284,15 +320,21 @@ class FunctionScope extends AbstractScope {
   }
 
   public void registerLocalFunction(CFunctionDeclaration function) {
-    functions.put(function.getName(), function);
+    localFunctions.put(function.getName(), function);
   }
 
   public String getCurrentFunctionName() {
-    return currentFunctionName;
+    checkState(currentFunction != null);
+    return currentFunction.getOrigName();
+  }
+
+  public Optional<CVariableDeclaration> getReturnVariable() {
+    checkState(returnVariable != null);
+    return returnVariable;
   }
 
   @Override
   public String toString() {
-    return "Functions: " + Joiner.on(' ').join(functions.keySet());
+    return "Functions: " + Joiner.on(' ').join(globalFunctions.keySet()) + Joiner.on(' ').join(localFunctions.keySet());
   }
 }

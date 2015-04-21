@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -58,14 +58,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.ApronException;
 
@@ -82,7 +82,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  private ValueAnalysisPathInterpolator interpolatingRefiner;
 
   /**
    * the hash code of the previous error path
@@ -92,10 +92,10 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   /**
    * the flag to determine whether or not to check for repeated refinements
    */
-  @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
+  @Option(secure=true, description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = true;
 
-  @Option(description="Timelimit for the backup feasibility check with the apron analysis."
+  @Option(secure=true, description="Timelimit for the backup feasibility check with the apron analysis."
       + "(use seconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
                   defaultUserUnit=TimeUnit.SECONDS,
@@ -140,7 +140,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   }
 
   private ApronDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final ApronCPA pApronCPA)
-      throws CPAException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
     super(pCpa);
     pApronCPA.getConfiguration().inject(this);
 
@@ -148,7 +148,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     logger               = pApronCPA.getLogger();
     shutdownNotifier     = pApronCPA.getShutdownNotifier();
     apronCPA             = pApronCPA;
-    interpolatingRefiner = new ValueAnalysisInterpolationBasedRefiner(pApronCPA.getConfiguration(), logger, shutdownNotifier, cfa);
+    interpolatingRefiner = new ValueAnalysisPathInterpolator(pApronCPA.getConfiguration(), logger, shutdownNotifier, cfa);
   }
 
   @Override
@@ -158,7 +158,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     MutableARGPath errorPath = pErrorPath.mutableCopy();
 
     // if path is infeasible, try to refine the precision
-    if (!isPathFeasable(errorPath) && !existsExplicitApronRefinement) {
+    if (!isPathFeasable(pErrorPath) && !existsExplicitApronRefinement) {
       if (performValueAnalysisRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
@@ -197,10 +197,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
     UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
     Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision apronPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
-
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
+    VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);
 
     VariableTrackingPrecision refinedApronPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
@@ -220,12 +217,12 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     }
 
     refinedApronPrecision  = apronPrecision.withIncrement(increment);
-    refinedPrecisions.add(refinedApronPrecision);
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, apronPrecision, refinedApronPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
-      reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
+      reached.removeSubtree(refinementRoot.getFirst(),
+                            refinedApronPrecision,
+                            VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
       return true;
 
     } else {
@@ -236,21 +233,19 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   private boolean performApronAnalysisRefinement(final ARGReachedSet reached, final ApronAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
     Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision apronPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
+    VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);
 
     Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(apronPrecision);
-    // no newly tracked variables, so the refinement was not successful
+    // no newly tracked variables, so the refinement was not successful // TODO why is this commented out
     if (increment.isEmpty()) {
     //  return false;
     }
 
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-    refinedPrecisions.add(apronPrecision.withIncrement(increment));
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
+    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(),
+                          apronPrecision.withIncrement(increment),
+                          VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
 
-    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
-    logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
+    logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + new TreeSet<>(increment.values()));
 
     return true;
   }
@@ -316,7 +311,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(MutableARGPath path) throws CPAException {
+  boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
       // create a new ValueAnalysisPathChecker, which does check the given path at full precision
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, apronCPA.getConfiguration());

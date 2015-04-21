@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,7 +32,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -43,16 +46,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 @Options(prefix = "cpa.bdd")
 public class PredicateManager {
 
-  @Option(description = "declare first bit of all vars, then second bit,...")
+  @Option(secure=true, description = "declare first bit of all vars, then second bit,...")
   private boolean initBitwise = true;
 
-  @Option(description = "declare the bits of a var from 0 to N or from N to 0")
+  @Option(secure=true, description = "declare the bits of a var from 0 to N or from N to 0")
   private boolean initBitsIncreasing = true;
 
-  @Option(description = "declare partitions ordered")
+  @Option(secure=true, description = "declare partitions ordered")
   private boolean initPartitionsOrdered = true;
 
-  @Option(description = "declare vars partitionwise")
+  @Option(secure=true, description = "declare vars partitionwise")
   private boolean initPartitions = true;
 
   protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
@@ -68,13 +71,12 @@ public class PredicateManager {
   private final NamedRegionManager rmgr;
 
   public PredicateManager(final Configuration config, final NamedRegionManager pRmgr,
-                          final BDDPrecision pPrecision, final CFA pCfa
-                          ) throws InvalidConfigurationException {
+                          final CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = pRmgr;
 
     if (initPartitions) {
-      initVars(pPrecision, pCfa);
+      initVars(pCfa);
     }
   }
 
@@ -96,8 +98,8 @@ public class PredicateManager {
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  protected void initVars(BDDPrecision precision, CFA cfa) {
-    List<VariableClassification.Partition> partitions;
+  protected void initVars(CFA cfa) {
+    Collection<VariableClassification.Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
       partitions = d.getOrderedPartitions();
@@ -109,8 +111,7 @@ public class PredicateManager {
     MachineModel machineModel = cfa.getMachineModel();
     for (VariableClassification.Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
-      createPredicates(partition.getVars(), precision,
-              machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
+      createPredicates(partition.getVars(), machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
     }
   }
 
@@ -118,7 +119,7 @@ public class PredicateManager {
    *
    * The value 'bitsize' chooses how much bits are used for each var.
    * The varname is build as "varname@pos". */
-  public void createPredicates(final Collection<String> vars, final BDDPrecision precision, final int bitsize) {
+  public void createPredicates(final Collection<String> vars, final int bitsize) {
 
     assert bitsize >= 1 : "you need at least one bit for a variable.";
 
@@ -184,8 +185,8 @@ public class PredicateManager {
   /** This function returns regions containing bits of a variable.
    * returns regions for positions of a variable, s --> [s@2, s@1, s@0].
    * If the variable is not tracked by the the precision, Null is returned. */
-  protected Region[] createPredicate(final String varName, final int size, final BDDPrecision precision) {
-    if (precision != null && !precision.isTracking(varName)) {
+  protected Region[] createPredicate(final String varName, final CType varType, final CFANode location, final int size, final VariableTrackingPrecision precision) {
+    if (precision != null && !precision.isTracking(MemoryLocation.valueOf(varName), varType, location)) {
       return null;
     }
     return createPredicateWithoutPrecisionCheck(varName, size);

@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -90,12 +91,12 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final CFA cfa;
   private final ProofChecker wrappedProofChecker;
 
-  @Option(description = "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
+  @Option(secure=true, description = "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
       + "or any class that implements a PartitioningHeuristic")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
-  @Option(description = "export blocks")
+  @Option(secure=true, description = "export blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportBlocksPath = Paths.get("block_cfa.dot");
 
@@ -129,9 +130,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (blockPartitioning == null) {
-      blockPartitioning = heuristic.buildPartitioning(node);
+      blockPartitioning = heuristic.buildPartitioning(pNode);
 
       if (exportBlocksPath != null) {
         BlockToDotWriter writer = new BlockToDotWriter(blockPartitioning);
@@ -149,12 +150,12 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
       prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }
-    return getWrappedCpa().getInitialState(node);
+    return getWrappedCpa().getInitialState(pNode, pPartition);
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
-    return getWrappedCpa().getInitialPrecision(pNode);
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+    return getWrappedCpa().getInitialPrecision(pNode, pPartition);
   }
 
   private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {

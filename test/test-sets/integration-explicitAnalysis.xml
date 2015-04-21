@@ -4,7 +4,7 @@
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-  <option name="-explicitAnalysis"/>
+  <option name="-valueAnalysis"/>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
@@ -20,8 +20,6 @@
 
       <!-- exclude close-to-timeout tasks -->
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem04_60_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem06_60_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/systemc/transmitter.07_false-unreach-call_false-termination.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>

@@ -48,8 +48,8 @@ public class SMGStateTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws SMGInconsistentException {
-    consistent_state = new SMGState(logger, MachineModel.LINUX64);
-    inconsistent_state = new SMGState(logger, MachineModel.LINUX64);
+    consistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
+    inconsistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
     SMGEdgePointsTo pt = inconsistent_state.addNewHeapAllocation(8, "label");
 
     consistent_state.addGlobalObject((SMGRegion)pt.getObject());
@@ -63,7 +63,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState inconsistent_state = new SMGState(this.inconsistent_state, SMGRuntimeCheck.FULL);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -74,7 +74,7 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState inconsistent_state = new SMGState(this.inconsistent_state, SMGRuntimeCheck.FULL);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -85,7 +85,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    SMGState.setRuntimeCheck(SMGRuntimeCheck.NONE);
+    SMGState inconsistent_state = new SMGState(this.inconsistent_state, SMGRuntimeCheck.NONE);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -96,7 +96,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    SMGState.setRuntimeCheck(SMGRuntimeCheck.FULL);
+    SMGState consistent_state = new SMGState(this.consistent_state, SMGRuntimeCheck.FULL);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
@@ -106,13 +106,13 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    SMGState.setRuntimeCheck(SMGRuntimeCheck.NONE);
+    SMGState consistent_state = new SMGState(this.consistent_state, SMGRuntimeCheck.NONE);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   @Test
-  public void PredecessorsTest() throws SMGInconsistentException {
-    SMGState original = new SMGState(logger, MachineModel.LINUX64);
+  public void PredecessorsTest() {
+    SMGState original = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
     SMGState second = new SMGState(original);
     Assert.assertNotEquals(original.getId(), second.getId());
 
@@ -127,13 +127,13 @@ public class SMGStateTest {
   @Test
   public void WriteReinterpretationTest() throws SMGInconsistentException {
     // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64,true, true, SMGRuntimeCheck.NONE);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
-    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value);
+    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
@@ -152,7 +152,7 @@ public class SMGStateTest {
 
     // Write a *different* 16b value into it and assert that the state *did* change
     SMGKnownSymValue newer_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
-    SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value);
+    SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
@@ -160,14 +160,14 @@ public class SMGStateTest {
     Assert.assertFalse(values_for_obj.contains(hv));
 
     // Write a 8b value at index 0 and see that the old value got overwritten
-    SMGEdgeHasValue hv8at0 = state.writeValue(pt.getObject(), 0, mockType8b, new_value);
+    SMGEdgeHasValue hv8at0 = state.writeValue(pt.getObject(), 0, mockType8b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv8at0));
 
     // Write a 8b value at index 8 and see that the old value did *not* get overwritten
-    SMGEdgeHasValue hv8at8 = state.writeValue(pt.getObject(), 8, mockType8b, new_value);
+    SMGEdgeHasValue hv8at8 = state.writeValue(pt.getObject(), 8, mockType8b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(2, values_for_obj.size());
@@ -175,7 +175,7 @@ public class SMGStateTest {
     Assert.assertTrue(values_for_obj.contains(hv8at8));
 
     // Write a 8b value at index 4 and see that the old value got overwritten
-    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, new_value);
+    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
@@ -187,12 +187,12 @@ public class SMGStateTest {
   @Test
   public void WriteReinterpretationNullifiedTest() throws SMGInconsistentException {
     // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.FORCED);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b zero value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, SMGKnownSymValue.ZERO);
+    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, SMGKnownSymValue.ZERO).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
@@ -202,7 +202,7 @@ public class SMGStateTest {
 
     // Write a 8b value at index 4
     // We should see three Has-Value edges: 4b zero, 8b just written, 4b zero
-    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, SMGUnknownValue.getInstance());
+    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, SMGUnknownValue.getInstance()).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
     Assert.assertEquals(3, values_for_obj.size());
@@ -223,7 +223,7 @@ public class SMGStateTest {
   @Test
   public void getPointerFromValueTest() throws SMGInconsistentException {
  // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
@@ -236,7 +236,7 @@ public class SMGStateTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void getPointerFromValueNonPointerTest() throws SMGInconsistentException {
-    SMGState state = new SMGState(logger, MachineModel.LINUX64);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");

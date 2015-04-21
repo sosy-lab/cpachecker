@@ -32,7 +32,6 @@ import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
@@ -98,7 +97,7 @@ public class PredicateAbstractionsStorage {
   private ImmutableMultimap<Integer, Integer> abstractionTree = ImmutableMultimap.of();
   private Set<Integer> reusedAbstractions = Sets.newTreeSet();
 
-  public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr) throws PredicateParsingFailedException, InvalidConfigurationException {
+  public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr) throws PredicateParsingFailedException {
     this.fmgr = pFmgr;
     this.logger = pLogger;
     this.abstractionsFile = pFile;

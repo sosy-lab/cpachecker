@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 /**
@@ -46,7 +47,7 @@ public class PointerCPA extends AbstractCPA {
   @Options(prefix="cpa.pointer2")
   public static class PointerOptions {
 
-    @Option(values={"JOIN", "SEP"}, toUppercase=true,
+    @Option(secure=true, values={"JOIN", "SEP"}, toUppercase=true,
         description="which merge operator to use for InvariantCPA")
     private String merge = "JOIN";
 
@@ -72,12 +73,12 @@ public class PointerCPA extends AbstractCPA {
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
   public PointerCPA(Configuration config, LogManager logger, PointerOptions options,
-      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) {
     super(options.merge, "SEP", PointerDomain.INSTANCE, PointerTransferRelation.INSTANCE);
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return PointerState.INITIAL_STATE;
   }
 

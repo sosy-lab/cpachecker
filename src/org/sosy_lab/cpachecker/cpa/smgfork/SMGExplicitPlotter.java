@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Joiner;

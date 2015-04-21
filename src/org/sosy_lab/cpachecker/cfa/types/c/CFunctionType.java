@@ -45,7 +45,7 @@ public class CFunctionType extends AFunctionType implements CType {
     return new CFunctionType(false, false, checkNotNull(pReturnType), ImmutableList.<CType>of(), false);
   }
 
-  public static CFunctionType NO_ARGS_VOID_FUNCTION = functionTypeWithReturnType(CNumericTypes.VOID);
+  public final static CFunctionType NO_ARGS_VOID_FUNCTION = functionTypeWithReturnType(CVoidType.VOID);
 
   private boolean   isConst;
   private boolean   isVolatile;

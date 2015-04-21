@@ -40,10 +40,10 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.predicate")
 public class FormulaEncodingOptions {
 
-  @Option(description = "Handle field access via extract and concat instead of new variables.")
+  @Option(secure=true, description = "Handle field access via extract and concat instead of new variables.")
   private boolean handleFieldAccess = false;
 
-  @Option(description="Set of functions that should be considered as giving "
+  @Option(secure=true, description="Set of functions that should be considered as giving "
     + "a non-deterministic return value. "
     + "If you specify this option, the default values are not added automatically "
     + "to the list, so you need to specify them explicitly if you need them. "
@@ -53,33 +53,36 @@ public class FormulaEncodingOptions {
       "sscanf",
       "random");
 
-  @Option(description="Regexp pattern for functions that should be considered as giving "
+  @Option(secure=true, description="Regexp pattern for functions that should be considered as giving "
     + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
   private Pattern nondetFunctionsRegexp = Pattern.compile("^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*");
 
-  @Option(description="Name of an external function that will be interpreted as if the function "
+  @Option(secure=true, description="Name of an external function that will be interpreted as if the function "
      + "call would be replaced by an externally defined expression over the program variables."
      + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
-  @Option(description = "Set of functions that non-deterministically provide new memory on the heap, " +
+  @Option(secure=true, description = "Set of functions that non-deterministically provide new memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kmalloc"
       );
 
-  @Option(description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
+  @Option(secure=true, description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc", "calloc");
 
-  @Option(description = "Ignore variables that are not relevant for reachability properties.")
+  @Option(secure=true, description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
-  @Option(description = "Insert tmp-variables for parameters at function-entries. " +
+  @Option(secure=true, description = "Whether to track values stored in variables of function-pointer type.")
+  private boolean trackFunctionPointers = true;
+
+  @Option(secure=true, description = "Insert tmp-variables for parameters at function-entries. " +
           "The variables are similar to return-variables at function-exit.")
   private boolean useParameterVariables = false;
 
-  @Option(description = "Insert tmp-parameters for global variables at function-entries. " +
+  @Option(secure=true, description = "Insert tmp-parameters for global variables at function-entries. " +
           "The global variables are also encoded with return-variables at function-exit.")
   private boolean useParameterVariablesForGlobals = false;
 
@@ -110,6 +113,10 @@ public class FormulaEncodingOptions {
 
   public boolean ignoreIrrelevantVariables() {
     return ignoreIrrelevantVariables;
+  }
+
+  public boolean trackFunctionPointers() {
+    return trackFunctionPointers;
   }
 
   public boolean useParameterVariables() {

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.*;
-import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -74,17 +74,17 @@ public class PointerTargetSetManager {
 
   private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
 
-  static final CType getFakeBaseType(int size) {
-    return CTypeUtils.simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(FileLocation.DUMMY,
+  static CType getFakeBaseType(int size) {
+    return CTypeUtils.simplifyType(new CArrayType(false, false, CVoidType.VOID, new CIntegerLiteralExpression(FileLocation.DUMMY,
                                                                                         CNumericTypes.SIGNED_CHAR,
                                                                                         BigInteger.valueOf(size))));
   }
 
-  static final boolean isFakeBaseType(final CType type) {
-    return type instanceof CArrayType && ((CArrayType) type).getType().equals(VOID);
+  static boolean isFakeBaseType(final CType type) {
+    return type instanceof CArrayType && ((CArrayType) type).getType() instanceof CVoidType;
   }
 
-  private static final String getUnitedFieldBaseName(final int index) {
+  private static String getUnitedFieldBaseName(final int index) {
     return UNITED_BASE_FIELD_NAME_PREFIX + index;
   }
 
@@ -151,12 +151,6 @@ public class PointerTargetSetManager {
     final BooleanFormula basesMergeFormula;
     if (pts1.lastBase == null && pts2.lastBase == null ||
         pts1.lastBase != null && (pts2.lastBase == null || pts1.lastBase.equals(pts2.lastBase))) {
-      // The next check doesn't really hold anymore due to possible base unions, but these cases are suspicious
-      assert pts1.lastBase == null ||
-             pts2.lastBase == null ||
-             isFakeBaseType(pts1.bases.get(pts1.lastBase)) ||
-             isFakeBaseType(pts2.bases.get(pts2.lastBase)) ||
-             pts1.bases.get(pts1.lastBase).equals(pts2.bases.get(pts2.lastBase));
       lastBase = pts1.lastBase;
       basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
       // Nothing to do, as there were no divergence with regard to base allocations
@@ -273,12 +267,18 @@ public class PointerTargetSetManager {
         membersBuilder.add(new CCompositeTypeMemberDeclaration(type2,
                                                                getUnitedFieldBaseName(currentFieldIndex++)));
       }
+
+
+      String varName = UNITED_BASE_UNION_TAG_PREFIX
+                       + type1.toString().replace(' ', '_')
+                       + "_and_"
+                       + type2.toString().replace(' ', '_');
       return new CCompositeType(false,
                                 false,
                                 ComplexTypeKind.UNION,
                                 membersBuilder.build(),
-                                UNITED_BASE_UNION_TAG_PREFIX + type1.toString().replace(' ', '_') + "_and_" +
-                                                               type2.toString().replace(' ', '_'));
+                                varName,
+                                varName);
     }
   }
 

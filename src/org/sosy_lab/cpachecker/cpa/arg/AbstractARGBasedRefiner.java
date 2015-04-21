@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.errorprone.annotations.ForOverride;
 
 public abstract class AbstractARGBasedRefiner implements Refiner {
 
@@ -65,6 +66,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     this.logger = argCpa.getLogger();
   }
 
+  @ForOverride
   protected final ARGCPA getArgCpa() {
     return argCpa;
   }
@@ -163,6 +165,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @return
    * @throws InterruptedException
    */
+  @ForOverride
   @Nullable
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
     return ARGUtils.getOnePathTo(pLastElement);

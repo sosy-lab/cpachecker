@@ -28,7 +28,6 @@ import java.util.List;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 
@@ -41,29 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
  * All methods are expected to throw {@link IllegalStateException}s after
  * close was called.
  */
-public interface ProverEnvironment extends AutoCloseable {
-
-  /**
-   * Add a formula to the environment stack, asserting it.
-   */
-  void push(BooleanFormula f);
-
-  /**
-   * Remove one formula from the environment stack.
-   */
-  void pop();
-
-  /**
-   * Check whether the conjunction of all formulas on the stack is unsatisfiable.
-   * @throws InterruptedException
-   */
-  boolean isUnsat() throws InterruptedException;
-
-  /**
-   * Get a satisfying assignment.
-   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
-   */
-  Model getModel() throws SolverException;
+public interface ProverEnvironment extends BasicProverEnvironment<Void> {
 
   /**
    * Get an unsat core.
@@ -84,10 +61,7 @@ public interface ProverEnvironment extends AutoCloseable {
    * @throws InterruptedException
    */
   AllSatResult allSat(Collection<BooleanFormula> important,
-                      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException;
-
-  @Override
-  void close();
+                      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException, SolverException;
 
   interface AllSatResult {
 
@@ -102,4 +76,5 @@ public interface ProverEnvironment extends AutoCloseable {
      */
     public int getCount();
   }
+
 }

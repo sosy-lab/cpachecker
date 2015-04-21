@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 @Options(prefix="cpa.conditions.path.assumeedges")
 public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
 
-  @Option(description="maximum number of assume edges length (-1 for infinite)",
+  @Option(secure=true, description="maximum number of assume edges length (-1 for infinite)",
       name="limit")
   @IntegerOption(min=-1)
   private int threshold = -1;
@@ -71,18 +71,18 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
-    RepetitionsInPathConditionState element = (RepetitionsInPathConditionState)pElement;
+  public AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge) {
+    RepetitionsInPathConditionState current = (RepetitionsInPathConditionState)pState;
 
     if (pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
-      return element;
+      return current;
     }
 
-    if (element.thresholdReached) {
-      return element;
+    if (current.thresholdReached) {
+      return current;
     }
 
-    int assumeEdgesInPath = element.assumeEdgesInPath + 1;
+    int assumeEdgesInPath = current.assumeEdgesInPath + 1;
     boolean thresholdReached = (threshold >= 0) && (assumeEdgesInPath >= threshold);
 
     maxAssumeEdgesInPath = Math.max(assumeEdgesInPath, maxAssumeEdgesInPath);

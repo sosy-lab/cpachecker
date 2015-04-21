@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -62,6 +62,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -127,10 +129,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   @Options(prefix="cpa")
   public static class CPAAlgorithmFactory {
 
-    @Option(description="Which strategy to use for forced coverings (empty for none)",
+    @Option(secure=true, description="Which strategy to use for forced coverings (empty for none)",
             name="forcedCovering")
     @ClassOption(packagePrefix="org.sosy_lab.cpachecker")
     private Class<? extends ForcedCovering> forcedCoveringClass = null;
+
+    @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "
+        + " Useful for incomplete analysis with no counterexample checking.")
+    private boolean reportFalseAsUnknown = false;
+
     private final ForcedCovering forcedCovering;
 
     private final ConfigurableProgramAnalysis cpa;
@@ -159,7 +166,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     public CPAAlgorithm newInstance() {
-      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, iterationListener);
+      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, iterationListener, reportFalseAsUnknown);
     }
   }
 
@@ -189,20 +196,24 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final AlgorithmIterationListener  iterationListener;
 
+  private final AlgorithmStatus status;
+
   private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
-      AlgorithmIterationListener pIterationListener) {
+      AlgorithmIterationListener pIterationListener,
+      boolean pIsImprecise) {
 
     this.cpa = cpa;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
     this.forcedCovering = pForcedCovering;
     this.iterationListener = pIterationListener;
+    status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
   }
 
   @Override
-  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     stats.totalTimer.start();
     try {
       return run0(reachedSet);
@@ -218,7 +229,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  private AlgorithmStatus run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
@@ -232,7 +243,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
       // Pick next state using strategy
       // BFS, DFS or top sort according to the configuration
-      int size = reachedSet.getWaitlistSize();
+      int size = reachedSet.getWaitlist().size();
       if (size >= stats.maxWaitlistSize) {
         stats.maxWaitlistSize = size;
       }
@@ -284,7 +295,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         stats.precisionTimer.start();
         PrecisionAdjustmentResult precAdjustmentResult;
         try {
-          precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet);
+          Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
+              precisionAdjustment.prec(
+                  successor, precision, reachedSet,
+                  Functions.<AbstractState>identity(),
+                  successor);
+          if (!precAdjustmentOptional.isPresent()) {
+            continue;
+          }
+          precAdjustmentResult = precAdjustmentOptional.get();
         } finally {
           stats.precisionTimer.stop();
         }
@@ -324,7 +343,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               reachedSet.reAddToWaitlist(state);
             }
 
-            return true;
+            return status;
           }
         }
         assert action == Action.CONTINUE : "Enum Action has unhandled values!";
@@ -396,7 +415,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         iterationListener.afterAlgorithmIteration(this, reachedSet);
       }
     }
-    return true;
+    return status;
   }
 
   @Override

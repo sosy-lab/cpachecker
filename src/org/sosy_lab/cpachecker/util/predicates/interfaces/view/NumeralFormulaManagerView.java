@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
@@ -31,109 +32,109 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
-import com.google.common.collect.Lists;
-
 
 public class NumeralFormulaManagerView
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
-        extends BaseManagerView<ParamFormulaType, ResultFormulaType>
+        extends BaseManagerView
         implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
   private final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
-  public NumeralFormulaManagerView(NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
+  public NumeralFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+      NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
+    super(pWrappingHandler);
     this.manager = pManager;
-  }
-
-  private BooleanFormula wrapInView(BooleanFormula pFormula) {
-    return getViewManager().getBooleanFormulaManager().wrapInView(pFormula);
-  }
-
-  private BooleanFormula extractFromView(BooleanFormula pCast) {
-    return getViewManager().getBooleanFormulaManager().extractFromView(pCast);
   }
 
   @Override
   public ResultFormulaType negate(ParamFormulaType pNumber) {
-    return wrapInView(manager.negate(extractFromView(pNumber)));
+    return manager.negate(pNumber);
   }
 
   @Override
-  public ResultFormulaType add(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.add(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public ResultFormulaType add(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.add(pNumber1, pNumber2);
   }
 
   @Override
   public ResultFormulaType sum(List<ParamFormulaType> operands) {
-    return wrapInView(manager.sum(Lists.transform(operands, extractor)));
+    return manager.sum(operands);
   }
 
   @Override
-  public ResultFormulaType subtract(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.subtract(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public ResultFormulaType subtract(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.subtract(pNumber1, pNumber2);
   }
   @Override
-  public ResultFormulaType divide(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.divide(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public ResultFormulaType divide(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.divide(pNumber1, pNumber2);
   }
   @Override
-  public ResultFormulaType modulo(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.modulo(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public ResultFormulaType modulo(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.modulo(pNumber1, pNumber2);
   }
   @Override
-  public ResultFormulaType multiply(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public BooleanFormula modularCongruence(ParamFormulaType pNumber1, ParamFormulaType pNumber2, long pModulo) {
+    return manager.modularCongruence(pNumber1, pNumber2, pModulo);
   }
   @Override
-  public BooleanFormula equal(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.equal(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public ResultFormulaType multiply(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.multiply(pNumber1, pNumber2);
   }
   @Override
-  public BooleanFormula greaterThan(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.greaterThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public BooleanFormula equal(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.equal(pNumber1, pNumber2);
   }
   @Override
-  public BooleanFormula greaterOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.greaterOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public BooleanFormula greaterThan(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.greaterThan(pNumber1, pNumber2);
   }
   @Override
-  public BooleanFormula lessThan(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.lessThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public BooleanFormula greaterOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.greaterOrEquals(pNumber1, pNumber2);
   }
   @Override
-  public BooleanFormula lessOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
-    return wrapInView(manager.lessOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public BooleanFormula lessThan(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.lessThan(pNumber1, pNumber2);
   }
-
-
   @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    return manager.isEqual(extractFromView(pNumber));
+  public BooleanFormula lessOrEquals(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
+    return manager.lessOrEquals(pNumber1, pNumber2);
   }
 
 
   @Override
   public ResultFormulaType makeNumber(long pI) {
-    return wrapInView(manager.makeNumber(pI));
+    return manager.makeNumber(pI);
   }
 
   @Override
   public ResultFormulaType makeNumber(BigInteger pI) {
-    return wrapInView(manager.makeNumber(pI));
+    return manager.makeNumber(pI);
   }
 
   @Override
   public ResultFormulaType makeNumber(String pI) {
-    return wrapInView(manager.makeNumber(pI));
+    return manager.makeNumber(pI);
+  }
+
+  @Override
+  public ResultFormulaType makeNumber(double pNumber) {
+    return manager.makeNumber(pNumber);
+  }
+
+  @Override
+  public ResultFormulaType makeNumber(BigDecimal pNumber) {
+    return manager.makeNumber(pNumber);
   }
 
   @Override
   public ResultFormulaType makeVariable(String pVar) {
-    return wrapInView(manager.makeVariable(pVar));
+    return manager.makeVariable(pVar);
   }
 
   public ResultFormulaType makeVariable(String pVar, int idx) {
-    return wrapInView(manager.makeVariable(FormulaManagerView.makeName(pVar, idx)));
+    return manager.makeVariable(FormulaManagerView.makeName(pVar, idx));
   }
 
   @Override

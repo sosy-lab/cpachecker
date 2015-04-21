@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -66,8 +67,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -82,13 +81,13 @@ import com.google.common.collect.Lists;
 /******************************************************************+
  * NullPointerDetection
  *
- * Using detectNullPointers, before every occurence of *p we insert a test on
+ * Using detectNullPointers, before every occurrence of *p we insert a test on
  * p == 0 in order to detect null pointers.
  */
 @Options(prefix="cfa.checkNullPointers")
 public class NullPointerChecks {
 
-  @Option(description="Whether to have a single target node per function"
+  @Option(secure=true, description="Whether to have a single target node per function"
       + " for all invalid null pointer dereferences or to have separate nodes for each dereference")
   private boolean singleTargetPerFunction = true;
 
@@ -149,7 +148,7 @@ public class NullPointerChecks {
           }
           break;
         default:
-          throw new CFAGenerationRuntimeException("Too much leaving Edges on CFANode");
+          throw new AssertionError("Too many leaving edges on CFANode");
         }
       }
     }
@@ -206,7 +205,10 @@ public class NullPointerChecks {
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
     }
 
-    CBinaryExpression assumeExpression = binBuilder.buildBinaryExpression(exp, new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)), BinaryOperator.EQUALS);
+    CBinaryExpression assumeExpression = binBuilder.buildBinaryExpressionUnchecked(
+        exp,
+        new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)),
+        BinaryOperator.EQUALS);
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
                                          edge.getFileLocation(),
                                          predecessor, targetNode.get(),
@@ -251,7 +253,7 @@ public class NullPointerChecks {
       assert (false);
       // $FALL-THROUGH$
     default:
-      throw new CFAGenerationRuntimeException("more edge types valid than expected, more work to do here");
+      throw new AssertionError("more edge types valid than expected, more work to do here");
     }
   }
 
@@ -259,8 +261,8 @@ public class NullPointerChecks {
   /**
    * This visitor returns all Expressions where a Pointer is included
    */
-  static class ContainsPointerVisitor extends DefaultCExpressionVisitor<Void, CFAGenerationRuntimeException>
-                                      implements CRightHandSideVisitor<Void, CFAGenerationRuntimeException> {
+  static class ContainsPointerVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
+                                      implements CRightHandSideVisitor<Void, RuntimeException> {
 
     private final List<CExpression> dereferencedExpressions = new ArrayList<>();
 
@@ -329,7 +331,7 @@ public class NullPointerChecks {
     }
 
     @Override
-    protected Void visitDefault(CExpression pExp) throws CFAGenerationRuntimeException {
+    protected Void visitDefault(CExpression pExp) {
       return null;
     }
 

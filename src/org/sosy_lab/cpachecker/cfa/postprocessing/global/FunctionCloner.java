@@ -34,11 +34,12 @@ import javax.annotation.Nonnull;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -119,7 +120,7 @@ class FunctionCloner implements CFAVisitor {
 
   // local caches
   private final Map<CFANode, CFANode> nodeCache = new HashMap<>(); // values will be used as CFANodes-Set for building new CFAs
-  private final Map<IAstNode, IAstNode> astCache = new IdentityHashMap<>();
+  private final Map<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
   private final Map<Type, Type> typeCache = new IdentityHashMap<>();
   private final CExpressionCloner expCloner = new CExpressionCloner();
   private final CTypeCloner typeCloner = new CTypeCloner();
@@ -326,8 +327,12 @@ class FunctionCloner implements CFAVisitor {
       final boolean isExitNodeReachable = exitNode.getNumEnteringEdges() > 0;
 
       final FunctionExitNode newExitNode = cloneNode(exitNode, isExitNodeReachable);
+      Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
+      if (returnVariable.isPresent()) {
+        returnVariable = Optional.of(cloneAst(returnVariable.get()));
+      }
       final CFunctionEntryNode entryNode = new CFunctionEntryNode(n.getFileLocation(), cloneAst(n.getFunctionDefinition()),
-              newExitNode, n.getFunctionParameterNames());
+              newExitNode, n.getFunctionParameterNames(), returnVariable);
       newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
       newNode = entryNode;
 
@@ -350,7 +355,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends IAstNode> T cloneAst(final T ast) {
+  private <T extends AAstNode> T cloneAst(final T ast) {
 
     if (ast == null) {
       return null;
@@ -360,7 +365,7 @@ class FunctionCloner implements CFAVisitor {
       return (T) astCache.get(ast);
     }
 
-    final IAstNode newAst = cloneAstDirect(ast);
+    final AAstNode newAst = cloneAstDirect(ast);
 
     astCache.put(ast, newAst);
 
@@ -368,7 +373,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   /** returns a new list with cloned elements */
-  private <T extends IAstNode> List<T> cloneAstList(final List<T> astList) {
+  private <T extends AAstNode> List<T> cloneAstList(final List<T> astList) {
     final List<T> list = new ArrayList<>(astList.size());
     for (T ast : astList) {
       list.add(cloneAst(ast));
@@ -377,7 +382,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   /** returns a deep copy of the ast-node, and changes old functionname to new one, if needed. */
-  private IAstNode cloneAstDirect(IAstNode ast) {
+  private AAstNode cloneAstDirect(AAstNode ast) {
 
     final FileLocation loc = ast.getFileLocation();
 
@@ -472,7 +477,11 @@ class FunctionCloner implements CFAVisitor {
       if (returnExp.isPresent()) {
         returnExp = Optional.of(cloneAst(returnExp.get()));
       }
-      return new CReturnStatement(loc, returnExp);
+      Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
+      if (returnAssignment.isPresent()) {
+        returnAssignment = Optional.of(cloneAst(returnAssignment.get()));
+      }
+      return new CReturnStatement(loc, returnExp, returnAssignment);
 
     } else if (ast instanceof CDesignator) {
 
@@ -595,7 +604,7 @@ class FunctionCloner implements CFAVisitor {
       // possible problem: compositeType contains itself again -> recursion
       // solution: cache the empty compositeType and fill it later.
       CCompositeType comp = new CCompositeType(type.isConst(), type.isVolatile(), type.getKind(),
-              ImmutableList.<CCompositeTypeMemberDeclaration>of(), type.getName());
+              ImmutableList.<CCompositeTypeMemberDeclaration>of(), type.getName(), type.getOrigName());
       typeCache.put(type, comp);
 
       // convert members and set them
@@ -610,7 +619,7 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CElaboratedType type) {
-      return new CElaboratedType(type.isConst(), type.isVolatile(), type.getKind(), type.getName(), cloneType(type.getRealType()));
+      return new CElaboratedType(type.isConst(), type.isVolatile(), type.getKind(), type.getName(), type.getOrigName(), cloneType(type.getRealType()));
     }
 
     @Override
@@ -622,7 +631,7 @@ class FunctionCloner implements CFAVisitor {
         enumType.setEnum(e.getEnum());
         l.add(enumType);
       }
-      return new CEnumType(type.isConst(), type.isVolatile(), l, type.getName());
+      return new CEnumType(type.isConst(), type.isVolatile(), l, type.getName(), type.getOrigName());
     }
 
     @Override

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import static org.sosy_lab.cpachecker.util.VariableClassification.createFunctionReturnVariable;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -74,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -87,8 +86,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
@@ -96,16 +97,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd")
-public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, BDDPrecision> {
+public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, VariableTrackingPrecision> {
 
-  @Option(name = "logfile", description = "Dump tracked variables to a file.")
+  @Option(secure=true, name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("BDDCPA_tracked_variables.log");
 
-  @Option(description = "max bitsize for values and vars, initial value")
+  @Option(secure=true, description = "max bitsize for values and vars, initial value")
   private int bitsize = 64;
 
-  @Option(description = "use a smaller bitsize for all vars, that have only intEqual values")
+  @Option(secure=true, description = "use a smaller bitsize for all vars, that have only intEqual values")
   private boolean compressIntEqual = true;
 
   private final LogManager logger;
@@ -137,7 +138,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   @Override
   protected Collection<BDDState> preCheck() {
     // no variables should be tracked
-    if (precision.isDisabled()) {
+    if (precision.isEmpty()) {
       return Collections.singleton(state);
     }
     // the path is not fulfilled
@@ -156,12 +157,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // normal assignment, "a = ..."
     if (statement instanceof CAssignment) {
-      result = handleAssignment((CAssignment) statement);
+      result = handleAssignment((CAssignment) statement, cfaEdge.getSuccessor());
 
       // call of external function, "scanf(...)" without assignment
       // internal functioncalls are handled as FunctionCallEdges
     } else if (statement instanceof CFunctionCallStatement) {
-      result = handleExternalFunctionCall(result,
+      result = handleExternalFunctionCall(result, cfaEdge.getSuccessor(),
               ((CFunctionCallStatement) statement).getFunctionCallExpression().getParameterExpressions());
     }
 
@@ -173,7 +174,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * A region is build for the right side of the statement.
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
-  private BDDState handleAssignment(CAssignment assignment) {
+  private BDDState handleAssignment(CAssignment assignment, CFANode successor) {
     CExpression lhs = assignment.getLeftHandSide();
 
     if (!(lhs instanceof CIdExpression)) {
@@ -184,7 +185,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     final String varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
 
     // next line is a shortcut, not necessary
-    if (!precision.isTracking(varName)) {
+    if (!precision.isTracking(MemoryLocation.valueOf(varName), targetType, successor)) {
       return state;
     }
 
@@ -201,35 +202,35 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         final Region[] tmp = predmgr.createPredicateWithoutPrecisionCheck(tmpVarName, getBitsize(partition, targetType));
 
         // make region for RIGHT SIDE and build equality of var and region
-        final Region[] regRHS = evaluateVectorExpression(partition, exp, targetType);
+        final Region[] regRHS = evaluateVectorExpression(partition, exp, targetType, successor);
         newState = newState.addAssignment(tmp, regRHS);
 
         // delete var, make tmp equal to (new) var, then delete tmp
-        final Region[] var = predmgr.createPredicate(scopeVar(lhs), getBitsize(partition, targetType), precision);
+        final Region[] var = predmgr.createPredicate(scopeVar(lhs), targetType, successor, getBitsize(partition, targetType), precision);
         newState = newState.forget(var);
         newState = newState.addAssignment(var, tmp);
         newState = newState.forget(tmp);
 
       } else {
-        final Region[] var = predmgr.createPredicate(scopeVar(lhs), getBitsize(partition, targetType), precision);
+        final Region[] var = predmgr.createPredicate(scopeVar(lhs), targetType, successor, getBitsize(partition, targetType), precision);
         newState = newState.forget(var);
 
         // make region for RIGHT SIDE and build equality of var and region
-        final Region[] regRHS = evaluateVectorExpression(partition, (CExpression) rhs, targetType);
+        final Region[] regRHS = evaluateVectorExpression(partition, (CExpression) rhs, targetType, successor);
         newState = newState.addAssignment(var, regRHS);
       }
       return newState;
 
     } else if (rhs instanceof CFunctionCallExpression) {
       // handle params of functionCall, maybe there is a sideeffect
-      newState = handleExternalFunctionCall(newState,
+      newState = handleExternalFunctionCall(newState, successor,
               ((CFunctionCallExpression) rhs).getParameterExpressions());
 
       // call of external function: we know nothing, so we delete the value of the var
       // TODO can we assume, that malloc returns something !=0?
       // are there some "save functions"?
 
-      final Region[] var = predmgr.createPredicate(scopeVar(lhs), bitsize, precision); // is default bitsize enough?
+      final Region[] var = predmgr.createPredicate(scopeVar(lhs), targetType, successor, bitsize, precision); // is default bitsize enough?
       newState = newState.forget(var);
 
       return newState;
@@ -241,7 +242,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** This function deletes all vars, that could be modified
    * through a side-effect of the (external) functionCall. */
-  private BDDState handleExternalFunctionCall(BDDState currentState, final List<CExpression> params) {
+  private BDDState handleExternalFunctionCall(BDDState currentState, CFANode successor, final List<CExpression> params) {
 
     for (final CExpression param : params) {
 
@@ -254,7 +255,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
               UnaryOperator.AMPER == ((CUnaryExpression) param).getOperator() &&
               ((CUnaryExpression) param).getOperand() instanceof CIdExpression) {
         final CIdExpression id = (CIdExpression) ((CUnaryExpression) param).getOperand();
-        final Region[] var = predmgr.createPredicate(scopeVar(id), bitsize, precision); // is default bitsize enough?
+        final Region[] var = predmgr.createPredicate(scopeVar(id), id.getExpressionType(), successor, bitsize, precision); // is default bitsize enough?
         currentState = currentState.forget(var);
 
       } else {
@@ -285,12 +286,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // make variable (predicate) for LEFT SIDE of declaration,
       // delete variable, if it was initialized before i.e. in another block, with an existential operator
       Partition partition = varClass.getPartitionForEdge(cfaEdge);
-      Region[] var = predmgr.createPredicate(vdecl.getQualifiedName(), getBitsize(partition, vdecl.getType()), precision);
+      Region[] var = predmgr.createPredicate(vdecl.getQualifiedName(), vdecl.getType(), cfaEdge.getSuccessor(), getBitsize(partition, vdecl.getType()), precision);
       BDDState newState = state.forget(var);
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
-        final Region[] rhs = evaluateVectorExpression(partition, init, vdecl.getType());
+        final Region[] rhs = evaluateVectorExpression(partition, init, vdecl.getType(), cfaEdge.getSuccessor());
         newState = newState.addAssignment(var, rhs);
         return newState;
       }
@@ -316,9 +317,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // make variable (predicate) for param, this variable is not global
       final String varName = params.get(i).getQualifiedName();
       final CType targetType = params.get(i).getType();
-      final Partition partition = varClass.getPartitionForEdge(cfaEdge, i);
-      final Region[] var = predmgr.createPredicate(varName, getBitsize(partition, targetType), precision);
-      final Region[] arg = evaluateVectorExpression(partition, args.get(i), targetType);
+      final Partition partition = varClass.getPartitionForParameterOfEdge(cfaEdge, i);
+      final Region[] var = predmgr.createPredicate(varName, targetType, cfaEdge.getSuccessor(), getBitsize(partition, targetType), precision);
+      final Region[] arg = evaluateVectorExpression(partition, args.get(i), targetType, cfaEdge.getSuccessor());
       newState = newState.addAssignment(var, arg);
     }
 
@@ -336,33 +337,33 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // set result of function equal to variable on left side
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
-    final String returnVar =  createFunctionReturnVariable(functionName);
 
     // handle assignments like "y = f(x);"
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+      final String returnVar = fnkCall.getFunctionEntry().getReturnVariable().get().getQualifiedName();
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
       final int size = getBitsize(partition, lhs.getExpressionType());
 
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
-      final Region[] var = predmgr.createPredicate(scopeVar(lhs), size, precision);
+      final Region[] var = predmgr.createPredicate(scopeVar(lhs), lhs.getExpressionType(), cfaEdge.getSuccessor(), size, precision);
       newState = newState.forget(var);
 
       // make region (predicate) for RIGHT SIDE
-      final Region[] retVar = predmgr.createPredicate(returnVar, size, precision);
+      final Region[] retVar = predmgr.createPredicate(returnVar, summaryExpr.getFunctionCallExpression().getExpressionType(), cfaEdge.getSuccessor(),  size, precision);
       newState = newState.addAssignment(var, retVar);
+
+      // remove returnVar from state,
+      // all other function-variables were removed earlier (see handleReturnStatementEdge()).
+      // --> now the state does not contain any variable from scope of called function.
+      if  (predmgr.getTrackedVars().containsKey(returnVar)) {
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(
+                returnVar, predmgr.getTrackedVars().get(returnVar)));
+      }
 
     } else {
       assert summaryExpr instanceof CFunctionCallStatement; // no assignment, nothing to do
-    }
-
-    // remove returnVar from state,
-    // all other function-variables were removed earlier (see handleReturnStatementEdge()).
-    // --> now the state does not contain any variable from scope of called function.
-    if  (predmgr.getTrackedVars().containsKey(returnVar)) {
-      newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(
-              returnVar, predmgr.getTrackedVars().get(returnVar)));
     }
 
     return newState;
@@ -374,19 +375,20 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   @Override
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge) {
     BDDState newState = state;
-    final String returnVar = createFunctionReturnVariable(functionName);
+    String returnVar = "";
 
     if (cfaEdge.getExpression().isPresent()) {
+      returnVar = ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getDeclaration().getQualifiedName();
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
       final CType functionReturnType = ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode()
               .getFunctionDefinition()).getType().getReturnType();
 
       // make region for RIGHT SIDE, this is the 'x' from 'return (x);
-      final Region[] regRHS = evaluateVectorExpression(partition, cfaEdge.getExpression().get(), functionReturnType);
+      final Region[] regRHS = evaluateVectorExpression(partition, cfaEdge.getExpression().get(), functionReturnType, cfaEdge.getSuccessor());
 
       // make variable (predicate) for returnStatement,
       // delete variable, if it was used before, this is done with an existential operator
-      final Region[] retvar = predmgr.createPredicate(returnVar,
+      final Region[] retvar = predmgr.createPredicate(returnVar, functionReturnType, cfaEdge.getSuccessor(),
               getBitsize(partition, functionReturnType), precision);
       newState = newState.forget(retvar);
       newState = newState.addAssignment(retvar, regRHS);
@@ -408,7 +410,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   protected BDDState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
-              || "skipped uneccesary edges".equals(cfaEdge.getDescription());
+              || "skipped unnecessary edges".equals(cfaEdge.getDescription());
 
       // delete variables from returning function,
       // we do not need them after this location, because the next edge is the functionReturnEdge.
@@ -435,7 +437,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
                                       CExpression expression, boolean truthAssumption) {
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
-    final Region[] operand = evaluateVectorExpression(partition, expression, CNumericTypes.INT);
+    final Region[] operand = evaluateVectorExpression(partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor());
     if (operand == null) {
       return state;
     } // assumption cannot be evaluated
@@ -457,16 +459,16 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function returns a bitvector, that represents the expression.
    * The partition chooses the compression of the bitvector. */
   private @Nullable Region[] evaluateVectorExpression(
-          final Partition partition, final CExpression exp, final CType targetType) {
+          final Partition partition, final CExpression exp, final CType targetType, final CFANode location) {
     final boolean compress = (partition != null) && compressIntEqual
             && varClass.getIntEqualPartitions().contains(partition);
     if (varClass.getIntBoolPartitions().contains(partition)) {
-      Region booleanResult = exp.accept(new BDDBooleanExpressionVisitor(predmgr, rmgr, precision));
+      Region booleanResult = exp.accept(new BDDBooleanExpressionVisitor(predmgr, rmgr, precision, location));
       return (booleanResult == null) ? null : new Region[]{booleanResult};
     } else if (compress) {
-      return exp.accept(new BDDCompressExpressionVisitor(predmgr, precision, getBitsize(partition, null), bvmgr, partition));
+      return exp.accept(new BDDCompressExpressionVisitor(predmgr, precision, getBitsize(partition, null), location, bvmgr, partition));
     } else {
-      Region[] value = exp.accept(new BDDVectorCExpressionVisitor(predmgr, precision, bvmgr, machineModel));
+      Region[] value = exp.accept(new BDDVectorCExpressionVisitor(predmgr, precision, bvmgr, machineModel, location));
       if (value != null) {
         // cast to correct length
         final CType sourceType = exp.getExpressionType().getCanonicalType();
@@ -649,8 +651,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     out.println(String.format("Number of boolean vars:           %d (of %d)", trackedIntBool.size(), numOfBooleans));
     out.println(String.format("Number of intEqual vars:          %d (of %d)", trackedIntEq.size(), numOfIntEquals));
     out.println(String.format("Number of intAdd vars:            %d (of %d)", trackedIntAdd.size(), numOfIntAdds));
-    out.println(String.format("Number of all vars:               %d (of %d)",
-            trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size(), varClass.getAllVars().size()));
+    out.println(String.format("Number of all vars:               %d",
+            trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size()));
     out.println("Number of intBool partitions:     " + intBool.size());
     out.println("Number of intEq partitions:       " + intEq.size());
     out.println("Number of intAdd partitions:      " + intAdd.size());

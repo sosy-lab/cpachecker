@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +36,7 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -50,15 +52,14 @@ import com.google.common.collect.HashBiMap;
  */
 public class NamedRegionManager implements RegionManager {
 
-  private final RegionManager delegate;
-
-  private final BiMap<String, Region> regionMap = HashBiMap.create();
-
   private static final String ANONYMOUS_PREDICATE = "__anon_pred";
-  private int anonymousPredicateCounter = 0;
-
-  /** counter needed for nodes in dot-output */
+  private final RegionManager delegate;
+  private final BiMap<String, Region> regionMap = HashBiMap.create();
+  /**
+   * counter needed for nodes in dot-output
+   */
   int nodeCounter;
+  private int anonymousPredicateCounter = 0;
 
   public NamedRegionManager(RegionManager pDelegate) {
     delegate = checkNotNull(pDelegate);
@@ -68,6 +69,7 @@ public class NamedRegionManager implements RegionManager {
    * Create a predicate with a name associated to it.
    * If the same name is passed again to this method, the old predicate will be
    * returned (guaranteeing uniqueness of predicate<->name mapping).
+   *
    * @param pName An arbitary name for a predicate.
    * @return A region representing a predicate
    */
@@ -118,33 +120,35 @@ public class NamedRegionManager implements RegionManager {
         assert !falseBranch.isFalse();
         // only falseBranch is present
         out.append("!")
-           .append(predName)
-           .append(" & ");
+            .append(predName)
+            .append(" & ");
         dumpRegion(falseBranch, out);
 
       } else if (falseBranch.isFalse()) {
         // only trueBranch is present
         out.append(predName)
-           .append(" & ");
+            .append(" & ");
         dumpRegion(trueBranch, out);
 
       } else {
         // both branches present
         out.append("((")
-           .append(predName)
-           .append(" & ");
+            .append(predName)
+            .append(" & ");
         dumpRegion(trueBranch, out);
         out.append(") | (")
-           .append("!")
-           .append(predName)
-           .append(" & ");
+            .append("!")
+            .append(predName)
+            .append(" & ");
         dumpRegion(falseBranch, out);
         out.append("))");
       }
     }
   }
 
-  /** Returns a representation of a region in dot-format (graphviz). */
+  /**
+   * Returns a representation of a region in dot-format (graphviz).
+   */
   public String regionToDot(Region r) {
     nodeCounter = 2; // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE
     Map<Region, Integer> cache = new HashMap<>(); // map for same regions
@@ -195,7 +199,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
+  public boolean entails(Region pF1, Region pF2) throws SolverException, InterruptedException {
     return delegate.entails(pF1, pF2);
   }
 
@@ -245,7 +249,16 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public Region fromFormula(BooleanFormula pF, FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
+  public void setVarOrder(ArrayList<Integer> pOrder) {
+  }
+
+  @Override
+  public void reorder(PredicateOrderingStrategy strategy) {
+  }
+
+  @Override
+  public Region fromFormula(BooleanFormula pF, FormulaManagerView pFmgr,
+      Function<BooleanFormula, Region> pAtomToRegion) {
     return delegate.fromFormula(pF, pFmgr, pAtomToRegion);
   }
 

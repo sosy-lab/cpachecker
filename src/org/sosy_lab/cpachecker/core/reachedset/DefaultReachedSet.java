@@ -65,7 +65,7 @@ class DefaultReachedSet implements ReachedSet {
     Preconditions.checkNotNull(state);
     Preconditions.checkNotNull(precision);
 
-    if (reached.size() == 0) {
+    if (reached.isEmpty()) {
       firstState = state;
     }
 
@@ -138,11 +138,11 @@ class DefaultReachedSet implements ReachedSet {
   public void remove(AbstractState state) {
     Preconditions.checkNotNull(state);
     int hc = state.hashCode();
-    if ((firstState == null) || hc == firstState.hashCode() && state.equals(firstState)) {
+    if (firstState != null && hc == firstState.hashCode() && state.equals(firstState)) {
       firstState = null;
     }
 
-    if ((lastState == null) || (hc == lastState.hashCode() && state.equals(lastState))) {
+    if (lastState != null && hc == lastState.hashCode() && state.equals(lastState)) {
       lastState = null;
     }
     waitlist.remove(state);
@@ -154,7 +154,6 @@ class DefaultReachedSet implements ReachedSet {
     for (AbstractState state : toRemove) {
       remove(state);
     }
-    assert firstState != null || reached.isEmpty() : "firstState may only be removed if the whole reached set is cleared";
   }
 
   @Override
@@ -249,11 +248,6 @@ class DefaultReachedSet implements ReachedSet {
   @Override
   public AbstractState popFromWaitlist() {
     return waitlist.pop();
-  }
-
-  @Override
-  public int getWaitlistSize() {
-    return waitlist.size();
   }
 
   @Override

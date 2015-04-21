@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 
 
-public interface CInitializer extends IAInitializer, CAstNode {
+public interface CInitializer extends AInitializer, CAstNode {
 
   <R, X extends Exception>R accept(CInitializerVisitor<R, X> pV) throws X;
 

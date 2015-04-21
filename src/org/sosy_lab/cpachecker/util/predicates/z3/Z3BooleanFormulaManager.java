@@ -143,4 +143,5 @@ class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, 
   protected boolean isIfThenElse(Long pParam) {
     return isOP(z3context, pParam, Z3_OP_ITE);
   }
+
 }

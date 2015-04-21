@@ -27,16 +27,16 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class APointerExpression extends ALeftHandSide {
+public abstract class APointerExpression extends AbstractLeftHandSide {
 
-  private final IAExpression operand;
+  private final AExpression operand;
 
-  public APointerExpression(FileLocation pFileLocation, Type pType, final IAExpression pOperand) {
+  public APointerExpression(FileLocation pFileLocation, Type pType, final AExpression pOperand) {
     super(pFileLocation, pType);
     operand = pOperand;
   }
 
-  public IAExpression getOperand() {
+  public AExpression getOperand() {
     return operand;
   }
 

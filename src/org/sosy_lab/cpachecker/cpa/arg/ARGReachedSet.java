@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -82,7 +83,7 @@ public class ARGReachedSet {
    * This constructor may be used only during an refinement
    * which should be added to the refinement graph .dot file.
    */
-  ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
+  public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
     mReached = checkNotNull(pReached);
     mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
 
@@ -116,7 +117,7 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGState e, Precision p, Class<? extends Precision> pPrecisionType) {
+  public void removeSubtree(ARGState e, Precision p, Predicate<? super Precision> pPrecisionType) {
     for (ARGState ae : removeSubtree0(e)) {
       mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
       mReached.reAddToWaitlist(ae);
@@ -133,7 +134,7 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGState e, List<Precision> precisions, List<Class<? extends Precision>> precisionTypes) {
+  public void removeSubtree(ARGState e, List<Precision> precisions, List<Predicate<? super Precision>> precisionTypes) {
 
     Preconditions.checkArgument(precisions.size() == precisionTypes.size());
 
@@ -191,7 +192,7 @@ public class ARGReachedSet {
    * @param the new precision to apply at this state
    * @param pPrecisionType the type of the precision
    */
-  public void readdToWaitlist(ARGState state, Precision precision, Class<? extends Precision> pPrecisionType) {
+  public void readdToWaitlist(ARGState state, Precision precision, Predicate<? super Precision> pPrecisionType) {
     mReached.updatePrecision(state, adaptPrecision(mReached.getPrecision(state), precision, pPrecisionType));
     mReached.reAddToWaitlist(state);
   }
@@ -201,7 +202,7 @@ public class ARGReachedSet {
    * @param p The new precision, may be for a single CPA (c.f. {@link #adaptPrecision(ARGState, Precision)}).
    */
   public void updatePrecisionGlobally(Precision pNewPrecision,
-      Class<? extends Precision> pPrecisionType) {
+      Predicate<? super Precision> pPrecisionType) {
     Map<Precision, Precision> precisionUpdateCache = Maps.newIdentityHashMap();
 
     for (AbstractState s : mReached) {
@@ -227,7 +228,7 @@ public class ARGReachedSet {
    * @return The adapted precision.
    */
   private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision,
-      Class<? extends Precision> pPrecisionType) {
+      Predicate<? super Precision> pPrecisionType) {
     return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
   }
 
@@ -456,7 +457,7 @@ public class ARGReachedSet {
 
     @Override
     public void removeSubtree(ARGState pE, Precision pP,
-        Class<? extends Precision> pPrecisionType) {
+        Predicate<? super Precision> pPrecisionType) {
       delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }

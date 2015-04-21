@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -45,11 +46,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
 enum SMGRuntimeCheck {
   FORCED(-1),
@@ -67,22 +71,22 @@ enum SMGRuntimeCheck {
 }
 
 @Options(prefix="cpa.smg")
-public class SMGCPA implements ConfigurableProgramAnalysis {
+public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithConcreteCex {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SMGCPA.class);
   }
 
-  @Option(name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
+  @Option(secure=true, name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
   private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
-  @Option(name="memoryErrors", description = "Determines if memory errors are target states")
+  @Option(secure=true, name="memoryErrors", description = "Determines if memory errors are target states")
   private boolean memoryErrors = true;
 
-  @Option(name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
+  @Option(secure=true, name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "NEVER"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "NEVER"},
       description="which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
 
@@ -110,11 +114,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
     }
 
     transferRelation = new SMGTransferRelation(config, logger, machineModel);
-
-    SMGState.setRuntimeCheck(runtimeCheck);
-
-    SMGState.setTargetMemoryErrors(memoryErrors);
-    SMGState.setUnknownOnUndefined(unknownOnUndefined);
   }
 
   public MachineModel getMachineModel() {
@@ -147,8 +146,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState(logger, machineModel);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined, runtimeCheck);
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
@@ -156,20 +155,28 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 
-    CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
-    try {
-      initState.addStackFrame(functionNode.getFunctionDefinition());
-      initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch (SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
+    if (pNode instanceof CFunctionEntryNode) {
+      CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
+      try {
+        initState.addStackFrame(functionNode.getFunctionDefinition());
+        initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
+      } catch (SMGInconsistentException exc) {
+        logger.log(Level.SEVERE, exc.getMessage());
+      }
     }
 
     return initState;
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
+  }
+
+  @Override
+  public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
+
+    return new SMGConcreteErrorPathAllocator(logger).allocateAssignmentsToPath(pPath);
   }
 
 }

@@ -125,7 +125,7 @@ public final class PointerTargetSet implements Serializable {
                         PersistentLinkedList.<PointerTarget>of());
   }
 
-  public static final PointerTargetSet emptyPointerTargetSet() {
+  public static PointerTargetSet emptyPointerTargetSet() {
     return EMPTY_INSTANCE;
   }
 

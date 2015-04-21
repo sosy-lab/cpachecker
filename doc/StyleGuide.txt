@@ -9,15 +9,24 @@ Further guidelines that are very worth reading:
 - Guava User Guide: https://code.google.com/p/guava-libraries/wiki/GuavaExplained
 - Google's Java style guide: http://google-styleguide.googlecode.com/svn/trunk/javaguide.html
 
+Some additional information can be found in other files
+in this directory, e.g. Logging.txt and Test.txt.
+
 We suggest to use Eclipse for development,
 as several parts of this guide are incorporated into the Eclipse project configuration
 (indentation, spaces instead of tabs, no trailing whitespaces).
 If you do not use Eclipse, please ensure manually that you follow this guide,
 or configure your editor/IDE to behave similarly.
-Also Eclipse shows more warnings than javac, and these warnings should be taken care of.
+Also Eclipse shows more warnings than javac, and these warnings should be taken care of
+(make sure to create .factorypath as explained in doc/Developing.txt).
 
+Also check for warnings from the compiler (e.g., warnings for annotation usage),
+and from FindBugs.
+
+We want to keep CPAchecker free of warnings!
 
 Code Formatting:
+- Check Google's Java style guide mentioned above!
 - No tabs in source code!
 - 2 spaces for indentation per level.
 - No trailing white spaces.
@@ -25,7 +34,9 @@ Code Formatting:
   it destroys a lot of meaningful manual formatting.
 - A block is always surrounded by braces, e.g., if (...) { ...block... }.
 - Before { and after } there is one space.
-- The { is not on a new line.
+- The { is not on a new line (K&R style braces).
+- All statements are on separate lines, no two statements at the same line,
+  even in case like if (...) { return; }
 - There is no white space between method/constructor name and parenthesis,
   but there is one space between between keywords and parenthesis. Example:
   func();
@@ -60,6 +71,18 @@ Spelling:
 - Try to avoid typos.
 - Names are spelled camel-like, whereEachNewWordStartsWithCapital.
 - Type names start with a capital.
+- Interfaces are not named with a leading 'I'.
+  In general, client code should not need to know whether
+  it is using an interface or a concrete class,
+  thus there should not be a naming difference.
+  Furthermore, a good API should always make sure that
+  the best way to do something is also the easiest way.
+  When both an interface and a similarly-named class exist,
+  the interface is the one that should primarily be used,
+  and thus the interface gets the normal/clean/beautiful name,
+  and the class the internal/ugly name.
+  It is better to have one place using "FooImpl" and hundreds of places using "Foo"
+  instead of one place using "Foo" and hundreds of places using "IFoo".
 - Method names start lower case and begin with a verb.
 - Variable names start lower case.
   Parameters should start with 'p' to avoid confusion with
@@ -77,21 +100,6 @@ Compilation:
 - After adding/changing an @Option configuration,
   run "ant" to update documentation (before committing).
 
-Version Control:
-- Commit early, commit often, and
-  split the commits into reasonable changesets.
-- When re-formatting old code, do not mix this with other changes in a single commit.
-- Try to have separate commits for bugfixes, refactorings, and new code.
-- When renaming files, ensure that SVN recognizes this as a renaming
-  in order to not disconnect the history (use SVN plugin for Eclipse,
-  or "svn mv" on comand line). This is especially important for git-svn users.
-- In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
-  find ./ -name "*" -exec svn propset svn:eol-style native {} \;
-  from time to time.
-- Set the svn:executable property only on files that need it (executables).
-  On Linux this is done automatically, but Windows users should take care
-  that this property is not added for all newly created files.
-
 Design:
 - Prefer immutable objects, for own classes and for collections
   (https://code.google.com/p/guava-libraries/wiki/ImmutableCollectionsExplained).
@@ -99,7 +107,7 @@ Design:
   https://code.google.com/p/guava-libraries/wiki/UsingAndAvoidingNullExplained
 - Avoid boolean parameters. They carry no semantics
   and make it hard to understand for the reader what effect they have
-  (cf. http://martinfowler.com/bliki/FlagArgument.h.tml)
+  (cf. http://martinfowler.com/bliki/FlagArgument.html)
 
 Configuration options:
 - Only use the @Option scheme so your options are automatically type-checked
@@ -163,13 +171,11 @@ Coding:
   Strings do not need copying, and for other uses there is the valueOf() method.
 - Avoid Cloneable and clone(), use copy constructors instead if you need them
   (you don't if you use immutable classes).
-- When using our LogManager, don't concatenate log messages with +,
-  pass each part as a separate argument (concatenation will be done only if necessary).
 - Never swallow an exception.
   If throwing another exception, add the original one as the cause.
-  If logging, either use logUserException()
-  (if the exception text should be shown to the user)
-  or logDebugException() (in all other cases).
+  If logging, use the appropriate logger methods (c.f. doc/Logging.txt).
+- Always put @Override when implementing an overriding method
+  (Eclipse does this automatically).
 
 
 Automatic code cleanup:

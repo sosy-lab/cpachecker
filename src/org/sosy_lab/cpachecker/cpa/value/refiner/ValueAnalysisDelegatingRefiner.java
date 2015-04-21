@@ -24,398 +24,288 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateBasedPrefixProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
-import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-
-import com.google.common.collect.Multimap;
+import org.sosy_lab.cpachecker.util.PrefixProvider;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisInterpolationBasedRefiner},
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
-@Options(prefix="cpa.value.refiner")
-public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
+@Options(prefix="cegar")
+public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
-  private ShutdownNotifier shutDownNotifier;
+  @Option(secure=true, description="whether or not to use refinement selection to decide which domain to refine")
+  private boolean useRefinementSelection = false;
 
-  /**
-   * the flag to determine if initial refinement was done already
-   */
-  private boolean initialStaticRefinementDone = false;
+  @Option(secure=true, description="whether or not to let auxiliary refiner score and refine a path that is feasible for the primary refiner,"
+      + " this allows to only extract prefixes that are exclusive to the auxiliary refiner")
+  private boolean useFeasiblePathForAuxRefiner = false;
 
-  /**
-   * refiner used for (optional) initial static refinement, based on information extracted solely from the CFA
-   */
-  private ValueAnalysisStaticRefiner staticRefiner;
+  @Option(secure=true, description="the maximum score for which always the primary refinement will be performed")
+  private int scoringThreshold = 65536;
 
   /**
-   * refiner used for value-analysis interpolation refinement
+   * classifier used to score sliced prefixes
    */
-  private ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  private final ErrorPathClassifier classfier;
 
   /**
-   * backup-refiner used for predicate refinement, when value-analysis refinement fails (due to lack of expressiveness)
+   * refiner used for value-analysis refinement
    */
-  private PredicateCPARefiner predicatingRefiner;
+  private final ValueAnalysisRefiner valueCpaRefiner;
 
   /**
-   * the hash code of the previous error path
+   * prefix provider used for value-analysis refinement
    */
-  private int previousErrorPathID = -1;
+  private final PrefixProvider valueCpaPrefixProvider;
 
   /**
-   * the flag to determine whether or not to check for repeated refinements
+   * predicate-analysis refiner used for predicate refinement
    */
-  @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
-  private boolean checkForRepeatedRefinements = true;
-
-  // statistics
-  private int numberOfValueAnalysisRefinements           = 0;
-  private int numberOfPredicateRefinements               = 0;
-  private int numberOfSuccessfulValueAnalysisRefinements = 0;
+  private final PredicateCPARefiner predicateCpaRefiner;
 
   /**
-   * the identifier which is used to identify repeated refinements
+   * prefix provider used for predicate-analysis refinement
    */
-  private int previousRefinementId = 0;
+  private final PrefixProvider predicateCpaPrefixProvider;
 
-  private final CFA cfa;
+  StatCounter totalVaRefinements  = new StatCounter("Number of VA refinements");
+  StatInt avgPrefixesVA           = new StatInt(StatKind.AVG, "Avg. number of VA-prefixes");
+  StatInt avgScoreVA              = new StatInt(StatKind.AVG, "Avg. score of best VA-prefixes");
+  StatTimer timeForVAPrefixes     = new StatTimer("Time for computing VA-prefixes");
 
-  private final LogManager logger;
-  private final Configuration config;
+  StatCounter totalPaRefinements  = new StatCounter("Number of PA refinements");
+  StatInt avgScorePA              = new StatInt(StatKind.AVG, "Avg. score of best PA-prefixes");
+  StatInt avgPrefixesPA           = new StatInt(StatKind.AVG, "Avg. number of PA-prefixes");
+  StatTimer timeForPAPrefixes     = new StatTimer("Time for computing PA-prefixes");
+
+  StatCounter totalVaRefinementsExtra = new StatCounter("Number of VA refinements (PA was SAT)");
+  StatCounter totalPaRefinementsExtra = new StatCounter("Number of PA refinements (VA was SAT)");
 
   public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
 
-    WrapperCPA wrapperCpa = ((WrapperCPA)cpa);
+    return initialiseDelegatingRefiner(cpa);
+  }
 
-    ValueAnalysisCPA valueAnalysisCpa = wrapperCpa.retrieveWrappedCpa(ValueAnalysisCPA.class);
-    if (valueAnalysisCpa == null) {
+  private static ValueAnalysisDelegatingRefiner initialiseDelegatingRefiner(ConfigurableProgramAnalysis cpa)
+      throws CPAException, InvalidConfigurationException {
+
+    ValueAnalysisCPA valueCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
+    if (valueCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
 
-    if (!(wrapperCpa.retrieveWrappedCpa(CompositeCPA.class).getPrecisionAdjustment() instanceof ComponentAwarePrecisionAdjustment)) {
-      throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ComponentAwarePrecisionAdjustment operator");
+    PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    ValueAnalysisDelegatingRefiner refiner = initialiseValueAnalysisRefiner(cpa, valueAnalysisCpa);
-    valueAnalysisCpa.getStats().addRefiner(refiner);
-
-    return refiner;
-  }
-
-  private static PredicateCPARefiner createBackupRefiner(final Configuration config,
-        final LogManager logger, final ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
-
-    PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
-
-    if (predicateCpa == null) {
-      return null;
-
-    } else {
-        FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
-        FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
-        Solver solver                               = predicateCpa.getSolver();
-        PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
-        PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
-        MachineModel machineModel                   = predicateCpa.getMachineModel();
-
-        InterpolationManager manager = new InterpolationManager(
-            formulaManager,
-            pathFormulaManager,
-            solver,
-            factory,
-            config,
-            predicateCpa.getShutdownNotifier(),
-            logger);
-
-        PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pathFormulaManager, solver, machineModel);
-
-        RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
-            config,
-            logger,
-            predicateCpa.getShutdownNotifier(),
-            formulaManager,
-            predicateCpa.getPredicateManager(),
-            extractor,
-            solver);
-
-        return new PredicateCPARefiner(
-            config,
-            logger,
-            cpa,
-            manager,
-            pathChecker,
-            formulaManager,
-            pathFormulaManager,
-            backupRefinementStrategy,
-            predicateCpa.getCfa());
-      }
-  }
-
-  private static ValueAnalysisDelegatingRefiner initialiseValueAnalysisRefiner(
-      ConfigurableProgramAnalysis cpa, ValueAnalysisCPA pValueAnalysisCpa)
-          throws CPAException, InvalidConfigurationException {
-    Configuration config              = pValueAnalysisCpa.getConfiguration();
-    LogManager logger                 = pValueAnalysisCpa.getLogger();
-    PredicateCPARefiner backupRefiner = createBackupRefiner(config, logger, cpa);
-
-    pValueAnalysisCpa.injectRefinablePrecision();
+    Configuration config      = valueCpa.getConfiguration();
+    LogManager logger         = valueCpa.getLogger();
+    CFA controlFlowAutomaton  = valueCpa.getCFA();
 
     return new ValueAnalysisDelegatingRefiner(
         config,
         logger,
-        pValueAnalysisCpa.getShutdownNotifier(),
+        controlFlowAutomaton,
         cpa,
-        backupRefiner,
-        pValueAnalysisCpa.getStaticRefiner(),
-        pValueAnalysisCpa.getCFA());
+        ValueAnalysisRefiner.create(cpa),
+        new ValueAnalysisFeasibilityChecker(logger, controlFlowAutomaton, config),
+        PredicateRefiner.create(cpa),
+        new PredicateBasedPrefixProvider(logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
   }
 
   protected ValueAnalysisDelegatingRefiner(
       final Configuration pConfig,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa,
       final ConfigurableProgramAnalysis pCpa,
-      @Nullable final PredicateCPARefiner pBackupRefiner,
-      ValueAnalysisStaticRefiner pValueAnalysisStaticRefiner,
-      final CFA pCfa) throws CPAException, InvalidConfigurationException {
+      final ValueAnalysisRefiner pValueRefiner,
+      final PrefixProvider pValueCpaPrefixProvider,
+      final PredicateCPARefiner pPredicateRefiner,
+      final PrefixProvider pPredicateCpaPrefixProvider) throws InvalidConfigurationException {
+
     super(pCpa);
     pConfig.inject(this);
-    config = pConfig;
-    shutDownNotifier = pShutdownNotifier;
 
-    interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    predicatingRefiner    = pBackupRefiner;
-    staticRefiner         = pValueAnalysisStaticRefiner;
-    cfa                   = pCfa;
-    logger                = pLogger;
+    classfier = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
+
+    valueCpaRefiner         = pValueRefiner;
+    valueCpaPrefixProvider  = pValueCpaPrefixProvider;
+
+    predicateCpaRefiner         = pPredicateRefiner;
+    predicateCpaPrefixProvider  = pPredicateCpaPrefixProvider;
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
+  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    MutableARGPath errorPath = pErrorPath.mutableCopy();
+    int vaScore = 0;
+    int paScore = Integer.MAX_VALUE;
 
-    // if path is infeasible, try to refine the precision
-    if (!isPathFeasable(errorPath)) {
-      if (performValueAnalysisRefinement(reached, errorPath)) {
-        return CounterexampleInfo.spurious();
-      }
-    } else {
+    if (useRefinementSelection) {
+      vaScore = obtainScoreForValueDomain(pErrorPath);
 
-    }
+      // don't bother to extract prefixes in auxiliary analysis
+      // if score of primary analysis is beneath the threshold
+      if(vaScore > scoringThreshold) {
 
-    if (predicatingRefiner != null) {
-      numberOfPredicateRefinements++;
-      return predicatingRefiner.performRefinement(reached, pErrorPath);
+        // hand the auxiliary analysis a path that is feasible
+        // for the primary analysis, so that only new prefixes are found
+        if(useFeasiblePathForAuxRefiner) {
+          List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+          pErrorPath = classfier.obtainSlicedPrefix(PrefixPreference.FEASIBLE, pErrorPath, vaPrefixes);
+        }
 
-    } else {
-
-      try {
-        ValueAnalysisFeasibilityChecker evaluator = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
-        List<Pair<ValueAnalysisState, CFAEdge>> evaluatedPath = evaluator.evaluate(errorPath);
-
-        ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
-        Model model = va.allocateAssignmentsToPath(evaluatedPath, cfa.getMachineModel());
-
-        return CounterexampleInfo.feasible(pErrorPath, model);
-
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Failed to configure feasbility checker", e);
+        paScore = obtainScoreForPredicateDomain(pErrorPath);
       }
     }
+
+    CounterexampleInfo cex;
+
+    if (vaScore <= paScore) {
+      cex = valueCpaRefiner.performRefinement(reached);
+
+      if (cex.isSpurious()) {
+        totalVaRefinements.inc();
+      }
+
+      else {
+        valueCpaRefiner.resetPreviousErrorPathId();
+        cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
+
+        if(cex.isSpurious()) {
+          totalPaRefinementsExtra.inc();
+        }
+      }
+    }
+
+    else {
+      cex = predicateCpaRefiner.performRefinement(reached, pErrorPath);
+
+      if (cex.isSpurious()) {
+        totalPaRefinements.inc();
+      }
+
+      else {
+        cex = valueCpaRefiner.performRefinement(reached);
+
+        if (cex.isSpurious()) {
+          totalVaRefinementsExtra.inc();
+        }
+      }
+    }
+
+    return cex;
   }
 
-  /**
-   * This method performs an value-analysis refinement.
-   *
-   * @param reached the current reached set
-   * @param errorPath the current error path
-   * @returns true, if the value-analysis refinement was successful, else false
-   * @throws CPAException when value-analysis interpolation fails
-   */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
-    numberOfValueAnalysisRefinements++;
+  private int obtainScoreForValueDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
+    timeForVAPrefixes.start();
+    List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+    timeForVAPrefixes.stop();
 
-    UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
-    Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
-    BDDPrecision bddPrecision                     = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
-
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
-
-    Multimap<CFANode, MemoryLocation> increment;
-    Pair<ARGState, CFAEdge> refinementRoot;
-
-    if (!initialStaticRefinementDone && staticRefiner != null) {
-      initialStaticRefinementDone = true;
-      refinementRoot              = errorPath.get(1);
-      increment                   = staticRefiner.extractPrecisionIncrementFromCfa(errorPath);
-    } else {
-      increment       = interpolatingRefiner.determinePrecisionIncrement(errorPath);
-      refinementRoot  = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
-
-      // no increment - value-analysis refinement was not successful
-      if (increment.isEmpty()) {
-        return false;
-      }
-
-      // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
-      if (checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
-        refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
-      }
+    // if path is feasible hand out a real bad score
+    if(vaPrefixes.get(0) == pErrorPath) {
+      return Integer.MAX_VALUE;
     }
 
-    VariableTrackingPrecision refinedValueAnalysisPrecision  = valueAnalysisPrecision.withIncrement(increment);
-    refinedPrecisions.add(refinedValueAnalysisPrecision);
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
+    this.avgPrefixesVA.setNextValue(vaPrefixes.size());
 
-    if (bddPrecision != null) {
-      BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
-      refinedPrecisions.add(refinedBDDPrecision);
-      newPrecisionTypes.add(BDDPrecision.class);
-    }
-
-    if (valueAnalysisRefinementWasSuccessful(errorPath, valueAnalysisPrecision, refinedValueAnalysisPrecision)) {
-      numberOfSuccessfulValueAnalysisRefinements++;
-      reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
-      return true;
-    } else {
-      return false;
-    }
+    int vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    this.avgScoreVA.setNextValue(vaScore);
+    return vaScore;
   }
 
-  /**
-   * The not-so-fancy heuristic to determine if two subsequent refinements are similar
-   *
-   * @param increment the precision increment
-   * @param refinementRoot the current refinement root
-   * @return true, if the current refinement is found to be similar to the previous one, else false
-   */
-  private boolean isRepeatedRefinement(Multimap<CFANode, MemoryLocation> increment, Pair<ARGState, CFAEdge> refinementRoot) {
-    int currentRefinementId = refinementRoot.getSecond().getSuccessor().getNodeNumber();
-    boolean result         = (previousRefinementId == currentRefinementId);
-    previousRefinementId    = currentRefinementId;
+  private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
+    timeForPAPrefixes.start();
+    List<ARGPath> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
+    timeForPAPrefixes.stop();
+    this.avgPrefixesPA.setNextValue(paPrefixes.size());
 
-    return result;
+    int paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    this.avgScorePA.setNextValue(paScore);
+    return paScore;
   }
 
-  /**
-   * This helper method checks if the refinement was successful, i.e.,
-   * that either the counterexample is not a repeated counterexample, or that the precision did grow.
-   *
-   * Repeated counterexamples might occur when combining the analysis with thresholding,
-   * or when ignoring variable classes, i.e. when combined with BDD analysis (i.e. cpa.value.precision.ignoreBoolean).
-   *
-   * @param errorPath the current error path
-   * @param valueAnalysisPrecision the previous precision
-   * @param refinedValueAnalysisPrecision the refined precision
-   */
-  private boolean valueAnalysisRefinementWasSuccessful(MutableARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
-      VariableTrackingPrecision refinedValueAnalysisPrecision) {
-    // new error path or precision refined -> success
-    boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
-        || (refinedValueAnalysisPrecision.getSize() > valueAnalysisPrecision.getSize());
+  private List<ARGPath> getPrefixesOfValueDomain(final ARGPath pErrorPath)
+      throws CPAException, InterruptedException {
 
-    previousErrorPathID = errorPath.toString().hashCode();
+    return valueCpaPrefixProvider.getInfeasilbePrefixes(pErrorPath);
+  }
 
-    return success;
+  private List<ARGPath> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
+      throws CPAException, InterruptedException {
+
+    return predicateCpaPrefixProvider.getInfeasilbePrefixes(pErrorPath);
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(this);
-    pStatsCollection.add(interpolatingRefiner);
-    if (predicatingRefiner != null) {
-      predicatingRefiner.collectStatistics(pStatsCollection);
-    }
+    pStatsCollection.add(new Statistics() {
+
+      @Override
+      public String getName() {
+        return ValueAnalysisDelegatingRefiner.class.getSimpleName();
+      }
+
+      @Override
+      public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+        ValueAnalysisDelegatingRefiner.this.printStatistics(pOut, pResult, pReached);
+      }
+    });
+
+    valueCpaRefiner.collectStatistics(pStatsCollection);
+    predicateCpaRefiner.collectStatistics(pStatsCollection);
   }
 
-  @Override
-  public String getName() {
-    return "ValueAnalysisDelegatingRefiner";
-  }
+  private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    writer.put(totalVaRefinements);
+    writer.put(avgPrefixesVA);
+    writer.put(avgScoreVA);
+    writer.put(totalVaRefinementsExtra);
+    writer.put(timeForVAPrefixes);
 
-  @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  number of value analysis refinements:                " + numberOfValueAnalysisRefinements);
-    out.println("  number of successful valueAnalysis refinements:      " + numberOfSuccessfulValueAnalysisRefinements);
-    out.println("  number of predicate refinements:                     " + numberOfPredicateRefinements);
-  }
-
-  /**
-   * This method checks if the given path is feasible, when doing a full-precision check.
-   *
-   * @param path the path to check
-   * @return true, if the path is feasible, else false
-   * @throws CPAException if the path check gets interrupted
-   */
-  boolean isPathFeasable(MutableARGPath path) throws CPAException {
-    try {
-      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
-      return checker.isFeasible(path);
-    }
-    catch (InterruptedException | InvalidConfigurationException e) {
-      throw new CPAException("counterexample-check failed: ", e);
-    }
+    writer.put(totalPaRefinements);
+    writer.put(avgPrefixesPA);
+    writer.put(avgScorePA);
+    writer.put(totalPaRefinementsExtra);
+    writer.put(timeForPAPrefixes);
   }
 }

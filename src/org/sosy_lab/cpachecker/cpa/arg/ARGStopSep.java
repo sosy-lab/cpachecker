@@ -42,10 +42,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="cpa.arg")
 public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
-  @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ARG")
+  @Option(secure=true, description="whether to keep covered states in the reached set as addition to keeping them in the ARG")
   private boolean keepCoveredStatesInReached = false;
 
-  @Option(
+  @Option(secure=true,
   description="inform ARG CPA if it is run in a predicated analysis because then it must"
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;

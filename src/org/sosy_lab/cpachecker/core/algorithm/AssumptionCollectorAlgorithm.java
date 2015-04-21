@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -49,6 +50,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -79,18 +81,18 @@ import com.google.common.collect.Sets;
 @Options(prefix="assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(name="export", description="write collected assumptions to file")
+  @Option(secure=true, name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
-  @Option(name="file", description="write collected assumptions to file")
+  @Option(secure=true, name="file", description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionsFile = Paths.get("assumptions.txt");
 
-  @Option(name="automatonFile", description="write collected assumptions as automaton to file")
+  @Option(secure=true, name="automatonFile", description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
 
-  @Option(description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
+  @Option(secure=true, description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
 
@@ -122,16 +124,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean isComplete = true;
-    boolean restartCPA = false;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    boolean restartCPA;
 
     // loop if restartCPA is set to false
     do {
       restartCPA = false;
       try {
         // run the inner algorithm to fill the reached set
-        isComplete &= innerAlgorithm.run(reached);
+        status = status.update(innerAlgorithm.run(reached));
 
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
@@ -167,7 +169,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         errorState.removeFromARG();
 
         restartCPA = true;
-        isComplete = false;
+        status = status.withSound(false);
 
         // TODO: handle CounterexampleAnalysisFailed similar to RefinementFailedException
         // TODO: handle other kinds of CPAException?
@@ -178,7 +180,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     } while (restartCPA);
 
-    return isComplete;
+    return status;
   }
 
   private AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
@@ -324,40 +326,91 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
       }
 
+      final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
+      int multiEdgeID = 0;
+
       final CFANode loc = AbstractStates.extractLocation(s);
       for (final ARGState child : getUncoveredChildrenView(s)) {
         assert !child.isCovered();
 
         CFAEdge edge = loc.getEdgeTo(extractLocation(child));
-        sb.append("    MATCH \"");
-        escape(edge.getRawStatement(), sb);
-        sb.append("\" -> ");
 
-        AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-        BooleanFormula assumption = bfmgr.and(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
-        sb.append("ASSUME {");
-        escape(assumption.toString(), sb);
-        sb.append("} ");
+        if (edge instanceof MultiEdge) {
+          assert (((MultiEdge) edge).getEdges().size() > 1);
 
-        if (falseAssumptionStates.contains(child)) {
-          sb.append(actionOnFinalEdges + "GOTO __FALSE");
+          sb.append("    MATCH \"");
+          escape(((MultiEdge) edge).getEdges().get(0).getRawStatement(), sb);
+          sb.append("\" -> ");
+          sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
 
-        } else if (relevantStates.contains(child)) {
-          if (branching) {
-            sb.append("DO branchingCount = branchingCount+1 ");
+          boolean first = true;
+          for (CFAEdge innerEdge : from(((MultiEdge) edge).getEdges()).skip(1)) {
+
+            if (!first) {
+              multiEdgeID++;
+              descriptionForInnerMultiEdges.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID + ";\n");
+              descriptionForInnerMultiEdges.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
+            } else {
+              first = false;
+            }
+
+            descriptionForInnerMultiEdges.append("STATE USEFIRST ARG" + s.getStateId() + "M" + multiEdgeID + " :\n");
+            automatonStates++;
+            descriptionForInnerMultiEdges.append("    MATCH \"");
+            escape(innerEdge.getRawStatement(), descriptionForInnerMultiEdges);
+            descriptionForInnerMultiEdges.append("\" -> ");
           }
-          sb.append("GOTO ARG" + child.getStateId());
+
+          AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
+          addAssumption(descriptionForInnerMultiEdges, assumptionChild);
+          finishTransition(descriptionForInnerMultiEdges, child, relevantStates, falseAssumptionStates,
+              actionOnFinalEdges, branching);
+          descriptionForInnerMultiEdges.append(";\n");
+          descriptionForInnerMultiEdges.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
 
         } else {
-          sb.append(actionOnFinalEdges + "GOTO __TRUE");
+
+          sb.append("    MATCH \"");
+          escape(edge.getRawStatement(), sb);
+          sb.append("\" -> ");
+
+          AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
+          addAssumption(sb, assumptionChild);
+          finishTransition(sb, child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
+
         }
 
         sb.append(";\n");
       }
       sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
+      sb.append(descriptionForInnerMultiEdges);
 
     }
     sb.append("END AUTOMATON\n");
+  }
+
+  private void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState) throws IOException {
+    BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+    writer.append("ASSUME {");
+    escape(assumption.toString(), writer);
+    writer.append("} ");
+  }
+
+  private void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
+      final Set<AbstractState> falseAssumptionStates, final String actionOnFinalEdges, final boolean branching)
+      throws IOException {
+    if (falseAssumptionStates.contains(child)) {
+      writer.append(actionOnFinalEdges + "GOTO __FALSE");
+
+    } else if (relevantStates.contains(child)) {
+      if (branching) {
+        writer.append("DO branchingCount = branchingCount+1 ");
+      }
+      writer.append("GOTO ARG" + child.getStateId());
+
+    } else {
+      writer.append(actionOnFinalEdges + "GOTO __TRUE");
+    }
   }
 
   /**

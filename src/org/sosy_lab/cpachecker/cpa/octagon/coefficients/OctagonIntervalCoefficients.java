@@ -380,7 +380,7 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(coefficients);
+    result = prime * result + Arrays.hashCode(coefficients);
     result = prime * result + Objects.hash(size);
     return result;
   }

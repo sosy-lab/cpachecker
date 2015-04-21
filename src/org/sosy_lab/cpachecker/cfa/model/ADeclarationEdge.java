@@ -24,17 +24,17 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 
 import com.google.common.base.Optional;
 
 
 public class ADeclarationEdge extends AbstractCFAEdge {
 
-  protected final IADeclaration declaration;
+  protected final ADeclaration declaration;
 
   protected ADeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
-      final CFANode pPredecessor, final CFANode pSuccessor, final IADeclaration pDeclaration) {
+      final CFANode pPredecessor, final CFANode pSuccessor, final ADeclaration pDeclaration) {
 
     super(pRawSignature, pFileLocation, pPredecessor, pSuccessor);
     declaration = pDeclaration;
@@ -45,12 +45,12 @@ public class ADeclarationEdge extends AbstractCFAEdge {
     return CFAEdgeType.DeclarationEdge;
   }
 
-  public IADeclaration getDeclaration() {
+  public ADeclaration getDeclaration() {
     return declaration;
   }
 
   @Override
-  public Optional<? extends IADeclaration> getRawAST() {
+  public Optional<? extends ADeclaration> getRawAST() {
     return Optional.of(declaration);
   }
 

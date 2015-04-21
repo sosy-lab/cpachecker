@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -59,11 +60,11 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -83,19 +84,19 @@ import com.google.common.collect.Queues;
 @Options(prefix="staticRefiner")
 public class PredicateStaticRefiner extends StaticRefiner {
 
-  @Option(description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
+  @Option(secure=true, description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
   private boolean applyScoped = true;
 
-  @Option(description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
-  @Option(description="Add all assumtions from the control flow automaton to the precision.")
+  @Option(secure=true, description="Add all assumtions from the control flow automaton to the precision.")
   private boolean addAllControlFlowAssumes = false;
 
-  @Option(description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
   private boolean addAssumesByBoundedBackscan = true;
 
-  @Option(description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
+  @Option(secure=true, description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumePredicatesFile = null;
 
@@ -139,7 +140,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     if (!loopStructure.isPresent()) {
       return false;
     }
-    Collection<String> referenced = VariableClassification.getVariablesOfExpression((CExpression) e.getExpression());
+    Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
 
     for (String var: referenced) {
       if (loopStructure.get().getLoopExitConditionVariables().contains(var)) {
@@ -178,7 +179,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
     }
   }
 
-  private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt) throws CPATransferException, InterruptedException {
+  private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt)
+      throws SolverException, CPATransferException, InterruptedException {
     // Check stmt ==> assume?
 
     BooleanFormula stmtFormula = pathFormulaManager.makeAnd(
@@ -208,10 +210,11 @@ public class PredicateStaticRefiner extends StaticRefiner {
      */
   }
 
-  private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException, InterruptedException {
+  private boolean hasContradictingOperationInFlow(AssumeEdge e)
+      throws SolverException, CPATransferException, InterruptedException {
     buildDirectlyAffectingStatements();
 
-    Collection<String> referenced = VariableClassification.getVariablesOfExpression((CExpression) e.getExpression());
+    Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
     for (String varName: referenced) {
       Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
       for (AStatementEdge stmtEdge: affectedByStmts) {
@@ -223,7 +226,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return false;
   }
 
-  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes() throws CPATransferException, InterruptedException {
+  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes()
+      throws SolverException, CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
     for (CFANode u : cfa.getAllNodes()) {
@@ -242,7 +246,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return result;
   }
 
-  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState) throws CPATransferException, InterruptedException {
+  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState)
+      throws SolverException, CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
@@ -284,7 +289,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
    * @throws InterruptedException
    */
   public PredicatePrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      List<ARGState> abstractionStatesTrace, boolean atomicPredicates) throws CPATransferException, InterruptedException {
+      List<ARGState> abstractionStatesTrace, boolean atomicPredicates)
+          throws SolverException, CPATransferException, InterruptedException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
     // Predicates that should be tracked on function scope

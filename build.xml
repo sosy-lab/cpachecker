@@ -8,13 +8,14 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.3.4-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.4-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
     <property name="ivy.settings.file" value="lib/ivysettings.xml"/>
     <property name="junit.dir" value="output/junit"/>
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+    <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
 
     <import file="build/build-ivy.xml"/>
@@ -30,7 +31,7 @@
     <path id="classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
-        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
     </path>
 
     <condition property="architecture" value="x86_64" else="x86">
@@ -66,7 +67,7 @@
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
-    <target name="tests" depends="unit-tests, benchmark-tests" description="Run all tests"/>
+    <target name="tests" depends="unit-tests, python-unit-tests, benchmark-tests" description="Run all tests"/>
 
 
     <!-- Auxiliary targets -->
@@ -115,21 +116,24 @@
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="build-project" depends="build-dependencies,-warn-errorprone">
+    <target name="build-project" depends="build-dependencies">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <echo message="Compiling CPAchecker"/>
         <javac debug="true"
                debuglevel="source,lines,vars"
-               includeAntRuntime="false"
                destdir="${class.dir}"
                source="${source.format}"
                target="${class.format}"
+               includeAntRuntime="false"
+               compiler="com.google.errorprone.ErrorProneAntCompilerAdapter"
                encoding="UTF-8">
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
+            <compilerarg value="-Xlint:deprecation"/>
             <!-- exclude for now since necessary JARs might not be installed -->
             <exclude name="org/sosy_lab/cpachecker/appengine/**"/>
+            <compilerclasspath refid="errorprone"/>
         </javac>
     </target>
 
@@ -161,7 +165,7 @@
     <target name="zip" depends="jar">
         <property name="namez" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namez}.zip" whenempty="fail">
-            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/*.* lib/java/runtime/*" excludes="lib/ivy*" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
         </zip>
@@ -186,6 +190,15 @@
         </tar>
     </target>
 
+    <target name="python-unit-tests" description="Run unit tests of python scripts">
+        <!-- Tests are only executed if python is available, ignored otherwise. -->
+        <exec executable="python"
+            failonerror="true"
+            failifexecutionfails="false">
+            <arg line="-m unittest discover scripts"/>
+        </exec>
+    </target>
+
     <target name="benchmark-tests" depends="build" description="Run CPAchecker on some simple test cases in various configurations">
         <!-- TODO run benchmark.py with some benchmark definitions and check results like in BuildBot -->
     </target>
@@ -204,5 +217,23 @@
                 <include name="cpachecker.jar"/>
             </patternset>
         </unzip>
+    </target>
+
+    <target name="starexec" depends="build" description="Pack CPAchecker and configs for starexec upload">
+	<echo message="Put all solver configurations in a folder called starexec. Solver configurations should be in the style of doc/examples/starexec.sh"/>
+        <tar destfile="starexec.tar.gz" compression="gzip">
+            <tarfileset dir="."
+                includes="config/** cpachecker.jar lib/*.* lib/java/runtime/*"
+                excludes="lib/ivy*"/>
+	    <tarfileset dir="scripts"
+		includes="cpa.sh"
+		prefix="bin"/>
+	    <tarfileset dir="starexec"
+		includes="*.*"
+		prefix="bin"/>
+            <tarfileset dir="." filemode="755"
+                includes="lib/native/**"
+                excludes="lib/native/source/** lib/native/*win*/** lib/native/x86-linux/**"/>
+        </tar>
     </target>
 </project>

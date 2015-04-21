@@ -47,10 +47,9 @@ public interface Scope {
   /**
    *
    * @param name
-   * @param origName
    * @return
    */
-  public boolean variableNameInUse(String name, String origName);
+  public boolean variableNameInUse(String name);
 
   /**
    * Returns the declaration of the variable with the given name, if the
@@ -113,7 +112,13 @@ public interface Scope {
   public String createScopedNameOf(String name);
 
   /**
-   * Returns the name for the type as it would be if it is renamed.
+   * Returns the name for the type as it would be if it is renamed to a file
+   * specific version.
    */
-  public String getRenamedTypeName(String type);
+  public String getFileSpecificTypeName(String type);
+
+  /**
+   * Checks if a given type is the file specific version or not.
+   */
+  public boolean isFileSpecificTypeName(String type);
 }

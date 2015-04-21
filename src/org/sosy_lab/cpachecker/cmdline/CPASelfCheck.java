@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -102,7 +103,7 @@ public class CPASelfCheck {
       assert cpaInst != null;
 
       try {
-        cpaInst.getInitialState(main);
+        cpaInst.getInitialState(main, StateSpacePartition.getDefaultPartition());
 
         boolean ok = true;
         // check domain and lattice
@@ -121,7 +122,7 @@ public class CPASelfCheck {
     }
   }
 
-  private static CFA createCFA() throws IOException, ParserException, InvalidConfigurationException {
+  private static CFA createCFA() throws ParserException, InvalidConfigurationException {
     String code = "int main() {\n"
                 + "  int a;\n"
                 + "  a = 1;\n"
@@ -157,7 +158,7 @@ public class CPASelfCheck {
   private static boolean checkJoin(Class<ConfigurableProgramAnalysis> pCpa,
                                 ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
-    AbstractState initial = pCpaInst.getInitialState(pMain);
+    AbstractState initial = pCpaInst.getInitialState(pMain, StateSpacePartition.getDefaultPartition());
 
     return ensure(d.isLessOrEqual(initial, d.join(initial, initial)),
         "Join of same elements is unsound!");
@@ -167,8 +168,8 @@ public class CPASelfCheck {
                                  ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     MergeOperator merge = pCpaInst.getMergeOperator();
-    AbstractState initial = pCpaInst.getInitialState(pMain);
-    Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
+    AbstractState initial = pCpaInst.getInitialState(pMain, StateSpacePartition.getDefaultPartition());
+    Precision initialPrec = pCpaInst.getInitialPrecision(pMain, StateSpacePartition.getDefaultPartition());
 
     return ensure(d.isLessOrEqual(initial, merge.merge(initial, initial, initialPrec)),
         "Merging same elements was unsound!");
@@ -180,8 +181,8 @@ public class CPASelfCheck {
                                             ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
     StopOperator stop = pCpaInst.getStopOperator();
     HashSet<AbstractState> reached = new HashSet<>();
-    AbstractState initial = pCpaInst.getInitialState(pMain);
-    Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
+    AbstractState initial = pCpaInst.getInitialState(pMain, StateSpacePartition.getDefaultPartition());
+    Precision initialPrec = pCpaInst.getInitialPrecision(pMain, StateSpacePartition.getDefaultPartition());
 
     return ensure(!stop.stop(initial, reached, initialPrec), "Stopped on empty set!");
   }
@@ -190,14 +191,14 @@ public class CPASelfCheck {
                                        ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException, InterruptedException {
     StopOperator stop = pCpaInst.getStopOperator();
     HashSet<AbstractState> reached = new HashSet<>();
-    AbstractState initial = pCpaInst.getInitialState(pMain);
+    AbstractState initial = pCpaInst.getInitialState(pMain, StateSpacePartition.getDefaultPartition());
     reached.add(initial);
-    Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
+    Precision initialPrec = pCpaInst.getInitialPrecision(pMain, StateSpacePartition.getDefaultPartition());
 
     return ensure(stop.stop(initial, reached, initialPrec), "Did not stop on same element!");
   }
 
-  private static List<Class<ConfigurableProgramAnalysis>> getCPAs() throws ClassNotFoundException, IOException {
+  private static List<Class<ConfigurableProgramAnalysis>> getCPAs() throws IOException {
     Set<ClassInfo> cpaCandidates = ClassPath.from(Thread.currentThread().getContextClassLoader())
                                             .getTopLevelClasses("org.sosy_lab.cpachecker.cpa");
 

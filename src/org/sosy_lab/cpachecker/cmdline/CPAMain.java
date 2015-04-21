@@ -50,7 +50,8 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
@@ -59,6 +60,9 @@ import com.google.common.io.Closer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CPAMain {
+
+  static final PrintStream ERROR_OUTPUT = System.err;
+  static final int ERROR_EXIT_CODE = 1;
 
   @SuppressWarnings("resource") // We don't close LogManager
   public static void main(String[] args) {
@@ -72,21 +76,22 @@ public class CPAMain {
         cpaConfig = p.getFirst();
         outputDirectory = p.getSecond();
       } catch (InvalidCmdlineArgumentException e) {
-        System.err.println("Could not process command line arguments: " + e.getMessage());
-        System.exit(1);
+        ERROR_OUTPUT.println("Could not process command line arguments: " + e.getMessage());
+        System.exit(ERROR_EXIT_CODE);
       } catch (IOException e) {
-        System.err.println("Could not read config file " + e.getMessage());
-        System.exit(1);
+        ERROR_OUTPUT.println("Could not read config file " + e.getMessage());
+        System.exit(ERROR_EXIT_CODE);
       }
 
       logManager = new BasicLogManager(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
-      System.err.println("Invalid configuration: " + e.getMessage());
-      System.exit(1);
+      ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
+      System.exit(ERROR_EXIT_CODE);
       return;
     }
     cpaConfig.enableLogging(logManager);
+    GlobalInfo.getInstance().storeLogManager(logManager);
 
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
@@ -110,7 +115,7 @@ public class CPAMain {
       }
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
-      System.exit(1);
+      System.exit(ERROR_EXIT_CODE);
       return;
     }
 
@@ -153,12 +158,12 @@ public class CPAMain {
 
   @Options
   private static class BootstrapOptions {
-    @Option(name="memorysafety.check",
+    @Option(secure=true, name="memorysafety.check",
         description="Whether to check for memory safety properties "
             + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
     private boolean checkMemsafety = false;
 
-    @Option(name="memorysafety.config",
+    @Option(secure=true, name="memorysafety.config",
         description="When checking for memory safety properties, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
@@ -167,28 +172,28 @@ public class CPAMain {
 
   @Options
   private static class MainOptions {
-    @Option(name="analysis.programNames",
+    @Option(secure=true, name="analysis.programNames",
         //required=true, NOT required because we want to give a nicer user message ourselves
         description="A String, denoting the programs to be analyzed")
     private String programs;
 
-    @Option(name="configuration.dumpFile",
+    @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
 
-    @Option(name="statistics.export", description="write some statistics to disk")
+    @Option(secure=true, name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
 
-    @Option(name="statistics.file",
+    @Option(secure=true, name="statistics.file",
         description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path exportStatisticsFile = Paths.get("Statistics.txt");
 
-    @Option(name="statistics.print", description="print statistics to console")
+    @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
 
-    @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
   }
 
@@ -212,6 +217,11 @@ public class CPAMain {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
 
+    boolean secureMode = cmdLineOptions.remove(CmdLineArguments.SECURE_MODE_OPTION) != null;
+    if (secureMode) {
+      Configuration.enableSecureModeGlobally();
+    }
+
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
@@ -225,7 +235,7 @@ public class CPAMain {
     Configuration config = configBuilder.build();
 
     // Get output directory and setup paths.
-    Pair<Configuration, String> p = setupPaths(config);
+    Pair<Configuration, String> p = setupPaths(config, secureMode);
     config = p.getFirst();
     String outputDirectory = p.getSecond();
 
@@ -250,13 +260,16 @@ public class CPAMain {
     return Pair.of(config, outputDirectory);
   }
 
-  private static Pair<Configuration, String> setupPaths(Configuration pConfig) throws InvalidConfigurationException {
+  private static Pair<Configuration, String> setupPaths(Configuration pConfig,
+      boolean pSecureMode) throws InvalidConfigurationException {
     // We want to be able to use options of type "File" with some additional
     // logic provided by FileTypeConverter, so we create such a converter,
     // add it to our Configuration object and to the the map of default converters.
     // The latter will ensure that it is used whenever a Configuration object
     // is created.
-    FileTypeConverter fileTypeConverter = new FileTypeConverter(pConfig);
+    FileTypeConverter fileTypeConverter = pSecureMode
+        ? FileTypeConverter.createWithSafePathsOnly(pConfig)
+        : FileTypeConverter.create(pConfig);
     String outputDirectory = fileTypeConverter.getOutputDirectory();
 
     Configuration config = Configuration.builder()

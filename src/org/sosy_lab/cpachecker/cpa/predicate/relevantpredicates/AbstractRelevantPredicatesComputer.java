@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Maps;
+import com.google.errorprone.annotations.ForOverride;
 
 public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantPredicatesComputer {
 
@@ -70,7 +71,7 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
 
     boolean result;
     if (fmgr.getBooleanFormulaManager().isFalse(pPredicate.getSymbolicAtom())
-        || fmgr.extractVariables(pPredicate.getSymbolicAtom()).isEmpty()) {
+        || fmgr.extractVariableNames(pPredicate.getSymbolicAtom()).isEmpty()) {
       result = true;
     } else {
       String predicateString = pPredicate.getSymbolicAtom().toString();
@@ -87,6 +88,7 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
 
   protected abstract boolean isRelevant(T pPrecomputeResult, AbstractionPredicate pPredicate);
 
+  @ForOverride
   protected abstract T precompute(Block pContext, Collection<AbstractionPredicate> pPredicates);
 
   @Override

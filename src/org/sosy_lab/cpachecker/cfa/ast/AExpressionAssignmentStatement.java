@@ -28,13 +28,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Objects;
 
 
-public abstract class AExpressionAssignmentStatement extends AStatement implements IAssignment {
+public abstract class AExpressionAssignmentStatement extends AbstractStatement implements AAssignment {
 
-  private final IALeftHandSide leftHandSide;
-  private final IAExpression rightHandSide;
+  private final ALeftHandSide leftHandSide;
+  private final AExpression rightHandSide;
 
-  public AExpressionAssignmentStatement(FileLocation pFileLocation, IALeftHandSide pLeftHandSide,
-      IAExpression pRightHandSide) {
+  public AExpressionAssignmentStatement(FileLocation pFileLocation, ALeftHandSide pLeftHandSide,
+      AExpression pRightHandSide) {
     super(pFileLocation);
     leftHandSide = checkNotNull(pLeftHandSide);
     rightHandSide = checkNotNull(pRightHandSide);
@@ -47,12 +47,12 @@ public abstract class AExpressionAssignmentStatement extends AStatement implemen
   }
 
   @Override
-  public IALeftHandSide getLeftHandSide() {
+  public ALeftHandSide getLeftHandSide() {
     return leftHandSide;
   }
 
   @Override
-  public IAExpression getRightHandSide() {
+  public AExpression getRightHandSide() {
     return rightHandSide;
   }
 

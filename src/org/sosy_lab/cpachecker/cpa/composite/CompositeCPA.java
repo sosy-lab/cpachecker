@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -63,20 +63,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
-    @Option(toUppercase=true, values={"PLAIN", "AGREE"},
+    @Option(secure=true, toUppercase=true, values={"PLAIN", "AGREE"},
         description="which composite merge operator to use (plain or agree)\n"
           + "Both delegate to the component cpas, but agree only allows "
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
 
-    @Option(toUppercase=true, values={"COMPOSITE", "COMPONENT"},
-    description="which precision adjustment strategy to use (COMPOSITE or COMPONENT)\n"
-      + "While the COMPOSITE strategy keeps the domain knowledge seperated, "
-      + "and only delegates to each component's precision adjustment operator individually, "
-      + "the COMPONENT strategy operates with knowledge about all components.")
-    private String precAdjust = "COMPOSITE";
-
-    @Option(
+    @Option(secure=true,
     description="inform Composite CPA if it is run in a predicated analysis because then it must"
       + "behave differntly during merge.")
     private boolean inPredicatedAnalysis = false;
@@ -155,24 +148,15 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
 
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
+      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), options.inPredicatedAnalysis, getConfiguration());
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
-      if (options.precAdjust.equals("COMPONENT")) {
-        compositePrecisionAdjustment = new ComponentAwarePrecisionAdjustment(
-            precisionAdjustments.build(),
-            getConfiguration(),
-            cfa
-            );
-
+      if (simplePrec) {
+        compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
       } else {
-        if (simplePrec) {
-          compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
-        } else {
-          compositePrecisionAdjustment =
-              new CompositePrecisionAdjustment(precisionAdjustments.build());
-        }
+        compositePrecisionAdjustment =
+            new CompositePrecisionAdjustment(precisionAdjustments.build());
       }
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
@@ -277,24 +261,24 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    Preconditions.checkNotNull(node);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
-      initialStates.add(sp.getInitialState(node));
+      initialStates.add(sp.getInitialState(pNode, pPartition));
     }
 
     return new CompositeState(initialStates.build());
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode node) {
-    Preconditions.checkNotNull(node);
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) {
+    Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
-      initialPrecisions.add(sp.getInitialPrecision(node));
+      initialPrecisions.add(sp.getInitialPrecision(pNode, partition));
     }
     return new CompositePrecision(initialPrecisions.build());
   }
