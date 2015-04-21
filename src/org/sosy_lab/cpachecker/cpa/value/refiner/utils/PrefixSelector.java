@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.sosy_lab.common.Pair;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -47,12 +49,12 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
-public class ErrorPathClassifier {
+public class PrefixSelector {
 
   private static final int MAX_PREFIX_NUMBER = 1000;
 
-  public static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this edge in suffix";
-  private static final String PREFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in prefix";
+  public static final String SUFFIX_REPLACEMENT = PrefixSelector.class.getSimpleName()  + " replaced this edge in suffix";
+  private static final String PREFIX_REPLACEMENT = PrefixSelector.class.getSimpleName()  + " replaced this assume edge in prefix";
 
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
@@ -113,13 +115,13 @@ public class ErrorPathClassifier {
     private Function<Pair<Integer, Integer>, Boolean> scorer = INDIFFERENT_SCOREKEEPER;
   }
 
-  public ErrorPathClassifier(Optional<VariableClassification> pClassification,
+  public PrefixSelector(Optional<VariableClassification> pClassification,
                              Optional<LoopStructure> pLoopStructure) {
     classification  = pClassification;
     loopStructure   = pLoopStructure;
   }
 
-  public ARGPath obtainSlicedPrefix(PrefixPreference preference, ARGPath errorPath, List<ARGPath> pPrefixes) {
+  public ARGPath selectSlicedPrefix(PrefixPreference preference, ARGPath errorPath, List<ARGPath> pPrefixes) {
 
     switch (preference) {
     case SHORTEST:
@@ -548,4 +550,34 @@ public class ErrorPathClassifier {
       return prefixParameters.getSecond() == null
           || prefixParameters.getFirst() <= prefixParameters.getSecond();
     }};
+
+    // for VA
+    public ARGPath selectSlicedPrefix(PrefixPreference pPrefixPreference,
+        Map<ARGPath, Map<ARGState, ValueAnalysisInterpolant>> pPrefixToPrecisionMapping) {
+
+      for (ARGPath prefix : pPrefixToPrecisionMapping.keySet()) {
+        Map<ARGState, ValueAnalysisInterpolant> rawPrecision = pPrefixToPrecisionMapping.get(prefix);
+
+        for (ARGState state : rawPrecision.keySet()) {
+          rawPrecision.get(state).getMemoryLocations();
+        }
+      }
+
+      return null;
+    }
+/*
+    // for PA
+    public ARGPath selectSlicedPrefix(PrefixPreference pPrefixPreference,
+        Map<ARGPath, Map<ARGState, ValueAnalysisInterpolant>> pPrefixToPrecisionMapping) {
+
+      for (ARGPath prefix : pPrefixToPrecisionMapping.keySet()) {
+        Map<ARGState, ValueAnalysisInterpolant> rawPrecision = pPrefixToPrecisionMapping.get(prefix);
+
+        for (ARGState state : rawPrecision.keySet()) {
+          rawPrecision.get(state).getMemoryLocations();
+        }
+      }
+
+      return null;
+    }*/
 }

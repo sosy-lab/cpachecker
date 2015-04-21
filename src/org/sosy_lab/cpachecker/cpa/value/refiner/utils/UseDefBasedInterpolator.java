@@ -59,7 +59,7 @@ public class UseDefBasedInterpolator {
   /**
    * This class allows the creation of (fake) interpolants by using the use-def-relation.
    * This interpolation approach only works if the given path is a sliced prefix,
-   * obtained via {@link ErrorPathClassifier#obtainSlicedPrefix}.
+   * obtained via {@link PrefixSelector#obtainSlicedPrefix}.
    *
    * @param pSlicedPrefix
    * @param pUseDefRelation

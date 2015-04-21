@@ -37,12 +37,15 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -87,9 +90,9 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
    * @throws CPAException
    */
   @Override
-  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path)
+  public List<ARGPath> extractInfeasilbePrefixes(final ARGPath path)
       throws CPAException {
-    return getInfeasilbePrefixes(path, new ValueAnalysisState());
+    return extractInfeasilbePrefixes(path, new ValueAnalysisState());
   }
 
   /**
@@ -101,7 +104,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
    * @return the list of prefix of the path that are feasible by themselves
    * @throws CPAException
    */
-  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path, final ValueAnalysisState pInitial)
+  public List<ARGPath> extractInfeasilbePrefixes(final ARGPath path, final ValueAnalysisState pInitial)
       throws CPAException {
 
     List<ARGPath> prefixes = new ArrayList<>();
@@ -182,6 +185,28 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
+  }
+
+  private void appendFeasibleSuffix(final ARGPath originalErrorPath, MutableARGPath errorPath) {
+    for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
+      // when encountering the original target, add it as is, ...
+      if(element.getFirst().isTarget()) {
+        errorPath.add(element);
+      }
+
+      // ... but replace all other transitions by no-op operations
+      else {
+        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
+            FileLocation.DUMMY,
+            element.getSecond().getPredecessor(),
+            element.getSecond().getSuccessor(),
+            "REPLACEMENT")));
+      }
+    }
+  }
+
+  private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
+    return Pair.zipList(path.asStatesList(), path.asEdgesList());
   }
 
   private Set<MemoryLocation> obtainExceedingMemoryLocations(ARGPath path) {

@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
@@ -79,7 +79,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   /**
    * classifier used to score sliced prefixes
    */
-  private final ErrorPathClassifier classfier;
+  private final PrefixSelector classfier;
 
   /**
    * refiner used for value-analysis refinement
@@ -163,7 +163,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     super(pCpa);
     pConfig.inject(this);
 
-    classfier = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
+    classfier = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
 
     valueCpaRefiner         = pValueRefiner;
     valueCpaPrefixProvider  = pValueCpaPrefixProvider;
@@ -190,7 +190,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         // for the primary analysis, so that only new prefixes are found
         if(useFeasiblePathForAuxRefiner) {
           List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
-          pErrorPath = classfier.obtainSlicedPrefix(PrefixPreference.FEASIBLE, pErrorPath, vaPrefixes);
+          pErrorPath = classfier.selectSlicedPrefix(PrefixPreference.FEASIBLE, pErrorPath, vaPrefixes);
         }
 
         paScore = obtainScoreForPredicateDomain(pErrorPath);
@@ -266,13 +266,13 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private List<ARGPath> getPrefixesOfValueDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    return valueCpaPrefixProvider.getInfeasilbePrefixes(pErrorPath);
+    return valueCpaPrefixProvider.extractInfeasilbePrefixes(pErrorPath);
   }
 
   private List<ARGPath> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    return predicateCpaPrefixProvider.getInfeasilbePrefixes(pErrorPath);
+    return predicateCpaPrefixProvider.extractInfeasilbePrefixes(pErrorPath);
   }
 
   @Override

@@ -29,9 +29,13 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -66,7 +70,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    * @see org.sosy_lab.cpachecker.cpa.predicate.PrefixProvider#getInfeasilbePrefixes(org.sosy_lab.cpachecker.cpa.arg.ARGPath)
    */
   @Override
-  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path) throws CPAException, InterruptedException {
+  public List<ARGPath> extractInfeasilbePrefixes(final ARGPath path) throws CPAException, InterruptedException {
     List<ARGPath> prefixes = new ArrayList<>();
     MutableARGPath currentPrefix = new MutableARGPath();
 
@@ -99,8 +103,14 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
           prover.pop();
 
+          MutableARGPath infeasiblePrefix = new MutableARGPath();
+          infeasiblePrefix.addAll(currentPrefix);
+          infeasiblePrefix.addAll(getFeasibleSuffix(path, infeasiblePrefix.size()));
+
+          assert (path.size() == infeasiblePrefix.size()) : "error path and infeasible prefix differ in length";
+
           // add infeasible prefix
-          prefixes.add(currentPrefix.immutableCopy());
+          prefixes.add(infeasiblePrefix.immutableCopy());
 
           // continue with feasible prefix
           currentPrefix.replaceFinalEdgeWithBlankEdge();
@@ -116,5 +126,28 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     }
 
     return prefixes;
+  }
+
+  private MutableARGPath getFeasibleSuffix(final ARGPath pErrorPath, final int offset) {
+    List<Pair<ARGState, CFAEdge>> suffix = Pair.zipList(pErrorPath.asStatesList(), pErrorPath.asEdgesList()).subList(offset, pErrorPath.size());
+
+    MutableARGPath feasibleSuffix = new MutableARGPath();
+    for (Pair<ARGState, CFAEdge> element : suffix) {
+      // when encountering the original target, add it as is, ...
+      if(element.getFirst().isTarget()) {
+        feasibleSuffix.add(Pair.of(element.getFirst(), element.getSecond()));
+      }
+
+      // ... but replace all other transitions by no-op operations
+      else {
+        feasibleSuffix.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
+            FileLocation.DUMMY,
+            element.getSecond().getPredecessor(),
+            element.getSecond().getSuccessor(),
+            "REPLACEMENT")));
+      }
+    }
+
+    return feasibleSuffix;
   }
 }

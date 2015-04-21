@@ -28,6 +28,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +57,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
@@ -112,7 +113,11 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
   private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
   private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
-  private StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
+
+  private final StatInt totalPrefixes             = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
+  private final StatTimer prefixExtractionTime    = new StatTimer("Extracting infeasible sliced prefixes");
+  private final StatTimer prefixInterpolationTime = new StatTimer("Interpolating infeasible sliced prefixes");
+  private final StatTimer prefixSelectionTime     = new StatTimer("Selecting infeasible sliced prefixes");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -246,7 +251,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
             FileLocation.DUMMY,
             originalEdge.getPredecessor(),
             originalEdge.getSuccessor(),
-            ErrorPathClassifier.SUFFIX_REPLACEMENT));
+            PrefixSelector.SUFFIX_REPLACEMENT));
       }
 
       /*************************************/
@@ -393,19 +398,34 @@ public class ValueAnalysisPathInterpolator implements Statistics {
           throws CPAException, InterruptedException {
 
     try {
-      ValueAnalysisPrefixProvider prefixProvider = new ValueAnalysisPrefixProvider(logger, cfa, config);
-      List<ARGPath> prefixes = prefixProvider.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+      List<ARGPath> prefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
 
-      totalPrefixes.setNextValue(prefixes.size());
+      Map<ARGPath, Map<ARGState, ValueAnalysisInterpolant>> prefixToPrecisionMapping = new HashMap<>();
+      for(ARGPath prefix : prefixes) {
+        prefixToPrecisionMapping.put(prefix, performPathBasedInterpolation(prefix));
+      }
 
-      ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
-      errorPath = classifier.obtainSlicedPrefix(prefixPreference, errorPath, prefixes);
+      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
+      errorPath = selector.selectSlicedPrefix(prefixPreference, prefixToPrecisionMapping);
 
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
 
     return errorPath;
+  }
+
+  private List<ARGPath> extractInfeasibleSlicedPrefixes(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+      throws InvalidConfigurationException, CPAException {
+    ValueAnalysisPrefixProvider prefixProvider = new ValueAnalysisPrefixProvider(logger, cfa, config);
+
+    prefixExtractionTime.start();
+    List<ARGPath> prefixes = prefixProvider.extractInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+    prefixExtractionTime.stop();
+
+    totalPrefixes.setNextValue(prefixes.size());
+
+    return prefixes;
   }
 
   @Override

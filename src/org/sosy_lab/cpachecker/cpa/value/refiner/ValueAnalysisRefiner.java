@@ -67,8 +67,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -125,7 +125,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   private ValueAnalysisConcreteErrorPathAllocator concreteErrorPathAllocator;
 
-  private ErrorPathClassifier classifier;
+  private PrefixSelector classifier;
 
   private int previousErrorPathId = -1;
 
@@ -175,7 +175,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     interpolator   = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
     checker        = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
     prefixProvider = new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig);
-    classifier     = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
+    classifier     = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
 
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(logger, pShutdownNotifier, pCfa.getMachineModel());
   }
@@ -578,8 +578,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           ARGPath path2 = ARGUtils.getOnePathTo(target2);
 
           if(itpSortedTargets) {
-            List<ARGPath> prefixes1 = prefixProvider.getInfeasilbePrefixes(path1);
-            List<ARGPath> prefixes2 = prefixProvider.getInfeasilbePrefixes(path2);
+            List<ARGPath> prefixes1 = prefixProvider.extractInfeasilbePrefixes(path1);
+            List<ARGPath> prefixes2 = prefixProvider.extractInfeasilbePrefixes(path2);
 
             int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_BEST_SHALLOW);
             int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_BEST_SHALLOW);

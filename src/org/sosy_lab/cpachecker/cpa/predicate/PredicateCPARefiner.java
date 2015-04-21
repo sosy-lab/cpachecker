@@ -45,6 +45,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -62,9 +64,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -91,6 +94,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.UnmodifiableIterator;
@@ -312,20 +316,65 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private ARGPath performRefinementSelection(ARGPath allStatesTrace) throws CPAException, InterruptedException {
     PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
 
+    ArrayList<AbstractState> abstractionStates = Lists.<AbstractState>newArrayList(transformPath(allStatesTrace));
+    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
+
     prefixExtractionTime.start();
-    List<ARGPath> infeasilbePrefixes = provider.getInfeasilbePrefixes(allStatesTrace);
+    List<ARGPath> infeasilbePrefixes = provider.extractInfeasilbePrefixes(allStatesTrace);
     prefixExtractionTime.stop();
 
     totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
+    PrefixSelector classifier = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
+
     if(allStatesTrace != infeasilbePrefixes.get(0)) {
-      ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
+
+      /*
       prefixSelectionTime.start();
-      allStatesTrace = classifier.obtainSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
+      allStatesTrace = classifier.selectSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
       prefixSelectionTime.stop();
+      */
+
+
+      //Syso("number of prefixes: " + infeasilbePrefixes.size());
+
+      StatTimer t = new StatTimer("itp'ing");
+      t.start();
+      for(int i = 0; i < infeasilbePrefixes.size(); i++) {
+        MutableARGPath p = infeasilbePrefixes.get(i).mutableCopy();
+        appendFeasibleSuffix(allStatesTrace, p);
+        formulaManager.buildCounterexampleTrace(recomputePathFormulae(p.immutableCopy()),
+            abstractionStates,
+            elementsOnPath,
+            true).getInterpolants();
+        i++;
+      }
+      t.stop();
     }
 
     return allStatesTrace;
+  }
+
+  private void appendFeasibleSuffix(final ARGPath originalErrorPath, MutableARGPath errorPath) {
+    for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
+      // when encountering the original target, add it as is, ...
+      if(element.getFirst().isTarget()) {
+        errorPath.add(element);
+      }
+
+      // ... but replace all other transitions by no-op operations
+      else {
+        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
+            FileLocation.DUMMY,
+            element.getSecond().getPredecessor(),
+            element.getSecond().getSuccessor(),
+            "REPLACEMENT")));
+      }
+    }
+  }
+
+  private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
+    return Pair.zipList(path.asStatesList(), path.asEdgesList());
   }
 
   /**
