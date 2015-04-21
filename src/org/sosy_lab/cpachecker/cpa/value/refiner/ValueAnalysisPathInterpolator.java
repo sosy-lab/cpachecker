@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -399,10 +400,19 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     try {
       List<ARGPath> prefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
+      totalPrefixes.setNextValue(prefixes.size());
 
-      Map<ARGPath, Map<ARGState, ValueAnalysisInterpolant>> prefixToPrecisionMapping = new HashMap<>();
+      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new HashMap<>();
       for(ARGPath prefix : prefixes) {
-        prefixToPrecisionMapping.put(prefix, performPathBasedInterpolation(prefix));
+        Map<ARGState, ValueAnalysisInterpolant> interpolants = performPathBasedInterpolation(prefix);
+
+        List<Pair<ARGState, Set<String>>> interpolationSequence = new ArrayList<>();
+        for(Map.Entry<ARGState, ValueAnalysisInterpolant> itp : interpolants.entrySet()) {
+          Set<String> variables = FluentIterable.from(itp.getValue().getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet();
+          interpolationSequence.add(Pair.of(itp.getKey(), variables));
+        }
+
+        prefixToPrecisionMapping.put(prefix, interpolationSequence);
       }
 
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
@@ -422,8 +432,6 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     prefixExtractionTime.start();
     List<ARGPath> prefixes = prefixProvider.extractInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
     prefixExtractionTime.stop();
-
-    totalPrefixes.setNextValue(prefixes.size());
 
     return prefixes;
   }

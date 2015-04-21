@@ -120,16 +120,12 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
       }
     }
 
-    // prefixes is empty => path is feasible, so add complete path
-    if (prefixes.isEmpty()) {
-      prefixes.add(path);
-    }
-
     return prefixes;
   }
 
-  private MutableARGPath getFeasibleSuffix(final ARGPath pErrorPath, final int offset) {
-    List<Pair<ARGState, CFAEdge>> suffix = Pair.zipList(pErrorPath.asStatesList(), pErrorPath.asEdgesList()).subList(offset, pErrorPath.size());
+  private MutableARGPath getFeasibleSuffix(final ARGPath pErrorPath, final int pOffset) {
+    List<Pair<ARGState, CFAEdge>> suffix = Pair.zipList(pErrorPath.asStatesList(), pErrorPath.asEdgesList())
+        .subList(pOffset, pErrorPath.size());
 
     MutableARGPath feasibleSuffix = new MutableARGPath();
     for (Pair<ARGState, CFAEdge> element : suffix) {

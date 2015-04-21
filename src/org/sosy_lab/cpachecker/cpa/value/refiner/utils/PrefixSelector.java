@@ -25,9 +25,11 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -39,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -122,16 +123,21 @@ public class PrefixSelector {
   }
 
   public ARGPath selectSlicedPrefix(PrefixPreference preference, ARGPath errorPath, List<ARGPath> pPrefixes) {
+    return null;
+  }
 
-    switch (preference) {
+  public ARGPath selectSlicedPrefix(PrefixPreference pPrefixPreference,
+      Map<ARGPath, List<Pair<ARGState, Set<String>>>> pPrefixToPrecisionMapping) {
+
+    switch (pPrefixPreference) {
     case SHORTEST:
-      return obtainShortestPrefix(pPrefixes, errorPath);
+      return FluentIterable.from(pPrefixToPrecisionMapping.keySet()).get(0);
 
     case LONGEST:
-      return obtainLongestPrefix(pPrefixes, errorPath);
+      return FluentIterable.from(pPrefixToPrecisionMapping.keySet()).get(pPrefixToPrecisionMapping.size() - 1);
 
     case RANDOM:
-      return obtainRandomPrefix(pPrefixes, errorPath);
+      return FluentIterable.from(pPrefixToPrecisionMapping.keySet()).get(new Random().nextInt(pPrefixToPrecisionMapping.size()));
 
     // scoring based on domain-types
     case DOMAIN_BEST_SHALLOW:
@@ -162,57 +168,35 @@ public class PrefixSelector {
     case ASSUMPTIONS_FEWEST_DEEP:
     case ASSUMPTIONS_MOST_SHALLOW:
     case ASSUMPTIONS_MOST_DEEP:
-      return obtainScoreBasedPrefix(pPrefixes, preference, errorPath);
-
-    case FEASIBLE:
-      return buildFeasiblePath(pPrefixes, errorPath);
+      return obtainScoreBasedPrefix(pPrefixPreference, pPrefixToPrecisionMapping);
 
     default:
-      return errorPath;
+      assert (false) : "invalid prefix-preference " + pPrefixPreference + " given";
+      return null;
     }
   }
 
-  // picks the very first infeasible prefix
-  private ARGPath obtainShortestPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
-    return buildInfeasiblePath(0, pPrefixes, originalErrorPath);
-  }
-
-  // picks the last infeasible prefix
-  private ARGPath obtainLongestPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
-    return buildInfeasiblePath(pPrefixes.size() - 1, pPrefixes, originalErrorPath);
-  }
-
-  // not really a sensible heuristic at all, just here for comparison reasons
-  private ARGPath obtainRandomPrefix(List<ARGPath> pPrefixes, ARGPath originalErrorPath) {
-    return buildInfeasiblePath(new Random().nextInt(pPrefixes.size()), pPrefixes, originalErrorPath);
-  }
-
-  private ARGPath obtainScoreBasedPrefix(List<ARGPath> pPrefixes, PrefixPreference preference, ARGPath originalErrorPath) {
+  private ARGPath obtainScoreBasedPrefix(PrefixPreference pPrefixPreference,
+      Map<ARGPath, List<Pair<ARGState, Set<String>>>> pPrefixToPrecisionMapping) {
     if (!classification.isPresent()) {
-      return originalErrorPath;
+      // TODO: log user-warning here
+      return FluentIterable.from(pPrefixToPrecisionMapping.keySet()).get(0);
     }
 
-    MutableARGPath currentErrorPath = new MutableARGPath();
     Integer bestScore = null;
-    Integer bestIndex = 0;
-    Integer currIndex = 0;
-    for (ARGPath currentPrefix : limitNumberOfPrefixesToAnalyze(pPrefixes, preference)) {
-      assert (Iterables.getLast(currentPrefix.asEdgesList()).getEdgeType() == CFAEdgeType.AssumeEdge);
+    ARGPath bestPrefix = null;
 
-      currentErrorPath.addAll(pathToList(currentPrefix));
+    for (ARGPath currentPrefix : pPrefixToPrecisionMapping.keySet()) {
+      //int score = obtainScoreForPath(currentPrefix, pPrefixPreference);
+      int score = obtainDomainTypeScoreForPath(currentPrefix, pPrefixToPrecisionMapping.get(currentPrefix));
 
-      int score = obtainScoreForPath(currentErrorPath.immutableCopy(), preference);
-      if (preference.scorer.apply(Pair.of(score, bestScore))) {
+      if (pPrefixPreference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
-        bestIndex = currIndex;
+        bestPrefix = currentPrefix;
       }
-
-      currIndex++;
-
-      replaceAssumeEdgeWithBlankEdge(currentErrorPath);
     }
 
-    return buildInfeasiblePath(bestIndex, pPrefixes, originalErrorPath);
+    return bestPrefix;
   }
 
   private int obtainScoreForPath(ARGPath pPrefix, PrefixPreference pPreference) {
@@ -221,7 +205,7 @@ public class PrefixSelector {
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_SHALLOW:
     case DOMAIN_WORST_DEEP:
-      return obtainDomainTypeScoreForPath(pPrefix);
+      //return obtainDomainTypeScoreForPath(pPrefix);
 
     case DOMAIN_PRECISE_BEST_SHALLOW:
     case DOMAIN_PRECISE_BEST_DEEP:
@@ -256,10 +240,16 @@ public class PrefixSelector {
     }
   }
 
-  private int obtainDomainTypeScoreForPath(final ARGPath prefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
+  private int obtainDomainTypeScoreForPath(final ARGPath prefix, List<Pair<ARGState, Set<String>>> itpSequence) {
+    Set<String> variables = new HashSet<>();
 
-    return classification.get().obtainDomainTypeScoreForVariables(useDefRelation.getUsesAsQualifiedName(), loopStructure);
+    for (Pair<ARGState, Set<String>> itp : itpSequence) {
+      variables.addAll(itp.getSecond());
+    }
+
+    int score = classification.get().obtainDomainTypeScoreForVariables(variables, loopStructure);
+
+    return score;
   }
 
   private int obtainPreciseDomainTypeScoreForPath(final ARGPath prefix) {
@@ -504,7 +494,11 @@ public class PrefixSelector {
 
       currentErrorPath.addAll(pathToList(currentPrefix));
 
-      int score = obtainDomainTypeScoreForPath(currentErrorPath.immutableCopy());
+      if("".equals("")) {
+        throw new AssertionError("fixMe");
+      }
+      // FIX MEEEE
+      int score = 0;//obtainDomainTypeScoreForPath(currentErrorPath.immutableCopy());
 
       if (preference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
@@ -550,34 +544,4 @@ public class PrefixSelector {
       return prefixParameters.getSecond() == null
           || prefixParameters.getFirst() <= prefixParameters.getSecond();
     }};
-
-    // for VA
-    public ARGPath selectSlicedPrefix(PrefixPreference pPrefixPreference,
-        Map<ARGPath, Map<ARGState, ValueAnalysisInterpolant>> pPrefixToPrecisionMapping) {
-
-      for (ARGPath prefix : pPrefixToPrecisionMapping.keySet()) {
-        Map<ARGState, ValueAnalysisInterpolant> rawPrecision = pPrefixToPrecisionMapping.get(prefix);
-
-        for (ARGState state : rawPrecision.keySet()) {
-          rawPrecision.get(state).getMemoryLocations();
-        }
-      }
-
-      return null;
-    }
-/*
-    // for PA
-    public ARGPath selectSlicedPrefix(PrefixPreference pPrefixPreference,
-        Map<ARGPath, Map<ARGState, ValueAnalysisInterpolant>> pPrefixToPrecisionMapping) {
-
-      for (ARGPath prefix : pPrefixToPrecisionMapping.keySet()) {
-        Map<ARGState, ValueAnalysisInterpolant> rawPrecision = pPrefixToPrecisionMapping.get(prefix);
-
-        for (ARGState state : rawPrecision.keySet()) {
-          rawPrecision.get(state).getMemoryLocations();
-        }
-      }
-
-      return null;
-    }*/
 }

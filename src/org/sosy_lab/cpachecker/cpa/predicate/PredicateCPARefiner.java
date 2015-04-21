@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,8 +46,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -64,7 +63,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
@@ -94,7 +92,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.UnmodifiableIterator;
@@ -138,8 +135,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
   private final StatTimer buildCounterexampeTraceTime = new StatTimer("Building the counterexample trace");
   private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
+
   private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
   private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
+  private final StatTimer prefixInterpolationTime = new StatTimer("Interpolating infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
   class Stats extends AbstractStatistics {
@@ -164,6 +163,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         w0.beginLevel().put(buildCounterexampeTraceTime);
         w0.beginLevel().put(preciseCouterexampleTime);
         w0.beginLevel().put(prefixExtractionTime);
+        w0.beginLevel().put(prefixInterpolationTime);
         w0.beginLevel().put(prefixSelectionTime);
       }
 
@@ -314,67 +314,71 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   private ARGPath performRefinementSelection(ARGPath allStatesTrace) throws CPAException, InterruptedException {
-    PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
-
-    ArrayList<AbstractState> abstractionStates = Lists.<AbstractState>newArrayList(transformPath(allStatesTrace));
-    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
-
-    prefixExtractionTime.start();
-    List<ARGPath> infeasilbePrefixes = provider.extractInfeasilbePrefixes(allStatesTrace);
-    prefixExtractionTime.stop();
-
+//Syso(allStatesTrace.toString().hashCode());
+    List<ARGPath> infeasilbePrefixes = extractInfeasiblePrefixes(allStatesTrace);
     totalPrefixes.setNextValue(infeasilbePrefixes.size());
+//Syso("#prefixes: " + infeasilbePrefixes.size());
 
-    PrefixSelector classifier = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
+    if(!infeasilbePrefixes.isEmpty()) {
+      final ArrayList<ARGState> abstractionStates = Lists.<ARGState>newArrayList(transformPath(allStatesTrace));
+      final Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
 
-    if(allStatesTrace != infeasilbePrefixes.get(0)) {
+      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping =
+          buildPrefixToPrecisionMap(infeasilbePrefixes, abstractionStates, elementsOnPath);
 
-      /*
-      prefixSelectionTime.start();
-      allStatesTrace = classifier.selectSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
-      prefixSelectionTime.stop();
-      */
-
-
-      //Syso("number of prefixes: " + infeasilbePrefixes.size());
-
-      StatTimer t = new StatTimer("itp'ing");
-      t.start();
-      for(int i = 0; i < infeasilbePrefixes.size(); i++) {
-        MutableARGPath p = infeasilbePrefixes.get(i).mutableCopy();
-        appendFeasibleSuffix(allStatesTrace, p);
-        formulaManager.buildCounterexampleTrace(recomputePathFormulae(p.immutableCopy()),
-            abstractionStates,
-            elementsOnPath,
-            true).getInterpolants();
-        i++;
-      }
-      t.stop();
+      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
+      allStatesTrace = selector.selectSlicedPrefix(prefixPreference, prefixToPrecisionMapping);
     }
 
     return allStatesTrace;
   }
 
-  private void appendFeasibleSuffix(final ARGPath originalErrorPath, MutableARGPath errorPath) {
-    for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
-      // when encountering the original target, add it as is, ...
-      if(element.getFirst().isTarget()) {
-        errorPath.add(element);
-      }
+  private Map<ARGPath, List<Pair<ARGState, Set<String>>>> buildPrefixToPrecisionMap(List<ARGPath> infeasilbePrefixes,
+      final ArrayList<ARGState> abstractionStates, final Set<ARGState> elementsOnPath) throws CPAException,
+      InterruptedException, CPATransferException {
 
-      // ... but replace all other transitions by no-op operations
-      else {
-        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
-            FileLocation.DUMMY,
-            element.getSecond().getPredecessor(),
-            element.getSecond().getSuccessor(),
-            "REPLACEMENT")));
-      }
+    // TODO: HashMap does not work, as all ARGPath have same hash
+    // custom type, SlicedPrefix (has a ARGPath), or prefix as ARGPath of different length
+    Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new LinkedHashMap<>();
+
+    prefixInterpolationTime.start();
+
+    for (ARGPath infeasiblePrefix : infeasilbePrefixes) {
+      List<ARGState> states = abstractionStates.subList(0, abstractionStates.size() - 1);
+      List<BooleanFormula> interpolants = formulaManager.buildCounterexampleTrace(
+          recomputePathFormulae(infeasiblePrefix),
+          Lists.<AbstractState>newArrayList(abstractionStates),
+          elementsOnPath,
+          true).getInterpolants();
+
+      List<Pair<ARGState, Set<String>>> itpSequence = buildInterpolationSequence(states, interpolants);
+      prefixToPrecisionMapping.put(infeasiblePrefix, itpSequence);
     }
+    prefixInterpolationTime.stop();
+
+    return prefixToPrecisionMapping;
   }
 
-  private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
-    return Pair.zipList(path.asStatesList(), path.asEdgesList());
+  private List<Pair<ARGState, Set<String>>> buildInterpolationSequence(List<ARGState> states,
+      List<BooleanFormula> interpolants) {
+
+    List<Pair<ARGState, Set<String>>> itpSequence = new ArrayList<>();
+    for (Pair<ARGState, BooleanFormula> itp : Pair.zipList(states, interpolants)) {
+      itpSequence.add(Pair.of(itp.getFirst(), fmgr.extractVariableNames(fmgr.uninstantiate(itp.getSecond()))));
+    }
+
+    return itpSequence;
+  }
+
+  private List<ARGPath> extractInfeasiblePrefixes(ARGPath allStatesTrace) throws CPAException,
+      InterruptedException {
+    PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
+
+    prefixExtractionTime.start();
+    List<ARGPath> infeasilbePrefixes = provider.extractInfeasilbePrefixes(allStatesTrace);
+    prefixExtractionTime.stop();
+
+    return infeasilbePrefixes;
   }
 
   /**
