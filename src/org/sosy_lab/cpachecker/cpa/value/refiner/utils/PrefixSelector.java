@@ -110,10 +110,6 @@ public class PrefixSelector {
     loopStructure   = pLoopStructure;
   }
 
-  public ARGPath selectSlicedPrefix(PrefixPreference preference, ARGPath errorPath, List<ARGPath> pPrefixes) {
-    return null;
-  }
-
   public ARGPath selectSlicedPrefix(PrefixPreference pPrefixPreference,
       Map<ARGPath, List<Pair<ARGState, Set<String>>>> pPrefixToPrecisionMapping) {
 

@@ -143,7 +143,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
           logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " did not yield a successor");
 
           // add infeasible prefix
-          prefixes.add(feasiblePrefix.immutableCopy());
+          prefixes.add(buildInfeasiblePrefix(path, feasiblePrefix));
 
           // continue with feasible prefix
           feasiblePrefix.replaceFinalEdgeWithBlankEdge();
@@ -195,6 +195,17 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     }
 
     return assignments.getMemoryLocationsExceedingHardThreshold();
+  }
+
+  private ARGPath buildInfeasiblePrefix(final ARGPath path, MutableARGPath currentPrefix) {
+    MutableARGPath infeasiblePrefix = new MutableARGPath();
+    infeasiblePrefix.addAll(currentPrefix);
+
+    // for interpolation, one transition after the infeasible
+    // transition is needed, so we add the final (error) state
+    infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
+
+    return infeasiblePrefix.immutableCopy();
   }
 
   public ARGPath extractFeasilbePath(final ARGPath path)

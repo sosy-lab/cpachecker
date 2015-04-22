@@ -28,7 +28,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,7 +146,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     interpolationOffset = -1;
 
-    ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
+    ARGPath errorPathPrefix = performRefinementSelection(errorPath, interpolant);
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants =
         performEdgeBasedInterpolation
@@ -395,14 +394,14 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+  private ARGPath performRefinementSelection(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
           throws CPAException, InterruptedException {
 
     try {
       List<ARGPath> prefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
       totalPrefixes.setNextValue(prefixes.size());
 
-      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new HashMap<>();
+      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new LinkedHashMap<>();
       for(ARGPath prefix : prefixes) {
         Map<ARGState, ValueAnalysisInterpolant> interpolants = performPathBasedInterpolation(prefix);
 
