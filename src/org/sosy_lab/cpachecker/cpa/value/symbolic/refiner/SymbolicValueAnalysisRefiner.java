@@ -272,7 +272,7 @@ public class SymbolicValueAnalysisRefiner
       if (!currentState.isTarget()) {
         SymbolicInterpolant itp = pTree.getInterpolantForState(currentState);
 
-        if (!itp.isTrivial()) {
+        if (itp != null && !itp.isTrivial()) {
           for (Constraint c : itp.getConstraints()) {
             increment.put(AbstractStates.extractLocation(currentState), c);
           }
