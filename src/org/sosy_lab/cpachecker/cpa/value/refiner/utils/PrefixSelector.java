@@ -74,8 +74,8 @@ public class PrefixSelector {
     DOMAIN_PRECISE_WORST_DEEP(LAST_HIGHEST_SCORE),
 
     // heuristics based on approximating the depth of the refinement root
-    REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
-    REFINE_DEEP(LAST_LOWEST_SCORE),
+    REFINE_SHALLOW(FIRST_LOWEST_SCORE),
+    REFINE_DEEP(LAST_HIGHEST_SCORE),
 
     // heuristic based on the length of the interpolant sequence (+ loop-counter heuristic)
     ITP_LENGTH_SHORT_SHALLOW(FIRST_LOWEST_SCORE),
