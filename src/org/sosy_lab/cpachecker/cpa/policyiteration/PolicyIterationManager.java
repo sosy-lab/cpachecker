@@ -209,7 +209,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Override
   public PolicyState getInitialState(CFANode pNode) {
     return PolicyAbstractedState.empty(
-        pNode, pfmgr.makeEmptyPathFormula());
+        pNode, pfmgr.makeEmptyPathFormula(), this);
   }
 
 
@@ -424,7 +424,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     PolicyAbstractedState stateWithUpdates =
         oldState.withUpdates(updated, newUnbounded,
-            congruenceManager.join(newState.congruence, oldState.congruence));
+            congruenceManager.join(newState.getCongruence(),
+                oldState.getCongruence()));
     oldState.setNewVersion(stateWithUpdates);
     newState.setNewVersion(stateWithUpdates);
 
@@ -556,8 +557,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     return Optional.of(prevState.withUpdates(builder.build(),
-        unbounded, congruenceManager.join(prevState.congruence,
-            stateWithUpdates.congruence)));
+        unbounded, congruenceManager.join(prevState.getCongruence(),
+            stateWithUpdates.getCongruence())));
   }
 
 
@@ -622,7 +623,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     for (final PolicyAbstractedState startingState : state.getGeneratingStates().values()) {
       final PolicyAbstractedState latestState = startingState.getLatestVersion();
 
-      List<BooleanFormula> constraints = abstractStateToConstraints(latestState);
+      List<BooleanFormula> constraints = abstractStateToConstraints(fmgr, pfmgr, latestState);
 
       BooleanFormula startConstraint = bfmgr.and(
           genInitialConstraint(latestState),
@@ -683,7 +684,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Optimize for the template subject to the
         // constraints introduced by {@code p}.
-        Formula objective = templateManager.toFormula(template, p);
+        Formula objective = templateManager.toFormula(pfmgr, fmgr, template, p);
 
         // We only care for a new value if it is the larger than the one
         // we currently have.
@@ -795,27 +796,30 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         PolicyAbstractedState.of(
             abstraction,
             state.getNode(), state,
-            congruence, locationID));
+            congruence, locationID, this));
   }
 
 
-  private List<BooleanFormula> abstractStateToConstraints(PolicyAbstractedState
-      abstractState) {
+  List<BooleanFormula> abstractStateToConstraints(
+      FormulaManagerView fmgrv,
+      PathFormulaManager pfmgr,
+      PolicyAbstractedState abstractState) {
 
     PathFormula inputPath = abstractState.getPathFormula();
 
     List<BooleanFormula> constraints = new ArrayList<>();
     constraints.add(congruenceManager.toFormula(
-        abstractState.congruence, inputPath
+        pfmgr, fmgrv,
+        abstractState.getCongruence(), inputPath
     ));
     for (Entry<Template, PolicyBound> entry : abstractState) {
       Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
 
-      Formula t = templateManager.toFormula(template, inputPath);
+      Formula t = templateManager.toFormula(pfmgr, fmgrv, template, inputPath);
 
-      BooleanFormula constraint = fmgr.makeLessOrEqual(
-          t, fmgr.makeNumber(t, bound.getBound()), true);
+      BooleanFormula constraint = fmgrv.makeLessOrEqual(
+          t, fmgrv.makeNumber(t, bound.getBound()), true);
       constraints.add(constraint);
     }
     return constraints;
@@ -910,7 +914,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else {
       dependencies = new HashSet<>();
       for (Template t : templateManager.templatesForNode(backpointer.getNode())) {
-        Formula f = templateManager.toFormula(t, backpointer.getPathFormula());
+        Formula f = templateManager.toFormula(pfmgr, fmgr, t, backpointer.getPathFormula());
         Set<String> fVars = fmgr.extractFunctionNames(f, true);
         if (!Sets.intersection(fVars, policyVars).isEmpty()) {
           dependencies.add(t);
@@ -963,7 +967,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyAbstractedState generatingState =
         Iterables.getOnlyElement(generatingStates.values());
     Set<String> templateVars = fmgr.extractFunctionNames(
-        templateManager.toFormula(pTemplate, state.getPathFormula()),
+        templateManager.toFormula(pfmgr, fmgr, pTemplate, state.getPathFormula()),
         true
     );
 

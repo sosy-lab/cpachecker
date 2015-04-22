@@ -8,16 +8,22 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 public final class PolicyAbstractedState extends PolicyState
-      implements Iterable<Entry<Template, PolicyBound>> {
+      implements Iterable<Entry<Template, PolicyBound>>, FormulaReportingState {
 
-  final CongruenceState congruence;
+  private final CongruenceState congruence;
+
+  private final PolicyIterationManager manager;
 
   /**
    * Finite bounds for templates.
@@ -46,16 +52,22 @@ public final class PolicyAbstractedState extends PolicyState
       Map<Template, PolicyBound> pAbstraction,
       PolicyIntermediateState pGeneratingState,
       CongruenceState pCongruence,
-      int pLocationID) {
+      int pLocationID,
+      PolicyIterationManager pManager) {
     super(node);
     abstraction = ImmutableMap.copyOf(pAbstraction);
     generatingState = pGeneratingState;
     congruence = pCongruence;
     locationID = pLocationID;
+    manager = pManager;
   }
 
   public int getLocationID() {
     return locationID;
+  }
+
+  public CongruenceState getCongruence() {
+    return congruence;
   }
 
   public void setNewVersion(PolicyAbstractedState pNewVersion) {
@@ -87,10 +99,11 @@ public final class PolicyAbstractedState extends PolicyState
       CFANode node,
       PolicyIntermediateState pGeneratingState,
       CongruenceState pCongruence,
-      int pLocationID
+      int pLocationID,
+      PolicyIterationManager pManager
   ) {
     return new PolicyAbstractedState(node, data, pGeneratingState,
-        pCongruence, pLocationID);
+        pCongruence, pLocationID, pManager);
   }
 
   public PolicyAbstractedState withUpdates(
@@ -101,22 +114,23 @@ public final class PolicyAbstractedState extends PolicyState
     ImmutableMap.Builder<Template, PolicyBound> builder =
         ImmutableMap.builder();
 
-    for (Template template : abstraction.keySet()) {
+    // We only iterate over the existing templates, because if the value was
+    // unbounded at some point, it stays unbounded.
+    for (Entry<Template, PolicyBound> entry : abstraction.entrySet()) {
+      Template template = entry.getKey();
+      PolicyBound bound = entry.getValue();
+
       if (unbounded.contains(template)) {
         continue;
       }
       if (updates.containsKey(template)) {
-        builder.put(template, updates.get(template));
-      } else {
-        PolicyBound v = abstraction.get(template);
-        if (v != null) {
-          builder.put(template, abstraction.get(template));
-        }
+        bound = updates.get(template);
       }
+      builder.put(template, bound);
     }
     return new PolicyAbstractedState(
         getNode(), builder.build(),  generatingState,
-        newCongruence, locationID
+        newCongruence, locationID, manager
     );
   }
 
@@ -136,7 +150,7 @@ public final class PolicyAbstractedState extends PolicyState
    * @return Empty abstracted state associated with {@code node}.
    */
   public static PolicyAbstractedState empty(CFANode node,
-      PathFormula initial) {
+      PathFormula initial, PolicyIterationManager pManager) {
     PolicyIntermediateState initialState = PolicyIntermediateState.of(
         node,
         initial,  ImmutableMap.<Integer, PolicyAbstractedState>of()
@@ -146,7 +160,8 @@ public final class PolicyAbstractedState extends PolicyState
         node, // node
         initialState, // generating state
         CongruenceState.empty(),
-        -1
+        -1,
+        pManager
     );
   }
 
@@ -178,5 +193,12 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public Iterator<Entry<Template, PolicyBound>> iterator() {
     return abstraction.entrySet().iterator();
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(FormulaManagerView fmgr, PathFormulaManager pfmgr) {
+    return fmgr.getBooleanFormulaManager().and(
+        manager.abstractStateToConstraints(fmgr, pfmgr, this)
+    );
   }
 }

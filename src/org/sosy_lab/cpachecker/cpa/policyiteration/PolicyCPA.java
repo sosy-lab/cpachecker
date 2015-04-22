@@ -92,7 +92,7 @@ public class PolicyCPA
         logger, formulaManager);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
-            formulaManager, logger, templateManager);
+            formulaManager, logger, templateManager, pathFormulaManager);
 
     statistics = new PolicyIterationStatistics(config);
 
@@ -106,7 +106,7 @@ public class PolicyCPA
         config,
         solver, templateManager,
         formulaManager,
-        statistics);
+        statistics, pathFormulaManager);
     policyIterationManager = new PolicyIterationManager(
         config,
         formulaManager,
