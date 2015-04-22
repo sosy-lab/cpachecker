@@ -28,6 +28,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +122,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final FeasibilityChecker<S> checker;
   private final ErrorPathClassifier classifier;
 
+  private Set<Integer> visitedPathPrefixes = new HashSet<>();
+
   public GenericPathInterpolator(
       final EdgeInterpolator<S, ?, I> pEdgeInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
@@ -158,6 +161,12 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       interpolationOffset = -1;
 
       ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
+
+      if (!visitedPathPrefixes.contains(errorPathPrefix.hashCode())) {
+        throw new RefinementFailedException(Reason.RepeatedPathPrefix, errorPathPrefix);
+      }
+
+      visitedPathPrefixes.add(errorPathPrefix.hashCode());
 
       Map<ARGState, I> interpolants =
           performEdgeBasedInterpolation(errorPathPrefix, interpolant);
