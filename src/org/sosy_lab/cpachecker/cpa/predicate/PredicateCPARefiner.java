@@ -46,8 +46,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -65,7 +63,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
@@ -322,47 +319,15 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
     if(!infeasilbePrefixes.isEmpty()) {
+      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = buildPrefixToPrecisionMap(infeasilbePrefixes);
 
-      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping =
-          buildPrefixToPrecisionMap(infeasilbePrefixes);
-
+      prefixSelectionTime.start();
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
-
       allStatesTrace = selector.selectSlicedPrefix(prefixPreference, prefixToPrecisionMapping);
-
-      /* would create a path of same length as original ... but I doubt this is needed
-      MutableARGPath infeasiblePrefix = selector.selectSlicedPrefix(prefixPreference, prefixToPrecisionMapping).mutableCopy();
-      infeasiblePrefix.removeLast();
-      infeasiblePrefix.addAll(getFeasibleSuffix(allStatesTrace, infeasiblePrefix.size()));
-      allStatesTrace = infeasiblePrefix.immutableCopy();
-      */
+      prefixSelectionTime.stop();
     }
 
     return allStatesTrace;
-  }
-
-  private MutableARGPath getFeasibleSuffix(final ARGPath pErrorPath, final int pOffset) {
-    List<Pair<ARGState, CFAEdge>> suffix = Pair.zipList(pErrorPath.asStatesList(), pErrorPath.asEdgesList())
-        .subList(pOffset, pErrorPath.size());
-
-    MutableARGPath feasibleSuffix = new MutableARGPath();
-    for (Pair<ARGState, CFAEdge> element : suffix) {
-      // when encountering the original target, add it as is, ...
-      if(element.getFirst().isTarget()) {
-        feasibleSuffix.add(Pair.of(element.getFirst(), element.getSecond()));
-      }
-
-      // ... but replace all other transitions by no-op operations
-      else {
-        feasibleSuffix.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
-            FileLocation.DUMMY,
-            element.getSecond().getPredecessor(),
-            element.getSecond().getSuccessor(),
-            "REPLACEMENT")));
-      }
-    }
-
-    return feasibleSuffix;
   }
 
   private Map<ARGPath, List<Pair<ARGState, Set<String>>>> buildPrefixToPrecisionMap(List<ARGPath> infeasilbePrefixes) throws CPAException,
