@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -61,13 +62,18 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   public enum ComparisonType { SUBSET, ALIASED_SUBSET, IMPLICATION }
 
+  public enum MergeType { SEP, JOIN_FITTING_CONSTRAINT }
+
   @Option(description = "Type of less-or-equal operator to use", toUppercase = true)
   private ComparisonType lessOrEqualType = ComparisonType.ALIASED_SUBSET;
+
+  @Option(description = "Type of merge operator to use", toUppercase =  true)
+  private MergeType mergeType = MergeType.SEP;
 
   private final LogManager logger;
 
   private AbstractDomain abstractDomain;
-  private ConstraintsMergeOperator mergeOperator;
+  private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private ConstraintsPrecisionAdjustment precisionAdjustment;
@@ -97,8 +103,15 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     precision = ConstraintsPrecision.getFullPrecision();
   }
 
-  private ConstraintsMergeOperator initializeMergeOperator() {
-    return new ConstraintsMergeOperator();
+  private MergeOperator initializeMergeOperator() {
+    switch (mergeType) {
+      case SEP:
+        return MergeSepOperator.getInstance();
+      case JOIN_FITTING_CONSTRAINT:
+        return new ConstraintsMergeOperator();
+      default:
+        throw new AssertionError("Unhandled merge type " + mergeType);
+    }
   }
 
   private StopOperator initializeStopOperator() {
@@ -168,6 +181,9 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     precisionAdjustment.collectStatistics(statsCollection);
-    statsCollection.add(mergeOperator);
+
+    if (mergeOperator instanceof Statistics) {
+      statsCollection.add((Statistics) mergeOperator);
+    }
   }
 }
