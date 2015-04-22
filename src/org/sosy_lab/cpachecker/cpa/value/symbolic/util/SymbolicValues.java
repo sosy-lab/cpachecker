@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -83,7 +84,11 @@ public class SymbolicValues {
   ) {
 
     if (!pValue1.getClass().equals(pValue2.getClass())) {
-      return pValue1.getRepresentedLocation().equals(pValue2.getRepresentedLocation());
+      final Optional<MemoryLocation> val1RepLoc = pValue1.getRepresentedLocation();
+      final Optional<MemoryLocation> val2RepLoc = pValue2.getRepresentedLocation();
+
+      return (val1RepLoc.isPresent() || val2RepLoc.isPresent())
+          && val1RepLoc.equals(val2RepLoc);
     }
 
     final Optional<MemoryLocation> maybeRepLocVal1 = pValue1.getRepresentedLocation();

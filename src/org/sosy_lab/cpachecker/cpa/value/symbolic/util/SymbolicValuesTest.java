@@ -56,7 +56,7 @@ public class SymbolicValuesTest {
   private final SymbolicExpression numExp1 = factory.asConstant(num1, defType);
 
   @Test
-  public void testhaveEqualMeaning() {
+  public void testRepresentSameCCodeExpression_diffValueSameLocation() {
     final SymbolicExpression locLessExp1 = factory.add(idExp1, idExp2, defType, defType);
     final SymbolicExpression locLessExp2 = factory.add(idExp1, numExp1, defType, defType);
 
@@ -70,5 +70,17 @@ public class SymbolicValuesTest {
     Assert.assertTrue(SymbolicValues.representSameCCodeExpression(exp1, exp1));
     Assert.assertTrue(SymbolicValues.representSameCCodeExpression(constr1, constr2));
     Assert.assertFalse(SymbolicValues.representSameCCodeExpression(exp1, exp2));
+  }
+
+  @Test
+  public void testRepresentSameCCodeExpression_constraintAndItsNegation() {
+    final SymbolicExpression expWithLocation1 = idExp1.copyForLocation(memLoc1);
+    final SymbolicExpression expWithLocation2 = idExp2.copyForLocation(memLoc2);
+
+    SymbolicExpression constraint = factory.add(expWithLocation1, numExp1, defType, defType);
+    constraint = factory.lessThan(constraint, expWithLocation2, defType, defType);
+    final SymbolicExpression negation = factory.negate(constraint, defType);
+
+    Assert.assertFalse(SymbolicValues.representSameCCodeExpression(constraint, negation));
   }
 }
