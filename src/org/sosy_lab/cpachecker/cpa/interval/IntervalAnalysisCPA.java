@@ -41,10 +41,11 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -53,7 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options(prefix="cpa.interval")
-public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofChecker {
+public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   /**
    * This method returns a CPAfactory for the interval analysis CPA.
@@ -96,6 +97,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofCh
    */
   private PrecisionAdjustment precisionAdjustment;
 
+  private final IntervalAnalysisReducer reducer;
+
   /**
    * This method acts as the constructor of the interval analysis CPA.
    *
@@ -114,6 +117,8 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofCh
     transferRelation    = new IntervalAnalysisTransferRelation(config);
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    reducer = new IntervalAnalysisReducer();
   }
 
   /* (non-Javadoc)
@@ -146,6 +151,11 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofCh
   @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return reducer;
   }
 
   /* (non-Javadoc)

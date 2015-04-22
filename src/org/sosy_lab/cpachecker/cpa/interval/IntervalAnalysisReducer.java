@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -89,30 +88,25 @@ public class IntervalAnalysisReducer implements Reducer {
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
-    VariableTrackingPrecision precision = (VariableTrackingPrecision)pPrecision;
 
     // TODO: anything meaningful we can do here?
 
-    return precision;
+    return pPrecision;
   }
 
   @Override
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
-    //ValueAnalysisPrecision rootPrecision = (ValueAnalysisPrecision)pRootPrecision;
-    VariableTrackingPrecision reducedPrecision = (VariableTrackingPrecision)pReducedPrecision;
 
     // TODO: anything meaningful we can do here?
 
-    return reducedPrecision;
+    return pReducedPrecision;
   }
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     IntervalAnalysisState elementKey = (IntervalAnalysisState)pElementKey;
-    VariableTrackingPrecision precisionKey = (VariableTrackingPrecision)pPrecisionKey;
-
-    return Pair.of(elementKey.getIntervalMap(), precisionKey);
+    return Pair.of(elementKey.getIntervalMap(), pPrecisionKey);
   }
 
   @Override
