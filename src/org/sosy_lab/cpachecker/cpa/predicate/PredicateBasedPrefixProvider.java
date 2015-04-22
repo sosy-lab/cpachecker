@@ -38,8 +38,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.Iterables;
@@ -67,24 +68,45 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    * @see org.sosy_lab.cpachecker.cpa.predicate.PrefixProvider#getInfeasilbePrefixes(org.sosy_lab.cpachecker.cpa.arg.ARGPath)
    */
   @Override
-  public List<ARGPath> extractInfeasilbePrefixes(final ARGPath path) throws CPAException, InterruptedException {
+  public <T> List<ARGPath> extractInfeasilbePrefixes(final ARGPath path) throws CPAException, InterruptedException {
     List<ARGPath> prefixes = new ArrayList<>();
     MutableARGPath currentPrefix = new MutableARGPath();
+    List<T> prefixFormulas = new ArrayList<>(path.size());
 
-    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+    try (@SuppressWarnings("unchecked")
+      InterpolatingProverEnvironmentWithAssumptions<T> prover =
+      (InterpolatingProverEnvironmentWithAssumptions<T>)solver.newProverEnvironmentWithInterpolation()) {
+
       PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {
-        boolean isUnsat = false;
         currentPrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
 
         try {
           formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), iterator.getOutgoingEdge());
-          prover.push(formula.getFormula());
+          prefixFormulas.add(prover.push(formula.getFormula()));
 
-          if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge) {
-            isUnsat = prover.isUnsat();
+          if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge && prover.isUnsat()) {
+            logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
+
+            for(int i = 1; i < prefixFormulas.size(); i++) {
+              List<T> phiMinus = prefixFormulas.subList(0, i);
+//Syso("phiMinus = " + phiMinus);
+//Syso("prefixFormulas = " + prefixFormulas);
+              BooleanFormula itp = prover.getInterpolant(phiMinus);
+//Syso("itp" + i + " = " + itp);
+            }
+
+            prover.pop();
+            T lastFormula = prefixFormulas.remove(prefixFormulas.size() - 1);
+//Syso("removing " + lastFormula);
+
+            // add infeasible prefix
+            prefixes.add(buildInfeasiblePrefix(path, currentPrefix));
+
+            // continue with feasible prefix
+            currentPrefix.replaceFinalEdgeWithBlankEdge();
           }
         }
         catch (SolverException e) {
@@ -93,18 +115,6 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         }
         catch (CPATransferException e) {
           throw new CPAException("Computation of path formula for prefix failed: " + e.getMessage(), e);
-        }
-
-        // formula is unsatisfiable => path is infeasible
-        if (isUnsat) {
-          logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
-          prover.pop();
-
-          // add infeasible prefix
-          prefixes.add(buildInfeasiblePrefix(path, currentPrefix));
-
-          // continue with feasible prefix
-          currentPrefix.replaceFinalEdgeWithBlankEdge();
         }
 
         iterator.advance();
