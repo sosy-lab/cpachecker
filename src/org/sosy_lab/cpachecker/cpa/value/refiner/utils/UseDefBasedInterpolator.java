@@ -42,8 +42,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Lists;
-
 /**
  * This class allows to obtain interpolants statically from a given ARGPath.
  */
