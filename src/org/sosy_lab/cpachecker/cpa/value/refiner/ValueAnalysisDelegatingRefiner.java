@@ -189,8 +189,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         // hand the auxiliary analysis a path that is feasible
         // for the primary analysis, so that only new prefixes are found
         if(useFeasiblePathForAuxRefiner) {
-          List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
-          pErrorPath = classfier.selectSlicedPrefix(PrefixPreference.FEASIBLE, pErrorPath, vaPrefixes);
+          pErrorPath = ((ValueAnalysisPrefixProvider)valueCpaPrefixProvider).extractFeasilbePath(pErrorPath);
         }
 
         paScore = obtainScoreForPredicateDomain(pErrorPath);

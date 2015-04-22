@@ -29,13 +29,9 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -46,6 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class PredicateBasedPrefixProvider implements PrefixProvider {
@@ -103,14 +100,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
           prover.pop();
 
-          MutableARGPath infeasiblePrefix = new MutableARGPath();
-          infeasiblePrefix.addAll(currentPrefix);
-          infeasiblePrefix.addAll(getFeasibleSuffix(path, infeasiblePrefix.size()));
-
-          assert (path.size() == infeasiblePrefix.size()) : "error path and infeasible prefix differ in length";
-
           // add infeasible prefix
-          prefixes.add(infeasiblePrefix.immutableCopy());
+          prefixes.add(buildInfeasiblePrefix(path, currentPrefix));
 
           // continue with feasible prefix
           currentPrefix.replaceFinalEdgeWithBlankEdge();
@@ -123,27 +114,14 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return prefixes;
   }
 
-  private MutableARGPath getFeasibleSuffix(final ARGPath pErrorPath, final int pOffset) {
-    List<Pair<ARGState, CFAEdge>> suffix = Pair.zipList(pErrorPath.asStatesList(), pErrorPath.asEdgesList())
-        .subList(pOffset, pErrorPath.size());
+  private ARGPath buildInfeasiblePrefix(final ARGPath path, MutableARGPath currentPrefix) {
+    MutableARGPath infeasiblePrefix = new MutableARGPath();
+    infeasiblePrefix.addAll(currentPrefix);
 
-    MutableARGPath feasibleSuffix = new MutableARGPath();
-    for (Pair<ARGState, CFAEdge> element : suffix) {
-      // when encountering the original target, add it as is, ...
-      if(element.getFirst().isTarget()) {
-        feasibleSuffix.add(Pair.of(element.getFirst(), element.getSecond()));
-      }
+    // one transition beyond the infeasible transition is needed (for interpolation in predicate domain)
+    // so we add the final (error) state
+    infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
 
-      // ... but replace all other transitions by no-op operations
-      else {
-        feasibleSuffix.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
-            FileLocation.DUMMY,
-            element.getSecond().getPredecessor(),
-            element.getSecond().getSuccessor(),
-            "REPLACEMENT")));
-      }
-    }
-
-    return feasibleSuffix;
+    return infeasiblePrefix.immutableCopy();
   }
 }

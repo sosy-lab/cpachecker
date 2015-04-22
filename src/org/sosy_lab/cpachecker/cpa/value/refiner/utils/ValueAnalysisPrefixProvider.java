@@ -37,15 +37,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -65,6 +62,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
   private final LogManager logger;
   private final ValueAnalysisTransferRelation transfer;
   private final VariableTrackingPrecision precision;
+  private MutableARGPath feasiblePrefix;
 
   /**
    * This method acts as the constructor of the class.
@@ -114,7 +112,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     Set<MemoryLocation> exceedingMemoryLocations = obtainExceedingMemoryLocations(path);
 
     try {
-      MutableARGPath currentPrefix = new MutableARGPath();
+      feasiblePrefix = new MutableARGPath();
       ValueAnalysisState next = ValueAnalysisState.copyOf(pInitial);
 
       PathIterator iterator = path.pathIterator();
@@ -138,17 +136,17 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
             precision,
             edge);
 
-        currentPrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
+        feasiblePrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
 
         // no successors => path is infeasible
         if (successors.isEmpty()) {
           logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " did not yield a successor");
 
           // add infeasible prefix
-          prefixes.add(currentPrefix.immutableCopy());
+          prefixes.add(feasiblePrefix.immutableCopy());
 
           // continue with feasible prefix
-          currentPrefix.replaceFinalEdgeWithBlankEdge();
+          feasiblePrefix.replaceFinalEdgeWithBlankEdge();
 
           successors = Sets.newHashSet(next);
         }
@@ -187,28 +185,6 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     }
   }
 
-  private void appendFeasibleSuffix(final ARGPath originalErrorPath, MutableARGPath errorPath) {
-    for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
-      // when encountering the original target, add it as is, ...
-      if(element.getFirst().isTarget()) {
-        errorPath.add(element);
-      }
-
-      // ... but replace all other transitions by no-op operations
-      else {
-        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
-            FileLocation.DUMMY,
-            element.getSecond().getPredecessor(),
-            element.getSecond().getSuccessor(),
-            "REPLACEMENT")));
-      }
-    }
-  }
-
-  private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
-    return Pair.zipList(path.asStatesList(), path.asEdgesList());
-  }
-
   private Set<MemoryLocation> obtainExceedingMemoryLocations(ARGPath path) {
     UniqueAssignmentsInPathConditionState assignments =
         AbstractStates.extractStateByType(path.getLastState(),
@@ -219,5 +195,11 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     }
 
     return assignments.getMemoryLocationsExceedingHardThreshold();
+  }
+
+  public ARGPath extractFeasilbePath(final ARGPath path)
+      throws CPAException {
+    extractInfeasilbePrefixes(path);
+    return feasiblePrefix.immutableCopy();
   }
 }

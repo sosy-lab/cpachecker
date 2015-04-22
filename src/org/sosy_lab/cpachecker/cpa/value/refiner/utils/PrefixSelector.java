@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -32,30 +31,21 @@ import java.util.Random;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 
 public class PrefixSelector {
 
-  private static final int MAX_PREFIX_NUMBER = 1000;
-
   public static final String SUFFIX_REPLACEMENT = PrefixSelector.class.getSimpleName()  + " replaced this edge in suffix";
-  private static final String PREFIX_REPLACEMENT = PrefixSelector.class.getSimpleName()  + " replaced this assume edge in prefix";
 
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
@@ -103,9 +93,7 @@ public class PrefixSelector {
     ASSUMPTIONS_FEWEST_SHALLOW(FIRST_LOWEST_SCORE),
     ASSUMPTIONS_FEWEST_DEEP(LAST_LOWEST_SCORE),
     ASSUMPTIONS_MOST_SHALLOW(FIRST_HIGHEST_SCORE),
-    ASSUMPTIONS_MOST_DEEP(LAST_HIGHEST_SCORE),
-
-    FEASIBLE();
+    ASSUMPTIONS_MOST_DEEP(LAST_HIGHEST_SCORE);
 
     private PrefixPreference () {}
 
@@ -187,8 +175,7 @@ public class PrefixSelector {
     ARGPath bestPrefix = null;
 
     for (ARGPath currentPrefix : pPrefixToPrecisionMapping.keySet()) {
-      //int score = obtainScoreForPath(currentPrefix, pPrefixPreference);
-      int score = obtainDomainTypeScoreForPath(currentPrefix, pPrefixToPrecisionMapping.get(currentPrefix));
+      int score = obtainScoreForPath(pPrefixPreference, currentPrefix, pPrefixToPrecisionMapping.get(currentPrefix));
 
       if (pPrefixPreference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
@@ -199,40 +186,42 @@ public class PrefixSelector {
     return bestPrefix;
   }
 
-  private int obtainScoreForPath(ARGPath pPrefix, PrefixPreference pPreference) {
-    switch (pPreference) {
+  private int obtainScoreForPath(PrefixPreference pPrefixPreference,
+      ARGPath pPrefix,
+      List<Pair<ARGState, Set<String>>> pItpSequence) {
+    switch (pPrefixPreference) {
     case DOMAIN_BEST_SHALLOW:
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_SHALLOW:
     case DOMAIN_WORST_DEEP:
-      //return obtainDomainTypeScoreForPath(pPrefix);
+      return obtainDomainTypeScoreForPath(pItpSequence);
 
     case DOMAIN_PRECISE_BEST_SHALLOW:
     case DOMAIN_PRECISE_BEST_DEEP:
     case DOMAIN_PRECISE_WORST_SHALLOW:
     case DOMAIN_PRECISE_WORST_DEEP:
-      return obtainPreciseDomainTypeScoreForPath(pPrefix);
+      return obtainPreciseDomainTypeScoreForPath(pItpSequence);
 
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
     case ITP_LENGTH_SHORT_DEEP:
     case ITP_LENGTH_LONG_DEEP:
-      return obtainItpSequenceLengthForPath(pPrefix);
+      return obtainItpSequenceLengthForPath(pItpSequence);
 
     case REFINE_SHALLOW:
     case REFINE_DEEP:
-      return obtainPivotStateDepthForPath(pPrefix);
+      return obtainPivotStateDepthForPath(pItpSequence);
 
     case ASSIGNMENTS_FEWEST_SHALLOW:
     case ASSIGNMENTS_FEWEST_DEEP:
     case ASSIGNMENTS_MOST_SHALLOW:
     case ASSIGNMENTS_MOST_DEEP:
-      return obtainAssignmentCountForPath(pPrefix);
+      return obtainAssignmentCountForPath(pPrefix, pItpSequence);
     case ASSUMPTIONS_FEWEST_SHALLOW:
     case ASSUMPTIONS_FEWEST_DEEP:
     case ASSUMPTIONS_MOST_SHALLOW:
     case ASSUMPTIONS_MOST_DEEP:
-      return obtainAssumptionCountForPath(pPrefix);
+      return obtainAssumptionCountForPath(pPrefix, pItpSequence);
 
     default:
       assert false;
@@ -240,26 +229,15 @@ public class PrefixSelector {
     }
   }
 
-  private int obtainDomainTypeScoreForPath(final ARGPath prefix, List<Pair<ARGState, Set<String>>> itpSequence) {
-    Set<String> variables = new HashSet<>();
-
-    for (Pair<ARGState, Set<String>> itp : itpSequence) {
-      variables.addAll(itp.getSecond());
-    }
-
-    int score = classification.get().obtainDomainTypeScoreForVariables(variables, loopStructure);
-
-    return score;
+  private int obtainDomainTypeScoreForPath(List<Pair<ARGState, Set<String>>> itpSequence) {
+    return classification.get().obtainDomainTypeScoreForVariables(extractVariablesFromItpSequence(itpSequence), loopStructure);
   }
 
-  private int obtainPreciseDomainTypeScoreForPath(final ARGPath prefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
+  private int obtainPreciseDomainTypeScoreForPath(List<Pair<ARGState, Set<String>>> itpSequence) {
 
     int score = 0;
-    for (Collection<ASimpleDeclaration> uses : useDefRelation.getExpandedUses(prefix).values()) {
-      int temp = classification.get().obtainDomainTypeScoreForVariables2(
-          FluentIterable.from(uses).transform(ASimpleDeclaration.GET_QUALIFIED_NAME).toSet(),
-          loopStructure);
+    for (Pair<ARGState, Set<String>> itp : itpSequence) {
+      int temp = classification.get().obtainDomainTypeScoreForVariables2(itp.getSecond(), loopStructure);
 
       // check for overflow
       if(score + temp < score) {
@@ -272,42 +250,23 @@ public class PrefixSelector {
     return score;
   }
 
-  private int obtainItpSequenceLengthForPath(final ARGPath prefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
-
-    // values are in reverse order, with the first item being the use of the failing
-    // assume, hence, the index of first empty element, in relation to the first element,
-    // is equal to the length of the itp-sequence
-    Collection<Collection<ASimpleDeclaration>> expandedUses = useDefRelation.getExpandedUses(prefix).values();
-    int length = Iterables.indexOf(expandedUses,
-        new Predicate<Collection<ASimpleDeclaration>>() {
-          @Override
-          public boolean apply(Collection<ASimpleDeclaration> values) {
-            return values.isEmpty();
-          }
-    });
-
-    assert (length != -1) : "No empty 'use' found, but itp-sequence can never start from initial node";
-
-    // mixing this heuristic with a loop-counter heuristic
-    // gives slightly better results (evaluated with value analysis)
-    // if(obtainDomainTypeScoreForPath(prefix) == Integer.MAX_VALUE) {
-    //   length = 0;
-    // }
-    return length;
+  private int obtainItpSequenceLengthForPath(List<Pair<ARGState, Set<String>>> itpSequence) {
+    return FluentIterable.from(itpSequence).filter(new Predicate<Pair<ARGState, Set<String>>>() {
+      @Override
+      public boolean apply(Pair<ARGState, Set<String>> pInput) {
+        return !pInput.getSecond().isEmpty();
+      }}).size();
   }
 
-  private int obtainPivotStateDepthForPath(final ARGPath prefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
+  private int obtainPivotStateDepthForPath(List<Pair<ARGState, Set<String>>> itpSequence) {
+    int depth = 0;
 
-    PathIterator iterator = prefix.pathIterator();
-    while(iterator.hasNext()) {
-
-      if(useDefRelation.hasDef(iterator.getAbstractState(), iterator.getOutgoingEdge())) {
-        return iterator.getIndex()  * (-1);
+    for (Pair<ARGState, Set<String>> itp : itpSequence) {
+      if(!itp.getSecond().isEmpty()) {
+        return depth;
       }
 
-      iterator.advance();
+      depth++;
     }
 
     assert false : "There must be at least one non-empty definition along the path";
@@ -315,17 +274,15 @@ public class PrefixSelector {
     return -1;
   }
 
-  private int obtainAssignmentCountForPath(final ARGPath prefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
-
+  private int obtainAssignmentCountForPath(final ARGPath prefix, List<Pair<ARGState, Set<String>>> itpSequence) {
     int count = 0;
-    for (String use : useDefRelation.getUsesAsQualifiedName()) {
-      count = count + classification.get().getAssignedVariables().count(use);
+    for (String variable : extractVariablesFromItpSequence(itpSequence)) {
+      count = count + classification.get().getAssignedVariables().count(variable);
 
       // special case for (RERS)-input variables
       // this variable has always (at least) 6 values (1, 2, 3, 4, 5, 6)
       // but it is only assigned implicitly thru assume edges
-      if (use.endsWith("::input")) {
+      if (variable.endsWith("::input")) {
         count = 6;
         break;
       }
@@ -334,152 +291,21 @@ public class PrefixSelector {
     return count;
   }
 
-  private int obtainAssumptionCountForPath(final ARGPath prefix) {
-    UseDefRelation useDefRelation = new UseDefRelation(prefix, classification.get().getIntBoolVars());
-
+  private int obtainAssumptionCountForPath(final ARGPath prefix, List<Pair<ARGState, Set<String>>> itpSequence) {
     int count = 0;
-    for (String use : useDefRelation.getUsesAsQualifiedName()) {
-      count = count + classification.get().getAssumedVariables().count(use);
+    for (String variable : extractVariablesFromItpSequence(itpSequence)) {
+      count = count + classification.get().getAssumedVariables().count(variable);
     }
 
     return count;
   }
 
-  /**
-   * This method limits the number of prefixes to analyze (in case it is ridiculously high)
-   */
-  private List<ARGPath> limitNumberOfPrefixesToAnalyze(List<ARGPath> pPrefixes, PrefixPreference preference) {
-
-    if(pPrefixes.size() <= MAX_PREFIX_NUMBER) {
-      return pPrefixes;
-    }
-
-    switch (preference) {
-
-    case DOMAIN_BEST_SHALLOW:
-    case DOMAIN_WORST_SHALLOW:
-    case DOMAIN_PRECISE_BEST_SHALLOW:
-    case DOMAIN_PRECISE_WORST_SHALLOW:
-    case REFINE_SHALLOW:
-    case ITP_LENGTH_SHORT_SHALLOW:
-    case ITP_LENGTH_LONG_SHALLOW:
-    case ASSIGNMENTS_FEWEST_SHALLOW:
-    case ASSIGNMENTS_MOST_SHALLOW:
-    case ASSUMPTIONS_FEWEST_SHALLOW:
-    case ASSUMPTIONS_MOST_SHALLOW:
-      return pPrefixes.subList(0, Math.min(pPrefixes.size(), MAX_PREFIX_NUMBER));
-
-    case DOMAIN_BEST_DEEP:
-    case DOMAIN_WORST_DEEP:
-    case DOMAIN_PRECISE_BEST_DEEP:
-    case DOMAIN_PRECISE_WORST_DEEP:
-    case REFINE_DEEP:
-    case ITP_LENGTH_SHORT_DEEP:
-    case ITP_LENGTH_LONG_DEEP:
-    case ASSIGNMENTS_MOST_DEEP:
-    case ASSIGNMENTS_FEWEST_DEEP:
-    case ASSUMPTIONS_FEWEST_DEEP:
-    case ASSUMPTIONS_MOST_DEEP:
-
-      // merge all prefixes up to index "extraPrefixes" into a single prefix
-      int extraPrefixes = pPrefixes.size() - MAX_PREFIX_NUMBER;
-      MutableARGPath firstPrefix = new MutableARGPath();
-      for (ARGPath prefix : pPrefixes.subList(0, extraPrefixes)) {
-        firstPrefix.addAll(pathToList(prefix));
-        replaceAssumeEdgeWithBlankEdge(firstPrefix);
-      }
-      firstPrefix.addAll(pathToList(pPrefixes.get(extraPrefixes)));
-
-      // merge with the remaining ones
-      List<ARGPath> prefixes = new ArrayList<>();
-      prefixes.add(firstPrefix.immutableCopy());
-      prefixes.addAll(pPrefixes.subList(extraPrefixes + 1, pPrefixes.size()));
-
-      return prefixes;
-
-    default:
-      assert (false) : "No need to filter for " + preference;
-    }
-
-    return pPrefixes;
-  }
-
-  /**
-   * This methods builds a new path from the given prefixes. It makes all
-   * contradicting assume edge but the last ineffective, so that only the last
-   * assumption leads to a contradiction.
-   *
-   * @param bestIndex the index of the prefix with the best score
-   * @param pPrefixes the list of prefixes
-   * @param originalErrorPath the original error path
-   * @return a new path with the last assumption leading to a contradiction
-   */
-  private ARGPath buildInfeasiblePath(final int bestIndex, final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
-    MutableARGPath infeasibleErrorPath = new MutableARGPath();
-    for (int j = 0; j <= bestIndex; j++) {
-      infeasibleErrorPath.addAll(pathToList(pPrefixes.get(j)));
-
-      if (j != bestIndex) {
-        replaceAssumeEdgeWithBlankEdge(infeasibleErrorPath);
-      }
-    }
-
-    appendFeasibleSuffix(originalErrorPath, infeasibleErrorPath);
-
-    return infeasibleErrorPath.immutableCopy();
-  }
-
-  private ARGPath buildFeasiblePath(final List<ARGPath> pPrefixes, final ARGPath originalErrorPath) {
-    MutableARGPath feasibleErrorPath = new MutableARGPath();
-    for (ARGPath prefix : pPrefixes) {
-      feasibleErrorPath.addAll(pathToList(prefix));
-      replaceAssumeEdgeWithBlankEdge(feasibleErrorPath);
-    }
-
-    appendFeasibleSuffix(originalErrorPath, feasibleErrorPath);
-
-    return feasibleErrorPath.immutableCopy();
-  }
-
-  private void appendFeasibleSuffix(final ARGPath originalErrorPath, MutableARGPath errorPath) {
-    for(Pair<ARGState, CFAEdge> element : Iterables.skip(pathToList(originalErrorPath), errorPath.size())) {
-      // when encountering the original target, add it as is, ...
-      if(element.getFirst().isTarget()) {
-        errorPath.add(element);
-      }
-
-      // ... but replace all other transitions by no-op operations
-      else {
-        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
-            FileLocation.DUMMY,
-            element.getSecond().getPredecessor(),
-            element.getSecond().getSuccessor(),
-            SUFFIX_REPLACEMENT)));
-      }
-    }
-  }
-
-  private static List<Pair<ARGState, CFAEdge>> pathToList(ARGPath path) {
-    return Pair.zipList(path.asStatesList(), path.asEdgesList());
-  }
-
-  /**
-   * This method replaces the final (assume) edge of each prefix, except for the
-   * last, with a blank edge, and as such, avoiding a contradiction along that
-   * path at the removed assumptions.
-   *
-   * @param pErrorPath the error path from which to remove the final assume edge
-   */
-  private void replaceAssumeEdgeWithBlankEdge(final MutableARGPath pErrorPath) {
-    Pair<ARGState, CFAEdge> assumeState = pErrorPath.removeLast();
-
-    assert (assumeState.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
-
-    pErrorPath.add(Pair.<ARGState, CFAEdge>of(assumeState.getFirst(), new BlankEdge("",
-        FileLocation.DUMMY,
-        assumeState.getSecond().getPredecessor(),
-        assumeState.getSecond().getSuccessor(),
-        PREFIX_REPLACEMENT)));
+  private Set<String> extractVariablesFromItpSequence(List<Pair<ARGState, Set<String>>> itpSequence) {
+    return FluentIterable.from(itpSequence).transformAndConcat(new Function<Pair<ARGState, Set<String>>, Iterable<String>>() {
+      @Override
+      public Iterable<String> apply(Pair<ARGState, Set<String>> itp) {
+        return itp.getSecond();
+      }}).toSet();
   }
 
   public int obtainScoreForPrefixes(List<ARGPath> pPrefixes, PrefixPreference preference) {
@@ -487,18 +313,21 @@ public class PrefixSelector {
       return Integer.MAX_VALUE;
     }
 
-    MutableARGPath currentErrorPath = new MutableARGPath();
     int bestScore = Integer.MAX_VALUE;
-
     for (ARGPath currentPrefix : pPrefixes) {
 
-      currentErrorPath.addAll(pathToList(currentPrefix));
+      UseDefRelation useDefRelation = new UseDefRelation(currentPrefix, classification.get().getIntBoolVars());
+      UseDefBasedInterpolator useDefInterpolator = new UseDefBasedInterpolator(
+          currentPrefix,
+          useDefRelation);
 
-      if("".equals("")) {
-        throw new AssertionError("fixMe");
+      Collection<ValueAnalysisInterpolant> interpolants = useDefInterpolator.obtainInterpolants().values();
+      Set<String> variables = new HashSet<>();
+      for (ValueAnalysisInterpolant itp : interpolants) {
+        variables.addAll(FluentIterable.from(itp.getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
       }
-      // FIX MEEEE
-      int score = 0;//obtainDomainTypeScoreForPath(currentErrorPath.immutableCopy());
+
+      int score = classification.get().obtainDomainTypeScoreForVariables(variables, loopStructure);
 
       if (preference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
@@ -508,8 +337,9 @@ public class PrefixSelector {
     return bestScore;
   }
 
-  // functions for
-
+  //*************************//
+  //  functions for scoring  //
+  //*************************//
   private static final Function<Pair<Integer, Integer>, Boolean> INDIFFERENT_SCOREKEEPER = new Function<Pair<Integer, Integer>, Boolean>() {
     @Override
     public Boolean apply(Pair<Integer, Integer> prefixParameters) {
@@ -529,7 +359,6 @@ public class PrefixSelector {
       return prefixParameters.getSecond() == null
           || prefixParameters.getFirst() >= prefixParameters.getSecond();
     }};
-
 
   private static final Function<Pair<Integer, Integer>, Boolean> FIRST_LOWEST_SCORE = new Function<Pair<Integer, Integer>, Boolean>() {
     @Override
