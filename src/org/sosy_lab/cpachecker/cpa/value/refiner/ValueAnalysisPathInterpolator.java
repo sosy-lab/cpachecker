@@ -216,8 +216,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       }
 
       prefixToPrecisionMapping.put(prefix, interpolationSequence);
-      prefixInterpolationTime.stop();
     }
+    prefixInterpolationTime.stop();
     return prefixToPrecisionMapping;
   }
 
