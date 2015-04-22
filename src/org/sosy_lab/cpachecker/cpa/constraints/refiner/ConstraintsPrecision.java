@@ -180,7 +180,7 @@ public class ConstraintsPrecision implements Precision {
       }
     }
 
-    sb.append("]");
+    sb.append("] -> size: ").append(trackedConstraints.size());
     return sb.toString();
   }
 
