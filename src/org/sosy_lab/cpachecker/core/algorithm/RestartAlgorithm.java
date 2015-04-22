@@ -450,7 +450,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if (pOptions.collectAssumptions) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, singleLogger);
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, cfa, shutdownNotifier, pConfig, singleLogger);
     }
 
     if (pOptions.unknownIfUnrestrictedProgram) {

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -61,13 +62,18 @@ public class InvariantsWriter {
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
   private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
 
   public InvariantsWriter(PredicateCPA pCpa) {
-    this(pCpa.getSolver().getFormulaManager());
+    this(pCpa.getSolver().getFormulaManager(), pCpa.getPathFormulaManager());
   }
 
-  public InvariantsWriter(FormulaManagerView pFmgr) {
+  public InvariantsWriter(
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr
+      ) {
     fmgr = pFmgr;
+    pfmgr = pPfmgr;
   }
 
   public void write(UnmodifiableReachedSet pReachedSet, Appendable pAppendable) throws IOException {
@@ -126,7 +132,7 @@ public class InvariantsWriter {
       BooleanFormula formula = bfmgr.makeBoolean(false);
       for (InvariantsState state : invariantDisjunctiveParts) {
         if (state != null) {
-          formula = bfmgr.or(formula, state.getFormulaApproximation(fmgr));
+          formula = bfmgr.or(formula, state.getFormulaApproximation(fmgr, pfmgr));
         }
       }
 

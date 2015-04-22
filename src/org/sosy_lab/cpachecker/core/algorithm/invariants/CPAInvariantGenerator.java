@@ -89,7 +89,7 @@ import com.google.common.base.Throwables;
  * Class that encapsulates invariant generation by using the CPAAlgorithm
  * with an appropriate configuration.
  * Supports synchronous and asynchronous execution,
- * and continuously-refine invariants.
+ * and continuously-refined invariants.
  */
 @Options(prefix="invariantGeneration")
 public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProvider {
@@ -277,7 +277,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 
       for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
-        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState, pfmgr);
         logger.log(Level.ALL, "Invariant for", pLocation+":", f);
 
         invariant = bfmgr.or(invariant, f);
