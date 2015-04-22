@@ -136,6 +136,10 @@ class Z3OptProver implements OptEnvironment {
     optimize_set_params(z3context, z3optContext, params);
   }
 
+  /**
+   * Dumps the optimized objectives and the constraints on the solver in the
+   * SMT-lib format. Super-useful!
+   */
   @Override
   public String toString() {
     return optimize_to_string(z3context, z3optContext);
