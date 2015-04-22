@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -317,14 +316,12 @@ public class PrefixSelector {
           currentPrefix,
           useDefRelation);
 
-      Collection<ValueAnalysisInterpolant> interpolants = useDefInterpolator.obtainInterpolants().values();
       Set<String> variables = new HashSet<>();
-      for (ValueAnalysisInterpolant itp : interpolants) {
-        variables.addAll(FluentIterable.from(itp.getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
+      for (Pair<ARGState, ValueAnalysisInterpolant> itp : useDefInterpolator.obtainInterpolants()) {
+        variables.addAll(FluentIterable.from(itp.getSecond().getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
       }
 
       int score = classification.get().obtainDomainTypeScoreForVariables(variables, loopStructure);
-
       if (preference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
       }

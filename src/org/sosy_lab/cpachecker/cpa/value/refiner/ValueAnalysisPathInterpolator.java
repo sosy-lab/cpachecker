@@ -159,6 +159,54 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   }
 
   /**
+   * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
+   *
+   * @param errorPath the original error path
+   * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
+   * @return a (sub)path of the error path which is given to the interpolation procedure
+   * @throws CPAException
+   * @throws InterruptedException
+   */
+  private ARGPath performRefinementSelection(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+          throws CPAException, InterruptedException {
+
+    try {
+      List<ARGPath> prefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
+      totalPrefixes.setNextValue(prefixes.size());
+
+      prefixInterpolationTime.start();
+      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new LinkedHashMap<>();
+      for(ARGPath prefix : prefixes) {
+        List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
+            prefix,
+            new UseDefRelation(prefix,
+                cfa.getVarClassification().isPresent()
+                  ? cfa.getVarClassification().get().getIntBoolVars()
+                  : Collections.<String>emptySet())).obtainInterpolants();
+
+        List<Pair<ARGState, Set<String>>> interpolationSequence = new ArrayList<>();
+        for(Pair<ARGState, ValueAnalysisInterpolant> itp : interpolants) {
+          Set<String> variables = FluentIterable.from(itp.getSecond().getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet();
+          interpolationSequence.add(Pair.of(itp.getFirst(), variables));
+        }
+
+        prefixToPrecisionMapping.put(prefix, interpolationSequence);
+        prefixInterpolationTime.stop();
+      }
+
+      prefixSelectionTime.start();
+      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
+      errorPath = selector.selectSlicedPrefix(prefixPreference, prefixToPrecisionMapping);
+      prefixSelectionTime.stop();
+
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
+    }
+
+    return errorPath;
+  }
+
+  /**
    * This method performs interpolation on each edge of the path, using the
    * {@link ValueAnalysisEdgeInterpolator}.
    *
@@ -210,6 +258,37 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     }
 
     return pathInterpolants;
+  }
+
+  /**
+   * This method performs interpolation on the complete path, based on the
+   * use-def-relation. It creates fake interpolants that are not inductive.
+   *
+   * @param errorPathPrefix the error path prefix to interpolate
+   * @return
+   */
+  private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
+
+    assert(prefixPreference != PrefixPreference.DEFAULT)
+    : "static path-based interpolation requires a sliced infeasible prefix"
+    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_BEST_DEEP;
+
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
+        errorPathPrefix,
+        new UseDefRelation(errorPathPrefix,
+            cfa.getVarClassification().isPresent()
+              ? cfa.getVarClassification().get().getIntBoolVars()
+              : Collections.<String>emptySet())).obtainInterpolantsAsMap();
+
+    totalInterpolationQueries.setNextValue(1);
+
+    int size = 0;
+    for(ValueAnalysisInterpolant itp : interpolants.values()) {
+      size = size + itp.getSize();
+    }
+    sizeOfInterpolant.setNextValue(size);
+
+    return interpolants;
   }
 
   /**
@@ -292,37 +371,6 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
   }
 
-  /**
-   * This method performs interpolation on the complete path, based on the
-   * use-def-relation. It creates fake interpolants that are not inductive.
-   *
-   * @param errorPathPrefix the error path prefix to interpolate
-   * @return
-   */
-  private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
-
-    assert(prefixPreference != PrefixPreference.DEFAULT)
-    : "static path-based interpolation requires a sliced infeasible prefix"
-    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_BEST_DEEP;
-
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
-        errorPathPrefix,
-        new UseDefRelation(errorPathPrefix,
-            cfa.getVarClassification().isPresent()
-              ? cfa.getVarClassification().get().getIntBoolVars()
-              : Collections.<String>emptySet())).obtainInterpolants();
-
-    totalInterpolationQueries.setNextValue(1);
-
-    int size = 0;
-    for(ValueAnalysisInterpolant itp : interpolants.values()) {
-      size = size + itp.getSize();
-    }
-    sizeOfInterpolant.setNextValue(size);
-
-    return interpolants;
-  }
-
   public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
       throws CPAException, InterruptedException {
 
@@ -383,45 +431,6 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     else {
       return errorPath.get(1);
     }
-  }
-
-  /**
-   * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
-   *
-   * @param errorPath the original error path
-   * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
-   * @return a (sub)path of the error path which is given to the interpolation procedure
-   * @throws CPAException
-   * @throws InterruptedException
-   */
-  private ARGPath performRefinementSelection(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
-          throws CPAException, InterruptedException {
-
-    try {
-      List<ARGPath> prefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
-      totalPrefixes.setNextValue(prefixes.size());
-
-      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new LinkedHashMap<>();
-      for(ARGPath prefix : prefixes) {
-        Map<ARGState, ValueAnalysisInterpolant> interpolants = performPathBasedInterpolation(prefix);
-
-        List<Pair<ARGState, Set<String>>> interpolationSequence = new ArrayList<>();
-        for(Map.Entry<ARGState, ValueAnalysisInterpolant> itp : interpolants.entrySet()) {
-          Set<String> variables = FluentIterable.from(itp.getValue().getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet();
-          interpolationSequence.add(Pair.of(itp.getKey(), variables));
-        }
-
-        prefixToPrecisionMapping.put(prefix, interpolationSequence);
-      }
-
-      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
-      errorPath = selector.selectSlicedPrefix(prefixPreference, prefixToPrecisionMapping);
-
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
-    }
-
-    return errorPath;
   }
 
   private List<ARGPath> extractInfeasibleSlicedPrefixes(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
