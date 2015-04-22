@@ -5,12 +5,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
@@ -74,9 +74,9 @@ public class CongruenceManager {
 
 
   public CongruenceState performAbstraction(
+      CFANode node,
       PathFormula p,
-      BooleanFormula startConstraints,
-      Set<Template> templates
+      BooleanFormula startConstraints
   ) throws CPATransferException, InterruptedException {
 
     Map<Template, Congruence> abstraction = new HashMap<>();
@@ -88,7 +88,7 @@ public class CongruenceManager {
       //noinspection ResultOfMethodCallIgnored
       env.push(startConstraints);
 
-      for (Template template : templates) {
+      for (Template template : templateManager.templatesForNode(node)) {
         if (!shouldUseTemplate(template)) {
           continue;
         }

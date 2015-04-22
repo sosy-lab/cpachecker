@@ -28,10 +28,7 @@
   <echo message="Using Google AppEngine SDK ${gae-sdk.version}"/>
 
   <property name="gae-sdk.name" value="appengine-java-sdk-${gae-sdk.version}" />
-  <!-- Since 1.9.19, the directory in the ZIP has no version number.
   <property name="gae-sdk.dir" location="${lib.dir}/${gae-sdk.name}" />
-  -->
-  <property name="gae-sdk.dir" location="${lib.dir}/appengine-java-sdk" />
   <property name="gae-dev.port" value="8888" />
   <property name="gae-dev.host" value="localhost" />
   <property name="gae-dev.debugport" value="9999" />

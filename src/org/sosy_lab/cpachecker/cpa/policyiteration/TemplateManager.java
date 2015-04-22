@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -97,6 +98,8 @@ public class TemplateManager {
   private static final String ASSERT_FUNC_NAME = "assert";
   private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
 
+  private final HashMultimap<CFANode, Template> cache = HashMultimap.create();
+
   public TemplateManager(
       LogManager pLogger,
       Configuration pConfig,
@@ -125,7 +128,11 @@ public class TemplateManager {
   }
 
 
-  public ImmutableSet<Template> templatesForNode(CFANode node) {
+  public Set<Template> templatesForNode(CFANode node) {
+    if (cache.containsKey(node)) {
+      return cache.get(node);
+    }
+
     ImmutableSet.Builder<Template> out = ImmutableSet.builder();
     LiveVariables liveVariables = cfa.getLiveVariables().get();
     List<ASimpleDeclaration> liveVars = ImmutableList.copyOf(
@@ -254,7 +261,8 @@ public class TemplateManager {
 
     out.addAll(generatedTemplates);
 
-    return out.build();
+    cache.putAll(node, out.build());
+    return cache.get(node);
   }
 
   private Set<Template> genOctagonConstraints(

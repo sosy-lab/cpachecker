@@ -1,12 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Abstract state for policy iteration: bounds on each expression (from the
@@ -16,15 +12,9 @@ import com.google.common.collect.ImmutableSet;
  */
 public abstract class PolicyState implements AbstractState, Graphable {
 
-
-  /** Templates tracked. */
-  private final ImmutableSet<Template> templates;
   private final CFANode node;
 
-  protected PolicyState(
-      Set<Template> pTemplates,
-      CFANode pNode) {
-    templates = ImmutableSet.copyOf(pTemplates);
+  protected PolicyState(CFANode pNode) {
     node = pNode;
   }
 
@@ -45,10 +35,6 @@ public abstract class PolicyState implements AbstractState, Graphable {
   }
 
   public abstract boolean isAbstract();
-
-  public ImmutableSet<Template> getTemplates() {
-    return templates;
-  }
 
   @Override
   public boolean shouldBeHighlighted() {
