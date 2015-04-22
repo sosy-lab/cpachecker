@@ -162,7 +162,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
       ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
 
-      if (!visitedPathPrefixes.contains(errorPathPrefix.hashCode())) {
+      if (visitedPathPrefixes.contains(errorPathPrefix.hashCode())) {
         throw new RefinementFailedException(Reason.RepeatedPathPrefix, errorPathPrefix);
       }
 
