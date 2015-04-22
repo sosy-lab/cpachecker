@@ -109,6 +109,8 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
@@ -136,7 +138,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.value")
-public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
+public class ValueAnalysisTransferRelation
+    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
+    implements StatisticsProvider {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
@@ -1053,6 +1057,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
   }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(ConstraintsStrengthenOperator.getInstance());
+  }
+
   /**
    * Visitor that derives further information from an assume edge
    */
@@ -1412,7 +1421,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           Collection<ValueAnalysisState> ret =
-              strengthenOperator.strengthen((ValueAnalysisState) element, (ConstraintsState) ae);
+              strengthenOperator.strengthen((ValueAnalysisState) element, (ConstraintsState) ae, cfaEdge);
 
           if (ret == null) {
             result.add(state);
