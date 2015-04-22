@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -40,6 +41,8 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import com.google.common.collect.Lists;
 
 /**
  * This class allows to obtain interpolants statically from a given ARGPath.
@@ -70,15 +73,16 @@ public class UseDefBasedInterpolator {
   }
 
   /**
-   * This method obtains the mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s.
+   * This method obtains the interpolation sequence as pairs of {@link ARGState}s
+   * and their respective {@link ValueAnalysisInterpolant}s.
    *
-   * @return the (ordered) mapping mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s
+   * @return the (ordered) list of {@link ARGState}s and their respective {@link ValueAnalysisInterpolant}s
    */
-  public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolants() {
+  public List<Pair<ARGState, ValueAnalysisInterpolant>> obtainInterpolants() {
     Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence = useDefRelation.getExpandedUses(slicedPrefix);
     ValueAnalysisInterpolant trivialItp = ValueAnalysisInterpolant.FALSE;
 
-    ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new ArrayDeque<>();
+    LinkedList<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new LinkedList<>();
     PathIterator iterator = slicedPrefix.reversePathIterator();
     while (iterator.hasNext()) {
       ARGState state = iterator.getAbstractState();
@@ -100,7 +104,23 @@ public class UseDefBasedInterpolator {
       iterator.advance();
     }
 
-    return convertToLinkedMap(interpolants);
+    return interpolants;
+  }
+
+  /**
+   * This method obtains the interpolation sequence as mapping from {@link ARGState}s
+   * to their respective {@link ValueAnalysisInterpolant}s.
+   *
+   * @return the (ordered) mapping from {@link ARGState}s to their respective {@link ValueAnalysisInterpolant}s
+   */
+  public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolantsAsMap() {
+
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
+    for(Pair<ARGState, ValueAnalysisInterpolant> itp : obtainInterpolants()) {
+      interpolants.put(itp.getFirst(), itp.getSecond());
+    }
+
+    return interpolants;
   }
 
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
@@ -110,14 +130,5 @@ public class UseDefBasedInterpolator {
     }
 
     return new ValueAnalysisInterpolant(useDefInterpolant, Collections.<MemoryLocation, Type>emptyMap());
-  }
-
-  private Map<ARGState, ValueAnalysisInterpolant> convertToLinkedMap(
-      ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> itps) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
-    for(Pair<ARGState, ValueAnalysisInterpolant> itp : itps) {
-      interpolants.put(itp.getFirst(), itp.getSecond());
-    }
-    return interpolants;
   }
 }
