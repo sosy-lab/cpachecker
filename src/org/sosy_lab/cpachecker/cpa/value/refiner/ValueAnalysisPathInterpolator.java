@@ -157,14 +157,19 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   }
 
   /**
-   * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
+   * This path obtains a sliced infeasible prefix of the error path.
    *
    * @param errorPath the original error path
    * @param interpolant the initial interpolant, i.e. the initial state, with which to check the error path.
-   * @return a (sub)path of the error path which is given to the interpolation procedure
+   * @return a sliced infeasible prefix of the error path
    * @throws CPAException
    */
-  private ARGPath performRefinementSelection(ARGPath errorPath, ValueAnalysisInterpolant interpolant) throws CPAException {
+  private ARGPath performRefinementSelection(ARGPath errorPath, final ValueAnalysisInterpolant interpolant) throws CPAException {
+
+    if(prefixPreference == PrefixPreference.DEFAULT) {
+      return errorPath;
+    }
+
     List<InfeasiblePrefix> infeasilbePrefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
 
     if(!infeasilbePrefixes.isEmpty()) {
