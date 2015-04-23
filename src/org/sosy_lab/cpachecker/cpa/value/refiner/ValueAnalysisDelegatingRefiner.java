@@ -148,7 +148,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         ValueAnalysisRefiner.create(cpa),
         new ValueAnalysisPrefixProvider(logger, controlFlowAutomaton, config),
         PredicateRefiner.create(cpa),
-        new PredicateBasedPrefixProvider(logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
+        new PredicateBasedPrefixProvider(config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
   }
 
   protected ValueAnalysisDelegatingRefiner(

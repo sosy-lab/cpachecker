@@ -179,6 +179,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   protected final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
+  private final PrefixProvider prefixProvider;
   private final PathChecker pathChecker;
   private final RefinementStrategy strategy;
   private final Solver solver;
@@ -189,6 +190,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
+      final PrefixProvider pPrefixProvider,
       final PathFormulaManager pPathFormulaManager,
       final RefinementStrategy pStrategy,
       final Solver pSolver,
@@ -209,6 +211,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     fmgr = solver.getFormulaManager();
     strategy = pStrategy;
     cfa = pCfa;
+
+    prefixProvider = pPrefixProvider;
 
     config = pConfig;
 
@@ -328,10 +332,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   private List<InfeasiblePrefix> extractInfeasiblePrefixes(ARGPath allStatesTrace) throws CPAException,
       InterruptedException {
-    PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
 
     prefixExtractionTime.start();
-    List<InfeasiblePrefix> infeasilbePrefixes = provider.extractInfeasilbePrefixes(allStatesTrace);
+    List<InfeasiblePrefix> infeasilbePrefixes = prefixProvider.extractInfeasilbePrefixes(allStatesTrace);
     prefixExtractionTime.stop();
 
     return infeasilbePrefixes;

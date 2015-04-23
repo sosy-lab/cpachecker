@@ -28,6 +28,10 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,10 +51,18 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.collect.Iterables;
 
+@Options(prefix="cpa.predicate.refinement")
 public class PredicateBasedPrefixProvider implements PrefixProvider {
+  @Option(secure=true, description="Max. number of prefixes to extract")
+  private int maxPrefixCount = 64;
+
+  @Option(secure=true, description="Max. length of feasible prefixes to extract from if at least one prefix was already extracted")
+  private int maxPrefixLength = 1024;
+
   private final LogManager logger;
 
   private final Solver solver;
@@ -62,7 +74,13 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    *
    * @param pSolver the solver to use
    */
-  public PredicateBasedPrefixProvider(LogManager pLogger, Solver pSolver, PathFormulaManager pPathFormulaManager) {
+  public PredicateBasedPrefixProvider(Configuration config, LogManager pLogger, Solver pSolver, PathFormulaManager pPathFormulaManager) {
+    try {
+      config.inject(this);
+    } catch (InvalidConfigurationException e) {
+      pLogger.log(Level.INFO, "Invalid configuration given to " + getClass().getSimpleName() + ". Using defaults instead.");
+    }
+
     logger = pLogger;
     solver = pSolver;
     pathFormulaManager = pPathFormulaManager;
@@ -77,6 +95,10 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     MutableARGPath feasiblePrefixPath = new MutableARGPath();
     List<T> feasiblePrefixTerms = new ArrayList<>(path.size());
 
+    StatTimer extraction = new StatTimer("extraction");
+    StatTimer interpolation = new StatTimer("interpolation");
+
+    extraction.start();
     try (@SuppressWarnings("unchecked")
       InterpolatingProverEnvironmentWithAssumptions<T> prover =
       (InterpolatingProverEnvironmentWithAssumptions<T>)solver.newProverEnvironmentWithInterpolation()) {
@@ -94,7 +116,9 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge && prover.isUnsat()) {
             logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
 
+            interpolation.start();
             List<BooleanFormula> interpolantSequence = extractInterpolantSequence(feasiblePrefixTerms, prover);
+            interpolation.stop();
 
             // add infeasible prefix
             InfeasiblePrefix infeasiblePrefix = buildInfeasiblePrefix(path, feasiblePrefixPath, interpolantSequence, solver.getFormulaManager());
@@ -107,8 +131,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
             // add noop-operation
             formula = addNoopOperation(feasiblePrefixPath, feasiblePrefixTerms, prover, formula, failingOperation);
 
-            if(prefixes.size() > 50) {
-              return prefixes;
+            if(prefixes.size() >= maxPrefixCount) {
+              break;
             }
           }
         }
@@ -117,9 +141,14 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           throw new CPAException("Error during computation of prefixes: " + e.getMessage(), e);
         }
 
+        if(!prefixes.isEmpty() && feasiblePrefixPath.size() >= maxPrefixLength) {
+          break;
+        }
+
         iterator.advance();
       }
     }
+    extraction.stop();
 
     return prefixes;
   }
