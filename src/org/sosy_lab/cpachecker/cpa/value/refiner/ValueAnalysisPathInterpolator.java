@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -56,8 +55,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
@@ -67,7 +64,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -116,7 +115,6 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
   private final StatInt totalPrefixes             = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
   private final StatTimer prefixExtractionTime    = new StatTimer("Extracting infeasible sliced prefixes");
-  private final StatTimer prefixInterpolationTime = new StatTimer("Interpolating infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime     = new StatTimer("Selecting infeasible sliced prefixes");
 
   private final CFA cfa;
@@ -168,9 +166,10 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    */
   private ARGPath performRefinementSelection(ARGPath errorPath, ValueAnalysisInterpolant interpolant) throws CPAException {
     List<InfeasiblePrefix> infeasilbePrefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
-    totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
     if(!infeasilbePrefixes.isEmpty()) {
+      totalPrefixes.setNextValue(infeasilbePrefixes.size());
+
       prefixSelectionTime.start();
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
       errorPath = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
@@ -316,11 +315,9 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
       // slice edge if there is neither a use nor a definition at the current state
       if (!useDefStates.contains(iterator.getAbstractState())) {
-        abstractEdges.set(iterator.getIndex(), new BlankEdge("",
-            FileLocation.DUMMY,
+        abstractEdges.set(iterator.getIndex(), BlankEdge.buildNoopEdge(
             originalEdge.getPredecessor(),
-            originalEdge.getSuccessor(),
-            PrefixSelector.SUFFIX_REPLACEMENT));
+            originalEdge.getSuccessor()));
       }
 
       /*************************************/

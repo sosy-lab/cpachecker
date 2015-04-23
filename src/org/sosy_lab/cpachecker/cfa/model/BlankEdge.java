@@ -30,6 +30,8 @@ public class BlankEdge extends AbstractCFAEdge {
 
   private final String description;
 
+  public static final String REPLACEMENT_LABEL = "REPLACEMENT-NOOP";
+
   public BlankEdge(String pRawStatement, FileLocation pFileLocation,  CFANode pPredecessor,
       CFANode pSuccessor, String pDescription) {
 
@@ -50,5 +52,13 @@ public class BlankEdge extends AbstractCFAEdge {
   @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.BlankEdge;
+  }
+
+  public static BlankEdge buildNoopEdge(final CFANode pPredecessor, final CFANode pSuccessor) {
+    return new BlankEdge("",
+        FileLocation.DUMMY,
+        pPredecessor,
+        pSuccessor,
+        REPLACEMENT_LABEL);
   }
 }

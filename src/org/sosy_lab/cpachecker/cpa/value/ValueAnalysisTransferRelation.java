@@ -115,7 +115,6 @@ import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -292,7 +291,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
               || "skipped unnecessary edges".equals(cfaEdge.getDescription())
-              || PrefixSelector.SUFFIX_REPLACEMENT.equals(cfaEdge.getDescription());
+              || BlankEdge.REPLACEMENT_LABEL.equals(cfaEdge.getDescription());
 
       // clone state, because will be changed through removing all variables of current function's scope
       state = ValueAnalysisState.copyOf(state);

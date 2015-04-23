@@ -29,7 +29,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -40,14 +39,14 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
-import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 
 import com.google.common.collect.Iterables;
 
@@ -164,15 +163,13 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   private <T> PathFormula addNoopOperation(MutableARGPath feasiblePrefixPath, List<T> feasiblePrefixTerms,
       InterpolatingProverEnvironmentWithAssumptions<T> prover, PathFormula formula,
       Pair<ARGState, CFAEdge> failingOperation) throws CPATransferException, InterruptedException {
-    CFAEdge noop = new BlankEdge("",
-        FileLocation.DUMMY,
+    CFAEdge noopEdge = BlankEdge.buildNoopEdge(
         failingOperation.getSecond().getPredecessor(),
-        failingOperation.getSecond().getSuccessor(),
-        "REPLACEMENT");
+        failingOperation.getSecond().getSuccessor());
 
-    feasiblePrefixPath.add(Pair.<ARGState, CFAEdge>of(failingOperation.getFirst(), noop));
+    feasiblePrefixPath.add(Pair.<ARGState, CFAEdge>of(failingOperation.getFirst(), noopEdge));
 
-    formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), noop);
+    formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), noopEdge);
     feasiblePrefixTerms.add(prover.push(formula.getFormula()));
     return formula;
   }

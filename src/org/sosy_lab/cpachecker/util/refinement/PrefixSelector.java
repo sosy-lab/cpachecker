@@ -21,14 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
+package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -37,8 +36,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
 public class PrefixSelector {
-
-  public static final String SUFFIX_REPLACEMENT = PrefixSelector.class.getSimpleName()  + " replaced this edge in suffix";
 
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;

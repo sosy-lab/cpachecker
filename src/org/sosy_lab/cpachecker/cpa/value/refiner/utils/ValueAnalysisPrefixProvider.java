@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -53,9 +54,9 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
-import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
@@ -155,7 +156,12 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
           prefixes.add(buildInfeasiblePrefix(path, feasiblePrefix));
 
           // continue with feasible prefix
-          feasiblePrefix.replaceFinalEdgeWithBlankEdge();
+          Pair<ARGState, CFAEdge> assumeState = feasiblePrefix.removeLast();
+
+          feasiblePrefix.add(Pair.<ARGState, CFAEdge>of(assumeState.getFirst(),
+              BlankEdge.buildNoopEdge(
+                  assumeState.getSecond().getPredecessor(),
+                  assumeState.getSecond().getSuccessor())));
 
           successors = Sets.newHashSet(next);
         }

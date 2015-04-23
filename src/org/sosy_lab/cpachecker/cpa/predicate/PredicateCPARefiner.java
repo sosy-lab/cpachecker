@@ -63,14 +63,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
-import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -82,6 +78,10 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -138,7 +138,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
   private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
-  private final StatTimer prefixInterpolationTime = new StatTimer("Interpolating infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
   class Stats extends AbstractStatistics {
@@ -163,7 +162,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         w0.beginLevel().put(buildCounterexampeTraceTime);
         w0.beginLevel().put(preciseCouterexampleTime);
         w0.beginLevel().put(prefixExtractionTime);
-        w0.beginLevel().put(prefixInterpolationTime);
         w0.beginLevel().put(prefixSelectionTime);
       }
 
@@ -315,9 +313,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   private ARGPath performRefinementSelection(ARGPath allStatesTrace) throws CPAException, InterruptedException {
     List<InfeasiblePrefix> infeasilbePrefixes = extractInfeasiblePrefixes(allStatesTrace);
-    totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
     if(!infeasilbePrefixes.isEmpty()) {
+      totalPrefixes.setNextValue(infeasilbePrefixes.size());
+
       prefixSelectionTime.start();
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
       allStatesTrace = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
