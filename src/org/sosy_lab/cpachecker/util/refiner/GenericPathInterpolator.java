@@ -153,7 +153,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath errorPath,
       final I interpolant
   ) throws CPAException {
-
     try {
       totalInterpolations.inc();
       timerInterpolation.start();
@@ -162,11 +161,11 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
       ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
 
-      if (visitedPathPrefixes.contains(errorPathPrefix.hashCode())) {
+      if (visitedPathPrefixes.contains(errorPathPrefix.toString().hashCode())) {
         throw new RefinementFailedException(Reason.RepeatedPathPrefix, errorPathPrefix);
       }
 
-      visitedPathPrefixes.add(errorPathPrefix.hashCode());
+      visitedPathPrefixes.add(errorPathPrefix.toString().hashCode());
 
       Map<ARGState, I> interpolants =
           performEdgeBasedInterpolation(errorPathPrefix, interpolant);
