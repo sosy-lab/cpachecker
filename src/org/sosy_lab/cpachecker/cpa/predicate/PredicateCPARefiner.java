@@ -94,7 +94,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 
 /**
@@ -221,7 +220,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Override
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
-
+int initialSize = allStatesTrace.size();
     if (isRefinementSelectionEnabled(allStatesTrace)) {
       allStatesTrace = performRefinementSelection(allStatesTrace);
     }
@@ -260,8 +259,15 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     // build the counterexample
     buildCounterexampeTraceTime.start();
-    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(
+    final CounterexampleTraceInfo counterexample;
+
+    if (allStatesTrace.size() != initialSize) {
+      counterexample = CounterexampleTraceInfo.infeasible(PredicateBasedPrefixProvider.prefixToItpSequences.get(allStatesTrace));
+    }
+    else {
+      counterexample = formulaManager.buildCounterexampleTrace(
             formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace), elementsOnPath, strategy.needsInterpolants());
+    }
     buildCounterexampeTraceTime.stop();
 
     // if error is spurious refine
@@ -336,17 +342,20 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new LinkedHashMap<>();
 
     prefixInterpolationTime.start();
+    int i = 1;
     for (ARGPath infeasiblePrefix : infeasilbePrefixes) {
       final ArrayList<ARGState> abstractionStates = Lists.<ARGState>newArrayList(transformPath(infeasiblePrefix));
 
       List<ARGState> states = abstractionStates.subList(0, abstractionStates.size() - 1);
 
-      List<BooleanFormula> interpolants = formulaManager.buildCounterexampleTrace(
+      List<BooleanFormula> interpolants = PredicateBasedPrefixProvider.prefixToItpSequences.get(infeasiblePrefix);
+/*
+      interpolants = formulaManager.buildCounterexampleTrace(
           recomputePathFormulae(infeasiblePrefix),
           Lists.<AbstractState>newArrayList(abstractionStates),
           Sets.newHashSet(abstractionStates),
           true).getInterpolants();
-
+*/
       List<Pair<ARGState, Set<String>>> itpSequence = buildInterpolationSequence(states, interpolants);
       prefixToPrecisionMapping.put(infeasiblePrefix, itpSequence);
     }

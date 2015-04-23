@@ -24,11 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -64,6 +69,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     pathFormulaManager = pPathFormulaManager;
   }
 
+  public static Map<ARGPath, List<BooleanFormula>> prefixToItpSequences = new HashMap<>();
+
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.cpa.predicate.PrefixProvider#getInfeasilbePrefixes(org.sosy_lab.cpachecker.cpa.arg.ARGPath)
    */
@@ -72,6 +79,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     List<ARGPath> prefixes = new ArrayList<>();
     MutableARGPath currentPrefix = new MutableARGPath();
     List<T> prefixFormulas = new ArrayList<>(path.size());
+
+    prefixToItpSequences = new HashMap<>();
 
     try (@SuppressWarnings("unchecked")
       InterpolatingProverEnvironmentWithAssumptions<T> prover =
@@ -82,7 +91,6 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {
         currentPrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
-
         try {
           formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), iterator.getOutgoingEdge());
           prefixFormulas.add(prover.push(formula.getFormula()));
@@ -90,23 +98,36 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge && prover.isUnsat()) {
             logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
 
+            List<BooleanFormula> itpSeq = new ArrayList<>();
             for(int i = 1; i < prefixFormulas.size(); i++) {
               List<T> phiMinus = prefixFormulas.subList(0, i);
-//Syso("phiMinus = " + phiMinus);
-//Syso("prefixFormulas = " + prefixFormulas);
               BooleanFormula itp = prover.getInterpolant(phiMinus);
-//Syso("itp" + i + " = " + itp);
+              itpSeq.add(itp);
             }
 
+            // remove failing assumption from stack, formula
             prover.pop();
-            T lastFormula = prefixFormulas.remove(prefixFormulas.size() - 1);
-//Syso("removing " + lastFormula);
+            prefixFormulas.remove(prefixFormulas.size() - 1);
 
             // add infeasible prefix
-            prefixes.add(buildInfeasiblePrefix(path, currentPrefix));
+            ARGPath infeasiblePrefix = buildInfeasiblePrefix(path, currentPrefix);
+            prefixes.add(infeasiblePrefix);
+            prefixToItpSequences.put(infeasiblePrefix, itpSeq);
+
+            CFAEdge noop = new BlankEdge("",
+                FileLocation.DUMMY,
+                currentPrefix.getLast().getSecond().getPredecessor(),
+                currentPrefix.getLast().getSecond().getSuccessor(),
+                "REPLACEMENT");
+            formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), noop);
+            prefixFormulas.add(prover.push(formula.getFormula()));
 
             // continue with feasible prefix
             currentPrefix.replaceFinalEdgeWithBlankEdge();
+
+            if(prefixes.size() > 50) {
+              return prefixes;
+            }
           }
         }
         catch (SolverException e) {

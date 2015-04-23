@@ -1614,6 +1614,9 @@ cpa.statistics.statisticsCPAFile = no default value
 # evenness)
 cpa.stator.congruence.trackCongruenceSum = false
 
+# Check whether the policy depends on the initial value
+cpa.stator.policy.checkPolicyInitialCondition = true
+
 # Ignore the template type and encode with a rational variable
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
