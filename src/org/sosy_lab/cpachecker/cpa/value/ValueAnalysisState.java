@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -692,7 +693,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
     NumeralFormulaManager<NumeralFormula, RationalFormula> nfmgr = manager.getRationalFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);

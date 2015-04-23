@@ -312,7 +312,11 @@ public class TemplateManager {
    *
    * @return Resulting formula.
    */
-  public Formula toFormula(Template template, PathFormula contextFormula) {
+  public Formula toFormula(
+      PathFormulaManager pfmgr,
+      FormulaManagerView fmgrv,
+      Template template,
+      PathFormula contextFormula) {
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
 
@@ -350,9 +354,9 @@ public class TemplateManager {
 
     if (sum == null) {
       if (useRationals) {
-        return rfmgr.makeNumber(0);
+        return fmgrv.getRationalFormulaManager().makeNumber(0);
       } else {
-        return ifmgr.makeNumber(0);
+        return fmgrv.getIntegerFormulaManager().makeNumber(0);
       }
     } else {
       return sum;

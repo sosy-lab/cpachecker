@@ -48,10 +48,13 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -68,7 +71,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.collect.Iterables;
@@ -102,6 +107,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
   private final BooleanFormulaManager bfmgr;
+  private final PathFormulaManager pfmgr;
 
   // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<>();
@@ -109,7 +115,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // statistics
   private int automatonStates = 0;
 
-  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa,
+      CFA pCFA,
+      ShutdownNotifier pShutdownNotifier,
+      Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
     this.logger = logger;
@@ -121,6 +130,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.formulaManager = cpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    pfmgr = new PathFormulaManagerImpl(
+        formulaManager, config, logger, pShutdownNotifier, pCFA,
+        AnalysisDirection.FORWARD
+    );
   }
 
   @Override
@@ -219,7 +232,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * Add a given assumption for the location and state of a state.
    */
   private void addAssumption(AssumptionWithLocation invariant, BooleanFormula assumption, AbstractState state) {
-    BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
+    BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state, pfmgr);
 
     CFANode loc = extractLocation(state);
     assert loc != null;
