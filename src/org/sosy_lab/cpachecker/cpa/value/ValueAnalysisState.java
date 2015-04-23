@@ -82,23 +82,38 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   /**
-   * the map that keeps the name of variables and their constant values
+   * the map that keeps the name of variables and their constant values (concrete and symbolic ones)
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
 
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
+  private PersistentMap<MemoryLocation, SymbolicValue> symbolicValues;
+
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
+    symbolicValues = PathCopyingPersistentTreeMap.of();
   }
 
   public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap, PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
     this.constantsMap = pConstantsMap;
     this.memLocToType = pLocToTypeMap;
+    symbolicValues = PathCopyingPersistentTreeMap.of();
+  }
+
+
+  private ValueAnalysisState(
+      final PersistentMap<MemoryLocation, Value> pConstantsMap,
+      final PersistentMap<MemoryLocation, Type> pLocToTypeMap,
+      final PersistentMap<MemoryLocation, SymbolicValue> pSymbolicsMap
+  ) {
+    this.constantsMap = pConstantsMap;
+    this.memLocToType = pLocToTypeMap;
+    symbolicValues = pSymbolicsMap;
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.constantsMap, state.memLocToType);
+    return new ValueAnalysisState(state.constantsMap, state.memLocToType, state.symbolicValues);
   }
 
   /**
@@ -120,6 +135,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
     if (valueToAdd instanceof SymbolicValue) {
       valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
+      symbolicValues.putAndCopy(pMemLoc, (SymbolicValue) valueToAdd);
+
+    } else if (symbolicValues.containsKey(pMemLoc)) {
+      symbolicValues.removeAndCopy(pMemLoc);
     }
 
     constantsMap = constantsMap.putAndCopy(pMemLoc, checkNotNull(valueToAdd));
@@ -435,17 +454,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   private Map<MemoryLocation, SymbolicValue> getSymbolicAssignments() {
-    Map<MemoryLocation, SymbolicValue> assignmentMap = new HashMap<>();
-
-    for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
-      Value currVal = entry.getValue();
-
-      if (currVal instanceof SymbolicValue) {
-        assignmentMap.put(entry.getKey(), (SymbolicValue) currVal);
-      }
-    }
-
-    return assignmentMap;
+    return symbolicValues;
   }
 
   @Override
