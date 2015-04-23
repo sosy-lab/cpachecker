@@ -225,24 +225,16 @@ public class SymbolicValueAnalysisRefiner
       List<Precision> precisions = new ArrayList<>(2);
 
       // merge the value precision of the subtree
-      VariableTrackingPrecision oldMergedValuePrec =
-          mergeValuePrecisionsForSubgraph(r, pReached);
-      Precision newValuePrec =
-          oldMergedValuePrec.withIncrement(pInterpolants.extractPrecisionIncrement(r));
+      Precision currPrec =
+          mergeValuePrecisionsForSubgraph(r, pReached)
+              .withIncrement(pInterpolants.extractPrecisionIncrement(r));
 
-      precisions.add(newValuePrec);
+      precisions.add(currPrec);
 
       // merge the constraint precisions of the subtree
-      ConstraintsPrecision oldMergedConstraintsPrec =
-          mergeConstraintsPrecisionsForSubgraph(r, pReached);
-      Precision newConstraintsPrec =
-          oldMergedConstraintsPrec.withIncrement(getConstraintsIncrement(r, pInterpolants));
-
-      precisions.add(newConstraintsPrec);
-
-      assert !oldMergedValuePrec.equals(newValuePrec)
-          || !oldMergedConstraintsPrec.equals(newConstraintsPrec)
-          : "Precision didn't change!";
+      currPrec = mergeConstraintsPrecisionsForSubgraph(r, pReached)
+          .withIncrement(getConstraintsIncrement(r, pInterpolants));
+      precisions.add(currPrec);
 
       refinementInformation.put(r, precisions);
     }
