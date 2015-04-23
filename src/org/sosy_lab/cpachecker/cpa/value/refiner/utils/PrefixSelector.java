@@ -23,24 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 
 public class PrefixSelector {
 
@@ -109,18 +103,18 @@ public class PrefixSelector {
     loopStructure   = pLoopStructure;
   }
 
-  public ARGPath selectSlicedPrefix(PrefixPreference pPrefixPreference,
-      Map<ARGPath, List<Pair<ARGState, Set<String>>>> pPrefixToPrecisionMapping) {
+  public InfeasiblePrefix selectSlicedPrefix(PrefixPreference pPrefixPreference,
+      List<InfeasiblePrefix> pInfeasiblePrefixes) {
 
     switch (pPrefixPreference) {
     case SHORTEST:
-      return FluentIterable.from(pPrefixToPrecisionMapping.keySet()).get(0);
+      return pInfeasiblePrefixes.get(0);
 
     case LONGEST:
-      return FluentIterable.from(pPrefixToPrecisionMapping.keySet()).get(pPrefixToPrecisionMapping.size() - 1);
+      return Iterables.getLast(pInfeasiblePrefixes);
 
     case RANDOM:
-      return FluentIterable.from(pPrefixToPrecisionMapping.keySet()).get(new Random().nextInt(pPrefixToPrecisionMapping.size()));
+      return pInfeasiblePrefixes.get(new Random().nextInt(pInfeasiblePrefixes.size()));
 
     // scoring based on domain-types
     case DOMAIN_BEST_SHALLOW:
@@ -151,7 +145,7 @@ public class PrefixSelector {
     case ASSUMPTIONS_FEWEST_DEEP:
     case ASSUMPTIONS_MOST_SHALLOW:
     case ASSUMPTIONS_MOST_DEEP:
-      return obtainScoreBasedPrefix(pPrefixPreference, pPrefixToPrecisionMapping);
+      return obtainScoreBasedPrefix(pPrefixPreference, pInfeasiblePrefixes);
 
     default:
       assert (false) : "invalid prefix-preference " + pPrefixPreference + " given";
@@ -159,18 +153,18 @@ public class PrefixSelector {
     }
   }
 
-  private ARGPath obtainScoreBasedPrefix(PrefixPreference pPrefixPreference,
-      Map<ARGPath, List<Pair<ARGState, Set<String>>>> pPrefixToPrecisionMapping) {
+  private InfeasiblePrefix obtainScoreBasedPrefix(PrefixPreference pPrefixPreference,
+      List<InfeasiblePrefix> pInfeasiblePrefixes) {
     if (!classification.isPresent()) {
       // TODO: log user-warning here
-      return FluentIterable.from(pPrefixToPrecisionMapping.keySet()).get(0);
+      return pInfeasiblePrefixes.get(0);
     }
 
     Integer bestScore = null;
-    ARGPath bestPrefix = null;
+    InfeasiblePrefix bestPrefix = null;
 
-    for (ARGPath currentPrefix : pPrefixToPrecisionMapping.keySet()) {
-      int score = obtainScoreForPath(pPrefixPreference, currentPrefix, pPrefixToPrecisionMapping.get(currentPrefix));
+    for (InfeasiblePrefix currentPrefix : pInfeasiblePrefixes) {
+      int score = obtainScoreForPrefix(pPrefixPreference, currentPrefix);
 
       if (pPrefixPreference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
@@ -181,42 +175,41 @@ public class PrefixSelector {
     return bestPrefix;
   }
 
-  private int obtainScoreForPath(PrefixPreference pPrefixPreference,
-      ARGPath pPrefix,
-      List<Pair<ARGState, Set<String>>> pItpSequence) {
+  private int obtainScoreForPrefix(PrefixPreference pPrefixPreference, InfeasiblePrefix pPrefix) {
     switch (pPrefixPreference) {
     case DOMAIN_BEST_SHALLOW:
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_SHALLOW:
     case DOMAIN_WORST_DEEP:
-      return obtainDomainTypeScoreForPath(pItpSequence);
+      return obtainDomainTypeScoreForPath(pPrefix);
 
     case DOMAIN_PRECISE_BEST_SHALLOW:
     case DOMAIN_PRECISE_BEST_DEEP:
     case DOMAIN_PRECISE_WORST_SHALLOW:
     case DOMAIN_PRECISE_WORST_DEEP:
-      return obtainPreciseDomainTypeScoreForPath(pItpSequence);
+      return obtainPreciseDomainTypeScoreForPath(pPrefix);
 
     case ITP_LENGTH_SHORT_SHALLOW:
     case ITP_LENGTH_LONG_SHALLOW:
     case ITP_LENGTH_SHORT_DEEP:
     case ITP_LENGTH_LONG_DEEP:
-      return obtainItpSequenceLengthForPath(pItpSequence);
+      return obtainItpSequenceLengthForPath(pPrefix);
 
     case REFINE_SHALLOW:
     case REFINE_DEEP:
-      return obtainPivotStateDepthForPath(pItpSequence);
+      return obtainPivotStateDepthForPath(pPrefix);
 
     case ASSIGNMENTS_FEWEST_SHALLOW:
     case ASSIGNMENTS_FEWEST_DEEP:
     case ASSIGNMENTS_MOST_SHALLOW:
     case ASSIGNMENTS_MOST_DEEP:
-      return obtainAssignmentCountForPath(pPrefix, pItpSequence);
+      return obtainAssignmentCountForPath(pPrefix);
+
     case ASSUMPTIONS_FEWEST_SHALLOW:
     case ASSUMPTIONS_FEWEST_DEEP:
     case ASSUMPTIONS_MOST_SHALLOW:
     case ASSUMPTIONS_MOST_DEEP:
-      return obtainAssumptionCountForPath(pPrefix, pItpSequence);
+      return obtainAssumptionCountForPath(pPrefix);
 
     default:
       assert false;
@@ -224,15 +217,14 @@ public class PrefixSelector {
     }
   }
 
-  private int obtainDomainTypeScoreForPath(List<Pair<ARGState, Set<String>>> itpSequence) {
-    return classification.get().obtainDomainTypeScoreForVariables(extractVariablesFromItpSequence(itpSequence), loopStructure);
+  private int obtainDomainTypeScoreForPath(final InfeasiblePrefix pPrefix) {
+    return classification.get().obtainDomainTypeScoreForVariables(extractVariablesFromItpSequence(pPrefix), loopStructure);
   }
 
-  private int obtainPreciseDomainTypeScoreForPath(List<Pair<ARGState, Set<String>>> itpSequence) {
-
+  private int obtainPreciseDomainTypeScoreForPath(final InfeasiblePrefix pPrefix) {
     int score = 0;
-    for (Pair<ARGState, Set<String>> itp : itpSequence) {
-      int temp = classification.get().obtainDomainTypeScoreForVariables2(itp.getSecond(), loopStructure);
+    for (Set<String> variables : pPrefix.extractListOfVariables()) {
+      int temp = classification.get().obtainDomainTypeScoreForVariables2(variables, loopStructure);
 
       // check for overflow
       if(score + temp < score) {
@@ -245,33 +237,17 @@ public class PrefixSelector {
     return score;
   }
 
-  private int obtainItpSequenceLengthForPath(List<Pair<ARGState, Set<String>>> itpSequence) {
-    return FluentIterable.from(itpSequence).filter(new Predicate<Pair<ARGState, Set<String>>>() {
-      @Override
-      public boolean apply(Pair<ARGState, Set<String>> pInput) {
-        return !pInput.getSecond().isEmpty();
-      }}).size();
+  private int obtainItpSequenceLengthForPath(final InfeasiblePrefix pPrefix) {
+    return pPrefix.getNonTrivialLength();
   }
 
-  private int obtainPivotStateDepthForPath(List<Pair<ARGState, Set<String>>> itpSequence) {
-    int depth = 0;
-
-    for (Pair<ARGState, Set<String>> itp : itpSequence) {
-      if(!itp.getSecond().isEmpty()) {
-        return depth;
-      }
-
-      depth++;
-    }
-
-    assert false : "There must be at least one non-empty definition along the path";
-
-    return -1;
+  private int obtainPivotStateDepthForPath(final InfeasiblePrefix pPrefix) {
+    return pPrefix.getDepthOfPivotState();
   }
 
-  private int obtainAssignmentCountForPath(final ARGPath prefix, List<Pair<ARGState, Set<String>>> itpSequence) {
+  private int obtainAssignmentCountForPath(final InfeasiblePrefix prefix) {
     int count = 0;
-    for (String variable : extractVariablesFromItpSequence(itpSequence)) {
+    for (String variable : extractVariablesFromItpSequence(prefix)) {
       count = count + classification.get().getAssignedVariables().count(variable);
 
       // special case for (RERS)-input variables
@@ -286,42 +262,28 @@ public class PrefixSelector {
     return count;
   }
 
-  private int obtainAssumptionCountForPath(final ARGPath prefix, List<Pair<ARGState, Set<String>>> itpSequence) {
+  private int obtainAssumptionCountForPath(final InfeasiblePrefix prefix) {
     int count = 0;
-    for (String variable : extractVariablesFromItpSequence(itpSequence)) {
+    for (String variable : extractVariablesFromItpSequence(prefix)) {
       count = count + classification.get().getAssumedVariables().count(variable);
     }
 
     return count;
   }
 
-  private Set<String> extractVariablesFromItpSequence(List<Pair<ARGState, Set<String>>> itpSequence) {
-    return FluentIterable.from(itpSequence).transformAndConcat(new Function<Pair<ARGState, Set<String>>, Iterable<String>>() {
-      @Override
-      public Iterable<String> apply(Pair<ARGState, Set<String>> itp) {
-        return itp.getSecond();
-      }}).toSet();
+  private Set<String> extractVariablesFromItpSequence(InfeasiblePrefix pPrefix) {
+    return pPrefix.extractSetOfVariables();
   }
 
-  public int obtainScoreForPrefixes(List<ARGPath> pPrefixes, PrefixPreference preference) {
+  public int obtainScoreForPrefixes(List<InfeasiblePrefix> pPrefixes, PrefixPreference preference) {
     if (!classification.isPresent()) {
       return Integer.MAX_VALUE;
     }
 
     int bestScore = Integer.MAX_VALUE;
-    for (ARGPath currentPrefix : pPrefixes) {
+    for (InfeasiblePrefix currentPrefix : pPrefixes) {
 
-      UseDefRelation useDefRelation = new UseDefRelation(currentPrefix, classification.get().getIntBoolVars());
-      UseDefBasedInterpolator useDefInterpolator = new UseDefBasedInterpolator(
-          currentPrefix,
-          useDefRelation);
-
-      Set<String> variables = new HashSet<>();
-      for (Pair<ARGState, ValueAnalysisInterpolant> itp : useDefInterpolator.obtainInterpolants()) {
-        variables.addAll(FluentIterable.from(itp.getSecond().getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
-      }
-
-      int score = classification.get().obtainDomainTypeScoreForVariables(variables, loopStructure);
+      int score = this.obtainDomainTypeScoreForPath(currentPrefix);
       if (preference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
       }

@@ -31,7 +31,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,6 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -220,7 +220,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Override
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
-int initialSize = allStatesTrace.size();
+
     if (isRefinementSelectionEnabled(allStatesTrace)) {
       allStatesTrace = performRefinementSelection(allStatesTrace);
     }
@@ -259,15 +259,8 @@ int initialSize = allStatesTrace.size();
 
     // build the counterexample
     buildCounterexampeTraceTime.start();
-    final CounterexampleTraceInfo counterexample;
-
-    if (allStatesTrace.size() != initialSize) {
-      counterexample = CounterexampleTraceInfo.infeasible(PredicateBasedPrefixProvider.prefixToItpSequences.get(allStatesTrace));
-    }
-    else {
-      counterexample = formulaManager.buildCounterexampleTrace(
+    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(
             formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace), elementsOnPath, strategy.needsInterpolants());
-    }
     buildCounterexampeTraceTime.stop();
 
     // if error is spurious refine
@@ -321,66 +314,25 @@ int initialSize = allStatesTrace.size();
   }
 
   private ARGPath performRefinementSelection(ARGPath allStatesTrace) throws CPAException, InterruptedException {
-    List<ARGPath> infeasilbePrefixes = extractInfeasiblePrefixes(allStatesTrace);
+    List<InfeasiblePrefix> infeasilbePrefixes = extractInfeasiblePrefixes(allStatesTrace);
     totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
     if(!infeasilbePrefixes.isEmpty()) {
-      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = buildPrefixToPrecisionMap(infeasilbePrefixes);
-
       prefixSelectionTime.start();
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
-      allStatesTrace = selector.selectSlicedPrefix(prefixPreference, prefixToPrecisionMapping);
+      allStatesTrace = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
       prefixSelectionTime.stop();
     }
 
     return allStatesTrace;
   }
 
-  private Map<ARGPath, List<Pair<ARGState, Set<String>>>> buildPrefixToPrecisionMap(List<ARGPath> infeasilbePrefixes) throws CPAException,
-      InterruptedException, CPATransferException {
-
-    Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new LinkedHashMap<>();
-
-    prefixInterpolationTime.start();
-    int i = 1;
-    for (ARGPath infeasiblePrefix : infeasilbePrefixes) {
-      final ArrayList<ARGState> abstractionStates = Lists.<ARGState>newArrayList(transformPath(infeasiblePrefix));
-
-      List<ARGState> states = abstractionStates.subList(0, abstractionStates.size() - 1);
-
-      List<BooleanFormula> interpolants = PredicateBasedPrefixProvider.prefixToItpSequences.get(infeasiblePrefix);
-/*
-      interpolants = formulaManager.buildCounterexampleTrace(
-          recomputePathFormulae(infeasiblePrefix),
-          Lists.<AbstractState>newArrayList(abstractionStates),
-          Sets.newHashSet(abstractionStates),
-          true).getInterpolants();
-*/
-      List<Pair<ARGState, Set<String>>> itpSequence = buildInterpolationSequence(states, interpolants);
-      prefixToPrecisionMapping.put(infeasiblePrefix, itpSequence);
-    }
-    prefixInterpolationTime.stop();
-
-    return prefixToPrecisionMapping;
-  }
-
-  private List<Pair<ARGState, Set<String>>> buildInterpolationSequence(List<ARGState> states,
-      List<BooleanFormula> interpolants) {
-
-    List<Pair<ARGState, Set<String>>> itpSequence = new ArrayList<>();
-    for (Pair<ARGState, BooleanFormula> itp : Pair.zipList(states, interpolants)) {
-      itpSequence.add(Pair.of(itp.getFirst(), fmgr.extractVariableNames(fmgr.uninstantiate(itp.getSecond()))));
-    }
-
-    return itpSequence;
-  }
-
-  private List<ARGPath> extractInfeasiblePrefixes(ARGPath allStatesTrace) throws CPAException,
+  private List<InfeasiblePrefix> extractInfeasiblePrefixes(ARGPath allStatesTrace) throws CPAException,
       InterruptedException {
     PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
 
     prefixExtractionTime.start();
-    List<ARGPath> infeasilbePrefixes = provider.extractInfeasilbePrefixes(allStatesTrace);
+    List<InfeasiblePrefix> infeasilbePrefixes = provider.extractInfeasilbePrefixes(allStatesTrace);
     prefixExtractionTime.stop();
 
     return infeasilbePrefixes;

@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -74,7 +75,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -167,58 +167,33 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * @throws CPAException
    */
   private ARGPath performRefinementSelection(ARGPath errorPath, ValueAnalysisInterpolant interpolant) throws CPAException {
-    List<ARGPath> infeasilbePrefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
+    List<InfeasiblePrefix> infeasilbePrefixes = extractInfeasibleSlicedPrefixes(errorPath, interpolant);
     totalPrefixes.setNextValue(infeasilbePrefixes.size());
 
     if(!infeasilbePrefixes.isEmpty()) {
-      Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = buildPrefixToPrecisionMap(infeasilbePrefixes);
-
       prefixSelectionTime.start();
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
-      errorPath = selector.selectSlicedPrefix(prefixPreference, prefixToPrecisionMapping);
+      errorPath = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
       prefixSelectionTime.stop();
     }
 
     return errorPath;
   }
 
-  private List<ARGPath> extractInfeasibleSlicedPrefixes(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+  private List<InfeasiblePrefix> extractInfeasibleSlicedPrefixes(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
       throws CPAException {
 
     try {
       ValueAnalysisPrefixProvider prefixProvider = new ValueAnalysisPrefixProvider(logger, cfa, config);
 
       prefixExtractionTime.start();
-      List<ARGPath> prefixes = prefixProvider.extractInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+      List<InfeasiblePrefix> prefixes = prefixProvider.extractInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
       prefixExtractionTime.stop();
 
       return prefixes;
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
-  }
-
-  private Map<ARGPath, List<Pair<ARGState, Set<String>>>> buildPrefixToPrecisionMap(List<ARGPath> prefixes) {
-    prefixInterpolationTime.start();
-    Map<ARGPath, List<Pair<ARGState, Set<String>>>> prefixToPrecisionMapping = new LinkedHashMap<>();
-    for(ARGPath prefix : prefixes) {
-      List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
-          prefix,
-          new UseDefRelation(prefix,
-              cfa.getVarClassification().isPresent()
-                ? cfa.getVarClassification().get().getIntBoolVars()
-                : Collections.<String>emptySet())).obtainInterpolants();
-
-      List<Pair<ARGState, Set<String>>> interpolationSequence = new ArrayList<>();
-      for(Pair<ARGState, ValueAnalysisInterpolant> itp : interpolants) {
-        Set<String> variables = FluentIterable.from(itp.getSecond().getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet();
-        interpolationSequence.add(Pair.of(itp.getFirst(), variables));
-      }
-
-      prefixToPrecisionMapping.put(prefix, interpolationSequence);
-    }
-    prefixInterpolationTime.stop();
-    return prefixToPrecisionMapping;
   }
 
   /**

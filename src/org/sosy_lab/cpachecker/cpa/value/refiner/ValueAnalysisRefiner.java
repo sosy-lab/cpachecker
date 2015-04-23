@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -578,8 +579,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           ARGPath path2 = ARGUtils.getOnePathTo(target2);
 
           if(itpSortedTargets) {
-            List<ARGPath> prefixes1 = prefixProvider.extractInfeasilbePrefixes(path1);
-            List<ARGPath> prefixes2 = prefixProvider.extractInfeasilbePrefixes(path2);
+            List<InfeasiblePrefix> prefixes1 = prefixProvider.extractInfeasilbePrefixes(path1);
+            List<InfeasiblePrefix> prefixes2 = prefixProvider.extractInfeasilbePrefixes(path2);
 
             int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_BEST_SHALLOW);
             int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_BEST_SHALLOW);

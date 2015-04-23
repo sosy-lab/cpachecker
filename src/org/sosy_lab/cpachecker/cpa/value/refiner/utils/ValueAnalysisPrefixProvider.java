@@ -43,17 +43,23 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -63,6 +69,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
   private final ValueAnalysisTransferRelation transfer;
   private final VariableTrackingPrecision precision;
   private MutableARGPath feasiblePrefix;
+  private Optional<VariableClassification> classification;
 
   /**
    * This method acts as the constructor of the class.
@@ -73,10 +80,12 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
    * @throws InvalidConfigurationException
    */
   public ValueAnalysisPrefixProvider(LogManager pLogger, CFA pCfa, Configuration config) throws InvalidConfigurationException {
-    logger    = pLogger;
+    logger = pLogger;
 
-    transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-    precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
+    classification = pCfa.getVarClassification();
+
+    transfer = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
+    precision = VariableTrackingPrecision.createStaticPrecision(config, classification, ValueAnalysisCPA.class);
   }
 
   /**
@@ -88,7 +97,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
    * @throws CPAException
    */
   @Override
-  public List<ARGPath> extractInfeasilbePrefixes(final ARGPath path)
+  public List<InfeasiblePrefix> extractInfeasilbePrefixes(final ARGPath path)
       throws CPAException {
     return extractInfeasilbePrefixes(path, new ValueAnalysisState());
   }
@@ -102,10 +111,10 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
    * @return the list of prefix of the path that are feasible by themselves
    * @throws CPAException
    */
-  public List<ARGPath> extractInfeasilbePrefixes(final ARGPath path, final ValueAnalysisState pInitial)
+  public List<InfeasiblePrefix> extractInfeasilbePrefixes(final ARGPath path, final ValueAnalysisState pInitial)
       throws CPAException {
 
-    List<ARGPath> prefixes = new ArrayList<>();
+    List<InfeasiblePrefix> prefixes = new ArrayList<>();
     boolean performAbstraction = precision.allowsAbstraction();
     Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
 
@@ -173,15 +182,9 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
         iterator.advance();
       }
 
-      // prefixes is empty => path is feasible, so add complete path
-      if (prefixes.isEmpty()) {
-        logger.log(Level.FINE, "no infeasible prefixes found - path is feasible");
-        prefixes.add(path);
-      }
-
       return prefixes;
     } catch (CPATransferException e) {
-      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+      throw new CPAException("Computation of infeasible prefixes failed: " + e.getMessage(), e);
     }
   }
 
@@ -197,7 +200,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     return assignments.getMemoryLocationsExceedingHardThreshold();
   }
 
-  private ARGPath buildInfeasiblePrefix(final ARGPath path, MutableARGPath currentPrefix) {
+  private InfeasiblePrefix buildInfeasiblePrefix(final ARGPath path, MutableARGPath currentPrefix) {
     MutableARGPath infeasiblePrefix = new MutableARGPath();
     infeasiblePrefix.addAll(currentPrefix);
 
@@ -205,7 +208,15 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     // transition is needed, so we add the final (error) state
     infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
 
-    return infeasiblePrefix.immutableCopy();
+    List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
+        infeasiblePrefix.immutableCopy(),
+        new UseDefRelation(infeasiblePrefix.immutableCopy(),
+            classification.isPresent()
+              ? classification.get().getIntBoolVars()
+              : Collections.<String>emptySet())).obtainInterpolants();
+
+    return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix.immutableCopy(),
+        FluentIterable.from(interpolants).transform(Pair.<ValueAnalysisInterpolant>getProjectionToSecond()).toList());
   }
 
   public ARGPath extractFeasilbePath(final ARGPath path)

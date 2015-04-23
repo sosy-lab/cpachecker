@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -236,11 +237,11 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
   private int obtainScoreForValueDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
     timeForVAPrefixes.start();
-    List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+    List<InfeasiblePrefix> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
     timeForVAPrefixes.stop();
 
     // if path is feasible hand out a real bad score
-    if(vaPrefixes.get(0) == pErrorPath) {
+    if(vaPrefixes.isEmpty()) {
       return Integer.MAX_VALUE;
     }
 
@@ -253,7 +254,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
   private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
     timeForPAPrefixes.start();
-    List<ARGPath> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
+    List<InfeasiblePrefix> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
     timeForPAPrefixes.stop();
     this.avgPrefixesPA.setNextValue(paPrefixes.size());
 
@@ -262,13 +263,13 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     return paScore;
   }
 
-  private List<ARGPath> getPrefixesOfValueDomain(final ARGPath pErrorPath)
+  private List<InfeasiblePrefix> getPrefixesOfValueDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     return valueCpaPrefixProvider.extractInfeasilbePrefixes(pErrorPath);
   }
 
-  private List<ARGPath> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
+  private List<InfeasiblePrefix> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     return predicateCpaPrefixProvider.extractInfeasilbePrefixes(pErrorPath);
