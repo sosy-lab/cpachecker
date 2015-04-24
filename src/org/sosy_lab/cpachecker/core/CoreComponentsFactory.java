@@ -105,7 +105,7 @@ public class CoreComponentsFactory {
 
   @Option(secure=true,
       description="memorize previously used (incomplete) reached sets after a restart of the analysis")
-  private boolean memorizeReachedAfterRestart;
+  private boolean memorizeReachedAfterRestart = false;
 
   @Option(secure=true, name="combineARGsAfterRestart",
       description="combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration")
