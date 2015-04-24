@@ -104,7 +104,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
       while (pReachedSet.hasWaitingState()) {
         shutdownNotifier.shutdownIfNecessary();
 
-        stats.countIterations++;
+        stats.increaseIteration();
         ARGState state = (ARGState) pReachedSet.popFromWaitlist();
 
         logger.log(Level.FINE, "Looking at state", state);
@@ -135,29 +135,29 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
       }
     }
 
-    stats.stopTimer.start();
+    stats.getStopTimer().start();
     if (!isCoveringCycleFree(pCovered)) {
-      stats.stopTimer.stop();
+      stats.getStopTimer().stop();
       logger.log(Level.WARNING, "Found cycle in covering relation for state", pCovered);
       return false;
     }
     if (!checkCovering(pCovered, coveringState, pPrecision)) {
-      stats.stopTimer.stop();
+      stats.getStopTimer().stop();
       logger.log(Level.WARNING, "State", pCovered, "is not covered by", coveringState);
       return false;
     }
-    stats.stopTimer.stop();
+    stats.getStopTimer().stop();
     return true;
   }
 
   private boolean checkAndAddSuccessors(final ARGState pPredecessor, final ReachedSet pReachedSet,
       final Precision pPrecision, List<ARGState> pIncompleteStates)
       throws InterruptedException, CPAException {
-   stats.transferTimer.start();
+   stats.getTransferTimer().start();
     Collection<ARGState> successors = pPredecessor.getChildren();
     logger.log(Level.FINER, "Checking abstract successors", successors);
     if (!checkSuccessors(pPredecessor, successors, pPrecision)) {
-      stats.transferTimer.stop();
+      stats.getTransferTimer().stop();
       if(pIncompleteStates != null) {
         pIncompleteStates.add(pPredecessor);
         logger.log(Level.FINER, "State", pPredecessor, "is explored incompletely, will be recorded in the assumption automaton.");
@@ -166,7 +166,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
       logger.log(Level.WARNING, "State", pPredecessor, "has other successors than", successors);
       return false;
     }
-    stats.transferTimer.stop();
+    stats.getTransferTimer().stop();
 
     if (!addSuccessors(successors, pReachedSet, pPrecision)) { return false; }
     return true;
@@ -181,13 +181,13 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
     try {
-      stats.preparationTimer.start();
+      stats.getPreparationTimer().start();
     if (!(pReadProof instanceof ARGState)) {
       throw new InvalidConfigurationException("Proof Strategy requires ARG.");
     }
     root = (ARGState) pReadProof;
     } finally {
-      stats.preparationTimer.stop();
+      stats.getPreparationTimer().stop();
     }
   }
 
@@ -204,10 +204,10 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
   protected boolean checkForStatePropertyAndOtherStateActions(ARGState pState) {
     try {
-      stats.propertyCheckingTimer.start();
+      stats.getPropertyCheckingTimer().start();
       return propChecker.satisfiesProperty(pState);
     } finally {
-      stats.propertyCheckingTimer.stop();
+      stats.getPropertyCheckingTimer().stop();
     }
   }
 

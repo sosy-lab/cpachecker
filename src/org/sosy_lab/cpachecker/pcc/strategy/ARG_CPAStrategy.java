@@ -90,10 +90,10 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   protected boolean isCheckSuccessful() {
     if (!singleCheck) {
       try {
-        stats.propertyCheckingTimer.start();
+        stats.getPropertyCheckingTimer().start();
         return propChecker.satisfiesProperty(visitedStates);
       } finally {
-        stats.propertyCheckingTimer.stop();
+        stats.getPropertyCheckingTimer().stop();
       }
     }
     return true;
