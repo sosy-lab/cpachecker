@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -74,8 +75,14 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
   @Override
   public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
-    initChecking(root);
+    return checkCertificate(pReachedSet, root, null);
+  }
+
+
+  protected boolean checkCertificate(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> incompleteStates)
+      throws CPAException, InterruptedException {
+  //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
+    initChecking(pRoot);
 
     logger.log(Level.INFO, "Proof check algorithm started");
 
@@ -84,11 +91,11 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
     logger.log(Level.FINE, "Checking root state");
 
-    if (!checkCovering(initialState, root, initialPrecision)) {
+    if (!checkCovering(initialState, pRoot, initialPrecision)) {
       return false;
     }
 
-    pReachedSet.add(root, initialPrecision);
+    pReachedSet.add(pRoot, initialPrecision);
 
     do{
 
@@ -110,7 +117,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
         if (state.isCovered()) {
           if (!checkCoveredStates(state, pReachedSet, initialPrecision)) { return false; }
         } else {
-          if (!checkAndAddSuccessors(state, pReachedSet, initialPrecision)) { return false; }
+          if (!checkAndAddSuccessors(state, pReachedSet, initialPrecision, incompleteStates)) { return false; }
         }
       }
     }while (!isCheckComplete());
@@ -143,13 +150,19 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
     return true;
   }
 
-  private boolean checkAndAddSuccessors(final ARGState pPredecessor, final ReachedSet pReachedSet, final Precision pPrecision)
+  private boolean checkAndAddSuccessors(final ARGState pPredecessor, final ReachedSet pReachedSet,
+      final Precision pPrecision, List<ARGState> pIncompleteStates)
       throws InterruptedException, CPAException {
-    stats.transferTimer.start();
+   stats.transferTimer.start();
     Collection<ARGState> successors = pPredecessor.getChildren();
     logger.log(Level.FINER, "Checking abstract successors", successors);
     if (!checkSuccessors(pPredecessor, successors, pPrecision)) {
       stats.transferTimer.stop();
+      if(pIncompleteStates != null) {
+        pIncompleteStates.add(pPredecessor);
+        logger.log(Level.FINER, "State", pPredecessor, "is explored incompletely, will be recorded in the assumption automaton.");
+        return true;
+      }
       logger.log(Level.WARNING, "State", pPredecessor, "has other successors than", successors);
       return false;
     }
