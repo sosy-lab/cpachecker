@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.pcc.strategy;
+package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.pcc.strategy.SequentialReadStrategy;
 
 
 public abstract class AbstractARGStrategy extends SequentialReadStrategy {
