@@ -107,7 +107,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Analysis successful.", "Start checking analysis result");
       try {
         stats.checkTimer.start();
-        ProofCheckAlgorithm checker = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, pReachedSet);
+        ProofCheckAlgorithm checker = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, pReachedSet, analyzedProgram);
         CoreComponentsFactory factory = new CoreComponentsFactory(config, logger, shutdownNotifier);
         ReachedSet reached = factory.createReachedSet();
         reached.add(cpa.getInitialState(analyzedProgram.getMainFunction(), StateSpacePartition.getDefaultPartition()),

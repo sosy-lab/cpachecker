@@ -162,7 +162,7 @@ public class CoreComponentsFactory {
 
     if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
-      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier);
+      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
