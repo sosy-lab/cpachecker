@@ -71,14 +71,16 @@ public class PCCStrategyBuilder {
       for (Constructor<?> con : cons) {
         paramTypes = con.getParameterTypes();
         if (paramTypes.length == 4) {
-          if (checkRequiredParameters(paramTypes, pCpa)) {
-              return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCpa);
-          }
-          continue;
-        }
-        if (paramTypes.length == 5 && checkRequiredParameters(paramTypes, pCpa)) {
-          if (paramTypes[4] == CFA.class) {
-            return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCpa, pCfa);
+          if (checkRequiredParameters(paramTypes)) {
+            if (paramTypes[3] == CFA.class) {
+              return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCfa);
+            } else {
+              if (pCpa == null
+                  || (paramTypes[3] == ProofChecker.class && pCpa instanceof ProofChecker)
+                  || (paramTypes[3] == PropertyCheckerCPA.class && pCpa instanceof PropertyCheckerCPA)) {
+                return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCpa);
+              }
+            }
           }
         }
       }
@@ -95,12 +97,9 @@ public class PCCStrategyBuilder {
     }
   }
 
-  private static boolean checkRequiredParameters(Class<?>[] paramTypes, ConfigurableProgramAnalysis pCpa) {
+  private static boolean checkRequiredParameters(Class<?>[] paramTypes) {
     return paramTypes[0] == Configuration.class
         && paramTypes[1] == LogManager.class
-        && paramTypes[2] == ShutdownNotifier.class
-        && (pCpa == null
-             || (paramTypes[3] == ProofChecker.class && pCpa instanceof ProofChecker)
-             || (paramTypes[3] == PropertyCheckerCPA.class && pCpa instanceof PropertyCheckerCPA));
+        && paramTypes[2] == ShutdownNotifier.class;
   }
 }
