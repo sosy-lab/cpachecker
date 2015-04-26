@@ -287,33 +287,14 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
     // a != b, a != 1
     case NOT_EQUALS: {
-      if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
-        return noSuccessors();
-      }
 
-      // depends on the fact that operand2 is a literal and one of the following:
-      // - we split always into two intervals
-      // - operand 2 is a bound of the interval, then splitting would yield only one new interval
-      if (interval2.getLow().equals(interval2.getHigh())
-          && splitIntervals) {
-        Collection<IntervalAnalysisState> successors = new ArrayList<>();
+      // Splitting depends on the fact that one operand is a literal.
+      // Then we try to split into two intervals.
+      if (interval2.getLow().equals(interval2.getHigh())) {
+        return splitInterval(newState, operand1, interval1, interval2);
 
-        Interval part1 = interval1.intersect(Interval.createUpperBoundedInterval(interval2.getLow() - 1L));
-        Interval part2 = interval1.intersect(Interval.createLowerBoundedInterval(interval2.getLow() + 1L));
-
-        if (!part1.isEmpty()) {
-          IntervalAnalysisState newState2 = IntervalAnalysisState.copyOf(newState);
-          addInterval(newState2, operand1, part1);
-          successors.add(newState2);
-        }
-
-        if (!part2.isEmpty()) {
-          IntervalAnalysisState newState3 = IntervalAnalysisState.copyOf(newState);
-          addInterval(newState3, operand1, part2);
-          successors.add(newState3);
-        }
-
-        return successors;
+      } else if (interval1.getLow().equals(interval1.getHigh())) {
+        return splitInterval(newState, operand2, interval2, interval1);
 
       } else {
         // we know nothing more than before
@@ -336,28 +317,40 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
    * @param splitPoint singular interval where to split
    * @return two states
    */
-  private Collection<IntervalAnalysisState> splitInterval(IntervalAnalysisState newState, CExpression lhs, Interval interval,
-      Interval splitPoint) {
-    Collection<IntervalAnalysisState> successors = new ArrayList<>();
+  private Collection<IntervalAnalysisState> splitInterval(
+      IntervalAnalysisState newState, CExpression lhs, Interval interval, Interval splitPoint) {
 
-    Interval part1 = interval.intersect(Interval.createUpperBoundedInterval(splitPoint.getLow() - 1L));
-    Interval part2 = interval.intersect(Interval.createLowerBoundedInterval(splitPoint.getLow() + 1L));
+    assert splitPoint.getLow().equals(splitPoint.getHigh()) : "invalid splitpoint for interval";
 
-    if (!part1.isEmpty()) {
-      IntervalAnalysisState newState2 = IntervalAnalysisState.copyOf(newState);
-      addInterval(newState2, lhs, part1);
-      successors.add(newState2);
+    // we split in following cases:
+    // - either always because of the option 'splitIntervals'
+    // - or if the splitPoint is the bound of the interval and thus we can shrink the interval.
+    if (splitIntervals
+        || interval.getLow().equals(splitPoint.getHigh())
+        || interval.getHigh().equals(splitPoint.getHigh())) {
+
+      Collection<IntervalAnalysisState> successors = new ArrayList<>();
+
+      Interval part1 = interval.intersect(Interval.createUpperBoundedInterval(splitPoint.getLow() - 1L));
+      Interval part2 = interval.intersect(Interval.createLowerBoundedInterval(splitPoint.getLow() + 1L));
+
+      if (!part1.isEmpty()) {
+        IntervalAnalysisState newState2 = IntervalAnalysisState.copyOf(newState);
+        addInterval(newState2, lhs, part1);
+        successors.add(newState2);
+      }
+
+      if (!part2.isEmpty()) {
+        IntervalAnalysisState newState3 = IntervalAnalysisState.copyOf(newState);
+        addInterval(newState3, lhs, part2);
+        successors.add(newState3);
+      }
+
+      return successors;
+    } else {
+      return soleSuccessor(newState);
     }
-
-    if (!part2.isEmpty()) {
-      IntervalAnalysisState newState3 = IntervalAnalysisState.copyOf(newState);
-      addInterval(newState3, lhs, part2);
-      successors.add(newState3);
-    }
-
-    return successors;
   }
-
 
   private void addInterval(IntervalAnalysisState newState,
       CExpression lhs, Interval interval) {
