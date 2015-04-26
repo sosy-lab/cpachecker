@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -235,27 +236,10 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
           throws UnrecognizedCCodeException {
 
-      BinaryOperator operator = ((CBinaryExpression)expression).getOperator();
-      CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
-      CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
+    BinaryOperator operator = ((CBinaryExpression)expression).getOperator();
+    CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
+    CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
 
-      switch (operator) {
-        case EQUALS:
-        case NOT_EQUALS:
-        case GREATER_THAN:
-        case GREATER_EQUAL:
-        case LESS_THAN:
-        case LESS_EQUAL:
-          return processAssumption(operator, operand1, operand2, truthValue);
-        default:
-          throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
-      }
-  }
-
-
-  private Collection<IntervalAnalysisState> processAssumption(
-      BinaryOperator operator, CExpression operand1, CExpression operand2, boolean truthValue)
-          throws UnrecognizedCCodeException {
     if (!truthValue) {
       operator = negateOperator(operator);
     }
@@ -365,7 +349,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       if (splitIntervals && isIdOp1 && !isIdOp2) {
         IntervalAnalysisState newState2 = null;
 
-        Collection<IntervalAnalysisState> successors = new LinkedList<>();
+        Collection<IntervalAnalysisState> successors = new ArrayList<>();
 
         Interval result = null;
 
@@ -548,53 +532,86 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         return Interval.createUnboundInterval();
       }
 
-      switch (binaryExpression.getOperator()) {
-        case PLUS:
-          return interval1.plus(interval2);
+      BinaryOperator operator = binaryExpression.getOperator();
+      if (operator.isLogicalOperator()) {
+        return getLogicInterval(operator, interval1, interval2);
+      } else {
+        return getArithmeticInterval(operator, interval1, interval2);
+      }
+    }
 
-        case MINUS:
-          return interval1.minus(interval2);
+    private static Interval getLogicInterval(BinaryOperator operator,
+        Interval interval1, Interval interval2) {
+      switch (operator) {
+      case EQUALS:
+        if (!interval1.intersects(interval2)) {
+          return Interval.ZERO;
+        } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
+          // singular interval, [5;5]==[5;5]
+          return Interval.ONE;
+        } else {
+          return Interval.createBooleanInterval();
+        }
 
-        case MULTIPLY:
-          return interval1.times(interval2);
+      case NOT_EQUALS:
+        if (!interval1.intersects(interval2)) {
+          return Interval.ONE;
+        } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
+          // singular interval, [5;5]!=[5;5]
+          return Interval.ZERO;
+        } else {
+          return Interval.createBooleanInterval();
+        }
 
-        case DIVIDE:
-          return interval1.divide(interval2);
+      case GREATER_THAN:
+        if (interval1.isGreaterThan(interval2)) {
+          return Interval.ONE;
+        } else if (interval1.isLessThan(interval2)) {
+          return Interval.ZERO;
+        } else {
+          return Interval.createBooleanInterval();
+        }
 
-        case SHIFT_LEFT:
-          return interval1.shiftLeft(interval2);
+      case GREATER_EQUAL: // a>=b == a+1>b, works only for integers
+        return getLogicInterval(BinaryOperator.GREATER_THAN,
+            interval1.plus(new Interval(1L)), interval2);
 
-        case SHIFT_RIGHT:
-          return interval1.shiftRight(interval2);
+      case LESS_THAN: // a<b == b>a
+        return getLogicInterval(BinaryOperator.GREATER_THAN,
+            interval2, interval1);
 
-        case EQUALS:
-          return new Interval(interval1.intersects(interval2) ? 1L : 0L);
+      case LESS_EQUAL: // a<=b == b+1>a, works only for integers
+        return getLogicInterval(BinaryOperator.GREATER_THAN,
+            interval2.plus(new Interval(1L)), interval1);
 
-        case NOT_EQUALS:
-          return new Interval(!interval1.intersects(interval2) ? 1L : 0L);
+      default:
+        throw new AssertionError("unknown binary operator: " + operator);
+      }
+    }
 
-        case GREATER_THAN:
-          return new Interval(interval1.mayBeGreaterThan(interval2) ? 1L : 0L);
-
-        case GREATER_EQUAL:
-          return new Interval(interval1.mayBeGreaterOrEqualThan(interval2) ? 1L : 0L);
-
-        case LESS_THAN:
-          return new Interval(interval1.mayBeLessThan(interval2) ? 1L : 0L);
-
-        case LESS_EQUAL:
-          return new Interval(interval1.mayBeLessOrEqualThan(interval2) ? 1L : 0L);
-
-        case MODULO:
-          return interval1.modulo(interval2);
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
-          // can these be handled?
-          return Interval.createUnboundInterval();
-
-        default:
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, binaryExpression);
+    private static Interval getArithmeticInterval(BinaryOperator operator,
+        Interval interval1, Interval interval2) {
+      switch (operator) {
+      case PLUS:
+        return interval1.plus(interval2);
+      case MINUS:
+        return interval1.minus(interval2);
+      case MULTIPLY:
+        return interval1.times(interval2);
+      case DIVIDE:
+        return interval1.divide(interval2);
+      case SHIFT_LEFT:
+        return interval1.shiftLeft(interval2);
+      case SHIFT_RIGHT:
+        return interval1.shiftRight(interval2);
+      case MODULO:
+        return interval1.modulo(interval2);
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+        return Interval.createUnboundInterval();
+      default:
+        throw new AssertionError("unknown binary operator: " + operator);
       }
     }
 
