@@ -171,16 +171,6 @@ public class Interval implements Serializable{
   }
 
   /**
-   * This method determines if this interval is definitely less than the other interval.
-   *
-   * @param other interval to compare with
-   * @return true if the upper bound of this interval is always strictly lower than the lower bound of the other interval, else false
-   */
-  public boolean isLessThan(Interval other) {
-    return !isEmpty() && !other.isEmpty() && high < other.low;
-  }
-
-  /**
    * This method determines if this interval is definitely greater than the other interval.
    *
    * @param other interval to compare with
@@ -191,23 +181,14 @@ public class Interval implements Serializable{
   }
 
   /**
-   * This method determines if this interval maybe less than the other interval.
+   * This method determines if this interval is definitely greater or equal than the other interval.
+   * The equality is only satisfied for one single value!
    *
    * @param other interval to compare with
-   * @return true if the lower bound of this interval is strictly lower than the upper bound of the other interval, else false
+   * @return true if the lower bound of this interval is always strictly greater or equal than the upper bound of the other interval, else false
    */
-  public boolean mayBeLessThan(Interval other) {
-    return isEmpty() || (!isEmpty() && !other.isEmpty() && low < other.high);
-  }
-
-  /**
-   * This method determines if this interval maybe less or equal than the other interval.
-   *
-   * @param other interval to compare with
-   * @return true if the lower bound of this interval is strictly lower than the upper bound of the other interval, else false
-   */
-  public boolean mayBeLessOrEqualThan(Interval other) {
-    return isEmpty() || (!isEmpty() && !other.isEmpty() && low <= other.high);
+  public boolean isGreaterOrEqualThan(Interval other) {
+    return !isEmpty() && !other.isEmpty() && low >= other.high;
   }
 
   /**
@@ -438,7 +419,7 @@ public class Interval implements Serializable{
   */
   public Interval shiftLeft(Interval offset) {
     // create an unbound interval upon trying to shift by a possibly negative offset
-    if (offset.mayBeLessThan(ZERO)) {
+    if (ZERO.mayBeGreaterThan(offset)) {
       return createUnboundInterval();
     } else {
       // if lower bound is negative, shift it by upper bound of offset, else by lower bound of offset
@@ -463,7 +444,7 @@ public class Interval implements Serializable{
   */
   public Interval shiftRight(Interval offset) {
     // create an unbound interval upon trying to shift by a possibly negative offset
-    if (offset.mayBeLessThan(ZERO)) {
+    if (ZERO.mayBeGreaterThan(offset)) {
       return createUnboundInterval();
     } else {
       // if lower bound is negative, shift it by lower bound of offset, else by upper bound of offset
@@ -495,7 +476,7 @@ public class Interval implements Serializable{
   }
 
   public boolean isUnbound() {
-    return low == Long.MIN_VALUE && high == Long.MAX_VALUE;
+    return !isEmpty() && low == Long.MIN_VALUE && high == Long.MAX_VALUE;
   }
 
   /* (non-Javadoc)
