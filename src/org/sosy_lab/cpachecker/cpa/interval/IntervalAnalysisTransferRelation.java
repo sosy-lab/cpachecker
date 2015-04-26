@@ -411,7 +411,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     // a != b, a != 1
     else if (operator == BinaryOperator.NOT_EQUALS) {
       // a = [x, x] = b => a and b are always equal, so there can't be a successor
-      if (tmpInterval1.isSingular() && tmpInterval1.equals(tmpInterval2)) {
+      if (tmpInterval1.getLow().equals(tmpInterval1.getHigh()) && tmpInterval1.equals(tmpInterval2)) {
         return noSuccessors();
       }
 
