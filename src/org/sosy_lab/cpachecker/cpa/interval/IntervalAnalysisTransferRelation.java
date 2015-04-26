@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -478,48 +476,20 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   protected Collection<IntervalAnalysisState> handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
     throws UnrecognizedCodeException {
     // expression is an assignment operation, e.g. a = b;
-    IntervalAnalysisState successor;
     if (expression instanceof CAssignment) {
-      successor = handleAssignment(state, (CAssignment)expression, cfaEdge);
-    } else if (expression instanceof CFunctionCallStatement) {
-      successor = IntervalAnalysisState.copyOf(state);
-    } else if (expression instanceof CExpressionStatement) {
-      successor = IntervalAnalysisState.copyOf(state);
-    } else {
-      throw new UnrecognizedCodeException("unknown statement", cfaEdge, expression);
-    }
-    return soleSuccessor(successor);
-  }
+      CAssignment assignExpression = (CAssignment)expression;
+      CExpression op1 = assignExpression.getLeftHandSide();
+      CRightHandSide op2 = assignExpression.getRightHandSide();
 
-   /**
-   * This method handles assignments.
-   *
-   * @param state the analysis state
-   * @param assignExpression the expression containing the binary expression
-   * @param declarationEdge the CFA edge
-   * @return the successor state
-   * TODO pointer dereferencing via strengthening
-   */
-  private IntervalAnalysisState handleAssignment(IntervalAnalysisState state, CAssignment assignExpression, CFAEdge cfaEdge)
-    throws UnrecognizedCCodeException {
-    CExpression op1 = assignExpression.getLeftHandSide();
-    CRightHandSide op2 = assignExpression.getRightHandSide();
-    final IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
-
-    // a = ?
-    if (op1 instanceof CIdExpression) {
-      newState.addInterval(((CIdExpression) op1).getDeclaration().getQualifiedName(),
-          evaluateInterval(state, op2), this.threshold);
+      // a = ?
+      if (op1 instanceof CIdExpression) {
+        IntervalAnalysisState successor = IntervalAnalysisState.copyOf(state);
+        successor.addInterval(((CIdExpression) op1).getDeclaration().getQualifiedName(),
+            evaluateInterval(state, op2), this.threshold);
+        return soleSuccessor(successor);
+      }
     }
-
-    // TODO: assignment to pointer, *a = ?
-    else if (op1 instanceof CPointerExpression) {
-    } else if (op1 instanceof CFieldReference) {
-    } else if (op1 instanceof CArraySubscriptExpression) {
-    } else {
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
-    }
-    return newState;
+    return soleSuccessor(state);
   }
 
   private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression) throws UnrecognizedCCodeException {
@@ -549,11 +519,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   }
 
   /**
-   * Visitor that get's the value from an expression.
-   * The result may be null, i.e., the value is unknown.
+   * Visitor that get's the interval from an expression,
    */
-  private static class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
-                                       implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
+  private static class ExpressionValueVisitor
+      extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
+      implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
 
     private final IntervalAnalysisState readableState;
 
@@ -563,8 +533,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       readableState = pState;
       cfaEdge = edge;
     }
-
-    // TODO fields, arrays
 
     @Override
     protected Interval visitDefault(CExpression expression) {

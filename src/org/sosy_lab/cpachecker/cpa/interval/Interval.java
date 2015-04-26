@@ -231,48 +231,6 @@ public class Interval implements Serializable{
   }
 
   /**
-   * This method determines if this interval represents a false value.
-   *
-   * @return true if this interval represents only values in the interval [0, 0].
-   */
-  public boolean isFalse() {
-    return equals(ZERO);
-  }
-
-  /**
-   * This method determines if this interval represents a true value.
-   *
-   * @return true if this interval represents values that are strictly less than 0 or greater than 0.
-   */
-  public boolean isTrue() {
-    return !isEmpty() && (high < 0 || low > 0);
-  }
-
-  /**
-   * This method creates a new interval instance with the lower and upper bounds being the minimum of both the lower and upper bounds, respectively.
-   *
-   * @param other the other interval
-   * @return the new interval with the respective bounds
-   */
-  public Interval minimum(Interval other) {
-    Interval interval = new Interval(Math.min(low, other.low), Math.min(high, other.high));
-
-    return interval;
-  }
-
-  /**
-   * This method creates a new interval instance with the lower and upper bounds being the maximum of both the lower and upper bounds, respectively.
-   *
-   * @param other the other interval
-   * @return the new interval with the respective bounds
-   */
-  public Interval maximum(Interval other) {
-    Interval interval = new Interval(Math.max(low, other.low), Math.max(high, other.high));
-
-    return interval;
-  }
-
-  /**
    * New interval instance after the modulo computation.
    *
    * @param other the other interval
