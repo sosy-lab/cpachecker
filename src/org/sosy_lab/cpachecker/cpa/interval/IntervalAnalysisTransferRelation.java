@@ -39,12 +39,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -54,15 +52,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -241,50 +236,12 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   protected Collection<IntervalAnalysisState> handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
           throws UnrecognizedCCodeException {
-    // first, unpack the expression to deal with a raw assumption
-    if (expression instanceof CUnaryExpression) {
-      throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
-    }
-
-    // -> *exp - don't know anything
-    else if (expression instanceof CPointerExpression) {
-      return soleSuccessor(IntervalAnalysisState.copyOf(state));
-    }
-
-    // a plain (boolean) identifier, e.g. if (a)
-    else if (expression instanceof CIdExpression) {
-      // this is simplified in the frontend
-      throw new UnrecognizedCCodeException("unexpected expression in assumption", cfaEdge, expression);
-    } else if (expression instanceof CBinaryExpression) {
-      IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
 
       BinaryOperator operator = ((CBinaryExpression)expression).getOperator();
       CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
       CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
 
-      ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
-
-      Interval interval1 = operand1.accept(visitor);
-      Interval interval2 = operand2.accept(visitor);
-
       switch (operator) {
-        case MINUS:
-        case PLUS:
-          Interval result = null;
-
-          if (operator == BinaryOperator.MINUS) {
-            result = interval1.minus(interval2);
-          } else if (operator == BinaryOperator.PLUS) {
-            result = interval1.plus(interval2);
-          }
-
-          // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
-          if ((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue())) {
-            return soleSuccessor(newState);
-          } else {
-            return noSuccessors();
-          }
-
         case EQUALS:
         case NOT_EQUALS:
         case GREATER_THAN:
@@ -292,18 +249,9 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         case LESS_THAN:
         case LESS_EQUAL:
           return processAssumption(operator, operand1, operand2, truthValue);
-
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
-          return soleSuccessor(newState);
-
         default:
           throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
       }
-    }
-
-    return noSuccessors();
   }
 
 
@@ -501,27 +449,18 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         return soleSuccessor(newState);
       }
 
-      String varName = decl.getQualifiedName();
-
       Interval interval;
-
       CInitializer init = decl.getInitializer();
 
       // variable may be initialized explicitly on the spot ...
       if (init instanceof CInitializerExpression) {
         CExpression exp = ((CInitializerExpression) init).getExpression();
-        interval = evaluateInterval(state, exp, functionName, declarationEdge);
+        interval = exp.accept(new ExpressionValueVisitor(state, edge));
       } else {
-        if (decl.isGlobal()) {
-          // according to C standard non initialized global vars are set to 0
-          interval = new Interval(0L);
-        } else {
-          interval = Interval.createUnboundInterval();
-        }
+        interval = Interval.createUnboundInterval();
       }
 
-      newState.addInterval(varName, interval, this.threshold);
-
+      newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
     }
 
     return soleSuccessor(newState);
@@ -585,96 +524,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
   private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression) throws UnrecognizedCCodeException {
     return expression.accept(new ExpressionValueVisitor(readableState, edge));
-  }
-
-  /**
-   * This method evaluates an expression and returns the respective interval.
-   *
-   * @param state the analysis state
-   * @param expression the expression containing the expression to be evaluated
-   * @param functionName the name of the function currently being analyzed
-   * @param cfaEdge the respective CFA edge
-   * @return the interval in respect to the evaluated expression of null, if the expression could not be evaluated properly
-   */
-  //getExpressionValue
-  private Interval evaluateInterval(IntervalAnalysisState state, CRightHandSide expression, String functionName, CFAEdge cfaEdge)
-    throws UnrecognizedCCodeException {
-    if (expression instanceof CLiteralExpression) {
-      Long value = parseLiteral((CLiteralExpression)expression, cfaEdge);
-
-      return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
-
-    } else if (expression instanceof CIdExpression) {
-      String varName = constructVariableName((CIdExpression)expression, functionName);
-
-      return (state.contains(varName)) ? state.getInterval(varName) : Interval.createUnboundInterval();
-
-    } else if (expression instanceof CCastExpression) {
-      return evaluateInterval(state, ((CCastExpression)expression).getOperand(), functionName, cfaEdge);
-    } else if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression)expression;
-
-      UnaryOperator unaryOperator = unaryExpression.getOperator();
-      CExpression unaryOperand = unaryExpression.getOperand();
-
-      switch (unaryOperator) {
-        case MINUS:
-          Interval interval = evaluateInterval(state, unaryOperand, functionName, cfaEdge);
-
-          return (interval == null) ? Interval.createUnboundInterval() : interval.negate();
-
-        default:
-          throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
-      }
-    }
-    // clause for CPointerexpression does the same, as UnaryExpression clause would have done for the star operator
-    else if (expression instanceof CPointerExpression) {
-      throw new UnrecognizedCCodeException("PointerExpressions are not allowed at this place", cfaEdge, expression);
-    }
-
-    // added for expression "if (! (req_a___0 + 50 == rsp_d___0))" in "systemc/mem_slave_tlm.1.cil.c"
-    else if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression)expression;
-
-      Interval interval1 = evaluateInterval(state, binaryExpression.getOperand1(), functionName, cfaEdge);
-      Interval interval2 = evaluateInterval(state, binaryExpression.getOperand2(), functionName, cfaEdge);
-
-      switch (binaryExpression.getOperator()) {
-        case PLUS:
-          return interval1.plus(interval2);
-
-        default:
-          throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
-      }
-    } else {
-      //throw new UnrecognizedCCodeException(cfaEdge, expression);
-      return Interval.createUnboundInterval();
-    }
-  }
-
-  /**
-   * This method parses an expression to retrieve its literal value.
-   *
-   * @param expression the expression to parse
-   * @return a number or null if the parsing failed
-   * @throws UnrecognizedCCodeException
-   */
-  private static Long parseLiteral(CLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
-    if (expression instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression)expression).asLong();
-
-    } else if (expression instanceof CFloatLiteralExpression) {
-      return null;
-
-    } else if (expression instanceof CCharLiteralExpression) {
-      return (long)((CCharLiteralExpression)expression).getCharacter();
-
-    } else if (expression instanceof CStringLiteralExpression) {
-      return null;
-
-    } else {
-      throw new UnrecognizedCCodeException("unknown literal", edge, expression);
-    }
   }
 
   private String constructVariableName(CExpression pVariableName, String pCalledFunctionName) {
@@ -787,25 +636,12 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     }
 
     @Override
-    public Interval visit(CComplexCastExpression cast) throws UnrecognizedCCodeException {
-      // evaluation of complex numbers is not supported by now
-      return Interval.createUnboundInterval();
-    }
-
-    @Override
     public Interval visit(CFunctionCallExpression functionCall) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
-
     @Override
     public Interval visit(CCharLiteralExpression charLiteral) throws UnrecognizedCCodeException {
-      Long l = parseLiteral(charLiteral, cfaEdge);
-      return l == null ? Interval.createUnboundInterval() : new Interval(l);
-    }
-
-    @Override
-    public Interval visit(CFloatLiteralExpression floatLiteral) throws UnrecognizedCCodeException {
-      return Interval.createUnboundInterval();
+      return new Interval((long)charLiteral.getCharacter());
     }
 
     @Override
@@ -815,12 +651,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
     @Override
     public Interval visit(CIntegerLiteralExpression integerLiteral) throws UnrecognizedCCodeException {
-      return new Interval(parseLiteral(integerLiteral, cfaEdge));
-    }
-
-    @Override
-    public Interval visit(CStringLiteralExpression stringLiteral) throws UnrecognizedCCodeException {
-      return Interval.createUnboundInterval();
+      return new Interval(integerLiteral.asLong());
     }
 
     @Override
@@ -839,12 +670,8 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
     @Override
     public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      UnaryOperator unaryOperator = unaryExpression.getOperator();
-      CExpression unaryOperand = unaryExpression.getOperand();
-
-      Interval interval = unaryOperand.accept(this);
-
-      switch (unaryOperator) {
+      Interval interval = unaryExpression.getOperand().accept(this);
+      switch (unaryExpression.getOperator()) {
 
       case MINUS:
         return (interval != null) ? interval.negate() : Interval.createUnboundInterval();
@@ -855,11 +682,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
       }
-    }
-
-    @Override
-    public Interval visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
-      return Interval.createUnboundInterval();
     }
   }
 }
