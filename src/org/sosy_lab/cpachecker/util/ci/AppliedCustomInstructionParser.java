@@ -28,12 +28,30 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -46,57 +64,58 @@ import com.google.common.collect.ImmutableSet;
 
 public class AppliedCustomInstructionParser {
 
-  private final ShutdownNotifier notifier;
+  private final ShutdownNotifier shutdownNotifier;
+  private final CFA cfa;
 
-  public AppliedCustomInstructionParser(final ShutdownNotifier pShN) {
-    notifier = pShN;
+  public AppliedCustomInstructionParser(final ShutdownNotifier pShutdownNotifier, final CFA pCfa) {
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
   }
 
   /**
-   * Creates a ImmutableMap if the file contains all required data, null if not
+   * Creates a CustomInstructionApplication if the file contains all required data, null if not
    * @param file Path of the file to be read
-   * @return ImmutableMap containing a startNode (key) and a set of endNodes (value).
+   * @return CustomInstructionApplication
    * @throws IOException if the file doesn't contain all required data.
    * @throws AppliedCustomInstructionParsingFailedException
    * @throws InterruptedException
    */
-  public ImmutableMap<CFANode, AppliedCustomInstruction> parse (Path file)
+  public CustomInstructionApplications parse (Path file)
       throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
 
     Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
     CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
 
+    CFANode startNode;
+    CustomInstruction ci = null;
+    AppliedCustomInstruction aci;
+
+
     try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
+      String line = br.readLine();
+      ci = readCustomInstruction(line);
 
-      String line = "";
-      CFANode firstNode;
-      ImmutableSet<CFANode> secNodes;
+      while ((line = br.readLine()) != null) {
+        shutdownNotifier.shutdownIfNecessary();
 
-      while(br.ready()) {
-        notifier.shutdownIfNecessary();
-
-        if ((line = br.readLine())==null) {
-          break;
-        }
-        String firstLine = line.trim();
-
-        if ((line = br.readLine())==null){
+        if ((line = br.readLine()) == null) {
           throw new AppliedCustomInstructionParsingFailedException("Wrong format, specification of end nodes not found. Expect that a custom instruction is specified in two lines. First line contains the start node and second line the end nodes.");
         }
-        String[] secLine = line.trim().split("(\\w)+");
 
-        firstNode = getCFANode(firstLine, cfaInfo);
-        secNodes = getCFANodes(secLine, cfaInfo);
+        startNode = getCFANode(line, cfaInfo);
 
-        if (sanityCheckCIApplication(firstNode, secNodes)) {
-          map.put(firstNode, new AppliedCustomInstruction(firstNode, secNodes));
+        try {
+          aci = ci.inspectAppliedCustomInstruction(startNode);
+        } catch (InterruptedException ex) {
+          throw new AppliedCustomInstructionParsingFailedException("Parsing failed because of ShutdownNotifier: " + ex.getMessage());
         }
+
+        map.put(startNode, aci);
       }
     }
 
-    return map.build();
+    return new CustomInstructionApplications(map.build(), ci);
   }
-
 
   /**
    * Creates a new CFANode with respect to the given parameters
@@ -128,36 +147,31 @@ public class AppliedCustomInstructionParser {
     return builder.build();
   }
 
-  /**
-   * Checks if all nodes out of the given set can be reached from the given pNode.
-   * @param pNode CFANode
-   * @param pSet Set of CFANodes
-   * @return true if all nodes out of the given set can be reached from the given pNode, false if not.
-   * @throws AppliedCustomInstructionParsingFailedException if the given node or set is null.
-   * @throws InterruptedException
-   */
-  private boolean sanityCheckCIApplication (CFANode pNode, Set<CFANode> pSet)
-        throws InterruptedException {
+  public CustomInstruction readCustomInstruction(String functionName)
+      throws InterruptedException, AppliedCustomInstructionParsingFailedException {
+    FunctionEntryNode function = cfa.getFunctionHead(functionName);
 
-    Set<CFANode> endNodes = new HashSet<>();
+    CFANode ciStartNode = null;
+    Collection<CFANode> ciEndNodes = new HashSet<>();
+    Set<String> inputVariables = null;
+    Set<String> outputVariables = null;
+
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> queue = new ArrayDeque<>();
 
-    queue.add(pNode);
-    visitedNodes.add(pNode);
+    queue.add(function);
+    visitedNodes.add(function);
 
     CFANode pred;
 
+    // search for CLabelNode with label "start_ci"
     while (!queue.isEmpty()) {
-      notifier.shutdownIfNecessary();
+      shutdownNotifier.shutdownIfNecessary();
       pred = queue.poll();
 
-      // If tmp is endNode and in pSet => save that tmp is in pSet.
-      // At the end of the method we compare the given pSet and the set of endNodes we visited,
-      // to decide if all nodes of pSet are contained in the graph of pNode.
-      if (pSet.contains(pred)) {
-        endNodes.add(pred);
-        continue;
+      if (pred instanceof CLabelNode && ((CLabelNode) pred).getLabel().equals("start_ci")) {
+        ciStartNode = pred;
+        break;
       }
 
       // breadth-first-search
@@ -169,8 +183,85 @@ public class AppliedCustomInstructionParser {
       }
     }
 
-    // if the set endNode is equal to pSet => all nodes of pSet are endNodes
-    return pSet.equals(endNodes);
+    Queue<Pair<CFANode, Set<String>>> pairQueue = new ArrayDeque<>();
+    Set<String> predList = new HashSet<>();
+    Pair<CFANode, Set<String>> nextNode = Pair.of(ciStartNode, predList);
+    pairQueue.add(nextNode);
+
+    while(!pairQueue.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
+      nextNode = pairQueue.poll();
+      pred = nextNode.getFirst();
+      predList = nextNode.getSecond();
+
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pred)) {
+        if (leavingEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+          Set<String> edgeOutputVariables = new HashSet<>();
+          Set<String> edgeInputVariables = new HashSet<>();
+
+          if (leavingEdge instanceof CStatementEdge) {
+            CStatement edgeStmt = ((CStatementEdge)leavingEdge).getStatement();
+
+            if (edgeStmt instanceof CExpressionAssignmentStatement) {
+              edgeOutputVariables = CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionAssignmentStatement) edgeStmt).getLeftHandSide());
+              edgeInputVariables = CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionAssignmentStatement) edgeStmt).getRightHandSide());
+            }
+
+            else if (edgeStmt instanceof CExpressionStatement) {
+              edgeInputVariables.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionStatement) edgeStmt).getExpression()));
+            }
+
+            else if (edgeStmt instanceof CFunctionCallStatement) {
+              for (CExpression exp : ((CFunctionCallStatement) edgeStmt).getFunctionCallExpression().getParameterExpressions()) {
+                edgeInputVariables.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(exp));
+              }
+            }
+
+            else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
+              edgeOutputVariables = CIdExpressionCollectorVisitor.getVariablesOfExpression(((CFunctionCallAssignmentStatement) edgeStmt).getLeftHandSide());
+              edgeInputVariables = CIdExpressionCollectorVisitor.getVariablesOfExpression(((CFunctionCallAssignmentStatement) edgeStmt).getRightHandSide().getFunctionNameExpression());
+            }
+          }
+          // TODO: für alle Kantentypen: Welche noch?!
+
+          outputVariables = new HashSet<>();
+          outputVariables.addAll(edgeOutputVariables);
+          for (String variable : edgeInputVariables) {
+            if (!predList.contains(variable)) {
+              inputVariables = new HashSet<>();
+              inputVariables.add(variable);
+            }
+          }
+        }
+
+        // pred is endNode of CI -> store pred in Collection of endNodes
+        if (pred instanceof CLabelNode && ((CLabelNode)pred).getLabel().startsWith("end_ci_")) {
+          ciEndNodes.add(pred);
+        }
+
+        // pred is not endNode -> search for endNodes in the subtree of pred
+        else {
+          // breadth-first-search
+          for (CFANode succ : CFAUtils.successorsOf(pred)) {
+            if (!visitedNodes.contains(succ)){
+              Pair<CFANode, Set<String>> nextPair = Pair.of(succ, outputVariables);
+              pairQueue.add(nextPair);
+              visitedNodes.add(succ);
+            }
+          }
+        }
+      }
+    }
+
+    List<String> outputVariablesAsList = new ArrayList<>();
+    outputVariablesAsList.addAll(outputVariables);
+    Collections.sort(outputVariablesAsList);
+
+    List<String> inputVariablesAsList = new ArrayList<>();
+    inputVariablesAsList.addAll(inputVariables);
+    Collections.sort(inputVariablesAsList);
+
+    return new CustomInstruction(ciStartNode, ciEndNodes, inputVariablesAsList, outputVariablesAsList, shutdownNotifier);
   }
 
 }

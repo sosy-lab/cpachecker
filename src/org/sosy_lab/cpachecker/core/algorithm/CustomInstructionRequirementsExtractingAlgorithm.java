@@ -72,9 +72,12 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   @Option(secure=true, description="Prefix for files containing the custom instruction requirements.")
   private String ciFilePrefix = "ci";
 
-  @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.",
-      name="requirementsStateClassName")
+  @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
+  private String requirementsStateClassName;
+
   private Class<? extends AbstractState> requirementsStateClass;
+
+  private CFA cfa;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
@@ -85,6 +88,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param sdNotifier ShutdownNotifier
    * @throws InvalidConfigurationException if the given Path not exists
    */
+  @SuppressWarnings("unchecked")
   public CustomInstructionRequirementsExtractingAlgorithm(final Algorithm analysisAlgorithm,
       final ConfigurableProgramAnalysis cpa, final Configuration config, final LogManager logger,
       final ShutdownNotifier sdNotifier, final CFA cfa) throws InvalidConfigurationException {
@@ -103,12 +107,21 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       throw new InvalidConfigurationException("The given path '" + appliedCustomInstructionsDefinition + "' is not a valid path to a file.");
     }
 
+    try {
+      requirementsStateClass = (Class<? extends AbstractState>) Class.forName(requirementsStateClassName);
+    } catch (ClassNotFoundException e) {
+      throw new InvalidConfigurationException("The abstract state " + requirementsStateClassName + " is unknown.");
+    } catch (ClassCastException ex) {
+      throw new InvalidConfigurationException(requirementsStateClassName + "is not an abstract state.");
+    }
+
     if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
                                           requirementsStateClass) == null) {
       throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
     }
 
     // TODO to be continued: CFA integration
+    this.cfa = cfa;
   }
 
   @Override
@@ -128,10 +141,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     shutdownNotifier.shutdownIfNecessary();
     logger.log(Level.INFO, "Get custom instruction applications in program.");
 
-    CustomInstructionApplications aci = null;
+    CustomInstructionApplications cia = null;
     try {
-      aci = new CustomInstructionApplications(new AppliedCustomInstructionParser(shutdownNotifier)
-                  .parse(appliedCustomInstructionsDefinition));
+      cia = new AppliedCustomInstructionParser(shutdownNotifier, cfa).parse(appliedCustomInstructionsDefinition);
     } catch (FileNotFoundException ex) {
       logger.log(Level.SEVERE, "The file '" + appliedCustomInstructionsDefinition + "' was not found", ex);
       return status.withSound(false);
@@ -143,7 +155,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     shutdownNotifier.shutdownIfNecessary();
     logger.log(Level.INFO, "Start extracting requirements for applied custom instructions");
 
-    extractRequirements((ARGState)pReachedSet.getFirstState(), aci);
+    extractRequirements((ARGState)pReachedSet.getFirstState(), cia);
     return status;
   }
 
@@ -157,7 +169,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
 
-    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix, requirementsStateClass);
+    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix, requirementsStateClass, null); // TODO
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
     for (ARGState node : ciStartNodes) {
