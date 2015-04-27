@@ -332,7 +332,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     try (Writer w = Files.openOutputFile(assumptionsFile)) {
       logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);
-      PCCAssumptionAutomatonWriter.writeAutomaton(w, root.getStateId(), null , new HashSet<AbstractState>(incompleteNodes));
+      PCCAssumptionAutomatonWriter.writeAutomaton(w, root.getStateId(), automatonStates , new HashSet<AbstractState>(incompleteNodes));
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
       throw new CPAException("Assumption automaton writing failed", e);
