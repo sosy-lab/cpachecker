@@ -88,6 +88,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
         + " The log can be given as an input to the solver and replayed.")
     @FileOption(Type.OUTPUT_FILE)
     Path log = null;
+
+    @Option(secure=true, description = "Engine to use for interpolation "
+        + "(FOCI requires libfoci, this is not part of CPAchecker)",
+        values = {"Z3", "FOCI"})
+    String interpolationEngine = "Z3";
   }
 
   private Z3FormulaManager(
@@ -126,10 +131,18 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
     if (NativeLibraries.OS.guessOperatingSystem() == OS.WINDOWS) {
       // Z3 itself
-      NativeLibraries.loadLibrary("libz3");
+      if (extraOptions.interpolationEngine.equals("FOCI")) {
+        NativeLibraries.loadLibrary("libz3_interp");
+      } else {
+        NativeLibraries.loadLibrary("libz3");
+      }
     }
 
-    NativeLibraries.loadLibrary("z3j");
+    if (extraOptions.interpolationEngine.equals("FOCI")) {
+      NativeLibraries.loadLibrary("z3j_interp");
+    } else {
+      NativeLibraries.loadLibrary("z3j");
+    }
 
     if (extraOptions.log != null) {
       Path absolutePath = extraOptions.log.toAbsolutePath();
