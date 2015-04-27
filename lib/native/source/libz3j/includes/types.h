@@ -58,12 +58,10 @@ typedef jlong jJ_context;
 typedef jlong jJ_app;
 #define APP_ARG(num) STRUCT_ARG(Z3_app, num)
 #define CLEAN_APP_ARG(num) CLEAN_STRUCT_ARG(num)
-#define APP_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_ast;
 #define AST_ARG(num) STRUCT_ARG(Z3_ast, num)
 #define CLEAN_AST_ARG(num) CLEAN_STRUCT_ARG(num)
-#define AST_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_constructor;
 #define CONSTRUCTOR_ARG(num) STRUCT_ARG(Z3_constructor, num)
@@ -73,22 +71,18 @@ typedef jlong jJ_constructor;
 typedef jlong jJ_func_decl;
 #define FUNC_DECL_ARG(num) STRUCT_ARG(Z3_func_decl, num)
 #define CLEAN_FUNC_DECL_ARG(num) CLEAN_STRUCT_ARG(num)
-#define FUNC_DECL_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_param_descrs;
 #define PARAM_DESCRS_ARG(num) STRUCT_ARG(Z3_param_descrs, num)
 #define CLEAN_PARAM_DESCRS_ARG(num) CLEAN_STRUCT_ARG(num)
-#define PARAM_DESCRS_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_params;
 #define PARAMS_ARG(num) STRUCT_ARG(Z3_params, num)
 #define CLEAN_PARAMS_ARG(num) CLEAN_STRUCT_ARG(num)
-#define PARAMS_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_sort;
 #define SORT_ARG(num) STRUCT_ARG(Z3_sort, num)
 #define CLEAN_SORT_ARG(num) CLEAN_STRUCT_ARG(num)
-#define SORT_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_symbol;
 #define SYMBOL_ARG(num) STRUCT_ARG(Z3_symbol, num)
@@ -98,27 +92,22 @@ typedef jlong jJ_symbol;
 typedef jlong jJ_pattern;
 #define PATTERN_ARG(num) STRUCT_ARG(Z3_pattern, num)
 #define CLEAN_PATTERN_ARG(num) CLEAN_STRUCT_ARG(num)
-#define PATTERN_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_model;
 #define MODEL_ARG(num) STRUCT_ARG(Z3_model, num)
 #define CLEAN_MODEL_ARG(num) CLEAN_STRUCT_ARG(num)
-#define MODEL_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_optimize;
 #define OPTIMIZE_ARG(num) STRUCT_ARG(Z3_optimize, num)
 #define CLEAN_OPTIMIZE_ARG(num) CLEAN_STRUCT_ARG(num)
-#define OPTIMIZE_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_func_interp;
 #define FUNC_INTERP_ARG(num) STRUCT_ARG(Z3_func_interp, num)
 #define CLEAN_FUNC_INTERP_ARG(num) CLEAN_STRUCT_ARG(num)
-#define FUNC_INTERP_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_ast_vector;
 #define AST_VECTOR_ARG(num) STRUCT_ARG(Z3_ast_vector, num)
 #define CLEAN_AST_VECTOR_ARG(num) CLEAN_STRUCT_ARG(num)
-#define AST_VECTOR_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jobject jJ_ast_vector_pointer;
 #define AST_VECTOR_POINTER_ARG(num) STRUCT_POINTER_ARG(Z3_ast_vector, num)
@@ -128,7 +117,6 @@ typedef jobject jJ_ast_vector_pointer;
 typedef jlong jJ_func_entry;
 #define FUNC_ENTRY_ARG(num) STRUCT_ARG(Z3_func_entry, num)
 #define CLEAN_FUNC_ENTRY_ARG(num) CLEAN_STRUCT_ARG(num)
-#define FUNC_ENTRY_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_theory;
 #define THEORY_ARG(num) STRUCT_ARG(Z3_theory, num)
@@ -138,48 +126,39 @@ typedef jlong jJ_theory;
 typedef jlong jJ_theory_data;
 #define THEORY_DATA_ARG(num) STRUCT_ARG(Z3_theory_data, num)
 #define CLEAN_THEORY_DATA_ARG(num) CLEAN_STRUCT_ARG(num)
-
 #define THEORY_DATA_RETURN STRUCT_RETURN
 
 typedef jlong jJ_fixedpoint;
 #define FIXEDPOINT_ARG(num) STRUCT_ARG(Z3_fixedpoint, num)
 #define CLEAN_FIXEDPOINT_ARG(num) CLEAN_STRUCT_ARG(num)
-#define FIXEDPOINT_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_ast_map;
 #define AST_MAP_ARG(num) STRUCT_ARG(Z3_ast_map, num)
 #define CLEAN_AST_MAP_ARG(num) CLEAN_STRUCT_ARG(num)
-#define AST_MAP_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_goal;
 #define GOAL_ARG(num) STRUCT_ARG(Z3_goal, num)
 #define CLEAN_GOAL_ARG(num) CLEAN_STRUCT_ARG(num)
-#define GOAL_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_tactic;
 #define TACTIC_ARG(num) STRUCT_ARG(Z3_tactic, num)
 #define CLEAN_TACTIC_ARG(num) CLEAN_STRUCT_ARG(num)
-#define TACTIC_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_probe;
 #define PROBE_ARG(num) STRUCT_ARG(Z3_probe, num)
 #define CLEAN_PROBE_ARG(num) CLEAN_STRUCT_ARG(num)
-#define PROBE_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_apply_result;
 #define APPLY_RESULT_ARG(num) STRUCT_ARG(Z3_apply_result, num)
 #define CLEAN_APPLY_RESULT_ARG(num) CLEAN_STRUCT_ARG(num)
-#define APPLY_RESULT_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_solver;
 #define SOLVER_ARG(num) STRUCT_ARG(Z3_solver, num)
 #define CLEAN_SOLVER_ARG(num) CLEAN_STRUCT_ARG(num)
-#define SOLVER_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_stats;
 #define STATS_ARG(num) STRUCT_ARG(Z3_stats, num)
 #define CLEAN_STATS_ARG(num) CLEAN_STRUCT_ARG(num)
-#define STATS_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 typedef jlong jJ_literals;
 #define LITERALS_ARG(num) STRUCT_ARG(Z3_literals, num)
@@ -308,10 +287,8 @@ typedef jlongArray jJ_constructor_list_array;
 #define SEARCH_FAILURE_RETURN INT_RETURN;
 #define GOAL_PREC_RETURN      INT_RETURN;
 
-
-#define AST_OPT_RETURN_WITH_CONTEXT AST_RETURN_WITH_CONTEXT;
-#define FUNC_INTERP_OPT_RETURN_WITH_CONTEXT FUNC_INTERP_RETURN_WITH_CONTEXT;
-
+#define AST_OPT_RETURN_WITH_CONTEXT AST_RETURN_WITH_CONTEXT
+#define FUNC_INTERP_OPT_RETURN_WITH_CONTEXT FUNC_INTERP_RETURN_WITH_CONTEXT
 
 typedef jJ_bool jJ_bool_opt;
 typedef jJ_ast jJ_ast_opt;

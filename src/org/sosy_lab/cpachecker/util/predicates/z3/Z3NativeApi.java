@@ -76,14 +76,14 @@ public final class Z3NativeApi {
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
    */
-  public static native void optimize_inc_ref(long context, long optimize);
+  public static void optimize_inc_ref(long context, long optimize) {}
 
   /**
    * Decrement the reference counter of the optimize context.
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
    */
-  public static native void optimize_dec_ref(long context, long optimize);
+  public static void optimize_dec_ref(long context, long optimize) {}
 
   /**
    * Add a maximization constraint.
@@ -234,8 +234,8 @@ public final class Z3NativeApi {
   public static native long mk_context(long config);
   public static native long mk_context_rc(long config);
   public static native void del_context(long context);
-  public static native void inc_ref(long context, long ast);
-  public static native void dec_ref(long context, long ast);
+  public static native void inc_ref(long context, long ast) ;
+  public static void dec_ref(long context, long ast) {}
   public static native void update_param_value(long context, String param_id, String param_value);
   public static native boolean get_param_value(long context, String param_id, PointerToString param_value);
 
@@ -250,8 +250,8 @@ public final class Z3NativeApi {
 
   // PARAMETERS
   public static native long mk_params(long context);
-  public static native void params_inc_ref(long context, long params);
-  public static native void params_dec_ref(long context, long params);
+  public static void params_inc_ref(long context, long params) {}
+  public static void params_dec_ref(long context, long params) {}
   public static native void params_set_bool(long context, long params, long symbol, boolean value);
   public static native void params_set_uint(long context, long params, long symbol, int value);
   public static native void params_set_double(long context, long params, long symbol, double value);
@@ -261,8 +261,8 @@ public final class Z3NativeApi {
 
 
   // PARAMETER DESCRIPTIONS
-  public static native void param_descrs_inc_ref(long context, long params_descrs);
-  public static native void param_descrs_dec_ref(long context, long params_descrs);
+  public static void param_descrs_inc_ref(long context, long params_descrs) {}
+  public static void param_descrs_dec_ref(long context, long params_descrs) {}
   public static native int param_descrs_get_kind(long context, long params_descrs, long symbol);
   public static native int param_descrs_size(long context, long params_descrs);
   public static native long param_descrs_get_name(long context, long params_descrs, int index);
@@ -614,8 +614,8 @@ public final class Z3NativeApi {
 
 
   // MODELS
-  public static native void model_inc_ref(long context, long model);
-  public static native void model_dec_ref(long context, long model);
+  public static void model_inc_ref(long context, long model) {}
+  public static void model_dec_ref(long context, long model) {}
   public static native boolean model_eval(long context, long model, long a1, boolean model_completion, PointerToLong a2);
   public static native long model_get_const_interp(long context, long model, long funcDecl);
   public static native long model_get_func_interp(long context, long model, long funcDecl);
@@ -629,15 +629,15 @@ public final class Z3NativeApi {
   public static native boolean is_as_array(long context, long a1);
   public static native long get_as_array_func_decl(long context, long a1);
 
-  public static native void func_interp_inc_ref(long context, long a1);
-  public static native void func_interp_dec_ref(long context, long a1);
+  public static void func_interp_inc_ref(long context, long a1) {}
+  public static void func_interp_dec_ref(long context, long a1) {}
   public static native int func_interp_get_num_entries(long context, long a1);
   public static native long func_interp_get_entry(long context, long a1, int a2);
   public static native long func_interp_get_else(long context, long a1);
   public static native int func_interp_get_arity(long context, long a1);
 
-  public static native void func_entry_inc_ref(long context, long a1);
-  public static native void func_entry_dec_ref(long context, long a1);
+  public static void func_entry_inc_ref(long context, long a1) {}
+  public static void func_entry_dec_ref(long context, long a1) {}
   public static native long func_entry_get_value(long context, long a1);
   public static native int func_entry_get_num_args(long context, long a1);
   public static native long func_entry_get_arg(long context, long a1, int a2);
@@ -727,8 +727,8 @@ public final class Z3NativeApi {
     // TODO callbacks missing, do we need them?
     // TODO missing function: fp_init?
     public static native long mk_fixedpoint(long context);
-    public static native void fixedpoint_inc_ref(long context, long a1);
-    public static native void fixedpoint_dec_ref(long context, long a1);
+    public static void fixedpoint_inc_ref(long context, long a1) {}
+    public static void fixedpoint_dec_ref(long context, long a1) {}
     public static native void fixedpoint_add_rule(long context, long a1, long a2, long a3);
     public static native void fixedpoint_add_fact(long context, long a1, long a2, int a3, int[] a4);
     public static native void fixedpoint_assert(long context, long a1, long a2);
@@ -757,8 +757,8 @@ public final class Z3NativeApi {
 
     // AST VECTORS
     public static native long mk_ast_vector(long context);
-    public static native void ast_vector_inc_ref(long context, long ast_vector);
-    public static native void ast_vector_dec_ref(long context, long ast_vector);
+    public static void ast_vector_inc_ref(long context, long ast_vector) {}
+    public static void ast_vector_dec_ref(long context, long ast_vector) {}
     public static native int ast_vector_size(long context, long ast_vector);
     public static native long ast_vector_get(long context, long ast_vector, int i);
     public static native void ast_vector_set(long context, long ast_vector, int i, long ast);
@@ -770,8 +770,8 @@ public final class Z3NativeApi {
 
     // AST MAPS
     public static native long mk_ast_map(long context);
-    public static native void ast_map_inc_ref(long context, long ast_map);
-    public static native void ast_map_dec_ref(long context, long ast_map);
+    public static void ast_map_inc_ref(long context, long ast_map) {}
+    public static void ast_map_dec_ref(long context, long ast_map) {}
     public static native boolean ast_map_contains(long context, long ast_map, long ast);
     public static native long ast_map_find(long context, long ast_map, long ast);
     public static native void ast_map_insert(long context, long ast_map, long ast_key, long ast_value);
@@ -784,8 +784,8 @@ public final class Z3NativeApi {
 
     // GOALS
     public static native long mk_goal(long context, boolean models, boolean unsat_cores, boolean proofs);
-    public static native void goal_inc_ref(long context, long goal);
-    public static native void goal_dec_ref(long context, long goal);
+    public static void goal_inc_ref(long context, long goal) {}
+    public static void goal_dec_ref(long context, long goal) {}
     public static native int goal_precision(long context, long goal);
     public static native void goal_assert(long context, long goal, long ast);
     public static native boolean goal_inconsistent(long context, long goal);
@@ -802,12 +802,12 @@ public final class Z3NativeApi {
 
     // TACTICS AND PROBES
     public static native long mk_tactic(long context, String name);
-    public static native void tactic_inc_ref(long context, long tactic);
-    public static native void tactic_dec_ref(long context, long tactic);
+    public static void tactic_inc_ref(long context, long tactic) {}
+    public static void tactic_dec_ref(long context, long tactic) {}
 
     public static native long mk_probe(long context, String name);
-    public static native void probe_inc_ref(long context, long probe);
-  public static native void probe_dec_ref(long context, long probe);
+    public static void probe_inc_ref(long context, long probe) {}
+  public static void probe_dec_ref(long context, long probe) {}
 
   public static native long tactic_and_then(long context, long tactic1, long tactic2);
   public static native long tactic_or_else(long context, long tactic1, long tactic2);
@@ -845,8 +845,8 @@ public final class Z3NativeApi {
   public static native double probe_apply(long context, long probe, long goal);
   public static native long tactic_apply(long context, long probe, long goal);
   public static native long tactic_apply_ex(long context, long tactic, long goal, long params);
-  public static native void apply_result_inc_ref(long context, long apply_result);
-  public static native void apply_result_dec_ref(long context, long apply_result);
+  public static void apply_result_inc_ref(long context, long apply_result) {}
+  public static void apply_result_dec_ref(long context, long apply_result) {}
   public static native String apply_result_to_string(long context, long apply_result);
   public static native int apply_result_get_num_subgoals(long context, long apply_result);
   public static native long apply_result_get_subgoal(long context, long apply_result, int i);
@@ -860,8 +860,8 @@ public final class Z3NativeApi {
   public static native String solver_get_help(long context, long solver);
   public static native long solver_get_param_descrs(long context, long solver);
   public static native void solver_set_params(long context, long solver, long params);
-  public static native void solver_inc_ref(long context, long solver);
-  public static native void solver_dec_ref(long context, long solver);
+  public static void solver_inc_ref(long context, long solver) {}
+  public static void solver_dec_ref(long context, long solver) {}
   public static native void solver_push(long context, long solver);
   public static native void solver_pop(long context, long solver, int number);
   public static native void solver_reset(long context, long solver);
@@ -887,8 +887,8 @@ public final class Z3NativeApi {
 
   // STATISTICS
   public static native String stats_to_string(long context, long stats);
-  public static native void stats_inc_ref(long context, long stats);
-  public static native void stats_dec_ref(long context, long stats);
+  public static void stats_inc_ref(long context, long stats) {}
+  public static void stats_dec_ref(long context, long stats) {}
   public static native int stats_size(long context, long stats);
   public static native String stats_get_key(long context, long stats, int i);
   public static native boolean stats_is_uint(long context, long stats, int i);

@@ -150,19 +150,145 @@ typedef jobject jvoid_pointer;
   return; \
 }
 
+#define CHECK_RETURN_WITH_CONTEXT \
+  if (retval == NULL) { \
+    const char *msg = Z3_get_error_msg(Z3_get_error_code(z3_arg1)); \
+    throwException(jenv, "java/lang/IllegalArgumentException", msg); \
+  }
+
+#define STR_RETURN_VAL \
+  return (jlong)((size_t)(retval));
+
 #define STRUCT_RETURN \
   if (retval == NULL) { \
     throwException(jenv, "java/lang/IllegalArgumentException", "Z3 returned null"); \
   } \
-  return (jlong)((size_t)(retval)); \
+  STR_RETURN_VAL \
 }
-  
+
 #define STRUCT_RETURN_WITH_CONTEXT \
-  if (retval == NULL) { \
-    const char *msg = Z3_get_error_msg(Z3_get_error_code(z3_arg1)); \
-    throwException(jenv, "java/lang/IllegalArgumentException", msg); \
-  } \
-  return (jlong)((size_t)(retval)); \
+  CHECK_RETURN_WITH_CONTEXT \
+  STR_RETURN_VAL \
+}
+
+#define OPTIMIZE_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_optimize_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define AST_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define SORT_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_inc_ref(z3_arg1, Z3_sort_to_ast(z3_arg1, retval)); \
+  STR_RETURN_VAL \
+}
+
+#define FUNC_DECL_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_inc_ref(z3_arg1, Z3_func_decl_to_ast(z3_arg1, retval)); \
+  STR_RETURN_VAL \
+}
+
+#define APP_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_inc_ref(z3_arg1, Z3_app_to_ast(z3_arg1, retval)); \
+  STR_RETURN_VAL \
+}
+
+#define PATTERN_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_inc_ref(z3_arg1, Z3_pattern_to_ast(z3_arg1, retval)); \
+  STR_RETURN_VAL \
+}
+
+#define PARAMS_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_params_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define PARAM_DESCRS_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_param_descrs_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define MODEL_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_model_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define FUNC_INTERP_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_func_interp_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define FUNC_ENTRY_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_func_entry_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define FIXEDPOINT_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_fixedpoint_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define AST_VECTOR_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_ast_vector_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define AST_MAP_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_ast_map_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define GOAL_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_goal_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define TACTIC_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_tactic_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define PROBE_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_probe_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define APPLY_RESULT_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_apply_result_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define SOLVER_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_solver_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
+}
+
+#define STATS_RETURN_WITH_CONTEXT \
+  CHECK_RETURN_WITH_CONTEXT \
+  Z3_stats_inc_ref(z3_arg1, retval); \
+  STR_RETURN_VAL \
 }
 
 #define INT_RETURN \
