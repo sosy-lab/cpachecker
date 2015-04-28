@@ -208,6 +208,10 @@ assumptions.automatonBranchingThreshold = 0
 # write collected assumptions as automaton to file
 assumptions.automatonFile = "AssumptionAutomaton.txt"
 
+# If it is enabled, automaton does not add assumption which is considered to
+# continue path with corresponding this edge.
+assumptions.automatonIgnoreAssumptions = false
+
 # write collected assumptions to file
 assumptions.export = true
 assumptions.file = "assumptions.txt"
