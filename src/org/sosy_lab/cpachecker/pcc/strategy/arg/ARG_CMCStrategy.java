@@ -92,7 +92,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   @Option(secure = true, name = "file", description = "write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionsFile = Paths.get("assumptions.txt");
-  @Option(secure = true, required = true, description = "List of files with configurations to use. ")
+  @Option(secure = true, description = "List of files with configurations to use. ")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
   @Option(secure = true,
@@ -293,6 +293,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
     singleConfigBuilder.copyFrom(globalConfig);
     try {
+      if (configFiles == null) {
+        throw new InvalidConfigurationException(
+          "Require that option pcc.arg.configFiles is set for proof checking");
+      }
       singleConfigBuilder.loadFromFile(configFiles.get(iterationNumber));
     } catch (IOException e) {
       throw new InvalidConfigurationException("Cannot read configuration for current partial ARG checking.");
