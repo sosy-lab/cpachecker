@@ -30,10 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
@@ -75,12 +73,6 @@ public class TemplateManager {
 
   private final CFA cfa;
   private final LogManager logger;
-  private final NumeralFormulaManagerView<
-      NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
-  private final NumeralFormulaManagerView<NumeralFormula.IntegerFormula,
-      NumeralFormula.IntegerFormula> ifmgr;
-  private final PathFormulaManager pfmgr;
-  private final FormulaManagerView fmgrv;
 
   /**
    * Dummy edge required by the interface to convert the {@code CIdExpression}
@@ -103,18 +95,12 @@ public class TemplateManager {
   public TemplateManager(
       LogManager pLogger,
       Configuration pConfig,
-      CFA pCfa,
-      FormulaManagerView pFormulaManagerView,
-      PathFormulaManager pPfmgr
+      CFA pCfa
       ) throws InvalidConfigurationException{
     pConfig.inject(this, TemplateManager.class);
 
-    pfmgr = pPfmgr;
     cfa = pCfa;
     logger = pLogger;
-    rfmgr = pFormulaManagerView.getRationalFormulaManager();
-    ifmgr = pFormulaManagerView.getIntegerFormulaManager();
-    fmgrv = pFormulaManagerView;
 
     dummyEdge = new BlankEdge("",
         FileLocation.DUMMY,
@@ -314,7 +300,7 @@ public class TemplateManager {
    */
   public Formula toFormula(
       PathFormulaManager pfmgr,
-      FormulaManagerView fmgrv,
+      FormulaManagerView fmgr,
       Template template,
       PathFormula contextFormula) {
     boolean useRationals = shouldUseRationals(template);
@@ -336,10 +322,10 @@ public class TemplateManager {
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        multipliedItem = fmgrv.makeNegate(item);
+        multipliedItem = fmgr.makeNegate(item);
       } else if (coeff != Rational.ONE){
-        multipliedItem = fmgrv.makeMultiply(
-            item, fmgrv.makeNumber(item, entry.getValue())
+        multipliedItem = fmgr.makeMultiply(
+            item, fmgr.makeNumber(item, entry.getValue())
         );
       } else {
         multipliedItem = item;
@@ -348,15 +334,15 @@ public class TemplateManager {
       if (sum == null) {
         sum = multipliedItem;
       } else {
-        sum = fmgrv.makePlus(sum, multipliedItem);
+        sum = fmgr.makePlus(sum, multipliedItem);
       }
     }
 
     if (sum == null) {
       if (useRationals) {
-        return fmgrv.getRationalFormulaManager().makeNumber(0);
+        return fmgr.getRationalFormulaManager().makeNumber(0);
       } else {
-        return fmgrv.getIntegerFormulaManager().makeNumber(0);
+        return fmgr.getIntegerFormulaManager().makeNumber(0);
       }
     } else {
       return sum;
