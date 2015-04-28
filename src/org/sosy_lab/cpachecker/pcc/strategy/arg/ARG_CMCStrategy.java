@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
 
@@ -153,9 +154,11 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   @Override
   public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Start checking partial ARGs");
+    pReachedSet.popFromWaitlist();
 
     final AtomicBoolean checkResult = new AtomicBoolean(true);
     final Semaphore partitionsAvailable = new Semaphore(0);
+    final List<ConfigurableProgramAnalysis> cpasForChecking = new ArrayList<>(roots.length);
 
     Thread readerThread = new Thread(new Runnable() {
 
@@ -169,6 +172,9 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           Object readARG;
           for (int i = 0; i < roots.length && checkResult.get(); i++) {
+            logger.log(Level.FINEST, "Build CPA for iteration ", i);
+            cpasForChecking.add(buildPartialCPA(i));
+            GlobalInfo.getInstance().storeCPA(cpasForChecking.get(i));
             readARG = o.readObject();
             if (!(readARG instanceof ARGState)) {
               abortPreparation();
@@ -226,7 +232,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
         // check current partial ARG
         logger.log(Level.INFO, "Start checking partial ARG ", i);
-        if (checkResult.get() || roots[i] == null || !checkPartialARG(factory.create(), roots[i], incompleteStates, i)) {
+        if (!checkResult.get() || roots[i] == null
+            || !checkPartialARG(cpasForChecking.get(i), factory.create(), roots[i], incompleteStates, i)) {
           logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
           return false;
         }
@@ -255,12 +262,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     return false;
   }
 
-  private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
+  private boolean checkPartialARG(ConfigurableProgramAnalysis cpa, ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
       int iterationNumber) throws CPAException, InterruptedException, InvalidConfigurationException {
     // set up proof checking configuration for next parital ARG
     logger.log(Level.FINER, "Set up proof checking for partial ARG ", iterationNumber);
-    logger.log(Level.FINEST, "Build CPA");
-    ConfigurableProgramAnalysis cpa = buildPartialCPA(iterationNumber);
 
     // set up proof checker
     logger.log(Level.FINEST, "Initialize reached set");
