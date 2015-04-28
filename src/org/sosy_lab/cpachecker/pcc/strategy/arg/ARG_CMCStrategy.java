@@ -158,7 +158,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     final AtomicBoolean checkResult = new AtomicBoolean(true);
     final Semaphore partitionsAvailable = new Semaphore(0);
-    final List<ConfigurableProgramAnalysis> cpasForChecking = new ArrayList<>(roots.length);
 
     Thread readerThread = new Thread(new Runnable() {
 
@@ -172,9 +171,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           Object readARG;
           for (int i = 0; i < roots.length && checkResult.get(); i++) {
-            logger.log(Level.FINEST, "Build CPA for iteration ", i);
-            cpasForChecking.add(buildPartialCPA(i));
-            GlobalInfo.getInstance().storeCPA(cpasForChecking.get(i));
+            logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
+            GlobalInfo.getInstance().storeCPA(buildPartialCPA(i));
             readARG = o.readObject();
             if (!(readARG instanceof ARGState)) {
               abortPreparation();
@@ -233,7 +231,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         // check current partial ARG
         logger.log(Level.INFO, "Start checking partial ARG ", i);
         if (!checkResult.get() || roots[i] == null
-            || !checkPartialARG(cpasForChecking.get(i), factory.create(), roots[i], incompleteStates, i)) {
+            || !checkPartialARG(factory.create(), roots[i], incompleteStates, i)) {
           logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
           return false;
         }
@@ -262,10 +260,12 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     return false;
   }
 
-  private boolean checkPartialARG(ConfigurableProgramAnalysis cpa, ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
+  private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
       int iterationNumber) throws CPAException, InterruptedException, InvalidConfigurationException {
     // set up proof checking configuration for next parital ARG
     logger.log(Level.FINER, "Set up proof checking for partial ARG ", iterationNumber);
+    logger.log(Level.FINEST, "Build CPA for next proof checking iteration");
+    ConfigurableProgramAnalysis cpa = buildPartialCPA(iterationNumber);
 
     // set up proof checker
     logger.log(Level.FINEST, "Initialize reached set");
