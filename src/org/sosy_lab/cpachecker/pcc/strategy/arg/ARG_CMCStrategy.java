@@ -160,105 +160,106 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
 
 
-    final AtomicBoolean checkResult = new AtomicBoolean(true);
-    final Semaphore partitionsAvailable = new Semaphore(0);
+      final AtomicBoolean checkResult = new AtomicBoolean(true);
+      final Semaphore partitionsAvailable = new Semaphore(0);
 
-    Thread readerThread = new Thread(new Runnable() {
+      Thread readerThread = new Thread(new Runnable() {
 
-      @Override
-      public void run() {
-        Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-        try {
-          streams = openProofStream();
-          ObjectInputStream o = streams.getThird();
-          o.readInt();
+        @Override
+        public void run() {
+          Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
+          try {
+            streams = openProofStream();
+            ObjectInputStream o = streams.getThird();
+            o.readInt();
 
-          Object readARG;
-          for (int i = 0; i < roots.length && checkResult.get(); i++) {
-            logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
-            GlobalInfo.getInstance().storeCPA(buildPartialCPA(i, factory));
-            readARG = o.readObject();
-            if (!(readARG instanceof ARGState)) {
-              abortPreparation();
+            Object readARG;
+            for (int i = 0; i < roots.length && checkResult.get(); i++) {
+              logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
+              GlobalInfo.getInstance().storeCPA(buildPartialCPA(i, factory));
+              readARG = o.readObject();
+              if (!(readARG instanceof ARGState)) {
+                abortPreparation();
+              }
+
+              roots[i] = (ARGState) readARG;
+
+              if (shutdown.shouldShutdown()) {
+                abortPreparation();
+                break;
+              }
+              partitionsAvailable.release();
             }
-
-            roots[i] = (ARGState) readARG;
-
-            if (shutdown.shouldShutdown()) {
-              abortPreparation();
-              break;
-            }
-            partitionsAvailable.release();
-          }
-        } catch (IOException | ClassNotFoundException e) {
-          logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
-          abortPreparation();
-        } catch (Exception e2) {
-          logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
-          abortPreparation();
-        } finally {
-          if (streams != null) {
-            try {
-              streams.getThird().close();
-              streams.getSecond().close();
-              streams.getFirst().close();
-            } catch (IOException e) {
+          } catch (IOException | ClassNotFoundException e) {
+            logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
+            abortPreparation();
+          } catch (Exception e2) {
+            logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
+            abortPreparation();
+          } finally {
+            if (streams != null) {
+              try {
+                streams.getThird().close();
+                streams.getSecond().close();
+                streams.getFirst().close();
+              } catch (IOException e) {
+              }
             }
           }
         }
-      }
 
-      private void abortPreparation() {
-        checkResult.set(false);
-        partitionsAvailable.release();
-      }
-    });
-
-    try {
-
-      if (proofKnown) {
-        partitionsAvailable.release(roots.length);
-      } else {
-        readerThread.start();
-      }
-
-      List<ARGState> incompleteStates = new ArrayList<>();
-
-      // check partial ARGs
-      for (int i = 0; i < roots.length && checkResult.get(); i++) {
-        //wait until next partial ARG is read
-        partitionsAvailable.acquire();
-        incompleteStates.clear();
-        shutdown.shutdownIfNecessary();
-
-        // check current partial ARG
-        logger.log(Level.INFO, "Start checking partial ARG ", i);
-        if (!checkResult.get() || roots[i] == null
-            || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, factory)) {
-          logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
-          return false;
+        private void abortPreparation() {
+          checkResult.set(false);
+          partitionsAvailable.release();
         }
-        shutdown.shutdownIfNecessary();
+      });
 
-        if (i + 1 != roots.length) {
-          // write automaton for next partial ARG
-          logger.log(Level.FINE, "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
-          writeAutomaton(roots[i], incompleteStates);
+      try {
+
+        if (proofKnown) {
+          partitionsAvailable.release(roots.length);
+        } else {
+          readerThread.start();
+        }
+
+        List<ARGState> incompleteStates = new ArrayList<>();
+
+        // check partial ARGs
+        for (int i = 0; i < roots.length && checkResult.get(); i++) {
+          //wait until next partial ARG is read
+          partitionsAvailable.acquire();
+          incompleteStates.clear();
           shutdown.shutdownIfNecessary();
+
+          // check current partial ARG
+          logger.log(Level.INFO, "Start checking partial ARG ", i);
+          if (!checkResult.get() || roots[i] == null
+              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, factory)) {
+            logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
+            return false;
+          }
+          shutdown.shutdownIfNecessary();
+
+          if (i + 1 != roots.length) {
+            // write automaton for next partial ARG
+            logger.log(Level.FINE,
+               "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
+            writeAutomaton(roots[i], incompleteStates);
+            shutdown.shutdownIfNecessary();
+          }
+          logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
         }
-        logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
+
+
+        return checkResult.get() && incompleteStates.size() == 0 && roots.length > 0;
+
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");
+      } finally {
+        logger.log(Level.INFO, "Stop checking partial ARGs");
+        checkResult.set(false);
+        readerThread.interrupt();
       }
-
-
-      return checkResult.get() && incompleteStates.size() == 0 && roots.length > 0;
-
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");
-    } finally {
-      logger.log(Level.INFO, "Stop checking partial ARGs");
-      checkResult.set(false);
-      readerThread.interrupt();
-    }
     } catch (InvalidConfigurationException e1) {
       logger.log(Level.SEVERE, "Cannot create reached sets for partial ARG checking", e1);
       return false;
