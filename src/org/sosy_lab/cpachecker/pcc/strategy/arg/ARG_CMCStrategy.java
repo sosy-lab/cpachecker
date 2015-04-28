@@ -156,6 +156,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     logger.log(Level.INFO, "Start checking partial ARGs");
     pReachedSet.popFromWaitlist();
 
+    try {
+      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
+
+
     final AtomicBoolean checkResult = new AtomicBoolean(true);
     final Semaphore partitionsAvailable = new Semaphore(0);
 
@@ -172,7 +176,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           Object readARG;
           for (int i = 0; i < roots.length && checkResult.get(); i++) {
             logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
-            GlobalInfo.getInstance().storeCPA(buildPartialCPA(i));
+            GlobalInfo.getInstance().storeCPA(buildPartialCPA(i, factory));
             readARG = o.readObject();
             if (!(readARG instanceof ARGState)) {
               abortPreparation();
@@ -219,7 +223,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       }
 
       List<ARGState> incompleteStates = new ArrayList<>();
-      ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
 
       // check partial ARGs
       for (int i = 0; i < roots.length && checkResult.get(); i++) {
@@ -231,7 +234,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         // check current partial ARG
         logger.log(Level.INFO, "Start checking partial ARG ", i);
         if (!checkResult.get() || roots[i] == null
-            || !checkPartialARG(factory.create(), roots[i], incompleteStates, i)) {
+            || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, factory)) {
           logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
           return false;
         }
@@ -256,16 +259,21 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       checkResult.set(false);
       readerThread.interrupt();
     }
+    } catch (InvalidConfigurationException e1) {
+      logger.log(Level.SEVERE, "Cannot create reached sets for partial ARG checking", e1);
+      return false;
+    }
 
     return false;
   }
 
   private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
-      int iterationNumber) throws CPAException, InterruptedException, InvalidConfigurationException {
-    // set up proof checking configuration for next parital ARG
+      int iterationNumber, ReachedSetFactory reachedSetFactory) throws CPAException, InterruptedException,
+      InvalidConfigurationException {
+   // set up proof checking configuration for next parital ARG
     logger.log(Level.FINER, "Set up proof checking for partial ARG ", iterationNumber);
     logger.log(Level.FINEST, "Build CPA for next proof checking iteration");
-    ConfigurableProgramAnalysis cpa = buildPartialCPA(iterationNumber);
+    ConfigurableProgramAnalysis cpa = buildPartialCPA(iterationNumber, reachedSetFactory);
 
     // set up proof checker
     logger.log(Level.FINEST, "Initialize reached set");
@@ -291,8 +299,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     return partialProofChecker.checkCertificate(pReachedSet, pRoot, pIncompleteStates);
   }
 
-  private ConfigurableProgramAnalysis buildPartialCPA(int iterationNumber) throws InvalidConfigurationException,
-      CPAException {
+  private ConfigurableProgramAnalysis buildPartialCPA(int iterationNumber, ReachedSetFactory pFactory)
+      throws InvalidConfigurationException, CPAException {
     // create configuration for current partial ARG checking
     logger.log(Level.FINEST, "Build CPA configuration");
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -311,9 +319,9 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     }
     Configuration singleConfig = singleConfigBuilder.build();
 
-    // create CPA to check current partial ARG TODO test if null is okay
+    // create CPA to check current partial ARG
     logger.log(Level.FINEST, "Create CPA instance");
-    return new CPABuilder(singleConfig, logger, shutdown, null).buildCPAWithSpecAutomatas(cfa);
+    return new CPABuilder(singleConfig, logger, shutdown, pFactory).buildCPAWithSpecAutomatas(cfa);
   }
 
   private void writeAutomaton(ARGState root, List<ARGState> incompleteNodes) throws CPAException {
