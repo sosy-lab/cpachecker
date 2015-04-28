@@ -162,7 +162,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     if(interleavedMode) {
       return checkAndReadInterleaved();
     }
-
+// TODO fails for second predicate analysis checking
     return checkAndReadSequentially();
   }
 
@@ -200,9 +200,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           if (i + 1 != roots.length) {
             // write automaton for next partial ARG
-            logger
-                .log(
-                    Level.FINE,
+            logger.log(Level.FINE,
                     "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
             writeAutomaton(roots[i], incompleteStates);
             shutdown.shutdownIfNecessary();
