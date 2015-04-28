@@ -131,6 +131,10 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# memorize previously used (incomplete) reached sets after a restart of the
+# analysis
+analysis.memorizeReachedAfterRestart = false
+
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
@@ -1614,6 +1618,9 @@ cpa.statistics.statisticsCPAFile = no default value
 # evenness)
 cpa.stator.congruence.trackCongruenceSum = false
 
+# Check whether the policy depends on the initial value
+cpa.stator.policy.checkPolicyInitialCondition = true
+
 # Ignore the template type and encode with a rational variable
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
@@ -1911,7 +1918,17 @@ parser.usePreprocessor = false
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set
 # exists for which violates the property
-pcc.checkPropertyPerElement = false
+pcc.arg.checkPropertyPerElement = false
+
+# List of files with configurations to use. 
+pcc.arg.cmc.configFiles = no default value
+
+# write collected assumptions to file
+pcc.arg.cmc.file = "assumptions.txt"
+
+# Which ARG strategy to use for each partial ARG, strategy based on CPA
+# (true) or on proof checker interface (false)
+pcc.arg.cmc.useArgCpaStrategy = false
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for
@@ -1965,7 +1982,7 @@ pcc.proofgen.doPCC = false
 # proof writing, to be used.
 # Qualified name for class which implements proof checking strategy to be
 # used.
-pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
+pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
