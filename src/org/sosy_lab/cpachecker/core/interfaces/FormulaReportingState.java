@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 public interface FormulaReportingState extends AbstractState {
 
   /**
-   * Returns a formula over-approximating the state.
+   * Returns a non-instantiated formula over-approximating the state.
    */
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr);
+  BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr);
 
 }
