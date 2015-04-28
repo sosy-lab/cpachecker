@@ -252,35 +252,31 @@ public class AppliedCustomInstructionParser {
   }
 
   private Collection<String> getPotentialInputVariables(CFAEdge pLeavingEdge) {
-
-
-    Set<String> edgeInputVariables;
     if (pLeavingEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
 
       if (pLeavingEdge instanceof CStatementEdge) {
         CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
 
         if (edgeStmt instanceof CExpressionAssignmentStatement) {
-          edgeInputVariables =
-              CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionAssignmentStatement) edgeStmt)
-                  .getRightHandSide());
+          return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionAssignmentStatement) edgeStmt)
+              .getRightHandSide());
         }
 
         else if (edgeStmt instanceof CExpressionStatement) {
-          edgeInputVariables =
-              CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionStatement) edgeStmt).getExpression());
+          return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionStatement) edgeStmt)
+              .getExpression());
         }
 
         else if (edgeStmt instanceof CFunctionCallStatement) {
+          Set<String> edgeInputVariables = new HashSet<>();
           for (CExpression exp : ((CFunctionCallStatement) edgeStmt).getFunctionCallExpression()
               .getParameterExpressions()) {
-            edgeInputVariables = new HashSet<>();
             edgeInputVariables.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(exp));
           }
+          return edgeInputVariables;
         }
         else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
-          edgeInputVariables =
-              CIdExpressionCollectorVisitor.getVariablesOfExpression(((CFunctionCallAssignmentStatement) edgeStmt)
+          return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CFunctionCallAssignmentStatement) edgeStmt)
                   .getRightHandSide().getFunctionNameExpression());
         }
       }
