@@ -694,6 +694,26 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 # mergeType
 cpa.bdd.merge = "join"
 
+# Number of loop iterations before the loop counter is abstracted. Zero is
+# equivalent to no limit.
+cpa.bounds.loopIterationsBeforeAbstraction = 0
+
+# this option controls how the maxLoopIterations condition is adjusted when a
+# condition adjustment is invoked.
+cpa.bounds.maxLoopIterationAdjusterFactory = STATIC
+  enum:     [STATIC, INCREMENT, DOUBLE]
+
+# threshold for unrolling loops of the program (0 is infinite)
+# works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound
+cpa.bounds.maxLoopIterations = 0
+
+# threshold for adjusting the threshold for unrolling loops of the program (0
+# is infinite).
+# only relevant in combination with a non-static maximum loop iteration
+# adjuster.
+cpa.bounds.maxLoopIterationsUpperBound = 0
+
 # depth of recursion bound
 cpa.callstack.depth = 0
 
