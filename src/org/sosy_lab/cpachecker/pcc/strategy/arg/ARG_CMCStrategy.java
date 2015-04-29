@@ -96,12 +96,14 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   @Option(secure = true, description = "List of files with configurations to use. ")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
+  // TODO proof checker strategy since it does not account for strengthening which is required to check assumption guiding automaton
   @Option(secure = true,
       description = "Which ARG strategy to use for each partial ARG, strategy based on CPA (true) or on proof checker interface (false)")
-  private boolean useArgCpaStrategy = false;
-  @Option(secure = true,
-      description = "Enable if partial ARGs can be read based using different CPA object than checker")
-  private boolean interleavedMode = false;
+  private boolean useArgCpaStrategy = true;
+  /* as long as formulae are read require that same manager is used for both, cannot create CPA twice, must wait until assumption automaton ready
+   * @Option(secure = true,
+      description = "Enable if partial ARGs can be read based using different CPA object than checker")*/
+  private boolean interleavedMode = true;
 
   public ARG_CMCStrategy(Configuration pConfig, LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa) throws InvalidConfigurationException {
@@ -162,8 +164,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     if(interleavedMode) {
       return checkAndReadInterleaved();
     }
-// TODO fails for second predicate analysis checking, problem assumption guiding automaton requires strengthening -> does not work for proof checker
-    // TODO test with CPA, require correct configuration here
+
     return checkAndReadSequentially();
   }
 
