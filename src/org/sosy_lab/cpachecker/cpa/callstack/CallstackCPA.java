@@ -45,7 +45,9 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -53,7 +55,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.collect.Iterables;
 
-public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker, ReachedSetAdjustingCPA {
 
   private final Reducer reducer;
 
@@ -147,5 +149,22 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
         throw new InvalidConfigurationException("Unknown domain type for callstack cpa.");
       }
     }
+  }
+
+  @Override
+  public boolean adjustPrecision() {
+    CallstackTransferRelation ctr = (CallstackTransferRelation) getTransferRelation();
+    ++ctr.recursionBoundDepth;
+    return true;
+  }
+
+  @Override
+  public void adjustReachedSet(ReachedSet pReachedSet) {
+    // No action required
+  }
+
+  public void setMaxRecursionDepth(int pK) {
+    CallstackTransferRelation ctr = (CallstackTransferRelation) getTransferRelation();
+    ctr.recursionBoundDepth = pK;
   }
 }

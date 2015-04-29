@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.loopstack;
+package org.sosy_lab.cpachecker.cpa.bounds;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -69,8 +67,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
-@Options(prefix="cpa.loopstack")
-public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
+@Options(prefix="cpa.bounds")
+public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
 
   private final LogManager logger;
 
@@ -93,24 +91,24 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
   private final DelegatingTransferRelation transferRelation;
 
   public static CPAFactory factory() {
-    return new LoopstackCPAFactory();
+    return new BoundsCPAFactory();
   }
 
   private final LoopStructure loopStructure;
 
-  public LoopstackCPA(Configuration config, CFA pCfa, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+  public BoundsCPA(Configuration config, CFA pCfa, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     this(config, pCfa, pLogger, new DelegatingTransferRelation());
   }
 
-  private LoopstackCPA(Configuration config, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
+  private BoundsCPA(Configuration config, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
     super("sep", "sep", pDelegatingTransferRelation);
     if (!pCfa.getLoopStructure().isPresent()) {
-      throw new CPAException("LoopstackCPA cannot work without loop-structure information in CFA.");
+      throw new CPAException("UnifiedLoopstackCPA cannot work without loop-structure information in CFA.");
     }
     loopStructure = pCfa.getLoopStructure().get();
     config.inject(this);
     this.transferRelation = pDelegatingTransferRelation;
-    this.transferRelation.setDelegate(new LoopstackTransferRelation(
+    this.transferRelation.setDelegate(new BoundsTransferRelation(
         loopIterationsBeforeAbstraction, maxLoopIterations, loopStructure));
     this.logger = pLogger;
   }
@@ -120,33 +118,15 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     if (pNode instanceof FunctionEntryNode) {
       // shortcut for the common case, a function start node can never be in a loop
       // (loops don't span across functions)
-      return new LoopstackState();
+      return new BoundsState();
     }
 
-    Loop loop = null;
-    Set<String> functionNames = new HashSet<>();
-    functionNames.add(pNode.getFunctionName());
-    functionNames.add(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-    for (String functionName : functionNames) {
-      Collection<Loop> loops = loopStructure.getLoopsForFunction(functionName);
-      if (loops != null) {
-        for (Loop l : loops) {
-          if (l.getLoopNodes().contains(pNode)) {
-            Preconditions.checkState(loop == null, "Cannot create initial nodes for locations in nested loops");
-            loop = l;
-          }
-        }
-        if (loop != null) {
-          break;
-        }
+    BoundsState e = new BoundsState(); // the bottom element of the stack
+
+    for (Loop loop : loopStructure.getAllLoops()) {
+      if (loop.getLoopHeads().contains(pNode)) {
+        e = e.enter(loop);
       }
-    }
-
-    LoopstackState e = new LoopstackState(); // the bottom element of the stack
-
-    if (loop != null) {
-      // if loop is present, push one element on the stack for it
-      e = new LoopstackState(e, loop, 1, false);
     }
     return e;
   }
@@ -180,7 +160,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
         if (pArg0 == null) {
           return false;
         }
-        LoopstackState loopstackState = extractStateByType(pArg0, LoopstackState.class);
+        BoundsState loopstackState = extractStateByType(pArg0, BoundsState.class);
         return loopstackState != null && loopstackState.mustDumpAssumptionForAvoidance();
       }}).toSet();
 
@@ -227,7 +207,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   private static interface MaxLoopIterationAdjusterFactory {
 
-    MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopstackCPA pCPA);
+    MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(BoundsCPA pCPA);
 
   }
 
@@ -236,7 +216,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     STATIC {
 
       @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopstackCPA pCPA) {
+      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(BoundsCPA pCPA) {
         return StaticLoopIterationAdjuster.INSTANCE;
       }
 
@@ -245,7 +225,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     INCREMENT {
 
       @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopstackCPA pCPA) {
+      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(BoundsCPA pCPA) {
         return new IncrementalLoopIterationAdjuster(pCPA);
       }
 
@@ -254,7 +234,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     DOUBLE {
 
       @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopstackCPA pCPA) {
+      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(BoundsCPA pCPA) {
         return new DoublingLoopIterationAdjuster(pCPA);
       }
 
@@ -281,9 +261,9 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   private static class IncrementalLoopIterationAdjuster implements MaxLoopIterationAdjuster {
 
-    private final LoopstackCPA cpa;
+    private final BoundsCPA cpa;
 
-    public IncrementalLoopIterationAdjuster(LoopstackCPA pCPA) {
+    public IncrementalLoopIterationAdjuster(BoundsCPA pCPA) {
       this.cpa = pCPA;
     }
 
@@ -301,9 +281,9 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   private static class DoublingLoopIterationAdjuster implements MaxLoopIterationAdjuster {
 
-    private final LoopstackCPA cpa;
+    private final BoundsCPA cpa;
 
-    public DoublingLoopIterationAdjuster(LoopstackCPA pCPA) {
+    public DoublingLoopIterationAdjuster(BoundsCPA pCPA) {
       this.cpa = pCPA;
     }
 
@@ -361,12 +341,12 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     pOut.println("Bound k:" + this.maxLoopIterations);
     int maximumLoopIterationReached = 0;
     for (AbstractState state : pReached) {
-      LoopstackState loopstackState = AbstractStates.extractStateByType(state, LoopstackState.class);
+      BoundsState loopstackState = AbstractStates.extractStateByType(state, BoundsState.class);
       if (loopstackState != null) {
-        maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getIteration());
+        maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getDeepestIteration());
       }
     }
-    pOut.println("Maximum loop iteration reached:" + maximumLoopIterationReached);
+    pOut.print("Maximum loop iteration reached:" + maximumLoopIterationReached);
   }
 
   @Override
@@ -376,7 +356,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   public void setMaxLoopIterations(int pMaxLoopIterations) {
     this.maxLoopIterations = pMaxLoopIterations;
-    this.transferRelation.setDelegate(new LoopstackTransferRelation(
+    this.transferRelation.setDelegate(new BoundsTransferRelation(
         loopIterationsBeforeAbstraction,
         maxLoopIterations, loopStructure));
   }

@@ -131,6 +131,10 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# memorize previously used (incomplete) reached sets after a restart of the
+# analysis
+analysis.memorizeReachedAfterRestart = false
+
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
@@ -168,12 +172,15 @@ analysis.traversal.order = DFS
 analysis.traversal.useAutomatonInformation = false
 
 # handle states with a deeper callstack first?
-# This needs the CallstackCPA to have any effect.
+# This needs the CallstackCPA instance to have any effect.
 analysis.traversal.useCallstack = false
 
 # handle more abstract states (with less information) first? (only for
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
+
+# handle states with a deeper loopstack first?
+analysis.traversal.useLoopstack = false
 
 # Use an implementation of postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
@@ -203,6 +210,10 @@ assumptions.automatonBranchingThreshold = 0
 
 # write collected assumptions as automaton to file
 assumptions.automatonFile = "AssumptionAutomaton.txt"
+
+# If it is enabled, automaton does not add assumption which is considered to
+# continue path with corresponding this edge.
+assumptions.automatonIgnoreAssumptions = false
 
 # write collected assumptions to file
 assumptions.export = true
@@ -682,6 +693,26 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
 # mergeType
 cpa.bdd.merge = "join"
+
+# Number of loop iterations before the loop counter is abstracted. Zero is
+# equivalent to no limit.
+cpa.bounds.loopIterationsBeforeAbstraction = 0
+
+# this option controls how the maxLoopIterations condition is adjusted when a
+# condition adjustment is invoked.
+cpa.bounds.maxLoopIterationAdjusterFactory = STATIC
+  enum:     [STATIC, INCREMENT, DOUBLE]
+
+# threshold for unrolling loops of the program (0 is infinite)
+# works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound
+cpa.bounds.maxLoopIterations = 0
+
+# threshold for adjusting the threshold for unrolling loops of the program (0
+# is infinite).
+# only relevant in combination with a non-static maximum loop iteration
+# adjuster.
+cpa.bounds.maxLoopIterationsUpperBound = 0
 
 # depth of recursion bound
 cpa.callstack.depth = 0
@@ -1921,7 +1952,21 @@ parser.usePreprocessor = false
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set
 # exists for which violates the property
-pcc.checkPropertyPerElement = false
+pcc.arg.checkPropertyPerElement = false
+
+# List of files with configurations to use. 
+pcc.arg.cmc.configFiles = no default value
+
+# write collected assumptions to file
+pcc.arg.cmc.file = "assumptions.txt"
+
+# Enable if partial ARGs can be read based using different CPA object than
+# checker
+pcc.arg.cmc.interleavedMode = false
+
+# Which ARG strategy to use for each partial ARG, strategy based on CPA
+# (true) or on proof checker interface (false)
+pcc.arg.cmc.useArgCpaStrategy = false
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for
@@ -1975,7 +2020,7 @@ pcc.proofgen.doPCC = false
 # proof writing, to be used.
 # Qualified name for class which implements proof checking strategy to be
 # used.
-pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
+pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1

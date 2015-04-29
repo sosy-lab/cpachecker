@@ -86,8 +86,7 @@ public class PolicyCPA
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
-    TemplateManager templateManager = new TemplateManager(
-        logger, config, cfa, formulaManager, pathFormulaManager);
+    TemplateManager templateManager = new TemplateManager(logger, config, cfa);
     FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
         logger, formulaManager);
     ValueDeterminationManager valueDeterminationFormulaManager =

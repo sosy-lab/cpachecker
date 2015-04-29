@@ -48,7 +48,7 @@ public class ProofGenerator {
   @Option(secure=true,
       name = "pcc.strategy",
       description = "Qualified name for class which implements certification strategy, hence proof writing, to be used.")
-  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy";
+  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy";
 
   private PCCStrategy checkingStrategy;
 
@@ -77,7 +77,7 @@ public class ProofGenerator {
     pConfig.inject(this);
     logger = pLogger;
 
-    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, pLogger, pShutdownNotifier, null);
+    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, pLogger, pShutdownNotifier, null, null);
   }
 
   public void generateProof(CPAcheckerResult pResult) {

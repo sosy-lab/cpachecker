@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -75,17 +76,17 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   @Option(secure=true,
       name = "pcc.strategy",
       description = "Qualified name for class which implements proof checking strategy to be used.")
-  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy";
+  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy";
 
   private PCCStrategy checkingStrategy;
 
 
   public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig,
-      LogManager logger, ShutdownNotifier pShutdownNotifier)
+      LogManager logger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, pShutdownNotifier, cpa);
+    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, pShutdownNotifier, cpa, pCfa);
 
     this.logger = logger;
 
@@ -104,11 +105,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   protected ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig,
-      LogManager logger, ShutdownNotifier pShutdownNotifier, ReachedSet pReachedSet)
+      LogManager logger, ShutdownNotifier pShutdownNotifier, ReachedSet pReachedSet, CFA pCfa)
       throws InvalidConfigurationException, InterruptedException {
     pConfig.inject(this);
 
-    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, pShutdownNotifier, cpa);
+    checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, pShutdownNotifier, cpa, pCfa);
     this.logger = logger;
 
     if (pReachedSet == null || pReachedSet.hasWaitingState()) { throw new IllegalArgumentException(

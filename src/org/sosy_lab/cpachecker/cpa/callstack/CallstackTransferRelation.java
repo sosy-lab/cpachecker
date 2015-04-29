@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -55,7 +56,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.callstack")
@@ -185,7 +188,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         final CFANode callNode = succ.getEnteringSummaryEdge().getPredecessor();
         final CallstackState returnElement;
 
-        assert calledFunction.equals(e.getCurrentFunction()) || e.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+        assert calledFunction.equals(e.getCurrentFunction()) || isWildcardState(e);
 
         if (isWildcardState(e)) {
           returnElement = e;
@@ -222,8 +225,36 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
    * @return {@code true} if the given state should be treated as a wildcard,
    * {@code false} otherwise.
    */
-  protected boolean isWildcardState(CallstackState pState) {
-    return pState.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+  protected boolean isWildcardState(final CallstackState pState) {
+    String function = pState.getCurrentFunction();
+
+    // Single loop transformation case
+    if (function.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+      return true;
+    }
+
+    CFANode callNode = pState.getCallNode();
+
+    // main function "call" case
+    if (callNode instanceof FunctionEntryNode
+        && callNode.getFunctionName().equals(function)) {
+      return false;
+    }
+
+    // Normal function call case
+    if (CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class).anyMatch(new Predicate<FunctionEntryNode>() {
+
+              @Override
+              public boolean apply(FunctionEntryNode pArg0) {
+                return pArg0.getFunctionName().equals(pState.getCurrentFunction());
+              }
+
+            })) {
+      return false;
+    }
+
+    // Not a function call node -> wildcard state
+    return true;
   }
 
   @Override

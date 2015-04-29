@@ -21,22 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
-
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
- * Interface to implement in order for an abstract state
- * to be able to be over-approximated by a formula representing
- * the abstract state.
+ * Proof carrying code strategies using ARG as proof structures
  */
-public interface FormulaReportingState extends AbstractState {
-
-  /**
-   * Returns a non-instantiated formula over-approximating the state.
-   */
-  BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr);
-
-}
+package org.sosy_lab.cpachecker.pcc.strategy.arg;

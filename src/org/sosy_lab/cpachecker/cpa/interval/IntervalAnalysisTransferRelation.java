@@ -23,28 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -54,15 +49,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -151,23 +142,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)summaryExpr;
 
-      CExpression operand1 = funcExp.getLeftHandSide();
-
       // left hand side of the expression has to be a variable
-      if ((operand1 instanceof CIdExpression) || (operand1 instanceof CFieldReference)) {
-        // set the value of the assigned variable to the value of the returned variable
-        Interval interval = state.contains(retVar.get().getQualifiedName())
-            ? state.getInterval(retVar.get().getQualifiedName())
-            : Interval.createUnboundInterval();
-        newState.addInterval(constructVariableName(operand1, callerFunctionName), interval, this.threshold);
+      if (state.contains(retVar.get().getQualifiedName())) {
+        addInterval(newState, funcExp.getLeftHandSide(), state.getInterval(retVar.get().getQualifiedName()));
       }
 
-      // a* = b(); TODO: for now, nothing is done here, but cloning the current state
-      else if (operand1 instanceof CPointerExpression) {
-        // nothing to do
-      } else {
-        throw new UnrecognizedCCodeException("on function return", edge, operand1);
-      }
     } else if (summaryExpr instanceof CFunctionCallStatement) {
       // nothing to do
     } else {
@@ -241,211 +220,147 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   protected Collection<IntervalAnalysisState> handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
           throws UnrecognizedCCodeException {
-    // first, unpack the expression to deal with a raw assumption
-    if (expression instanceof CUnaryExpression) {
-      throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
+
+    if ((truthValue ? Interval.ZERO : Interval.ONE).equals(evaluateInterval(state, expression))) {
+      // the assumption is unsatisfiable
+      return noSuccessors();
     }
 
-    // -> *exp - don't know anything
-    else if (expression instanceof CPointerExpression) {
-      return soleSuccessor(IntervalAnalysisState.copyOf(state));
-    }
+    // otherwise the assumption is satisfiable or unknown
+    // --> we try to get additional information from the assumption
 
-    // a plain (boolean) identifier, e.g. if (a)
-    else if (expression instanceof CIdExpression) {
-      // this is simplified in the frontend
-      throw new UnrecognizedCCodeException("unexpected expression in assumption", cfaEdge, expression);
-    } else if (expression instanceof CBinaryExpression) {
-      IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    BinaryOperator operator = ((CBinaryExpression)expression).getOperator();
+    CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
+    CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
 
-      BinaryOperator operator = ((CBinaryExpression)expression).getOperator();
-      CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
-      CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
-
-      ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
-
-      Interval interval1 = operand1.accept(visitor);
-      Interval interval2 = operand2.accept(visitor);
-
-      switch (operator) {
-        case MINUS:
-        case PLUS:
-          Interval result = null;
-
-          if (operator == BinaryOperator.MINUS) {
-            result = interval1.minus(interval2);
-          } else if (operator == BinaryOperator.PLUS) {
-            result = interval1.plus(interval2);
-          }
-
-          // in then-branch and interval maybe true, or in else-branch and interval maybe false, add a successor
-          if ((truthValue && !result.isFalse()) || (!truthValue && !result.isTrue())) {
-            return soleSuccessor(newState);
-          } else {
-            return noSuccessors();
-          }
-
-        case EQUALS:
-        case NOT_EQUALS:
-        case GREATER_THAN:
-        case GREATER_EQUAL:
-        case LESS_THAN:
-        case LESS_EQUAL:
-          return processAssumption(operator, operand1, operand2, truthValue);
-
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
-          return soleSuccessor(newState);
-
-        default:
-          throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
-      }
-    }
-
-    return noSuccessors();
-  }
-
-
-  private Collection<IntervalAnalysisState> processAssumption(
-      BinaryOperator operator, CExpression operand1, CExpression operand2, boolean truthValue)
-          throws UnrecognizedCCodeException {
     if (!truthValue) {
       operator = negateOperator(operator);
     }
 
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, edge);
+    // the following lines assume that one of the operands is an identifier
+    // and the other one represented with an interval (example "x<[3;5]").
+    // If none of the operands is an identifier, nothing is done.
+
     IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, edge);
+    Interval interval1 = operand1.accept(visitor);
+    Interval interval2 = operand2.accept(visitor);
 
-    Interval orgInterval1 = operand1.accept(visitor);
-    Interval orgInterval2 = operand2.accept(visitor);
+    assert !interval1.isEmpty() : operand1;
+    assert !interval2.isEmpty() : operand2;
 
-    //Interval orgInterval1 = evaluateInterval(state, operand1, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
-    Interval tmpInterval1 = orgInterval1;
-
-    //Interval orgInterval2 = evaluateInterval(state, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
-    Interval tmpInterval2 = orgInterval2;
-
-    String variableName1 = constructVariableName(operand1, functionName);
-    String variableName2 = constructVariableName(operand2, functionName);
-
-    // determine whether or not the respective operand is an identifier
-    boolean isIdOp1 = operand1 instanceof CIdExpression;
-    boolean isIdOp2 = operand2 instanceof CIdExpression;
-
+    switch(operator) {
     // a < b, a < 1
-    if (operator == BinaryOperator.LESS_THAN) {
-      // a may be less than b, so there can be a successor
-      if (tmpInterval1.mayBeLessThan(tmpInterval2)) {
-        if (isIdOp1) {
-          newState.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2.minus(1L)), threshold);
-        }
-        if (isIdOp2) {
-          newState.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1.plus(1L)), threshold);
-        }
-      } else {
-        return noSuccessors();
-      }
+    case LESS_THAN: {
+      addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
+      addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
+      return soleSuccessor(newState);
     }
 
     // a <= b, a <= 1
-    else if (operator == BinaryOperator.LESS_EQUAL) {
-      // a may be less or equal than b, so there can be a successor
-      if (tmpInterval1.mayBeLessOrEqualThan(tmpInterval2)) {
-        if (isIdOp1) {
-          newState.addInterval(variableName1, orgInterval1.limitUpperBoundBy(tmpInterval2), threshold);
-        }
-        if (isIdOp2) {
-          newState.addInterval(variableName2, orgInterval2.limitLowerBoundBy(tmpInterval1), threshold);
-        }
-      } else {
-        return noSuccessors();
-      }
+    case LESS_EQUAL: {
+      addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
+      addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
+      return soleSuccessor(newState);
     }
 
     // a > b, a > 1
-    else if (operator == BinaryOperator.GREATER_THAN) {
-      // a may be greater than b, so there can be a successor
-      if (tmpInterval1.mayBeGreaterThan(tmpInterval2)) {
-        if (isIdOp1) {
-          newState.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2.plus(1L)), threshold);
-        }
-        if (isIdOp2) {
-          newState.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1.minus(1L)), threshold);
-        }
-      } else {
-        return noSuccessors();
-      }
+    case GREATER_THAN: {
+      addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
+      addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
+      return soleSuccessor(newState);
     }
 
     // a >= b, a >= 1
-    else if (operator == BinaryOperator.GREATER_EQUAL) {
-      // a may be greater or equal than b, so there can be a successor
-      if (tmpInterval1.mayBeGreaterOrEqualThan(tmpInterval2)) {
-        if (isIdOp1) {
-          newState.addInterval(variableName1, orgInterval1.limitLowerBoundBy(tmpInterval2), threshold);
-        }
-        if (isIdOp2) {
-          newState.addInterval(variableName2, orgInterval2.limitUpperBoundBy(tmpInterval1), threshold);
-        }
-      } else {
-        return noSuccessors();
-      }
+    case GREATER_EQUAL: {
+      addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
+      addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
+      return soleSuccessor(newState);
     }
 
     // a == b, a == 1
-    else if (operator == BinaryOperator.EQUALS) {
-      // a and b intersect, so they may have the same value, so they may be equal
-      if (tmpInterval1.intersects(tmpInterval2)) {
-        if (isIdOp1) {
-          newState.addInterval(variableName1, orgInterval1.intersect(tmpInterval2), threshold);
-        }
-        if (isIdOp2) {
-          newState.addInterval(variableName2, orgInterval2.intersect(tmpInterval1), threshold);
-        }
-      } else {
-        return noSuccessors();
-      }
+    case EQUALS: {
+      addInterval(newState, operand1, interval1.intersect(interval2));
+      addInterval(newState, operand2, interval2.intersect(interval1));
+      return soleSuccessor(newState);
     }
 
     // a != b, a != 1
-    else if (operator == BinaryOperator.NOT_EQUALS) {
-      // a = [x, x] = b => a and b are always equal, so there can't be a successor
-      if (tmpInterval1.isSingular() && tmpInterval1.equals(tmpInterval2)) {
-        return noSuccessors();
+    case NOT_EQUALS: {
+
+      // Splitting depends on the fact that one operand is a literal.
+      // Then we try to split into two intervals.
+      if (interval2.getLow().equals(interval2.getHigh())) {
+        return splitInterval(newState, operand1, interval1, interval2);
+
+      } else if (interval1.getLow().equals(interval1.getHigh())) {
+        return splitInterval(newState, operand2, interval2, interval1);
+
+      } else {
+        // we know nothing more than before
+        return soleSuccessor(newState);
       }
-
-      // TODO: currently depends on the fact that operand1 is a identifier, while operand2 is a literal
-      if (splitIntervals && isIdOp1 && !isIdOp2) {
-        IntervalAnalysisState newState2 = null;
-
-        Collection<IntervalAnalysisState> successors = new LinkedList<>();
-
-        Interval result = null;
-
-        if (!(result = orgInterval1.intersect(Interval.createUpperBoundedInterval(orgInterval2.getLow() - 1L))).isEmpty()) {
-          newState2 = IntervalAnalysisState.copyOf(newState);
-
-          newState2.addInterval(variableName1, result, threshold);
-
-          successors.add(newState2);
-        }
-
-        if (!(result = orgInterval1.intersect(Interval.createLowerBoundedInterval(orgInterval2.getLow() + 1L))).isEmpty()) {
-          newState2 = IntervalAnalysisState.copyOf(newState);
-
-          newState2.addInterval(variableName1, result, threshold);
-
-          successors.add(newState2);
-        }
-
-        return successors;
-      }
-    } else {
-      throw new UnrecognizedCCodeException("unknown operator", edge);
     }
 
-    return soleSuccessor(newState);
+    default:
+      throw new UnrecognizedCCodeException("unexpected operator in assumption", edge, expression);
+    }
+  }
+
+  /**
+   * For an interval [2;5] and a splitPoint [3;3]
+   * we build two states with assignments for [2;2] and [4;5].
+   *
+   * @param newState where to store the new intervals
+   * @param lhs the left-hand-side of the assignment
+   * @param interval to be split
+   * @param splitPoint singular interval where to split
+   * @return two states
+   */
+  private Collection<IntervalAnalysisState> splitInterval(
+      IntervalAnalysisState newState, CExpression lhs, Interval interval, Interval splitPoint) {
+
+    assert splitPoint.getLow().equals(splitPoint.getHigh()) : "invalid splitpoint for interval";
+
+    // we split in following cases:
+    // - either always because of the option 'splitIntervals'
+    // - or if the splitPoint is the bound of the interval and thus we can shrink the interval.
+    if (splitIntervals
+        || interval.getLow().equals(splitPoint.getHigh())
+        || interval.getHigh().equals(splitPoint.getHigh())) {
+
+      Collection<IntervalAnalysisState> successors = new ArrayList<>();
+
+      Interval part1 = interval.intersect(Interval.createUpperBoundedInterval(splitPoint.getLow() - 1L));
+      Interval part2 = interval.intersect(Interval.createLowerBoundedInterval(splitPoint.getLow() + 1L));
+
+      if (!part1.isEmpty()) {
+        IntervalAnalysisState newState2 = IntervalAnalysisState.copyOf(newState);
+        addInterval(newState2, lhs, part1);
+        successors.add(newState2);
+      }
+
+      if (!part2.isEmpty()) {
+        IntervalAnalysisState newState3 = IntervalAnalysisState.copyOf(newState);
+        addInterval(newState3, lhs, part2);
+        successors.add(newState3);
+      }
+
+      return successors;
+    } else {
+      return soleSuccessor(newState);
+    }
+  }
+
+  private void addInterval(IntervalAnalysisState newState,
+      CExpression lhs, Interval interval) {
+    // we currently only handle IdExpressions and ignore more complex Expressions
+    if (lhs instanceof CIdExpression) {
+      newState.addInterval(
+          ((CIdExpression) lhs).getDeclaration().getQualifiedName(),
+          interval,
+          threshold);
+    }
   }
 
   /**
@@ -501,27 +416,18 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         return soleSuccessor(newState);
       }
 
-      String varName = decl.getQualifiedName();
-
       Interval interval;
-
       CInitializer init = decl.getInitializer();
 
       // variable may be initialized explicitly on the spot ...
       if (init instanceof CInitializerExpression) {
         CExpression exp = ((CInitializerExpression) init).getExpression();
-        interval = evaluateInterval(state, exp, functionName, declarationEdge);
+        interval = evaluateInterval(state, exp);
       } else {
-        if (decl.isGlobal()) {
-          // according to C standard non initialized global vars are set to 0
-          interval = new Interval(0L);
-        } else {
-          interval = Interval.createUnboundInterval();
-        }
+        interval = Interval.createUnboundInterval();
       }
 
-      newState.addInterval(varName, interval, this.threshold);
-
+      newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
     }
 
     return soleSuccessor(newState);
@@ -539,150 +445,21 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   protected Collection<IntervalAnalysisState> handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
     throws UnrecognizedCodeException {
     // expression is an assignment operation, e.g. a = b;
-    IntervalAnalysisState successor;
     if (expression instanceof CAssignment) {
-      successor = handleAssignment(state, (CAssignment)expression, cfaEdge);
-    } else if (expression instanceof CFunctionCallStatement) {
-      successor = IntervalAnalysisState.copyOf(state);
-    } else if (expression instanceof CExpressionStatement) {
-      successor = IntervalAnalysisState.copyOf(state);
-    } else {
-      throw new UnrecognizedCodeException("unknown statement", cfaEdge, expression);
-    }
-    return soleSuccessor(successor);
-  }
+      CAssignment assignExpression = (CAssignment)expression;
+      CExpression op1 = assignExpression.getLeftHandSide();
+      CRightHandSide op2 = assignExpression.getRightHandSide();
 
-   /**
-   * This method handles assignments.
-   *
-   * @param state the analysis state
-   * @param assignExpression the expression containing the binary expression
-   * @param declarationEdge the CFA edge
-   * @return the successor state
-   * TODO pointer dereferencing via strengthening
-   */
-  private IntervalAnalysisState handleAssignment(IntervalAnalysisState state, CAssignment assignExpression, CFAEdge cfaEdge)
-    throws UnrecognizedCCodeException {
-    CExpression op1 = assignExpression.getLeftHandSide();
-    CRightHandSide op2 = assignExpression.getRightHandSide();
-    final IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
-
-    // a = ?
-    if (op1 instanceof CIdExpression) {
-      newState.addInterval(((CIdExpression) op1).getDeclaration().getQualifiedName(),
-          evaluateInterval(state, op2), this.threshold);
+      // a = ?
+      IntervalAnalysisState successor = IntervalAnalysisState.copyOf(state);
+      addInterval(successor, op1, evaluateInterval(state, op2));
+      return soleSuccessor(successor);
     }
-
-    // TODO: assignment to pointer, *a = ?
-    else if (op1 instanceof CPointerExpression) {
-    } else if (op1 instanceof CFieldReference) {
-    } else if (op1 instanceof CArraySubscriptExpression) {
-    } else {
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
-    }
-    return newState;
+    return soleSuccessor(state);
   }
 
   private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression) throws UnrecognizedCCodeException {
     return expression.accept(new ExpressionValueVisitor(readableState, edge));
-  }
-
-  /**
-   * This method evaluates an expression and returns the respective interval.
-   *
-   * @param state the analysis state
-   * @param expression the expression containing the expression to be evaluated
-   * @param functionName the name of the function currently being analyzed
-   * @param cfaEdge the respective CFA edge
-   * @return the interval in respect to the evaluated expression of null, if the expression could not be evaluated properly
-   */
-  //getExpressionValue
-  private Interval evaluateInterval(IntervalAnalysisState state, CRightHandSide expression, String functionName, CFAEdge cfaEdge)
-    throws UnrecognizedCCodeException {
-    if (expression instanceof CLiteralExpression) {
-      Long value = parseLiteral((CLiteralExpression)expression, cfaEdge);
-
-      return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
-
-    } else if (expression instanceof CIdExpression) {
-      String varName = constructVariableName((CIdExpression)expression, functionName);
-
-      return (state.contains(varName)) ? state.getInterval(varName) : Interval.createUnboundInterval();
-
-    } else if (expression instanceof CCastExpression) {
-      return evaluateInterval(state, ((CCastExpression)expression).getOperand(), functionName, cfaEdge);
-    } else if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression)expression;
-
-      UnaryOperator unaryOperator = unaryExpression.getOperator();
-      CExpression unaryOperand = unaryExpression.getOperand();
-
-      switch (unaryOperator) {
-        case MINUS:
-          Interval interval = evaluateInterval(state, unaryOperand, functionName, cfaEdge);
-
-          return (interval == null) ? Interval.createUnboundInterval() : interval.negate();
-
-        default:
-          throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
-      }
-    }
-    // clause for CPointerexpression does the same, as UnaryExpression clause would have done for the star operator
-    else if (expression instanceof CPointerExpression) {
-      throw new UnrecognizedCCodeException("PointerExpressions are not allowed at this place", cfaEdge, expression);
-    }
-
-    // added for expression "if (! (req_a___0 + 50 == rsp_d___0))" in "systemc/mem_slave_tlm.1.cil.c"
-    else if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression)expression;
-
-      Interval interval1 = evaluateInterval(state, binaryExpression.getOperand1(), functionName, cfaEdge);
-      Interval interval2 = evaluateInterval(state, binaryExpression.getOperand2(), functionName, cfaEdge);
-
-      switch (binaryExpression.getOperator()) {
-        case PLUS:
-          return interval1.plus(interval2);
-
-        default:
-          throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
-      }
-    } else {
-      //throw new UnrecognizedCCodeException(cfaEdge, expression);
-      return Interval.createUnboundInterval();
-    }
-  }
-
-  /**
-   * This method parses an expression to retrieve its literal value.
-   *
-   * @param expression the expression to parse
-   * @return a number or null if the parsing failed
-   * @throws UnrecognizedCCodeException
-   */
-  private static Long parseLiteral(CLiteralExpression expression, CFAEdge edge) throws UnrecognizedCCodeException {
-    if (expression instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression)expression).asLong();
-
-    } else if (expression instanceof CFloatLiteralExpression) {
-      return null;
-
-    } else if (expression instanceof CCharLiteralExpression) {
-      return (long)((CCharLiteralExpression)expression).getCharacter();
-
-    } else if (expression instanceof CStringLiteralExpression) {
-      return null;
-
-    } else {
-      throw new UnrecognizedCCodeException("unknown literal", edge, expression);
-    }
-  }
-
-  private String constructVariableName(CExpression pVariableName, String pCalledFunctionName) {
-    if (pVariableName instanceof CIdExpression) {
-      return ((CIdExpression)pVariableName).getDeclaration().getQualifiedName();
-    }
-    return (isGlobal(pVariableName) ? "" : (pCalledFunctionName + "::"))
-        + pVariableName.toASTString();
   }
 
   @Override
@@ -700,11 +477,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   }
 
   /**
-   * Visitor that get's the value from an expression.
-   * The result may be null, i.e., the value is unknown.
+   * Visitor that get's the interval from an expression,
    */
-  private static class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
-                                       implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
+  private static class ExpressionValueVisitor
+      extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
+      implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
 
     private final IntervalAnalysisState readableState;
 
@@ -714,8 +491,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       readableState = pState;
       cfaEdge = edge;
     }
-
-    // TODO fields, arrays
 
     @Override
     protected Interval visitDefault(CExpression expression) {
@@ -731,53 +506,86 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         return Interval.createUnboundInterval();
       }
 
-      switch (binaryExpression.getOperator()) {
-        case PLUS:
-          return interval1.plus(interval2);
+      BinaryOperator operator = binaryExpression.getOperator();
+      if (operator.isLogicalOperator()) {
+        return getLogicInterval(operator, interval1, interval2);
+      } else {
+        return getArithmeticInterval(operator, interval1, interval2);
+      }
+    }
 
-        case MINUS:
-          return interval1.minus(interval2);
+    private static Interval getLogicInterval(BinaryOperator operator,
+        Interval interval1, Interval interval2) {
+      switch (operator) {
+      case EQUALS:
+        if (!interval1.intersects(interval2)) {
+          return Interval.ZERO;
+        } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
+          // singular interval, [5;5]==[5;5]
+          return Interval.ONE;
+        } else {
+          return Interval.createBooleanInterval();
+        }
 
-        case MULTIPLY:
-          return interval1.times(interval2);
+      case NOT_EQUALS:
+        if (!interval1.intersects(interval2)) {
+          return Interval.ONE;
+        } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
+          // singular interval, [5;5]!=[5;5]
+          return Interval.ZERO;
+        } else {
+          return Interval.createBooleanInterval();
+        }
 
-        case DIVIDE:
-          return interval1.divide(interval2);
+      case GREATER_THAN:
+        if (interval1.isGreaterThan(interval2)) {
+          return Interval.ONE;
+        } else if (interval2.isGreaterOrEqualThan(interval1)) {
+          return Interval.ZERO;
+        } else {
+          return Interval.createBooleanInterval();
+        }
 
-        case SHIFT_LEFT:
-          return interval1.shiftLeft(interval2);
+      case GREATER_EQUAL: // a>=b == a+1>b, works only for integers
+        return getLogicInterval(BinaryOperator.GREATER_THAN,
+            interval1.plus(new Interval(1L)), interval2);
 
-        case SHIFT_RIGHT:
-          return interval1.shiftRight(interval2);
+      case LESS_THAN: // a<b == b>a
+        return getLogicInterval(BinaryOperator.GREATER_THAN,
+            interval2, interval1);
 
-        case EQUALS:
-          return new Interval(interval1.intersects(interval2) ? 1L : 0L);
+      case LESS_EQUAL: // a<=b == b+1>a, works only for integers
+        return getLogicInterval(BinaryOperator.GREATER_THAN,
+            interval2.plus(new Interval(1L)), interval1);
 
-        case NOT_EQUALS:
-          return new Interval(!interval1.intersects(interval2) ? 1L : 0L);
+      default:
+        throw new AssertionError("unknown binary operator: " + operator);
+      }
+    }
 
-        case GREATER_THAN:
-          return new Interval(interval1.mayBeGreaterThan(interval2) ? 1L : 0L);
-
-        case GREATER_EQUAL:
-          return new Interval(interval1.mayBeGreaterOrEqualThan(interval2) ? 1L : 0L);
-
-        case LESS_THAN:
-          return new Interval(interval1.mayBeLessThan(interval2) ? 1L : 0L);
-
-        case LESS_EQUAL:
-          return new Interval(interval1.mayBeLessOrEqualThan(interval2) ? 1L : 0L);
-
-        case MODULO:
-          return interval1.modulo(interval2);
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
-          // can these be handled?
-          return Interval.createUnboundInterval();
-
-        default:
-          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, binaryExpression);
+    private static Interval getArithmeticInterval(BinaryOperator operator,
+        Interval interval1, Interval interval2) {
+      switch (operator) {
+      case PLUS:
+        return interval1.plus(interval2);
+      case MINUS:
+        return interval1.minus(interval2);
+      case MULTIPLY:
+        return interval1.times(interval2);
+      case DIVIDE:
+        return interval1.divide(interval2);
+      case SHIFT_LEFT:
+        return interval1.shiftLeft(interval2);
+      case SHIFT_RIGHT:
+        return interval1.shiftRight(interval2);
+      case MODULO:
+        return interval1.modulo(interval2);
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+        return Interval.createUnboundInterval();
+      default:
+        throw new AssertionError("unknown binary operator: " + operator);
       }
     }
 
@@ -787,25 +595,12 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     }
 
     @Override
-    public Interval visit(CComplexCastExpression cast) throws UnrecognizedCCodeException {
-      // evaluation of complex numbers is not supported by now
-      return Interval.createUnboundInterval();
-    }
-
-    @Override
     public Interval visit(CFunctionCallExpression functionCall) throws UnrecognizedCCodeException {
       return Interval.createUnboundInterval();
     }
-
     @Override
     public Interval visit(CCharLiteralExpression charLiteral) throws UnrecognizedCCodeException {
-      Long l = parseLiteral(charLiteral, cfaEdge);
-      return l == null ? Interval.createUnboundInterval() : new Interval(l);
-    }
-
-    @Override
-    public Interval visit(CFloatLiteralExpression floatLiteral) throws UnrecognizedCCodeException {
-      return Interval.createUnboundInterval();
+      return new Interval((long)charLiteral.getCharacter());
     }
 
     @Override
@@ -815,12 +610,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
     @Override
     public Interval visit(CIntegerLiteralExpression integerLiteral) throws UnrecognizedCCodeException {
-      return new Interval(parseLiteral(integerLiteral, cfaEdge));
-    }
-
-    @Override
-    public Interval visit(CStringLiteralExpression stringLiteral) throws UnrecognizedCCodeException {
-      return Interval.createUnboundInterval();
+      return new Interval(integerLiteral.asLong());
     }
 
     @Override
@@ -839,15 +629,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
     @Override
     public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      UnaryOperator unaryOperator = unaryExpression.getOperator();
-      CExpression unaryOperand = unaryExpression.getOperand();
-
-      Interval interval = unaryOperand.accept(this);
-
-      switch (unaryOperator) {
+      Interval interval = unaryExpression.getOperand().accept(this);
+      switch (unaryExpression.getOperator()) {
 
       case MINUS:
-        return (interval != null) ? interval.negate() : Interval.createUnboundInterval();
+        return interval.negate();
 
       case AMPER:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value
@@ -855,11 +641,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
       }
-    }
-
-    @Override
-    public Interval visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
-      return Interval.createUnboundInterval();
     }
   }
 }

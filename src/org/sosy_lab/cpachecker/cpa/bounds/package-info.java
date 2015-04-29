@@ -21,22 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
-
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-
 /**
- * Interface to implement in order for an abstract state
- * to be able to be over-approximated by a formula representing
- * the abstract state.
+ * This CPA tracks the bounds of loop and callstack unrollings and stops
+ * exploration after a given (modifiable) bound is reached.
+ *
+ *  Applications of this CPA are bounded model checking and k-induction.
  */
-public interface FormulaReportingState extends AbstractState {
-
-  /**
-   * Returns a non-instantiated formula over-approximating the state.
-   */
-  BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr);
-
-}
+package org.sosy_lab.cpachecker.cpa.bounds;

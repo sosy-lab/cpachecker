@@ -35,13 +35,15 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class CustomInstructionApplications {
 
   private final Map<CFANode, AppliedCustomInstruction> cis;
+  private final CustomInstruction ci;
 
   /**
    * Constructor of CustomInstructionApplications
    * @param pCis ImmutableMap
    */
-  public CustomInstructionApplications(final Map<CFANode, AppliedCustomInstruction> pCis) {
+  public CustomInstructionApplications(final Map<CFANode, AppliedCustomInstruction> pCis, final CustomInstruction pCi) {
     cis = pCis;
+    ci = pCi;
   }
 
   /**
@@ -94,6 +96,10 @@ public class CustomInstructionApplications {
     }
 
     return cis.get(locState);
+  }
+
+  public CustomInstruction getCustomInstruction() {
+    return ci;
   }
 
 }

@@ -21,12 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.pcc.strategy;
+package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.pcc.strategy.SequentialReadStrategy;
 
 
 public abstract class AbstractARGStrategy extends SequentialReadStrategy {
@@ -74,8 +76,14 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
   @Override
   public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
-    initChecking(root);
+    return checkCertificate(pReachedSet, root, null);
+  }
+
+
+  protected boolean checkCertificate(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> incompleteStates)
+      throws CPAException, InterruptedException {
+  //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
+    initChecking(pRoot);
 
     logger.log(Level.INFO, "Proof check algorithm started");
 
@@ -84,11 +92,11 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
     logger.log(Level.FINE, "Checking root state");
 
-    if (!checkCovering(initialState, root, initialPrecision)) {
+    if (!checkCovering(initialState, pRoot, initialPrecision)) {
       return false;
     }
 
-    pReachedSet.add(root, initialPrecision);
+    pReachedSet.add(pRoot, initialPrecision);
 
     do{
 
@@ -97,7 +105,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
       while (pReachedSet.hasWaitingState()) {
         shutdownNotifier.shutdownIfNecessary();
 
-        stats.countIterations++;
+        stats.increaseIteration();
         ARGState state = (ARGState) pReachedSet.popFromWaitlist();
 
         logger.log(Level.FINE, "Looking at state", state);
@@ -110,7 +118,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
         if (state.isCovered()) {
           if (!checkCoveredStates(state, pReachedSet, initialPrecision)) { return false; }
         } else {
-          if (!checkAndAddSuccessors(state, pReachedSet, initialPrecision)) { return false; }
+          if (!checkAndAddSuccessors(state, pReachedSet, initialPrecision, incompleteStates)) { return false; }
         }
       }
     }while (!isCheckComplete());
@@ -128,32 +136,38 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
       }
     }
 
-    stats.stopTimer.start();
+    stats.getStopTimer().start();
     if (!isCoveringCycleFree(pCovered)) {
-      stats.stopTimer.stop();
+      stats.getStopTimer().stop();
       logger.log(Level.WARNING, "Found cycle in covering relation for state", pCovered);
       return false;
     }
     if (!checkCovering(pCovered, coveringState, pPrecision)) {
-      stats.stopTimer.stop();
+      stats.getStopTimer().stop();
       logger.log(Level.WARNING, "State", pCovered, "is not covered by", coveringState);
       return false;
     }
-    stats.stopTimer.stop();
+    stats.getStopTimer().stop();
     return true;
   }
 
-  private boolean checkAndAddSuccessors(final ARGState pPredecessor, final ReachedSet pReachedSet, final Precision pPrecision)
+  private boolean checkAndAddSuccessors(final ARGState pPredecessor, final ReachedSet pReachedSet,
+      final Precision pPrecision, List<ARGState> pIncompleteStates)
       throws InterruptedException, CPAException {
-    stats.transferTimer.start();
+   stats.getTransferTimer().start();
     Collection<ARGState> successors = pPredecessor.getChildren();
     logger.log(Level.FINER, "Checking abstract successors", successors);
     if (!checkSuccessors(pPredecessor, successors, pPrecision)) {
-      stats.transferTimer.stop();
+      stats.getTransferTimer().stop();
+      if(pIncompleteStates != null) {
+        pIncompleteStates.add(pPredecessor);
+        logger.log(Level.FINER, "State", pPredecessor, "is explored incompletely, will be recorded in the assumption automaton.");
+        return true;
+      }
       logger.log(Level.WARNING, "State", pPredecessor, "has other successors than", successors);
       return false;
     }
-    stats.transferTimer.stop();
+    stats.getTransferTimer().stop();
 
     if (!addSuccessors(successors, pReachedSet, pPrecision)) { return false; }
     return true;
@@ -168,13 +182,13 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
     try {
-      stats.preparationTimer.start();
+      stats.getPreparationTimer().start();
     if (!(pReadProof instanceof ARGState)) {
       throw new InvalidConfigurationException("Proof Strategy requires ARG.");
     }
     root = (ARGState) pReadProof;
     } finally {
-      stats.preparationTimer.stop();
+      stats.getPreparationTimer().stop();
     }
   }
 
@@ -191,10 +205,10 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
   protected boolean checkForStatePropertyAndOtherStateActions(ARGState pState) {
     try {
-      stats.propertyCheckingTimer.start();
+      stats.getPropertyCheckingTimer().start();
       return propChecker.satisfiesProperty(pState);
     } finally {
-      stats.propertyCheckingTimer.stop();
+      stats.getPropertyCheckingTimer().stop();
     }
   }
 

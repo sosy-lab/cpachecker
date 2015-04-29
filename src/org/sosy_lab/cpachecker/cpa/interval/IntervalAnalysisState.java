@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -436,5 +437,10 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  public Map<String, Interval> getIntervalMapView() {
+    Collections.unmodifiableMap(intervals);
+    return null;
   }
 }

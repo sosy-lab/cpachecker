@@ -43,6 +43,7 @@ public enum PreventingHeuristic {
   MEMORYOUT("MO"),
   TIMEOUT("TO"),
   LOOPITERATIONS("LI"),
+  RECURSIONDEPTH("RD"),
   EDGECOUNT("EC");
 
   private final String predicateString;

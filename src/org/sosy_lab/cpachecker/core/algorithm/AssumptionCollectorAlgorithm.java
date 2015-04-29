@@ -101,6 +101,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
 
+  @Option(secure=true, description="If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
+  private boolean automatonIgnoreAssumptions = false;
+
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final FormulaManagerView formulaManager;
@@ -316,11 +319,19 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     sb.append("INITIAL STATE ARG" + initialState.getStateId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
-    sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
+    if (automatonIgnoreAssumptions) {
+      sb.append("    TRUE -> GOTO __TRUE;\n\n");
+    } else {
+      sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
+    }
 
     if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
-      sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
+      if (automatonIgnoreAssumptions) {
+        sb.append("    TRUE -> GOTO __FALSE;\n\n");
+      } else {
+        sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
+      }
     }
 
     for (final ARGState s : relevantStates) {
@@ -403,10 +414,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState) throws IOException {
-    BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
-    writer.append("ASSUME {");
-    escape(assumption.toString(), writer);
-    writer.append("} ");
+    if (!automatonIgnoreAssumptions) {
+      BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+      writer.append("ASSUME {");
+      escape(assumption.toString(), writer);
+      writer.append("} ");
+    }
   }
 
   private void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,

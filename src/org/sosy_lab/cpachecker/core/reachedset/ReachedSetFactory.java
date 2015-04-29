@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
@@ -50,8 +51,12 @@ public class ReachedSetFactory {
 
   @Option(secure=true, name = "traversal.useCallstack",
       description = "handle states with a deeper callstack first?"
-      + "\nThis needs the CallstackCPA to have any effect.")
+      + "\nThis needs the CallstackCPA instance to have any effect.")
   boolean useCallstack = false;
+
+  @Option(secure=true, name="traversal.useLoopstack",
+    description= "handle states with a deeper loopstack first?")
+  boolean useLoopstack = false;
 
   @Option(secure=true, name = "traversal.useReversePostorder",
       description = "Use an implementation of reverse postorder strategy that allows to select "
@@ -97,6 +102,9 @@ public class ReachedSetFactory {
     }
     if (usePostorder) {
       waitlistFactory = PostorderSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useLoopstack) {
+      waitlistFactory = LoopstackSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
