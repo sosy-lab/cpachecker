@@ -162,7 +162,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     if(interleavedMode) {
       return checkAndReadInterleaved();
     }
-// TODO fails for second predicate analysis checking
+// TODO fails for second predicate analysis checking, problem assumption guiding automaton requires strengthening -> does not work for proof checker
+    // TODO test with CPA, require correct configuration here
     return checkAndReadSequentially();
   }
 
@@ -210,10 +211,13 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         }
       } catch (IOException | ClassNotFoundException e) {
         logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
+        return false;
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");
+        return false;
       } catch (Exception e2) {
-        logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
+        logger.logException(Level.SEVERE, e2, "Failure during proof reading or checking");
+        return false;
       } finally {
         logger.log(Level.INFO, "Stop checking partial ARGs");
         if (streams != null) {
