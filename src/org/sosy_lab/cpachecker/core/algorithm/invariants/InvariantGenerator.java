@@ -72,6 +72,13 @@ public interface InvariantGenerator {
   InvariantSupplier get() throws CPAException, InterruptedException;
 
   /**
+   * Return whether the invariant generation has already proved
+   * that the specification holds, and no further checks are necessary.
+   * If possible, this method should be cheap.
+   */
+  boolean isProgramSafe();
+
+  /**
    * Add a specific invariant that is guaranteed to hold to the set of facts
    * this invariant generator may return.
    * Note that it is not guaranteed that the invariant returned

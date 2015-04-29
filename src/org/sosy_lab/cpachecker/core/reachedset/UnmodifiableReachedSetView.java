@@ -98,11 +98,6 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public int getWaitlistSize() {
-    return underlying.getWaitlistSize();
-  }
-
-  @Override
   public boolean hasWaitingState() {
     return underlying.hasWaitingState();
   }

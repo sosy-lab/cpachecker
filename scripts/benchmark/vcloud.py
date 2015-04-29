@@ -324,7 +324,7 @@ def parseCloudRunResultFile(filePath):
 
     with open(filePath, 'rt') as file:
         for line in file:
-            (key, value) = line.split("=", 2)
+            (key, value) = line.split("=", 1)
             value = value.strip()
             if key == 'cputime':
                 cputime = parseTimeValue(value)
@@ -344,5 +344,11 @@ def parseCloudRunResultFile(filePath):
             else:
                 # "@" means value is hidden normally
                 values["@vcloud-" + key] = value
+                
+    # remove irrelevant columns
+    values.pop("@vcloud-command", None)
+    values.pop("@vcloud-timeLimit", None)
+    values.pop("@vcloud-coreLimit", None)
+    values.pop("@vcloud-memoryLimit", None) 
 
     return (cputime, walltime, return_value, values)

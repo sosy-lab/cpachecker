@@ -62,9 +62,9 @@ public class PathExtractor implements Statistics {
   /**
    * keep log of feasible targets that were already found
    */
-  private final Set<ARGState> feasibleTargets = new HashSet<>();
+  protected final Set<ARGState> feasibleTargets = new HashSet<>();
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
   // For statistics
   private int targetCounter = 0;

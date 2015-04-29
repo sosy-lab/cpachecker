@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
-
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Queue;
@@ -67,22 +66,25 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
         pBMCStatistics,
         true /* invariant generator */ );
     Verify.verify(checkIfInductionIsPossible(pCFA, pLogger));
-    assert pCFA.getAllLoopHeads().get().size() == 1;
   }
 
   public InvariantSupplier getCurrentInvariants() {
     return locationInvariantsProvider;
   }
 
+  public boolean isProgramSafe() {
+    return invariantGenerator.isProgramSafe();
+  }
+
   @Override
   protected Set<CandidateInvariant> getCandidateInvariants(CFA cfa,
       Collection<CFANode> targetLocations) {
     final Set<CandidateInvariant> result = new LinkedHashSet<>();
-    final CFANode loopHead = getOnlyElement(cfa.getLoopStructure().get().getAllLoopHeads());
 
     for (AssumeEdge assumeEdge : getRelevantAssumeEdges(targetLocations)) {
-      result.add(new EdgeFormulaNegation(loopHead, assumeEdge));
+      result.add(new EdgeFormulaNegation(cfa.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
     }
+
     return result;
   }
 
@@ -121,7 +123,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
         @Override
         public BooleanFormula getInvariantFor(CFANode location, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
           try {
-            return prover.getCurrentLocationInvariants(location, fmgr, pfmgr);
+            return prover.getCurrentLocationInvariants(location, fmgr, pfmgr, Collections.<CFANode>emptySet());
           } catch (InterruptedException | CPAException e) {
             return fmgr.getBooleanFormulaManager().makeBoolean(true);
           }

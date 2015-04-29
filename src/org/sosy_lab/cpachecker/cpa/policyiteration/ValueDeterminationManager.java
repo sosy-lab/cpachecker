@@ -14,6 +14,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -28,6 +29,7 @@ public class ValueDeterminationManager {
   private final BooleanFormulaManagerView bfmgr;
   private final LogManager logger;
   private final TemplateManager templateManager;
+  private final PathFormulaManager pfmgr;
 
   /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
@@ -36,12 +38,14 @@ public class ValueDeterminationManager {
   public ValueDeterminationManager(
       FormulaManagerView fmgr,
       LogManager logger,
-      TemplateManager pTemplateManager) {
+      TemplateManager pTemplateManager,
+      PathFormulaManager pPfmgr) {
 
     this.fmgr = fmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
     templateManager = pTemplateManager;
+    pfmgr = pPfmgr;
   }
 
   /**
@@ -89,13 +93,12 @@ public class ValueDeterminationManager {
 
         // Update the queue, check visited.
         if ((state != stateWithUpdates || updated.containsKey(template))
-            && bound.dependsOnInitial()) {
+            && bound.getDependencies().contains(template)) {
 
           if (!visitedLocationIDs.contains(backpointer.getLocationID())) {
             queue.add(backpointer);
           }
         }
-
 
         // Give the element to the constraint generator.
         String prefix;
@@ -160,7 +163,7 @@ public class ValueDeterminationManager {
 
     final String abstractDomainElement = absDomainVarName(toState, template);
     final Formula policyOutTemplate = fmgr.renameFreeVariablesAndUFs(
-        templateManager.toFormula(template, policyFormula), addPrefix);
+        templateManager.toFormula(pfmgr, fmgr, template, policyFormula), addPrefix);
     final Formula abstractDomainFormula =
         fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
             abstractDomainElement);
@@ -175,7 +178,7 @@ public class ValueDeterminationManager {
 
     // Shortcut: if the bound is not dependent on the initial value,
     // just add the numeric constraint and don't process the input policies.
-    if (!bound.dependsOnInitial()) {
+    if (bound.getDependencies().isEmpty()) {
       logger.log(Level.FINE, "Template does not depend on initial condition,"
           + "skipping");
       BooleanFormula constraint = fmgr.makeEqual(abstractDomainFormula,
@@ -198,16 +201,14 @@ public class ValueDeterminationManager {
     }
 
     // Process incoming constraints on the policy start.
-    for (Entry<Template, PolicyBound> incomingConstraint : incomingState) {
-
-      Template incomingTemplate = incomingConstraint.getKey();
-
+    for (Template incomingTemplate : bound.getDependencies()) {
       String prevAbstractDomainElement = absDomainVarName(
           incomingState,
           incomingTemplate);
 
       Formula incomingTemplateFormula = fmgr.renameFreeVariablesAndUFs(
           templateManager.toFormula(
+              pfmgr, fmgr,
               incomingTemplate,
               startPathFormula
           ), addPrefix);

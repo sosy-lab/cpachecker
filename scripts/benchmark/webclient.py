@@ -42,6 +42,7 @@ from time import sleep
 import urllib.parse as urllib
 import urllib.request as urllib2
 from  http.client import HTTPConnection
+from  http.client import HTTPSConnection
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
@@ -64,6 +65,7 @@ class WebClientError(Exception):
     def __str__(self):
         return repr(self.value)
 
+_thread_local = threading.local()
 _unfinished_run_ids = set()
 _webclient = None
 _base64_user_pwd = None
@@ -164,28 +166,27 @@ def stop():
     logging.debug("Stopped all tasks.")
             
 def _stop_run(runId):
-    threadLocal = threading.local()
-    connection = getattr(threadLocal, 'connection', None)
-    if connection is None:
-        threadLocal.connection = HTTPConnection(_webclient.netloc)
-        connection = threadLocal.connection
+    connection = _get_connection()
 
     headers = {"Authorization": "Basic " + _base64_user_pwd}
     path = _webclient.path + "runs/" + runId
     connection.request("DELETE", path, headers=headers)
     
     response = connection.getresponse()
-    if response.status != 200:
+    
+    if response.status is not 200 and  response.status is not 204:
         try:
             if response.status == 404:
                 message = 'Please check the URL given to --cloudMaster.'
                 response.read()
             else:
-                message = response.read() #not all HTTPErrors have a read() method
+                message = response.read().decode('utf-8')
         except AttributeError:
             message = ""
+        
+        print(message)   
         logging.debug('Could not delete run {0}: {1}. {2}'.\
-            format(runId, message))               
+            format(runId, response.status,  message))               
         
 def _submitRunsParallel(runSet, benchmark):
 
@@ -230,11 +231,7 @@ def _submitRunsParallel(runSet, benchmark):
     return runIDs
 
 def _submitRun(run, benchmark, counter = 0):
-    threadLocal = threading.local()
-    connection = getattr(threadLocal, 'connection', None)
-    if connection is None:
-        threadLocal.connection = HTTPConnection(_webclient.netloc)
-        connection = threadLocal.connection
+    connection = _get_connection()
     
     programTexts = []
     for programPath in run.sourcefiles:
@@ -352,8 +349,7 @@ def _handleOptions(run, params, rlimits):
     return False
 
 def _getResults(runIDs, output_handler, benchmark):
-    connection = HTTPConnection(_webclient.netloc)
-    connection.connect()
+    connection = _get_connection()
     
     while len(runIDs) > 0 :
         finishedRunIDs = []
@@ -365,7 +361,6 @@ def _getResults(runIDs, output_handler, benchmark):
         for runID in finishedRunIDs:
             del runIDs[runID]
     
-    connection.close()
 
 def _isFinished(runID, benchmark, connection):
 
@@ -531,3 +526,17 @@ def _parseFile(file):
 
     return values
 
+def _get_connection():
+    connection = getattr(_thread_local, 'connection', None)
+    
+    if connection is None:
+        if _webclient.scheme == 'http':
+            _thread_local.connection = HTTPConnection(_webclient.netloc)
+        elif _webclient.scheme == 'https':
+            _thread_local.connection = HTTPSConnection(_webclient.netloc)
+        else:
+            raise WebClientError("Unknown protocol {0}.".format(_webclient.scheme))
+        
+        connection = _thread_local.connection
+    
+    return connection

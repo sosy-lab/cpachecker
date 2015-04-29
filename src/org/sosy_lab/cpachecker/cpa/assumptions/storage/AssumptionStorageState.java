@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
+import java.io.IOException;
 import java.io.Serializable;
 
 import org.sosy_lab.common.Appender;
@@ -44,11 +45,11 @@ public class AssumptionStorageState implements AbstractState, Serializable {
 
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow
-  private final BooleanFormula assumption;
+  private transient final BooleanFormula assumption;
 
   // if a heuristic told us to stop the analysis, this formula provides the reason
   // if it is TRUE, there is no reason -> don't stop
-  private final BooleanFormula stopFormula;
+  private transient final BooleanFormula stopFormula;
 
   private transient final FormulaManagerView fmgr;
 
@@ -115,13 +116,19 @@ public class AssumptionStorageState implements AbstractState, Serializable {
     return assumption.hashCode() + 17 * stopFormula.hashCode();
   }
 
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    Preconditions.checkState(isAssumptionTrue() && isStopFormulaTrue(),
+        "Assumption and stop formula must be true for serialization to be correctly restored");
+    out.defaultWriteObject();
+  }
+
   private Object readResolve() {
-    FormulaManagerView fmgr = GlobalInfo.getInstance().getFormulaManagerView();
-    if (fmgr == null) {
-      fmgr = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(),
+    assert(GlobalInfo.getInstance().getCPA().isPresent());
+    assert(CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(),
+        AssumptionStorageCPA.class)!=null);
+    FormulaManagerView fmgr = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(),
           AssumptionStorageCPA.class).getFormulaManager();
       GlobalInfo.getInstance().storeFormulaManagerView(fmgr);
-    }
-    return new AssumptionStorageState(fmgr, assumption, stopFormula);
+    return new AssumptionStorageState(fmgr, fmgr.getBooleanFormulaManager().makeBoolean(true), fmgr.getBooleanFormulaManager().makeBoolean(true));
   }
 }

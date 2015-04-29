@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
@@ -101,6 +102,10 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
+
+  @Option(secure=true,
+      description="memorize previously used (incomplete) reached sets after a restart of the analysis")
+  private boolean memorizeReachedAfterRestart = false;
 
   @Option(secure=true, name="combineARGsAfterRestart",
       description="combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration")
@@ -162,7 +167,7 @@ public class CoreComponentsFactory {
 
     if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
-      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier);
+      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
@@ -197,7 +202,7 @@ public class CoreComponentsFactory {
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, cfa, shutdownNotifier, config, logger);
       }
 
       if (useAdjustableConditions) {
@@ -246,7 +251,11 @@ public class CoreComponentsFactory {
     if (useRestartingAlgorithm) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
-      reached = new ForwardingReachedSet(reached);
+      if (memorizeReachedAfterRestart) {
+        reached = new HistoryForwardingReachedSet(reached);
+      } else {
+        reached = new ForwardingReachedSet(reached);
+      }
     }
 
     return reached;

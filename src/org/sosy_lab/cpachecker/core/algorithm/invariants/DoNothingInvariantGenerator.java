@@ -44,5 +44,10 @@ public class DoNothingInvariantGenerator implements InvariantGenerator {
   }
 
   @Override
+  public boolean isProgramSafe() {
+    return false;
+  }
+
+  @Override
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) { }
 }

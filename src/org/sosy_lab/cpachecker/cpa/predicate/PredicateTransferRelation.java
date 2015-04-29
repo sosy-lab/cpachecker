@@ -387,8 +387,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  @SuppressWarnings("unused")
-  @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
       AbstractStateWithAssumptions pAssumeElement) throws CPATransferException, InterruptedException {
 

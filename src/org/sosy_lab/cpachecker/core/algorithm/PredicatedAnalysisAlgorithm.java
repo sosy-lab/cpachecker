@@ -141,7 +141,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // delete fake edges from previous run
     logger.log(Level.FINEST, "Clean up from previous run");
     for (CAssumeEdge edge :fakeEdgesFromLastRun) {
@@ -155,9 +155,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
     // run algorithm
     logger.log(Level.FINEST, "Start analysis.");
-    boolean result = false;
+    AlgorithmStatus status;
+
     try {
-      result = algorithm.run(pReachedSet);
+      status = algorithm.run(pReachedSet);
     } catch (PredicatedAnalysisPropertyViolationException e) {
       if(e.getFailureCause()==null){
         throw new CPAException("Error state not known to predicated analysis algorithm. Cannot continue analysis.");
@@ -333,10 +334,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       assert (ARGUtils.checkARG(pReachedSet));
 
       // return true such that CEGAR works fine
-      return true;
+      return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    return result;
+    return status;
   }
 
   private CFANode createFakeEdge(final String pRawAssumeExpr, final CExpression pAssumeExpr, final CFANode pPredecessor) {

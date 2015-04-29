@@ -224,8 +224,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean isComplete        = true;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+
     int initialReachedSetSize = reached.size();
     boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
@@ -235,7 +236,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         refinementSuccessful = false;
 
         // run algorithm
-        isComplete &= algorithm.run(reached);
+        status = status.update(algorithm.run(reached));
 
         // if there is any target state do refinement
         if (refinementNecessary(reached)) {
@@ -265,7 +266,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
-    return isComplete;
+    return status;
   }
 
   private boolean refinementNecessary(ReachedSet reached) {

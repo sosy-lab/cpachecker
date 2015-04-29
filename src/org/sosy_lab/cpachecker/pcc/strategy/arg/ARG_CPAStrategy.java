@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.pcc.strategy;
+package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker;
 
-@Options(prefix="pcc")
+@Options(prefix="pcc.arg")
 public class ARG_CPAStrategy extends AbstractARGStrategy {
 
   @Option(secure=true,
@@ -90,10 +90,10 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   protected boolean isCheckSuccessful() {
     if (!singleCheck) {
       try {
-        stats.propertyCheckingTimer.start();
+        stats.getPropertyCheckingTimer().start();
         return propChecker.satisfiesProperty(visitedStates);
       } finally {
-        stats.propertyCheckingTimer.stop();
+        stats.getPropertyCheckingTimer().stop();
       }
     }
     return true;

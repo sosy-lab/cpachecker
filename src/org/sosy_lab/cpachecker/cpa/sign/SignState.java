@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -254,6 +256,10 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  public Map<String, SIGN> getSignMapView() {
+    return Collections.unmodifiableMap(signMap);
   }
 
 }

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Verify.verifyNotNull;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -59,6 +61,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -86,7 +89,7 @@ import com.google.common.base.Throwables;
  * Class that encapsulates invariant generation by using the CPAAlgorithm
  * with an appropriate configuration.
  * Supports synchronous and asynchronous execution,
- * and continuously-refine invariants.
+ * and continuously-refined invariants.
  */
 @Options(prefix="invariantGeneration")
 public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProvider {
@@ -134,6 +137,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   // In case of (async & adjustConditions), this will point to the last invariant
   // that the continuously-refining invariant generation produced so far.
   private final AtomicReference<InvariantSupplier> latestInvariant = new AtomicReference<>();
+
+  private volatile boolean programIsSafe = false;
 
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
@@ -228,6 +233,11 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   }
 
   @Override
+  public boolean isProgramSafe() {
+    return programIsSafe;
+  }
+
+  @Override
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
     InvariantsCPA invariantCPA = CPAs.retrieveCPA(cpa, InvariantsCPA.class);
     if (invariantCPA != null) {
@@ -267,7 +277,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 
       for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
-        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+        BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState, pfmgr);
         logger.log(Level.ALL, "Invariant for", pLocation+":", f);
 
         invariant = bfmgr.or(invariant, f);
@@ -299,40 +309,45 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     @Override
     public InvariantSupplier call() throws Exception {
       stats.invariantGeneration.start();
-      InvariantSupplier invariant;
-
       try {
-        invariant = runInvariantGeneration(initialLocation);
-        latestInvariant.set(invariant);
 
         int i = 0;
-        while (adjustConditions()) {
+        InvariantSupplier invariant;
+        do {
           shutdownNotifier.shutdownIfNecessary();
-
           logger.log(Level.INFO, "Starting iteration", ++i, "of invariant generation with abstract interpretation.");
 
           invariant = runInvariantGeneration(initialLocation);
           latestInvariant.set(invariant);
-        }
+        } while (!programIsSafe && adjustConditions());
+
+        return invariant;
+
       } finally {
         stats.invariantGeneration.stop();
         CPAs.closeCpaIfPossible(cpa, logger);
         CPAs.closeIfPossible(algorithm, logger);
       }
-      return invariant;
     }
 
     private InvariantSupplier runInvariantGeneration(CFANode pInitialLocation)
         throws CPAException, InterruptedException {
 
       ReachedSet taskReached = reachedSetFactory.create();
-      synchronized (cpa) {
-        taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
-            cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
+      taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
+          cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
+
+      while (taskReached.hasWaitingState()) {
+        if (!algorithm.run(taskReached).isSound()) {
+          // ignore unsound invariant and abort
+          return TrivialInvariantSupplier.INSTANCE;
+        }
       }
 
-      while (!taskReached.getWaitlist().isEmpty()) {
-        algorithm.run(taskReached);
+      if (!from(taskReached).anyMatch(IS_TARGET_STATE)) {
+        // program is safe (waitlist is empty, algorithm was sound, no target states present)
+        logger.log(Level.INFO, "Invariant generation with abstract interpretation proved specification to hold.");
+        programIsSafe = true;
       }
 
       return new ReachedSetBasedInvariantSupplier(
@@ -343,12 +358,11 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       if (!adjustConditions || conditionCPAs.isEmpty()) {
         return false;
       }
-      synchronized (cpa) {
-        for (AdjustableConditionCPA cpa : conditionCPAs) {
-          if (!cpa.adjustPrecision()) {
-            logger.log(Level.INFO, "Further invariant generation adjustments denied by", cpa.getClass().getSimpleName());
-            return false;
-          }
+
+      for (AdjustableConditionCPA cpa : conditionCPAs) {
+        if (!cpa.adjustPrecision()) {
+          logger.log(Level.INFO, "Further invariant generation adjustments denied by", cpa.getClass().getSimpleName());
+          return false;
         }
       }
       return true;

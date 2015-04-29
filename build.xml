@@ -216,4 +216,22 @@
             </patternset>
         </unzip>
     </target>
+
+    <target name="starexec" depends="build" description="Pack CPAchecker and configs for starexec upload">
+	<echo message="Put all solver configurations in a folder called starexec. Solver configurations should be in the style of doc/examples/starexec.sh"/>
+        <tar destfile="starexec.tar.gz" compression="gzip">
+            <tarfileset dir="."
+                includes="config/** cpachecker.jar lib/*.* lib/java/runtime/*"
+                excludes="lib/ivy*"/>
+	    <tarfileset dir="scripts"
+		includes="cpa.sh"
+		prefix="bin"/>
+	    <tarfileset dir="starexec"
+		includes="*.*"
+		prefix="bin"/>
+            <tarfileset dir="." filemode="755"
+                includes="lib/native/**"
+                excludes="lib/native/source/** lib/native/*win*/** lib/native/x86-linux/**"/>
+        </tar>
+    </target>
 </project>

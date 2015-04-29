@@ -280,7 +280,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
 
     // Copy the initial set of reached states
@@ -331,7 +331,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
             logger.log(Level.WARNING, "Writing the precondition failed!", e);
           }
         }
-        return true;
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
       try {
@@ -357,7 +357,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
         if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
           logger.log(Level.WARNING, "Non-determinism in the program!");
-          return true;
+          return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
         if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)) {
@@ -396,7 +396,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
         if (precisionFixpointReached && preconditionFixpointReached) {
           logger.log(Level.WARNING, "Terminated because of a fixpoint in the set of predicates and the precondition!");
-          return true;
+          return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
         // Restart with the initial set of reached states
@@ -406,7 +406,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
       } catch (NoTraceFoundException e) {
         logger.log(Level.WARNING, e.getMessage());
-        return true;
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
     } while (true);

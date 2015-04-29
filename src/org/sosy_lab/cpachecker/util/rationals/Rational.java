@@ -11,6 +11,8 @@ import com.google.common.base.Objects;
 @SuppressWarnings("NumberEquality")
 public class Rational extends Number implements Comparable<Rational> {
 
+  private static final long serialVersionUID = 1657347377738275521L;
+
   // -- Just some shortcuts for BigIntegers --
   static private final BigInteger b_zero = BigInteger.ZERO;
   static private final BigInteger b_one = BigInteger.ONE;

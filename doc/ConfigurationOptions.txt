@@ -131,6 +131,10 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# memorize previously used (incomplete) reached sets after a restart of the
+# analysis
+analysis.memorizeReachedAfterRestart = false
+
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
@@ -150,10 +154,6 @@ analysis.reachedSet = PARTITIONED
 # disjoint.
 analysis.refinePreconditions = false
 
-# Do not report 'False' result, return UNKNOWN instead.  Useful for
-# incomplete analysis with no counterexample checking.
-analysis.reportFalseAsUnknown = false
-
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
@@ -172,12 +172,15 @@ analysis.traversal.order = DFS
 analysis.traversal.useAutomatonInformation = false
 
 # handle states with a deeper callstack first?
-# This needs the CallstackCPA to have any effect.
+# This needs the CallstackCPA instance to have any effect.
 analysis.traversal.useCallstack = false
 
 # handle more abstract states (with less information) first? (only for
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
+
+# handle states with a deeper loopstack first?
+analysis.traversal.useLoopstack = false
 
 # Use an implementation of postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
@@ -207,6 +210,10 @@ assumptions.automatonBranchingThreshold = 0
 
 # write collected assumptions as automaton to file
 assumptions.automatonFile = "AssumptionAutomaton.txt"
+
+# If it is enabled, automaton does not add assumption which is considered to
+# continue path with corresponding this edge.
+assumptions.automatonIgnoreAssumptions = false
 
 # write collected assumptions to file
 assumptions.export = true
@@ -686,6 +693,26 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
 # mergeType
 cpa.bdd.merge = "join"
+
+# Number of loop iterations before the loop counter is abstracted. Zero is
+# equivalent to no limit.
+cpa.bounds.loopIterationsBeforeAbstraction = 0
+
+# this option controls how the maxLoopIterations condition is adjusted when a
+# condition adjustment is invoked.
+cpa.bounds.maxLoopIterationAdjusterFactory = STATIC
+  enum:     [STATIC, INCREMENT, DOUBLE]
+
+# threshold for unrolling loops of the program (0 is infinite)
+# works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound
+cpa.bounds.maxLoopIterations = 0
+
+# threshold for adjusting the threshold for unrolling loops of the program (0
+# is infinite).
+# only relevant in combination with a non-static maximum loop iteration
+# adjuster.
+cpa.bounds.maxLoopIterationsUpperBound = 0
 
 # depth of recursion bound
 cpa.callstack.depth = 0
@@ -1264,13 +1291,15 @@ cpa.predicate.refinement.predicateBasisStrategy = TARGET
 
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = DEFAULT
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
-             DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
+  enum:     [DEFAULT, SHORTEST, LONGEST, RANDOM, DOMAIN_BEST_SHALLOW,
+             DOMAIN_WORST_SHALLOW, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
              DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
              DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
-             REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
-             ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
-             RANDOM, MEDIAN, MIDDLE, FEASIBLE]
+             REFINE_DEEP, ITP_LENGTH_SHORT_SHALLOW, ITP_LENGTH_LONG_SHALLOW,
+             ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP, ASSIGNMENTS_FEWEST_SHALLOW,
+             ASSIGNMENTS_FEWEST_DEEP, ASSIGNMENTS_MOST_SHALLOW, ASSIGNMENTS_MOST_DEEP,
+             ASSUMPTIONS_FEWEST_SHALLOW, ASSUMPTIONS_FEWEST_DEEP,
+             ASSUMPTIONS_MOST_SHALLOW, ASSUMPTIONS_MOST_DEEP, FEASIBLE]
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
@@ -1454,6 +1483,10 @@ cpa.reachdef.merge = "JOIN"
 cpa.reachdef.stop = "SEP"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
+# Do not report 'False' result, return UNKNOWN instead.  Useful for
+# incomplete analysis with no counterexample checking.
+cpa.reportFalseAsUnknown = false
+
 # path to a file with abstraction rules
 cpa.seplogic.partingstar.abstractionfile = no default value
 
@@ -1608,6 +1641,13 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Generate congruences for sums of variables (<=> x and y have same/different
+# evenness)
+cpa.stator.congruence.trackCongruenceSum = false
+
+# Check whether the policy depends on the initial value
+cpa.stator.policy.checkPolicyInitialCondition = true
+
 # Ignore the template type and encode with a rational variable
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
@@ -1618,11 +1658,18 @@ cpa.stator.policy.epsilon = Rational.ONE
 # information
 cpa.stator.policy.formulaSlicing = true
 
+# Generate cubic constraints: templates +/- x +/- y +/- z for every
+# combination (x, y, z)
+cpa.stator.policy.generateCube = false
+
 # Generate templates from assert statements
 cpa.stator.policy.generateFromAsserts = true
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
+
+# Generate even more templates (try coeff. 2 for each variable)
+cpa.stator.policy.generateMoreTemplates = false
 
 # Generate octagon templates for all combinations of variables. 
 cpa.stator.policy.generateOctagons = false
@@ -1632,13 +1679,19 @@ cpa.stator.policy.generateUpperBound = true
 
 # Any intermediate state with formula length bigger than specified will be
 # checked for reachability. Set to 0 to disable.
-cpa.stator.policy.lengthLimitForSATCheck = 200
+cpa.stator.policy.lengthLimitForSATCheck = 300
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
 
+# Run simple congruence analysis
+cpa.stator.policy.runCongruence = false
+
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.stator.policy.runHopefulValueDetermination = true
+
+# Use syntactic check to short-circuit val. det. and abstraction operations.
+cpa.stator.policy.shortCircuitSyntactic = true
 
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true
@@ -1764,13 +1817,15 @@ cpa.value.refiner.performEdgeBasedInterpolation = true
 # which prefix of an actual counterexample trace should be used for
 # interpolation
 cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
-             DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
+  enum:     [DEFAULT, SHORTEST, LONGEST, RANDOM, DOMAIN_BEST_SHALLOW,
+             DOMAIN_WORST_SHALLOW, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
              DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
              DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
-             REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
-             ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
-             RANDOM, MEDIAN, MIDDLE, FEASIBLE]
+             REFINE_DEEP, ITP_LENGTH_SHORT_SHALLOW, ITP_LENGTH_LONG_SHALLOW,
+             ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP, ASSIGNMENTS_FEWEST_SHALLOW,
+             ASSIGNMENTS_FEWEST_DEEP, ASSIGNMENTS_MOST_SHALLOW, ASSIGNMENTS_MOST_DEEP,
+             ASSUMPTIONS_FEWEST_SHALLOW, ASSUMPTIONS_FEWEST_DEEP,
+             ASSUMPTIONS_MOST_SHALLOW, ASSUMPTIONS_MOST_DEEP, FEASIBLE]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -1910,7 +1965,21 @@ parser.usePreprocessor = false
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set
 # exists for which violates the property
-pcc.checkPropertyPerElement = false
+pcc.arg.checkPropertyPerElement = false
+
+# List of files with configurations to use. 
+pcc.arg.cmc.configFiles = no default value
+
+# write collected assumptions to file
+pcc.arg.cmc.file = "assumptions.txt"
+
+# Enable if partial ARGs can be read based using different CPA object than
+# checker
+pcc.arg.cmc.interleavedMode = false
+
+# Which ARG strategy to use for each partial ARG, strategy based on CPA
+# (true) or on proof checker interface (false)
+pcc.arg.cmc.useArgCpaStrategy = false
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for
@@ -1964,7 +2033,7 @@ pcc.proofgen.doPCC = false
 # proof writing, to be used.
 # Qualified name for class which implements proof checking strategy to be
 # used.
-pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
+pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1

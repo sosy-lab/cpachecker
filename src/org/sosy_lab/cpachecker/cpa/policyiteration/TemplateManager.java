@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
@@ -29,15 +30,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.stator.policy")
@@ -61,14 +62,17 @@ public class TemplateManager {
       description="Ignore the template type and encode with a rational variable")
   private boolean encodeTemplatesAsRationals = false;
 
+  @Option(secure=true,
+    description="Generate even more templates (try coeff. 2 for each variable)")
+  private boolean generateMoreTemplates = false;
+
+  @Option(secure=true,
+    description="Generate cubic constraints: templates +/- x +/- y +/- z for"
+        + " every combination (x, y, z)")
+  private boolean generateCube = false;
+
   private final CFA cfa;
   private final LogManager logger;
-  private final NumeralFormulaManagerView<
-      NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
-  private final NumeralFormulaManagerView<NumeralFormula.IntegerFormula,
-      NumeralFormula.IntegerFormula> ifmgr;
-  private final PathFormulaManager pfmgr;
-  private final FormulaManagerView fmgrv;
 
   /**
    * Dummy edge required by the interface to convert the {@code CIdExpression}
@@ -82,24 +86,21 @@ public class TemplateManager {
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
   private static final String RET_VARIABLE = "__retval__";
 
+  // todo: do not hardcode, use automaton.
   private static final String ASSERT_FUNC_NAME = "assert";
   private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
+
+  private final HashMultimap<CFANode, Template> cache = HashMultimap.create();
 
   public TemplateManager(
       LogManager pLogger,
       Configuration pConfig,
-      CFA pCfa,
-      FormulaManagerView pFormulaManagerView,
-      PathFormulaManager pPfmgr
+      CFA pCfa
       ) throws InvalidConfigurationException{
     pConfig.inject(this, TemplateManager.class);
 
-    pfmgr = pPfmgr;
     cfa = pCfa;
     logger = pLogger;
-    rfmgr = pFormulaManagerView.getRationalFormulaManager();
-    ifmgr = pFormulaManagerView.getIntegerFormulaManager();
-    fmgrv = pFormulaManagerView;
 
     dummyEdge = new BlankEdge("",
         FileLocation.DUMMY,
@@ -113,10 +114,15 @@ public class TemplateManager {
   }
 
 
-  public ImmutableSet<Template> templatesForNode(CFANode node) {
+  public Set<Template> templatesForNode(CFANode node) {
+    if (cache.containsKey(node)) {
+      return cache.get(node);
+    }
+
     ImmutableSet.Builder<Template> out = ImmutableSet.builder();
     LiveVariables liveVariables = cfa.getLiveVariables().get();
-    Iterable<ASimpleDeclaration> liveVars = liveVariables.getLiveVariablesForNode(node);
+    List<ASimpleDeclaration> liveVars = ImmutableList.copyOf(
+        liveVariables.getLiveVariablesForNode(node));
     for (ASimpleDeclaration s : liveVars) {
 
       if (!shouldProcessVariable(s)) {
@@ -148,35 +154,140 @@ public class TemplateManager {
             // Don't pair up the same var.
             continue;
           }
-          if (!s1.getType().equals(s2.getType())) {
+          if (!((CSimpleType)s1.getType()).getType().equals(
+              ((CSimpleType)s2.getType()).getType())) {
 
             // Don't pair up variables of different types.
             continue;
           }
 
-          CSimpleType type = (CSimpleType) s1.getType();
           CIdExpression idExpression1 = new CIdExpression(
               FileLocation.DUMMY, (CSimpleDeclaration)s1
           );
           CIdExpression idExpression2 = new CIdExpression(
               FileLocation.DUMMY, (CSimpleDeclaration)s2
           );
+
+          CSimpleType type = (CSimpleType) s1.getType();
           LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
               idExpression1);
           LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
               idExpression2);
 
-          out.add(Template.of(expr1.add(expr2), type));
-          out.add(Template.of(expr1.negate().sub(expr2), type));
-          out.add(Template.of(expr1.sub(expr2), type));
-          out.add(Template.of(expr2.sub(expr1), type));
+          out.addAll(genOctagonConstraints(expr1, expr2, type));
+
+          if (generateMoreTemplates) {
+            out.addAll(genOctagonConstraints(
+                expr1.multByConst(Rational.ofLong(2)), expr2, type));
+            out.addAll(genOctagonConstraints(expr1,
+                expr2.multByConst(Rational.ofLong(2)), type));
+          }
+        }
+      }
+    }
+
+    if (generateCube) {
+      for (ASimpleDeclaration s1 : liveVars) {
+        for (ASimpleDeclaration s2 : liveVars) {
+          for (ASimpleDeclaration s3 : liveVars) {
+            if (!shouldProcessVariable(s1)
+                || !shouldProcessVariable(s2) || !shouldProcessVariable(s3)) {
+              continue;
+            }
+
+            if (!s1.getType().equals(s2.getType())
+                || !s2.getType().equals(s3.getType())) {
+
+              // Don't pair up variables of different types.
+              continue;
+            }
+
+            if (s1.getQualifiedName().equals(s2.getQualifiedName()) ||
+                s2.getQualifiedName().equals(s3.getQualifiedName()) ||
+                s3.getQualifiedName().equals(s1.getQualifiedName())) {
+
+              // Don't pair up the same var.
+              continue;
+            }
+
+            CSimpleType type = (CSimpleType) s1.getType();
+            CIdExpression idExpression1 = new CIdExpression(
+                FileLocation.DUMMY, (CSimpleDeclaration)s1
+            );
+            CIdExpression idExpression2 = new CIdExpression(
+                FileLocation.DUMMY, (CSimpleDeclaration)s2
+            );
+            CIdExpression idExpression3 = new CIdExpression(
+                FileLocation.DUMMY, (CSimpleDeclaration)s3
+            );
+            LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
+                idExpression1);
+            LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
+                idExpression2);
+            LinearExpression<CIdExpression> expr3 = LinearExpression.ofVariable(
+                idExpression3);
+
+            out.addAll(genCubicConstraints(expr1, expr2, expr3, type));
+
+            if (generateMoreTemplates) {
+              out.addAll(
+                  genCubicConstraints(
+                      expr1.multByConst(Rational.ofLong(2)), expr2, expr3, type));
+              out.addAll(
+                  genCubicConstraints(
+                      expr1, expr2.multByConst(Rational.ofLong(2)), expr3, type));
+              out.addAll(
+                  genCubicConstraints(
+                      expr1, expr2, expr3.multByConst(Rational.ofLong(2)), type));
+            }
+          }
         }
       }
     }
 
     out.addAll(generatedTemplates);
 
-    return out.build();
+    cache.putAll(node, out.build());
+    return cache.get(node);
+  }
+
+  private Set<Template> genOctagonConstraints(
+      LinearExpression<CIdExpression> expr1,
+      LinearExpression<CIdExpression> expr2,
+      CSimpleType type
+  ) {
+    HashSet<Template> out = new HashSet<>(4);
+    out.add(Template.of(expr1.add(expr2), type));
+    out.add(Template.of(expr1.negate().sub(expr2), type));
+    out.add(Template.of(expr1.sub(expr2), type));
+    out.add(Template.of(expr2.sub(expr1), type));
+    return out;
+  }
+
+  private Set<Template> genCubicConstraints(
+      LinearExpression<CIdExpression> expr1,
+      LinearExpression<CIdExpression> expr2,
+      LinearExpression<CIdExpression> expr3,
+      CSimpleType type
+  ) {
+    HashSet<Template> out = new HashSet<>(4);
+    // No negated.
+    out.add(Template.of(expr1.add(expr2).add(expr3), type));
+
+    // 1 negated.
+    out.add(Template.of(expr1.add(expr2).sub(expr3), type));
+    out.add(Template.of(expr1.sub(expr2).add(expr3), type));
+    out.add(Template.of(expr1.negate().add(expr2).add(expr3), type));
+
+    // 2 Negated
+    out.add(Template.of(expr1.negate().add(expr2).sub(expr3), type));
+    out.add(Template.of(expr1.negate().sub(expr2).add(expr3), type));
+    out.add(Template.of(expr1.sub(expr2).sub(expr3), type));
+
+    // All negated.
+    out.add(Template.of(expr1.negate().sub(expr2).sub(expr3), type));
+
+    return out;
   }
 
 
@@ -187,7 +298,11 @@ public class TemplateManager {
    *
    * @return Resulting formula.
    */
-  public Formula toFormula(Template template, PathFormula contextFormula) {
+  public Formula toFormula(
+      PathFormulaManager pfmgr,
+      FormulaManagerView fmgr,
+      Template template,
+      PathFormula contextFormula) {
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
 
@@ -207,10 +322,10 @@ public class TemplateManager {
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        multipliedItem = fmgrv.makeNegate(item);
+        multipliedItem = fmgr.makeNegate(item);
       } else if (coeff != Rational.ONE){
-        multipliedItem = fmgrv.makeMultiply(
-            item, fmgrv.makeNumber(item, entry.getValue())
+        multipliedItem = fmgr.makeMultiply(
+            item, fmgr.makeNumber(item, entry.getValue())
         );
       } else {
         multipliedItem = item;
@@ -219,15 +334,15 @@ public class TemplateManager {
       if (sum == null) {
         sum = multipliedItem;
       } else {
-        sum = fmgrv.makePlus(sum, multipliedItem);
+        sum = fmgr.makePlus(sum, multipliedItem);
       }
     }
 
     if (sum == null) {
       if (useRationals) {
-        return rfmgr.makeNumber(0);
+        return fmgr.getRationalFormulaManager().makeNumber(0);
       } else {
-        return ifmgr.makeNumber(0);
+        return fmgr.getIntegerFormulaManager().makeNumber(0);
       }
     } else {
       return sum;
@@ -235,24 +350,9 @@ public class TemplateManager {
   }
 
   public boolean shouldUseRationals(Template template) {
-    if (encodeTemplatesAsRationals) {
-      return true;
-    }
-    if (!template.linearExpression.isIntegral()) {
-      return true;
-    }
-    switch (template.type.getType()) {
-      case BOOL:
-      case INT:
-        return false;
-      case UNSPECIFIED:
-      case CHAR:
-      case FLOAT:
-      case DOUBLE:
-        return true;
-      default:
-        throw new IllegalArgumentException("Unexpected type: " + template.type);
-    }
+    return encodeTemplatesAsRationals
+        || !template.linearExpression.isIntegral()
+        || !template.getType().getType().isIntegerType();
   }
 
   /**
@@ -314,7 +414,7 @@ public class TemplateManager {
           // Add template and its negation.
           templates.add(t);
           templates.add(
-              Template.of(t.linearExpression.negate(), t.type)
+              Template.of(t.linearExpression.negate(), t.getType())
           );
         }
 
@@ -394,7 +494,7 @@ public class TemplateManager {
       CIntegerLiteralExpression literal, Template other) {
     Rational coeff = Rational.ofBigInteger(literal.getValue());
     return Template.of(other.linearExpression.multByConst(coeff),
-        other.type
+        other.getType()
     );
   }
 }

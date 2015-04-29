@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -11,7 +12,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 
 /**
@@ -19,14 +19,24 @@ import com.google.common.collect.Iterables;
  */
 public class Template {
   final LinearExpression<CIdExpression> linearExpression;
-  final CSimpleType type;
+  private final CSimpleType type;
   final Kind kind;
 
   /**
    * Kind of a template.
    */
   public enum Kind {
-    UPPER_BOUND, NEG_LOWER_BOUND, COMPLEX
+    // Intervals.
+    UPPER_BOUND, // +x
+    NEG_LOWER_BOUND, // -x
+
+    // Octagons.
+    SUM, // +x+y
+    DIFFERENCE, //x-y
+    NEG_SUM_LOWER_BOUND, //-x-y
+
+    // Everything else.
+    COMPLEX
   }
 
   private Template(LinearExpression<CIdExpression> pLinearExpression,
@@ -40,25 +50,49 @@ public class Template {
     return kind;
   }
 
-  /**
-   *
-   */
+  public boolean isUnsigned() {
+    for (Entry<CIdExpression, Rational> e: linearExpression) {
+      CIdExpression expr = e.getKey();
+      CSimpleType type = (CSimpleType)expr.getExpressionType();
+      if (!type.isUnsigned()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public CSimpleType getType() {
+    return type;
+  }
+
   public static Template of(LinearExpression<CIdExpression> expr,
       CSimpleType pType) {
-    Kind kind;
+    return new Template(expr, pType, getKind(expr));
+  }
+
+  private static Kind getKind(LinearExpression<CIdExpression> expr) {
     int s = expr.size();
     if (s == 1 && Iterables.getOnlyElement(expr).getValue() == Rational.ONE) {
 
-      kind = Kind.UPPER_BOUND;
+      return Kind.UPPER_BOUND;
     } else if (s == 1 && Iterables.getOnlyElement(expr).getValue() ==
         Rational.NEG_ONE) {
 
-      kind = Kind.NEG_LOWER_BOUND;
-    } else {
-      kind = Kind.COMPLEX;
+      return Kind.NEG_LOWER_BOUND;
+    } else if (s == 2) {
+      Iterator<Entry<CIdExpression, Rational>> it = expr.iterator();
+      Rational a = it.next().getValue();
+      Rational b = it.next().getValue();
+      if (a == Rational.ONE && b == Rational.ONE) {
+        return Kind.SUM;
+      } else if (a == Rational.NEG_ONE && b == Rational.NEG_ONE) {
+        return Kind.NEG_SUM_LOWER_BOUND;
+      } else if (a == Rational.ONE && b == Rational.NEG_ONE ||
+          a == Rational.NEG_ONE && b == Rational.ONE) {
+        return Kind.DIFFERENCE;
+      }
     }
-
-    return new Template(expr, pType, kind);
+    return Kind.COMPLEX;
   }
 
   @Override
@@ -81,6 +115,17 @@ public class Template {
     return linearExpression.hashCode();
   }
 
+  /**
+   * @return Expression converted to C-like string, e.g. "x + 3 y".
+   */
+  @SuppressWarnings("unused")
+  public String toCString() {
+    StringBuilder b = new StringBuilder();
+    for (Entry<CIdExpression, Rational> e : linearExpression) {
+      LinearExpression.writeMonomial(e.getKey().toASTString(), e.getValue(), b);
+    }
+    return b.toString();
+  }
 
   /**
    * @return String suitable for formula serialization. Guarantees that two

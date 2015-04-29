@@ -51,18 +51,16 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    boolean result = false;
-
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Start analysis.");
 
-    result = analysis.run(pReachedSet);
+    AlgorithmStatus result = analysis.run(pReachedSet);
 
-    if (result) {
+    if (result.isSound()) {
       logger.log(Level.INFO, "Start property checking.");
-      result = cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection());
+      result = result.withSound(cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection()));
       // add dummy error state to get verification result FALSE instead of UNKNOWN
-      if (!result) {
+      if (!result.isSound()) {
         pReachedSet.add(new DummyErrorState(pReachedSet.getLastState()), SingletonPrecision.getInstance());
       }
     }

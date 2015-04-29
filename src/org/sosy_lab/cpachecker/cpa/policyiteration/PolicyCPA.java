@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -85,13 +86,12 @@ public class PolicyCPA
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
-    TemplateManager templateManager = new TemplateManager(
-        logger, config, cfa, formulaManager, pathFormulaManager);
+    TemplateManager templateManager = new TemplateManager(logger, config, cfa);
     FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
         logger, formulaManager);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
-            formulaManager, logger, templateManager);
+            formulaManager, logger, templateManager, pathFormulaManager);
 
     statistics = new PolicyIterationStatistics(config);
 
@@ -101,6 +101,11 @@ public class PolicyCPA
           formulaManager.getBooleanFormulaManager(),
           formulaManager,
         formulaManager.getIntegerFormulaManager());
+    CongruenceManager pCongruenceManager = new CongruenceManager(
+        config,
+        solver, templateManager,
+        formulaManager,
+        statistics, pathFormulaManager);
     policyIterationManager = new PolicyIterationManager(
         config,
         formulaManager,
@@ -109,7 +114,7 @@ public class PolicyCPA
         templateManager, valueDeterminationFormulaManager,
         statistics,
         formulaSlicingManager,
-        formulaLinearizationManager);
+        formulaLinearizationManager, pCongruenceManager);
     mergeOperator = new MergeJoinOperator(this);
     stopOperator = new StopSepOperator(this);
   }

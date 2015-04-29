@@ -104,7 +104,7 @@
     <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
   </target>
 
-  <available file="${lib.dir}/${gae-sdk.name}" property="gae-sdk.expanded"/>
+  <available file="${lib.dir}/${gae-sdk.name}.zip" property="gae-sdk.expanded"/>
   <target name="getsdk" description="Downloads the Google App Engine SDK." unless="gae-sdk.expanded">
     <get dest="${lib.dir}" src="https://commondatastorage.googleapis.com/appengine-sdks/featured/${gae-sdk.name}.zip" usetimestamp="true" verbose="true" />
     <unzip src="${lib.dir}/${gae-sdk.name}.zip" dest="${lib.dir}" />

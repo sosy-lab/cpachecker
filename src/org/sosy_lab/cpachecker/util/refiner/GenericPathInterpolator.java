@@ -260,8 +260,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet(),
-        "EQUALITY").getUseDefStates();
+          : Collections.<String>emptySet()).getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
     ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(errorPathPrefix.asEdgesList());

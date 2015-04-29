@@ -153,10 +153,10 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     unwind(pReachedSet);
     pReachedSet.popFromWaitlist();
-    return true;
+    return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
   private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {

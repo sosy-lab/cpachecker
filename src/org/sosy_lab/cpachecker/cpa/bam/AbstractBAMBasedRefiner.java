@@ -217,11 +217,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
         }
 
         @Override
-        public int getWaitlistSize() {
-          throw new UnsupportedOperationException("should not be needed");
-        }
-
-        @Override
         public Precision getPrecision(AbstractState state) {
           return GET_PRECISION.apply(state);
         }

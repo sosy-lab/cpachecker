@@ -88,11 +88,11 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean sound = true;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     while (reached.hasWaitingState()) {
-      sound &= algorithm.run(reached);
+      status = status.update(algorithm.run(reached));
       assert ARGUtils.checkARG(reached);
 
       final AbstractState lastState = reached.getLastState();
@@ -132,7 +132,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       // END BDD specials
     }
 
-    return sound;
+    return status;
   }
 
   @Override

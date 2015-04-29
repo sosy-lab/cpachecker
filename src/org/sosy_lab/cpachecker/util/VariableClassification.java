@@ -47,9 +47,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 public class VariableClassification {
@@ -68,6 +70,9 @@ public class VariableClassification {
   // then all essential variables (by propagation)
   private final Set<String> relevantVariables;
   private final Set<String> addressedVariables;
+
+  private final Multiset<String> assumedVariables;
+  private final Multiset<String> assignedVariables;
 
   /** Fields information doesn't take any aliasing information into account,
    *  fields are considered per type, not per composite instance */
@@ -99,7 +104,9 @@ public class VariableClassification {
       Set<Partition> pIntAddPartitions,
       Set<Partition> pIntArithPartitions,
       Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions,
-      LogManager pLogger) {
+      Multiset<String> pAssumedVariables,
+      Multiset<String> pAssignedVariables,
+    LogManager pLogger) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
@@ -114,6 +121,8 @@ public class VariableClassification {
     intAddPartitions = ImmutableSet.copyOf(pIntAddPartitions);
     intArithPartitions = ImmutableSet.copyOf(pIntArithPartitions);
     edgeToPartitions = ImmutableMap.copyOf(pEdgeToPartitions);
+    assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
+    assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
     logger = pLogger;
   }
 
@@ -133,8 +142,9 @@ public class VariableClassification {
         ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
         ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of(),
-        pLogger
-        );
+        ImmutableMultiset.<String>of(),
+        ImmutableMultiset.<String>of(),
+        pLogger);
   }
 
   public boolean hasRelevantNonIntAddVars() {
@@ -240,6 +250,21 @@ public class VariableClassification {
    * A partition contains all vars, that are dependent from each other. */
   public Set<Partition> getPartitions() {
     return partitions;
+  }
+
+  /**
+   * This method return all variables (i.e., their qualified name), that occur in an assumption.
+   */
+  public Multiset<String> getAssumedVariables() {
+    return assumedVariables;
+  }
+
+  /**
+   * This method return all variables (i.e., their qualified name), that occur
+   * as left-hand side in an assignment.
+   */
+  public Multiset<String> getAssignedVariables() {
+    return assignedVariables;
   }
 
   /**

@@ -48,10 +48,13 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -68,7 +71,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.collect.Iterables;
@@ -96,12 +101,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
 
+  @Option(secure=true, description="If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
+  private boolean automatonIgnoreAssumptions = false;
+
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final FormulaManagerView formulaManager;
   private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
   private final BooleanFormulaManager bfmgr;
+  private final PathFormulaManager pfmgr;
 
   // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<>();
@@ -109,7 +118,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // statistics
   private int automatonStates = 0;
 
-  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa,
+      CFA pCFA,
+      ShutdownNotifier pShutdownNotifier,
+      Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
     this.logger = logger;
@@ -121,19 +133,23 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.formulaManager = cpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    pfmgr = new PathFormulaManagerImpl(
+        formulaManager, config, logger, pShutdownNotifier, pCFA,
+        AnalysisDirection.FORWARD
+    );
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean isComplete = true;
-    boolean restartCPA = false;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    boolean restartCPA;
 
     // loop if restartCPA is set to false
     do {
       restartCPA = false;
       try {
         // run the inner algorithm to fill the reached set
-        isComplete &= innerAlgorithm.run(reached);
+        status = status.update(innerAlgorithm.run(reached));
 
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
@@ -169,7 +185,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         errorState.removeFromARG();
 
         restartCPA = true;
-        isComplete = false;
+        status = status.withSound(false);
 
         // TODO: handle CounterexampleAnalysisFailed similar to RefinementFailedException
         // TODO: handle other kinds of CPAException?
@@ -180,7 +196,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     } while (restartCPA);
 
-    return isComplete;
+    return status;
   }
 
   private AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
@@ -219,7 +235,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * Add a given assumption for the location and state of a state.
    */
   private void addAssumption(AssumptionWithLocation invariant, BooleanFormula assumption, AbstractState state) {
-    BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
+    BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state, pfmgr);
 
     CFANode loc = extractLocation(state);
     assert loc != null;
@@ -303,11 +319,19 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     sb.append("INITIAL STATE ARG" + initialState.getStateId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
-    sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
+    if (automatonIgnoreAssumptions) {
+      sb.append("    TRUE -> GOTO __TRUE;\n\n");
+    } else {
+      sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
+    }
 
     if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
-      sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
+      if (automatonIgnoreAssumptions) {
+        sb.append("    TRUE -> GOTO __FALSE;\n\n");
+      } else {
+        sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
+      }
     }
 
     for (final ARGState s : relevantStates) {
@@ -390,10 +414,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState) throws IOException {
-    BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
-    writer.append("ASSUME {");
-    escape(assumption.toString(), writer);
-    writer.append("} ");
+    if (!automatonIgnoreAssumptions) {
+      BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+      writer.append("ASSUME {");
+      escape(assumption.toString(), writer);
+      writer.append("} ");
+    }
   }
 
   private void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,

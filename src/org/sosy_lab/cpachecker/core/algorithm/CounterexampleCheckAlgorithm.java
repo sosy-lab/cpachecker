@@ -117,11 +117,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean sound = true;
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     while (reached.hasWaitingState()) {
-      sound &= algorithm.run(reached);
+      status = status.update(algorithm.run(reached));
       assert ARGUtils.checkARG(reached);
 
       ARGState lastState = (ARGState)reached.getLastState();
@@ -153,7 +153,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             continue;
           }
 
-          sound = checkCounterexample(errorState, reached, sound);
+          status = AlgorithmStatus.SOUND_AND_PRECISE.withSound(
+              checkCounterexample(errorState, reached, status.isSound()));
           if (reached.contains(errorState)) {
             checkedTargetStates.add(errorState);
             foundCounterexample = true;
@@ -167,7 +168,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         checkTime.stop();
       }
     }
-    return sound;
+    return status;
   }
 
   private boolean checkCounterexample(ARGState errorState, ReachedSet reached,

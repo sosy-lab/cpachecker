@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
@@ -147,8 +148,7 @@ public class ValueAnalysisPathInterpolator
         new UseDefRelation(errorPathPrefix,
             cfa.getVarClassification().isPresent()
               ? cfa.getVarClassification().get().getIntBoolVars()
-              : Collections.<String>emptySet(),
-              "EQUALITY")).obtainInterpolants();
+              : Collections.<String>emptySet())).obtainInterpolants();
 
     totalInterpolationQueries.setNextValue(1);
 

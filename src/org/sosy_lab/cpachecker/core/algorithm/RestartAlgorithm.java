@@ -174,7 +174,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
     checkArgument(pReached.size() <= 1, "RestartAlgorithm does not support being called several times with the same reached set");
     checkArgument(!pReached.isEmpty(), "RestartAlgorithm needs non-empty reached set");
@@ -186,6 +186,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 
+    AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
     while (configFilesIterator.hasNext()) {
       stats.totalTime.start();
       @Nullable ConfigurableProgramAnalysis currentCpa = null;
@@ -226,13 +227,15 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
         // run algorithm
         try {
-          boolean sound = currentAlgorithm.run(currentReached);
+          status = currentAlgorithm.run(currentReached);
 
-          if (from(currentReached).anyMatch(IS_TARGET_STATE)) {
-            return sound;
+          if (from(currentReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
+
+            // If the algorithm is not _precise_, verdict "false" actually means "unknown".
+            return status;
           }
 
-          if (!sound) {
+          if (!status.isSound()) {
             // if the analysis is not sound and we can proceed with
             // another algorithm, continue with the next algorithm
             logger.log(Level.INFO, "Analysis result was unsound.");
@@ -244,7 +247,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
           } else {
             // sound analysis and completely finished, terminate
-            return true;
+            return status;
           }
           lastAnalysisTerminated = true;
 
@@ -321,7 +324,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
-    return false;
+    return status;
   }
 
   @Options
@@ -447,7 +450,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if (pOptions.collectAssumptions) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, singleLogger);
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, cfa, shutdownNotifier, pConfig, singleLogger);
     }
 
     if (pOptions.unknownIfUnrestrictedProgram) {

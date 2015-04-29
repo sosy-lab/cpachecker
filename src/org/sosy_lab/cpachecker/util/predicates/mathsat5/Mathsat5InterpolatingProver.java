@@ -30,12 +30,12 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironment<Integer> {
+class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironmentWithAssumptions<Integer> {
 
   private final boolean useSharedEnv;
 

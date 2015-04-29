@@ -24,12 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -251,8 +253,53 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   }
 
   public static IntervalAnalysisState copyOf(IntervalAnalysisState old) {
-    IntervalAnalysisState newElement = new IntervalAnalysisState(old.intervals,old.referenceCounts);
-    return newElement;
+    return new IntervalAnalysisState(old.intervals, old.referenceCounts);
+  }
+
+  /**
+   * @return the set of tracked variables by this state
+   */
+  public Map<String,Interval> getIntervalMap() {
+    return intervals; //  TODO make immutable?
+  }
+
+  /** If there was a recursive function, we have wrong intervals for scoped variables in the returnState.
+   * This function rebuilds a new state with the correct intervals from the previous callState.
+   * We delete the wrong intervals and insert new intervals, if necessary. */
+  public IntervalAnalysisState rebuildStateAfterFunctionCall(final IntervalAnalysisState callState, final FunctionExitNode functionExit) {
+
+    // we build a new state from:
+    // - local variables from callState,
+    // - global variables from THIS,
+    // - the local return variable from THIS.
+    // we copy callState and override all global values and the return variable.
+
+    final IntervalAnalysisState rebuildState = IntervalAnalysisState.copyOf(callState);
+
+    // first forget all global information
+    for (final String trackedVar : callState.intervals.keySet()) {
+      if (!trackedVar.contains("::")) { // global -> delete
+        rebuildState.removeInterval(trackedVar);
+      }
+    }
+
+    // second: learn new information
+    for (final String trackedVar : this.intervals.keySet()) {
+
+      if (!trackedVar.contains("::")) { // global -> override deleted value
+        rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
+
+      } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
+          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar)) {
+        assert (!rebuildState.contains(trackedVar)) :
+                "calling function should not contain return-variable of called function: " + trackedVar;
+        if (this.contains(trackedVar)) {
+          rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
+        }
+      }
+    }
+
+    return rebuildState;
   }
 
   /* (non-Javadoc)
@@ -390,5 +437,10 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  public Map<String, Interval> getIntervalMapView() {
+    Collections.unmodifiableMap(intervals);
+    return null;
   }
 }

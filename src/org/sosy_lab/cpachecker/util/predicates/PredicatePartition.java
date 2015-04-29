@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
@@ -38,10 +39,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * represents a predicate.
  */
 public abstract class PredicatePartition {
-  private static int partitionCounter = 0;
+  private static final UniqueIdGenerator partitionCounter = new UniqueIdGenerator();
 
   final LogManager logger;
-  final int partitionID = partitionCounter++;
+  final int partitionID = partitionCounter.getFreshId();
   final FormulaManagerView fmgr;
   LinkedList<AbstractionPredicate> predicates;
   // mapping varID -> predicate in partition
