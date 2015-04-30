@@ -1301,10 +1301,11 @@ cpa.predicate.refinement.predicateBasisStrategy = TARGET
 cpa.predicate.refinement.prefixPreference = NONE
   enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
              DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
-             DOMAIN_PRECISE_GOOD_SHORT, DOMAIN_PRECISE_GOOD_LONG,
-             DOMAIN_PRECISE_BAD_SHORT, DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT,
-             PIVOT_SHALLOW_LONG, PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT,
-             WIDTH_NARROW_LONG, WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG,
+             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
+             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
+             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
+             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
+             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
              ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
              ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
              ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
@@ -1810,10 +1811,11 @@ cpa.value.refiner.performEdgeBasedInterpolation = true
 cpa.value.refiner.prefixPreference = DOMAIN_GOOD_SHORT
   enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
              DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
-             DOMAIN_PRECISE_GOOD_SHORT, DOMAIN_PRECISE_GOOD_LONG,
-             DOMAIN_PRECISE_BAD_SHORT, DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT,
-             PIVOT_SHALLOW_LONG, PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT,
-             WIDTH_NARROW_LONG, WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG,
+             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
+             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
+             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
+             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
+             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
              ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
              ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
              ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
@@ -1964,6 +1966,11 @@ pcc.arg.cmc.file = "assumptions.txt"
 # Which ARG strategy to use for each partial ARG, strategy based on CPA
 # (true) or on proof checker interface (false)
 pcc.arg.cmc.useArgCpaStrategy = true
+
+# Enable if used property checker implements satisfiesProperty(AbstractState)
+# and checked property is violated for a set iff an element in this set
+# exists for which violates the property
+pcc.checkPropertyPerElement = no default value
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for

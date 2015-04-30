@@ -57,6 +57,9 @@ public class PrefixSelector {
     DOMAIN_BAD_SHORT(FIRST_HIGHEST_SCORE),
     DOMAIN_BAD_LONG(LAST_HIGHEST_SCORE),
 
+    // same as above, but in addition, prefers narrow precisions
+    DOMAIN_GOOD_WIDTH_NARROW_SHORT(FIRST_LOWEST_SCORE),
+
     // same as above, but more precise
     DOMAIN_PRECISE_GOOD_SHORT(FIRST_LOWEST_SCORE),
     DOMAIN_PRECISE_GOOD_LONG(LAST_LOWEST_SCORE),
@@ -74,6 +77,9 @@ public class PrefixSelector {
     WIDTH_NARROW_LONG(FIRST_HIGHEST_SCORE),
     WIDTH_WIDE_SHORT(LAST_LOWEST_SCORE),
     WIDTH_WIDE_LONG(LAST_HIGHEST_SCORE),
+
+    // same as above, but in addition, avoids loop counters based on domain-type scores
+    WIDTH_NARROW_NO_LOOP_SHORT(FIRST_LOWEST_SCORE),
 
     // heuristic based on counting the number of assignments related to the use-def-chain
     ASSIGNMENTS_FEWEST_SHORT(FIRST_LOWEST_SCORE),
@@ -125,11 +131,17 @@ public class PrefixSelector {
     case DOMAIN_PRECISE_BAD_SHORT:
     case DOMAIN_PRECISE_BAD_LONG:
     //
-    // scoring based on length of itp-sequence
+    // scoring based on domain-types and width of precision
+    case DOMAIN_GOOD_WIDTH_NARROW_SHORT:
+    //
+    // scoring based on width of precision
     case WIDTH_NARROW_SHORT:
     case WIDTH_NARROW_LONG:
     case WIDTH_WIDE_SHORT:
     case WIDTH_WIDE_LONG:
+    //
+    // scoring based on width of precision and presence of loop counters
+    case WIDTH_NARROW_NO_LOOP_SHORT:
     //
     // scoring based on depth of pivot state
     case PIVOT_SHALLOW_SHORT:
@@ -184,6 +196,9 @@ public class PrefixSelector {
     case DOMAIN_BAD_LONG:
       return obtainDomainTypeScoreForPath(pPrefix);
 
+    case DOMAIN_GOOD_WIDTH_NARROW_SHORT:
+      return obtainDomainTypeScoreAndWidthForPath(pPrefix);
+
     case DOMAIN_PRECISE_GOOD_SHORT:
     case DOMAIN_PRECISE_GOOD_LONG:
     case DOMAIN_PRECISE_BAD_SHORT:
@@ -194,7 +209,10 @@ public class PrefixSelector {
     case WIDTH_NARROW_LONG:
     case WIDTH_WIDE_SHORT:
     case WIDTH_WIDE_LONG:
-      return obtainItpSequenceLengthForPath(pPrefix);
+      return obtainWidthOfPrecisionForPath(pPrefix);
+
+    case WIDTH_NARROW_NO_LOOP_SHORT:
+      return obtainWidthOfPrecisionAndFilterLoopCounters(pPrefix);
 
     case PIVOT_SHALLOW_SHORT:
     case PIVOT_SHALLOW_LONG:
@@ -224,6 +242,18 @@ public class PrefixSelector {
     return classification.get().obtainDomainTypeScoreForVariables(extractVariablesFromItpSequence(pPrefix), loopStructure);
   }
 
+  private int obtainDomainTypeScoreAndWidthForPath(final InfeasiblePrefix pPrefix) {
+    int score = classification.get().obtainDomainTypeScoreForVariables(extractVariablesFromItpSequence(pPrefix), loopStructure);
+    int width = obtainWidthOfPrecisionForPath(pPrefix);
+
+    // if overflow, return MAX penalty
+    if((score + width) < score) {
+      return Integer.MAX_VALUE;
+    }
+
+    return score + width;
+  }
+
   private int obtainPreciseDomainTypeScoreForPath(final InfeasiblePrefix pPrefix) {
     int score = 0;
     for (Set<String> variables : pPrefix.extractListOfVariables()) {
@@ -240,17 +270,27 @@ public class PrefixSelector {
     return score;
   }
 
-  private int obtainItpSequenceLengthForPath(final InfeasiblePrefix pPrefix) {
+  private int obtainWidthOfPrecisionForPath(final InfeasiblePrefix pPrefix) {
     return pPrefix.getNonTrivialLength();
+  }
+
+  private int obtainWidthOfPrecisionAndFilterLoopCounters(final InfeasiblePrefix pPrefix) {
+    int score = obtainDomainTypeScoreForPath(pPrefix);
+
+    if(score == Integer.MAX_VALUE) {
+      return Integer.MAX_VALUE;
+    }
+
+    return obtainWidthOfPrecisionForPath(pPrefix);
   }
 
   private int obtainPivotStateDepthForPath(final InfeasiblePrefix pPrefix) {
     return pPrefix.getDepthOfPivotState();
   }
 
-  private int obtainAssignmentCountForPath(final InfeasiblePrefix prefix) {
+  private int obtainAssignmentCountForPath(final InfeasiblePrefix pPrefix) {
     int count = 0;
-    for (String variable : extractVariablesFromItpSequence(prefix)) {
+    for (String variable : extractVariablesFromItpSequence(pPrefix)) {
       count = count + classification.get().getAssignedVariables().count(variable);
 
       // special case for (RERS)-input variables
@@ -265,20 +305,20 @@ public class PrefixSelector {
     return count;
   }
 
-  private int obtainAssumptionCountForPath(final InfeasiblePrefix prefix) {
+  private int obtainAssumptionCountForPath(final InfeasiblePrefix pPrefix) {
     int count = 0;
-    for (String variable : extractVariablesFromItpSequence(prefix)) {
+    for (String variable : extractVariablesFromItpSequence(pPrefix)) {
       count = count + classification.get().getAssumedVariables().count(variable);
     }
 
     return count;
   }
 
-  private Set<String> extractVariablesFromItpSequence(InfeasiblePrefix pPrefix) {
+  private Set<String> extractVariablesFromItpSequence(final InfeasiblePrefix pPrefix) {
     return pPrefix.extractSetOfVariables();
   }
 
-  public int obtainScoreForPrefixes(List<InfeasiblePrefix> pPrefixes, PrefixPreference preference) {
+  public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
     if (!classification.isPresent()) {
       return Integer.MAX_VALUE;
     }
@@ -287,7 +327,7 @@ public class PrefixSelector {
     for (InfeasiblePrefix currentPrefix : pPrefixes) {
 
       int score = this.obtainDomainTypeScoreForPath(currentPrefix);
-      if (preference.scorer.apply(Pair.of(score, bestScore))) {
+      if (pPreference.scorer.apply(Pair.of(score, bestScore))) {
         bestScore = score;
       }
     }
