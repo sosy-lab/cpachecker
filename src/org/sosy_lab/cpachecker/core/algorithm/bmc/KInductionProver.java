@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -139,7 +140,7 @@ class KInductionProver implements AutoCloseable {
   private int previousK = -1;
 
   // The CandidateInvariants that have been proven to hold at the loop heads of {@link loop}.
-  private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
+  private final Set<Pair<CandidateInvariant, Set<CFANode>>> confirmedCandidates = new CopyOnWriteArraySet<>();
 
   private boolean invariantGenerationRunning = true;
 
@@ -178,7 +179,7 @@ class KInductionProver implements AutoCloseable {
   }
 
   public Collection<CandidateInvariant> getConfirmedCandidates() {
-    return confirmedCandidates;
+    return from(confirmedCandidates).transform(Pair.<CandidateInvariant>getProjectionToFirst()).toSet();
   }
 
   /**
@@ -243,22 +244,24 @@ class KInductionProver implements AutoCloseable {
     if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
       BooleanFormula lhi = bfmgr.makeBoolean(false);
       for (CFANode loopHead : pStopLocations) {
-        lhi = bfmgr.or(lhi, getCurrentLocationInvariants(loopHead, fmgr, pfmgr, pStopLocations));
+        lhi = bfmgr.or(lhi, getCurrentLocationInvariants(loopHead, fmgr, pfmgr));
       }
       loopHeadInvariants = lhi;
     }
     return loopHeadInvariants;
   }
 
-  public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR, Set<CFANode> pStopLocations) throws CPATransferException, InterruptedException {
+  public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
     BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
 
-    if (pStopLocations.contains(pLocation)) {
-      for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
-        invariant = bfmgr.and(invariant, ci.getCandidate(pFMGR, pPFMGR));
+    for (Pair<CandidateInvariant, Set<CFANode>> confirmedCandidateAtLocations : this.confirmedCandidates) {
+      CandidateInvariant confirmedCandidate = confirmedCandidateAtLocations.getFirst();
+      if (confirmedCandidate instanceof EdgeFormulaNegation
+          && confirmedCandidateAtLocations.getSecond().contains(pLocation)) {
+        invariant = bfmgr.and(invariant, ((EdgeFormulaNegation) confirmedCandidate).getCandidate(pFMGR, pPFMGR));
       }
     }
 
@@ -437,7 +440,7 @@ class KInductionProver implements AutoCloseable {
       // problems to the set of solved problems
       if (isInvariant) {
         ++numberOfSuccessfulProofs;
-        confirmedCandidates.add(candidateInvariant);
+        confirmedCandidates.add(Pair.of(candidateInvariant, pStopLocations));
         violationFormulas.remove(candidateInvariant);
 
         // Try to inject the new invariant into the invariant generator
