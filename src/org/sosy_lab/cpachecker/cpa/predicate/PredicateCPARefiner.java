@@ -121,7 +121,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DEFAULT;
+  private PrefixPreference prefixPreference = PrefixPreference.NONE;
 
   Configuration config;
 
@@ -350,7 +350,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @return true, if refinement selection has to be performed, else false
    */
   private boolean isRefinementSelectionEnabled(ARGPath errorPath) {
-    return prefixPreference != PrefixPreference.DEFAULT
+    return prefixPreference != PrefixPreference.NONE
         && (errorPath.size() - transformPath(errorPath).size()) == 1;
   }
 

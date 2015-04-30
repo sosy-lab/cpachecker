@@ -252,7 +252,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     this.avgPrefixesVA.setNextValue(vaPrefixes.size());
 
-    int vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    int vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
     this.avgScoreVA.setNextValue(vaScore);
     return vaScore;
   }
@@ -265,7 +265,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     timeForPAPrefixes.stop();
     this.avgPrefixesPA.setNextValue(paPrefixes.size());
 
-    int paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    int paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
     this.avgScorePA.setNextValue(paScore);
     return paScore;
   }

@@ -95,7 +95,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   private boolean performEdgeBasedInterpolation = true;
 
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_BEST_SHALLOW;
+  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -166,7 +166,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    */
   private ARGPath performRefinementSelection(ARGPath errorPath, final ValueAnalysisInterpolant interpolant) throws CPAException {
 
-    if(prefixPreference == PrefixPreference.DEFAULT) {
+    if(prefixPreference == PrefixPreference.NONE) {
       return errorPath;
     }
 
@@ -214,7 +214,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       ValueAnalysisInterpolant interpolant)
       throws InterruptedException, CPAException {
 
-    if (pathSlicing && prefixPreference != PrefixPreference.DEFAULT) {
+    if (pathSlicing && prefixPreference != PrefixPreference.NONE) {
       errorPathPrefix = sliceErrorPath(errorPathPrefix);
     }
 
@@ -263,9 +263,9 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 
-    assert(prefixPreference != PrefixPreference.DEFAULT)
+    assert(prefixPreference != PrefixPreference.NONE)
     : "static path-based interpolation requires a sliced infeasible prefix"
-    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_BEST_DEEP;
+    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_GOOD_LONG;
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
         errorPathPrefix,

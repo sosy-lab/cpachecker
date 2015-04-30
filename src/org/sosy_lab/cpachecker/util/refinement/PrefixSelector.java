@@ -42,48 +42,48 @@ public class PrefixSelector {
 
   public static enum PrefixPreference {
     // returns the original error path
-    DEFAULT(),
-
-    // sensible alternative options
-    SHORTEST(),
-    LONGEST(),
+    NONE(),
 
     // use this only if you are feeling lucky
     RANDOM(),
 
+    // sensible alternative options
+    LENGTH_SHORT(),
+    LENGTH_LONG(),
+
     // heuristics based on approximating cost via variable domain types
-    DOMAIN_BEST_SHALLOW(FIRST_LOWEST_SCORE),
-    DOMAIN_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
-    DOMAIN_BEST_DEEP(LAST_LOWEST_SCORE),
-    DOMAIN_WORST_DEEP(LAST_HIGHEST_SCORE),
+    DOMAIN_GOOD_SHORT(FIRST_LOWEST_SCORE),
+    DOMAIN_BAD_SHORT(FIRST_HIGHEST_SCORE),
+    DOMAIN_GOOD_LONG(LAST_LOWEST_SCORE),
+    DOMAIN_BAD_LONG(LAST_HIGHEST_SCORE),
 
     // same as above, but more precise
-    DOMAIN_PRECISE_BEST_SHALLOW(FIRST_LOWEST_SCORE),
-    DOMAIN_PRECISE_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
-    DOMAIN_PRECISE_BEST_DEEP(LAST_LOWEST_SCORE),
-    DOMAIN_PRECISE_WORST_DEEP(LAST_HIGHEST_SCORE),
+    DOMAIN_PRECISE_GOOD_SHORT(FIRST_LOWEST_SCORE),
+    DOMAIN_PRECISE_BAD_SHORT(FIRST_HIGHEST_SCORE),
+    DOMAIN_PRECISE_GOOD_LONG(LAST_LOWEST_SCORE),
+    DOMAIN_PRECISE_BAD_LONG(LAST_HIGHEST_SCORE),
 
     // heuristics based on approximating the depth of the refinement root
-    REFINE_SHALLOW(FIRST_LOWEST_SCORE),
-    REFINE_DEEP(LAST_HIGHEST_SCORE),
+    PIVOT_SHALLOW(FIRST_LOWEST_SCORE),
+    PIVOT_DEEP(LAST_HIGHEST_SCORE),
 
     // heuristic based on the length of the interpolant sequence (+ loop-counter heuristic)
-    ITP_LENGTH_SHORT_SHALLOW(FIRST_LOWEST_SCORE),
-    ITP_LENGTH_LONG_SHALLOW(FIRST_HIGHEST_SCORE),
-    ITP_LENGTH_SHORT_DEEP(LAST_LOWEST_SCORE),
-    ITP_LENGTH_LONG_DEEP(LAST_HIGHEST_SCORE),
+    WIDTH_NARROW_SHORT(FIRST_LOWEST_SCORE),
+    WIDTH_NARROW_LONG(FIRST_HIGHEST_SCORE),
+    WIDTH_WIDE_SHORT(LAST_LOWEST_SCORE),
+    WIDTH_WIDE_LONG(LAST_HIGHEST_SCORE),
 
     // heuristic based on counting the number of assignments related to the use-def-chain
-    ASSIGNMENTS_FEWEST_SHALLOW(FIRST_LOWEST_SCORE),
-    ASSIGNMENTS_FEWEST_DEEP(LAST_LOWEST_SCORE),
-    ASSIGNMENTS_MOST_SHALLOW(FIRST_HIGHEST_SCORE),
-    ASSIGNMENTS_MOST_DEEP(LAST_HIGHEST_SCORE),
+    ASSIGNMENTS_FEWEST_SHORT(FIRST_LOWEST_SCORE),
+    ASSIGNMENTS_FEWEST_LONG(LAST_LOWEST_SCORE),
+    ASSIGNMENTS_MOST_SHORT(FIRST_HIGHEST_SCORE),
+    ASSIGNMENTS_MOST_LONG(LAST_HIGHEST_SCORE),
 
     // heuristic based on counting the number of assumption related to the use-def-chain
-    ASSUMPTIONS_FEWEST_SHALLOW(FIRST_LOWEST_SCORE),
-    ASSUMPTIONS_FEWEST_DEEP(LAST_LOWEST_SCORE),
-    ASSUMPTIONS_MOST_SHALLOW(FIRST_HIGHEST_SCORE),
-    ASSUMPTIONS_MOST_DEEP(LAST_HIGHEST_SCORE);
+    ASSUMPTIONS_FEWEST_SHORT(FIRST_LOWEST_SCORE),
+    ASSUMPTIONS_FEWEST_LONG(LAST_LOWEST_SCORE),
+    ASSUMPTIONS_MOST_SHORT(FIRST_HIGHEST_SCORE),
+    ASSUMPTIONS_MOST_LONG(LAST_HIGHEST_SCORE);
 
     private PrefixPreference () {}
 
@@ -104,44 +104,44 @@ public class PrefixSelector {
       List<InfeasiblePrefix> pInfeasiblePrefixes) {
 
     switch (pPrefixPreference) {
-    case SHORTEST:
+    case LENGTH_SHORT:
       return pInfeasiblePrefixes.get(0);
 
-    case LONGEST:
+    case LENGTH_LONG:
       return Iterables.getLast(pInfeasiblePrefixes);
 
     case RANDOM:
       return pInfeasiblePrefixes.get(new Random().nextInt(pInfeasiblePrefixes.size()));
 
     // scoring based on domain-types
-    case DOMAIN_BEST_SHALLOW:
-    case DOMAIN_BEST_DEEP:
-    case DOMAIN_WORST_SHALLOW:
-    case DOMAIN_WORST_DEEP:
-    case DOMAIN_PRECISE_BEST_SHALLOW:
-    case DOMAIN_PRECISE_BEST_DEEP:
-    case DOMAIN_PRECISE_WORST_SHALLOW:
-    case DOMAIN_PRECISE_WORST_DEEP:
+    case DOMAIN_GOOD_SHORT:
+    case DOMAIN_GOOD_LONG:
+    case DOMAIN_BAD_SHORT:
+    case DOMAIN_BAD_LONG:
+    case DOMAIN_PRECISE_GOOD_SHORT:
+    case DOMAIN_PRECISE_GOOD_LONG:
+    case DOMAIN_PRECISE_BAD_SHORT:
+    case DOMAIN_PRECISE_BAD_LONG:
     //
     // scoring based on length of itp-sequence
-    case ITP_LENGTH_SHORT_SHALLOW:
-    case ITP_LENGTH_LONG_SHALLOW:
-    case ITP_LENGTH_SHORT_DEEP:
-    case ITP_LENGTH_LONG_DEEP:
+    case WIDTH_NARROW_SHORT:
+    case WIDTH_NARROW_LONG:
+    case WIDTH_WIDE_SHORT:
+    case WIDTH_WIDE_LONG:
     //
     // scoring based on depth of pivot state
-    case REFINE_SHALLOW:
-    case REFINE_DEEP:
+    case PIVOT_SHALLOW:
+    case PIVOT_DEEP:
     //
     //
-    case ASSIGNMENTS_FEWEST_SHALLOW:
-    case ASSIGNMENTS_FEWEST_DEEP:
-    case ASSIGNMENTS_MOST_SHALLOW:
-    case ASSIGNMENTS_MOST_DEEP:
-    case ASSUMPTIONS_FEWEST_SHALLOW:
-    case ASSUMPTIONS_FEWEST_DEEP:
-    case ASSUMPTIONS_MOST_SHALLOW:
-    case ASSUMPTIONS_MOST_DEEP:
+    case ASSIGNMENTS_FEWEST_SHORT:
+    case ASSIGNMENTS_FEWEST_LONG:
+    case ASSIGNMENTS_MOST_SHORT:
+    case ASSIGNMENTS_MOST_LONG:
+    case ASSUMPTIONS_FEWEST_SHORT:
+    case ASSUMPTIONS_FEWEST_LONG:
+    case ASSUMPTIONS_MOST_SHORT:
+    case ASSUMPTIONS_MOST_LONG:
       return obtainScoreBasedPrefix(pPrefixPreference, pInfeasiblePrefixes);
 
     default:
@@ -174,38 +174,38 @@ public class PrefixSelector {
 
   private int obtainScoreForPrefix(PrefixPreference pPrefixPreference, InfeasiblePrefix pPrefix) {
     switch (pPrefixPreference) {
-    case DOMAIN_BEST_SHALLOW:
-    case DOMAIN_BEST_DEEP:
-    case DOMAIN_WORST_SHALLOW:
-    case DOMAIN_WORST_DEEP:
+    case DOMAIN_GOOD_SHORT:
+    case DOMAIN_GOOD_LONG:
+    case DOMAIN_BAD_SHORT:
+    case DOMAIN_BAD_LONG:
       return obtainDomainTypeScoreForPath(pPrefix);
 
-    case DOMAIN_PRECISE_BEST_SHALLOW:
-    case DOMAIN_PRECISE_BEST_DEEP:
-    case DOMAIN_PRECISE_WORST_SHALLOW:
-    case DOMAIN_PRECISE_WORST_DEEP:
+    case DOMAIN_PRECISE_GOOD_SHORT:
+    case DOMAIN_PRECISE_GOOD_LONG:
+    case DOMAIN_PRECISE_BAD_SHORT:
+    case DOMAIN_PRECISE_BAD_LONG:
       return obtainPreciseDomainTypeScoreForPath(pPrefix);
 
-    case ITP_LENGTH_SHORT_SHALLOW:
-    case ITP_LENGTH_LONG_SHALLOW:
-    case ITP_LENGTH_SHORT_DEEP:
-    case ITP_LENGTH_LONG_DEEP:
+    case WIDTH_NARROW_SHORT:
+    case WIDTH_NARROW_LONG:
+    case WIDTH_WIDE_SHORT:
+    case WIDTH_WIDE_LONG:
       return obtainItpSequenceLengthForPath(pPrefix);
 
-    case REFINE_SHALLOW:
-    case REFINE_DEEP:
+    case PIVOT_SHALLOW:
+    case PIVOT_DEEP:
       return obtainPivotStateDepthForPath(pPrefix);
 
-    case ASSIGNMENTS_FEWEST_SHALLOW:
-    case ASSIGNMENTS_FEWEST_DEEP:
-    case ASSIGNMENTS_MOST_SHALLOW:
-    case ASSIGNMENTS_MOST_DEEP:
+    case ASSIGNMENTS_FEWEST_SHORT:
+    case ASSIGNMENTS_FEWEST_LONG:
+    case ASSIGNMENTS_MOST_SHORT:
+    case ASSIGNMENTS_MOST_LONG:
       return obtainAssignmentCountForPath(pPrefix);
 
-    case ASSUMPTIONS_FEWEST_SHALLOW:
-    case ASSUMPTIONS_FEWEST_DEEP:
-    case ASSUMPTIONS_MOST_SHALLOW:
-    case ASSUMPTIONS_MOST_DEEP:
+    case ASSUMPTIONS_FEWEST_SHORT:
+    case ASSUMPTIONS_FEWEST_LONG:
+    case ASSUMPTIONS_MOST_SHORT:
+    case ASSUMPTIONS_MOST_LONG:
       return obtainAssumptionCountForPath(pPrefix);
 
     default:
