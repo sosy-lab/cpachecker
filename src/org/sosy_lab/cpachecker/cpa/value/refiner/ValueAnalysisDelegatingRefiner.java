@@ -74,8 +74,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       + " this allows to only extract prefixes that are exclusive to the auxiliary refiner")
   private boolean useFeasiblePathForAuxRefiner = false;
 
-  @Option(secure=true, description="the maximum score for which always the primary refinement will be performed")
-  private int scoringThreshold = 65536;
+  @Option(secure=true, description="if this score is exceeded by the first analysis, the auxilliary analysis will be refined")
+  private int domainScoreThreshold = 1024;
 
   /**
    * classifier used to score sliced prefixes
@@ -183,10 +183,14 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     if (useRefinementSelection) {
       vaScore = obtainScoreForValueDomain(pErrorPath);
 
-      // don't bother to extract prefixes in auxiliary analysis
-      // if score of primary analysis is beneath the threshold
-      if(vaScore > scoringThreshold) {
-
+      // if score of primary analysis exceeds threshold, always refine secondary analysis
+      if(vaScore > domainScoreThreshold) {
+        paScore = -1;
+        /** EXPERIMENTAL
+         * instead of fixed scores, compute scores for both domains
+         * and select based on these scores
+         * Problem: hard to compare which scores favour the one or the other analysis,
+         * also "impossible" to use two different scoring schema for the two analysis
         // hand the auxiliary analysis a path that is feasible
         // for the primary analysis, so that only new prefixes are found
         if(useFeasiblePathForAuxRefiner) {
@@ -194,12 +198,13 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         }
 
         paScore = obtainScoreForPredicateDomain(pErrorPath);
+        **/
       }
     }
 
     CounterexampleInfo cex;
 
-    if (vaScore <= paScore) {
+    if (vaScore < paScore) {
       cex = valueCpaRefiner.performRefinement(reached);
 
       if (cex.isSpurious()) {
@@ -252,6 +257,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     return vaScore;
   }
 
+  /** Experimental **/
+  @SuppressWarnings("unused")
   private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
     timeForPAPrefixes.start();
     List<InfeasiblePrefix> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
@@ -309,3 +316,4 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     writer.put(timeForPAPrefixes);
   }
 }
+
