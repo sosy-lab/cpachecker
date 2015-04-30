@@ -117,7 +117,7 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
   }
 
   public BoundsState setDeepestRecursion(int pDeepestRecursion) {
-    Preconditions.checkArgument(deepestRecursion >= this.deepestRecursion);
+    Preconditions.checkArgument(pDeepestRecursion >= this.deepestRecursion);
     return new BoundsState(stopIt, stopRec, iterations, deepestIteration, pDeepestRecursion, currentFunction, returnFromCounter);
   }
 
