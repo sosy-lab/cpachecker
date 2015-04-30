@@ -53,19 +53,21 @@ public class PrefixSelector {
 
     // heuristics based on approximating cost via variable domain types
     DOMAIN_GOOD_SHORT(FIRST_LOWEST_SCORE),
-    DOMAIN_BAD_SHORT(FIRST_HIGHEST_SCORE),
     DOMAIN_GOOD_LONG(LAST_LOWEST_SCORE),
+    DOMAIN_BAD_SHORT(FIRST_HIGHEST_SCORE),
     DOMAIN_BAD_LONG(LAST_HIGHEST_SCORE),
 
     // same as above, but more precise
     DOMAIN_PRECISE_GOOD_SHORT(FIRST_LOWEST_SCORE),
-    DOMAIN_PRECISE_BAD_SHORT(FIRST_HIGHEST_SCORE),
     DOMAIN_PRECISE_GOOD_LONG(LAST_LOWEST_SCORE),
+    DOMAIN_PRECISE_BAD_SHORT(FIRST_HIGHEST_SCORE),
     DOMAIN_PRECISE_BAD_LONG(LAST_HIGHEST_SCORE),
 
     // heuristics based on approximating the depth of the refinement root
-    PIVOT_SHALLOW(FIRST_LOWEST_SCORE),
-    PIVOT_DEEP(LAST_HIGHEST_SCORE),
+    PIVOT_SHALLOW_SHORT(FIRST_LOWEST_SCORE),
+    PIVOT_SHALLOW_LONG(LAST_LOWEST_SCORE),
+    PIVOT_DEEP_SHORT(FIRST_HIGHEST_SCORE),
+    PIVOT_DEEP_LONG(LAST_HIGHEST_SCORE),
 
     // heuristic based on the length of the interpolant sequence (+ loop-counter heuristic)
     WIDTH_NARROW_SHORT(FIRST_LOWEST_SCORE),
@@ -130,8 +132,10 @@ public class PrefixSelector {
     case WIDTH_WIDE_LONG:
     //
     // scoring based on depth of pivot state
-    case PIVOT_SHALLOW:
-    case PIVOT_DEEP:
+    case PIVOT_SHALLOW_SHORT:
+    case PIVOT_SHALLOW_LONG:
+    case PIVOT_DEEP_SHORT:
+    case PIVOT_DEEP_LONG:
     //
     //
     case ASSIGNMENTS_FEWEST_SHORT:
@@ -192,8 +196,10 @@ public class PrefixSelector {
     case WIDTH_WIDE_LONG:
       return obtainItpSequenceLengthForPath(pPrefix);
 
-    case PIVOT_SHALLOW:
-    case PIVOT_DEEP:
+    case PIVOT_SHALLOW_SHORT:
+    case PIVOT_SHALLOW_LONG:
+    case PIVOT_DEEP_SHORT:
+    case PIVOT_DEEP_LONG:
       return obtainPivotStateDepthForPath(pPrefix);
 
     case ASSIGNMENTS_FEWEST_SHORT:
