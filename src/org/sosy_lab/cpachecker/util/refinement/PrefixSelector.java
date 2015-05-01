@@ -74,8 +74,8 @@ public class PrefixSelector {
 
     // heuristic based on the length of the interpolant sequence (+ loop-counter heuristic)
     WIDTH_NARROW_SHORT(FIRST_LOWEST_SCORE),
-    WIDTH_NARROW_LONG(FIRST_HIGHEST_SCORE),
-    WIDTH_WIDE_SHORT(LAST_LOWEST_SCORE),
+    WIDTH_NARROW_LONG(LAST_LOWEST_SCORE),
+    WIDTH_WIDE_SHORT(FIRST_HIGHEST_SCORE),
     WIDTH_WIDE_LONG(LAST_HIGHEST_SCORE),
 
     // same as above, but in addition, avoids loop counters based on domain-type scores
