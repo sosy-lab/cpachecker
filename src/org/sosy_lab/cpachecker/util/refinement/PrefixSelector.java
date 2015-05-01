@@ -244,6 +244,12 @@ public class PrefixSelector {
 
   private int obtainDomainTypeScoreAndWidthForPath(final InfeasiblePrefix pPrefix) {
     int score = classification.get().obtainDomainTypeScoreForVariables(extractVariablesFromItpSequence(pPrefix), loopStructure);
+
+    if (score * 1000 < score) {
+      return Integer.MAX_VALUE;
+    }
+    score = score * 1000;
+
     int width = obtainWidthOfPrecisionForPath(pPrefix);
 
     // if overflow, return MAX penalty
