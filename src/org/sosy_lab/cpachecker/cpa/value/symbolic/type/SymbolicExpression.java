@@ -49,6 +49,7 @@ public abstract class SymbolicExpression implements SymbolicValue {
     representedLocation = Optional.absent();
   }
 
+  @Override
   public abstract SymbolicExpression copyForLocation(MemoryLocation pRepresentedLocation);
 
   public Optional<MemoryLocation> getRepresentedLocation() {
