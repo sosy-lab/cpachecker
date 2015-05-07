@@ -1953,13 +1953,9 @@ pcc.arg.cmc.configFiles = no default value
 # write collected assumptions to file
 pcc.arg.cmc.file = "assumptions.txt"
 
-# Enable if partial ARGs can be read based using different CPA object than
-# checker
-pcc.arg.cmc.interleavedMode = false
-
 # Which ARG strategy to use for each partial ARG, strategy based on CPA
 # (true) or on proof checker interface (false)
-pcc.arg.cmc.useArgCpaStrategy = false
+pcc.arg.cmc.useArgCpaStrategy = true
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for
