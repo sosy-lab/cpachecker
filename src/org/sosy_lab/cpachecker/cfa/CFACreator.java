@@ -873,7 +873,7 @@ private boolean classifyNodes = false;
           if (!(type instanceof CElaboratedType)
               || (((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM)) {
             CInitializer initializer = CDefaults.forType(type, v.getFileLocation());
-
+v.addInitializer(initializer);
             v = new CVariableDeclaration(v.getFileLocation(),
                                          v.isGlobal(),
                                          v.getCStorageClass(),

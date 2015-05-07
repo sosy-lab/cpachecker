@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
@@ -142,6 +143,12 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           predicateCpa.getSolver(),
                                           predicateCpa.getMachineModel());
 
+
+    PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(predicateCpa.getConfiguration(),
+                                          logger,
+                                          predicateCpa.getSolver(),
+                                          predicateCpa.getPathFormulaManager());
+
     RefinementStrategy strategy = new BAMPredicateAbstractionRefinementStrategy(
                                           predicateCpa.getConfiguration(),
                                           logger,
@@ -156,6 +163,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           pCpa,
                                           manager,
                                           pathChecker,
+                                          prefixProvider,
                                           predicateCpa.getPathFormulaManager(),
                                           strategy,
                                           predicateCpa.getSolver(),
@@ -182,6 +190,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         final ConfigurableProgramAnalysis pCpa,
         final InterpolationManager pInterpolationManager,
         final PathChecker pPathChecker,
+        final PrefixProvider pPrefixProvider,
         final PathFormulaManager pPathFormulaManager,
         final RefinementStrategy pStrategy,
         final Solver pSolver,
@@ -194,6 +203,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
           pCpa,
           pInterpolationManager,
           pPathChecker,
+          pPrefixProvider,
           pPathFormulaManager,
           pStrategy,
           pSolver,

@@ -332,6 +332,10 @@ cbmc.options.unwindings = 0
 cbmc.timelimit = 0ms
 cbmc.timelimit = 0
 
+# if this score is exceeded by the first analysis, the auxilliary analysis
+# will be refined
+cegar.domainScoreThreshold = 1024
+
 # Whether to do refinement immediately after finding an error state, or
 # globally after the ARG has been unrolled completely.
 cegar.globalRefinement = false
@@ -340,9 +344,6 @@ cegar.globalRefinement = false
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
 cegar.refiner = no default value
-
-# the maximum score for which always the primary refinement will be performed
-cegar.scoringThreshold = 65536
 
 # whether or not to let auxiliary refiner score and refine a path that is
 # feasible for the primary refiner, this allows to only extract prefixes that
@@ -1274,6 +1275,13 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
+# Max. number of prefixes to extract
+cpa.predicate.refinement.maxPrefixCount = 64
+
+# Max. length of feasible prefixes to extract from if at least one prefix was
+# already extracted
+cpa.predicate.refinement.maxPrefixLength = 1024
+
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
@@ -1290,16 +1298,17 @@ cpa.predicate.refinement.predicateBasisStrategy = TARGET
   enum:     [ALL, TARGET, CUTPOINT]
 
 # which sliced prefix should be used for interpolation
-cpa.predicate.refinement.prefixPreference = DEFAULT
-  enum:     [DEFAULT, SHORTEST, LONGEST, RANDOM, DOMAIN_BEST_SHALLOW,
-             DOMAIN_WORST_SHALLOW, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
-             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
-             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
-             REFINE_DEEP, ITP_LENGTH_SHORT_SHALLOW, ITP_LENGTH_LONG_SHALLOW,
-             ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP, ASSIGNMENTS_FEWEST_SHALLOW,
-             ASSIGNMENTS_FEWEST_DEEP, ASSIGNMENTS_MOST_SHALLOW, ASSIGNMENTS_MOST_DEEP,
-             ASSUMPTIONS_FEWEST_SHALLOW, ASSUMPTIONS_FEWEST_DEEP,
-             ASSUMPTIONS_MOST_SHALLOW, ASSUMPTIONS_MOST_DEEP, FEASIBLE]
+cpa.predicate.refinement.prefixPreference = NONE
+  enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
+             DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
+             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
+             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
+             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
+             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
+             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
+             ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
+             ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
+             ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
@@ -1799,16 +1808,17 @@ cpa.value.refiner.performEdgeBasedInterpolation = true
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
-cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, RANDOM, DOMAIN_BEST_SHALLOW,
-             DOMAIN_WORST_SHALLOW, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
-             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
-             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
-             REFINE_DEEP, ITP_LENGTH_SHORT_SHALLOW, ITP_LENGTH_LONG_SHALLOW,
-             ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP, ASSIGNMENTS_FEWEST_SHALLOW,
-             ASSIGNMENTS_FEWEST_DEEP, ASSIGNMENTS_MOST_SHALLOW, ASSIGNMENTS_MOST_DEEP,
-             ASSUMPTIONS_FEWEST_SHALLOW, ASSUMPTIONS_FEWEST_DEEP,
-             ASSUMPTIONS_MOST_SHALLOW, ASSUMPTIONS_MOST_DEEP, FEASIBLE]
+cpa.value.refiner.prefixPreference = DOMAIN_GOOD_SHORT
+  enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
+             DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
+             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
+             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
+             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
+             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
+             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
+             ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
+             ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
+             ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 
 import com.google.common.base.Optional;
 
@@ -67,6 +68,8 @@ public abstract class ImpactRefiner implements Refiner {
 
     PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pfmgr, solver, machineModel);
 
+    PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr);
+
     RefinementStrategy strategy = new ImpactRefinementStrategy(
         config,
         logger,
@@ -79,6 +82,7 @@ public abstract class ImpactRefiner implements Refiner {
         pCpa,
         manager,
         pathChecker,
+        prefixProvider,
         pfmgr,
         strategy,
         solver,

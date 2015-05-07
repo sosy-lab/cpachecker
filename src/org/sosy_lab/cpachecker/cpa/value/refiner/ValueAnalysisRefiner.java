@@ -67,15 +67,17 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
@@ -120,9 +122,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   private ValueAnalysisFeasibilityChecker checker;
 
+  private ValueAnalysisPrefixProvider prefixProvider;
+
   private ValueAnalysisConcreteErrorPathAllocator concreteErrorPathAllocator;
 
-  private ErrorPathClassifier classifier;
+  private PrefixSelector classifier;
 
   private int previousErrorPathId = -1;
 
@@ -169,9 +173,10 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     logger = pLogger;
 
-    interpolator  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker       = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
-    classifier    = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
+    interpolator   = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
+    checker        = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
+    prefixProvider = new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig);
+    classifier     = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
 
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(logger, pShutdownNotifier, pCfa.getMachineModel());
   }
@@ -574,11 +579,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           ARGPath path2 = ARGUtils.getOnePathTo(target2);
 
           if(itpSortedTargets) {
-            List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1);
-            List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2);
+            List<InfeasiblePrefix> prefixes1 = prefixProvider.extractInfeasilbePrefixes(path1);
+            List<InfeasiblePrefix> prefixes2 = prefixProvider.extractInfeasilbePrefixes(path2);
 
-            int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_BEST_SHALLOW);
-            int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_BEST_SHALLOW);
+            int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_GOOD_SHORT);
+            int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_GOOD_SHORT);
 
             if(score1 == score2) {
               return 0;
@@ -596,7 +601,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           else {
             return path1.size() - path2.size();
           }
-        } catch (CPAException | InterruptedException e) {
+        } catch (CPAException e) {
           throw new AssertionError(e);
         }
       }

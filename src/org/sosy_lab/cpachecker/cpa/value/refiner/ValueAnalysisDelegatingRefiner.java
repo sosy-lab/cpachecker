@@ -48,11 +48,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.PrefixPreference;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -73,13 +74,13 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       + " this allows to only extract prefixes that are exclusive to the auxiliary refiner")
   private boolean useFeasiblePathForAuxRefiner = false;
 
-  @Option(secure=true, description="the maximum score for which always the primary refinement will be performed")
-  private int scoringThreshold = 65536;
+  @Option(secure=true, description="if this score is exceeded by the first analysis, the auxilliary analysis will be refined")
+  private int domainScoreThreshold = 1024;
 
   /**
    * classifier used to score sliced prefixes
    */
-  private final ErrorPathClassifier classfier;
+  private final PrefixSelector classfier;
 
   /**
    * refiner used for value-analysis refinement
@@ -145,9 +146,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         controlFlowAutomaton,
         cpa,
         ValueAnalysisRefiner.create(cpa),
-        new ValueAnalysisFeasibilityChecker(logger, controlFlowAutomaton, config),
+        new ValueAnalysisPrefixProvider(logger, controlFlowAutomaton, config),
         PredicateRefiner.create(cpa),
-        new PredicateBasedPrefixProvider(logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
+        new PredicateBasedPrefixProvider(config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
   }
 
   protected ValueAnalysisDelegatingRefiner(
@@ -163,7 +164,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     super(pCpa);
     pConfig.inject(this);
 
-    classfier = new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure());
+    classfier = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
 
     valueCpaRefiner         = pValueRefiner;
     valueCpaPrefixProvider  = pValueCpaPrefixProvider;
@@ -182,24 +183,28 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     if (useRefinementSelection) {
       vaScore = obtainScoreForValueDomain(pErrorPath);
 
-      // don't bother to extract prefixes in auxiliary analysis
-      // if score of primary analysis is beneath the threshold
-      if(vaScore > scoringThreshold) {
-
+      // if score of primary analysis exceeds threshold, always refine secondary analysis
+      if(vaScore > domainScoreThreshold) {
+        paScore = -1;
+        /** EXPERIMENTAL
+         * instead of fixed scores, compute scores for both domains
+         * and select based on these scores
+         * Problem: hard to compare which scores favour the one or the other analysis,
+         * also "impossible" to use two different scoring schema for the two analysis
         // hand the auxiliary analysis a path that is feasible
         // for the primary analysis, so that only new prefixes are found
         if(useFeasiblePathForAuxRefiner) {
-          List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
-          pErrorPath = classfier.obtainSlicedPrefix(PrefixPreference.FEASIBLE, pErrorPath, vaPrefixes);
+          pErrorPath = ((ValueAnalysisPrefixProvider)valueCpaPrefixProvider).extractFeasilbePath(pErrorPath);
         }
 
         paScore = obtainScoreForPredicateDomain(pErrorPath);
+        **/
       }
     }
 
     CounterexampleInfo cex;
 
-    if (vaScore <= paScore) {
+    if (vaScore < paScore) {
       cex = valueCpaRefiner.performRefinement(reached);
 
       if (cex.isSpurious()) {
@@ -237,42 +242,44 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
   private int obtainScoreForValueDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
     timeForVAPrefixes.start();
-    List<ARGPath> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
+    List<InfeasiblePrefix> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
     timeForVAPrefixes.stop();
 
     // if path is feasible hand out a real bad score
-    if(vaPrefixes.get(0) == pErrorPath) {
+    if(vaPrefixes.isEmpty()) {
       return Integer.MAX_VALUE;
     }
 
     this.avgPrefixesVA.setNextValue(vaPrefixes.size());
 
-    int vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    int vaScore = classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
     this.avgScoreVA.setNextValue(vaScore);
     return vaScore;
   }
 
+  /** Experimental **/
+  @SuppressWarnings("unused")
   private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
     timeForPAPrefixes.start();
-    List<ARGPath> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
+    List<InfeasiblePrefix> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
     timeForPAPrefixes.stop();
     this.avgPrefixesPA.setNextValue(paPrefixes.size());
 
-    int paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_BEST_DEEP);
+    int paScore = classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
     this.avgScorePA.setNextValue(paScore);
     return paScore;
   }
 
-  private List<ARGPath> getPrefixesOfValueDomain(final ARGPath pErrorPath)
+  private List<InfeasiblePrefix> getPrefixesOfValueDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    return valueCpaPrefixProvider.getInfeasilbePrefixes(pErrorPath);
+    return valueCpaPrefixProvider.extractInfeasilbePrefixes(pErrorPath);
   }
 
-  private List<ARGPath> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
+  private List<InfeasiblePrefix> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    return predicateCpaPrefixProvider.getInfeasilbePrefixes(pErrorPath);
+    return predicateCpaPrefixProvider.extractInfeasilbePrefixes(pErrorPath);
   }
 
   @Override
@@ -309,3 +316,4 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     writer.put(timeForPAPrefixes);
   }
 }
+

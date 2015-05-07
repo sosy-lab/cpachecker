@@ -56,7 +56,7 @@ public class CounterexampleTraceInfo {
       branchingPreds = pBranchingPreds;
     }
 
-    static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
+    public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
       return new CounterexampleTraceInfo(true,
           ImmutableList.copyOf(pInterpolants),
           null,

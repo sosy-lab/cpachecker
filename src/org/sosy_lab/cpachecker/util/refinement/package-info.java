@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,17 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util;
-
-import java.util.List;
-
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-
-
-public interface PrefixProvider {
-
-  public abstract List<ARGPath> getInfeasilbePrefixes(ARGPath path)
-      throws CPAException, InterruptedException;
-}
+/**
+ * Utilities for refinement and refinement selection.
+ */
+package org.sosy_lab.cpachecker.util.refinement;
