@@ -23,9 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -65,10 +70,40 @@ public class ImplicationLessOrEqualOperator implements AbstractDomain {
       return biggerState.isEmpty();
     }
 
-    BooleanFormula implyingFormula = lesserState.getFullFormula();
-    BooleanFormula impliedFormula = biggerState.getFullFormula();
+    IdentifierAssignment lesserStateDefinites = lesserState.getDefiniteAssignment();
+    IdentifierAssignment biggerStateDefinites = biggerState.getDefiniteAssignment();
+
+    return containsAll(lesserStateDefinites, biggerStateDefinites)
+        && implies(lesserState, biggerState);
+
+  }
+
+  private boolean implies(ConstraintsState pLesserState, ConstraintsState pBiggerState)
+      throws SolverException, InterruptedException, UnrecognizedCCodeException {
+    BooleanFormula implyingFormula = pLesserState.getFullFormula();
+    BooleanFormula impliedFormula = pBiggerState.getFullFormula();
 
     return solver.implies(implyingFormula, impliedFormula);
+  }
+
+  private boolean containsAll(IdentifierAssignment pLesserStateDefinites,
+      IdentifierAssignment pBiggerStateDefinites) {
+
+    if (pBiggerStateDefinites.size() > pLesserStateDefinites.size()) {
+      return false;
+    }
+
+    for (Map.Entry<SymbolicIdentifier, Value> e : pBiggerStateDefinites.entrySet()) {
+      if (pLesserStateDefinites.containsKey(e.getKey())
+          && pLesserStateDefinites.get(e.getKey()).equals(e.getValue())) {
+
+        continue;
+      } else {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   @Override
