@@ -70,22 +70,30 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
   private final FormulaManagerView formulaManager;
   private final CtoFormulaConverter toFormulaTransformer;
-  private final SymbolicExpressionTransformer toExpressionTransformer;
 
   private final String functionName;
 
   public FormulaCreatorUsingCConverter(FormulaManagerView pFormulaManager, CtoFormulaConverter pConverter,
-      IdentifierAssignment pDefiniteAssignment, String pFunctionName) {
-
+      String pFunctionName) {
     formulaManager = pFormulaManager;
     toFormulaTransformer = pConverter;
-    toExpressionTransformer = new SymbolicExpressionTransformer(pDefiniteAssignment);
     functionName = pFunctionName;
   }
 
   @Override
-  public BooleanFormula createFormula(Constraint pConstraint) throws UnrecognizedCCodeException, InterruptedException {
+  public BooleanFormula createFormula(Constraint pConstraint)
+      throws UnrecognizedCCodeException, InterruptedException {
+
+    return createFormula(pConstraint, new IdentifierAssignment());
+  }
+
+
+  @Override
+  public BooleanFormula createFormula(Constraint pConstraint, IdentifierAssignment pDefiniteAssignment) throws UnrecognizedCCodeException, InterruptedException {
+
+    final SymbolicExpressionTransformer toExpressionTransformer = new SymbolicExpressionTransformer(pDefiniteAssignment);
     CExpression constraintExpression = pConstraint.accept(toExpressionTransformer);
+
     return toFormulaTransformer.makePredicate(constraintExpression, getDummyEdge(), functionName, getSsaMapBuilder());
   }
 

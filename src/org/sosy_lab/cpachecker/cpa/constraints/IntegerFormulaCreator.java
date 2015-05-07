@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -110,7 +111,7 @@ public class IntegerFormulaCreator
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
 
-  private final IdentifierAssignment definiteIdentifiers;
+  private IdentifierAssignment definiteIdentifiers;
 
   private final FunctionSet declaredFunctions = new FunctionSet();
 
@@ -120,7 +121,7 @@ public class IntegerFormulaCreator
   private List<BooleanFormula> conditions = new ArrayList<>();
 
   public IntegerFormulaCreator(
-      FormulaManagerView pFormulaManager, IdentifierAssignment pDefiniteAssignment) {
+      FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
     numeralFormulaManager = formulaManager.getIntegerFormulaManager();
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
@@ -128,12 +129,20 @@ public class IntegerFormulaCreator
 
     oneFormula = numeralFormulaManager.makeNumber(1);
     zeroFormula = numeralFormulaManager.makeNumber(0);
-
-    definiteIdentifiers = pDefiniteAssignment;
   }
 
   @Override
   public BooleanFormula createFormula(Constraint pConstraint) {
+    return createFormula(pConstraint, new IdentifierAssignment());
+  }
+
+  @Override
+  public BooleanFormula createFormula(
+      final Constraint pConstraint,
+      final IdentifierAssignment pDefiniteAssignment
+  ) {
+    definiteIdentifiers = pDefiniteAssignment;
+
     BooleanFormula originalFormula = (BooleanFormula) pConstraint.accept(this);
 
     if (conditions.isEmpty()) {

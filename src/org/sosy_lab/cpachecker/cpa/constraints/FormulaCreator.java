@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -43,6 +44,18 @@ public interface FormulaCreator {
    * @return a <code>Formula</code> representing the given constraint
    */
   BooleanFormula createFormula(Constraint pConstraint) throws UnrecognizedCCodeException, InterruptedException;
+
+  /**
+   * Creates a {@link BooleanFormula} representing the given {@link Constraint}.
+   * Symbolic Identifiers in constraints are replaced by their known definite assignments, if
+   * one exists.
+   *
+   * @param pConstraint the constraint to create a formula of
+   * @param pDefiniteAssingment the known definite assignments of symbolic identifiers
+   *
+   * @return a <code>Formula</code> representing the given constraint
+   */
+  BooleanFormula createFormula(Constraint pConstraint, IdentifierAssignment pDefiniteAssingment) throws UnrecognizedCCodeException, InterruptedException;
 
   /**
    * Creates a {@link BooleanFormula} representing the given term-value assignment.

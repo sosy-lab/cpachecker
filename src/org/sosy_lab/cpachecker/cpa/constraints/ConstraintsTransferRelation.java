@@ -211,7 +211,7 @@ public class ConstraintsTransferRelation
     ConstraintsState newState = pOldState.copyOf();
 
     final IdentifierAssignment definiteAssignment = pOldState.getDefiniteAssignment();
-    FormulaCreator formulaCreator = getFormulaCreator(definiteAssignment, pFunctionName);
+    FormulaCreator formulaCreator = getFormulaCreator(pFunctionName);
     newState.initialize(solver, formulaManager, formulaCreator);
 
     if (oNewConstraint.isPresent()) {
@@ -220,7 +220,7 @@ public class ConstraintsTransferRelation
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (isTrivial(newConstraint, definiteAssignment)) {
-        if (solver.isUnsat(formulaCreator.createFormula(newConstraint))) {
+        if (solver.isUnsat(formulaCreator.createFormula(newConstraint, newState.getDefiniteAssignment()))) {
           return null;
         }
 
@@ -240,8 +240,8 @@ public class ConstraintsTransferRelation
     return pOldState;
   }
 
-  private FormulaCreator getFormulaCreator(IdentifierAssignment pDefiniteAssignment, String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pDefiniteAssignment, pFunctionName);
+  private FormulaCreator getFormulaCreator(String pFunctionName) {
+    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pFunctionName);
   }
 
   private CtoFormulaConverter getConverter() {

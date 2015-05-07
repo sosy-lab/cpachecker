@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.VariableMap;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -52,7 +54,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 /**
@@ -71,6 +72,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   private ProverEnvironment prover;
   private FormulaCreator formulaCreator;
   private FormulaManagerView formulaManager;
+  private SymbolicIdentifierLocator locator;
 
   private IdentifierAssignment definiteAssignment;
 
@@ -81,6 +83,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     constraints = new ArrayList<>();
     constraintFormulas = new HashMap<>();
     definiteAssignment = new IdentifierAssignment();
+    locator = SymbolicIdentifierLocator.getInstance();
   }
 
   public ConstraintsState(
@@ -90,6 +93,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     constraints = new ArrayList<>(pConstraints);
     definiteAssignment = new IdentifierAssignment(pDefiniteAssignment);
     constraintFormulas = new HashMap<>();
+    locator = SymbolicIdentifierLocator.getInstance();
   }
 
   /**
@@ -110,6 +114,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     prover = pState.prover;
     formulaCreator = pState.formulaCreator;
     formulaManager = pState.formulaManager;
+    locator = pState.locator;
 
     definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
   }
@@ -273,7 +278,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
         if (!unsat) {
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really requested
-          computeDefiniteAssignment(constraintsAsFormula);
+          resolveDefiniteAssignments(constraintsAsFormula);
 
         } else {
           definiteAssignment = null;
@@ -292,6 +297,14 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
       prover.close();
       prover = null;
     }
+  }
+
+  private void resolveDefiniteAssignments(BooleanFormula pFormula)
+      throws InterruptedException, SolverException, UnrecognizedCCodeException {
+
+    IdentifierAssignment oldDefinites = new IdentifierAssignment(definiteAssignment);
+    computeDefiniteAssignment(pFormula);
+    updateOldFormulasDefinitesAppearIn(oldDefinites, definiteAssignment);
   }
 
   private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException, UnrecognizedCCodeException {
@@ -314,6 +327,39 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
 
           definiteAssignment.put(identifier, concreteValue);
         }
+      }
+    }
+  }
+
+  private void updateOldFormulasDefinitesAppearIn(
+      final IdentifierAssignment pOldDefinites,
+      final IdentifierAssignment pNewDefinites
+  ) throws UnrecognizedCCodeException, InterruptedException {
+    assert pOldDefinites.size() <= pNewDefinites.size();
+
+    // if no new definite assignments were added, we don't have to remove any formula
+    if (pOldDefinites.size() == pNewDefinites.size()) {
+      return;
+    }
+
+    Set<SymbolicIdentifier> newlyKnownIdentifiers = pNewDefinites.keySet();
+
+    newlyKnownIdentifiers.removeAll(pOldDefinites.keySet());
+
+    // for each constraint a formula exists, we check if the formula can be replaced
+    // with a version holding more information, and do it.
+    for (Constraint c : constraintFormulas.keySet()) {
+      Set<SymbolicIdentifier> identifiers = c.accept(locator);
+
+      // if the constraint contains any identifier we now know a definite assignment for,
+      // we replace the constraint's formula by a new formula using these definite assignments.
+      if (!Collections.disjoint(newlyKnownIdentifiers, identifiers)) {
+        BooleanFormula newFormula = formulaCreator.createFormula(c, pNewDefinites);
+
+        assert !newFormula.equals(constraintFormulas.get(c))
+            : "Identifier was not replaced by definite assignment";
+
+        constraintFormulas.put(c, newFormula);
       }
     }
   }
@@ -395,7 +441,8 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
       assert !constraintFormulas.containsKey(newConstraint)
           : "Trying to add a formula that already exists!";
 
-      constraintFormulas.put(newConstraint, formulaCreator.createFormula(newConstraint));
+      BooleanFormula newFormula = formulaCreator.createFormula(newConstraint, definiteAssignment);
+      constraintFormulas.put(newConstraint, newFormula);
     }
 
     assert constraints.size() == constraintFormulas.size()

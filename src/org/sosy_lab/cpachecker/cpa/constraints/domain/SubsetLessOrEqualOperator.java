@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsOnlyView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -55,16 +54,15 @@ public class SubsetLessOrEqualOperator implements AbstractDomain {
     assert pLesserState instanceof ConstraintsState;
     assert pBiggerState instanceof ConstraintsState;
 
-    ConstraintsOnlyView resolvedLesserState = new ConstraintsOnlyView((ConstraintsState) pLesserState);
-    ConstraintsOnlyView resolvedBiggerState = new ConstraintsOnlyView((ConstraintsState) pBiggerState);
+    ConstraintsState lesserState = (ConstraintsState) pLesserState;
+    ConstraintsState biggerState = (ConstraintsState) pBiggerState;
 
-
-    if (resolvedBiggerState.size() > resolvedLesserState.size()) {
+    if (biggerState.size() > lesserState.size()) {
       return false;
     }
 
-    for (Constraint c : resolvedBiggerState) {
-      if (!resolvedLesserState.contains(c)) {
+    for (Constraint c : biggerState) {
+      if (!lesserState.contains(c)) {
         return false;
       }
     }

@@ -23,30 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
-import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsOnlyView;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.base.Optional;
 
 /**
  * Less-or-equal operator of the semi-lattice of the {@link ConstraintsCPA}.
@@ -110,25 +94,18 @@ public class AliasedSubsetLessOrEqualOperator implements AbstractDomain {
     ConstraintsState lesserState = (ConstraintsState) pLesserState;
     ConstraintsState biggerState = (ConstraintsState) pBiggerState;
 
-    // Get all constraints of the state, including definite assignments of symbolic identifiers.
-    // This simplifies comparison between states because we don't have to look at these separately.
-    final ConstraintsOnlyView allConstraintsLesserState =
-        new ConstraintsOnlyView(lesserState);
-    final ConstraintsOnlyView allConstraintsBiggerState =
-        new ConstraintsOnlyView(biggerState);
-
-    if (allConstraintsBiggerState.size() > allConstraintsLesserState.size()) {
+    if (biggerState.size() > lesserState.size()) {
       return false;
     }
 
     // we already know that the second state has less constraints or the same amount of constraints
     // as the first state. So if it is empty, the first one has to be empty, too, and they are equal
-    if (allConstraintsBiggerState.isEmpty()) {
+    if (biggerState.isEmpty()) {
       return true;
     }
 
     final Set<Environment> possibleScenarios =
-        SymbolicValues.getPossibleAliases(allConstraintsLesserState, allConstraintsBiggerState);
+        SymbolicValues.getPossibleAliases(lesserState, biggerState);
 
     return !possibleScenarios.isEmpty();
   }

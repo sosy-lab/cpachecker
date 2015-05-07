@@ -76,9 +76,8 @@ public class StateSimplifier {
       final ConstraintsState pState,
       final ValueAnalysisState pValueState
   ) {
-    ConstraintsState newState;
+    ConstraintsState newState = pState;
 
-    newState = removeTrivialConstraints(pState, pState.getDefiniteAssignment());
     newState = removeOutdatedConstraints(newState, pValueState);
     return newState;
   }
