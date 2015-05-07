@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Queue;
@@ -123,7 +122,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
         @Override
         public BooleanFormula getInvariantFor(CFANode location, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
           try {
-            return prover.getCurrentLocationInvariants(location, fmgr, pfmgr, Collections.<CFANode>emptySet());
+            return prover.getCurrentLocationInvariants(location, fmgr, pfmgr);
           } catch (InterruptedException | CPAException e) {
             return fmgr.getBooleanFormulaManager().makeBoolean(true);
           }

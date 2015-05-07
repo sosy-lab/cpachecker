@@ -30,8 +30,8 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -81,10 +81,13 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
       return Collections.emptySet();
     }
 
-    if (pCfaEdge instanceof CFunctionCallEdge
-        || pCfaEdge instanceof CFunctionReturnEdge) {
+    if (pCfaEdge instanceof FunctionCallEdge) {
       // such edges do never change loop stack status
       return Collections.singleton(pElement);
+    }
+
+    if (pCfaEdge instanceof FunctionReturnEdge) {
+      e = e.returnFromFunction();
     }
 
     CFANode loc = pCfaEdge.getSuccessor();
@@ -116,12 +119,30 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
     BoundsState state = (BoundsState) pState;
 
     for (CallstackState callstackState : FluentIterable.from(pOtherStates).filter(CallstackState.class)) {
-      int deepestRecursion = getDeepestRecursion(callstackState);
-      if (deepestRecursion > state.getDeepestRecursion()) {
-        state = state.setDeepestRecursion(deepestRecursion);
+      int recursionDepth = getRecursionDepth(callstackState);
+      if (recursionDepth > state.getDeepestRecursion()) {
+        assert recursionDepth == getDeepestRecursion(callstackState);
+        state = state.setDeepestRecursion(recursionDepth);
+      }
+      state = state.setCurrentFunction(callstackState.getCurrentFunction());
+      if (state.getReturnFromCounter() > state.getDeepestRecursion()) {
+        state = state.setDeepestRecursion(state.getReturnFromCounter());
       }
     }
-    return state == pState ? null : Collections.singleton(state);
+    return state.equals(pState) ? null : Collections.singleton(state);
+  }
+
+  private static final int getRecursionDepth(CallstackState pCallstackState) {
+    int depth = 0;
+    CallstackState state = pCallstackState;
+    String function = pCallstackState.getCurrentFunction();
+    while (state != null) {
+      if (state.getCurrentFunction().equals(function)) {
+        ++depth;
+      }
+      state = state.getPreviousState();
+    }
+    return depth;
   }
 
   private static final int getDeepestRecursion(CallstackState pCallstackState) {

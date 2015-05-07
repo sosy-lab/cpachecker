@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
-import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -58,6 +57,10 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
 
   private final PersistentSortedMap<ComparableLoop, Integer> iterations;
 
+  private final String currentFunction;
+
+  private final int returnFromCounter;
+
   private int hashCache = 0;
 
   public BoundsState() {
@@ -65,10 +68,10 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
   }
 
   public BoundsState(boolean pStopIt, boolean pStopRec) {
-    this(pStopIt, pStopRec, PathCopyingPersistentTreeMap.<ComparableLoop, Integer>of(), 0, 1);
+    this(pStopIt, pStopRec, PathCopyingPersistentTreeMap.<ComparableLoop, Integer>of(), 0, 1, null, 0);
   }
 
-  private BoundsState(boolean pStopIt, boolean pStopRec, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration, int pDeepestRecursion) {
+  private BoundsState(boolean pStopIt, boolean pStopRec, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration, int pDeepestRecursion, String pCurrentFunction, int pReturnFromCounter) {
     Preconditions.checkArgument(pDeepestIteration >= 0);
     Preconditions.checkArgument(pDeepestIteration == 0 && pIterations.isEmpty() || pDeepestIteration > 0 && !pIterations.isEmpty());
     Preconditions.checkArgument(pDeepestRecursion >= 1);
@@ -77,6 +80,8 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
     this.iterations = pIterations;
     this.deepestIteration = pDeepestIteration;
     this.deepestRecursion = pDeepestRecursion;
+    this.currentFunction = pCurrentFunction;
+    this.returnFromCounter = pReturnFromCounter;
   }
 
   public BoundsState enter(Loop pLoop) {
@@ -96,20 +101,35 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
         stopRec,
         iterations.putAndCopy(new ComparableLoop(pLoop), iteration),
         iteration > deepestIteration ? iteration : deepestIteration,
-        deepestRecursion);
+        deepestRecursion,
+        currentFunction,
+        returnFromCounter);
   }
 
+
+
   public BoundsState stopIt() {
-    return new BoundsState(true, stopRec, iterations, deepestIteration, deepestRecursion);
+    return new BoundsState(true, stopRec, iterations, deepestIteration, deepestRecursion, currentFunction, returnFromCounter);
   }
 
   public BoundsState stopRec() {
-    return new BoundsState(stopIt, true, iterations, deepestIteration, deepestRecursion);
+    return new BoundsState(stopIt, true, iterations, deepestIteration, deepestRecursion, currentFunction, returnFromCounter);
   }
 
-  public BoundsState setDeepestRecursion(int deepestRecursion) {
-    Preconditions.checkArgument(deepestRecursion >= this.deepestRecursion);
-    return new BoundsState(stopIt, stopRec, iterations, deepestIteration, deepestRecursion);
+  public BoundsState setDeepestRecursion(int pDeepestRecursion) {
+    Preconditions.checkArgument(pDeepestRecursion >= this.deepestRecursion);
+    return new BoundsState(stopIt, stopRec, iterations, deepestIteration, pDeepestRecursion, currentFunction, returnFromCounter);
+  }
+
+  public BoundsState setCurrentFunction(String pCurrentFunction) {
+    if (!Objects.equals(currentFunction, pCurrentFunction)) {
+      return new BoundsState(stopIt, stopRec, iterations, deepestIteration, deepestRecursion, pCurrentFunction, 0);
+    }
+    return this;
+  }
+
+  public BoundsState returnFromFunction() {
+    return new BoundsState(stopIt, stopRec, iterations, deepestIteration, deepestRecursion, currentFunction, returnFromCounter + 1);
   }
 
   public int getIteration(Loop pLoop) {
@@ -123,6 +143,10 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
 
   public int getDeepestRecursion() {
     return deepestRecursion;
+  }
+
+  public int getReturnFromCounter() {
+    return returnFromCounter;
   }
 
   public Set<Loop> getDeepestIterationLoops() {
@@ -173,14 +197,18 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
     }
 
     BoundsState other = (BoundsState)obj;
-    return this.deepestRecursion == other.deepestRecursion
+    return this.stopIt == other.stopIt
+        && this.stopRec == other.stopRec
+        && this.deepestRecursion == other.deepestRecursion
+        && this.returnFromCounter == other.returnFromCounter
+        && Objects.equals(this.currentFunction, other.currentFunction)
         && this.iterations.equals(other.iterations);
   }
 
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(deepestRecursion, iterations);
+      hashCache = Objects.hash(deepestRecursion, returnFromCounter, stopIt, stopRec, currentFunction, iterations);
     }
     return hashCache;
   }
