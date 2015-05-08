@@ -95,7 +95,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Option(secure=true, name="errorPath.filters",
       description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-      + " Only relevant with analysis.stopAfterErrors=false and cpa.arg.errorPath.exportImmediately=true."
+      + " Only relevant with analysis.stopAfterError=false and cpa.arg.errorPath.exportImmediately=true."
       + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<Class<? extends CounterexampleFilter>> cexFilterClasses

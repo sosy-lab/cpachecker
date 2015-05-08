@@ -562,7 +562,7 @@ cpa.arg.errorPath.exportImmediately = false
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 
 # Filter for irrelevant counterexamples to reduce the number of similar
-# counterexamples reported. Only relevant with analysis.stopAfterErrors=false
+# counterexamples reported. Only relevant with analysis.stopAfterError=false
 # and cpa.arg.errorPath.exportImmediately=true. Put the weakest and cheapest
 # filter first, e.g., PathEqualityCounterexampleFilter.
 cpa.arg.errorPath.filters = ImmutableList.<Class<? extends CounterexampleFilter>>of(
