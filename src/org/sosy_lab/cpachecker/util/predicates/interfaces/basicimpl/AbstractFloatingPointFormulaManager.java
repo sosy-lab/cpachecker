@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 /**
  * Similar to the other Abstract*FormulaManager classes in this package,
@@ -59,6 +60,11 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
 
   protected FloatingPointFormula wrap(TFormulaInfo pTerm) {
     return getFormulaCreator().encapsulateFloatingPoint(pTerm);
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(Rational n, FormulaType.FloatingPointType type) {
+    return wrap(makeNumberImpl(n.toString(), type));
   }
 
   @Override

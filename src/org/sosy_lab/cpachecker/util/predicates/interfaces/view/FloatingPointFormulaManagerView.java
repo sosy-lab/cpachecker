@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 
 public class FloatingPointFormulaManagerView
@@ -133,6 +134,11 @@ public class FloatingPointFormulaManagerView
 
   @Override
   public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
+    return manager.makeNumber(pN, type);
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(Rational pN, FormulaType.FloatingPointType type) {
     return manager.makeNumber(pN, type);
   }
 

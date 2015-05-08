@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableList;
 
@@ -203,6 +204,11 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
   @Override
   public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
     return wrap(type, numericFormulaManager.makeNumber(pN));
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(Rational n, FloatingPointType type) {
+    return wrap(type, numericFormulaManager.makeNumber(n));
   }
 
   @Override

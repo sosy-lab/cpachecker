@@ -340,7 +340,7 @@ public class FormulaManagerView {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType,
           new BigInteger(value.toString()));
     } else if (formulaType.isFloatingPointType()) {
-      t = floatingPointFormulaManager.makeNumber(value.toString(), (FormulaType.FloatingPointType)formulaType);
+      t = floatingPointFormulaManager.makeNumber(value, (FormulaType.FloatingPointType)formulaType);
     } else {
       throw new IllegalArgumentException("Not supported interface: " + formula);
     }
