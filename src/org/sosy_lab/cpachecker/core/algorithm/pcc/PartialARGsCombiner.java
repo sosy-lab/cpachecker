@@ -336,7 +336,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     for (int i = 1, j = 0; i < automataStateNames.size(); i++) {
       assert (j < i && j >= 0);
       if (automataStateNames.get(j).equals(automataStateNames.get(i))) {
-        if (j + numRootStates - 1 == i && automatonARGBuilderSupport.considersAutomaton(automataStateNames.get(j))) {
+        if (j + numRootStates - 1 == i ) {
           // automaton states commonly used
           commonAutomataStates.add(automataStateNames.get(j));
         }
@@ -358,7 +358,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       shutdown.shutdownIfNecessary();
 
       name = getName(innerWrapped);
-      if (automataStateNames.contains(name)) {
+      if (commonAutomataStates.contains(name)) {
         assert (initialState.size() == nextId);
 
         stateToPos.put(name, nextId);
