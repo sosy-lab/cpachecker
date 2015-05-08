@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.base.Function;
@@ -57,6 +59,10 @@ public class PolicyCPA
                StatisticsProvider,
                AbstractDomain,
                PrecisionAdjustment {
+  @Option(secure=true,
+      description="Cache formulas produced by path formula manager")
+  private boolean useCachingPathFormulaManager = true;
+
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PolicyIterationStatistics statistics;
@@ -85,6 +91,12 @@ public class PolicyCPA
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
+
+    if (useCachingPathFormulaManager) {
+      pathFormulaManager = new CachingPathFormulaManager(
+          pathFormulaManager
+      );
+    }
 
     TemplateManager templateManager = new TemplateManager(logger, config, cfa);
     FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
