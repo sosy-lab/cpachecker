@@ -162,7 +162,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
         shutdown.shutdownIfNecessary();
 
-        if (!combineARGs(rootNodes, (ForwardingReachedSet) pReachedSet)) {
+        if (!combineARGs(rootNodes, (ForwardingReachedSet) pReachedSet, reached)) {
           logger.log(Level.SEVERE, "Combination of ARGs failed.");
           return status.withSound(false);
         }
@@ -185,16 +185,17 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     return status.withSound(true);
   }
 
-  private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReachedSet)
+  private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReceivedReachedSet,
+      HistoryForwardingReachedSet pForwaredReachedSet)
       throws InterruptedException, CPAException {
-    Pair<Map<String, Integer>, List<AbstractState>> initStates =
+  Pair<Map<String, Integer>, List<AbstractState>> initStates =
       identifyCompositeStateTypesAndTheirInitialInstances(roots);
 
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
 
     try {
-      pReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
+      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
       return false;
@@ -226,8 +227,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       composedState = toVisit.poll().getSecond();
 
       // add composed state to reached set
-      pReachedSet.add(composedState, SingletonPrecision.getInstance());
-      pReachedSet.removeOnlyFromWaitlist(composedState);
+      pReceivedReachedSet.add(composedState, SingletonPrecision.getInstance());
+      pReceivedReachedSet.removeOnlyFromWaitlist(composedState);
 
       // identify possible successor edges
       locPred = AbstractStates.extractLocation(composedState);
@@ -243,7 +244,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           successorsForEdge.add(Lists.newArrayList(Iterables.filter(component.getChildren(), edgeSuccessorIdentifier)));
           // check if stopped because no concrete successors exists, then do not
           if (successorsForEdge.get(successorsForEdge.size() - 1).isEmpty()
-              && noConcreteSuccessorExist(component, succEdge)) {
+              && noConcreteSuccessorExist(component, succEdge, pForwaredReachedSet)) {
             continue nextEdge;
           }
         }
@@ -268,8 +269,15 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private boolean noConcreteSuccessorExist(final ARGState pPredecessor, final CFAEdge pSuccEdge) {
-    // check if analysis stopped exploration due to true state in automaton --> concrete successors may exist
+  private boolean noConcreteSuccessorExist(final ARGState pPredecessor, final CFAEdge pSuccEdge,
+      HistoryForwardingReachedSet pForwaredReachedSet) {
+    // check if analysis stopped exploration due e.g. time limit
+    for(ReachedSet reached :pForwaredReachedSet.getAllReachedSetsUsedAsDelegates()) {
+      if(reached.getWaitlist().contains(pPredecessor)) {
+        return false;
+      }
+    }
+  // check if analysis stopped exploration due to true state in automaton --> concrete successors may exist
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
       if (state instanceof AutomatonState
           && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
