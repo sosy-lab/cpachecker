@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 
 public class NumeralFormulaManagerView
@@ -126,6 +127,11 @@ public class NumeralFormulaManagerView
   @Override
   public ResultFormulaType makeNumber(BigDecimal pNumber) {
     return manager.makeNumber(pNumber);
+  }
+
+  @Override
+  public ResultFormulaType makeNumber(Rational pRational) {
+      return manager.makeNumber(pRational);
   }
 
   @Override
