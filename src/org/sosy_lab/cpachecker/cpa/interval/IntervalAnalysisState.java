@@ -323,7 +323,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
 
     for (Entry<String, Interval> variableName : intervals.entrySet()) {
       if (!otherElement.intervals.containsKey(variableName.getKey())
-          || !otherElement.intervals.get(variableName.getKey()).equals(variableName.hashCode())) {
+          || !otherElement.intervals.get(variableName.getKey()).equals(variableName.getValue())) {
         return false;
       }
     }
