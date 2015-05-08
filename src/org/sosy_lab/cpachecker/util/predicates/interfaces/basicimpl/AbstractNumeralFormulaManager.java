@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -104,6 +105,13 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(String i);
+
+  public ResultFormulaType makeNumber(Rational pRational) {
+    return wrap(makeNumberImpl(pRational));
+  }
+  protected TFormulaInfo makeNumberImpl(Rational pRational) {
+    return makeNumberImpl(pRational.toString());
+  }
 
   @Override
   public ResultFormulaType makeNumber(double pNumber) {

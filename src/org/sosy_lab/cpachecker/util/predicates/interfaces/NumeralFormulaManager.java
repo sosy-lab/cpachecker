@@ -27,6 +27,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.util.rationals.Rational;
+
 /**
  * This interface represents the Numeral-Theory
  *
@@ -56,6 +58,8 @@ public interface NumeralFormulaManager
   public ResultFormulaType makeNumber(BigDecimal number);
 
   public ResultFormulaType makeNumber(String pI);
+
+  public ResultFormulaType makeNumber(Rational pRational);
 
   public ResultFormulaType makeVariable(String pVar);
 

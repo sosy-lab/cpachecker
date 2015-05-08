@@ -193,6 +193,10 @@ public class Rational extends Number implements Comparable<Rational> {
     return num;
   }
 
+  public BigInteger getDen() {
+    return den;
+  }
+
   /**
    * @return -1, 0 or 1, representing the sign of the rational number.
    */

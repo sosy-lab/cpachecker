@@ -29,6 +29,7 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -59,6 +60,13 @@ class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager
   @Override
   protected Term makeNumberImpl(String pI) {
     return getFormulaCreator().getEnv().decimal(pI);
+  }
+
+  @Override
+  protected Term makeNumberImpl(Rational pI) {
+    return getFormulaCreator().getEnv().getTheory().rational(
+        pI.getNum(), pI.getDen()
+    );
   }
 
   @Override
