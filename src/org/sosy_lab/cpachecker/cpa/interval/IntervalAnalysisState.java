@@ -321,8 +321,9 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
       return false;
     }
 
-    for (String variableName : intervals.keySet()) {
-      if (!otherElement.intervals.containsKey(variableName) || !otherElement.intervals.get(variableName).equals(intervals.get(variableName))) {
+    for (Entry<String, Interval> variableName : intervals.entrySet()) {
+      if (!otherElement.intervals.containsKey(variableName.getKey())
+          || !otherElement.intervals.get(variableName.getKey()).equals(variableName.hashCode())) {
         return false;
       }
     }
@@ -440,7 +441,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   }
 
   public Map<String, Interval> getIntervalMapView() {
-    Collections.unmodifiableMap(intervals);
-    return null;
+    return Collections.unmodifiableMap(intervals);
   }
 }
