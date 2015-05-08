@@ -964,6 +964,9 @@ cpa.pointerA.merge = "JOIN"
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# Cache formulas produced by path formula manager
+cpa.policy.useCachingPathFormulaManager = true
+
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
   enum:     [SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
@@ -1656,6 +1659,9 @@ cpa.stator.congruence.trackCongruenceSum = false
 
 # Check whether the policy depends on the initial value
 cpa.stator.policy.checkPolicyInitialCondition = true
+
+# Check target states reachability
+cpa.stator.policy.checkTargetStates = true
 
 # Ignore the template type and encode with a rational variable
 cpa.stator.policy.encodeTemplatesAsRationals = false
