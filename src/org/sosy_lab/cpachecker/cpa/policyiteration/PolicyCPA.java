@@ -129,7 +129,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         solver, logger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
         statistics,
-        formulaSlicingManager,
         formulaLinearizationManager, pCongruenceManager);
     mergeOperator = new MergeJoinOperator(this);
     stopOperator = new StopSepOperator(this);

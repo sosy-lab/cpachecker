@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -67,7 +68,9 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
+  @Ignore
   @Test public void pointer_past_abstraction_true_assert() throws Exception {
+    // todo: requires re-enabling formula slicing.
     check("pointers/pointer_past_abstraction_true_assert.c");
   }
 
@@ -76,7 +79,9 @@ public class PolicyIterationTest {
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
 
+  @Ignore
   @Test public void pointers_loop_true_assert() throws Exception {
+    // todo: requires re-enabling formula slicing.
     check("pointers/pointers_loop_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }

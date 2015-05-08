@@ -31,9 +31,9 @@ public final class PolicyAbstractedState extends PolicyState
   private final ImmutableMap<Template, PolicyBound> abstraction;
 
   /**
-   * State used to generate the abstraction.
+   * Trace used to generate the abstraction.
    */
-  private final PolicyIntermediateState generatingState;
+  private final PathFormula generatingFormula;
 
   /**
    * Pointer to the latest version of the state associated with the given
@@ -50,13 +50,13 @@ public final class PolicyAbstractedState extends PolicyState
 
   private PolicyAbstractedState(CFANode node,
       Map<Template, PolicyBound> pAbstraction,
-      PolicyIntermediateState pGeneratingState,
+      PathFormula pGeneratingState,
       CongruenceState pCongruence,
       int pLocationID,
       PolicyIterationManager pManager) {
     super(node);
     abstraction = ImmutableMap.copyOf(pAbstraction);
-    generatingState = pGeneratingState;
+    generatingFormula = pGeneratingState;
     congruence = pCongruence;
     locationID = pLocationID;
     manager = pManager;
@@ -97,7 +97,7 @@ public final class PolicyAbstractedState extends PolicyState
   public static PolicyAbstractedState of(
       Map<Template, PolicyBound> data,
       CFANode node,
-      PolicyIntermediateState pGeneratingState,
+      PathFormula pGeneratingState,
       CongruenceState pCongruence,
       int pLocationID,
       PolicyIterationManager pManager
@@ -109,7 +109,9 @@ public final class PolicyAbstractedState extends PolicyState
   public PolicyAbstractedState withUpdates(
       Map<Template, PolicyBound> updates,
       Set<Template> unbounded,
-      CongruenceState newCongruence) {
+      CongruenceState newCongruence,
+      PathFormula newFormula
+  ) {
 
     ImmutableMap.Builder<Template, PolicyBound> builder =
         ImmutableMap.builder();
@@ -128,14 +130,24 @@ public final class PolicyAbstractedState extends PolicyState
       }
       builder.put(template, bound);
     }
+
     return new PolicyAbstractedState(
-        getNode(), builder.build(),  generatingState,
+        getNode(), builder.build(),  newFormula,
         newCongruence, locationID, manager
     );
   }
 
+  public PolicyAbstractedState updateInvariant(
+      BooleanFormula newInvariant
+  ) {
+    return new PolicyAbstractedState(
+        getNode(), abstraction, generatingFormula.updateFormula(newInvariant),
+        congruence, locationID, manager
+    );
+  }
+
   public PathFormula getPathFormula() {
-    return generatingState.getPathFormula();
+    return generatingFormula;
   }
 
   /**
@@ -158,7 +170,7 @@ public final class PolicyAbstractedState extends PolicyState
     return PolicyAbstractedState.of(
         ImmutableMap.<Template, PolicyBound>of(), // abstraction
         node, // node
-        initialState, // generating state
+        initialState.getPathFormula(), // generating state
         CongruenceState.empty(),
         -1,
         pManager
@@ -176,7 +188,7 @@ public final class PolicyAbstractedState extends PolicyState
         "(node=%s)%s%n %n %s %n",
         getNode(),
         (new PolicyDotWriter()).toDOTLabel(abstraction),
-        generatingState.getPathFormula()
+        generatingFormula
     );
   }
 
