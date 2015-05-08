@@ -10,8 +10,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -26,12 +26,12 @@ public interface IPolicyIterationManager {
       PolicyState newState
   ) throws CPAException, InterruptedException;
 
-  Collection<PolicyState> getAbstractSuccessors(
+  Collection<? extends PolicyState> getAbstractSuccessors(
       PolicyState state,
       CFAEdge edge
   ) throws CPATransferException, InterruptedException;
 
-  Collection<PolicyState> strengthen(
+  Collection<? extends PolicyState> strengthen(
       PolicyState state,
       List<AbstractState> otherStates,
       @Nullable CFAEdge pCFAEdge
@@ -43,5 +43,9 @@ public interface IPolicyIterationManager {
       PolicyState state,
       Precision precision,
       UnmodifiableReachedSet states,
-      ARGState pArgState) throws CPAException, InterruptedException;
+      AbstractState pArgState) throws CPAException, InterruptedException;
+
+  boolean adjustPrecision();
+
+  void adjustReachedSet(ReachedSet pReachedSet);
 }

@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
@@ -89,6 +90,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true, description="Run naive value determination first, "
       + "switch to namespaced if it fails.")
   private boolean runHopefulValueDetermination = true;
+
+  @Option(secure=true, description="Check target states reachability")
+  private boolean checkTargetStates = true;
 
   @Option(secure=true,
   description="Use the optimized abstraction, which takes into the account the "
@@ -265,8 +269,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         }
       }
 
-      if (hasTargetState  || state.asIntermediate().getPathFormula().getLength()
-              > lengthLimitForSATCheck) {
+      if (checkTargetStates && (hasTargetState  || (lengthLimitForSATCheck > 0 &&
+          state.asIntermediate().getPathFormula().getLength() > lengthLimitForSATCheck
+          ))) {
         if (isUnreachable(state.asIntermediate())) {
           return Collections.emptyList();
         }
@@ -281,7 +286,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Override
   public Optional<PrecisionAdjustmentResult> prec(PolicyState state,
       Precision precision, UnmodifiableReachedSet states,
-      ARGState pArgState)
+      AbstractState pArgState)
         throws CPAException, InterruptedException {
 
     CFANode toNode = state.getNode();
@@ -1027,8 +1032,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return Optional.absent();
     }
 
-    ARGState argState = (ARGState)Iterables.getOnlyElement(pSiblings);
-    CompositeState compositeState = (CompositeState)argState.getWrappedState();
+    CompositeState compositeState;
+    AbstractState sibling = pSiblings.iterator().next();
+    if (sibling instanceof ARGState) {
+      ARGState argState = (ARGState)Iterables.getOnlyElement(pSiblings);
+      compositeState = (CompositeState)argState.getWrappedState();
+    } else {
+      assert sibling instanceof CompositeState;
+      compositeState = (CompositeState) sibling;
+    }
     List<AbstractState> siblings = compositeState.getWrappedStates();
 
     Iterable<AbstractState> policySiblings =
@@ -1036,15 +1048,22 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             siblings,
             Predicates.instanceOf(PolicyAbstractedState.class));
 
-    // We always merge policy states, thus there can be only one or zero
-    // siblings.
     if (!policySiblings.iterator().hasNext()) {
       return Optional.absent();
     } else {
       return Optional.of(
-          (PolicyAbstractedState)Iterables.getOnlyElement(policySiblings)
+          (PolicyAbstractedState)policySiblings.iterator().next()
       );
     }
+  }
 
+  @Override
+  public boolean adjustPrecision() {
+    return templateManager.adjustPrecision();
+  }
+
+  @Override
+  public void adjustReachedSet(ReachedSet pReachedSet) {
+    pReachedSet.clear();
   }
 }

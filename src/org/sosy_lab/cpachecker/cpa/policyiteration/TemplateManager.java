@@ -497,4 +497,26 @@ public class TemplateManager {
         other.getType()
     );
   }
+
+  public boolean adjustPrecision() {
+    if (!generateOctagons) {
+      logger.log(Level.INFO, "Generating octagons");
+      generateOctagons = true;
+      cache.clear();
+      return true;
+    }
+    if (!generateMoreTemplates) {
+      logger.log(Level.INFO, "Generating more templates");
+      generateMoreTemplates = true;
+      cache.clear();
+      return true;
+    }
+    if (!generateCube) {
+      logger.log(Level.INFO, "Generating Cube");
+      generateCube = true;
+      cache.clear();
+      return true;
+    }
+    return false;
+  }
 }
