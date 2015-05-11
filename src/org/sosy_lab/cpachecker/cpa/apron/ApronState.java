@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -553,7 +554,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pPfmgr) {
     BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
     BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
     Tcons0[] constraints = apronState.toTcons(apronManager.getManager());
