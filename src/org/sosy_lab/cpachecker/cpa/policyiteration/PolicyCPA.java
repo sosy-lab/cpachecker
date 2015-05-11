@@ -71,6 +71,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   private final StopOperator stopOperator;
   private final PolicyIterationStatistics statistics;
   private final IPolicyIterationManager policyIterationManager;
+  private final LogManager logger;
+  private final Configuration config;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -84,6 +86,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       CFA cfa
   ) throws InvalidConfigurationException {
     config.inject(this);
+
+    this.logger = logger;
+    this.config = config;
 
     FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(
         config, logger, shutdownNotifier);
@@ -143,8 +148,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   public AbstractState join(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     return policyIterationManager.join(
-        (PolicyState) state1,
-        (PolicyState) state2
+        (PolicyState)state1,
+        (PolicyState)state2
     );
   }
 
@@ -234,6 +239,14 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   @Override
   public void adjustReachedSet(ReachedSet pReachedSet) {
     policyIterationManager.adjustReachedSet(pReachedSet);
+  }
+
+  public LogManager getLogger() {
+    return logger;
+  }
+
+  public Configuration getConfig() {
+    return config;
   }
 }
 
