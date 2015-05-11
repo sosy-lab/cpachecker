@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.collect.Iterables;
 
@@ -95,10 +94,6 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     MutableARGPath feasiblePrefixPath = new MutableARGPath();
     List<T> feasiblePrefixTerms = new ArrayList<>(path.size());
 
-    StatTimer extraction = new StatTimer("extraction");
-    StatTimer interpolation = new StatTimer("interpolation");
-
-    extraction.start();
     try (@SuppressWarnings("unchecked")
       InterpolatingProverEnvironmentWithAssumptions<T> prover =
       (InterpolatingProverEnvironmentWithAssumptions<T>)solver.newProverEnvironmentWithInterpolation()) {
@@ -116,9 +111,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge && prover.isUnsat()) {
             logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
 
-            interpolation.start();
             List<BooleanFormula> interpolantSequence = extractInterpolantSequence(feasiblePrefixTerms, prover);
-            interpolation.stop();
 
             // add infeasible prefix
             InfeasiblePrefix infeasiblePrefix = buildInfeasiblePrefix(path, feasiblePrefixPath, interpolantSequence, solver.getFormulaManager());
@@ -148,7 +141,6 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         iterator.advance();
       }
     }
-    extraction.stop();
 
     return prefixes;
   }
