@@ -384,4 +384,11 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
   public int getMaxLoopIterations() {
     return this.maxLoopIterations;
   }
+
+  public void incLoopIterationsBeforeAbstraction() {
+    loopIterationsBeforeAbstraction++;
+    this.transferRelation.setDelegate(new LoopstackTransferRelation(
+        loopIterationsBeforeAbstraction,
+        maxLoopIterations, loopStructure));
+  }
 }
