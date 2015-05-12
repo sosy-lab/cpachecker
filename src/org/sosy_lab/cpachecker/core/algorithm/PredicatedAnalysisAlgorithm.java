@@ -48,12 +48,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
@@ -117,6 +119,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private boolean repeatedFailure = false;
   private PredicatePrecision oldPrecision = null;
   private Constructor<?extends AbstractState> locConstructor = null;
+  private final TransferRelation enablerTransfer;
 
   //@Option(secure=true, description="") // TODO
   private boolean allowLazyRefinement = true;
@@ -155,6 +158,8 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         "Predicated Analysis requires ARG as top CPA and Composite CPA as child. "
             + "Furthermore, it needs Location CPA and DFA Enabling CPA to work.");
     }
+
+    enablerTransfer = CPAs.retrieveCPA(cpa, DFAEnablerCPA.cpaClass).getTransferRelation();
 
     if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
       throw new InvalidConfigurationException("Currently only support forward analyses.");
@@ -404,8 +409,11 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     case INTERVAL:
     case OCTAGON:
     case VALUE:
-      // TODO
-      return null;
+      Collection<? extends AbstractState> nextFakeStateResult = enablerTransfer
+              .getAbstractSuccessorsForEdge(pFakeEnablerState, SingletonPrecision.getInstance(), pAssumeEdge);
+      assert(nextFakeStateResult != null && nextFakeStateResult.size()>0);
+      // use first element as one possible reason for failure path
+      return nextFakeStateResult.iterator().next();
     default:
       assert (false); // case should never happen
     }
