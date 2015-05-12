@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -54,10 +55,10 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
   protected List<String> getListOfIndependentRequirements(ValueAnalysisState pRequirement, SSAMap pIndices) {
     List<String> list = new ArrayList<>();
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
-      Integer integerValue = null;
-//      if () { // TODO
-//        throw new Exception(""); // TODO welche?
-//      }
+      Value integerValue = pRequirement.getConstantsMapView().get(memLoc);
+      if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
+//        throw new Exception("The value of " + memLoc + " is not an integer"); // TODO welche?
+      }
       list.add("(= " + getVarWithIndex(memLoc.getFunctionName(), pIndices) + " " + integerValue + ")");
     }
     return list;

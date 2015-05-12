@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
@@ -37,23 +38,30 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public abstract class CartesianRequirementsTranslator<T extends AbstractState> extends AbstractRequirementsTranslator<T> {
 
-  private final Configuration config;
-  private final ShutdownNotifier shutdownNotifier;
-  private final LogManager logger;
-  protected final FormulaManagerView fmgr;
+  protected FormulaManagerView fmgr; // TODO: wird der wirklich benötigt?
 
   public CartesianRequirementsTranslator(final Class<T> pAbstractStateClass, final Configuration config,
       final ShutdownNotifier shutdownNotifier, final LogManager log) {
     super(pAbstractStateClass);
-    this.config = config;
-    this.shutdownNotifier = shutdownNotifier;
-    logger = log;
     fmgr = GlobalInfo.getInstance().getFormulaManagerView();
+    if (fmgr==null) {
+      // TODO: wirft Exception!
+//      fmgr = Solver.create(config, log, shutdownNotifier).getFormulaManager();
+    }
   }
 
   private List<String> writeVarDefinition(List<String> vars, SSAMap ssaMap) {
-    // TODO
-    return null;
+    List<String> list = new ArrayList<>();
+    for (int i=0; i<vars.size(); i++) {
+      String var = vars.get(i);
+      String def = "(declare-fun " + vars.get(i);
+      if (ssaMap.containsVariable(var)) {
+        def += "@" + ssaMap.getIndex(var); // TODO: @1 oder @index?
+      }
+      def += "() Int)";
+      list.add(def);
+    }
+    return list;
   }
 
   protected abstract List<String> getVarsInRequirements(T requirement);
@@ -72,7 +80,7 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
       secReturn = computeConjunction(listOfIndependentRequirements);
     }
 
-    secReturn = "(define_fun req Bool() " + secReturn + ")";
+    secReturn = "(define-fun req () Bool " + secReturn + ")";
     return Pair.of(firstReturn, secReturn);
   }
 

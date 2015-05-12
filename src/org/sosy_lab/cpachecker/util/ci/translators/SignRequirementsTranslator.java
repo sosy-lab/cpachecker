@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+import com.google.common.base.Preconditions;
+
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<SignState> {
 
@@ -60,6 +62,8 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
 
   public String getRequirement(String var, SIGN sign) {
     StringBuilder sb = new StringBuilder();
+    Preconditions.checkArgument(sign == SIGN.EMPTY);
+    Preconditions.checkArgument(sign == SIGN.ALL);
 
     if (sign.covers(SIGN.PLUS)) {
       sb.append("(> ");

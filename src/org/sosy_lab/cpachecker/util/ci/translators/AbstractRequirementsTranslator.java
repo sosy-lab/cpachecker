@@ -57,8 +57,8 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
   protected abstract Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices)
       throws CPAException;
 
-  private Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertRequirements(
-      final AbstractState pre, final Collection<AbstractState> post, final SSAMap postIndices,
+  public Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertRequirements(
+      final AbstractState pre, final Collection<? extends AbstractState> post, final SSAMap postIndices,
       final int index) throws CPAException {
 
     Pair<List<String>, String> formulaPre = convertToFormula(extractRequirement(pre), SSAMap.emptySSAMap());

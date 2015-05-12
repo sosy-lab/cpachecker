@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 public class PredicateRequirementsTranslator extends AbstractRequirementsTranslator<PredicateAbstractState>{
 
   private final FormulaManagerView fmgr;
-  private static int counter;
+  private int counter;
 
   public PredicateRequirementsTranslator() {
     super(PredicateAbstractState.class);
@@ -69,12 +69,11 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
     String element = pair.getFirst();
     if (element.indexOf("(", 8) == -1) {
       secReturn = element.substring(9,15);
-      secReturn = "(define_fun .defci" + (counter++) + " Bool() (" + secReturn + "))";
+      secReturn = "(define-fun .defci" + (counter++) + " Bool() (" + secReturn + "))";
     } else {
       list.remove(element);
       String name = element.substring(8,12);
-      secReturn = "(define_fun " + name + ")";
-//        secReturn = "(declare_ " + name + ")"; // TODO welche Variante?
+      secReturn = "(declare-fun " + name + ")";
     }
 
     return Pair.of(list, secReturn);
