@@ -51,6 +51,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.*;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.FullConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.LocalizedConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 
@@ -100,7 +102,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     transferRelation =
         new ConstraintsTransferRelation(solver, pCfa.getMachineModel(), logger, pConfig, pShutdownNotifier);
     precisionAdjustment = new ConstraintsPrecisionAdjustment();
-    precision = ConstraintsPrecision.getFullPrecision();
+    precision = FullConstraintsPrecision.getInstance();
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -174,8 +176,8 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return precision;
   }
 
-  public void injectRefinablePrecision() {
-    precision = ConstraintsPrecision.getEmptyPrecision();
+  public void injectRefinablePrecision(final ConstraintsPrecision pNewPrecision) {
+    precision = pNewPrecision;
   }
 
   @Override

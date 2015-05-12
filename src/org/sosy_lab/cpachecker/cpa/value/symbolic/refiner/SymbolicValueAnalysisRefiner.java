@@ -25,16 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,9 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -56,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.LocalizedConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner;
@@ -65,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicIn
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.GenericRefiner;
@@ -73,11 +63,7 @@ import org.sosy_lab.cpachecker.util.refiner.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refiner.PathExtractor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 /**
  * Refiner for value analysis using symbolic values.
@@ -108,7 +94,7 @@ public class SymbolicValueAnalysisRefiner
     }
 
     valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision();
+    constraintsCpa.injectRefinablePrecision(LocalizedConstraintsPrecision.getEmptyPrecision());
 
     final LogManager logger = valueAnalysisCpa.getLogger();
     final CFA cfa = valueAnalysisCpa.getCFA();
@@ -226,17 +212,17 @@ public class SymbolicValueAnalysisRefiner
 
     for (ARGState r : roots) {
       Multimap<CFANode, MemoryLocation> valuePrecInc = pInterpolants.extractPrecisionIncrement(r);
-      ConstraintsPrecisionIncrement constrPrecInc = getConstraintsIncrement(r, pInterpolants);
+      ConstraintsPrecision.Increment constrPrecInc = getConstraintsIncrement(r, pInterpolants);
 
       precUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
     }
   }
 
-  private ConstraintsPrecisionIncrement getConstraintsIncrement(
+  private ConstraintsPrecision.Increment getConstraintsIncrement(
       final ARGState pRefinementRoot,
       final InterpolationTree<ForgettingCompositeState, SymbolicInterpolant> pTree
   ) {
-    ConstraintsPrecisionIncrement increment = new ConstraintsPrecisionIncrement();
+    ConstraintsPrecision.Increment.Builder increment = ConstraintsPrecision.Increment.builder();
 
     Deque<ARGState> todo =
         new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));
@@ -249,7 +235,7 @@ public class SymbolicValueAnalysisRefiner
 
         if (itp != null && !itp.isTrivial()) {
           for (Constraint c : itp.getConstraints()) {
-            increment.put(AbstractStates.extractLocation(currentState), c);
+            increment.locallyTracked(AbstractStates.extractLocation(currentState), c);
           }
         }
       }
@@ -258,7 +244,7 @@ public class SymbolicValueAnalysisRefiner
       todo.addAll(successors);
     }
 
-    return increment;
+    return increment.build();
   }
 
   @Override

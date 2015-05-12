@@ -23,19 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.refiner;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Objects;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -43,152 +36,101 @@ import com.google.common.collect.Multimap;
 /**
  * Precision for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
  */
-public class ConstraintsPrecision implements Precision {
-
-  private final static ConstraintsPrecision EMPTY = new ConstraintsPrecision();
-
-  private Multimap<CFANode, Constraint> trackedConstraints;
-
-  public static ConstraintsPrecision getFullPrecision() {
-    return new FullPrecision();
-  }
-
-  public static ConstraintsPrecision getEmptyPrecision() {
-    return EMPTY;
-  }
-
-  /**
-   * Creates a new <code>ConstraintsPrecision</code> with the given constraints as precision.
-   */
-  public ConstraintsPrecision(final Multimap<CFANode, Constraint> pConstraints) {
-    checkNotNull(pConstraints);
-    trackedConstraints = pConstraints;
-  }
-
-  private ConstraintsPrecision() {
-    trackedConstraints = HashMultimap.create();
-  }
+public interface ConstraintsPrecision extends Precision {
 
   /**
    * Returns whether the given <code>Constraint</code> is tracked by this precision.
    */
-  public boolean isTracked(final Constraint pConstraint, final CFANode pLocation) {
-    for (Constraint c : trackedConstraints.get(pLocation)) {
-      if (SymbolicValues.representSameCCodeExpression(c, pConstraint)) {
-        return true;
+  boolean isTracked(Constraint pConstraint, CFANode pLocation);
+
+  ConstraintsPrecision join(ConstraintsPrecision pOther);
+  
+  ConstraintsPrecision withIncrement(Increment pIncrement);
+
+  class Increment {
+    private Multimap<CFANode, Constraint> trackedLocally = HashMultimap.create();
+    private Multimap<String, Constraint> trackedInFunction = HashMultimap.create();;
+    private Set<Constraint> trackedGlobally = new HashSet<>();
+
+    private Increment(
+        final Multimap<CFANode, Constraint> pTrackedLocally,
+        final Multimap<String, Constraint> pTrackedInFunction,
+        final Set<Constraint> pTrackedGlobally
+    ) {
+      trackedLocally = pTrackedLocally;
+      trackedInFunction = pTrackedInFunction;
+      trackedGlobally = pTrackedGlobally;
+    }
+
+    public Set<Constraint> getTrackedGlobally() {
+      return trackedGlobally;
+    }
+
+    public Multimap<String, Constraint> getTrackedInFunction() {
+      return trackedInFunction;
+    }
+
+    public Multimap<CFANode, Constraint> getTrackedLocally() {
+      return trackedLocally;
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static class Builder {
+      private Multimap<CFANode, Constraint> trackedLocally = HashMultimap.create();
+      private Multimap<String, Constraint> trackedInFunction = HashMultimap.create();;
+      private Set<Constraint> trackedGlobally = new HashSet<>();
+
+      private Builder() {
+        // DO NOTHING
       }
-    }
 
-    return false;
-  }
-
-  /**
-   * Joins this precision with the given one.
-   * The join of two precisions is their union.
-   *
-   * @param pOther the precision to join with this precision
-   * @return the join of both precisions
-   */
-  public ConstraintsPrecision join(final ConstraintsPrecision pOther) {
-    Multimap<CFANode, Constraint> joinedSet = HashMultimap.create(trackedConstraints);
-
-    addNewConstraints(joinedSet, pOther.trackedConstraints);
-
-    return new ConstraintsPrecision(joinedSet);
-  }
-
-  private void addNewConstraints(
-      Multimap<CFANode, Constraint> pMapToAddTo,
-      Multimap<CFANode, Constraint> pNewConstraints
-  ) {
-    for (Entry<CFANode, Constraint> entry : pNewConstraints.entries()) {
-      CFANode loc = entry.getKey();
-      Constraint constraint = entry.getValue();
-
-      if (!constraintWithSameMeaningExists(loc, constraint, pMapToAddTo)) {
-        pMapToAddTo.put(loc, constraint);
+      public Builder locallyTracked(
+          final CFANode pNode,
+          final Constraint pConstraint
+      ) {
+        trackedLocally.put(pNode, pConstraint);
+        return this;
       }
-    }
-  }
 
-  private boolean constraintWithSameMeaningExists(
-      final CFANode pLoc,
-      final Constraint pConstraint,
-      final Multimap<CFANode, Constraint> pTrackedConstraints
-  ) {
-
-    if (pTrackedConstraints.containsKey(pLoc)) {
-      final Collection<Constraint> constraintsOnLocation = pTrackedConstraints.get(pLoc);
-
-      for (Constraint c : constraintsOnLocation) {
-        if (SymbolicValues.representSameCCodeExpression(c, pConstraint)) {
-          return true;
-        }
+      public Builder locallyTracked(
+          final Multimap<CFANode, Constraint> pTrackedLocally
+      ) {
+        trackedLocally.putAll(pTrackedLocally);
+        return this;
       }
-    }
 
-    return false;
-  }
-
-  public ConstraintsPrecision withIncrement(final ConstraintsPrecisionIncrement pIncrement) {
-    if (trackedConstraints.entries().containsAll(pIncrement.entries())) {
-      return this;
-
-    } else {
-      HashMultimap<CFANode, Constraint> newPrecision = HashMultimap.create(trackedConstraints);
-      addNewConstraints(newPrecision, pIncrement);
-
-      return new ConstraintsPrecision(newPrecision);
-    }
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    ConstraintsPrecision that = (ConstraintsPrecision) o;
-
-    return Objects.equals(trackedConstraints, that.trackedConstraints);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(trackedConstraints);
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder("ConstraintsPrecision[");
-    List<CFANode> nodes = new ArrayList<>(trackedConstraints.keySet());
-    Collections.sort(nodes); // we always want the same node order
-
-    if (!nodes.isEmpty()) {
-      sb.append("\n");
-      for (CFANode n : nodes) {
-        sb.append("\t").append(n).append(" -> ");
-
-        // unfortunately, constraints aren't comparable, so we won't have a deterministic order.
-        for (Constraint c : trackedConstraints.get(n)) {
-          sb.append(c.getRepresentation() + ", ");
-        }
-
-        sb.append("\n");
+      public Builder functionWiseTracked(
+          final String pFunctionName,
+          final Constraint pConstraint
+      ) {
+        trackedInFunction.put(pFunctionName, pConstraint);
+        return this;
       }
-    }
 
-    sb.append("] -> size: ").append(trackedConstraints.size());
-    return sb.toString();
-  }
+      public Builder functionWiseTracked(
+          final Multimap<String, Constraint> pTrackedFunctionWise
+      ) {
+        trackedInFunction.putAll(pTrackedFunctionWise);
+        return this;
+      }
 
-  private static class FullPrecision extends ConstraintsPrecision {
+      public Builder globallyTracked(final Constraint pConstraint) {
+        trackedGlobally.add(pConstraint);
+        return this;
+      }
 
-    @Override
-    public boolean isTracked(final Constraint pConstraint, final CFANode pNode) {
-      return true;
+      public Builder globallyTracked(final Set<Constraint> pTrackedGlobally) {
+        trackedGlobally.addAll(pTrackedGlobally);
+        return this;
+      }
+
+      public Increment build() {
+        return new Increment(trackedLocally, trackedInFunction, trackedGlobally);
+      }
+
     }
   }
 }
