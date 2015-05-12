@@ -55,6 +55,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
+import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -64,14 +66,21 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreePredicatedAnalysisOperator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -111,6 +120,24 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   //@Option(secure=true, description="") // TODO
   private boolean allowLazyRefinement = true;
+  private Enabler DFAEnablerCPA = Enabler.PREDICATE;
+
+  enum Enabler {
+    APRON(ApronState.class, ApronCPA.class),
+    INTERVAL(IntervalAnalysisState.class, IntervalAnalysisCPA.class),
+    OCTAGON(OctagonState.class, OctagonCPA.class),
+    PREDICATE(PredicateAbstractState.class, PredicateCPA.class),
+    VALUE(ValueAnalysisState.class, ValueAnalysisCPA.class);
+
+    private Class<? extends AbstractState> stateClass;
+    private Class<? extends ConfigurableProgramAnalysis> cpaClass;
+
+    private Enabler(Class<? extends AbstractState> pStateClassOfEnabler,
+        Class<? extends ConfigurableProgramAnalysis> pCPAClassOfEnabler) {
+      stateClass = pStateClassOfEnabler;
+      cpaClass = pCPAClassOfEnabler;
+    }
+  }
 
 
   public PredicatedAnalysisAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
@@ -124,9 +151,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
     if (!(cpa instanceof ARGCPA)
         || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
-        || CPAs.retrieveCPA(cpa, PredicateCPA.class) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
+        || CPAs.retrieveCPA(cpa, DFAEnablerCPA.cpaClass) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
         "Predicated Analysis requires ARG as top CPA and Composite CPA as child. "
-            + "Furthermore, it needs Location CPA and Predicate CPA to work.");
+            + "Furthermore, it needs Location CPA and DFA Enabling CPA to work.");
     }
 
     if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
@@ -191,43 +218,12 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       logger.log(Level.FINEST, "Prepare for refinement by CEGAR algorithm");
 
       // get predicate state
-      PredicateAbstractState errorPred = AbstractStates.extractStateByType(predecessor, PredicateAbstractState.class);
+      AbstractState errorEnablerState = getEnablerState(predecessor);
       CompositeState comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
 
       if (!e.isMergeViolationCause()) {
-        if (errorPred.isAbstractionState()) {
-          // we must undo the abstraction because we do not want to separate paths at this location but exclude this that
-          // thus we require a new abstraction for the previous abstraction state
-
-          PredicateAbstractState prevErrorState =
-              AbstractStates.extractStateByType(predecessor.getParents().iterator().next(),
-                  PredicateAbstractState.class);
-
-          errorPred = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(errorPred.getAbstractionFormula()
-              .getBlockFormula(), prevErrorState);
-
-          // build new composite state
-          ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
-          for (AbstractState state : comp.getWrappedStates()) {
-            if (!(state instanceof PredicateAbstractState)) {
-                wrappedStates.add(state);
-            } else {
-              wrappedStates.add(errorPred);
-            }
-          }
-
-          comp = new CompositeState(wrappedStates.build());
-
-          assert (predecessor.getChildren().size()==0);
-          assert (predecessor.getParents().size()==1);
-          assert (predecessor.getCoveredByThis().size()==0);
-
-          ARGState newPred = new ARGState(comp, predecessor.getParents().iterator().next());
-          predecessor.removeFromARG();
-          pReachedSet.add(newPred, pReachedSet.getPrecision(predecessor));
-          pReachedSet.remove(predecessor);
-          predecessor = newPred;
-        }
+        predecessor = prepareForCEGARAfterPathExplorationError(predecessor, comp, errorEnablerState, pReachedSet);
+        comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
       }
 
       // check if it is the same failure (CFA path) as last time if started from scratch after refinement
@@ -265,7 +261,8 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
       }
 
-      // create fake states, one per fake edge, note that states are the same except for predicate state and location state
+      // create fake states, one per fake edge, note that states are the same except for enabler state (may be different)
+      // and location state (will be different)
       if (locConstructor == null) {
         try {
           locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
@@ -275,42 +272,17 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         }
       }
 
-      PathFormulaManager pfm = predCPA.getPathFormulaManager();
-      PredicateAbstractionManager pam = predCPA.getPredicateManager();
-      PathFormula pf;
-      PredicateAbstractState fakePred = errorPred;
+
+      AbstractState fakeEnablerState = errorEnablerState;
       int i=1;
       for(CAssumeEdge assumeEdge:fakeEdgesFromLastRun) {
-        errorPred = fakePred;
-
-        // build predicate state, use error condition stored in fake edge
-        pf = fakePred.getPathFormula();
-
-
-        // create path to fake node
-        pf = pfm.makeAnd(pf, assumeEdge);
-
-        // if last edge on faked path, build abstraction which is needed for refinement, set to true, we do not know better
-        if (i == fakeEdgesFromLastRun.size()) {
-          AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
-          pf = pfm.makeEmptyPathFormula(pf);
-
-          PersistentMap<CFANode, Integer> abstractionLocations = errorPred.getAbstractionLocationsOnPath();
-          Integer newLocInstance = firstNonNull(abstractionLocations.get(assumeEdge.getSuccessor()), 0) + 1;
-          abstractionLocations = abstractionLocations.putAndCopy(assumeEdge.getSuccessor(), newLocInstance);
-
-          // create fake abstraction predicate state
-          fakePred = PredicateAbstractState.mkAbstractionState(pf, abf,
-                  abstractionLocations);
-        } else {
-          // create fake non abstraction predicate state
-          fakePred = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pf, fakePred);
-        }
+        errorEnablerState = fakeEnablerState;
+        fakeEnablerState = buildFakeEnablerState(fakeEnablerState, assumeEdge, i == fakeEdgesFromLastRun.size());
 
         // build composite state
         ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
         for (AbstractState state : comp.getWrappedStates()) {
-          if (state != errorPred) {
+          if (state != errorEnablerState) {
             if (state instanceof LocationState) {
               try {
                 wrappedStates.add(locConstructor.newInstance(assumeEdge.getSuccessor(),true));
@@ -322,7 +294,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
               wrappedStates.add(state);
             }
           } else {
-            wrappedStates.add(fakePred);
+            wrappedStates.add(fakeEnablerState);
           }
         }
 
@@ -345,6 +317,99 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     }
 
     return status;
+  }
+
+  private AbstractState getEnablerState(final ARGState pPredecessor) {
+    return AbstractStates.extractStateByType(pPredecessor, DFAEnablerCPA.stateClass);
+  }
+
+  private ARGState prepareForCEGARAfterPathExplorationError(final ARGState pPredecessor, final CompositeState pComp,
+      final AbstractState pErrorEnablerState, final ReachedSet pReachedSet) {
+   if(DFAEnablerCPA == Enabler.PREDICATE){
+      PredicateAbstractState predError = (PredicateAbstractState) pErrorEnablerState;
+      if (predError.isAbstractionState()) {
+        // we must undo the abstraction because we do not want to separate paths at this location but exclude this that
+        // thus we require a new abstraction for the previous abstraction state
+
+        PredicateAbstractState prevErrorState =
+            AbstractStates.extractStateByType(pPredecessor.getParents().iterator().next(),
+                PredicateAbstractState.class);
+
+        PredicateAbstractState errorEnablerStateReplace =
+            PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(predError.getAbstractionFormula()
+                .getBlockFormula(), prevErrorState);
+
+        // build new composite state
+        ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
+        for (AbstractState state : pComp.getWrappedStates()) {
+          if (!(state instanceof PredicateAbstractState)) {
+            wrappedStates.add(state);
+          } else {
+            wrappedStates.add(errorEnablerStateReplace);
+          }
+        }
+
+        CompositeState newComp = new CompositeState(wrappedStates.build());
+
+        assert (pPredecessor.getChildren().size() == 0);
+        assert (pPredecessor.getParents().size() == 1);
+        assert (pPredecessor.getCoveredByThis().size() == 0);
+
+        ARGState newPred = new ARGState(newComp, pPredecessor.getParents().iterator().next());
+        pPredecessor.removeFromARG();
+        pReachedSet.add(newPred, pReachedSet.getPrecision(pPredecessor));
+        pReachedSet.remove(pPredecessor);
+        return newPred;
+      }
+    }
+
+    // default
+    return pPredecessor;
+  }
+
+  private AbstractState buildFakeEnablerState(final AbstractState pFakeEnablerState,
+      final CAssumeEdge pAssumeEdge, final boolean pLastEdge) throws CPATransferException, InterruptedException {
+
+    switch (DFAEnablerCPA) {
+    case PREDICATE:
+      PathFormulaManager pfm = predCPA.getPathFormulaManager();
+      PredicateAbstractionManager pam = predCPA.getPredicateManager();
+      PredicateAbstractState predFakeState = (PredicateAbstractState) pFakeEnablerState;
+      // build predicate state, use error condition stored in fake edge
+      PathFormula pf = predFakeState.getPathFormula();
+
+
+      // create path to fake node
+      pf = pfm.makeAnd(pf, pAssumeEdge);
+
+      // if last edge on faked path, build abstraction which is needed for refinement, set to true, we do not know better
+      if (pLastEdge) {
+        AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
+        pf = pfm.makeEmptyPathFormula(pf);
+
+        // TODO test if works fine with fakeEnablerState instead of errorEnablerState
+        PersistentMap<CFANode, Integer> abstractionLocations = predFakeState.getAbstractionLocationsOnPath();
+        Integer newLocInstance = firstNonNull(abstractionLocations.get(pAssumeEdge.getSuccessor()), 0) + 1;
+        abstractionLocations = abstractionLocations.putAndCopy(pAssumeEdge.getSuccessor(), newLocInstance);
+
+        // create fake abstraction predicate state
+        predFakeState = PredicateAbstractState.mkAbstractionState(pf, abf,
+            abstractionLocations);
+      } else {
+        // create fake non abstraction predicate state
+        predFakeState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pf, predFakeState);
+      }
+      return predFakeState;
+    case APRON:
+    case INTERVAL:
+    case OCTAGON:
+    case VALUE:
+      // TODO
+      return null;
+    default:
+      assert (false); // case should never happen
+    }
+    return pFakeEnablerState;
   }
 
   private CFANode createFakeEdge(final String pRawAssumeExpr, final CExpression pAssumeExpr, final CFANode pPredecessor) {
