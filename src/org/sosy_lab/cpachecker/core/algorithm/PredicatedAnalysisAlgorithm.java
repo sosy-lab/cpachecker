@@ -93,7 +93,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-
+//@Options(prefix="")// TODO
 public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvider{
 
   private final Algorithm algorithm;
@@ -108,6 +108,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private boolean repeatedFailure = false;
   private PredicatePrecision oldPrecision = null;
   private Constructor<?extends AbstractState> locConstructor = null;
+
+  //@Option(secure=true, description="") // TODO
+  private boolean allowLazyRefinement = true;
 
 
   public PredicatedAnalysisAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
@@ -150,8 +153,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     }
     fakeEdgesFromLastRun.clear();
 
-    // activate if cannot use lazy refinement, possibly needed later if further extended TODO use config option
-    // restartFromScratchAfterRefinement(pReachedSet);
+    if (!allowLazyRefinement) {
+      restartFromScratchAfterRefinement(pReachedSet);
+    }
 
     // run algorithm
     logger.log(Level.FINEST, "Start analysis.");
@@ -226,10 +230,12 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         }
       }
 
-      // check if it is the same failure (CFA path) as last time if started from scratch after refinement TODO enable if restract from scratch
-      /* ARGPath currentFailurePath = ARGUtils.getOnePathTo(predecessor);
-      repeatedFailure = pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
-      pathToFailure = currentFailurePath;*/
+      // check if it is the same failure (CFA path) as last time if started from scratch after refinement
+      if (!allowLazyRefinement) {
+        ARGPath currentFailurePath = ARGUtils.getOnePathTo(predecessor);
+        repeatedFailure = pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
+        pathToFailure = currentFailurePath;
+      }
 
       // create fake edges
       /*try {
@@ -238,6 +244,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       } catch (IllegalArgumentException e1) {
         // do nothing we require that the edge does not exist
       }*/
+
 
       // create error conditions stored on fake edges
       CFANode predNode = node;
@@ -350,7 +357,6 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     return successor;
   }
 
-  @SuppressWarnings("unused")
   private void restartFromScratchAfterRefinement(final ReachedSet pReachedSet) throws RefinementFailedException, InterruptedException {
     // first build initial precision for current run
     logger.log(Level.FINEST, "Construct precision for current run");
@@ -480,7 +486,6 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     return lessPrecise == null && morePrecise != null;
   }
 
-  @SuppressWarnings("unused")
   private boolean isSamePathInCFA(ARGPath path1, ARGPath path2) {
     if (path1.size() != path2.size()) {
       return false;
