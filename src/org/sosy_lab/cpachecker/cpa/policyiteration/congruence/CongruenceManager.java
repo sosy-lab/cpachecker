@@ -163,10 +163,10 @@ public class CongruenceManager {
   }
 
   private boolean shouldUseTemplate(Template template) {
-    return
-        template.getType().getType().isIntegerType()
-            && ((template.getKind() == Kind.UPPER_BOUND)
-            || (trackCongruenceSum && template.getKind() == Kind.SUM));
+    return template.getType().getType().isIntegerType() && (
+        (template.getKind() == Kind.UPPER_BOUND)
+        || (trackCongruenceSum && template.getKind() == Kind.SUM)
+    );
   }
 
   private Formula makeBv(BitvectorFormulaManager bvfmgr, Formula other, int value) {
