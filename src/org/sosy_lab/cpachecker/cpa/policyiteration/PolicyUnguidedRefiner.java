@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import com.google.common.collect.Iterables;
 
 /**
- * Start with unguided precision: increase precision at each refiner call.
+ * Unguided precision refiner: increase the number of generated templates
+ * at each refinement stage.
  */
 @Options(prefix="cpa.stator.policy")
 public class PolicyUnguidedRefiner implements Refiner {
@@ -69,16 +70,16 @@ public class PolicyUnguidedRefiner implements Refiner {
       if (refinementsPerformed == unrollingRefinementThreshold
             && loopstackCPA != null) {
         loopstackCPA.incLoopIterationsBeforeAbstraction();
+        logger.log(Level.INFO, "LPI Refinement: increasing unrolling bound.");
       }
 
       // Keep performing refinement.
       forceRestart(pReached);
-      logger.log(Level.INFO, "LPI: Additional refinement requested.");
       refinementsPerformed++;
       return true;
     } else {
+
       // No more tricks up our sleeves, do not clear the reached set.
-      logger.log(Level.INFO, "LPI: No more refinement possible.");
       return false;
     }
   }
