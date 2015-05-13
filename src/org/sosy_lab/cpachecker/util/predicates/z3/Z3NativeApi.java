@@ -616,7 +616,30 @@ public final class Z3NativeApi {
   // MODELS
   public static native void model_inc_ref(long context, long model);
   public static native void model_dec_ref(long context, long model);
-  public static native boolean model_eval(long context, long model, long a1, boolean model_completion, PointerToLong a2);
+
+
+  /**
+   * Evaluate the AST node {@code t} in the given model.
+   * @return {@code true} if succeeded, and store the result in {@code v}.
+   *
+   * If {@code model_completion} is {@code true}, then Z3 will assign an
+   * interpretation for any constant or function that does
+   * not have an interpretation in {@code m}.
+   * These constants and functions were essentially don't cares.
+   *
+   * The evaluation may fail for the following reasons:
+   *
+   * - {@code t} contains a quantifier.
+   *
+   * - the model {@code m} is partial, that is, it doesn't have a complete
+   * interpretation for uninterpreted functions.
+   * That is, the option <code>MODEL_PARTIAL=true</code> was used.
+   *
+   * - {@code t} is type incorrect.
+   */
+  public static native boolean model_eval(long context, long model, long a1,
+      boolean model_completion, PointerToLong a2);
+
   public static native long model_get_const_interp(long context, long model, long funcDecl);
   public static native long model_get_func_interp(long context, long model, long funcDecl);
   public static native int model_get_num_consts(long context, long model);
