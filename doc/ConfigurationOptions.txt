@@ -1669,16 +1669,15 @@ cpa.stator.policy.encodeTemplatesAsRationals = false
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = Rational.ONE
 
-# Perform formula slicing after abstractions to propagate the pointer
-# information
-cpa.stator.policy.formulaSlicing = true
-
 # Generate cubic constraints: templates +/- x +/- y +/- z for every
 # combination (x, y, z)
 cpa.stator.policy.generateCube = false
 
 # Generate templates from assert statements
 cpa.stator.policy.generateFromAsserts = true
+
+# Generate templates from all program statements
+cpa.stator.policy.generateFromStatements = true
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
@@ -1696,11 +1695,15 @@ cpa.stator.policy.generateUpperBound = true
 # checked for reachability. Set to 0 to disable.
 cpa.stator.policy.lengthLimitForSATCheck = 300
 
+# Remove UFs and ITEs from policies. NOTE: Currently seems to decrease
+# performance.
+cpa.stator.policy.linearizePolicy = false
+
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
 
 # Run simple congruence analysis
-cpa.stator.policy.runCongruence = false
+cpa.stator.policy.runCongruence = true
 
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.stator.policy.runHopefulValueDetermination = true
@@ -1710,6 +1713,9 @@ cpa.stator.policy.shortCircuitSyntactic = true
 
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true
+
+# Number of refinements after which the unrolling depth is increased
+cpa.stator.policy.unrollingRefinementThreshold = 2
 
 # Use the optimized abstraction, which takes into the account the previously
 # obtained bound at the location.
