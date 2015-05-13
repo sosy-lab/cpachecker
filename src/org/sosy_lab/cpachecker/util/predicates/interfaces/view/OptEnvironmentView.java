@@ -99,4 +99,12 @@ public class OptEnvironmentView implements OptEnvironment {
   public void close() {
     delegate.close();
   }
+
+  /**
+   * Note: the return value is not wrapped as we expect it to be a simple
+   * expression.
+   */
+  public Formula evaluate(Formula f) {
+    return  delegate.evaluate(wrappingHandler.unwrap(f));
+  }
 }

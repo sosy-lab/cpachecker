@@ -101,6 +101,11 @@ public class LoggingOptEnvironment implements OptEnvironment {
   }
 
   @Override
+  public Formula evaluate(Formula f) {
+    return wrapped.evaluate(f);
+  }
+
+  @Override
   public void close() {
     wrapped.close();
     logger.log(Level.FINER, "closed");

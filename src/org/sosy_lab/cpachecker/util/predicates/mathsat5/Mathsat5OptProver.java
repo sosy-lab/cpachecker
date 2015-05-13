@@ -109,4 +109,9 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
     msat_set_model(curEnv, objectives.get(noObjectives-1));
     return super.getModel();
   }
+
+  @Override
+  public Formula evaluate(Formula f) {
+    throw new UnsupportedOperationException("Mathsat solver does not support evaluation");
+  }
 }

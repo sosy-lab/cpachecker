@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 
 class Z3OptProver implements OptEnvironment {
@@ -126,6 +127,24 @@ class Z3OptProver implements OptEnvironment {
   public Model getModel() throws SolverException {
     long z3model = optimize_get_model(z3context, z3optContext);
     return Z3Model.parseZ3Model(mgr, z3context, z3model);
+  }
+
+  public Formula evaluate(Formula expr) {
+    Z3Formula input = (Z3Formula) expr;
+    long z3model = optimize_get_model(z3context, z3optContext);
+    model_inc_ref(z3context, z3model);
+
+    PointerToLong out = new PointerToLong();
+    boolean status = model_eval(z3context, z3model, input.getFormulaInfo(),
+        true, out);
+    Verify.verify(status, "Error during model evaluation");
+
+    Formula outValue = mgr.getFormulaCreator().encapsulate(
+        mgr.getFormulaType(expr), out.value
+    );
+
+    model_dec_ref(z3context, z3model);
+    return outValue;
   }
 
   void setParam(String key, String value) {

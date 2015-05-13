@@ -89,9 +89,15 @@ public interface OptEnvironment extends AutoCloseable {
   Model getModel() throws SolverException;
 
   /**
+   * Evaluate the formula with the previously generated model.
+   * Assumes that the previous call was {@link #getModel}.
+   */
+  Formula evaluate(Formula f);
+
+  /**
    * Status of the optimization problem.
    */
-  public enum OptStatus {
+  enum OptStatus {
     OPT, // All good, the solution was found (may be unbounded).
     UNSAT,  // SMT problem is unsatisfiable.
     UNDEF // The result is unknown.
