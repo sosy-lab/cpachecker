@@ -49,6 +49,25 @@ public class ValueDeterminationManager {
   }
 
   /**
+   * Cheaper version of value determination.
+   * May under-approximate the true result (the resulting constraint system is
+   * strictly stronger due to sharing variables).
+   */
+  public Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>> valueDeterminationFormulaCheap(
+      PolicyAbstractedState stateWithUpdates,
+      final Map<Template, PolicyBound> updated
+  ) {
+    return valueDeterminationFormula(stateWithUpdates, updated, false);
+  }
+
+  public Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>> valueDeterminationFormula(
+      PolicyAbstractedState stateWithUpdates,
+      final Map<Template, PolicyBound> updated
+  ) {
+    return valueDeterminationFormula(stateWithUpdates, updated, true);
+  }
+
+  /**
    * Convert a value determination problem into a single formula.
    *
    * @param stateWithUpdates Newly created state
@@ -61,7 +80,7 @@ public class ValueDeterminationManager {
    * @return Global constraint for value determination and types of the abstract
    * domain elements.
    */
-  public Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>> valueDeterminationFormula(
+  private Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>> valueDeterminationFormula(
       PolicyAbstractedState stateWithUpdates,
       final Map<Template, PolicyBound> updated,
       boolean useUniquePrefix

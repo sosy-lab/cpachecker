@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -212,8 +211,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode node, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
+  public PolicyPrecision getInitialPrecision(CFANode node,
+      StateSpacePartition pPartition) {
+    return PolicyPrecision.empty();
   }
 
   @Override

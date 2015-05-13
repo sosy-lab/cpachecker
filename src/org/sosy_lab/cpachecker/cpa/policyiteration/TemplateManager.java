@@ -134,6 +134,9 @@ public class TemplateManager {
     logger.log(Level.FINE, "Generated templates", extractedFromAssertTemplates);
   }
 
+  public PolicyPrecision precisionForNode(CFANode node) {
+    return new PolicyPrecision(templatesForNode(node));
+  }
 
   public Set<Template> templatesForNode(CFANode node) {
     if (cache.containsKey(node)) {
