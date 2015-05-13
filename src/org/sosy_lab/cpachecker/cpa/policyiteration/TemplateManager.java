@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -327,6 +328,7 @@ public class TemplateManager {
       PathFormula contextFormula) {
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
+    int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
 
     for (Entry<CIdExpression, Rational> entry : template.linearExpression) {
       Rational coeff = entry.getValue();
@@ -334,8 +336,9 @@ public class TemplateManager {
 
       final Formula item;
       try {
-        item = pfmgr.expressionToFormula(
-            contextFormula, declaration, dummyEdge);
+        item = normalizeLength(pfmgr.expressionToFormula(
+            contextFormula, declaration, dummyEdge),
+            maxBitvectorSize, fmgr);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
@@ -624,6 +627,39 @@ public class TemplateManager {
     } else {
       return Optional.absent();
     }
+  }
+
+  private Formula normalizeLength(Formula f, int maxBitvectorSize,
+      FormulaManagerView fmgr) {
+    if (!(f instanceof BitvectorFormula)) return f;
+    BitvectorFormula bv = (BitvectorFormula) f;
+    return fmgr.getBitvectorFormulaManager().extend(
+        bv,
+        Math.max(0,
+            maxBitvectorSize - fmgr.getBitvectorFormulaManager().getLength(bv)),
+        true);
+  }
+
+  private int getBitvectorSize(Template t, PathFormulaManager pfmgr,
+      PathFormula contextFormula, FormulaManagerView fmgr) {
+    int length = 0;
+
+    // Figure out the maximum bitvector size.
+    for (Entry<CIdExpression, Rational> entry : t.linearExpression) {
+      Formula item;
+      try {
+        item = pfmgr.expressionToFormula(contextFormula, entry.getKey(),
+            dummyEdge);
+      } catch (UnrecognizedCCodeException e) {
+        throw new UnsupportedOperationException();
+      }
+      if (!(item instanceof BitvectorFormula)) continue;
+      BitvectorFormula b = (BitvectorFormula) item;
+      length = Math.max(
+          fmgr.getBitvectorFormulaManager().getLength(b),
+          length);
+    }
+    return length;
   }
 
   private Template useCoeff(
