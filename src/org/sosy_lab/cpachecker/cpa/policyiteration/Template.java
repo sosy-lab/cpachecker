@@ -156,6 +156,10 @@ public class Template {
     return b.toString();
   }
 
+  public int size() {
+    return linearExpression.size();
+  }
+
   @Override
   public String toString() {
     return linearExpression.toString();

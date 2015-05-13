@@ -16,18 +16,25 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -58,6 +65,10 @@ public class TemplateManager {
   @Option(secure=true, description="Generate templates from assert statements")
   private boolean generateFromAsserts = true;
 
+  @Option(secure=true, description="Generate templates from all program "
+      + "statements")
+  private boolean generateFromStatements = true;
+
   @Option(secure=true,
       description="Ignore the template type and encode with a rational variable")
   private boolean encodeTemplatesAsRationals = false;
@@ -80,7 +91,8 @@ public class TemplateManager {
    */
   private final CFAEdge dummyEdge;
 
-  private final ImmutableSet<Template> generatedTemplates;
+  private final ImmutableSet<Template> extractedFromAssertTemplates;
+  private final ImmutableSet<Template> extractedTemplates;
 
   // Temporary variables created by CPA checker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
@@ -106,11 +118,19 @@ public class TemplateManager {
         FileLocation.DUMMY,
         new CFANode("dummy-1"), new CFANode("dummy-2"), "Dummy Edge");
     if (generateFromAsserts) {
-      generatedTemplates = ImmutableSet.copyOf(templatesFromAsserts());
+      extractedFromAssertTemplates = ImmutableSet.copyOf(templatesFromAsserts());
     } else {
-      generatedTemplates = ImmutableSet.of();
+      extractedFromAssertTemplates = ImmutableSet.of();
     }
-    logger.log(Level.FINE, "Generated templates", generatedTemplates);
+    logger.log(Level.FINE, "Generated from assert templates",
+        extractedFromAssertTemplates);
+
+    if (generateFromStatements) {
+      extractedTemplates = ImmutableSet.copyOf(extractTemplates());
+    } else {
+      extractedTemplates = ImmutableSet.of();
+    }
+    logger.log(Level.FINE, "Generated templates", extractedFromAssertTemplates);
   }
 
 
@@ -123,6 +143,8 @@ public class TemplateManager {
     LiveVariables liveVariables = cfa.getLiveVariables().get();
     List<ASimpleDeclaration> liveVars = ImmutableList.copyOf(
         liveVariables.getLiveVariablesForNode(node));
+    out.addAll(extractedTemplatesForNode(node));
+
     for (ASimpleDeclaration s : liveVars) {
 
       if (!shouldProcessVariable(s)) {
@@ -245,7 +267,7 @@ public class TemplateManager {
       }
     }
 
-    out.addAll(generatedTemplates);
+    out.addAll(extractedFromAssertTemplates);
 
     cache.putAll(node, out.build());
     return cache.get(node);
@@ -423,6 +445,120 @@ public class TemplateManager {
     return templates;
   }
 
+  private Set<Template> extractedTemplatesForNode(CFANode node) {
+    LiveVariables liveVariables = cfa.getLiveVariables().get();
+    Set<Template> out = new HashSet<>();
+    for (Template t : extractedTemplates) {
+      boolean allAlive = true;
+      for (Entry<CIdExpression, Rational> e : t.linearExpression) {
+        CIdExpression id = e.getKey();
+        if (!liveVariables.isVariableLive(id.getDeclaration(), node)) {
+          allAlive = false;
+          break;
+        }
+      }
+
+      if (allAlive) {
+        out.add(t);
+      }
+    }
+    return out;
+  }
+
+  private Set<Template> extractTemplates() {
+    Set<Template> out = new HashSet<>();
+    for (CFANode node : cfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
+        for (Template t : extractTemplatesFromEdge(edge)) {
+          if (t.size() > 1) {
+            out.add(t);
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  private Set<Template> extractTemplatesFromEdge(CFAEdge edge) {
+    Set<Template> out = new HashSet<>();
+    switch (edge.getEdgeType()) {
+      case ReturnStatementEdge:
+        CReturnStatementEdge e = (CReturnStatementEdge) edge;
+        if (e.getExpression().isPresent()) {
+          out.addAll(expressionToTemplate(e.getExpression().get()));
+        }
+        break;
+      case FunctionCallEdge:
+        CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
+        for (CExpression arg : callEdge.getArguments()) {
+          out.addAll(expressionToTemplate(arg));
+        }
+        break;
+      case AssumeEdge:
+        CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+        out.addAll(expressionToTemplate(assumeEdge.getExpression()));
+        break;
+      case StatementEdge:
+        out.addAll(extractTemplatesFromStatementEdge((CStatementEdge) edge));
+        break;
+      case MultiEdge:
+        MultiEdge multiEdge = (MultiEdge) edge;
+        for (CFAEdge child : multiEdge.getEdges()) {
+          out.addAll(extractTemplatesFromEdge(child));
+        }
+        break;
+    }
+    return out;
+  }
+
+  private Set<Template> extractTemplatesFromStatementEdge(CStatementEdge edge) {
+    Set<Template> out = new HashSet<>();
+    CStatement statement = edge.getStatement();
+    if (statement instanceof CExpressionStatement) {
+      out.addAll(expressionToTemplate(
+          ((CExpressionStatement)statement).getExpression()));
+    } else if (statement instanceof CExpressionAssignmentStatement) {
+      CExpressionAssignmentStatement assignment =
+          (CExpressionAssignmentStatement)statement;
+      CLeftHandSide lhs =
+          assignment.getLeftHandSide();
+      if (lhs instanceof CIdExpression) {
+        CIdExpression id = (CIdExpression)lhs;
+        out.addAll(expressionToTemplate(assignment.getRightHandSide()));
+        if (!shouldProcessVariable(id.getDeclaration())) {
+          return out;
+        }
+
+        Template tLhs = Template.of(
+            LinearExpression.ofVariable(id),
+            (CSimpleType)id.getExpressionType()
+        );
+        Optional<Template> x =
+            recExpressionToTemplate(assignment.getRightHandSide());
+        if (x.isPresent()) {
+          Template tX = x.get();
+          out.add(
+              Template.of(tLhs.linearExpression.sub(tX.linearExpression),
+                  tLhs.getType())
+          );
+        }
+      }
+    }
+    return out;
+
+  }
+
+  private Set<Template> expressionToTemplate(CExpression expression) {
+    HashSet<Template> out = new HashSet<>(2);
+    Optional<Template> t = recExpressionToTemplate(expression);
+    if (!t.isPresent()) {
+      return out;
+    }
+    out.add(t.get());
+    out.add(Template.of(t.get().linearExpression.negate(), t.get().getType()));
+    return out;
+  }
+
   private Optional<Template> recExpressionToTemplate(CExpression expression) {
     if (expression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression)expression;
@@ -500,19 +636,19 @@ public class TemplateManager {
 
   public boolean adjustPrecision() {
     if (!generateOctagons) {
-      logger.log(Level.INFO, "Generating octagons");
+      logger.log(Level.INFO, "LPI Refinement: Generating octagons");
       generateOctagons = true;
       cache.clear();
       return true;
     }
     if (!generateMoreTemplates) {
-      logger.log(Level.INFO, "Generating more templates");
+      logger.log(Level.INFO, "LPI Refinement: Generating more templates");
       generateMoreTemplates = true;
       cache.clear();
       return true;
     }
     if (!generateCube) {
-      logger.log(Level.INFO, "Generating Cube");
+      logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
       generateCube = true;
       cache.clear();
       return true;
