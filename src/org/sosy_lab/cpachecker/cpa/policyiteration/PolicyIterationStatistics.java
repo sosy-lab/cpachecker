@@ -26,11 +26,11 @@ public class PolicyIterationStatistics implements Statistics {
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
   private final Timer checkSATTimer = new Timer();
-  final Timer slicingTimer = new Timer();
   final Timer optTimer = new Timer();
   final Timer checkIndependenceTimer = new Timer();
   final Timer simplifyTimer = new Timer();
   final Timer congruenceTimer = new Timer();
+  final Timer comparisonTimer = new Timer();
 
   public void startCheckSATTimer() {
     checkSATTimer.start();
@@ -94,9 +94,8 @@ public class PolicyIterationStatistics implements Statistics {
     out.printf("Number of check-SAT calls sent: %d%n",
         checkSATTimer.getNumberOfIntervals());
 
-    if (slicingTimer.getNumberOfIntervals() > 0) {
-      printTimer(out, slicingTimer, "checking inductiveness in formula slicing");
-    }
+    printTimer(out, comparisonTimer, "comparing abstract states");
+
     printTimer(out, checkIndependenceTimer, "checking independence");
     printTimer(out, simplifyTimer, "simplifying formulas");
     printTimer(out, congruenceTimer, "computing congruence");

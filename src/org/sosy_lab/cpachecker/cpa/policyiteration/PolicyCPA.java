@@ -162,7 +162,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   @Override
   public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    return true;
+    return policyIterationManager.isLessOrEqual(
+        (PolicyState) state1, (PolicyState) state2
+    );
   }
 
   @Override

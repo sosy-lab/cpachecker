@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -1083,5 +1084,49 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Override
   public void adjustReachedSet(ReachedSet pReachedSet) {
     pReachedSet.clear();
+  }
+
+  @Override
+  public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {
+    try {
+      statistics.comparisonTimer.start();
+      return isLessOrEqual0(state1, state2);
+    } finally {
+      statistics.comparisonTimer.stop();
+    }
+  }
+
+  private boolean isLessOrEqual0(PolicyState state1, PolicyState state2) {
+    Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
+
+    if (state1.isAbstract()) {
+      PolicyAbstractedState aState1 = state1.asAbstracted();
+      PolicyAbstractedState aState2 = state2.asAbstracted();
+
+      for (Entry<Template, PolicyBound> e : aState2) {
+        Template t = e.getKey();
+        PolicyBound bound = e.getValue();
+
+        Optional<PolicyBound> otherBound = aState1.getBound(t);
+        if (otherBound.isPresent()) {
+          PolicyBound smallerBound = otherBound.get();
+          if (smallerBound.getBound().compareTo(bound.getBound()) >= 1) {
+            Verify.verify(false,
+                "In the current config '<=' check should always return 'true'");
+            return false;
+          }
+        }
+      }
+      return true;
+    } else {
+      PolicyIntermediateState iState1 = state1.asIntermediate();
+      PolicyIntermediateState iState2 = state2.asIntermediate();
+      boolean out = iState1.getPathFormula().getFormula().equals(
+          iState2.getPathFormula().getFormula()
+      ) || iState1.isMergedInto(iState2);
+      Verify.verify(out,
+          "In the current config '<=' check should always return 'true'");
+      return out;
+    }
   }
 }

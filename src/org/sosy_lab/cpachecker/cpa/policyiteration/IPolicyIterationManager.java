@@ -48,4 +48,6 @@ public interface IPolicyIterationManager {
   boolean adjustPrecision();
 
   void adjustReachedSet(ReachedSet pReachedSet);
+
+  boolean isLessOrEqual(PolicyState pState1, PolicyState pState2);
 }
