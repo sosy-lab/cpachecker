@@ -118,7 +118,12 @@ public class PolicyIterationTest {
 
   @Test public void valdet_prefixing_true_assert() throws Exception {
     check("valdet_prefixing_true_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
+
+            // Enabling two options below make non-prefixing variation of
+            // val.det. work.
+            "cpa.stator.policy.shortCircuitSyntactic", "false",
+            "cpa.stator.policy.checkPolicyInitialCondition", "false"));
   }
 
   @Test public void array_false_assert() throws Exception {
@@ -154,11 +159,16 @@ public class PolicyIterationTest {
   }
 
   private void check(String filename, Map<String, String> extra) throws Exception {
+    String fullPath;
+    if (filename.contains("test/programs/benchmarks")) {
+      fullPath = filename;
+    } else {
+      fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
+    }
+
     TestResults results = CPATestRunner.runAndLogToSTDOUT(
-        getProperties(extra),
-        Paths.get(TEST_DIR_PATH, filename).toString()
-    );
-    if (filename.contains("_true_assert")) {
+        getProperties(extra), fullPath);
+    if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
       results.assertIsSafe();
     } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
       results.assertIsUnsafe();
@@ -173,6 +183,7 @@ public class PolicyIterationTest {
             Joiner.on(", ").join(ImmutableList.<String>builder()
                 .add("cpa.location.LocationCPA")
                 .add("cpa.callstack.CallstackCPA")
+                .add("cpa.functionpointer.FunctionPointerCPA")
                 .add("cpa.loopstack.LoopstackCPA")
                 .add("cpa.policyiteration.PolicyCPA")
                 .build()
@@ -187,6 +198,8 @@ public class PolicyIterationTest {
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
         .put("analysis.traversal.order", "bfs")
+        .put("analysis.traversal.useCallstack", "true")
+        .put("analysis.traversal.useReversePostorder", "true")
 
         .put("log.consoleLevel", "INFO")
     .build());
