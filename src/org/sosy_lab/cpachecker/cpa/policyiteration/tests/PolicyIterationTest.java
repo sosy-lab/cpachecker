@@ -127,10 +127,7 @@ public class PolicyIterationTest {
   }
 
   @Test public void array_false_assert() throws Exception {
-    check("array_false_assert.c",
-        ImmutableMap.of(
-            "cpa.stator.policy.formulaSlicing", "true"
-        ));
+    check("array_false_assert.c");
   }
 
   @Test public void classcast_fail_true_assert() throws Exception {
