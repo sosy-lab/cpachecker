@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
+import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -43,7 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -473,8 +473,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else {
       logger.log(Level.FINE, "Running val. det.");
 
-      Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>>
-          constraints;
+      ValueDeterminationConstraints constraints;
 
       Optional<PolicyAbstractedState> element;
       if (runHopefulValueDetermination) {
@@ -485,8 +484,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
                 stateWithUpdates,
                 oldState,
                 updated,
-                constraints.getFirst(),
-                constraints.getSecond(),
+                constraints,
                 newInvariant);
       } else {
         element = Optional.absent();
@@ -499,8 +497,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             stateWithUpdates,
             oldState,
             updated,
-            constraints.getFirst(),
-            constraints.getSecond(),
+            constraints,
             newInvariant).get();
       } else {
         out = element.get();
@@ -517,8 +514,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyAbstractedState stateWithUpdates,
       PolicyAbstractedState prevState,
       Map<Template, PolicyBound> updated,
-      Map<String, FormulaType<?>> types,
-      Set<BooleanFormula> pValueDeterminationConstraints,
+      ValueDeterminationConstraints valDetConstraints,
       BooleanFormula newInvariant
   ) throws InterruptedException, CPATransferException {
     logger.log(Level.INFO, "Value determination at node",
@@ -533,15 +529,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      for (BooleanFormula constraint : pValueDeterminationConstraints) {
+      for (BooleanFormula constraint : valDetConstraints.constraints) {
         optEnvironment.addConstraint(constraint);
       }
 
       Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
         Template template = policyValue.getKey();
-        String varName = vdfmgr.absDomainVarName(stateWithUpdates, template);
-        Formula objective = fmgr.makeVariable(types.get(varName), varName);
+        Formula objective = valDetConstraints.outVars.get(template,
+            stateWithUpdates.getLocationID());
         int handle = optEnvironment.maximize(objective);
         objectiveHandles.put(template, handle);
       }
