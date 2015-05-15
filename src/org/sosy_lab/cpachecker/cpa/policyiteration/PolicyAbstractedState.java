@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -14,6 +13,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -31,9 +32,15 @@ public final class PolicyAbstractedState extends PolicyState
   private final ImmutableMap<Template, PolicyBound> abstraction;
 
   /**
-   * Trace used to generate the abstraction.
+   * Expected starting {@link PointerTargetSet} and {@link SSAMap}.
    */
-  private final PathFormula generatingFormula;
+  private final SSAMap ssaMap;
+  private final PointerTargetSet pointerTargetSet;
+
+  /**
+   * Uninstantiated predicate associated with a state.
+   */
+  private final BooleanFormula predicate;
 
   /**
    * Pointer to the latest version of the state associated with the given
@@ -50,13 +57,15 @@ public final class PolicyAbstractedState extends PolicyState
 
   private PolicyAbstractedState(CFANode node,
       Map<Template, PolicyBound> pAbstraction,
-      PathFormula pGeneratingState,
       CongruenceState pCongruence,
       int pLocationID,
-      PolicyIterationManager pManager) {
+      PolicyIterationManager pManager, SSAMap pSsaMap,
+      PointerTargetSet pPointerTargetSet, BooleanFormula pPredicate) {
     super(node);
+    ssaMap = pSsaMap;
+    pointerTargetSet = pPointerTargetSet;
+    predicate = pPredicate;
     abstraction = ImmutableMap.copyOf(pAbstraction);
-    generatingFormula = pGeneratingState;
     congruence = pCongruence;
     locationID = pLocationID;
     manager = pManager;
@@ -97,57 +106,52 @@ public final class PolicyAbstractedState extends PolicyState
   public static PolicyAbstractedState of(
       Map<Template, PolicyBound> data,
       CFANode node,
-      PathFormula pGeneratingState,
       CongruenceState pCongruence,
       int pLocationID,
-      PolicyIterationManager pManager
+      PolicyIterationManager pManager,
+      SSAMap pSSAMap,
+      PointerTargetSet pPointerTargetSet,
+      BooleanFormula pPredicate
   ) {
-    return new PolicyAbstractedState(node, data, pGeneratingState,
-        pCongruence, pLocationID, pManager);
+    return new PolicyAbstractedState(node, data,
+        pCongruence, pLocationID, pManager, pSSAMap,
+        pPointerTargetSet, pPredicate);
+  }
+
+  public PolicyAbstractedState updateAbstraction(
+      Map<Template, PolicyBound> newAbstraction) {
+    return new PolicyAbstractedState(getNode(),
+        newAbstraction, congruence, locationID, manager, ssaMap,
+        pointerTargetSet, predicate);
   }
 
   public PolicyAbstractedState withUpdates(
-      Map<Template, PolicyBound> updates,
-      Set<Template> unbounded,
+      Map<Template, PolicyBound> newAbstraction,
       CongruenceState newCongruence,
-      PathFormula newFormula
+      BooleanFormula newPredicate
   ) {
-
-    ImmutableMap.Builder<Template, PolicyBound> builder =
-        ImmutableMap.builder();
-
-    // We only iterate over the existing templates, because if the value was
-    // unbounded at some point, it stays unbounded.
-    for (Entry<Template, PolicyBound> entry : abstraction.entrySet()) {
-      Template template = entry.getKey();
-      PolicyBound bound = entry.getValue();
-
-      if (unbounded.contains(template)) {
-        continue;
-      }
-      if (updates.containsKey(template)) {
-        bound = updates.get(template);
-      }
-      builder.put(template, bound);
-    }
-
-    return new PolicyAbstractedState(
-        getNode(), builder.build(),  newFormula,
-        newCongruence, locationID, manager
-    );
+    return new PolicyAbstractedState(getNode(),
+        newAbstraction, newCongruence, locationID, manager, ssaMap,
+        pointerTargetSet, newPredicate);
   }
 
-  public PolicyAbstractedState updateInvariant(
+  public PolicyAbstractedState updatePredicate(
       BooleanFormula newInvariant
   ) {
     return new PolicyAbstractedState(
-        getNode(), abstraction, generatingFormula.updateFormula(newInvariant),
-        congruence, locationID, manager
-    );
+        getNode(), abstraction, congruence, locationID, manager,
+        ssaMap, pointerTargetSet, newInvariant);
   }
 
-  public PathFormula getPathFormula() {
-    return generatingFormula;
+  public BooleanFormula getPredicate() {
+    return predicate;
+  }
+
+  public PathFormula getPathFormula(FormulaManagerView fmgr) {
+    return new PathFormula(
+        fmgr.instantiate(predicate, ssaMap),
+        ssaMap, pointerTargetSet, 1
+    );
   }
 
   /**
@@ -162,18 +166,19 @@ public final class PolicyAbstractedState extends PolicyState
    * @return Empty abstracted state associated with {@code node}.
    */
   public static PolicyAbstractedState empty(CFANode node,
-      PathFormula initial, PolicyIterationManager pManager) {
-    PolicyIntermediateState initialState = PolicyIntermediateState.of(
-        node,
-        initial,  ImmutableMap.<Integer, PolicyAbstractedState>of()
-    );
+      SSAMap pSSAMap,
+      PointerTargetSet pPointerTargetSet,
+      BooleanFormula pPredicate,
+      PolicyIterationManager pManager) {
     return PolicyAbstractedState.of(
         ImmutableMap.<Template, PolicyBound>of(), // abstraction
         node, // node
-        initialState.getPathFormula(), // generating state
         CongruenceState.empty(),
         -1,
-        pManager
+        pManager,
+        pSSAMap,
+        pPointerTargetSet,
+        pPredicate
     );
   }
 
@@ -188,7 +193,7 @@ public final class PolicyAbstractedState extends PolicyState
         "(node=%s)%s%n %n %s %n",
         getNode(),
         (new PolicyDotWriter()).toDOTLabel(abstraction),
-        generatingFormula
+        predicate
     );
   }
 

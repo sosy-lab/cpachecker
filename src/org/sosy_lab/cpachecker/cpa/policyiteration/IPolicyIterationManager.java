@@ -23,8 +23,8 @@ import com.google.common.base.Optional;
 public interface IPolicyIterationManager {
   PolicyState join(
       PolicyState oldState,
-      PolicyState newState
-  ) throws CPAException, InterruptedException;
+      PolicyState newState,
+      PolicyPrecision pPrecision) throws CPAException, InterruptedException;
 
   Collection<? extends PolicyState> getAbstractSuccessors(
       PolicyState state,
@@ -41,7 +41,7 @@ public interface IPolicyIterationManager {
 
   Optional<PrecisionAdjustmentResult> prec(
       PolicyState state,
-      Precision precision,
+      PolicyPrecision precision,
       UnmodifiableReachedSet states,
       AbstractState pArgState) throws CPAException, InterruptedException;
 

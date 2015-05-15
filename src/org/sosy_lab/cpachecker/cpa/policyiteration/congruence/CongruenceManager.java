@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.stator.congruence")
@@ -73,6 +74,21 @@ public class CongruenceManager {
     return new CongruenceState(abstraction);
   }
 
+  public boolean isLessOrEqual(CongruenceState a, CongruenceState b) {
+    for (Entry<Template, Congruence> e : b) {
+      Template template = e.getKey();
+      Congruence congruence = e.getValue();
+      Optional<Congruence> smallerCongruence = a.get(template);
+      if (smallerCongruence.isPresent()) {
+        if (smallerCongruence.get() != congruence) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+    return true;
+  }
 
   public CongruenceState performAbstraction(
       CFANode node,

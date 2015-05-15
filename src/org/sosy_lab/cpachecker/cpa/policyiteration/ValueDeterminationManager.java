@@ -187,7 +187,7 @@ public class ValueDeterminationManager {
           }
         };
     PathFormula policyFormula = bound.getFormula();
-    PathFormula startPathFormula = bound.getStartPathFormula();
+    PathFormula startPathFormula = bound.getStartPathFormula(fmgr);
 
     final Formula policyOutTemplate = fmgr.renameFreeVariablesAndUFs(
         templateManager.toFormula(pfmgr, fmgr, template, policyFormula), addPrefix);
