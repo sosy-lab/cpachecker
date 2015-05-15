@@ -70,7 +70,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     private String merge = "AGREE";
 
     @Option(secure=true,
-    description="inform Composite CPA if it is run in a predicated analysis because then it must"
+    description="inform Composite CPA if it is run in a predicated analysis because then it must "
       + "behave differntly during merge.")
     private boolean inPredicatedAnalysis = false;
   }

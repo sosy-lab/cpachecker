@@ -84,7 +84,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Option(secure=true,
-  description="inform ARG CPA if it is run in a predicated analysis because then it must"
+  description="inform ARG CPA if it is run in a predicated analysis because then it must "
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;
 
