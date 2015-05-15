@@ -89,7 +89,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private boolean inPredicatedAnalysis = false;
 
   @Option(secure=true,
-      description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node"
+      description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node "
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInPredicatedAnalysis = false;
 
