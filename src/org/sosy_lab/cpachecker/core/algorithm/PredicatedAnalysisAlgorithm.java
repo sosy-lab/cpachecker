@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -117,7 +118,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private AbstractState initialWrappedState = null;
   private ARGPath pathToFailure = null;
   private boolean repeatedFailure = false;
-  private PredicatePrecision oldPrecision = null;
+  private Precision oldEnablerPrecision = null;
   private Constructor<?extends AbstractState> locConstructor = null;
   private final TransferRelation enablerTransfer;
 
@@ -150,13 +151,19 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     cfa = pCfa;
     this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
-    predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+
 
     if (!(cpa instanceof ARGCPA)
         || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
         || CPAs.retrieveCPA(cpa, DFAEnablerCPA.cpaClass) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
         "Predicated Analysis requires ARG as top CPA and Composite CPA as child. "
             + "Furthermore, it needs Location CPA and DFA Enabling CPA to work.");
+    }
+
+    if (DFAEnablerCPA == Enabler.PREDICATE) {
+      predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+    } else {
+      predCPA = null;
     }
 
     enablerTransfer = CPAs.retrieveCPA(cpa, DFAEnablerCPA.cpaClass).getTransferRelation();
@@ -435,7 +442,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     logger.log(Level.FINEST, "Construct precision for current run");
     Precision precision =
         buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
-    oldPrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+    oldEnablerPrecision = getCurrentEnablerPrecision(precision);
 
     // clear reached set for current run
     pReachedSet.clear();
@@ -453,6 +460,32 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       return initialPrecision;
     }
 
+    Precision newPrec;
+    if (DFAEnablerCPA == Enabler.PREDICATE) {
+      newPrec = builtNewPredicatePrecision(initialPrecision, precisions);
+    } else {
+      newPrec = builtNewVariableTrackingPrecision(initialPrecision, precisions);
+    }
+
+
+    try {
+      // assure that refinement fails if same path is encountered twice and precision not refined on that path
+      if (repeatedFailure
+          && ((DFAEnablerCPA == Enabler.PREDICATE
+                  && noNewPredicates((PredicatePrecision) oldEnablerPrecision, (PredicatePrecision) newPrec))
+             || (DFAEnablerCPA != Enabler.PREDICATE && noNewVariablesTracked(
+                (VariableTrackingPrecision) oldEnablerPrecision, (VariableTrackingPrecision) newPrec)))) {
+        throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
+      }
+    } catch (SolverException e) {
+      throw new RefinementFailedException(Reason.InterpolationFailed, pathToFailure, e);
+    }
+
+    return replaceEnablerPrecision(initialPrecision, newPrec);
+  }
+
+  private PredicatePrecision builtNewPredicatePrecision(final Precision initialPrecision,
+      final Collection<Precision> pReachedSetPrecisions) throws InterruptedException {
     Multimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancPreds = HashMultimap.create();
     Multimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create();
     Multimap<String, AbstractionPredicate> functionPreds = HashMultimap.create();
@@ -470,7 +503,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     seenPrecisions.add(predPrec);
 
     // add further precision information obtained during refinement
-    for (Precision nextPrec : precisions) {
+    for (Precision nextPrec : pReachedSetPrecisions) {
       predPrec = Precisions.extractPrecisionByType(nextPrec, PredicatePrecision.class);
 
       shutdownNotifier.shutdownIfNecessary();
@@ -485,21 +518,45 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     }
 
     // construct new predicate precision
-    PredicatePrecision newPredPrec = new PredicatePrecision(locationInstancPreds, localPreds, functionPreds, globalPreds);
-
-    try {
-      // assure that refinement fails if same path is encountered twice and precision not refined on that path
-      if (repeatedFailure && noNewPredicates(oldPrecision, newPredPrec)) {
-        throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
-      }
-    } catch (SolverException e) {
-      throw new RefinementFailedException(Reason.InterpolationFailed, pathToFailure, e);
-    }
-
-    return Precisions.replaceByType(initialPrecision, newPredPrec, Predicates.instanceOf(PredicatePrecision.class));
+    return new PredicatePrecision(locationInstancPreds, localPreds, functionPreds, globalPreds);
   }
 
-  private boolean noNewPredicates(PredicatePrecision oldPrecision, PredicatePrecision newPrecision)
+  private Precision builtNewVariableTrackingPrecision(Precision pInitialPrecision, Collection<Precision> pPrecisions) {
+    VariableTrackingPrecision vtPrec = (VariableTrackingPrecision) Precisions.asIterable(pInitialPrecision)
+            .filter(VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass)).get(0);
+
+    Set<Precision> seen = new HashSet<>();
+    seen.add(pInitialPrecision);
+
+    for(Precision joinPrec : pPrecisions) {
+      if (seen.add(joinPrec)) {
+        vtPrec.join((VariableTrackingPrecision) Precisions.asIterable(joinPrec)
+            .filter(VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass)).get(0));
+      }
+    }
+    return vtPrec;
+  }
+
+  private Precision getCurrentEnablerPrecision(final Precision pPrecision) {
+    if (DFAEnablerCPA == Enabler.PREDICATE) {
+      return Precisions.extractPrecisionByType(pPrecision, PredicatePrecision.class);
+    } else {
+      return Precisions.asIterable(pPrecision)
+          .filter(VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass)).get(0);
+    }
+  }
+
+  private Precision replaceEnablerPrecision(final Precision pInitialPrecision, final Precision pNewPrec) {
+    if (DFAEnablerCPA == Enabler.PREDICATE) {
+      return Precisions.replaceByType(pInitialPrecision, pNewPrec, Predicates.instanceOf(PredicatePrecision.class));
+    }
+    else {
+      return Precisions.replaceByType(pInitialPrecision, pNewPrec,
+          VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass));
+    }
+  }
+
+  private boolean noNewPredicates(final PredicatePrecision oldPrecision, final PredicatePrecision newPrecision)
       throws SolverException, InterruptedException {
 
     // check if global precision changed
@@ -529,8 +586,13 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     return true;
   }
 
-  private boolean isMorePrecise(Set<AbstractionPredicate> lessPrecise,
-      Set<AbstractionPredicate> morePrecise)
+  private boolean noNewVariablesTracked(VariableTrackingPrecision pOldEnablerPrecision,
+      VariableTrackingPrecision pNewPrec) {
+    return pOldEnablerPrecision.tracksTheSameVariablesAs(pNewPrec);
+  }
+
+  private boolean isMorePrecise(final Set<AbstractionPredicate> lessPrecise,
+      final Set<AbstractionPredicate> morePrecise)
           throws SolverException, InterruptedException {
     if (lessPrecise != null && morePrecise != null) {
       if (lessPrecise.size() == morePrecise.size() && lessPrecise.equals(morePrecise)) { return false; }
@@ -559,7 +621,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     return lessPrecise == null && morePrecise != null;
   }
 
-  private boolean isSamePathInCFA(ARGPath path1, ARGPath path2) {
+  private boolean isSamePathInCFA(final ARGPath path1, final ARGPath path2) {
     if (path1.size() != path2.size()) {
       return false;
     }
@@ -570,7 +632,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+  public void collectStatistics(final Collection<Statistics> pStatsCollection) {
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
