@@ -163,6 +163,15 @@ public abstract class VariableTrackingPrecision implements Precision {
   public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
 
   /**
+   * This methods compares if this precision tracks the same variables as another precision.
+   * Only precisions of the same class can track the same variables.
+   *
+   * @param otherPrecision the precision to compare the tracking behavior
+   * @return
+   */
+  public abstract boolean tracksTheSameVariablesAs(VariableTrackingPrecision otherPrecision);
+
+  /**
    * This method checks if the caller precision is empty, thus there is
    * no variable that should be tracked.
    *
@@ -367,6 +376,26 @@ public abstract class VariableTrackingPrecision implements Precision {
       return cpaClass;
     }
 
+    @Override
+    public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
+      if (pOtherPrecision.getClass().equals(getClass())) {
+        ConfigurablePrecision precisionCompare = (ConfigurablePrecision) pOtherPrecision;
+        if (variableBlacklist.equals(precisionCompare.variableBlacklist)
+            && variableWhitelist.equals(precisionCompare.variableWhitelist)
+            && trackBooleanVariables == precisionCompare.trackBooleanVariables
+            && trackIntEqualVariables == precisionCompare.trackIntEqualVariables
+            && trackIntAddVariables == precisionCompare.trackIntAddVariables
+            && trackFloatVariables == precisionCompare.trackFloatVariables
+            && trackAddressedVariables == precisionCompare.trackAddressedVariables
+            && vc.isPresent() == precisionCompare.vc.isPresent()
+            && vc.isPresent() && vc.get().equals(precisionCompare.vc.get())
+            && cpaClass.equals(precisionCompare.cpaClass)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
   }
 
 
@@ -474,6 +503,16 @@ public abstract class VariableTrackingPrecision implements Precision {
       return super.isTracking(pVariable, pType, pLocation)
               && rawPrecision.containsEntry(pLocation, pVariable);
     }
+
+    @Override
+    public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
+      if (pOtherPrecision.getClass().equals(getClass())
+          && super.baseline.equals(((LocalizedRefinablePrecision) pOtherPrecision).getBaseline())
+          && rawPrecision.equals(((LocalizedRefinablePrecision) pOtherPrecision).rawPrecision)) {
+        return true;
+      }
+      return false;
+    }
   }
 
   public static class ScopedRefinablePrecision extends RefinablePrecision {
@@ -561,6 +600,16 @@ public abstract class VariableTrackingPrecision implements Precision {
     public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
       return super.isTracking(pVariable, pType, pLocation)
               && rawPrecision.contains(pVariable);
+    }
+
+    @Override
+    public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
+      if (pOtherPrecision.getClass().equals(getClass())
+          && super.baseline.equals(((ScopedRefinablePrecision) pOtherPrecision).getBaseline())
+          && rawPrecision.equals(((ScopedRefinablePrecision) pOtherPrecision).rawPrecision)) {
+        return true;
+      }
+      return false;
     }
   }
 
