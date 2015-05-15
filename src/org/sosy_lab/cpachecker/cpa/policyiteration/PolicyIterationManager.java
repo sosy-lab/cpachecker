@@ -436,7 +436,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         continue;
       } else if (newValue.get().getBound().compareTo(oldValue.getBound()) > 0) {
         updated.put(template, newValue.get());
-        logger.log(Level.INFO, "Updating template", template, "at", newState.getNode(),
+        logger.log(Level.FINE, "Updating template", template, "at", newState.getNode(),
             "to", newValue.get().getBound(), "(was: ", oldValue.getBound(), ")");
         statistics.templateUpdateCounter.add(Pair.of(newState.getLocationID(),
             template));
@@ -527,66 +527,61 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Maximize for each template subject to the overall constraints.
     statistics.startValueDeterminationTimer();
     try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
-      shutdownNotifier.shutdownIfNecessary();
 
       for (BooleanFormula constraint : valDetConstraints.constraints) {
         optEnvironment.addConstraint(constraint);
       }
 
-      Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
+        shutdownNotifier.shutdownIfNecessary();
+        optEnvironment.push();
+
         Template template = policyValue.getKey();
         Formula objective = valDetConstraints.outVars.get(template,
             stateWithUpdates.getLocationID());
+        PolicyBound existingBound = policyValue.getValue();
+
         int handle = optEnvironment.maximize(objective);
-        objectiveHandles.put(template, handle);
-      }
+        BooleanFormula consistencyConstraint =
+            fmgr.makeGreaterOrEqual(
+                objective,
+                fmgr.makeNumber(objective, existingBound.getBound()),
+                true);
 
-      OptEnvironment.OptStatus result;
-      try {
-        statistics.startOPTTimer();
-        result = optEnvironment.check();
-      } finally {
-        statistics.stopOPTTimer();
-      }
-      if (result != OptEnvironment.OptStatus.OPT) {
-        shutdownNotifier.shutdownIfNecessary();
+        optEnvironment.addConstraint(consistencyConstraint);
 
-        if (result == OptEnvironment.OptStatus.UNSAT) {
-          logger.log(Level.INFO, "Val det problem is unsat,",
-              " switching to more expensive strategy.");
-          logger.flush();
-          return Optional.absent();
+        OptEnvironment.OptStatus result;
+        try {
+          statistics.startOPTTimer();
+          result = optEnvironment.check();
+        } finally {
+          statistics.stopOPTTimer();
         }
-        throw new CPATransferException("Unexpected solver state");
-      }
+        if (result != OptEnvironment.OptStatus.OPT) {
+          shutdownNotifier.shutdownIfNecessary();
 
-      for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
-        Template template = policyValue.getKey();
-        PolicyBound bound = policyValue.getValue();
-
-        Optional<Rational> value = optEnvironment.upper(
-            objectiveHandles.get(template), EPSILON);
-
-        if (value.isPresent()) {
-          Rational v = value.get();
-
-          // Value determination should only increase the values.
-          if (v.compareTo(stateWithUpdates.getBound(template).get().getBound()) < 0) {
-            logger.log(Level.INFO, "Val det problem gave the wrong answer, ",
-                "switching to more expensive strategy.");
+          if (result == OptEnvironment.OptStatus.UNSAT) {
+            logger.log(Level.INFO, "The val. det. problem is unsat,",
+                " switching to a more expensive strategy.");
             logger.flush();
             return Optional.absent();
           }
+          throw new CPATransferException("Unexpected solver state");
+        }
 
-          builder.put(template, bound.updateValue(v));
+        Optional<Rational> value = optEnvironment.upper(handle, EPSILON);
+
+        if (value.isPresent()) {
+          Rational v = value.get();
+          builder.put(template, existingBound.updateValue(v));
         } else {
           unbounded.add(template);
         }
+        optEnvironment.pop();
       }
-    } catch (SolverException e) {
+    } catch(SolverException e){
       throw new CPATransferException("Failed maximization ", e);
-    } finally {
+    } finally{
       statistics.stopValueDeterminationTimer();
     }
 
@@ -681,7 +676,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyPrecision precision)
       throws CPATransferException, InterruptedException {
 
-    logger.log(Level.INFO, "Performing abstraction at node: ", state.getNode());
+    logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
 
     int locationID;
     if (otherState.isPresent()) {

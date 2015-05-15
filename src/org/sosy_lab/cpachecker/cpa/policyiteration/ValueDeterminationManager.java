@@ -72,6 +72,9 @@ public class ValueDeterminationManager {
     return valueDeterminationFormula(stateWithUpdates, updated, false);
   }
 
+  /**
+   * Sound value determination procedure.
+   */
   public ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState stateWithUpdates,
       final Map<Template, PolicyBound> updated
@@ -143,15 +146,8 @@ public class ValueDeterminationManager {
         }
 
         generateConstraintsFromPolicyBound(
-            bound,
-            state,
-
-            template,
-            backpointer,
-            prefix,
-            stateWithUpdates,
-            constraints, outVars, visited,
-            updated
+            bound, state, template, backpointer, prefix, stateWithUpdates,
+            constraints, outVars, visited, updated
         );
       }
 
@@ -175,10 +171,8 @@ public class ValueDeterminationManager {
   private void generateConstraintsFromPolicyBound(
       PolicyBound bound,
       PolicyAbstractedState toState,
-
       Template template,
       PolicyAbstractedState incomingState,
-
       final String prefix,
       PolicyAbstractedState stateWithUpdates,
       Set<BooleanFormula> constraints,
