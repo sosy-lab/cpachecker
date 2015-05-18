@@ -151,6 +151,26 @@ public class PolicyIterationTest {
     check("timeout_true_assert.c");
   }
 
+  @Test public void boolean_true_assert() throws Exception {
+    // Use explicit value analysis to track boolean variables.
+    check("boolean_true_assert.c",
+        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
+            "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopstack.LoopstackCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
+            "cpa.stator.policy.joinOnMerge", "false",
+            "precision.trackIntAddVariables", "false",
+            "precision.trackVariablesBesidesEqAddBool", "false"));
+  }
+
+  @Test public void cex_check() throws Exception {
+    check("test/programs/benchmarks/loops/terminator_01_false-unreach-call_false-termination.i",
+        ImmutableMap.of(
+            "analysis.checkCounterexamples", "true",
+            "counterexample.checker", "CPACHECKER",
+            "counterexample.checker.config",
+              "config/cex-checks/predicateAnalysis-as-bitprecise-cex-check.properties"
+        ));
+  }
+
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }
