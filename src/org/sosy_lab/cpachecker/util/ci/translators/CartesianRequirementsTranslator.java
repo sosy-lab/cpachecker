@@ -52,12 +52,10 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
 
   private List<String> writeVarDefinition(List<String> vars, SSAMap ssaMap) {
     List<String> list = new ArrayList<>();
-    for (int i=0; i<vars.size(); i++) {
-      String var = vars.get(i);
-      String def = "(declare-fun " + vars.get(i);
-      if (ssaMap.containsVariable(var)) {
-        def += "@" + ssaMap.getIndex(var); // TODO: @1 oder @index?
-      }
+
+    String def;
+    for (String var : vars) {
+      def = "(declare-fun " + getVarWithIndex(var, ssaMap);
       def += "() Int)";
       list.add(def);
     }
@@ -108,10 +106,15 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
   protected abstract List<String> getListOfIndependentRequirements(T requirement, SSAMap indices);
 
   public static String getVarWithIndex(String var, SSAMap indices) {
-    if (indices.getIndex(var) == 0){
+    assert (indices != null);
+    assert (var != null);
+
+    int index = indices.getIndex(var);
+
+    if (index == 0){
       return var;
     } else {
-      return var + "@" + indices.getIndex(var);
+      return var + "@" + index;
     }
   }
 
