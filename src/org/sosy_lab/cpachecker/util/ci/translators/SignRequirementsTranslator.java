@@ -45,17 +45,14 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
 
   @Override
   protected List<String> getVarsInRequirements(SignState pRequirement) {
-    List<String> list = new ArrayList<>();
-    list.addAll(pRequirement.getSignMapView().keySet());
-    return list;
+    return new ArrayList<>(pRequirement.getSignMapView().keySet());
   }
 
   @Override
   protected List<String> getListOfIndependentRequirements(SignState pRequirement, SSAMap pIndices) {
     List<String> list = new ArrayList<>();
-    for (String key : pRequirement.getSignMapView().keySet()) {
-      SIGN sign = pRequirement.getSignMapView().get(key);
-      list.add("(= " + getVarWithIndex(key, pIndices) + " " + sign + ")");
+    for (String var : pRequirement.getSignMapView().keySet()) {
+      list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
     }
     return list;
   }
