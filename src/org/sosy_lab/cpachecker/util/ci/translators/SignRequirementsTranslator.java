@@ -59,8 +59,8 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
 
   public String getRequirement(String var, SIGN sign) {
     StringBuilder sb = new StringBuilder();
-    Preconditions.checkArgument(sign == SIGN.EMPTY);
-    Preconditions.checkArgument(sign == SIGN.ALL);
+    Preconditions.checkArgument(sign != SIGN.EMPTY);
+    Preconditions.checkArgument(sign != SIGN.ALL);
 
     if (sign.covers(SIGN.PLUS)) {
       sb.append("(> ");
