@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+import com.google.common.base.Preconditions;
+
 public class IntervalRequirementsTranslator extends CartesianRequirementsTranslator<IntervalAnalysisState> {
 
   public IntervalRequirementsTranslator(Class<IntervalAnalysisState> pAbstractStateClass, Configuration pConfig,
@@ -42,17 +44,14 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
 
   @Override
   protected List<String> getVarsInRequirements(IntervalAnalysisState pRequirement) {
-    List<String> list = new ArrayList<>();
-    list.addAll(pRequirement.getIntervalMapView().keySet());
-    return list;
+    return new ArrayList<>(pRequirement.getIntervalMapView().keySet());
   }
 
   @Override
   protected List<String> getListOfIndependentRequirements(IntervalAnalysisState pRequirement, SSAMap pIndices) {
     List<String> list = new ArrayList<>();
-    for (String key : pRequirement.getIntervalMapView().keySet()) {
-      Interval interval = pRequirement.getIntervalMapView().get(key);
-      list.add("(= " + getVarWithIndex(key, pIndices) + " " + interval + ")");
+    for (String var : pRequirement.getIntervalMapView().keySet()) {
+      list.add(getRequirement(getVarWithIndex(var, pIndices), pRequirement.getIntervalMapView().get(var)));
     }
     return list;
   }
@@ -61,6 +60,8 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
     StringBuilder sb = new StringBuilder();
     boolean isMin = (interval.getLow() == Long.MIN_VALUE);
     boolean isMax = (interval.getLow() == Long.MAX_VALUE);
+    Preconditions.checkArgument(!isMin || !isMax);
+    Preconditions.checkArgument(!interval.isEmpty());
 
     if (!isMin && !isMax) {
       sb.append("(and (>= ");
