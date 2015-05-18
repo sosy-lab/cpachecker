@@ -38,9 +38,8 @@ import com.google.common.base.Preconditions;
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<SignState> {
 
-  public SignRequirementsTranslator(Class<SignState> pAbstractStateClass, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier, LogManager pLog) {
-    super(pAbstractStateClass, pConfig, pShutdownNotifier, pLog);
+  public SignRequirementsTranslator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLog) {
+    super(SignState.class, pConfig, pShutdownNotifier, pLog);
   }
 
   @Override

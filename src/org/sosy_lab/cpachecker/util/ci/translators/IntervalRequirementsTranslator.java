@@ -37,9 +37,8 @@ import com.google.common.base.Preconditions;
 
 public class IntervalRequirementsTranslator extends CartesianRequirementsTranslator<IntervalAnalysisState> {
 
-  public IntervalRequirementsTranslator(Class<IntervalAnalysisState> pAbstractStateClass, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier, LogManager pLog) {
-    super(pAbstractStateClass, pConfig, pShutdownNotifier, pLog);
+  public IntervalRequirementsTranslator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLog) {
+    super(IntervalAnalysisState.class, pConfig, pShutdownNotifier, pLog);
   }
 
   @Override

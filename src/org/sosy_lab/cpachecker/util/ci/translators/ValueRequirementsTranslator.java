@@ -37,9 +37,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueRequirementsTranslator extends CartesianRequirementsTranslator<ValueAnalysisState> {
 
-  public ValueRequirementsTranslator(Class<ValueAnalysisState> pAbstractStateClass, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier, LogManager pLog) {
-    super(pAbstractStateClass, pConfig, pShutdownNotifier, pLog);
+  public ValueRequirementsTranslator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLog) {
+    super(ValueAnalysisState.class, pConfig, pShutdownNotifier, pLog);
   }
 
   @Override
