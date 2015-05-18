@@ -659,7 +659,7 @@ public class CustomInstruction{
         if (isValidSimpleType(ciST)) {
           if (!ciVarToAciVar.containsKey(ciExp.getName())) {
             ciVarToAciVar.put(ciExp.getName(), aciExpValue.toString());
-          } else if (ciVarToAciVar.get(ciExp.getName()) == aciExpValue.toString()) {
+          } else if (ciVarToAciVar.get(ciExp.getName()).equals(aciExpValue.toString())) {
             throw new AppliedCustomInstructionParsingFailedException("The mapping is not clear. The map contains " + ciExp.getName() + " with the value " + ciVarToAciVar.get(ciExp.getName()) + ", which is different to " + aciExpValue.toString() + ".");
           }
         } else {
