@@ -58,7 +58,7 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, PathCounterTemplate pLogfileTemplate) throws InvalidConfigurationException {
 
-    PrincessEnvironment env = new PrincessEnvironment(config, logger, pLogfileTemplate);
+    PrincessEnvironment env = new PrincessEnvironment(config, logger, pLogfileTemplate, pShutdownNotifier);
 
     PrincessFormulaCreator creator = new PrincessFormulaCreator(env,
         TermType.Boolean, TermType.Integer);

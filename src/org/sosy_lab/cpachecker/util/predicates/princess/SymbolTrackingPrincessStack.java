@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import scala.Enumeration.Value;
 import scala.collection.Seq;
@@ -56,13 +57,21 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   /** the wrapped api */
   private final PrincessEnvironment env;
   private final SimpleAPI api;
+  private final boolean usableForInterpolation;
+  private final ShutdownNotifier shutdownNotifier;
 
   /** data-structures for tracking symbols */
   private final Deque<Level> trackingStack = new ArrayDeque<>();
 
-  public SymbolTrackingPrincessStack(final PrincessEnvironment env, final SimpleAPI api) {
+  public SymbolTrackingPrincessStack(final PrincessEnvironment env, final SimpleAPI api, boolean usableForInterpolation, ShutdownNotifier shutdownNotifier) {
     this.env = env;
     this.api = api;
+    this.usableForInterpolation = usableForInterpolation;
+    this.shutdownNotifier = shutdownNotifier;
+  }
+
+  public boolean canBeUsedForInterpolation() {
+    return usableForInterpolation;
   }
 
   @Override
@@ -163,8 +172,15 @@ class SymbolTrackingPrincessStack implements PrincessStack {
 
   @Override
   public void close() {
-    env.unregisterStack(this);
-    api.shutDown();
+    // if a timeout is reached we do not want to do possibly long lasting
+    // pop operations (with copying variables to lower tiers of the stack)
+    if (shutdownNotifier.shouldShutdown()) {
+      env.removeStack(this);
+      api.shutDown();
+    } else {
+      pop(trackingStack.size());
+      env.unregisterStack(this);
+    }
   }
 
   /** add external definition: boolean variable. */

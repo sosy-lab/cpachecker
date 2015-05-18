@@ -41,6 +41,7 @@ import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 
 import scala.collection.JavaConversions;
@@ -74,6 +75,7 @@ class PrincessEnvironment {
   private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
   private final @Nullable PathCounterTemplate basicLogfile;
+  private final ShutdownNotifier shutdownNotifier;
 
   /** the wrapped api is the first created api.
    * It will never be used outside of this class and never be closed.
@@ -81,12 +83,16 @@ class PrincessEnvironment {
    * Each api has its own stack for formulas. */
   private final SimpleAPI api;
   private final List<SymbolTrackingPrincessStack> registeredStacks = new ArrayList<>();
+  private final List<SymbolTrackingPrincessStack> reusableStacks = new ArrayList<>();
+  private final List<SymbolTrackingPrincessStack> allStacks = new ArrayList<>();
 
   /** The Constructor creates the wrapped Element, sets some options
-   * and initializes the logger. */
+   * and initializes the logger.
+   * @param pShutdownNotifier */
   public PrincessEnvironment(Configuration config, final LogManager pLogger,
-      final PathCounterTemplate pBasicLogfile) {
+      final PathCounterTemplate pBasicLogfile, ShutdownNotifier pShutdownNotifier) {
     basicLogfile = pBasicLogfile;
+    shutdownNotifier = pShutdownNotifier;
     api = getNewApi(false); // this api is only used local in this environment, no need for interpolation
   }
 
@@ -94,8 +100,20 @@ class PrincessEnvironment {
   /** This method returns a new stack, that is registered in this environment.
    * All variables are shared in all registered stacks. */
   PrincessStack getNewStack(boolean useForInterpolation) {
+    // shortcut if we have a reusable stack
+    for (Iterator<SymbolTrackingPrincessStack> it = reusableStacks.iterator(); it.hasNext();) {
+      SymbolTrackingPrincessStack stack = it.next();
+      if (stack.canBeUsedForInterpolation() == useForInterpolation) {
+        registeredStacks.add(stack);
+        it.remove();
+        return stack;
+      }
+    }
+
+    // if not we have to create a new one
+
     SimpleAPI newApi = getNewApi(useForInterpolation);
-    SymbolTrackingPrincessStack stack = new SymbolTrackingPrincessStack(this, newApi);
+    SymbolTrackingPrincessStack stack = new SymbolTrackingPrincessStack(this, newApi, useForInterpolation, shutdownNotifier);
 
     // add all symbols, that are available until now
     for (IFormula s : boolVariablesCache.values()) {
@@ -109,6 +127,7 @@ class PrincessEnvironment {
     }
 
     registeredStacks.add(stack);
+    allStacks.add(stack);
     return stack;
   }
 
@@ -128,8 +147,15 @@ class PrincessEnvironment {
   }
 
   void unregisterStack(SymbolTrackingPrincessStack stack) {
+    assert registeredStacks.contains(stack) : "cannot unregister stack, it is not registered";
+    registeredStacks.remove(stack);
+    reusableStacks.add(stack);
+  }
+
+  void removeStack(SymbolTrackingPrincessStack stack) {
     assert registeredStacks.contains(stack) : "cannot remove stack, it is not registered";
     registeredStacks.remove(stack);
+    allStacks.remove(stack);
   }
 
   public List<IExpression> parseStringToTerms(String s) {
@@ -209,7 +235,7 @@ class PrincessEnvironment {
           return boolVariablesCache.get(varname);
         } else {
           IFormula var = api.createBooleanVariable(varname);
-          for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          for (SymbolTrackingPrincessStack stack : allStacks) {
             stack.addSymbol(var);
           }
           boolVariablesCache.put(varname, var);
@@ -222,7 +248,7 @@ class PrincessEnvironment {
           return intVariablesCache.get(varname);
         } else {
           ITerm var = api.createConstant(varname);
-          for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          for (SymbolTrackingPrincessStack stack : allStacks) {
             stack.addSymbol(var);
           }
           intVariablesCache.put(varname, var);
@@ -244,7 +270,7 @@ class PrincessEnvironment {
 
     } else {
       IFunction funcDecl = api.createFunction(name, nofArgs);
-      for (SymbolTrackingPrincessStack stack : registeredStacks) {
+      for (SymbolTrackingPrincessStack stack : allStacks) {
          stack.addSymbol(funcDecl);
       }
       functionsCache.put(name, funcDecl);
