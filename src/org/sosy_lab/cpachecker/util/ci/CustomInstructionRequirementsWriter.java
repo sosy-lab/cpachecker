@@ -108,11 +108,11 @@ public class CustomInstructionRequirementsWriter {
 
   private void createRequirementTranslator() throws CPAException {
     if (requirementsState.equals(SignState.class)) {
-      abstractReqTranslator = new SignRequirementsTranslator(SignState.class, config, shutdownNotifier, logger);
+      abstractReqTranslator = new SignRequirementsTranslator(config, shutdownNotifier, logger);
     } else if (requirementsState.equals(ValueAnalysisState.class)) {
-      abstractReqTranslator = new ValueRequirementsTranslator(ValueAnalysisState.class, config, shutdownNotifier, logger);
+      abstractReqTranslator = new ValueRequirementsTranslator(config, shutdownNotifier, logger);
     } else if (requirementsState.equals(IntervalAnalysisState.class)) {
-      abstractReqTranslator = new IntervalRequirementsTranslator(IntervalAnalysisState.class, config, shutdownNotifier, logger);
+      abstractReqTranslator = new IntervalRequirementsTranslator(config, shutdownNotifier, logger);
     } else if (requirementsState.equals(PredicateAbstractState.class)) {
       abstractReqTranslator = new PredicateRequirementsTranslator();
     } else {
