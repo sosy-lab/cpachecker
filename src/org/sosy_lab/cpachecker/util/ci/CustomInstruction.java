@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.ci;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -139,6 +140,10 @@ public class CustomInstruction{
    * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
+    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
+      return Pair.of(Collections.<String> emptyList(),
+        "(define-fun ci() Bool true)");
+    }
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool(");
     int BracketCounter = 0;
@@ -273,6 +278,10 @@ public class CustomInstruction{
    * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   private Pair<List<String>, String> getFakeSMTDescriptionForACI(Map<String,String> map) {
+    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
+      return Pair.of(Collections.<String> emptyList(),
+        "(define-fun ci() Bool true)");
+    }
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun aci() Bool(");
     int BracketCounter = 0;
@@ -481,7 +490,13 @@ public class CustomInstruction{
 
       compareInitializer(ciVarDec.getInitializer(), aciVarDec.getInitializer(), ciVarToAciVar, currentCiVarToAciVar, outVariables);
       if (ciVarDec.getInitializer() != null) {
-        outVariables.add(ciVarDec.getName());
+        if (ciVarDec.getInitializer() instanceof CInitializerExpression
+            || ciVarDec.getInitializer() instanceof CInitializerList) {
+          outVariables.add(ciVarDec.getName());
+        } else {
+          throw new AppliedCustomInstructionParsingFailedException("Unsupported initializer: "
+              + ciVarDec.getInitializer());
+        }
       }
     }
 
@@ -641,25 +656,25 @@ public class CustomInstruction{
       }
 
       else if (aciExp instanceof CIntegerLiteralExpression) {
-        compareSimpleTypes(ciExp, ((CIntegerLiteralExpression) aciExp).getValue());
+        compareSimpleTypes(ciExp, ((CIntegerLiteralExpression) aciExp).getValue(), (CSimpleType) aciExp.getExpressionType());
       }
 
       else if (aciExp instanceof CFloatLiteralExpression) {
-        compareSimpleTypes(ciExp, ((CFloatLiteralExpression) aciExp).getValue());
+        compareSimpleTypes(ciExp, ((CFloatLiteralExpression) aciExp).getValue(), (CSimpleType) aciExp.getExpressionType());
       } else {
         throw new AppliedCustomInstructionParsingFailedException("The aci expression " + ciExp + " is not a CSimpleType.");
       }
       return null;
     }
 
-    private void compareSimpleTypes(final CIdExpression ciExp, final Number aciExpValue) throws AppliedCustomInstructionParsingFailedException {
+    private void compareSimpleTypes(final CIdExpression ciExp, final Number aciExpValue, CSimpleType aciType) throws AppliedCustomInstructionParsingFailedException {
       if (ciExp.getExpressionType() instanceof CSimpleType) {
         CSimpleType ciST = (CSimpleType) ciExp.getExpressionType();
 
-        if (isValidSimpleType(ciST)) {
+        if (isValidSimpleType(ciST, aciType)) {
           if (!ciVarToAciVar.containsKey(ciExp.getName())) {
             ciVarToAciVar.put(ciExp.getName(), aciExpValue.toString());
-          } else if (ciVarToAciVar.get(ciExp.getName()).equals(aciExpValue.toString())) {
+          } else if (!ciVarToAciVar.get(ciExp.getName()).equals(aciExpValue.toString())) {
             throw new AppliedCustomInstructionParsingFailedException("The mapping is not clear. The map contains " + ciExp.getName() + " with the value " + ciVarToAciVar.get(ciExp.getName()) + ", which is different to " + aciExpValue.toString() + ".");
           }
         } else {
@@ -670,7 +685,7 @@ public class CustomInstruction{
       }
     }
 
-    private boolean isValidSimpleType(CSimpleType ciST) {
+    private boolean isValidSimpleType(CSimpleType ciST, CSimpleType pAciType) {
       if ((ciST.getType().isIntegerType() || ciST.getType().isFloatingPointType())
           && ciST.isComplex() == ciST.isImaginary() && ciST.isImaginary() == ciST.isLong()
           && ciST.isLong() == ciST.isLongLong() && ciST.isLongLong() == ciST.isShort()
