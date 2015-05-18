@@ -73,7 +73,7 @@ public class CustomInstructionRequirementsWriter {
 
   public void writeCIRequirement(final ARGState pState, final Collection<ARGState> pSet,
       final AppliedCustomInstruction pACI) throws IOException, CPAException {
-    // TODO Marie: welcher int? benötigt?
+    // TODO Tanja: delete index from convertRequirements interface
     Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements
       = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars(), 0);
 
