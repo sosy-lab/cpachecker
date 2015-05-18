@@ -44,7 +44,7 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
 
   @Override
   protected List<String> getVarsInRequirements(ValueAnalysisState pRequirement) {
-    List<String> list = new ArrayList<>();
+    List<String> list = new ArrayList<>(pRequirement.getConstantsMapView().size());
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
       list.add(memLoc.getAsSimpleString());
     }
