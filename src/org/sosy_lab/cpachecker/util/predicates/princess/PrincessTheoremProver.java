@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 
 import scala.Option;
-import ap.SimpleAPI;
 import ap.parser.IBinFormula;
 import ap.parser.IBinJunctor;
 import ap.parser.IBoolLit;
@@ -108,12 +107,11 @@ class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvi
       stack.push(1);
       while (stack.checkSat()) {
         shutdownNotifier.shutdownIfNecessary();
-        final SimpleAPI.PartialModel model = stack.getPartialModel();
 
         IFormula newFormula = new IBoolLit(true); // neutral element for AND
         final Map<IFormula, Boolean> partialModel = new HashMap<>();
         for (final IFormula f : importantFormulas) {
-          final Option<Object> value = model.eval(f);
+          final Option<Object> value = stack.evalPartial(f);
           if (value.isDefined()) {
             final Boolean isTrueValue = (Boolean)value.get();
             final IFormula newElement = isTrueValue ? f : new INot(f);

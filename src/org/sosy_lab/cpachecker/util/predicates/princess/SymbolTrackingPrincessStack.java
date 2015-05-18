@@ -35,6 +35,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import scala.Enumeration.Value;
+import scala.Option;
 import scala.collection.Seq;
 import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
@@ -147,6 +148,11 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   @Override
   public SimpleAPI.PartialModel getPartialModel() {
     return api.partialModel();
+  }
+
+  @Override
+  public Option<Object> evalPartial(IFormula formula) {
+    return api.evalPartial(formula);
   }
 
   /** This function returns a list of interpolants for the partitions.
