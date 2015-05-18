@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 import java.util.List;
 import java.util.Set;
 
+import scala.Option;
 import ap.SimpleAPI;
 import ap.parser.IFormula;
 
@@ -48,6 +49,8 @@ public interface PrincessStack {
   boolean checkSat();
 
   SimpleAPI.PartialModel getPartialModel();
+
+  Option<Object> evalPartial(IFormula pFormula);
 
   List<IFormula> getInterpolants(List<Set<Integer>> partitions);
 
