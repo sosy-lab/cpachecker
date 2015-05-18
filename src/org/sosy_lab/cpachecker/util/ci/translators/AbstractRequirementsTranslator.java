@@ -47,7 +47,7 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
   }
 
   protected Collection<T> extractRequirements(final Collection<AbstractState> pStates) {
-    Collection<T> requirements = new ArrayList<>();
+    Collection<T> requirements = new ArrayList<>(pStates.size());
     for (AbstractState state : pStates) {
       requirements.add(extractRequirement(state));
     }
@@ -66,18 +66,20 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
 
     List<String> list = new ArrayList<>();
     StringBuilder sb = new StringBuilder();
+    String definition;
+    Pair<List<String>, String> formula;
     int BracketCounter = 0;
     int amount = post.size();
 
     for (AbstractState state : post){
-      Pair<List<String>, String> formula = convertToFormula(extractRequirement(state), postIndices);
+      formula = convertToFormula(extractRequirement(state), postIndices);
       list.addAll(formula.getFirst());
 
       if (BracketCounter != amount-1) {
         sb.append("(or ");
         BracketCounter++;
       }
-      String definition = formula.getSecond().substring(formula.getSecond().indexOf("(", 1)+1);
+      definition = formula.getSecond().substring(formula.getSecond().indexOf("(", 1)+1);
       sb.append(definition);
     }
     for (int i=0; i<BracketCounter; i++) {
