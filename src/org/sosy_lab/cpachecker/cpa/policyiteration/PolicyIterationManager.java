@@ -21,12 +21,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -57,7 +56,6 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -235,8 +233,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         outPath,
         iOldState.getGeneratingStates());
 
-    // NOTE: the abstraction computation and the global update is delayed
-    // until the {@code strengthen} call.
     return Collections.singleton(out);
   }
 
@@ -250,21 +246,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
     if (state.isAbstract()) {
-      PolicyAbstractedState aState = state.asAbstracted();
-      List<BooleanFormula> invariant = new ArrayList<>();
-      for (AbstractState other : otherStates) {
-        invariant.add(AbstractStates.extractReportedFormulas(fmgr,
-            other,
-            pfmgr
-        ));
-      }
-      PolicyAbstractedState updatedState = aState.updatePredicate(
-          fmgr.simplify(bfmgr.or(
-              bfmgr.and(invariant), aState.getPredicate()))
-      );
-
-
-      return Collections.singleton(updatedState);
+      return Collections.singleton(state);
     }
 
     if (!shouldPerformAbstraction(state.asIntermediate())) {
@@ -306,16 +288,22 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState iState = state.asIntermediate();
 
       PolicyState outState = state;
-      Precision newPrecision = templateManager.precisionForNode(toNode);
+
+      // Only update precision on abstracted states.
+      Precision newPrecision = shouldPerformAbstraction(iState) ?
+          templateManager.precisionForNode(toNode) : precision;
 
       // Perform the abstraction, if necessary.
       if (shouldPerformAbstraction(iState)) {
+        BooleanFormula extraPredicate = extractReportedFormulas(pArgState);
+        logger.log(Level.FINE, "Reported formulas: ", extraPredicate);
+
         Optional<PolicyAbstractedState> sibling =
-            findSibling(states.getReached(pArgState));
+            findSibling(extraPredicate, states.getReached(pArgState));
 
         logger.log(Level.FINE, "Performing abstraction on a node " + toNode);
         Optional<PolicyAbstractedState> abstraction = performAbstraction(
-            iState, sibling, templateManager.precisionForNode(toNode));
+            iState, sibling, templateManager.precisionForNode(toNode), extraPredicate);
 
         if (!abstraction.isPresent()) {
           logger.log(Level.FINE, "Returning the bottom state.");
@@ -328,6 +316,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         if (!joinOnMerge && sibling.isPresent()) {
           // Run value determination inside precision adjustment if the abstract
           // states are not joined.
+          logger.log(Level.FINE,  "Emulating value determination");
           outState = joinAbstractedStates(outState.asAbstracted(),
               sibling.get().getLatestVersion(), precision);
         }
@@ -463,8 +452,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             newState.getCongruence(), oldState.getCongruence()),
         newPredicate);
 
-    oldState.setNewVersion(stateWithUpdates);
-    newState.setNewVersion(stateWithUpdates);
+    if (joinOnMerge) {
+      oldState.setNewVersion(stateWithUpdates);
+      newState.setNewVersion(stateWithUpdates);
+    }
 
     PolicyAbstractedState out;
     if (!shouldPerformValueDetermination(node, updated)) {
@@ -499,8 +490,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     // Set transient update pointers.
-    newState.setNewVersion(out);
-    oldState.setNewVersion(out);
+    if (joinOnMerge) {
+      oldState.setNewVersion(out);
+      newState.setNewVersion(out);
+    }
 
     Verify.verify(isLessOrEqualNoCheck(newState, out),
         "Merged state should be larger than the subsumed one",
@@ -664,7 +657,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private Optional<PolicyAbstractedState> performAbstraction(
       final PolicyIntermediateState state,
       final Optional<PolicyAbstractedState> otherState,
-      PolicyPrecision precision)
+      PolicyPrecision precision,
+      BooleanFormula extraPredicate)
       throws CPATransferException, InterruptedException {
 
     logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
@@ -745,7 +739,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         }
 
         optEnvironment.push();
-
         optEnvironment.addConstraint(prevStateConstraint);
 
         logger.log(Level.FINE, "Optimizing for ", objective);
@@ -826,7 +819,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             this,
             state.getPathFormula().getSsa(),
             state.getPathFormula().getPointerTargetSet(),
-            bfmgr.makeBoolean(true)));
+            extraPredicate
+        ));
   }
 
 
@@ -1033,38 +1027,29 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   /**
    * Find the PolicyAbstractedState sibling: something about-to-be-merged
-   * with the argument state.
+   * with the argument state, and that has the same partitioning predicate.
    */
   private Optional<PolicyAbstractedState> findSibling(
-      Collection<AbstractState> pSiblings
-  ) {
+      BooleanFormula extraPredicate,
+      Collection<AbstractState> pSiblings) {
     if (pSiblings.isEmpty()) {
       return Optional.absent();
     }
 
-    CompositeState compositeState;
-    AbstractState sibling = pSiblings.iterator().next();
-    if (sibling instanceof ARGState) {
-      ARGState argState = (ARGState)pSiblings.iterator().next();
-      compositeState = (CompositeState)argState.getWrappedState();
-    } else {
-      assert sibling instanceof CompositeState;
-      compositeState = (CompositeState) sibling;
+    PolicyAbstractedState out = null;
+    boolean found = false;
+    for (AbstractState sibling : pSiblings) {
+      out = AbstractStates.extractStateByType(sibling,
+          PolicyAbstractedState.class);
+      if (out != null && out.getPredicate().equals(extraPredicate)) {
+        found = true;
+        break;
+      }
     }
-    List<AbstractState> siblings = compositeState.getWrappedStates();
-
-    Iterable<AbstractState> policySiblings =
-        Iterables.filter(
-            siblings,
-            Predicates.instanceOf(PolicyAbstractedState.class));
-
-    if (!policySiblings.iterator().hasNext()) {
-      return Optional.absent();
-    } else {
-      return Optional.of(
-          (PolicyAbstractedState)policySiblings.iterator().next()
-      );
+    if (found) {
+      return Optional.of(out);
     }
+    return Optional.absent();
   }
 
   @Override
@@ -1108,12 +1093,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         PolicyBound bound = e.getValue();
 
         Optional<PolicyBound> otherBound = aState1.getBound(t);
-        if (otherBound.isPresent()) {
-          PolicyBound smallerBound = otherBound.get();
-          if (smallerBound.getBound().compareTo(bound.getBound()) >= 1) {
-            return false;
-          }
-        } else {
+        if (!otherBound.isPresent()
+            || otherBound.get().getBound().compareTo(bound.getBound()) >= 1) {
           return false;
         }
       }
@@ -1126,5 +1107,22 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       ) && iState1.getGeneratingStates().equals(iState2.getGeneratingStates())
           || iState1.isMergedInto(iState2);
     }
+  }
+
+  private BooleanFormula extractReportedFormulas(AbstractState state) {
+    BooleanFormula result = bfmgr.makeBoolean(true);
+    for (FormulaReportingState s : AbstractStates.asIterable(state).filter(FormulaReportingState.class)) {
+      if (s instanceof PolicyAbstractedState) {
+
+        // Do not use our own invariants.
+        continue;
+      }
+      result = bfmgr.and(result, s.getFormulaApproximation(fmgr, pfmgr));
+    }
+    return result;
+  }
+
+  FormulaManagerView getFormulaManagerView() {
+    return fmgr;
   }
 }

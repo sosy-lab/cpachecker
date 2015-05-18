@@ -79,11 +79,8 @@ public class CongruenceManager {
       Template template = e.getKey();
       Congruence congruence = e.getValue();
       Optional<Congruence> smallerCongruence = a.get(template);
-      if (smallerCongruence.isPresent()) {
-        if (smallerCongruence.get() != congruence) {
-          return false;
-        }
-      } else {
+      if (!smallerCongruence.isPresent()
+          || smallerCongruence.get() != congruence) {
         return false;
       }
     }

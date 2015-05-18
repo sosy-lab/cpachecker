@@ -38,7 +38,9 @@ public final class PolicyAbstractedState extends PolicyState
   private final PointerTargetSet pointerTargetSet;
 
   /**
-   * Uninstantiated predicate associated with a state.
+   * Uninstantiated predicate associated with a state,
+   * derived from other analyses.
+   * *NOT* used in comparison.
    */
   private final BooleanFormula predicate;
 
@@ -85,6 +87,7 @@ public final class PolicyAbstractedState extends PolicyState
 
   /**
    * @return latest version of this state found in the reached set.
+   * Only used in {@code joinOnMerge} configuration.
    */
   public PolicyAbstractedState getLatestVersion() {
     PolicyAbstractedState latest = this;
@@ -135,23 +138,21 @@ public final class PolicyAbstractedState extends PolicyState
         pointerTargetSet, newPredicate);
   }
 
-  public PolicyAbstractedState updatePredicate(
-      BooleanFormula newInvariant
-  ) {
-    return new PolicyAbstractedState(
-        getNode(), abstraction, congruence, locationID, manager,
-        ssaMap, pointerTargetSet, newInvariant);
-  }
-
   public BooleanFormula getPredicate() {
     return predicate;
   }
 
   public PathFormula getPathFormula(FormulaManagerView fmgr) {
-    return new PathFormula(
-        fmgr.instantiate(predicate, ssaMap),
-        ssaMap, pointerTargetSet, 1
-    );
+    // If we are inside our analysis, use the predicate.
+    // If we are reporting the invariant for another solver, conjoin "true"
+    // instead.
+    BooleanFormula extraPredicate;
+    if (fmgr == manager.getFormulaManagerView()) {
+      extraPredicate = fmgr.instantiate(predicate, ssaMap);
+    } else {
+      extraPredicate = fmgr.getBooleanFormulaManager().makeBoolean(true);
+    }
+    return new PathFormula(extraPredicate, ssaMap, pointerTargetSet, 1);
   }
 
   /**

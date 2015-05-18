@@ -138,10 +138,10 @@ public class ValueDeterminationManager {
         // Give the element to the constraint generator.
         String prefix;
         if (useUniquePrefix) {
-          // This creates A LOT of constraints.
-          // Which is bad => consequently, everything times out.
           prefix = String.format(VISIT_PREFIX, ++uniquePrefix);
         } else {
+
+          // Merge variables sharing the same policy.
           prefix = String.format(VISIT_PREFIX, bound.serializePolicy(state));
         }
 
