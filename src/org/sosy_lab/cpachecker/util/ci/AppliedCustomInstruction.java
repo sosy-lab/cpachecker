@@ -63,7 +63,7 @@ public class AppliedCustomInstruction {
    * @return true if pState equals ciStartNode, false if not.
    * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
    */
-  public boolean isStartState (AbstractState pState) throws CPAException {
+  public boolean isStartState (final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
       throw new CPAException("The State " + pState+ " has to contain a location state!");
@@ -78,7 +78,7 @@ public class AppliedCustomInstruction {
    * @return true if pState equals ciEndNode, false if not.
    * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
    */
-  public boolean isEndState (AbstractState pState) throws CPAException {
+  public boolean isEndState (final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
       throw new CPAException("The State " + pState+ " has to contain a location state!");
