@@ -67,14 +67,10 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
 
     String secReturn;
     String element = pair.getFirst();
-    if (element.indexOf("(", 8) == -1) {
-      secReturn = element.substring(9,15);
-      secReturn = "(define-fun .defci" + (counter++) + " Bool() (" + secReturn + "))";
-    } else {
-      list.remove(element);
-      String name = element.substring(8,12);
-      secReturn = "(declare-fun " + name + ")";
-    }
+    // element =(assert ...)
+    element = element.substring(element.indexOf('t') + 1, element.length() - 1);
+    secReturn = "(define-fun .defci" + (counter++) + " Bool() " + element + ")";
+
 
     return Pair.of(list, secReturn);
   }
