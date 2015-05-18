@@ -135,7 +135,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     AlgorithmStatus status = analysis.run(pReachedSet);
 
     // analysis was unsound
-    if (status.isSound()) {
+    if (!status.isSound()) {
       logger.log(Level.SEVERE, "Do not extract requirements since analysis failed.");
       return status;
     }
