@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -81,7 +80,7 @@ import com.google.common.collect.Iterables;
 @Options(prefix="bmc")
 abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
-  private static final Predicate<AbstractState> IS_STOP_STATE =
+  static final Predicate<AbstractState> IS_STOP_STATE =
     Predicates.compose(new Predicate<AssumptionStorageState>() {
                              @Override
                              public boolean apply(AssumptionStorageState pArg0) {
@@ -285,7 +284,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             // try to prove program safety via induction
             if (induction) {
               final int k = CPAs.retrieveCPA(cpa, BoundsCPA.class).getMaxLoopIterations();
-              sound = sound || kInductionProver.check(k, from(candidateGenerator).toSet(), getStopLocations(reachedSet));
+              sound = sound || kInductionProver.check(k, from(candidateGenerator).toSet());
               candidateGenerator.confirmCandidates(kInductionProver.getConfirmedCandidates());
             }
             if (invariantGenerator.isProgramSafe()
@@ -436,9 +435,5 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         reachedSetFactory,
         havocLoopTerminationConditionVariablesOnly,
         shutdownNotifier) : null;
-  }
-
-  private static Set<CFANode> getStopLocations(ReachedSet pReachedSet) {
-    return from(pReachedSet).filter(IS_STOP_STATE).transform(AbstractStates.EXTRACT_LOCATION).toSet();
   }
 }
