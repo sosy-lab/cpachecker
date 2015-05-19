@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -131,12 +130,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   @Override
-  protected Set<CandidateInvariant> getCandidateInvariants(CFA cfa,
+  protected CandidateGenerator getCandidateInvariants(CFA cfa,
       Collection<CFANode> targetLocations) {
     if (targetLocations.isEmpty()) {
-      return new HashSet<>();
+      return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      return Sets.<CandidateInvariant>newHashSet(TargetLocationCandidateInvariant.INSTANCE);
+      return new StaticCandidateProvider(Sets.<CandidateInvariant>newHashSet(TargetLocationCandidateInvariant.INSTANCE));
     }
   }
 
@@ -145,7 +144,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (!checkTargetStates) {
       return true;
     }
-
+    
     return super.boundedModelCheck(pReachedSet, pProver, pInductionProblem);
   }
 

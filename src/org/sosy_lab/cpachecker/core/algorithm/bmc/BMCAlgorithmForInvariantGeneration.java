@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Queue;
 import java.util.Set;
 
@@ -50,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.Sets;
 
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
@@ -76,15 +75,15 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
   }
 
   @Override
-  protected Set<CandidateInvariant> getCandidateInvariants(CFA cfa,
-      Collection<CFANode> targetLocations) {
-    final Set<CandidateInvariant> result = new LinkedHashSet<>();
+  protected CandidateGenerator getCandidateInvariants(CFA pCFA,
+      Collection<CFANode> pTargetLocations) {
+    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
-    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(targetLocations)) {
-      result.add(new EdgeFormulaNegation(cfa.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
+    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocations)) {
+      candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
     }
 
-    return result;
+    return new StaticCandidateProvider(candidates);
   }
 
   /**
@@ -95,8 +94,8 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
    * @return the relevant assume edges.
    */
   private Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
-    Set<CFANode> visited = new HashSet<>(pTargetLocations);
+    final Set<AssumeEdge> assumeEdges = Sets.newLinkedHashSet();
+    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();

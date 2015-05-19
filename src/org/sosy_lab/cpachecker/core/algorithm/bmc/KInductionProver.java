@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -140,7 +139,7 @@ class KInductionProver implements AutoCloseable {
   private int previousK = -1;
 
   // The CandidateInvariants that have been proven to hold at the loop heads of {@link loop}.
-  private final Set<Pair<CandidateInvariant, Set<CFANode>>> confirmedCandidates = new CopyOnWriteArraySet<>();
+  private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
   private boolean invariantGenerationRunning = true;
 
@@ -179,7 +178,7 @@ class KInductionProver implements AutoCloseable {
   }
 
   public Collection<CandidateInvariant> getConfirmedCandidates() {
-    return from(confirmedCandidates).transform(Pair.<CandidateInvariant>getProjectionToFirst()).toSet();
+    return from(confirmedCandidates).toSet();
   }
 
   /**
@@ -257,12 +256,8 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
 
-    for (Pair<CandidateInvariant, Set<CFANode>> confirmedCandidateAtLocations : this.confirmedCandidates) {
-      CandidateInvariant confirmedCandidate = confirmedCandidateAtLocations.getFirst();
-      if (confirmedCandidate instanceof EdgeFormulaNegation
-          && confirmedCandidateAtLocations.getSecond().contains(pLocation)) {
-        invariant = bfmgr.and(invariant, ((EdgeFormulaNegation) confirmedCandidate).getCandidate(pFMGR, pPFMGR));
-      }
+    for (CandidateInvariant confirmedCandidate : this.confirmedCandidates) {
+      invariant = bfmgr.and(invariant, confirmedCandidate.getFormula(pFMGR, pPFMGR));
     }
 
     return invariant;
@@ -440,7 +435,7 @@ class KInductionProver implements AutoCloseable {
       // problems to the set of solved problems
       if (isInvariant) {
         ++numberOfSuccessfulProofs;
-        confirmedCandidates.add(Pair.of(candidateInvariant, pStopLocations));
+        confirmedCandidates.add(candidateInvariant);
         violationFormulas.remove(candidateInvariant);
 
         // Try to inject the new invariant into the invariant generator
