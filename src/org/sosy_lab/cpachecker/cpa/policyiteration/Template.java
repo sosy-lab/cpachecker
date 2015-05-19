@@ -50,6 +50,10 @@ public class Template {
     return kind;
   }
 
+  public LinearExpression<CIdExpression> getLinearExpression() {
+    return linearExpression;
+  }
+
   public boolean isUnsigned() {
     for (Entry<CIdExpression, Rational> e: linearExpression) {
       CIdExpression expr = e.getKey();

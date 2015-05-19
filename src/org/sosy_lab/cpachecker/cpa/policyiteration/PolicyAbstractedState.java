@@ -183,6 +183,10 @@ public final class PolicyAbstractedState extends PolicyState
     );
   }
 
+  public int size() {
+    return abstraction.size();
+  }
+
   @Override
   public boolean isAbstract() {
     return true;
