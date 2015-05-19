@@ -45,9 +45,11 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.stator.policy")
 public class TemplateManager {
@@ -82,6 +84,10 @@ public class TemplateManager {
     description="Generate cubic constraints: templates +/- x +/- y +/- z for"
         + " every combination (x, y, z)")
   private boolean generateCube = false;
+
+  @Option(secure=true,
+    description="Strategy for filtering variables out of templates")
+  private VarFilteringStrategy varFiltering = VarFilteringStrategy.ALL_LIVE;
 
   private final CFA cfa;
   private final LogManager logger;
@@ -138,19 +144,16 @@ public class TemplateManager {
     return new PolicyPrecision(templatesForNode(node));
   }
 
-  public Set<Template> templatesForNode(CFANode node) {
+  public Set<Template> templatesForNode(final CFANode node) {
     if (cache.containsKey(node)) {
       return cache.get(node);
     }
 
     ImmutableSet.Builder<Template> out = ImmutableSet.builder();
-    LiveVariables liveVariables = cfa.getLiveVariables().get();
-    List<ASimpleDeclaration> liveVars = ImmutableList.copyOf(
-        liveVariables.getLiveVariablesForNode(node));
-    out.addAll(extractedTemplatesForNode(node));
+    List<ASimpleDeclaration> usedVars = ImmutableList.copyOf(getVarsForNode(node));
+    out.addAll(extractTemplatesForNode(node));
 
-    for (ASimpleDeclaration s : liveVars) {
-
+    for (ASimpleDeclaration s : usedVars) {
       if (!shouldProcessVariable(s)) {
         continue;
       }
@@ -169,8 +172,8 @@ public class TemplateManager {
     }
 
     if (generateOctagons) {
-      for (ASimpleDeclaration s1 : liveVars) {
-        for (ASimpleDeclaration s2 : liveVars) {
+      for (ASimpleDeclaration s1 : usedVars) {
+        for (ASimpleDeclaration s2 : usedVars) {
           if (!shouldProcessVariable(s1)
               || !shouldProcessVariable(s2)) {
             continue;
@@ -213,9 +216,9 @@ public class TemplateManager {
     }
 
     if (generateCube) {
-      for (ASimpleDeclaration s1 : liveVars) {
-        for (ASimpleDeclaration s2 : liveVars) {
-          for (ASimpleDeclaration s3 : liveVars) {
+      for (ASimpleDeclaration s1 : usedVars) {
+        for (ASimpleDeclaration s2 : usedVars) {
+          for (ASimpleDeclaration s3 : usedVars) {
             if (!shouldProcessVariable(s1)
                 || !shouldProcessVariable(s2) || !shouldProcessVariable(s3)) {
               continue;
@@ -272,8 +275,20 @@ public class TemplateManager {
     }
 
     out.addAll(extractedFromAssertTemplates);
+    Set<Template> outBuild = out.build();
 
-    cache.putAll(node, out.build());
+    if (varFiltering == VarFilteringStrategy.ONE_LIVE) {
+
+      // Filter templates to make sure at least one is alive.
+      outBuild = Sets.filter(outBuild, new Predicate<Template>() {
+        @Override
+        public boolean apply(Template input) {
+          return shouldUseTemplate(input, node);
+        }
+      });
+    }
+
+    cache.putAll(node, outBuild);
     return cache.get(node);
   }
 
@@ -451,24 +466,33 @@ public class TemplateManager {
     return templates;
   }
 
-  private Set<Template> extractedTemplatesForNode(CFANode node) {
-    LiveVariables liveVariables = cfa.getLiveVariables().get();
+  private Set<Template> extractTemplatesForNode(CFANode node) {
     Set<Template> out = new HashSet<>();
     for (Template t : extractedTemplates) {
-      boolean allAlive = true;
-      for (Entry<CIdExpression, Rational> e : t.linearExpression) {
-        CIdExpression id = e.getKey();
-        if (!liveVariables.isVariableLive(id.getDeclaration(), node)) {
-          allAlive = false;
-          break;
-        }
-      }
-
-      if (allAlive) {
+      if (shouldUseTemplate(t, node)) {
         out.add(t);
       }
     }
     return out;
+  }
+
+  private boolean shouldUseTemplate(Template t, CFANode node) {
+    if (varFiltering == VarFilteringStrategy.ALL) {
+      return true;
+    }
+    LiveVariables liveVariables = cfa.getLiveVariables().get();
+    for (Entry<CIdExpression, Rational> e : t.linearExpression) {
+      CIdExpression id = e.getKey();
+      if (varFiltering == VarFilteringStrategy.ONE_LIVE &&
+          !liveVariables.isVariableLive(id.getDeclaration(), node)) {
+        return true;
+      }
+      if (varFiltering == VarFilteringStrategy.ALL_LIVE &&
+          !liveVariables.isVariableLive(id.getDeclaration(), node)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private Set<Template> extractTemplates() {
@@ -632,6 +656,56 @@ public class TemplateManager {
     }
   }
 
+
+  private Template useCoeff(
+      CIntegerLiteralExpression literal, Template other) {
+    Rational coeff = Rational.ofBigInteger(literal.getValue());
+    return Template.of(other.linearExpression.multByConst(coeff),
+        other.getType()
+    );
+  }
+
+  public boolean adjustPrecision() {
+    if (!generateOctagons) {
+      logger.log(Level.INFO, "LPI Refinement: Generating octagons");
+      generateOctagons = true;
+      cache.clear();
+      return true;
+    }
+    if (!generateMoreTemplates) {
+      logger.log(Level.INFO, "LPI Refinement: Generating more templates");
+      generateMoreTemplates = true;
+      cache.clear();
+      return true;
+    }
+    if (!generateCube) {
+      logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
+      generateCube = true;
+      cache.clear();
+      return true;
+    }
+    return false;
+  }
+
+  public Iterable<ASimpleDeclaration> getVarsForNode(CFANode node) {
+    if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
+      return cfa.getLiveVariables().get().getLiveVariablesForNode(node);
+    } else {
+      if (allVariables == null) {
+        allVariables = cfa.getLiveVariables().get().getAllLiveVariables();
+      }
+      return allVariables;
+    }
+  }
+
+  private Iterable<ASimpleDeclaration> allVariables = null;
+
+  private enum VarFilteringStrategy {
+    ALL_LIVE,
+    ONE_LIVE,
+    ALL
+  }
+
   private Formula normalizeLength(Formula f, int maxBitvectorSize,
       FormulaManagerView fmgr) {
     if (!(f instanceof BitvectorFormula)) return f;
@@ -663,35 +737,5 @@ public class TemplateManager {
           length);
     }
     return length;
-  }
-
-  private Template useCoeff(
-      CIntegerLiteralExpression literal, Template other) {
-    Rational coeff = Rational.ofBigInteger(literal.getValue());
-    return Template.of(other.linearExpression.multByConst(coeff),
-        other.getType()
-    );
-  }
-
-  public boolean adjustPrecision() {
-    if (!generateOctagons) {
-      logger.log(Level.INFO, "LPI Refinement: Generating octagons");
-      generateOctagons = true;
-      cache.clear();
-      return true;
-    }
-    if (!generateMoreTemplates) {
-      logger.log(Level.INFO, "LPI Refinement: Generating more templates");
-      generateMoreTemplates = true;
-      cache.clear();
-      return true;
-    }
-    if (!generateCube) {
-      logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
-      generateCube = true;
-      cache.clear();
-      return true;
-    }
-    return false;
   }
 }

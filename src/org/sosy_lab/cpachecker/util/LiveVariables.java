@@ -80,6 +80,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
@@ -300,7 +301,17 @@ public class LiveVariables {
    * without duplicates and with deterministic iteration order.
    */
   public FluentIterable<ASimpleDeclaration> getLiveVariablesForNode(CFANode pNode) {
-    return from(liveVariables.get(pNode)).append(globalVariables).transform(FROM_EQUIV_WRAPPER);
+    return from(liveVariables.get(pNode)).append(globalVariables).transform(
+        FROM_EQUIV_WRAPPER);
+  }
+
+  /**
+   * @return iterable of all variables which are alive at at least one node.
+   */
+  public FluentIterable<ASimpleDeclaration> getAllLiveVariables() {
+    return from(ImmutableSet.copyOf(liveVariables.values())).append(globalVariables)
+        .transform(FROM_EQUIV_WRAPPER);
+
   }
 
   /**
