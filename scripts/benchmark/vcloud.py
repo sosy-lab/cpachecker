@@ -349,6 +349,5 @@ def parseCloudRunResultFile(filePath):
     values.pop("@vcloud-command", None)
     values.pop("@vcloud-timeLimit", None)
     values.pop("@vcloud-coreLimit", None)
-    values.pop("@vcloud-memoryLimit", None) 
 
     return (cputime, walltime, return_value, values)
