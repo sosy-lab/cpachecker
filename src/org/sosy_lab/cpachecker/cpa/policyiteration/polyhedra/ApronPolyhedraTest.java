@@ -58,18 +58,18 @@ public class ApronPolyhedraTest {
     LinearExpression<CIdExpression> linY = LinearExpression.ofVariable(y);
 
     point1 = ImmutableMap.of(
-      ofLinearExpression(linX), Rational.ZERO,
-      ofLinearExpression(linX.negate()), Rational.ZERO,
-      ofLinearExpression(linY), Rational.ZERO,
-      ofLinearExpression(linY.negate()), Rational.ZERO
+      Template.of(linX), Rational.ZERO,
+      Template.of(linX.negate()), Rational.ZERO,
+      Template.of(linY), Rational.ZERO,
+      Template.of(linY.negate()), Rational.ZERO
     );
 
     // Point 2: (x=1 /\ y=1).
     point2 = ImmutableMap.of(
-      ofLinearExpression(linX), Rational.ONE,
-      ofLinearExpression(linX.negate()), Rational.NEG_ONE,
-      ofLinearExpression(linY), Rational.ONE,
-      ofLinearExpression(linY.negate()), Rational.NEG_ONE
+      Template.of(linX), Rational.ONE,
+      Template.of(linX.negate()), Rational.NEG_ONE,
+      Template.of(linY), Rational.ONE,
+      Template.of(linY.negate()), Rational.NEG_ONE
     );
 
     Abstract1 abs1, abs2, widened, union;
@@ -90,13 +90,6 @@ public class ApronPolyhedraTest {
     logger.log(Level.INFO, "Widened = ", widened);
     logger.log(Level.INFO, "Widened to templates = ", pwm.toTemplates(widened));
     logger.flush();
-  }
-
-  private Template ofLinearExpression(LinearExpression<CIdExpression> expr) {
-    return Template.of(
-        expr,
-        (CSimpleType)expr.iterator().next().getKey().getExpressionType()
-    );
   }
 
   private CIdExpression makeVar(String varName, CSimpleType type) {

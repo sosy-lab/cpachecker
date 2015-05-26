@@ -128,6 +128,10 @@ public final class PolicyAbstractedState extends PolicyState
         pointerTargetSet, predicate);
   }
 
+  public ImmutableMap<Template, PolicyBound> getAbstraction() {
+    return abstraction;
+  }
+
   public PolicyAbstractedState withUpdates(
       Map<Template, PolicyBound> newAbstraction,
       CongruenceState newCongruence,

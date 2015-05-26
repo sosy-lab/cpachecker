@@ -158,16 +158,15 @@ public class TemplateManager {
         continue;
       }
       String varName = s.getQualifiedName();
-      CSimpleType type = (CSimpleType) s.getType();
       CIdExpression idExpression = new CIdExpression(
           FileLocation.DUMMY, (CSimpleDeclaration)s
       );
       logger.log(Level.FINEST, "Processing variable", varName);
       if (generateUpperBound) {
-        out.add(Template.of(LinearExpression.ofVariable(idExpression), type));
+        out.add(Template.of(LinearExpression.ofVariable(idExpression)));
       }
       if (generateLowerBound) {
-        out.add(Template.of(LinearExpression.ofVariable(idExpression).negate(), type));
+        out.add(Template.of(LinearExpression.ofVariable(idExpression).negate()));
       }
     }
 
@@ -197,19 +196,18 @@ public class TemplateManager {
               FileLocation.DUMMY, (CSimpleDeclaration)s2
           );
 
-          CSimpleType type = (CSimpleType) s1.getType();
           LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
               idExpression1);
           LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
               idExpression2);
 
-          out.addAll(genOctagonConstraints(expr1, expr2, type));
+          out.addAll(genOctagonConstraints(expr1, expr2));
 
           if (generateMoreTemplates) {
             out.addAll(genOctagonConstraints(
-                expr1.multByConst(Rational.ofLong(2)), expr2, type));
+                expr1.multByConst(Rational.ofLong(2)), expr2));
             out.addAll(genOctagonConstraints(expr1,
-                expr2.multByConst(Rational.ofLong(2)), type));
+                expr2.multByConst(Rational.ofLong(2))));
           }
         }
       }
@@ -239,16 +237,13 @@ public class TemplateManager {
               continue;
             }
 
-            CSimpleType type = (CSimpleType) s1.getType();
             CIdExpression idExpression1 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s1
-            );
+                FileLocation.DUMMY, (CSimpleDeclaration)s1);
             CIdExpression idExpression2 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s2
-            );
+                FileLocation.DUMMY, (CSimpleDeclaration)s2);
             CIdExpression idExpression3 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s3
-            );
+                FileLocation.DUMMY, (CSimpleDeclaration)s3);
+
             LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
                 idExpression1);
             LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
@@ -256,18 +251,18 @@ public class TemplateManager {
             LinearExpression<CIdExpression> expr3 = LinearExpression.ofVariable(
                 idExpression3);
 
-            out.addAll(genCubicConstraints(expr1, expr2, expr3, type));
+            out.addAll(genCubicConstraints(expr1, expr2, expr3));
 
             if (generateMoreTemplates) {
               out.addAll(
                   genCubicConstraints(
-                      expr1.multByConst(Rational.ofLong(2)), expr2, expr3, type));
+                      expr1.multByConst(Rational.ofLong(2)), expr2, expr3));
               out.addAll(
                   genCubicConstraints(
-                      expr1, expr2.multByConst(Rational.ofLong(2)), expr3, type));
+                      expr1, expr2.multByConst(Rational.ofLong(2)), expr3));
               out.addAll(
                   genCubicConstraints(
-                      expr1, expr2, expr3.multByConst(Rational.ofLong(2)), type));
+                      expr1, expr2, expr3.multByConst(Rational.ofLong(2))));
             }
           }
         }
@@ -294,39 +289,35 @@ public class TemplateManager {
 
   private Set<Template> genOctagonConstraints(
       LinearExpression<CIdExpression> expr1,
-      LinearExpression<CIdExpression> expr2,
-      CSimpleType type
-  ) {
+      LinearExpression<CIdExpression> expr2) {
     HashSet<Template> out = new HashSet<>(4);
-    out.add(Template.of(expr1.add(expr2), type));
-    out.add(Template.of(expr1.negate().sub(expr2), type));
-    out.add(Template.of(expr1.sub(expr2), type));
-    out.add(Template.of(expr2.sub(expr1), type));
+    out.add(Template.of(expr1.add(expr2)));
+    out.add(Template.of(expr1.negate().sub(expr2)));
+    out.add(Template.of(expr1.sub(expr2)));
+    out.add(Template.of(expr2.sub(expr1)));
     return out;
   }
 
   private Set<Template> genCubicConstraints(
       LinearExpression<CIdExpression> expr1,
       LinearExpression<CIdExpression> expr2,
-      LinearExpression<CIdExpression> expr3,
-      CSimpleType type
-  ) {
+      LinearExpression<CIdExpression> expr3) {
     HashSet<Template> out = new HashSet<>(4);
     // No negated.
-    out.add(Template.of(expr1.add(expr2).add(expr3), type));
+    out.add(Template.of(expr1.add(expr2).add(expr3)));
 
     // 1 negated.
-    out.add(Template.of(expr1.add(expr2).sub(expr3), type));
-    out.add(Template.of(expr1.sub(expr2).add(expr3), type));
-    out.add(Template.of(expr1.negate().add(expr2).add(expr3), type));
+    out.add(Template.of(expr1.add(expr2).sub(expr3)));
+    out.add(Template.of(expr1.sub(expr2).add(expr3)));
+    out.add(Template.of(expr1.negate().add(expr2).add(expr3)));
 
     // 2 Negated
-    out.add(Template.of(expr1.negate().add(expr2).sub(expr3), type));
-    out.add(Template.of(expr1.negate().sub(expr2).add(expr3), type));
-    out.add(Template.of(expr1.sub(expr2).sub(expr3), type));
+    out.add(Template.of(expr1.negate().add(expr2).sub(expr3)));
+    out.add(Template.of(expr1.negate().sub(expr2).add(expr3)));
+    out.add(Template.of(expr1.sub(expr2).sub(expr3)));
 
     // All negated.
-    out.add(Template.of(expr1.negate().sub(expr2).sub(expr3), type));
+    out.add(Template.of(expr1.negate().sub(expr2).sub(expr3)));
 
     return out;
   }
@@ -394,8 +385,7 @@ public class TemplateManager {
 
   public boolean shouldUseRationals(Template template) {
     return encodeTemplatesAsRationals
-        || !template.linearExpression.isIntegral()
-        || !template.getType().getType().isIntegerType();
+        || !template.isIntegral();
   }
 
   /**
@@ -456,9 +446,7 @@ public class TemplateManager {
 
           // Add template and its negation.
           templates.add(t);
-          templates.add(
-              Template.of(t.linearExpression.negate(), t.getType())
-          );
+          templates.add(Template.of(t.linearExpression.negate()));
         }
 
       }
@@ -559,18 +547,12 @@ public class TemplateManager {
           return out;
         }
 
-        Template tLhs = Template.of(
-            LinearExpression.ofVariable(id),
-            (CSimpleType)id.getExpressionType()
-        );
+        Template tLhs = Template.of(LinearExpression.ofVariable(id));
         Optional<Template> x =
             recExpressionToTemplate(assignment.getRightHandSide());
         if (x.isPresent()) {
           Template tX = x.get();
-          out.add(
-              Template.of(tLhs.linearExpression.sub(tX.linearExpression),
-                  tLhs.getType())
-          );
+          out.add(Template.of(tLhs.linearExpression.sub(tX.linearExpression)));
         }
       }
     }
@@ -585,7 +567,7 @@ public class TemplateManager {
       return out;
     }
     out.add(t.get());
-    out.add(Template.of(t.get().linearExpression.negate(), t.get().getType()));
+    out.add(Template.of(t.get().linearExpression.negate()));
     return out;
   }
 
@@ -628,12 +610,11 @@ public class TemplateManager {
 
         // Calculation type is the casting of both types to a suitable "upper"
         // type.
-        CSimpleType type = (CSimpleType)binaryExpression.getCalculationType();
         Template t;
         if (operator == CBinaryExpression.BinaryOperator.PLUS) {
-          t = Template.of(a.add(b), type);
+          t = Template.of(a.add(b));
         } else {
-          t = Template.of(a.sub(b), type);
+          t = Template.of(a.sub(b));
         }
         return Optional.of(t);
       } else {
@@ -641,16 +622,11 @@ public class TemplateManager {
       }
     } else if (expression instanceof CLiteralExpression
         && expression.getExpressionType() instanceof CSimpleType) {
-      return Optional.of(Template.of(
-          LinearExpression.<CIdExpression>empty(),
-          (CSimpleType)(expression).getExpressionType()
-      ));
+      return Optional.of(Template.of(LinearExpression.<CIdExpression>empty()));
     } else if (expression instanceof CIdExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       CIdExpression idExpression = (CIdExpression)expression;
-      return Optional.of(Template.of(
-              LinearExpression.ofVariable(idExpression),
-              (CSimpleType) expression.getExpressionType()));
+      return Optional.of(Template.of(LinearExpression.ofVariable(idExpression)));
     } else {
       return Optional.absent();
     }
@@ -660,9 +636,7 @@ public class TemplateManager {
   private Template useCoeff(
       CIntegerLiteralExpression literal, Template other) {
     Rational coeff = Rational.ofBigInteger(literal.getValue());
-    return Template.of(other.linearExpression.multByConst(coeff),
-        other.getType()
-    );
+    return Template.of(other.linearExpression.multByConst(coeff));
   }
 
   public boolean adjustPrecision() {

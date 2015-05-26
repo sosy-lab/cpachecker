@@ -4,12 +4,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
+
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import apron.Abstract1;
 import apron.Coeff;
@@ -39,7 +47,34 @@ public class PolyhedraWideningManager {
     return manager;
   }
 
-  public Environment generateEnvironment(List<Map<Template, Rational>> t) {
+  private static final Function<PolicyBound, Rational> DATA_GETTER = new Function<PolicyBound, Rational>() {
+    @Override
+    public Rational apply(PolicyBound input) {
+      return input.getBound();
+    }
+  };
+
+  public Set<Template> generateTemplates(
+      PolicyAbstractedState old, PolicyAbstractedState merged) {
+    Set<Template> allTemplates = Sets.union(old.getAbstraction().keySet(),
+        merged.getAbstraction().keySet());
+    Map<Template, Rational> oldData = Maps.transformValues(old.getAbstraction(),
+        DATA_GETTER);
+    Map<Template, Rational> mergedData = Maps.transformValues(merged.getAbstraction(),
+        DATA_GETTER);
+    Environment env = generateEnvironment(ImmutableList.of(oldData, mergedData));
+    Abstract1 abs1, abs2, widened;
+    abs1 = fromTemplates(env, oldData);
+    abs2 = fromTemplates(env, mergedData);
+
+    // todo: add timer.
+    widened = abs1.widening(getManager(), abs2);
+
+    Map<Template, Rational> generated = toTemplates(widened);
+    return Sets.difference(generated.keySet(), allTemplates);
+  }
+
+  Environment generateEnvironment(List<Map<Template, Rational>> t) {
     Environment out = new Environment();
     for (Map<Template, Rational> m : t) {
       for (Template template : m.keySet()) {
@@ -58,8 +93,7 @@ public class PolyhedraWideningManager {
       Template t = ofExpression(constraint);
 
       // We want: -t <= coeff.
-      Template tNegated =
-          Template.of(t.getLinearExpression().negate(), t.getType());
+      Template tNegated = Template.of(t.getLinearExpression().negate());
 
       out.put(tNegated, coeff);
     }
@@ -69,7 +103,7 @@ public class PolyhedraWideningManager {
   /**
    * Intersection of all linear constraints.
    */
-  public Abstract1 fromTemplates(
+  Abstract1 fromTemplates(
       Environment environment,
       Map<Template, Rational> state) {
 
@@ -97,16 +131,7 @@ public class PolyhedraWideningManager {
       out = out.add(LinearExpression.pair(types.get(varName),  coeff));
     }
 
-    return ofLinearExpression(out);
-  }
-
-  private Template ofLinearExpression(LinearExpression<CIdExpression> expr) {
-
-    // This is not such a good idea, but will have to do.
-    return Template.of(
-        expr,
-        (CSimpleType)expr.iterator().next().getKey().getExpressionType()
-    );
+    return Template.of(out);
   }
 
   private Rational ofCoeff(Coeff c) {

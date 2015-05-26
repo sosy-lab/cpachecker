@@ -176,7 +176,7 @@ public class CongruenceManager {
   }
 
   private boolean shouldUseTemplate(Template template) {
-    return template.getType().getType().isIntegerType() && (
+    return template.isIntegral() && (
         (template.getKind() == Kind.UPPER_BOUND)
         || (trackCongruenceSum && template.getKind() == Kind.SUM)
     );

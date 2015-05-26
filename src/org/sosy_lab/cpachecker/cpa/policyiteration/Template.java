@@ -19,7 +19,6 @@ import com.google.common.collect.Iterables;
  */
 public class Template {
   final LinearExpression<CIdExpression> linearExpression;
-  private final CSimpleType type;
   final Kind kind;
 
   /**
@@ -39,10 +38,8 @@ public class Template {
     COMPLEX
   }
 
-  private Template(LinearExpression<CIdExpression> pLinearExpression,
-      CSimpleType pType, Kind pKind) {
+  private Template(LinearExpression<CIdExpression> pLinearExpression, Kind pKind) {
     linearExpression = pLinearExpression;
-    type = pType;
     kind = pKind;
   }
 
@@ -65,13 +62,20 @@ public class Template {
     return true;
   }
 
-  public CSimpleType getType() {
-    return type;
+  public boolean isIntegral() {
+    for (Entry<CIdExpression, Rational> e : linearExpression) {
+      Rational coeff = e.getValue();
+      CIdExpression id = e.getKey();
+      if (!(coeff.isIntegral() &&
+          ((CSimpleType)id.getExpressionType()).getType().isIntegerType())) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  public static Template of(LinearExpression<CIdExpression> expr,
-      CSimpleType pType) {
-    return new Template(expr, pType, getKind(expr));
+  public static Template of(LinearExpression<CIdExpression> expr) {
+    return new Template(expr, getKind(expr));
   }
 
   private static Kind getKind(LinearExpression<CIdExpression> expr) {
