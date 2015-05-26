@@ -50,7 +50,7 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     }
   }
 
-  private List<String> writeVarDefinition(List<String> vars, SSAMap ssaMap) {
+  private List<String> writeVarDefinition(final List<String> vars, final SSAMap ssaMap) {
     List<String> list = new ArrayList<>();
 
     String def;
@@ -62,10 +62,10 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     return list;
   }
 
-  protected abstract List<String> getVarsInRequirements(T requirement);
+  protected abstract List<String> getVarsInRequirements(final T requirement);
 
   @Override
-  protected Pair<List<String>, String> convertToFormula(T requirement, SSAMap indices) {
+  protected Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices) {
     List<String> firstReturn = writeVarDefinition(getVarsInRequirements(requirement), indices);
 
     String secReturn;
@@ -82,7 +82,7 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     return Pair.of(firstReturn, secReturn);
   }
 
-  private String computeConjunction(List<String> list) {
+  private String computeConjunction(final List<String> list) {
     StringBuilder sb = new StringBuilder();
     int BracketCounter = 0;
 
@@ -103,9 +103,9 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     return sb.toString();
   }
 
-  protected abstract List<String> getListOfIndependentRequirements(T requirement, SSAMap indices);
+  protected abstract List<String> getListOfIndependentRequirements(final T requirement, final SSAMap indices);
 
-  public static String getVarWithIndex(String var, SSAMap indices) {
+  public static String getVarWithIndex(final String var, final SSAMap indices) {
     assert (indices != null);
     assert (var != null);
 

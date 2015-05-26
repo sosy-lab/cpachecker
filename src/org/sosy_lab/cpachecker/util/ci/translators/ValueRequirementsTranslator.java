@@ -37,12 +37,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueRequirementsTranslator extends CartesianRequirementsTranslator<ValueAnalysisState> {
 
-  public ValueRequirementsTranslator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLog) {
+  public ValueRequirementsTranslator(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLog) {
     super(ValueAnalysisState.class, pConfig, pShutdownNotifier, pLog);
   }
 
   @Override
-  protected List<String> getVarsInRequirements(ValueAnalysisState pRequirement) {
+  protected List<String> getVarsInRequirements(final ValueAnalysisState pRequirement) {
     List<String> list = new ArrayList<>(pRequirement.getConstantsMapView().size());
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
       list.add(memLoc.getAsSimpleString());
@@ -51,7 +52,8 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(ValueAnalysisState pRequirement, SSAMap pIndices) {
+  protected List<String> getListOfIndependentRequirements(final ValueAnalysisState pRequirement,
+      final SSAMap pIndices) {
     List<String> list = new ArrayList<>();
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
       Value integerValue = pRequirement.getConstantsMapView().get(memLoc);

@@ -98,7 +98,8 @@ public class CustomInstructionRequirementsWriter {
     }
   }
 
-  private Collection<String> removeDuplicates(List<String> pre, List<String> post, List<String> ci) {
+  private Collection<String> removeDuplicates(final List<String> pre, final List<String> post,
+      final List<String> ci) {
     Set<String> duplicateFreeSet = new HashSet<>();
     duplicateFreeSet.addAll(pre);
     duplicateFreeSet.addAll(post);

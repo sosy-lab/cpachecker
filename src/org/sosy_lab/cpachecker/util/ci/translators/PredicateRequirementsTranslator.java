@@ -47,7 +47,8 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
   }
 
   @Override
-  protected Pair<List<String>, String> convertToFormula(PredicateAbstractState pRequirement, SSAMap pIndices)
+  protected Pair<List<String>, String> convertToFormula(final PredicateAbstractState pRequirement,
+      final SSAMap pIndices)
       throws CPAException {
 
     if (!pRequirement.isAbstractionState()) {

@@ -38,17 +38,18 @@ import com.google.common.base.Preconditions;
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<SignState> {
 
-  public SignRequirementsTranslator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLog) {
+  public SignRequirementsTranslator(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLog) {
     super(SignState.class, pConfig, pShutdownNotifier, pLog);
   }
 
   @Override
-  protected List<String> getVarsInRequirements(SignState pRequirement) {
+  protected List<String> getVarsInRequirements(final SignState pRequirement) {
     return new ArrayList<>(pRequirement.getSignMapView().keySet());
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(SignState pRequirement, SSAMap pIndices) {
+  protected List<String> getListOfIndependentRequirements(final SignState pRequirement, final SSAMap pIndices) {
     List<String> list = new ArrayList<>();
     for (String var : pRequirement.getSignMapView().keySet()) {
       list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
@@ -56,7 +57,7 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
     return list;
   }
 
-  public String getRequirement(String var, SIGN sign) {
+  public String getRequirement(final String var, final SIGN sign) {
     StringBuilder sb = new StringBuilder();
     Preconditions.checkArgument(sign != SIGN.EMPTY);
     Preconditions.checkArgument(sign != SIGN.ALL);

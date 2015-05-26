@@ -89,7 +89,7 @@ public class AppliedCustomInstructionParser {
    * @throws AppliedCustomInstructionParsingFailedException
    * @throws InterruptedException
    */
-  public CustomInstructionApplications parse (Path file)
+  public CustomInstructionApplications parse (final Path file)
       throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
 
     Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
@@ -128,7 +128,7 @@ public class AppliedCustomInstructionParser {
    * @return a new CFANode with respect to the given parameters
    * @throws AppliedCustomInstructionParsingFailedException if the node can't be created
    */
-  public CFANode getCFANode (String pNodeID, CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
+  public CFANode getCFANode (final String pNodeID, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
     try{
       return cfaInfo.getNodeByNodeNumber(Integer.parseInt(pNodeID));
     } catch (NumberFormatException ex) {
@@ -143,7 +143,7 @@ public class AppliedCustomInstructionParser {
    * @return Immutable Set of CFANodes out of the String[]
    * @throws AppliedCustomInstructionParsingFailedException
    */
-  public ImmutableSet<CFANode> getCFANodes (String[] pNodes, CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
+  public ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (int i=0; i<pNodes.length; i++) {
       builder.add(getCFANode(pNodes[i], cfaInfo));
@@ -151,7 +151,7 @@ public class AppliedCustomInstructionParser {
     return builder.build();
   }
 
-  public CustomInstruction readCustomInstruction(String functionName)
+  public CustomInstruction readCustomInstruction(final String functionName)
       throws InterruptedException, AppliedCustomInstructionParsingFailedException {
     FunctionEntryNode function = cfa.getFunctionHead(functionName);
 
@@ -245,7 +245,8 @@ public class AppliedCustomInstructionParser {
     return new CustomInstruction(ciStartNode, ciEndNodes, inputVariablesAsList, outputVariablesAsList, shutdownNotifier);
   }
 
-  private void addNewInputVariables(CFAEdge pLeavingEdge, Set<String> pPredOutputVars, Set<String> pInputVariables) {
+  private void addNewInputVariables(final CFAEdge pLeavingEdge, final Set<String> pPredOutputVars,
+      final Set<String> pInputVariables) {
     for(String var : getPotentialInputVariables(pLeavingEdge)) {
       if(!pPredOutputVars.contains(var)) {
         pInputVariables.add(var);
@@ -317,8 +318,8 @@ public class AppliedCustomInstructionParser {
 
 
 
-  private Set<String> getOutputVariablesForSuccessorAndAddNewOutputVariables(CFAEdge pLeavingEdge,
-      Set<String> pPredOutputVars, Set<String> pOutputVariables) {
+  private Set<String> getOutputVariablesForSuccessorAndAddNewOutputVariables(final CFAEdge pLeavingEdge,
+      final Set<String> pPredOutputVars, final Set<String> pOutputVariables) {
     Set<String> edgeOutputVariables = null;
     if (pLeavingEdge instanceof CStatementEdge) {
       CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();

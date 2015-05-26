@@ -37,17 +37,19 @@ import com.google.common.base.Preconditions;
 
 public class IntervalRequirementsTranslator extends CartesianRequirementsTranslator<IntervalAnalysisState> {
 
-  public IntervalRequirementsTranslator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLog) {
+  public IntervalRequirementsTranslator(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLog) {
     super(IntervalAnalysisState.class, pConfig, pShutdownNotifier, pLog);
   }
 
   @Override
-  protected List<String> getVarsInRequirements(IntervalAnalysisState pRequirement) {
+  protected List<String> getVarsInRequirements(final IntervalAnalysisState pRequirement) {
     return new ArrayList<>(pRequirement.getIntervalMapView().keySet());
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(IntervalAnalysisState pRequirement, SSAMap pIndices) {
+  protected List<String> getListOfIndependentRequirements(final IntervalAnalysisState pRequirement,
+      final SSAMap pIndices) {
     List<String> list = new ArrayList<>();
     for (String var : pRequirement.getIntervalMapView().keySet()) {
       list.add(getRequirement(getVarWithIndex(var, pIndices), pRequirement.getIntervalMapView().get(var)));
@@ -55,7 +57,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
     return list;
   }
 
-  private String getRequirement(String var, Interval interval) {
+  private String getRequirement(final String var, final Interval interval) {
     StringBuilder sb = new StringBuilder();
     boolean isMin = (interval.getLow() == Long.MIN_VALUE);
     boolean isMax = (interval.getLow() == Long.MAX_VALUE);
