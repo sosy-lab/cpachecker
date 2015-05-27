@@ -266,13 +266,13 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private List<InfeasiblePrefix> getPrefixesOfValueDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    return valueCpaPrefixProvider.extractInfeasilbePrefixes(pErrorPath);
+    return valueCpaPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
   }
 
   private List<InfeasiblePrefix> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    return predicateCpaPrefixProvider.extractInfeasilbePrefixes(pErrorPath);
+    return predicateCpaPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
   }
 
   @Override

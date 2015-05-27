@@ -98,7 +98,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
    * @throws CPAException
    */
   @Override
-  public List<InfeasiblePrefix> extractInfeasilbePrefixes(final ARGPath path)
+  public List<InfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath path)
       throws CPAException {
     return extractInfeasilbePrefixes(path, new ValueAnalysisState());
   }
@@ -227,7 +227,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
 
   public ARGPath extractFeasilbePath(final ARGPath path)
       throws CPAException {
-    extractInfeasilbePrefixes(path);
+    extractInfeasiblePrefixes(path);
     return feasiblePrefix.immutableCopy();
   }
 }

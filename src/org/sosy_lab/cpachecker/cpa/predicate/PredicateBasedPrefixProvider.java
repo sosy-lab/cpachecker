@@ -86,10 +86,11 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   }
 
   /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.cpa.predicate.PrefixProvider#getInfeasilbePrefixes(org.sosy_lab.cpachecker.cpa.arg.ARGPath)
+   * @see org.sosy_lab.cpachecker.cpa.predicate.PrefixProvider#getInfeasiblePrefixes(org.sosy_lab.cpachecker.cpa.arg.ARGPath)
    */
   @Override
-  public <T> List<InfeasiblePrefix> extractInfeasilbePrefixes(final ARGPath path) throws CPAException, InterruptedException {
+  public <T> List<InfeasiblePrefix> extractInfeasiblePrefixes(
+      final ARGPath path) throws CPAException, InterruptedException {
     List<InfeasiblePrefix> prefixes = new ArrayList<>();
     MutableARGPath feasiblePrefixPath = new MutableARGPath();
     List<T> feasiblePrefixTerms = new ArrayList<>(path.size());

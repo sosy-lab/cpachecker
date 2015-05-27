@@ -610,8 +610,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
           ARGPath path2 = ARGUtils.getOnePathTo(target2);
 
           if(itpSortedTargets) {
-            List<InfeasiblePrefix> prefixes1 = prefixProvider.extractInfeasilbePrefixes(path1);
-            List<InfeasiblePrefix> prefixes2 = prefixProvider.extractInfeasilbePrefixes(path2);
+            List<InfeasiblePrefix> prefixes1 = prefixProvider.extractInfeasiblePrefixes(path1);
+            List<InfeasiblePrefix> prefixes2 = prefixProvider.extractInfeasiblePrefixes(path2);
 
             int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_GOOD_SHORT);
             int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_GOOD_SHORT);

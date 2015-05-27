@@ -316,14 +316,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   private ARGPath performRefinementSelection(ARGPath allStatesTrace) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> infeasilbePrefixes = extractInfeasiblePrefixes(allStatesTrace);
+    List<InfeasiblePrefix> infeasiblePrefixes = extractInfeasiblePrefixes(allStatesTrace);
 
-    if(!infeasilbePrefixes.isEmpty()) {
-      totalPrefixes.setNextValue(infeasilbePrefixes.size());
+    if(!infeasiblePrefixes.isEmpty()) {
+      totalPrefixes.setNextValue(infeasiblePrefixes.size());
 
       prefixSelectionTime.start();
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
-      allStatesTrace = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
+      allStatesTrace = selector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes).getPath();
       prefixSelectionTime.stop();
     }
 
@@ -334,10 +334,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       InterruptedException {
 
     prefixExtractionTime.start();
-    List<InfeasiblePrefix> infeasilbePrefixes = prefixProvider.extractInfeasilbePrefixes(allStatesTrace);
+    List<InfeasiblePrefix> infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(
+        allStatesTrace);
     prefixExtractionTime.stop();
 
-    return infeasilbePrefixes;
+    return infeasiblePrefixes;
   }
 
   /**
