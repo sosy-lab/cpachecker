@@ -69,11 +69,11 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toDOTLabel() {
-    return toString();
+    return "";
   }
 
   @Override
   public String toString() {
-    return "Length: " + pathFormula.getLength();
+    return pathFormula.toString() + "\nLength: " + pathFormula.getLength();
   }
 }

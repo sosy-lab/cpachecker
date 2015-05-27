@@ -5,11 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
@@ -37,13 +40,18 @@ public class PolyhedraWideningManager {
 
   private final Manager manager;
   private final Map<String, CIdExpression> types;
+  private final PolicyIterationStatistics statistics;
+  private final LogManager logger;
 
-  public PolyhedraWideningManager() {
+  public PolyhedraWideningManager(PolicyIterationStatistics pStatistics,
+      LogManager pLogger) {
+    statistics = pStatistics;
+    logger = pLogger;
     manager = new Polka(false);
     types = new HashMap<>();
   }
 
-  public Manager getManager() {
+  Manager getManager() {
     return manager;
   }
 
@@ -54,7 +62,7 @@ public class PolyhedraWideningManager {
     }
   };
 
-  public Set<Template> generateTemplates(
+  public Set<Template> generateWideningTemplates(
       PolicyAbstractedState old, PolicyAbstractedState merged) {
     Set<Template> allTemplates = Sets.union(old.getAbstraction().keySet(),
         merged.getAbstraction().keySet());
@@ -62,15 +70,22 @@ public class PolyhedraWideningManager {
         DATA_GETTER);
     Map<Template, Rational> mergedData = Maps.transformValues(merged.getAbstraction(),
         DATA_GETTER);
-    Environment env = generateEnvironment(ImmutableList.of(oldData, mergedData));
-    Abstract1 abs1, abs2, widened;
-    abs1 = fromTemplates(env, oldData);
-    abs2 = fromTemplates(env, mergedData);
 
-    // todo: add timer.
-    widened = abs1.widening(getManager(), abs2);
+    Abstract1 widened;
+    try {
+      statistics.startPolyhedraWideningTimer();
+      Environment env = generateEnvironment(ImmutableList.of(oldData, mergedData));
+      Abstract1 abs1, abs2;
+      abs1 = fromTemplates(env, oldData);
+      abs2 = fromTemplates(env, mergedData);
+      abs2.join(manager, abs1);
+      widened = abs1.widening(manager, abs2);
+    } finally {
+      statistics.stopPolyhedraWideningTimer();
+    }
 
     Map<Template, Rational> generated = toTemplates(widened);
+    logger.log(Level.FINE, "Generated templates", generated);
     return Sets.difference(generated.keySet(), allTemplates);
   }
 
@@ -84,7 +99,7 @@ public class PolyhedraWideningManager {
     return out;
   }
 
-  public Map<Template, Rational> toTemplates(Abstract1 abs) {
+  Map<Template, Rational> toTemplates(Abstract1 abs) {
     Map<Template, Rational> out = new HashMap<>();
     Lincons1[] values = abs.toLincons(manager);
     for (Lincons1 constraint : values) {

@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
@@ -39,12 +40,13 @@ public class ApronPolyhedraTest {
   private LogManager logger;
 
   @Before public void setUp() throws InvalidConfigurationException {
-    pwm = new PolyhedraWideningManager();
-
     Handler h = new StreamHandler(System.out, new SimpleFormatter());
     Configuration config = TestDataTools.configurationForTest().build();
     logger = new BasicLogManager(config, h);
 
+    PolicyIterationStatistics stats = new PolicyIterationStatistics(config);
+
+    pwm = new PolyhedraWideningManager(stats, logger);
   }
 
   @Test public void test_polyhedra() {

@@ -100,6 +100,9 @@ public class TemplateManager {
 
   private final ImmutableSet<Template> extractedFromAssertTemplates;
   private final ImmutableSet<Template> extractedTemplates;
+  private final Set<Template> extraTemplates;
+  private final Set<Template> generatedTemplates;
+  private final PolicyIterationStatistics statistics;
 
   // Temporary variables created by CPA checker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
@@ -114,8 +117,10 @@ public class TemplateManager {
   public TemplateManager(
       LogManager pLogger,
       Configuration pConfig,
-      CFA pCfa
-      ) throws InvalidConfigurationException{
+      CFA pCfa, PolicyIterationStatistics pStatistics)
+        throws InvalidConfigurationException {
+    statistics = pStatistics;
+    extraTemplates = new HashSet<>();
     pConfig.inject(this, TemplateManager.class);
 
     cfa = pCfa;
@@ -138,6 +143,10 @@ public class TemplateManager {
       extractedTemplates = ImmutableSet.of();
     }
     logger.log(Level.FINE, "Generated templates", extractedFromAssertTemplates);
+    generatedTemplates = new HashSet<>();
+
+    allVariables = ImmutableList.copyOf(
+        cfa.getLiveVariables().get().getAllLiveVariables());
   }
 
   public PolicyPrecision precisionForNode(CFANode node) {
@@ -152,6 +161,7 @@ public class TemplateManager {
     ImmutableSet.Builder<Template> out = ImmutableSet.builder();
     List<ASimpleDeclaration> usedVars = ImmutableList.copyOf(getVarsForNode(node));
     out.addAll(extractTemplatesForNode(node));
+    out.addAll(extraTemplates);
 
     for (ASimpleDeclaration s : usedVars) {
       if (!shouldProcessVariable(s)) {
@@ -639,40 +649,69 @@ public class TemplateManager {
     return Template.of(other.linearExpression.multByConst(coeff));
   }
 
+  public void addGeneratedTemplates(Set<Template> templates) {
+    generatedTemplates.addAll(templates);
+  }
+
   public boolean adjustPrecision() {
-    if (!generateOctagons) {
-      logger.log(Level.INFO, "LPI Refinement: Generating octagons");
-      generateOctagons = true;
-      cache.clear();
-      return true;
+    boolean changed = false;
+    for (Template t : generatedTemplates) {
+      changed |= addTemplateToExtra(t);
     }
-    if (!generateMoreTemplates) {
-      logger.log(Level.INFO, "LPI Refinement: Generating more templates");
-      generateMoreTemplates = true;
+    try {
+      if (changed) {
+        logger.log(Level.INFO, "LPI Refinement: Using new templates",
+            generatedTemplates);
+        generatedTemplates.clear();
+        return true;
+      }
+      if (!generateOctagons) {
+        logger.log(Level.INFO, "LPI Refinement: Generating octagons");
+        generateOctagons = true;
+        return true;
+      }
+      if (!generateMoreTemplates) {
+        logger.log(Level.INFO, "LPI Refinement: Generating more templates");
+        generateMoreTemplates = true;
+        return true;
+      }
+      if (!generateCube) {
+        logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
+        generateCube = true;
+        return true;
+      }
+      return false;
+    } finally {
       cache.clear();
-      return true;
     }
-    if (!generateCube) {
-      logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
-      generateCube = true;
-      cache.clear();
-      return true;
+  }
+
+  private boolean addTemplateToExtra(Template t) {
+    // Do not add intervals.
+    if (t.size() == 1) return false;
+
+    for (Template o : extraTemplates) {
+      // Do not add templates which are multiples of already existing templates.
+      if (o.getLinearExpression().isMultipleOf(t.getLinearExpression())) {
+        return false;
+      }
     }
-    return false;
+    boolean out = extraTemplates.add(t);
+    if (out) {
+      statistics.incWideningTemplatesGenerated();
+    }
+    return out;
   }
 
   public Iterable<ASimpleDeclaration> getVarsForNode(CFANode node) {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
       return cfa.getLiveVariables().get().getLiveVariablesForNode(node);
     } else {
-      if (allVariables == null) {
-        allVariables = cfa.getLiveVariables().get().getAllLiveVariables();
-      }
       return allVariables;
     }
   }
 
-  private Iterable<ASimpleDeclaration> allVariables = null;
+  private final ImmutableList<ASimpleDeclaration> allVariables;
 
   private enum VarFilteringStrategy {
     ALL_LIVE,

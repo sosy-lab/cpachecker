@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
+import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -109,15 +110,14 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       );
     }
 
-    TemplateManager templateManager = new TemplateManager(pLogger, pConfig, cfa);
+    statistics = new PolicyIterationStatistics(pConfig);
+    TemplateManager templateManager = new TemplateManager(pLogger, pConfig, cfa,
+        statistics);
     FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
         pLogger, formulaManager);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
             formulaManager, pLogger, templateManager, pathFormulaManager);
-
-    statistics = new PolicyIterationStatistics(pConfig);
-
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(
           realFormulaManager.getUnsafeFormulaManager(),
@@ -129,6 +129,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         solver, templateManager,
         formulaManager,
         statistics, pathFormulaManager);
+    PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
+        statistics, logger);
     policyIterationManager = new PolicyIterationManager(
         pConfig,
         formulaManager,
@@ -136,7 +138,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         solver, pLogger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
         statistics,
-        formulaLinearizationManager, pCongruenceManager, joinOnMerge);
+        formulaLinearizationManager, pCongruenceManager, joinOnMerge, pPwm);
     mergeOperator = new PolicyMergeOperator(policyIterationManager, joinOnMerge);
     stopOperator = new StopSepOperator(this);
   }

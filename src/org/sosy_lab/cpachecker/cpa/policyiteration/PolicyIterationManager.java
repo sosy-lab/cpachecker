@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -111,10 +112,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       + "NOTE: Currently seems to decrease performance.")
   private boolean linearizePolicy = false;
 
+  @Option(secure=true, description="Generate new templates using polyhedra widening")
+  private boolean generateTemplatesUsingWidening = false;
+
   private final FormulaManagerView fmgr;
   private final boolean joinOnMerge;
 
-  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
@@ -127,6 +130,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final PolicyIterationStatistics statistics;
   private final FormulaLinearizationManager linearizationManager;
   private final CongruenceManager congruenceManager;
+  private final PolyhedraWideningManager pwm;
 
   public PolicyIterationManager(
       Configuration config,
@@ -141,8 +145,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIterationStatistics pStatistics,
       FormulaLinearizationManager pLinearizationManager,
       CongruenceManager pCongruenceManager,
-      boolean pJoinOnMerge)
+      boolean pJoinOnMerge, PolyhedraWideningManager pPwm)
       throws InvalidConfigurationException {
+    pwm = pPwm;
     config.inject(this, PolicyIterationManager.class);
     fmgr = pFormulaManager;
     cfa = pCfa;
@@ -446,21 +451,26 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     BooleanFormula newPredicate = fmgr.simplify(
         bfmgr.or(oldState.getPredicate(), newState.getPredicate()));
 
-    PolicyAbstractedState stateWithUpdates = oldState.withUpdates(
+    PolicyAbstractedState merged = oldState.withUpdates(
         newAbstraction,
         congruenceManager.join(
             newState.getCongruence(), oldState.getCongruence()),
         newPredicate);
 
+    if (generateTemplatesUsingWidening) {
+      templateManager.addGeneratedTemplates(
+          pwm.generateWideningTemplates(oldState, newState));
+    }
+
     if (joinOnMerge) {
-      oldState.setNewVersion(stateWithUpdates);
-      newState.setNewVersion(stateWithUpdates);
+      oldState.setNewVersion(merged);
+      newState.setNewVersion(merged);
     }
 
     PolicyAbstractedState out;
     if (!shouldPerformValueDetermination(node, updated)) {
       logger.log(Level.FINE, "Returning state with updates");
-      out = stateWithUpdates;
+      out = merged;
 
     } else {
       logger.log(Level.FINE, "Running val. det.");
@@ -469,18 +479,18 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Optional<PolicyAbstractedState> element;
       if (runHopefulValueDetermination) {
         constraints = vdfmgr.valueDeterminationFormulaCheap(
-            stateWithUpdates, updated);
+            merged, updated);
         element = performValueDetermination(
-                stateWithUpdates, newAbstraction, updated, constraints);
+                merged, newAbstraction, updated, constraints);
       } else {
         element = Optional.absent();
       }
 
       if (!element.isPresent()) {
         constraints = vdfmgr.valueDeterminationFormula(
-            stateWithUpdates, updated);
+            merged, updated);
         out = performValueDetermination(
-            stateWithUpdates,
+            merged,
             newAbstraction,
             updated,
             constraints).get();
@@ -882,9 +892,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Model model,
       Rational bound) throws SolverException, InterruptedException {
 
-    BooleanFormula policyFormula = linearizationManager.enforceChoice(
+    final BooleanFormula policyFormula = linearizationManager.enforceChoice(
         annotatedFormula, model);
-    boolean dependsOnInitial;
+    final boolean dependsOnInitial;
 
     if (checkPolicyInitialCondition) {
         statistics.checkIndependenceTimer.start();
@@ -949,7 +959,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         cfa.getAllLoopHeads().get().contains(node)) {
       return true;
     }
-
     return false;
   }
 
