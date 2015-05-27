@@ -78,7 +78,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.value.refiner")
+@Options(prefix="cpa.value.refinement")
 public class ValueAnalysisPathInterpolator implements Statistics {
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
