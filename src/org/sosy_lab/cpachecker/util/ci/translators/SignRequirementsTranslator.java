@@ -57,7 +57,7 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
     return list;
   }
 
-  public String getRequirement(final String var, final SIGN sign) {
+  private String getRequirement(final String var, final SIGN sign) {
     StringBuilder sb = new StringBuilder();
     Preconditions.checkArgument(sign != SIGN.EMPTY);
     Preconditions.checkArgument(sign != SIGN.ALL);
