@@ -62,13 +62,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -158,8 +158,8 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     totalTime.start();
     refinementCounter++;
 
-    List<ARGState> targets  = getErrorStates(pReached);
-    targetCounter       = targetCounter + targets.size();
+    List<ARGState> targets = getErrorStates(pReached);
+    targetCounter = targetCounter + targets.size();
 
     // stop once any feasible counterexample is found
     if (isAnyPathFeasible(new ARGReachedSet(pReached), getTargetPaths(targets))) {
@@ -167,7 +167,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       return false;
     }
 
-    ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, getTargetPaths(targets), useTopDownInterpolationStrategy);
 
     Set<ARGState> interpolatedTargets = new HashSet<>();
     while (interpolationTree.hasNextPathForInterpolation()) {

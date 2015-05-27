@@ -85,6 +85,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -181,36 +182,58 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(logger, pShutdownNotifier, pCfa.getMachineModel());
   }
 
-  private boolean madeProgress(ARGPath path) {
-    boolean progress = (previousErrorPathId == -1 || previousErrorPathId != obtainErrorPathId(path));
-
-    previousErrorPathId = obtainErrorPathId(path);
-
-    return progress;
-  }
-
   @Override
-  public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
+  public boolean performRefinement(final ReachedSet pReached)
+      throws CPAException, InterruptedException {
     return performRefinement(new ARGReachedSet(pReached)).isSpurious();
   }
 
-  public CounterexampleInfo performRefinement(final ARGReachedSet pReached) throws CPAException, InterruptedException {
-    logger.log(Level.FINEST, "performing global refinement ...");
-    totalTime.start();
-    refinementCounter++;
-
+  public CounterexampleInfo performRefinement(final ARGReachedSet pReached)
+      throws CPAException, InterruptedException {
     Collection<ARGState> targets = getTargetStates(pReached);
     List<ARGPath> targetPaths = getTargetPaths(targets);
 
+    // fail hard on a repeated counterexample, this is most definitively a bug
     if (!madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-        targetPaths.get(0));
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPaths.get(0));
     }
+
+    return performRefinement(pReached, targets, targetPaths);
+  }
+
+  public CounterexampleInfo performRefinement(final ARGReachedSet pReached, ARGPath targetPath)
+      throws CPAException, InterruptedException {
+    Collection<ARGState> targets = Collections.singleton(targetPath.getLastState());
+
+    // if the target path is given from outside, do not fail hard on a repeated counterexample:
+    // this can happen when the predicate-analysis refinement returns back-to-back target paths
+    // that are feasible under predicate-analysis semantics and hands those into the value-analysis
+    // refiner, where the in-between value-analysis refinement happens to only affect paths in a
+    // (ABE) block, which may not be visible when constructing the target path in the next refinement.
+    if (!madeProgress(targetPath)) {
+      logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
+          "so instead, refiner uses an error path extracted from the reachset.");
+      targetPath = getTargetPaths(targets).get(0);
+    }
+
+    return performRefinement(pReached, targets, Lists.newArrayList(targetPath));
+  }
+
+  private CounterexampleInfo performRefinement(final ARGReachedSet pReached,
+      Collection<ARGState> targets,
+      List<ARGPath> targetPaths)
+          throws RefinementFailedException, CPAException, InterruptedException {
+
+    logger.log(Level.FINEST, "performing refinement ...");
+
+    totalTime.start();
+    refinementCounter++;
+    targetCounter = targetCounter + targets.size();
 
     CounterexampleInfo cex = isAnyPathFeasible(pReached, targetPaths);
 
     if (cex.isSpurious()) {
-      refineUsingInterpolants(pReached, obtainInterpolants(targets));
+      refineUsingInterpolants(pReached, obtainInterpolants(targetPaths));
     }
 
     totalTime.stop();
@@ -257,9 +280,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-  private ValueAnalysisInterpolationTree obtainInterpolants(Collection<ARGState> targets) throws CPAException,
+  private ValueAnalysisInterpolationTree obtainInterpolants(List<ARGPath> targetsPaths) throws CPAException,
       InterruptedException {
-    ValueAnalysisInterpolationTree interpolationTree = createInterpolationTree(targets);
+    ValueAnalysisInterpolationTree interpolationTree = createInterpolationTree(targetsPaths);
 
     while (interpolationTree.hasNextPathForInterpolation()) {
       performPathInterpolation(interpolationTree);
@@ -276,8 +299,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    * This method creates the interpolation tree. As there is only a single target, it is irrelevant
    * whether to use top-down or bottom-up interpolation, as the tree is degenerated to a list.
    */
-  protected ValueAnalysisInterpolationTree createInterpolationTree(Collection<ARGState> targets) {
-    return new ValueAnalysisInterpolationTree(logger, targets, true);
+  protected ValueAnalysisInterpolationTree createInterpolationTree(List<ARGPath> targetsPaths) {
+    return new ValueAnalysisInterpolationTree(logger, targetsPaths, true);
   }
 
   private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached) {
@@ -494,6 +517,14 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return newRefinementRoot;
   }
 
+  private boolean madeProgress(ARGPath path) {
+    boolean progress = (previousErrorPathId == -1 || previousErrorPathId != obtainErrorPathId(path));
+
+    previousErrorPathId = obtainErrorPathId(path);
+
+    return progress;
+  }
+
   private CounterexampleInfo isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
       throws CPAException, InterruptedException {
 
@@ -550,7 +581,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    * @param targetStates the target states for which to get the target paths
    * @return the list of paths to the target states
    */
-  private List<ARGPath> getTargetPaths(final Collection<ARGState> targetStates) {
+  protected List<ARGPath> getTargetPaths(final Collection<ARGState> targetStates) {
     List<ARGPath> errorPaths = new ArrayList<>(targetStates.size());
 
     for (ARGState target : targetStates) {
@@ -622,8 +653,6 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
 
-    targetCounter = targetCounter + targets.size();
-
     return targets;
   }
 
@@ -665,14 +694,6 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   private int obtainErrorPathId(ARGPath path) {
     return path.toString().hashCode();
-  }
-
-  /**
-   * This method resets the current error path id, which is needed when using another refiner,
-   * such as a refiner from the predicate domain, in parallel to this refiner.
-   */
-  void resetPreviousErrorPathId() {
-    previousErrorPathId = -1;
   }
 
   /**
