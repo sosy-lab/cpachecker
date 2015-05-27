@@ -111,8 +111,25 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
    * @return Whether all coefficients are integral.
    */
   public boolean isIntegral() {
-    for (Entry<T, Rational> e : this) {
-      if (!e.getValue().isIntegral()) {
+    for (Rational coeff : data.values()) {
+      if (!coeff.isIntegral()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @return Whether an expression is a multiple of another expression.
+   */
+  public boolean isMultipleOf(LinearExpression<T> other) {
+    if (other.size() != data.size()) return false;
+    Rational multiplier = null;
+    for (T key : data.keySet()) {
+      Rational div = other.getCoeff(key).divides(data.get(key));
+      if (multiplier == null) {
+        multiplier = div;
+      } else if (!multiplier.equals(div)) {
         return false;
       }
     }
