@@ -530,7 +530,7 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 cpa.apron.splitDisequalities = true
 
 # inform merge operator in predicated analysis that it should delete the
-# subgraph of the merged nodewhich is required to get at most one successor
+# subgraph of the merged node which is required to get at most one successor
 # per CFA edge.
 cpa.arg.deleteInPredicatedAnalysis = false
 
@@ -584,6 +584,8 @@ cpa.arg.file = "ARG.dot"
 
 # inform ARG CPA if it is run in a predicated analysis because then it
 # mustbehave differntly during merge.
+# inform ARG CPA if it is run in a predicated analysis because then it must
+# behave differntly during merge.
 cpa.arg.inPredicatedAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
@@ -749,7 +751,7 @@ cpa.chc.merge = "SEP"
   allowed values: [SEP, JOIN]
 
 # inform Composite CPA if it is run in a predicated analysis because then it
-# mustbehave differntly during merge.
+# must behave differntly during merge.
 cpa.composite.inPredicatedAnalysis = false
 
 # which composite merge operator to use (plain or agree)
@@ -963,9 +965,6 @@ cpa.pointerA.merge = "JOIN"
 # which stop operator to use for PointerACPA
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# Cache formulas produced by path formula manager
-cpa.policy.useCachingPathFormulaManager = true
 
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
@@ -1688,8 +1687,14 @@ cpa.stator.policy.generateMoreTemplates = false
 # Generate octagon templates for all combinations of variables. 
 cpa.stator.policy.generateOctagons = false
 
+# Generate new templates using polyhedra widening
+cpa.stator.policy.generateTemplatesUsingWidening = false
+
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
+
+# Whether to join states on merge (leads to cycles in ARG)
+cpa.stator.policy.joinOnMerge = true
 
 # Any intermediate state with formula length bigger than specified will be
 # checked for reachability. Set to 0 to disable.
@@ -1717,9 +1722,16 @@ cpa.stator.policy.simplifyFormulas = true
 # Number of refinements after which the unrolling depth is increased
 cpa.stator.policy.unrollingRefinementThreshold = 2
 
+# Cache formulas produced by path formula manager
+cpa.stator.policy.useCachingPathFormulaManager = true
+
 # Use the optimized abstraction, which takes into the account the previously
 # obtained bound at the location.
 cpa.stator.policy.usePreviousBounds = true
+
+# Strategy for filtering variables out of templates
+cpa.stator.policy.varFiltering = ALL_LIVE
+  enum:     [ALL_LIVE, ONE_LIVE, ALL]
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
@@ -1763,7 +1775,7 @@ cpa.value.blk.onlyAtNonLinearCFA = false
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.value.initAssumptionVars = false
 
-# get an initial precison from file
+# get an initial precision from file
 cpa.value.initialPrecisionFile = no default value
 
 # which merge operator to use for ValueAnalysisCPA
