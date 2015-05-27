@@ -160,9 +160,6 @@ class Z3Model {
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
     // TODO increment all ref-counters and decrement them later?
-    long modelFormula = mk_true(z3context);
-    inc_ref(z3context, modelFormula);
-
     int n = model_get_num_consts(z3context, z3model);
     for (int i = 0; i < n; i++) {
       long keyDecl = model_get_const_decl(z3context, z3model, i);
@@ -176,12 +173,6 @@ class Z3Model {
 
       long value = model_get_const_interp(z3context, z3model, keyDecl);
       inc_ref(z3context, value);
-
-      long equivalence = mk_eq(z3context, var, value);
-      inc_ref(z3context, equivalence);
-
-      long newModelFormula = mk_and(z3context, modelFormula, equivalence);
-      inc_ref(z3context, newModelFormula);
 
       AssignableTerm lAssignable = toAssignable(z3context, var);
 
@@ -214,14 +205,7 @@ class Z3Model {
       dec_ref(z3context, keyDecl);
       dec_ref(z3context, value);
       dec_ref(z3context, var);
-      dec_ref(z3context, equivalence);
-      dec_ref(z3context, modelFormula);
-
-      modelFormula = newModelFormula;
     }
-
-    // TODO unused, remove and cleanup
-    mgr.encapsulateBooleanFormula(modelFormula);
 
     // cleanup
     model_dec_ref(z3context, z3model);
