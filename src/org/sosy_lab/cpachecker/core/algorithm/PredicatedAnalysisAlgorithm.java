@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -123,12 +125,13 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private final TransferRelation enablerTransfer;
 
   //@Option(secure=true, description="") // TODO
-  private boolean allowLazyRefinement = true;
+  private boolean allowLazyRefinement = false;
   //@Option(secure=true, description="")
-  private Enabler DFAEnablerCPA = Enabler.PREDICATE;
+  private Enabler DFAEnablerCPA = Enabler.OCTAGON;
 
   enum Enabler {
     APRON(ApronState.class, ApronCPA.class),
+    // INTERVAL refinement currently not supported in trunk
     INTERVAL(IntervalAnalysisState.class, IntervalAnalysisCPA.class),
     OCTAGON(OctagonState.class, OctagonCPA.class),
     PREDICATE(PredicateAbstractState.class, PredicateCPA.class),
@@ -195,6 +198,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
     if (!allowLazyRefinement) {
       restartFromScratchAfterRefinement(pReachedSet);
+    } else {
+      if(from(pReachedSet).anyMatch(IS_TARGET_STATE)) {
+        throw new RefinementFailedException(Reason.InterpolationFailed, null);
+      }
     }
 
     // run algorithm
@@ -272,7 +279,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
       if(fakeEdgesFromLastRun.isEmpty()){
         // create fake edge with assumption true
-        createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
+        predNode = createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
       }
 
       // create fake states, one per fake edge, note that states are the same except for enabler state (may be different)
@@ -322,6 +329,12 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         pReachedSet.add(successor, pReachedSet.getPrecision(predecessor));
         predecessor = successor;
         i++;
+      }
+
+      if(DFAEnablerCPA != Enabler.PREDICATE) {
+        // add another edge after fake edges with assumptions as required by ValueAnalysisPathInterpolator
+        // currently it is used by Value, Apron, Octagon, Interval Refiner (all except predicate refiner)
+        createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
       }
 
       assert (ARGUtils.checkARG(pReachedSet));
@@ -401,7 +414,6 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
         pf = pfm.makeEmptyPathFormula(pf);
 
-        // TODO test if works fine with fakeEnablerState instead of errorEnablerState
         PersistentMap<CFANode, Integer> abstractionLocations = predFakeState.getAbstractionLocationsOnPath();
         Integer newLocInstance = firstNonNull(abstractionLocations.get(pAssumeEdge.getSuccessor()), 0) + 1;
         abstractionLocations = abstractionLocations.putAndCopy(pAssumeEdge.getSuccessor(), newLocInstance);
@@ -532,7 +544,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
     for(Precision joinPrec : pPrecisions) {
       if (seen.add(joinPrec)) {
-        vtPrec.join((VariableTrackingPrecision) Precisions.asIterable(joinPrec)
+        vtPrec = vtPrec.join((VariableTrackingPrecision) Precisions.asIterable(joinPrec)
             .filter(VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass)).get(0));
       }
     }
