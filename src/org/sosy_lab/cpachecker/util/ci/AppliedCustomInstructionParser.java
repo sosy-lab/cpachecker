@@ -128,7 +128,7 @@ public class AppliedCustomInstructionParser {
    * @return a new CFANode with respect to the given parameters
    * @throws AppliedCustomInstructionParsingFailedException if the node can't be created
    */
-  public CFANode getCFANode (final String pNodeID, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
+  protected CFANode getCFANode (final String pNodeID, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
     try{
       return cfaInfo.getNodeByNodeNumber(Integer.parseInt(pNodeID));
     } catch (NumberFormatException ex) {
@@ -143,7 +143,7 @@ public class AppliedCustomInstructionParser {
    * @return Immutable Set of CFANodes out of the String[]
    * @throws AppliedCustomInstructionParsingFailedException
    */
-  public ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
+  protected ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (int i=0; i<pNodes.length; i++) {
       builder.add(getCFANode(pNodes[i], cfaInfo));
@@ -151,7 +151,7 @@ public class AppliedCustomInstructionParser {
     return builder.build();
   }
 
-  public CustomInstruction readCustomInstruction(final String functionName)
+  protected CustomInstruction readCustomInstruction(final String functionName)
       throws InterruptedException, AppliedCustomInstructionParsingFailedException {
     FunctionEntryNode function = cfa.getFunctionHead(functionName);
 
