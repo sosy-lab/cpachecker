@@ -666,7 +666,8 @@ public class CFACreator {
     }
 
     if(useCfaSequentialization) {
-      Sequentializer.sequencializeCFA(cfa, config);
+      Sequentializer seq = new Sequentializer(cfa, config);
+      // seq.do()
     }
 
     return cfa;
