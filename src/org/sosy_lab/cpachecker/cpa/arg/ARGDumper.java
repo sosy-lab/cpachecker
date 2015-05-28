@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -53,10 +54,12 @@ public class ARGDumper implements PostProcessor {
   private File dumpFile = new File("ARG.c");
 
   private final ARGCPA cpa;
+  private final LogManager logger;
 
-  public ARGDumper(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
+  public ARGDumper(Configuration config, ARGCPA cpa, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     this.cpa = cpa;
+    logger = pLogger;
   }
 
   @Override
@@ -67,9 +70,9 @@ public class ARGDumper implements PostProcessor {
       //generate source code out of given ARG / ReachedSet
       ARGState argRoot = (ARGState) pReached.getFirstState();
       try {
-        Files.writeFile(Paths.get(dumpFile), ARGToCTranslator.translateARG(argRoot, pReached, addDefaultInclude));
+        Files.writeFile(Paths.get(dumpFile), ARGToCTranslator.translateARG(argRoot, pReached, addDefaultInclude, logger));
         t.stop();
-        System.out.println("ARGToC translation took " + t);
+        logger.log(Level.ALL, "ARGToC translation took ", t);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e,
             "Could not dump ARG to file");

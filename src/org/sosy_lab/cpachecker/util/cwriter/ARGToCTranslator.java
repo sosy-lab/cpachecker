@@ -30,14 +30,18 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -168,17 +172,20 @@ public class ARGToCTranslator {
     }
   }
 
+  private final LogManager logger;
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final Set<ARGState> discoveredElements = new HashSet<>();
   private final Set<ARGState> mergeElements = new HashSet<>();
   private FunctionBody mainFunctionBody;
   private static Collection<AbstractState> reached;
 
-  private ARGToCTranslator() { }
+  private ARGToCTranslator(LogManager pLogger) {
+    logger = pLogger;
+  }
 
-  public static String translateARG(ARGState argRoot, ReachedSet pReached, boolean includeHeader) {
+  public static String translateARG(ARGState argRoot, ReachedSet pReached, boolean includeHeader, LogManager pLogger) {
     reached = pReached.asCollection();
-    ARGToCTranslator translator = new ARGToCTranslator();
+    ARGToCTranslator translator = new ARGToCTranslator(pLogger);
 
     translator.translate(argRoot);
 
@@ -355,7 +362,7 @@ public class ARGToCTranslator {
     }
 
     if (childElement.isTarget()) {
-      System.out.println("HALT for line no " + edge.getLineNumber());
+      logger.log(Level.ALL, "HALT for line no ", edge.getLineNumber());
       currentBlock.addStatement(new SimpleStatement("HALT" + childElement.getStateId() + ": goto HALT" + childElement.getStateId() + ";"));
     }
 
@@ -422,6 +429,18 @@ public class ARGToCTranslator {
       }
 
       break;
+    }
+
+    case MultiEdge: {
+      List<CFAEdge> innerEdges = ((MultiEdge) pCFAEdge).getEdges();
+      StringBuilder edgeStatementCodes = new StringBuilder();
+      for (CFAEdge innerEdge : innerEdges) {
+        assert innerEdge.getEdgeType() != CFAEdgeType.AssumeEdge : "Unexpected assume edge in multi edge " + innerEdge;
+        edgeStatementCodes.append(processSimpleEdge(innerEdge));
+        edgeStatementCodes.append("\n");
+      }
+
+      return edgeStatementCodes.toString();
     }
 
     case CallToReturnEdge: {

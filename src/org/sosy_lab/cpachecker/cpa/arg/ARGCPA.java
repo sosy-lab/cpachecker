@@ -89,7 +89,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   description="inform ARG CPA if it is run in a predicated analysis because then it must"
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;
-  
+
   @Option(secure=true,
       description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node"
         + "which is required to get at most one successor per CFA edge.")
@@ -172,7 +172,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     cexFilter = createCounterexampleFilter(config, logger, cpa);
     cexExporter = new CEXExporter(config, logger);
     stats = new ARGStatistics(config, this);
-    
+
     machineModel = cfa.getMachineModel();
 
     if (cpa instanceof PostProcessor) {
@@ -185,7 +185,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if (!disableRVARGSimplification) {
       postProcessors.add(new RVARGSimplifier(config, this, pShutdownNotifier));
     }
-    postProcessors.add(new ARGDumper(config, this));
+    postProcessors.add(new ARGDumper(config, this, logger));
 
   }
 
