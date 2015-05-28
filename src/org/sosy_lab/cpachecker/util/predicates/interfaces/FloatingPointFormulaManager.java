@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.math.BigDecimal;
 
-import org.sosy_lab.cpachecker.util.rationals.Rational;
+import org.sosy_lab.common.rationals.Rational;
+
 
 /**
  * This interface represents the floating-foint theory

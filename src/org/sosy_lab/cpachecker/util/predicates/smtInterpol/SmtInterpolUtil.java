@@ -118,7 +118,7 @@ class SmtInterpolUtil {
         if (t.getSort().getName().equals("Int") && rat.isIntegral()) {
           return rat.numerator();
         }
-        return org.sosy_lab.cpachecker.util.rationals.Rational.of(
+        return org.sosy_lab.common.rationals.Rational.of(
             rat.numerator(), rat.denominator());
       }
 
@@ -140,8 +140,8 @@ class SmtInterpolUtil {
           return -((Double)value).doubleValue();
         } else if (value instanceof Float) {
           return -((Float)value).floatValue();
-        } else if (value instanceof org.sosy_lab.cpachecker.util.rationals.Rational) {
-          return ((org.sosy_lab.cpachecker.util.rationals.Rational)value).negate();
+        } else if (value instanceof org.sosy_lab.common.rationals.Rational) {
+          return ((org.sosy_lab.common.rationals.Rational)value).negate();
         }
       }
     }

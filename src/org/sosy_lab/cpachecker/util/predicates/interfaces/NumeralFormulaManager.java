@@ -27,7 +27,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.rationals.Rational;
+import org.sosy_lab.common.rationals.Rational;
+
 
 /**
  * This interface represents the Numeral-Theory
