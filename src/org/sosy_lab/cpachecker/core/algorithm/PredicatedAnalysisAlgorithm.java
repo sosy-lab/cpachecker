@@ -124,6 +124,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   //@Option(secure=true, description="") // TODO
   private boolean allowLazyRefinement = true;
+  //@Option(secure=true, description="")
   private Enabler DFAEnablerCPA = Enabler.PREDICATE;
 
   enum Enabler {
@@ -235,6 +236,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
       if (!e.isMergeViolationCause()) {
         predecessor = prepareForCEGARAfterPathExplorationError(predecessor, comp, errorEnablerState, pReachedSet);
+        errorEnablerState = getEnablerState(predecessor);
         comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
       }
 
