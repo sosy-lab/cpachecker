@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier;
 
 import scala.Enumeration.Value;
 import scala.Option;
