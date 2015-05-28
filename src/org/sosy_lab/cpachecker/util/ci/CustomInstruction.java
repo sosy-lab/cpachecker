@@ -87,6 +87,60 @@ import com.google.common.base.Joiner;
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
 public class CustomInstruction{
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((ciEndNodes == null) ? 0 : ciEndNodes.hashCode());
+    result = prime * result + ((ciStartNode == null) ? 0 : ciStartNode.hashCode());
+    result = prime * result + ((inputVariables == null) ? 0 : inputVariables.hashCode());
+    result = prime * result + ((outputVariables == null) ? 0 : outputVariables.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CustomInstruction other = (CustomInstruction) obj;
+    if (ciEndNodes == null) {
+      if (other.ciEndNodes != null) {
+        return false;
+      }
+    } else if (!ciEndNodes.equals(other.ciEndNodes)) {
+      return false;
+    }
+    if (ciStartNode == null) {
+      if (other.ciStartNode != null) {
+        return false;
+      }
+    } else if (!ciStartNode.equals(other.ciStartNode)) {
+      return false;
+    }
+    if (inputVariables == null) {
+      if (other.inputVariables != null) {
+        return false;
+      }
+    } else if (!inputVariables.equals(other.inputVariables)) {
+      return false;
+    }
+    if (outputVariables == null) {
+      if (other.outputVariables != null) {
+        return false;
+      }
+    } else if (!outputVariables.equals(other.outputVariables)) {
+      return false;
+    }
+    return true;
+  }
+
   private final CFANode ciStartNode;
   private final Collection<CFANode> ciEndNodes;
   private final List<String> inputVariables;
