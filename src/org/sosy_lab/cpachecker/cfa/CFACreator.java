@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResol
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.MultiEdgeCreator;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.Sequentializer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFAReduction;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -216,10 +217,19 @@ public class CFACreator {
 
   @Option(secure=true, name="cfa.classifyNodes",
       description="This option enables the computation of a classification of CFA nodes.")
-private boolean classifyNodes = false;
+  private boolean classifyNodes = false;
+
+  @Option(secure=false, name="cfa.cfaSequencialization",
+      description="This option modifies the cfa of a concurrent programm to "
+          + "a cfa with a seqeuntial course. This is achived by the simulation "
+          + "of the context switches among the threads. The resulting "
+          + "sequential cfa can be use to run cpa's on the programm to verify "
+          + "the original programm via the generated sequential programm.")
+  private boolean useCfaSequentialization = false;
 
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
+
 
   private final LogManager logger;
   private final Parser parser;
@@ -653,6 +663,10 @@ private boolean classifyNodes = false;
 
     if (useMultiEdges) {
       MultiEdgeCreator.createMultiEdges(cfa);
+    }
+
+    if(useCfaSequentialization) {
+      Sequentializer.sequencializeCFA(cfa, config);
     }
 
     return cfa;
