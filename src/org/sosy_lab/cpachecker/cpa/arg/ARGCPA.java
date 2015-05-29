@@ -89,7 +89,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private boolean inCPAEnabledAnalysis = false;
 
   @Option(secure=true,
-      description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node "
+      description="inform merge operator in CPA enabled analysis that it should delete the subgraph of the merged node "
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
@@ -154,7 +154,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
       mergeOperator = MergeSepOperator.getInstance();
     } else {
       if (inCPAEnabledAnalysis) {
-        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge, deleteInCPAEnabledAnalysis);
+        mergeOperator = new ARGMergeJoinCPAEnabledAnalysis(wrappedMerge, deleteInCPAEnabledAnalysis);
       } else {
         mergeOperator = new ARGMergeJoin(wrappedMerge);
       }

@@ -132,7 +132,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       } else {
         if (options.inCPAEnabledAnalysis) {
           if (options.merge.equals("AGREE")) {
-            compositeMerge = new CompositeMergeAgreePredicatedAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
+            compositeMerge = new CompositeMergeAgreeCPAEnabledAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
           } else {
             throw new InvalidConfigurationException("Merge PLAIN is currently not supported in predicated analysis");
           }

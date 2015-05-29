@@ -65,13 +65,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreePredicatedAnalysisOperator;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreeCPAEnabledAnalysisOperator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
@@ -88,7 +88,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -178,12 +178,12 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
       throw new InvalidConfigurationException("Currently only support forward analyses.");
     }
-    if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof CompositeMergeAgreePredicatedAnalysisOperator)) { throw new InvalidConfigurationException(
+    if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof CompositeMergeAgreeCPAEnabledAnalysisOperator)) { throw new InvalidConfigurationException(
         "Composite CPA must be informed about predicated analysis. "
             + "Add cpa.composite.inPredicatedAnalysis=true to your configuration options.");
     }
 
-    if (!(cpa.getMergeOperator() instanceof ARGMergeJoinPredicatedAnalysis)) { throw new InvalidConfigurationException(
+    if (!(cpa.getMergeOperator() instanceof ARGMergeJoinCPAEnabledAnalysis)) { throw new InvalidConfigurationException(
         "ARG CPA must be informed about predicated analysis. "
             + "Add cpa.arg.inPredicatedAnalysis=true to your configuration options.");
     }
@@ -213,7 +213,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
     try {
       status = algorithm.run(pReachedSet);
-    } catch (PredicatedAnalysisPropertyViolationException e) {
+    } catch (CPAEnabledAnalysisPropertyViolationException e) {
       if(e.getFailureCause()==null){
         throw new CPAException("Error state not known to predicated analysis algorithm. Cannot continue analysis.");
       }
@@ -231,7 +231,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       // add merged element and clean up
       if (e.isMergeViolationCause()) {
         pReachedSet.add(((ARGState) e.getFailureCause()).getMergedWith(), precision);
-        ((ARGMergeJoinPredicatedAnalysis)cpa.getMergeOperator()).cleanUp(pReachedSet);
+        ((ARGMergeJoinCPAEnabledAnalysis)cpa.getMergeOperator()).cleanUp(pReachedSet);
       }
 
       logger.log(Level.FINEST, "Analysis aborted because error state found");

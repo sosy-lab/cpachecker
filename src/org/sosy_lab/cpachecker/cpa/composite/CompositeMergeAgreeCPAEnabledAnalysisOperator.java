@@ -43,7 +43,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 
-public class CompositeMergeAgreePredicatedAnalysisOperator implements MergeOperator {
+public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOperator {
 
   private static final Predicate<Object> NON_MERGEABLE_STATE = instanceOf(NonMergeableAbstractState.class);
 
@@ -51,7 +51,7 @@ public class CompositeMergeAgreePredicatedAnalysisOperator implements MergeOpera
   private final ImmutableList<StopOperator> stopOperators;
   private final PredicateAbstractionManager abmgr;
 
-  public CompositeMergeAgreePredicatedAnalysisOperator(ImmutableList<MergeOperator> mergeOperators,
+  public CompositeMergeAgreeCPAEnabledAnalysisOperator(ImmutableList<MergeOperator> mergeOperators,
       ImmutableList<StopOperator> stopOperators, PredicateAbstractionManager pAbmgr) {
     this.mergeOperators = mergeOperators;
     this.stopOperators = stopOperators;

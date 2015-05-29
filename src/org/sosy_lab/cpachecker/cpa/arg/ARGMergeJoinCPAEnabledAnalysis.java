@@ -33,16 +33,16 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 
 
-public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
+public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
 
   private final boolean deleteSubgraphAfterMerge;
   private final MergeOperator wrappedMerge;
   private final ArrayList<ARGState> toDeleteFromReached = new ArrayList<>();
 
-  public ARGMergeJoinPredicatedAnalysis(MergeOperator pWrappedMerge, final boolean pDeleteSubgraph) {
+  public ARGMergeJoinCPAEnabledAnalysis(MergeOperator pWrappedMerge, final boolean pDeleteSubgraph) {
     wrappedMerge = pWrappedMerge;
     deleteSubgraphAfterMerge = pDeleteSubgraph;
   }
@@ -88,7 +88,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
 
     argElement1.setMergedWith(mergedElement);
 
-    if (mergedElement.isTarget()) { throw new PredicatedAnalysisPropertyViolationException(
+    if (mergedElement.isTarget()) { throw new CPAEnabledAnalysisPropertyViolationException(
         "Property violated during merge", argElement1, true); }
 
     return mergedElement;
