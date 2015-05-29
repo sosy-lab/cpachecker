@@ -127,7 +127,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   //@Option(secure=true, description="") // TODO
   private boolean allowLazyRefinement = false;
   //@Option(secure=true, description="")
-  private Enabler DFAEnablerCPA = Enabler.OCTAGON;
+  private Enabler DFAEnablerCPA = Enabler.PREDICATE;
 
   enum Enabler {
     APRON(ApronState.class, ApronCPA.class),
