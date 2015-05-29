@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -50,8 +51,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -97,7 +103,7 @@ import com.google.common.collect.Sets;
  * The method {@link #parseName(String)} is also related to this, but should not be used!
  */
 @Options(prefix="cpa.predicate")
-public class FormulaManagerView {
+public class FormulaManagerView implements StatisticsProvider {
 
   public static enum Theory {
     INTEGER,
@@ -125,6 +131,11 @@ public class FormulaManagerView {
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate formulaDumpFile = PathTemplate.ofFormatString("%s%04d-%s%03d.smt2");
+
+  @Option(secure=true, description = "where to dump variables and their possible encoding")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path symbolEncodingFile = Paths.get("symbolEncoding.txt");
+  private final SymbolEncoding symbolEncoding = new SymbolEncoding();
 
   @Option(secure=true, description="try to add some useful static-learning-like axioms for "
     + "bitwise operations (which are encoded as UFs): essentially, "
@@ -168,7 +179,7 @@ public class FormulaManagerView {
       case INTEGER:
         rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
             manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
-            ignoreExtractConcat);
+            ignoreExtractConcat, symbolEncoding);
         break;
       case RATIONAL:
         NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
@@ -183,7 +194,7 @@ public class FormulaManagerView {
         }
         rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
             rmgr, manager.getFunctionFormulaManager(),
-            ignoreExtractConcat);
+            ignoreExtractConcat, symbolEncoding);
       break;
       case FLOAT:
         throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
@@ -194,7 +205,7 @@ public class FormulaManagerView {
 
     integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
-    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
+    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager(), symbolEncoding);
     quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
     arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
 
@@ -1483,5 +1494,27 @@ public class FormulaManagerView {
 
     eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
     return eliminationResult;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Statistics() {
+
+      @Override
+      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+        try {
+          symbolEncoding.dump(symbolEncodingFile);
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write symbol encoding to file");
+        }
+      }
+
+      @Override
+      public String getName() {
+        return "";
+      }
+
+    });
+
   }
 }

@@ -40,11 +40,14 @@ import com.google.common.base.Function;
 public class FunctionFormulaManagerView extends BaseManagerView implements FunctionFormulaManager {
 
   private final FunctionFormulaManager manager;
+  private final SymbolEncoding symbolEncoding;
+
 
   public FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
-      FunctionFormulaManager pManager) {
+      FunctionFormulaManager pManager, SymbolEncoding pSymbolEncoding) {
     super(pWrappingHandler);
     this.manager = pManager;
+    this.symbolEncoding = pSymbolEncoding;
   }
 
   private static class ReplaceUninterpretedFunctionDeclaration<T extends Formula> extends UninterpretedFunctionDeclaration<T> {
@@ -82,6 +85,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
   @Override
   public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
+    symbolEncoding.put(pName, pReturnType, pArgs);
 
     List<FormulaType<?>> newArgs = unwrapType(pArgs);
     FormulaType<?> ret = unwrapType(pReturnType);

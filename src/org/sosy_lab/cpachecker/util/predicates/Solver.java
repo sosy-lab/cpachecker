@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -32,6 +33,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -65,7 +68,7 @@ import com.google.common.collect.Maps;
  * or using different SMT solvers for different tasks such as solving and interpolation.
  */
 @Options(prefix="cpa.predicate")
-public final class Solver implements AutoCloseable {
+public final class Solver implements AutoCloseable, StatisticsProvider {
 
   @Option(secure=true, name="solver.useLogger",
       description="log some solver actions, this may be slow!")
@@ -337,6 +340,11 @@ public final class Solver implements AutoCloseable {
 
   public SmtAstMatcher getSmtAstMatcher() {
     return solvingFormulaManager.getSmtAstMatcher();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    fmgr.collectStatistics(pStatsCollection);
   }
 
 }
