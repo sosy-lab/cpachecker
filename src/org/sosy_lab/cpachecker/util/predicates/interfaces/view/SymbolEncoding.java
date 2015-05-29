@@ -149,6 +149,6 @@ public class SymbolEncoding {
       return returnType.hashCode() + 17 * parameterTypes.hashCode();
     }
 
-    public static Type<Integer> BOOL = new Type<>(-1);
+    public final static Type<Integer> BOOL = new Type<>(-1);
   }
 }

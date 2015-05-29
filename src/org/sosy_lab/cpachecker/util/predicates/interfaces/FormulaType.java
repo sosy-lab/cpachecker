@@ -300,12 +300,12 @@ public abstract class FormulaType<T extends Formula> {
       // FloatingPoint<exp=11,mant=52>
       String[] exman = t.substring(14, t.length() - 1).split(",");
       return FormulaType.getFloatingPointType(
-          Integer.valueOf(exman[0].substring(4)),
-          Integer.valueOf(exman[1].substring(5)));
+          Integer.parseInt(exman[0].substring(4)),
+          Integer.parseInt(exman[1].substring(5)));
     } else if (t.startsWith("Bitvector<")) {
       // Bitvector<32>
       return FormulaType.getBitvectorTypeWithSize(
-          Integer.valueOf(t.substring(10, t.length() - 1)));
+          Integer.parseInt(t.substring(10, t.length() - 1)));
     } else {
       throw new AssertionError("unknown type:" + t);
     }

@@ -27,8 +27,6 @@ import static java.lang.String.format;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.Type;
@@ -48,7 +46,7 @@ public class Converter {
   }
 
   public String convertFunctionDefinition(String symbol,
-      Type<String> type, @Nullable Pair<String, Type<FormulaType<?>>> initializerTerm) {
+      Type<String> type, Pair<String, Type<FormulaType<?>>> initializerTerm) {
     return format("%s (%s) %s %s",
         symbol, Joiner.on(' ').join(type.getParameterTypes()),
         type.getReturnType(), initializerTerm.getFirst());
