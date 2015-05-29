@@ -50,6 +50,8 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
   private final ImmutableList<MergeOperator> mergeOperators;
   private final ImmutableList<StopOperator> stopOperators;
   private final PredicateAbstractionManager abmgr;
+  private Class<? extends AbstractState> enablerClass;
+  private boolean isEnablerPredicate = false;
 
   public CompositeMergeAgreeCPAEnabledAnalysisOperator(ImmutableList<MergeOperator> mergeOperators,
       ImmutableList<StopOperator> stopOperators, PredicateAbstractionManager pAbmgr) {
@@ -67,30 +69,37 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
     CompositeState compReachedState = (CompositeState) reachedState;
     CompositePrecision compPrecision = (CompositePrecision) precision;
 
-    boolean mergePredicatedAnalysis = false;
+    boolean mergeIfPredicateEnabler = false;
 
     assert (compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
 
-    PredicateAbstractState predSuccessorState =
-        AbstractStates.extractStateByType(successorState, PredicateAbstractState.class);
-    PredicateAbstractState predReachedState =
-        AbstractStates.extractStateByType(reachedState, PredicateAbstractState.class);
+    AbstractState enablerReached = null;
+    if (enablerClass != null) {
+      enablerReached = AbstractStates.extractStateByType(compReachedState, enablerClass);
+    }
 
-    // check if have special case with same abstraction states then still merge in predicated analysis
-    if (predSuccessorState != null && predReachedState != null && predSuccessorState.isAbstractionState()
-        && predReachedState.isAbstractionState()) {
-      // check if same abstraction state, test formula for equivalence
-      if (predSuccessorState.getAbstractionFormula().asFormula() == predReachedState.getAbstractionFormula()
-          .asFormula()
-          || abmgr.checkCoverage(predSuccessorState.getAbstractionFormula(), predReachedState
-              .getAbstractionFormula())
-          && abmgr.checkCoverage(predReachedState.getAbstractionFormula(), predSuccessorState
-              .getAbstractionFormula())) { // TODO do we need functional equivalence or is something else faster and sufficient?
-        mergePredicatedAnalysis = true;
+    if (isEnablerPredicate) {
+      PredicateAbstractState predSuccessorState =
+          AbstractStates.extractStateByType(successorState, PredicateAbstractState.class);
+      PredicateAbstractState predReachedState =
+          AbstractStates.extractStateByType(reachedState, PredicateAbstractState.class);
+
+      // check if have special case with same abstraction states then still merge in predicated analysis
+      if (predSuccessorState != null && predReachedState != null && predSuccessorState.isAbstractionState()
+          && predReachedState.isAbstractionState()) {
+        // check if same abstraction state, test formula for equivalence
+        if (predSuccessorState.getAbstractionFormula().asFormula() == predReachedState.getAbstractionFormula()
+            .asFormula()
+            || abmgr.checkCoverage(predSuccessorState.getAbstractionFormula(), predReachedState
+                .getAbstractionFormula())
+            && abmgr.checkCoverage(predReachedState.getAbstractionFormula(), predSuccessorState
+                .getAbstractionFormula())) { // TODO do we need functional equivalence or is something else faster and sufficient?
+          mergeIfPredicateEnabler = true;
+        }
       }
     }
 
-    if (!mergePredicatedAnalysis && (from(compSuccessorState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)
+    if (!mergeIfPredicateEnabler && (from(compSuccessorState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)
         || from(compReachedState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE))) {
       // one CPA asks us to not merge at all
       return reachedState;
@@ -107,7 +116,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
       AbstractState absSuccessorState = comp1Iter.next();
       AbstractState absReachedState = comp2Iter.next();
 
-      if (mergePredicatedAnalysis && absReachedState instanceof PredicateAbstractState) {
+      if (mergeIfPredicateEnabler && absReachedState instanceof PredicateAbstractState) {
         // TODO currently only save the first path to this state,
         // CEGAR in predicated analysis may take several rounds in case of loops, or maybe it may even fail (I do not know yet)
         // in future try to find a way to encode other paths also
@@ -119,6 +128,18 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
 
       Precision prec = precIter.next();
       StopOperator stopOp = stopIter.next();
+
+      if (!isEnablerPredicate && absReachedState == enablerReached) {
+        // check that both states are equal
+        if (!(absSuccessorState.equals(absReachedState)
+            || (stopOp.stop(absSuccessorState, Collections.singleton(absReachedState), prec) && stopOp.stop(
+                absReachedState, Collections.singleton(absSuccessorState), prec)))) {
+          // enabler states do not equal -> do not merge
+          return reachedState;
+        }
+        mergedStates.add(absReachedState);
+        continue;
+      }
 
       AbstractState mergedState = mergeOp.merge(absSuccessorState, absReachedState, prec);
 
@@ -145,6 +166,11 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
       // TODO check if merge results in target state?
       return new CompositeState(mergedStates.build());
     }
+  }
+
+  public void setEnablerStateClass(Class<? extends AbstractState> pStateClass) {
+    isEnablerPredicate = pStateClass.equals(PredicateAbstractState.class);
+    enablerClass = pStateClass;
   }
 
 }

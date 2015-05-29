@@ -86,9 +86,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -171,6 +171,13 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     } else {
       predCPA = null;
+    }
+
+    try {
+      ((CompositeMergeAgreeCPAEnabledAnalysisOperator) CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator())
+          .setEnablerStateClass(enablerCPA.stateClass);
+    } catch (ClassCastException e) {
+      throw new InvalidConfigurationException("Option cpa.composite.inCPAEnabledAnalysis must be enabled.");
     }
 
     enablerTransfer = CPAs.retrieveCPA(cpa, enablerCPA.cpaClass).getTransferRelation();
