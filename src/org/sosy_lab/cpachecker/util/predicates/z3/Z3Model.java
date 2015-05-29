@@ -28,15 +28,12 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -69,13 +66,7 @@ class Z3Model {
     String lName = get_symbol_string(z3context, symbol);
     long sort = get_sort(z3context, expr);
     TermType lType = toZ3Type(z3context, sort);
-
-    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
-    if (lSplitName.getSecond() != null) {
-      return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
-    } else {
-      return new Constant(lSplitName.getFirst(), lType);
-    }
+    return Model.createAssignableTerm(lName, lType);
   }
 
 
@@ -142,8 +133,6 @@ class Z3Model {
   }
 
   public static Model createZ3Model(Z3FormulaManager mgr, long z3context, long z3solver) {
-    // Preconditions.checkArgument(solver_check(z3context, z3solver) != Z3_L_FALSE,
-    // "model is not available for UNSAT"); // TODO expensive check?
     long z3model = solver_get_model(z3context, z3solver);
     return parseZ3Model(mgr, z3context, z3model);
   }

@@ -34,10 +34,12 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
@@ -71,6 +73,15 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   public static interface AssignableTerm {
     public TermType getType();
     public String getName();
+  }
+
+  public static Constant createAssignableTerm(String name, TermType type) {
+    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(name);
+    if (lSplitName.getSecond() != null) {
+      return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), type);
+    } else {
+      return new Constant(lSplitName.getFirst(), type);
+    }
   }
 
   public static class Constant implements AssignableTerm {
