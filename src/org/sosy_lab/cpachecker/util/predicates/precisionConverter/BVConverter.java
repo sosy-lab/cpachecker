@@ -221,7 +221,7 @@ public class BVConverter extends Converter {
       // we convert "((_ divisible N) X)" into "(= (_ bv0 32) (bvmod X (_ bvN 32))"
       assert op.getSecond() == null : "type of MODULO should be unknown.";
       // extract number N from "(_ divisible (_ bvN M)"
-      int divisor = Integer.valueOf(op.getFirst().split(" ")[3].substring(2));
+      int divisor = Integer.parseInt(op.getFirst().split(" ")[3].substring(2));
       int bitsize = getBVsize(Iterables.getOnlyElement(terms).getSecond().getReturnType());
       return Pair.of(
           format("(= (_ bv0 %d) (bvsrem %s (_ bv%d %d)))",
@@ -231,7 +231,7 @@ public class BVConverter extends Converter {
     } else if (terms.size() == 1 && "__string__".equals(op.getFirst())) {
       // we convert "(__string__ (_ bvN M))" into "(__string__ N)",
       // extract number N from "(_ bvN 32)", we want the "N" from "bvN"
-      int n = Integer.valueOf(terms.get(0).getFirst().split(" ")[1].substring(2));
+      int n = Integer.parseInt(terms.get(0).getFirst().split(" ")[1].substring(2));
       return Pair.of(
           format("(__string__ %d)", n),
           new Type<FormulaType<?>>(op.getSecond().getReturnType()));
