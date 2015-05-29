@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.io.Serializable;
 
-
-public interface BooleanFormula extends Formula, Serializable {
+public interface BooleanFormula extends Formula {
 
 }

@@ -26,17 +26,20 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 public final class PathFormula implements Serializable {
 
-  private static final long serialVersionUID = -7716850731790578619L;
+  private static final long serialVersionUID = -7716850731790578620L;
   private final BooleanFormula formula;
   private final SSAMap ssa;
   private final int length;
@@ -107,40 +110,34 @@ public final class PathFormula implements Serializable {
     return result;
   }
 
-  private void readObject(ObjectInputStream in) throws IOException {
-    try {
-      in.defaultReadObject();
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
 
-      // check if formula agrees with SSA map
-     /* FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
-      Pair<String,Integer> splitName;
-      Map<String,Integer> highestIndexForVar = Maps.newHashMap();
-      Integer highestIndex;
+  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    throw new InvalidObjectException("Proxy required");
+  }
 
-      for (String var : mgr.extractFreeVariableMap(formula).keySet()) {
-        splitName = FormulaManagerView.parseName(var);
+  private static class SerializationProxy implements Serializable {
+    private static final long serialVersionUID = 309890892L;
 
-        if (splitName.getSecond() == null) {
-          if (ssa.containsVariable(splitName.getFirst())) {
-            throw new IOException("Proof is corrupted, abort reading");
-          }
-          continue;
-        }
+    private final String formulaDump;
+    private final SSAMap ssa;
+    private final int length;
+    private final PointerTargetSet pts;
 
-        highestIndex = highestIndexForVar.get(splitName.getFirst()) ;
-        if(highestIndex == null || highestIndex<splitName.getSecond()) {
-          highestIndexForVar.put(splitName.getFirst(), splitName.getSecond());
-        }
-      }
+    public SerializationProxy(PathFormula pPathFormula) {
+      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
+      formulaDump = mgr.dumpFormula(pPathFormula.formula).toString();
+      ssa = pPathFormula.ssa;
+      length = pPathFormula.length;
+      pts = pPathFormula.pts;
+    }
 
-      for(Entry<String, Integer> varIndex: highestIndexForVar.entrySet()){
-        if(ssa.getIndex(varIndex.getKey())!=varIndex.getValue()) {
-          throw new IOException("Proof is corrupted, abort reading");
-        }
-      }*/
-
-    } catch (ClassNotFoundException e) {
-      throw new IOException("", e);
+    private Object readResolve() {
+      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
+      BooleanFormula formula = mgr.parse(formulaDump);
+      return new PathFormula(formula, ssa, pts, length);
     }
   }
 }

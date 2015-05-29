@@ -104,19 +104,4 @@ public class SolverBasicTest extends SolverBasedTest0 {
 
       .testEquals();
   }
-
-  @Test
-  public void formulaSerialization() throws InvalidConfigurationException {
-    assume().withFailureMessage("Deserialization of formulas is not implemented")
-        .that(solver).isNotEqualTo(Solvers.PRINCESS);
-
-    BooleanFormula f = imgr.equal(imgr.makeVariable("x"), imgr.makeNumber(0));
-
-    GlobalInfo.getInstance().storeFormulaManager(mgr);
-    try {
-      SerializableTester.reserializeAndAssert(f);
-    } finally {
-      GlobalInfo.getInstance().storeFormulaManager(null);
-    }
-  }
 }

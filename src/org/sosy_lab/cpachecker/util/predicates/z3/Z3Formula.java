@@ -30,9 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.SerialProxyFormula;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 abstract class Z3Formula implements Formula {
 
@@ -112,17 +109,9 @@ class Z3RationalFormula extends Z3Formula implements RationalFormula {
   }
 }
 
-@SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
-    justification="Is never deserialized directly, only via serial proxy")
 class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
-  private static final long serialVersionUID = 2005692827356992794L;
-
   public Z3BooleanFormula(long z3context, long z3expr) {
     super(z3context, z3expr);
-  }
-
-  private Object writeReplace() {
-    return new SerialProxyFormula(this);
   }
 }
 
