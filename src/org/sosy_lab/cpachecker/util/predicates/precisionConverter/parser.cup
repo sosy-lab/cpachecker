@@ -1,0 +1,128 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2015  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
+
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Scanner;
+import java_cup.runtime.Symbol;
+import java_cup.runtime.SymbolFactory;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.Type;
+
+import com.google.common.base.Throwables;
+
+parser code {:
+  private LogManager logger;
+  Converter converter; 
+
+  public FormulaParser(Scanner scanner, SymbolFactory sf, Converter pConverter, LogManager pLogger) {
+      super(scanner, sf);
+      logger = pLogger;
+      converter = pConverter;
+  }
+
+  @Override
+  public void report_error(String message, Object info) {
+    String errorString = message;
+    if (info != null) {
+      errorString += " near " + info;
+    }
+    logger.log(Level.WARNING, errorString);
+  }
+
+
+  public static String convertFormula(Converter converter, String str, LogManager pLogger) {
+    ComplexSymbolFactory sf = new ComplexSymbolFactory();
+    try (InputStream input = new ByteArrayInputStream(str.getBytes())) {
+      Scanner scanner = new FormulaScanner(input, pLogger, sf);
+      FormulaParser parser = new FormulaParser(scanner, sf, converter, pLogger);
+      Symbol symbol = parser.parse();
+      return ((String) symbol.value);
+    } catch (Exception e) {
+      throw new AssertionError("problem",e);
+    }
+  }
+  
+  Converter getConverter(){
+      return converter;
+  }
+
+:};
+
+
+/* Predefined Symbols */
+terminal String DECLAREFUN, DEFINEFUN, ASSERT;
+terminal String SYMBOL, NUMERAL, DECIMAL;
+terminal String STRING;
+terminal String LPAR, RPAR;
+
+non terminal String symbol, numeral;
+non terminal String goal, definefun, declarefun, assert;
+non terminal Type<String> funtype;
+non terminal List<String> types;
+non terminal String type;
+non terminal List<Pair<String, Type<FormulaType<?>>>> terms;
+non terminal Pair<String, Type<FormulaType<?>>> term;
+
+/* ! start here ! */
+goal ::= definefun:n {: RESULT = n; :}
+       | declarefun:n {: RESULT = n; :}
+       | assert:n {: RESULT = n; :};
+
+declarefun ::= LPAR DECLAREFUN symbol:n funtype:ft RPAR 
+	{: RESULT = "(declare-fun " + parser.getConverter().convertFunctionDeclaration(n, ft) + ")"; :};
+definefun ::= LPAR DEFINEFUN symbol:n funtype:ft term:f RPAR 
+	{: RESULT = "(define-fun " + parser.getConverter().convertFunctionDefinition(n, ft, f) + ")"; :};
+assert ::= LPAR ASSERT term:f RPAR 
+	{: RESULT = "(assert " + f.getFirst() + ")"; :};
+
+funtype ::= LPAR types:lst RPAR type:t 
+	{: RESULT = new Type<String>(t, lst); :};
+types ::= type:t types:lst {: lst.add(0,t); RESULT = lst; :}
+        | /* empty */ {: RESULT = new LinkedList<String>(); :};
+type ::= symbol:n {: RESULT = n; :};
+
+terms ::= term:t terms:lst {: lst.add(0,t); RESULT = lst; :}
+        | /* empty */ {: RESULT = new LinkedList<Pair<String, Type<FormulaType<?>>>>(); :};
+term ::= numeral:n {: RESULT = parser.getConverter().convertNumeral(n); :}
+       | symbol:n {: RESULT = parser.getConverter().convertSymbol(n); :}
+       | LPAR term:op terms:lst RPAR {: RESULT = parser.getConverter().convertTerm(op, lst); :};
+
+numeral ::= NUMERAL:n {: RESULT = n; :} 
+          | DECIMAL:n {: RESULT = n; :};
+symbol ::= SYMBOL:n {: RESULT = n; :};
+

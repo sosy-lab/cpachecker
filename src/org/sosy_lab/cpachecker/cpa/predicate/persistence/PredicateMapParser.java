@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,11 +38,13 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,6 +55,10 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -95,6 +103,15 @@ public class PredicateMapParser {
   @Option(secure=true, description="Apply location- and function-specific predicates globally (to all locations in the program)")
   private boolean applyGlobally = false;
 
+  @Option(secure=true, description = "where to read symbols and their possible encoding,"
+      + "this corresponds to 'cpa.predicate.symbolEncodingFile' of a previous execution.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path symbolEncodingFile = Paths.get("SymbolEncoding.txt");
+
+  @Option(secure=true, description = "when reading predicates from file, convert them to BV-theory. "
+      + "This option depends on the 'variableEncodingFile'.")
+  private Boolean encodeAsBV = false;
+
   private final CFA cfa;
 
   private final LogManager logger;
@@ -103,10 +120,10 @@ public class PredicateMapParser {
 
   private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
 
-  public PredicateMapParser(Configuration config, CFA pCfa,
+  public PredicateMapParser(Configuration pConfig, CFA pCfa,
       LogManager pLogger,
       FormulaManagerView pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
-    config.inject(this);
+    pConfig.inject(this);
 
     cfa = pCfa;
     logger = pLogger;
@@ -146,6 +163,19 @@ public class PredicateMapParser {
     int lineNo = defParsingResult.getFirst();
     String commonDefinitions = defParsingResult.getSecond();
 
+    Converter converter = null;
+    if (encodeAsBV) {
+      final StringBuilder str = new StringBuilder();
+      converter = new BVConverter(SymbolEncoding.readSymbolEncoding(symbolEncodingFile), logger);
+      for (String line : commonDefinitions.split("\n")) {
+        if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ")) {
+          final String converted = FormulaParser.convertFormula(converter, line, logger);
+          str.append(converted).append("\n");
+        }
+      }
+      commonDefinitions = str.toString();
+    }
+
     // second, read map of predicates
     Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
     SetMultimap<String, AbstractionPredicate> functionPredicates = HashMultimap.create();
@@ -156,7 +186,6 @@ public class PredicateMapParser {
     while ((currentLine = reader.readLine()) != null) {
       lineNo++;
       currentLine = currentLine.trim();
-
       if (currentLine.isEmpty()) {
         // blank lines separates sections
         currentSet = null;
@@ -227,6 +256,11 @@ public class PredicateMapParser {
       } else {
         // we expect a predicate
         if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
+
+          if (encodeAsBV) {
+            currentLine = FormulaParser.convertFormula(checkNotNull(converter), currentLine, logger);
+          }
+
           BooleanFormula f;
           try {
             f = fmgr.parse(commonDefinitions + currentLine);
