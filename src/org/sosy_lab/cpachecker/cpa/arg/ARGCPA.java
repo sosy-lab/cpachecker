@@ -84,14 +84,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Option(secure=true,
-  description="inform ARG CPA if it is run in a predicated analysis because then it must "
+  description="inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
     + "behave differntly during merge.")
-  private boolean inPredicatedAnalysis = false;
+  private boolean inCPAEnabledAnalysis = false;
 
   @Option(secure=true,
       description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node "
         + "which is required to get at most one successor per CFA edge.")
-      private boolean deleteInPredicatedAnalysis = false;
+      private boolean deleteInCPAEnabledAnalysis = false;
 
   @Option(secure=true, name="errorPath.filters",
       description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
@@ -129,7 +129,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     if (wrappedPrec instanceof SimplePrecisionAdjustment) {
       precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
     } else {
-      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inPredicatedAnalysis);
+      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inCPAEnabledAnalysis);
     }
 
     if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
@@ -153,8 +153,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     if (wrappedMerge == MergeSepOperator.getInstance()) {
       mergeOperator = MergeSepOperator.getInstance();
     } else {
-      if (inPredicatedAnalysis) {
-        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge, deleteInPredicatedAnalysis);
+      if (inCPAEnabledAnalysis) {
+        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge, deleteInCPAEnabledAnalysis);
       } else {
         mergeOperator = new ARGMergeJoin(wrappedMerge);
       }

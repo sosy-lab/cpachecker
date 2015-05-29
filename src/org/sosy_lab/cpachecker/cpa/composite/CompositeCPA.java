@@ -70,9 +70,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     private String merge = "AGREE";
 
     @Option(secure=true,
-    description="inform Composite CPA if it is run in a predicated analysis because then it must "
+    description="inform Composite CPA if it is run in a CPA enabled analysis because then it must "
       + "behave differntly during merge.")
-    private boolean inPredicatedAnalysis = false;
+    private boolean inCPAEnabledAnalysis = false;
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -130,7 +130,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       if (mergeSep) {
         compositeMerge = MergeSepOperator.getInstance();
       } else {
-        if (options.inPredicatedAnalysis) {
+        if (options.inCPAEnabledAnalysis) {
           if (options.merge.equals("AGREE")) {
             compositeMerge = new CompositeMergeAgreePredicatedAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
           } else {
@@ -148,7 +148,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
 
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), options.inPredicatedAnalysis, getConfiguration());
+      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), options.inCPAEnabledAnalysis, getConfiguration());
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;

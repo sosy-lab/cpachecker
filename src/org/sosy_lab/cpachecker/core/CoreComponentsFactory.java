@@ -35,13 +35,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
@@ -112,10 +112,10 @@ public class CoreComponentsFactory {
       description="combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration")
   private boolean useARGCombiningAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.predicatedAnalysis",
-      description="use a predicated analysis which proves if the program satisfies a specified property"
-          + " with the help of a PredicateCPA to separate differnt program paths")
-  private boolean usePredicatedAnalysisAlgorithm = false;
+  @Option(secure=true, name="algorithm.analysisWithEnabler",
+      description="use a analysis which proves if the program satisfies a specified property"
+          + " with the help of an enabler CPA to separate differnt program paths")
+  private boolean useAnalysisWithEnablerCPAAlgorithm = false;
 
   @Option(secure=true, name="algorithm.proofCheck",
       description="use a proof check algorithm to validate a previously generated proof")
@@ -182,7 +182,7 @@ public class CoreComponentsFactory {
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
 
-      if (usePredicatedAnalysisAlgorithm) {
+      if (useAnalysisWithEnablerCPAAlgorithm) {
         algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
