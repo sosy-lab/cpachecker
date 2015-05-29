@@ -108,7 +108,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 //@Options(prefix="")// TODO
-public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvider{
+public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, StatisticsProvider{
 
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -148,7 +148,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   }
 
 
-  public PredicatedAnalysisAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
+  public AnalysisWithRefinableEnablerCPAAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     algorithm = pAlgorithm;
     this.cpa = cpa;
