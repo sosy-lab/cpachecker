@@ -354,9 +354,29 @@ public class ARGToCTranslator {
       // assumes that ReturnStateEdge is followed by FunctionReturnEdge
       CFunctionReturnEdge returnEdge = (CFunctionReturnEdge)edge;
       currentBlock = processReturnStatementCall(returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
+    } else if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+      List<CFAEdge> innerEdges = ((MultiEdge) edge).getEdges();
+      StringBuilder edgeStatementCodes = new StringBuilder();
+      for (CFAEdge innerEdge : innerEdges) {
+        assert innerEdge.getEdgeType() != CFAEdgeType.AssumeEdge : "Unexpected assume edge in multi edge " + innerEdge;
+        assert !(innerEdge instanceof CFunctionCallEdge || innerEdge instanceof CFunctionReturnEdge || innerEdge
+            .getEdgeType() == CFAEdgeType.MultiEdge) : "Unexpected edge " + innerEdge + " in MultiEdge";
+        if (innerEdge instanceof CReturnStatementEdge) {
+          assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
+          CReturnStatementEdge returnEdge = (CReturnStatementEdge) innerEdge;
+          addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
+
+          String retval = returnEdge.getExpression().get().toASTString();
+          edgeStatementCodes.append(" __return_" + childElement.getStateId() + " = " + retval + ";");
+        } else {
+          edgeStatementCodes.append(processSimpleEdge(innerEdge));
+        }
+        edgeStatementCodes.append("\n");
+      }
+      currentBlock.addStatement(new SimpleStatement(edgeStatementCodes.toString()));
     } else {
       String statement = processSimpleEdge(edge);
-      if(!statement.isEmpty()) {
+      if (!statement.isEmpty()) {
         currentBlock.addStatement(new SimpleStatement(statement));
       }
     }
@@ -429,18 +449,6 @@ public class ARGToCTranslator {
       }
 
       break;
-    }
-
-    case MultiEdge: {
-      List<CFAEdge> innerEdges = ((MultiEdge) pCFAEdge).getEdges();
-      StringBuilder edgeStatementCodes = new StringBuilder();
-      for (CFAEdge innerEdge : innerEdges) {
-        assert innerEdge.getEdgeType() != CFAEdgeType.AssumeEdge : "Unexpected assume edge in multi edge " + innerEdge;
-        edgeStatementCodes.append(processSimpleEdge(innerEdge));
-        edgeStatementCodes.append("\n");
-      }
-
-      return edgeStatementCodes.toString();
     }
 
     case CallToReturnEdge: {
