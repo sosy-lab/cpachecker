@@ -1008,6 +1008,14 @@ cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
 # in the program)
 cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 
+# when reading predicates from file, convert them to BV-theory. This option
+# depends on the 'variableEncodingFile'.
+cpa.predicate.abstraction.initialPredicates.encodeAsBV = false
+
+# where to read symbols and their possible encoding,this corresponds to
+# 'cpa.predicate.symbolEncodingFile' of a previous execution.
+cpa.predicate.abstraction.initialPredicates.symbolEncodingFile = "SymbolEncoding.txt"
+
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
@@ -1445,6 +1453,9 @@ cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
+
+# where to dump variables and their possible encoding
+cpa.predicate.symbolEncodingFile = "symbolEncoding.txt"
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
