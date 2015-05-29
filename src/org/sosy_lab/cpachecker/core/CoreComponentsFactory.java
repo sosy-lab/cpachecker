@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.PredicatedAnalysisAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
@@ -183,7 +183,7 @@ public class CoreComponentsFactory {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
 
       if (usePredicatedAnalysisAlgorithm) {
-        algorithm = new PredicatedAnalysisAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
+        algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
       if (useCEGAR) {
