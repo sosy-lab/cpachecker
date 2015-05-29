@@ -41,6 +41,8 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -107,7 +109,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-//@Options(prefix="")// TODO
+@Options(prefix="enabledanalysis")
 public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, StatisticsProvider{
 
   private final Algorithm algorithm;
@@ -124,10 +126,11 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   private Constructor<?extends AbstractState> locConstructor = null;
   private final TransferRelation enablerTransfer;
 
-  //@Option(secure=true, description="") // TODO
+  @Option(secure = true,
+      description = "Enable to use lazy refinement in current analysis instead of restarting from root after each refinement.")
   private boolean allowLazyRefinement = false;
-  //@Option(secure=true, description="")
-  private Enabler DFAEnablerCPA = Enabler.PREDICATE;
+  @Option(secure = true, description = "Which CPA is used as enabler in the current analysis.")
+  private Enabler enablerCPA = Enabler.PREDICATE;
 
   enum Enabler {
     APRON(ApronState.class, ApronCPA.class),
@@ -159,18 +162,18 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
     if (!(cpa instanceof ARGCPA)
         || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
-        || CPAs.retrieveCPA(cpa, DFAEnablerCPA.cpaClass) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
+        || CPAs.retrieveCPA(cpa, enablerCPA.cpaClass) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
         "Predicated Analysis requires ARG as top CPA and Composite CPA as child. "
             + "Furthermore, it needs Location CPA and DFA Enabling CPA to work.");
     }
 
-    if (DFAEnablerCPA == Enabler.PREDICATE) {
+    if (enablerCPA == Enabler.PREDICATE) {
       predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     } else {
       predCPA = null;
     }
 
-    enablerTransfer = CPAs.retrieveCPA(cpa, DFAEnablerCPA.cpaClass).getTransferRelation();
+    enablerTransfer = CPAs.retrieveCPA(cpa, enablerCPA.cpaClass).getTransferRelation();
 
     if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
       throw new InvalidConfigurationException("Currently only support forward analyses.");
@@ -331,7 +334,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         i++;
       }
 
-      if(DFAEnablerCPA != Enabler.PREDICATE) {
+      if(enablerCPA != Enabler.PREDICATE) {
         // add another edge after fake edges with assumptions as required by ValueAnalysisPathInterpolator
         // currently it is used by Value, Apron, Octagon, Interval Refiner (all except predicate refiner)
         createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
@@ -347,12 +350,12 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   }
 
   private AbstractState getEnablerState(final ARGState pPredecessor) {
-    return AbstractStates.extractStateByType(pPredecessor, DFAEnablerCPA.stateClass);
+    return AbstractStates.extractStateByType(pPredecessor, enablerCPA.stateClass);
   }
 
   private ARGState prepareForCEGARAfterPathExplorationError(final ARGState pPredecessor, final CompositeState pComp,
       final AbstractState pErrorEnablerState, final ReachedSet pReachedSet) {
-   if(DFAEnablerCPA == Enabler.PREDICATE){
+   if(enablerCPA == Enabler.PREDICATE){
       PredicateAbstractState predError = (PredicateAbstractState) pErrorEnablerState;
       if (predError.isAbstractionState()) {
         // we must undo the abstraction because we do not want to separate paths at this location but exclude this that
@@ -397,7 +400,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   private AbstractState buildFakeEnablerState(final AbstractState pFakeEnablerState,
       final CAssumeEdge pAssumeEdge, final boolean pLastEdge) throws CPATransferException, InterruptedException {
 
-    switch (DFAEnablerCPA) {
+    switch (enablerCPA) {
     case PREDICATE:
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
@@ -475,7 +478,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     }
 
     Precision newPrec;
-    if (DFAEnablerCPA == Enabler.PREDICATE) {
+    if (enablerCPA == Enabler.PREDICATE) {
       newPrec = builtNewPredicatePrecision(initialPrecision, precisions);
     } else {
       newPrec = builtNewVariableTrackingPrecision(initialPrecision, precisions);
@@ -485,9 +488,9 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     try {
       // assure that refinement fails if same path is encountered twice and precision not refined on that path
       if (repeatedFailure
-          && ((DFAEnablerCPA == Enabler.PREDICATE
+          && ((enablerCPA == Enabler.PREDICATE
                   && noNewPredicates((PredicatePrecision) oldEnablerPrecision, (PredicatePrecision) newPrec))
-             || (DFAEnablerCPA != Enabler.PREDICATE && noNewVariablesTracked(
+             || (enablerCPA != Enabler.PREDICATE && noNewVariablesTracked(
                 (VariableTrackingPrecision) oldEnablerPrecision, (VariableTrackingPrecision) newPrec)))) {
         throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
       }
@@ -537,7 +540,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
   private Precision builtNewVariableTrackingPrecision(Precision pInitialPrecision, Collection<Precision> pPrecisions) {
     VariableTrackingPrecision vtPrec = (VariableTrackingPrecision) Precisions.asIterable(pInitialPrecision)
-            .filter(VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass)).get(0);
+            .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass)).get(0);
 
     Set<Precision> seen = new HashSet<>();
     seen.add(pInitialPrecision);
@@ -545,28 +548,28 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     for(Precision joinPrec : pPrecisions) {
       if (seen.add(joinPrec)) {
         vtPrec = vtPrec.join((VariableTrackingPrecision) Precisions.asIterable(joinPrec)
-            .filter(VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass)).get(0));
+            .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass)).get(0));
       }
     }
     return vtPrec;
   }
 
   private Precision getCurrentEnablerPrecision(final Precision pPrecision) {
-    if (DFAEnablerCPA == Enabler.PREDICATE) {
+    if (enablerCPA == Enabler.PREDICATE) {
       return Precisions.extractPrecisionByType(pPrecision, PredicatePrecision.class);
     } else {
       return Precisions.asIterable(pPrecision)
-          .filter(VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass)).get(0);
+          .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass)).get(0);
     }
   }
 
   private Precision replaceEnablerPrecision(final Precision pInitialPrecision, final Precision pNewPrec) {
-    if (DFAEnablerCPA == Enabler.PREDICATE) {
+    if (enablerCPA == Enabler.PREDICATE) {
       return Precisions.replaceByType(pInitialPrecision, pNewPrec, Predicates.instanceOf(PredicatePrecision.class));
     }
     else {
       return Precisions.replaceByType(pInitialPrecision, pNewPrec,
-          VariableTrackingPrecision.isMatchingCPAClass(DFAEnablerCPA.cpaClass));
+          VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass));
     }
   }
 
