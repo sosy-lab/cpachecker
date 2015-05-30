@@ -868,6 +868,8 @@ public class FormulaManagerView implements StatisticsProvider {
    * Only use inside this package and for solver-specific classes
    * when creating a {@link Model}.
    * Do not use in client code!
+   *
+   * @throws IllegalArgumentException thrown if the given name is invalid
    */
   public static Pair<String, Integer> parseName(final String name) {
     String[] s = name.split(INDEX_SEPARATOR);
