@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -919,7 +920,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     int prevLocID = ((BigInteger)model.get(
-        new Model.Constant(START_LOCATION_FLAG, Model.TermType.Integer))).intValue();
+        new Model.Variable(START_LOCATION_FLAG, TermType.Integer))).intValue();
 
     PolicyAbstractedState backpointer = inputState.getGeneratingStates()
         .get(prevLocID).getLatestVersion();

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,15 +35,15 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
+import com.google.common.base.Objects;
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -61,35 +62,11 @@ import com.google.common.collect.Ordering;
  */
 public class Model extends ForwardingMap<AssignableTerm, Object> implements Appender {
 
-  public static enum TermType {
-    Boolean,
-    Uninterpreted,
-    Integer,
-    Real,
-    FloatingPoint,
-    Bitvector
-  }
+  public static class Variable implements AssignableTerm {
+    private final String name;
+    private final TermType type;
 
-  public static interface AssignableTerm {
-    public TermType getType();
-    public String getName();
-  }
-
-  public static Constant createAssignableTerm(String name, TermType type) {
-    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(name);
-    if (lSplitName.getSecond() != null) {
-      return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), type);
-    } else {
-      return new Constant(lSplitName.getFirst(), type);
-    }
-  }
-
-  public static class Constant implements AssignableTerm {
-
-    protected final String name;
-    protected final TermType type;
-
-    public Constant(final String name, final TermType type) {
+    public Variable(final String name, final TermType type) {
       this.name = name;
       this.type = type;
     }
@@ -119,66 +96,16 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
       if (this == other) {
         return true;
       }
-
       if (other == null) {
         return false;
       }
-
       if (!getClass().equals(other.getClass())) {
         return false;
       }
-
-      final Constant otherConstant = (Constant) other;
-
+      final Variable otherConstant = (Variable) other;
       return name.equals(otherConstant.name)
           && type.equals(otherConstant.type);
     }
-
-  }
-
-  public static class Variable extends Constant implements AssignableTerm {
-
-    public Variable(final String name, final int ssaIndex, final TermType type) {
-      super(name, type);
-      this.ssaIndex = ssaIndex;
-    }
-
-    public int getSSAIndex() {
-      return ssaIndex;
-    }
-
-    @Override
-    public String toString() {
-      return name + "@" + ssaIndex + " : " + type;
-    }
-
-    @Override
-    public int hashCode() {
-      return 324 + name.hashCode() + ssaIndex + type.hashCode();
-    }
-
-    @Override
-    public boolean equals(final Object other) {
-      if (this == other) {
-        return true;
-      }
-
-      if (other == null) {
-        return false;
-      }
-
-      if (!getClass().equals(other.getClass())) {
-        return false;
-      }
-
-      Variable otherVariable = (Variable) other;
-
-      return name.equals(otherVariable.name)
-          && (ssaIndex == otherVariable.ssaIndex)
-          && type.equals(otherVariable.type);
-    }
-
-    private final int ssaIndex;
   }
 
   /**
@@ -190,18 +117,13 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
     private final String mName;
     private final TermType mReturnType;
     private final List<Object> mArguments;
-    private int mHashCode;
+    private final int mHashCode;
 
     public Function(String pName, TermType pReturnType, Object[] pArguments) {
       mName = pName;
       mReturnType = pReturnType;
       mArguments = ImmutableList.copyOf(pArguments);
-
-      mHashCode = 32453 + mName.hashCode() + mReturnType.hashCode();
-
-      for (Object lValue : mArguments) {
-        mHashCode += lValue.hashCode();
-      }
+      mHashCode = Objects.hashCode(pName, pReturnType, Arrays.hashCode(pArguments));
     }
 
     @Override
@@ -296,21 +218,8 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   /**
    * Return a new model that is equal to the current one,
    * but additionally has information about when each variable was assigned.
-   * @see Model#getAssignedTermsPerEdge()
    */
   public Model withAssignmentInformation(CFAPathWithAssumptions pAssignments) {
-    checkState(assignments.isEmpty());
-    return new Model(mModel, pAssignments);
-  }
-
-  /**
-   * Return a new model that is equal to the current one,
-   * but additionally has information about when each variable was assigned,
-   * and which
-   * @see Model#getAssignedTermsPerEdge()
-   */
-  public Model withAssignmentInformation(CFAPathWithAssumptions pAssignments,
-      Multimap<CFAEdge, AssignableTerm> pAssignableTermsPerCFAEdge) {
     checkState(assignments.isEmpty());
     return new Model(mModel, pAssignments);
   }
@@ -322,16 +231,6 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   @Nullable
   public CFAPathWithAssumptions getCFAPathWithAssignments() {
     return assignments;
-  }
-
-  /**
-   * Return a path that indicates which terms were assigned at which edge.
-   * Note that it is not guaranteed that this is information is present for
-   * all terms, thus <code>this.getAssignedTermsPerEdge().getAllAssignedTerms()</code> may
-   * be smaller than <code>this.keySet()</code> (but not larger).
-   */
-  public Multimap<CFAEdge, AssignableTerm> getAssignedTermsPerEdge() {
-    return assignableTermsPerCFAEdge;
   }
 
   /**

@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -523,10 +523,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         pathChecker.extractVariableAssignment(edges, ssamaps, model);
 
     CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
-    Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
 
-    model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);
-
+    model = model.withAssignmentInformation(pathWithAssignments);
     return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
   }
 

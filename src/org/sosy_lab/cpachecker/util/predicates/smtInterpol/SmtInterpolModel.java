@@ -28,9 +28,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 
 import com.google.common.base.Verify;
 
@@ -59,7 +60,7 @@ class SmtInterpolModel {
     ApplicationTerm appTerm = (ApplicationTerm)t;
     String lName = appTerm.getFunction().getName();
     TermType lType = getType(appTerm);
-    return Model.createAssignableTerm(lName, lType);
+    return new Variable(lName, lType);
   }
 
 

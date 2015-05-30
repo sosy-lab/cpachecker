@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToRealCTranslator;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -307,7 +308,7 @@ public class CEXExporter {
           out.append(edge.toString());
           out.append(System.lineSeparator());
           //TODO Erase, counterexample is supposed to be independent of Assignable terms
-          for (Model.AssignableTerm term : model.getAllAssignedTerms(edge)) {
+          for (AssignableTerm term : model.getAllAssignedTerms(edge)) {
             out.append('\t');
             out.append(term.toString());
             out.append(": ");

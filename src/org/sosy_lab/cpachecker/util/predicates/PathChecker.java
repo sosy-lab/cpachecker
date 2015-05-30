@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -92,12 +91,12 @@ public class PathChecker {
       } else {
         Model model = getModel(thmProver);
 
-        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(pPath, ssaMaps, model);
+        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(
+            pPath, ssaMaps, model);
 
         CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
-        Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
 
-        model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);
+        model = model.withAssignmentInformation(pathWithAssignments);
 
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
       }

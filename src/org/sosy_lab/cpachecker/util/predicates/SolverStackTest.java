@@ -38,7 +38,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
@@ -315,7 +314,7 @@ public class SolverStackTest extends SolverBasedTest0 {
       assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
       Model model = stack.getModel();
-      Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);
+      Model.Variable expectedVar = new Model.Variable("a", TermType.Integer);
       assertThat(model.keySet()).containsExactly(expectedVar);
       assertThat(model).containsEntry(expectedVar, BigInteger.ONE);
     }
@@ -329,7 +328,7 @@ public class SolverStackTest extends SolverBasedTest0 {
       assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
       Model model = stack.getModel();
-      Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);
+      Model.Variable expectedVar = new Model.Variable("a", TermType.Integer);
       assertThat(model.keySet()).containsExactly(expectedVar);
       assertThat(model).containsEntry(expectedVar, val);
     }
@@ -349,8 +348,8 @@ public class SolverStackTest extends SolverBasedTest0 {
       assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
       Model model = stack.getModel();
-      Model.Constant expectedVarA = new Model.Constant("a", TermType.Integer);
-      Model.Constant expectedVarB = new Model.Constant("b", TermType.Integer);
+      Model.Variable expectedVarA = new Model.Variable("a", TermType.Integer);
+      Model.Variable expectedVarB = new Model.Variable("b", TermType.Integer);
       assertThat(model.keySet()).containsAllOf(expectedVarA, expectedVarB);
       // actual type of object is not defined, thus do string matching:
       assertThat(model).containsEntry(expectedVarA, BigInteger.ZERO);
