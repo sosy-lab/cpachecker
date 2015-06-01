@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExport;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -289,7 +289,7 @@ public class CEXExporter {
 
   private Appender createErrorPathWithVariableAssignmentInformation(
           final List<CFAEdge> edgePath, final CounterexampleInfo counterexample) {
-    final Model model = counterexample == null ? null : counterexample.getTargetPathModel();
+    final RichModel model = counterexample == null ? null : counterexample.getTargetPathModel();
     return new Appender() {
       @Override
       public void appendTo(Appendable out) throws IOException {

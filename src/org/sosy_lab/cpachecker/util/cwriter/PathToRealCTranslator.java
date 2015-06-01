@@ -27,7 +27,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -47,7 +47,7 @@ public class PathToRealCTranslator extends PathTranslator {
    * @param model The model
    * @return An appender that generates C code.
    */
-  public static Appender translateSinglePath(ARGPath pPath, Model model) {
+  public static Appender translateSinglePath(ARGPath pPath, RichModel model) {
     PathToRealCTranslator translator = new PathToRealCTranslator();
 
     translator.translateSinglePath0(pPath,
@@ -70,7 +70,7 @@ public class PathToRealCTranslator extends PathTranslator {
    * @param model The model
    * @return An appender that generates C code.
    */
-  public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath, Model model) {
+  public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath, RichModel model) {
     PathToRealCTranslator translator = new PathToRealCTranslator();
 
     translator.translatePaths0(argRoot, elementsOnErrorPath,

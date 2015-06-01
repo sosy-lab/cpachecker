@@ -83,7 +83,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
@@ -658,7 +658,7 @@ public class ARGPathExport {
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
       if (pCounterExample != null) {
-        Model model = pCounterExample.getTargetPathModel();
+        RichModel model = pCounterExample.getTargetPathModel();
         CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
         if (cfaPath != null) {
           ARGPath targetPath = pCounterExample.getTargetPath();

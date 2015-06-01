@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Function;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
@@ -98,7 +98,7 @@ public class AssignmentToPathAllocator {
    * {@link AssignableTerm} terms have been assigned.
    */
   public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(List<CFAEdge> pPath,
-      Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
+      RichModel pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
 
     // create concrete state path, also remember at wich edge which terms were used.
     Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> concreteStatePath = createConcreteStatePath(pPath,
@@ -113,7 +113,7 @@ public class AssignmentToPathAllocator {
 
 
   private Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> createConcreteStatePath(
-      List<CFAEdge> pPath, Model pModel, List<SSAMap> pSSAMaps)
+      List<CFAEdge> pPath, RichModel pModel, List<SSAMap> pSSAMaps)
           throws InterruptedException {
 
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
@@ -201,7 +201,7 @@ public class AssignmentToPathAllocator {
       Multimap<String, Assignment> functionEnvoirment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<AssignableTerm> terms, Model pModel,
+      Collection<AssignableTerm> terms, RichModel pModel,
       Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
 
     ConcreteState concreteState = createSingleConcreteState(cfaEdge, ssaMap,
@@ -219,7 +219,7 @@ public class AssignmentToPathAllocator {
       Multimap<String, Assignment> functionEnvironment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<AssignableTerm> terms, Model pModel,
+      Collection<AssignableTerm> terms, RichModel pModel,
       Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
 
     Set<Assignment> termSet = new HashSet<>();
@@ -303,7 +303,7 @@ public class AssignmentToPathAllocator {
   /**
    * We need the variableEnvironment and functionEnvironment for their SSAIndeces.
    */
-  private void createAssignments(Model pModel,
+  private void createAssignments(RichModel pModel,
       Collection<AssignableTerm> terms,
       Set<Assignment> termSet,
       Map<String, Assignment> variableEnvironment,
@@ -417,7 +417,7 @@ public class AssignmentToPathAllocator {
   }
 
   private Map<LeftHandSide, Address> getVariableAddresses(
-      AssignableTermsInPath assignableTerms, Model pModel) {
+      AssignableTermsInPath assignableTerms, RichModel pModel) {
 
     Map<LeftHandSide, Address> addressOfVariables = new HashMap<>();
 
@@ -479,7 +479,7 @@ public class AssignmentToPathAllocator {
    * allocation is used to determine the model at each edge of the path.
    *
    */
-  private AssignableTermsInPath assignTermsToPathPosition(List<SSAMap> pSsaMaps, Model pModel) {
+  private AssignableTermsInPath assignTermsToPathPosition(List<SSAMap> pSsaMaps, RichModel pModel) {
 
     // Create a map that holds all AssignableTerms that occurred
     // in the given path. The referenced path is the precise path, with multi edges resolved.

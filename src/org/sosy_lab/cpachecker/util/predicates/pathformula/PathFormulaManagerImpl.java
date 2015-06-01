@@ -30,7 +30,6 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
@@ -52,8 +51,9 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Variable;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -671,7 +671,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (Map.Entry<AssignableTerm, Object> entry : model.entrySet()) {
       AssignableTerm a = entry.getKey();
       String canonicalName = FormulaManagerView.parseName(a.getName()).getFirstNotNull();
-      if (a instanceof Model.Variable && a.getType() == TermType.Boolean) {
+      if (a instanceof Variable && a.getType() == TermType.Boolean) {
 
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
         if (!name.equals(canonicalName)) {

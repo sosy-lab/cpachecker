@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
@@ -41,6 +40,8 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Variable;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -766,7 +767,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         switch (status) {
           case OPT:
             Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
-            Model model = optEnvironment.getModel();
+            Map<AssignableTerm, Object> model = optEnvironment.getModel();
 
             // Lower bound on unsigned variables is at least zero.
             boolean unsignedAndLower = template.isUnsigned() &&
@@ -890,7 +891,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState inputState,
       PathFormula inputPathFormula,
       BooleanFormula annotatedFormula,
-      Model model,
+      Map<AssignableTerm, Object> model,
       Rational bound) throws SolverException, InterruptedException {
 
     final BooleanFormula policyFormula = linearizationManager.enforceChoice(
@@ -920,7 +921,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     int prevLocID = ((BigInteger)model.get(
-        new Model.Variable(START_LOCATION_FLAG, TermType.Integer))).intValue();
+        new Variable(START_LOCATION_FLAG, TermType.Integer))).intValue();
 
     PolicyAbstractedState backpointer = inputState.getGeneratingStates()
         .get(prevLocID).getLatestVersion();

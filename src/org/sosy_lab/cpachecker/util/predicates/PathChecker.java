@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -80,7 +80,7 @@ public class PathChecker {
 
     List<SSAMap> ssaMaps = result.getSecond();
 
-    PathFormula pathFormula = result.getFirst();
+    PathFormula pathFormula = result.getFirstNotNull();
 
     BooleanFormula f = pathFormula.getFormula();
 
@@ -89,7 +89,7 @@ public class PathChecker {
       if (thmProver.isUnsat()) {
         return CounterexampleTraceInfo.infeasibleNoItp();
       } else {
-        Model model = getModel(thmProver);
+        RichModel model = getModel(thmProver);
 
         Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(
             pPath, ssaMaps, model);
@@ -143,20 +143,20 @@ public class PathChecker {
   }
 
   public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(List<CFAEdge> pPath,
-      List<SSAMap> pSsaMaps, Model pModel) throws InterruptedException {
+      List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
 
     AssignmentToPathAllocator allocator = new AssignmentToPathAllocator(logger, shutdownNotifier);
 
     return allocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps, machineModel);
   }
 
-  private Model getModel(ProverEnvironment thmProver) {
+  private RichModel getModel(ProverEnvironment thmProver) {
     try {
-      return thmProver.getModel();
+      return RichModel.of(thmProver.getModel());
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return Model.empty();
+      return RichModel.empty();
     }
   }
 }

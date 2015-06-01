@@ -18,7 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -172,11 +172,11 @@ public class OptProversTestSuite {
 
         Model model = prover.getModel();
         BigInteger xValue =
-            (BigInteger)model.get(new Model.Variable("x", TermType.Integer));
+            (BigInteger)model.get(new Variable("x", TermType.Integer));
         BigInteger objValue =
-            (BigInteger)model.get(new Model.Variable("obj", TermType.Integer));
+            (BigInteger)model.get(new Variable("obj", TermType.Integer));
         BigInteger yValue =
-            (BigInteger)model.get(new Model.Variable("y", TermType.Integer));
+            (BigInteger)model.get(new Variable("y", TermType.Integer));
 
         assertThat(objValue).isEqualTo(BigInteger.valueOf(19));
         assertThat(xValue).isEqualTo(BigInteger.valueOf(10));
