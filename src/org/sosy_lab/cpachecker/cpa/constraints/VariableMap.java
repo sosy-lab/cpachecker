@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier.Converter;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.collect.ForwardingMap;
@@ -44,7 +45,14 @@ public class VariableMap extends ForwardingMap<String, Formula> {
   }
 
   public VariableMap(Map<String, Formula> pVariableMap) {
-    variableMap = pVariableMap;
+    final Converter symIdConverter = Converter.getInstance();
+
+    variableMap = new HashMap<>();
+
+    for (Map.Entry<String, Formula> entry : pVariableMap.entrySet()) {
+      String normalizedVariableName = symIdConverter.normalizeStringEncoding(entry.getKey());
+      variableMap.put(normalizedVariableName, entry.getValue());
+    }
   }
 
   @Override

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier.Converter;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -60,8 +61,6 @@ import com.google.common.base.Optional;
  * and {@link FormulaManagerView}.
  */
 public class FormulaCreatorUsingCConverter implements FormulaCreator {
-
-  private static final String VARIABLE_SUFFIX = "@1";
 
   private final FormulaManagerView formulaManager;
   private final CtoFormulaConverter toFormulaTransformer;
@@ -191,7 +190,9 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
    * @return a variable representing the given term, in form of a {@link Formula}
    */
   private Formula getVariableForTerm(AssignableTerm pTerm, VariableMap pVariables) {
-    final String name = pTerm.getName() + VARIABLE_SUFFIX;
+    final Converter symIdConverter = Converter.getInstance();
+
+    final String name = symIdConverter.normalizeStringEncoding(pTerm.getName());
 
     return pVariables.get(name);
   }

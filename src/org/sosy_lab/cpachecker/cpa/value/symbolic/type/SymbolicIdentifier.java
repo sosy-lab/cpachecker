@@ -162,6 +162,8 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
     private static final Converter SINGLETON = new Converter();
 
     private static final String PREFIX = "s";
+    private static final String SSA_DELIMITER = "@";
+    private static final String FIRST_SSA_INDEX = "1";
 
     private Converter() {
       // DO NOTHING
@@ -177,28 +179,45 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      * the given
      * identifier.
      * <p/>
-     * <p>For a given identifier p, <code>convert(convert(p)) = p</code> is always true.
+     * <p>For a given identifier p,
+     * <code>convertToIdentifier(convertToStringEncoding(p)) = p</code>
+     * is always true.
      *
-     * @param pIdentifier the <code>SymbolicIdentifier</code> to convert to a string
+     * @param pIdentifier the <code>SymbolicIdentifier</code> to convert to a
+     *    string
      * @return a <code>String</code> containing all information necessary for converting it to a
      * identifier
      */
-    public String convert(SymbolicIdentifier pIdentifier) {
+    public String convertToStringEncoding(SymbolicIdentifier pIdentifier) {
       return PREFIX + pIdentifier.getId();
+    }
+
+    /**
+     * Returns, for a String representation s of a {@link SymbolicIdentifier},
+     * the string encoding that would result from calling
+     * convertToStringEncoding(convertToIdentifier(s)).
+     */
+    public String normalizeStringEncoding(final String pStringRepresentation) {
+      return convertToStringEncoding(convertToIdentifier(pStringRepresentation));
     }
 
     /**
      * Converts a given encoding of a {@link SymbolicIdentifier} to the corresponding
      * <code>SymbolicIdentifier</code>.
      * <p/>
-     * Only valid encodings, as produced by {@link #convert(SymbolicIdentifier)}, are allowed.
+     * Only valid encodings, as produced by {@link #convertToStringEncoding(SymbolicIdentifier)},
+     * are allowed.
      *
      * @param pIdentifierInformation a <code>String</code> encoding of a
      * <code>SymbolicIdentifier</code>
      * @return the <code>SymbolicIdentifier</code> representing the given encoding
      */
-    public SymbolicIdentifier convert(String pIdentifierInformation) {
-      final long id = Long.parseLong(pIdentifierInformation.substring(PREFIX.length()));
+    public SymbolicIdentifier convertToIdentifier(
+        String pIdentifierInformation) {
+      final String prefixCut = pIdentifierInformation.substring(PREFIX.length());
+      final String identifierIdOnly = prefixCut.replaceFirst(SSA_DELIMITER + ".*", "");
+      final long id = Long.parseLong(identifierIdOnly);
+
       return new SymbolicIdentifier(id);
     }
 
@@ -211,7 +230,9 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      * <code>false</code> otherwise
      */
     public boolean isSymbolicEncoding(String pName) {
-      return pName.matches(PREFIX + "[0-9]+");
+      // we do not care about the SSA index here, although it should be
+      // #FIRST_SSA_INDEX, every index is fine.
+      return pName.matches(PREFIX + "[0-9]+" + SSA_DELIMITER + "[0-9].*");
     }
   }
 }

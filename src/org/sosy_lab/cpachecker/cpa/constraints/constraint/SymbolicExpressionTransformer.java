@@ -234,7 +234,8 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
       return transformValue(concreteValue, pType);
 
     } else {
-      String name = SymbolicIdentifier.Converter.getInstance().convert(pIdentifier);
+      String name = SymbolicIdentifier.Converter.getInstance().convertToStringEncoding(
+          pIdentifier);
       CSimpleDeclaration declaration = getIdentifierDeclaration(name, pType);
 
       return new CIdExpression(DUMMY_LOCATION, pType, name, declaration);

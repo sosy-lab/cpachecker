@@ -392,7 +392,8 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   }
 
   private SymbolicIdentifier toSymbolicIdentifier(String pEncoding) {
-    return SymbolicIdentifier.Converter.getInstance().convert(pEncoding);
+    return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(
+        pEncoding);
   }
 
   private Value convertToValue(Object pTermAssignment, TermType pType) {
