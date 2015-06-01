@@ -53,8 +53,11 @@ public class PredicatePostProcessor implements PostProcessor {
   }
 
   private void removeUnsatPaths(ReachedSet pReached) throws InterruptedException {
+    if(AbstractStates.extractStateByType(pReached.getFirstState(), PredicateAbstractState.class) == null) {
+      // analyses without predicate analysis directly abort if path not feasible
+      return;
+    }
     //idea: non-abstraction elements from which a non-false abstraction element is not reachable can get removed
-
     Deque<ARGState> leaves = new ArrayDeque<>();
     for (AbstractState e : pReached) {
       ARGState argEle = (ARGState) e;
