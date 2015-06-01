@@ -400,7 +400,7 @@ public class AutomatonGraphmlParser {
         // so in that case we ALSO need a transition back to the source state
         if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty() || leadsToViolationNode) {
           Element sourceNode = docDat.getNodeWithId(sourceStateId);
-          Set<NodeFlag> sourceNodeFlags = sourceNode != null ? docDat.getNodeFlags(sourceNode) : Collections.<NodeFlag>emptySet();
+          Set<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceNode);
           boolean sourceIsViolationNode = sourceNodeFlags.contains(NodeFlag.ISVIOLATION);
           matchingTransitions.add(createAutomatonTransition(
               and(conjunctedTriggers,
