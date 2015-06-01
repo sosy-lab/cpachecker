@@ -153,6 +153,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
   public AnalysisWithRefinableEnablerCPAAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    config.inject(this);
     algorithm = pAlgorithm;
     this.cpa = cpa;
     cfa = pCfa;
@@ -163,8 +164,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (!(cpa instanceof ARGCPA)
         || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
         || CPAs.retrieveCPA(cpa, enablerCPA.cpaClass) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
-        "Predicated Analysis requires ARG as top CPA and Composite CPA as child. "
-            + "Furthermore, it needs Location CPA and DFA Enabling CPA to work.");
+        "Analysis with enabler CPA requires ARG as top CPA and Composite CPA as child. "
+            + "Furthermore, it needs Location CPA and enabling CPA to work.");
     }
 
     if (enablerCPA == Enabler.PREDICATE) {
