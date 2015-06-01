@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.coverage.CoverageInformation;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -104,15 +104,6 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetGraphDumpPath = Paths.get("reached.dot");
 
-  @Option(secure=true, name="coverage.export",
-      description="print coverage info to file")
-  private boolean exportCoverage = true;
-
-  @Option(secure=true, name="coverage.file",
-      description="print coverage info to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
-
   @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
@@ -120,6 +111,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
+  private final CoverageReport coverageReport;
   private Thread memStatsThread;
 
   private Collection<IterationStatistics> iterationStats;
@@ -167,6 +159,8 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
       programCpuTime = -1;
     }
+
+    coverageReport = new CoverageReport(config, pLogger);
   }
 
   public Collection<Statistics> getSubStatistics() {
@@ -250,8 +244,8 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
       printSubStatistics(out, result, reached);
 
-      if (exportCoverage && outputCoverageFile != null && cfa != null) {
-        CoverageInformation.writeCoverageInfo(out, outputCoverageFile, reached, cfa, logger);
+      if (coverageReport != null && cfa != null) {
+        coverageReport.writeCoverageReport(out, result, reached, cfa);
       }
     }
 

@@ -27,16 +27,16 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
-import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Writer;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -46,27 +46,50 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+import com.google.common.collect.Lists;
+
 /**
  * Class responsible for extracting coverage information from ReachedSet and CFA
  * and writing it into a file.
  */
-public class CoverageInformation {
+@Options
+public class CoverageReport {
 
-  public static void writeCoverageInfo(
-      PrintStream pStatisticsOutput,
-      Path pOutputFile,
-      ReachedSet pReached,
-      CFA pCfa,
-      LogManager pLogger) {
+  @Option(secure=true,
+      name="coverage.enabled",
+      description="Compute and export information about the verification coverage?")
+  private boolean enabled = true;
+
+  private final Collection<CoverageWriter> reportWriters;
+
+  public CoverageReport(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+
+    pConfig.inject(this);
+
+    this.reportWriters = Lists.newArrayList();
+    this.reportWriters.add(new CoveragePrinterGcov(pConfig, pLogger));
+  }
+
+  public void writeCoverageReport(
+      final PrintStream pStatisticsOutput,
+      final Result pResult,
+      final ReachedSet pReached,
+      final CFA pCfa) {
+
+    if (!enabled) {
+      return;
+    }
 
     Set<CFANode> reachedLocations = getAllLocationsFromReached(pReached);
 
-    Map<String, CoveragePrinter> printers = new HashMap<>();
+    Map<String, FileCoverageInformation> infosPerFile = new HashMap<>();
 
     //Add information about visited locations
     for (CFANode node : pCfa.getAllNodes()) {
@@ -77,10 +100,10 @@ public class CoverageInformation {
 
         if (edge instanceof MultiEdge) {
           for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-            handleEdgeCoverage(innerEdge, visited, printers);
+            handleEdgeCoverage(innerEdge, visited, infosPerFile);
           }
         } else {
-          handleEdgeCoverage(edge, visited, printers);
+          handleEdgeCoverage(edge, visited, infosPerFile);
         }
       }
     }
@@ -93,80 +116,87 @@ public class CoverageInformation {
         continue;
       }
       final String functionName = entryNode.getFunctionName();
-      final CoveragePrinter printer = getPrinter(loc, printers);
+      final FileCoverageInformation infos = getFileInfoTarget(loc, infosPerFile);
 
       final int startingLine = loc.getStartingLineInOrigin();
       final int endingLine = loc.getEndingLineNumber() - loc.getStartingLineNumber() + loc.getStartingLineInOrigin();
 
-      printer.addExistingFunction(functionName, startingLine, endingLine);
+      infos.addExistingFunction(functionName, startingLine, endingLine);
 
       if (reachedLocations.contains(entryNode)) {
-        printer.addVisitedFunction(functionName);
+        infos.addVisitedFunction(functionName);
       }
     }
 
-    try (Writer out = Files.openOutputFile(pOutputFile)) {
-      for (Map.Entry<String, CoveragePrinter> entry : printers.entrySet()) {
-        entry.getValue().print(out, entry.getKey());
-      }
-    } catch (IOException e) {
-      pLogger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+    for (CoverageWriter w: reportWriters) {
+      w.write(infosPerFile, pStatisticsOutput);
     }
+
   }
 
-  private static void handleEdgeCoverage(final CFAEdge edge, final boolean visited,
-      final Map<String, CoveragePrinter> printers) {
-    final FileLocation loc = edge.getFileLocation();
+  private void handleEdgeCoverage(
+      final CFAEdge pEdge,
+      final boolean pVisited,
+      final Map<String, FileCoverageInformation> pCollectors) {
+
+    final FileLocation loc = pEdge.getFileLocation();
     if (loc.getStartingLineNumber() == 0) {
       // dummy location
       return;
     }
-    if (edge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)edge).getDeclaration() instanceof AFunctionDeclaration)) {
+    if (pEdge instanceof ADeclarationEdge
+        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
       // Function declarations span the complete body, this is not desired.
       return;
     }
 
-    final CoveragePrinter printer = getPrinter(loc, printers);
+    final FileCoverageInformation collector = getFileInfoTarget(loc, pCollectors);
 
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineNumber() - loc.getStartingLineNumber() + loc.getStartingLineInOrigin();
 
     for (int line = startingLine; line <= endingLine; line++) {
-      printer.addExistingLine(line);
+      collector.addExistingLine(line);
     }
 
-    if (visited) {
+    if (pVisited) {
       for (int line = startingLine; line <= endingLine; line++) {
-        printer.addVisitedLine(line);
+        collector.addVisitedLine(line);
       }
     }
   }
 
-  private static CoveragePrinter getPrinter(FileLocation loc, Map<String, CoveragePrinter> printers) {
-    assert loc.getStartingLineNumber() != 0; // Cannot produce coverage info for dummy file location
+  private FileCoverageInformation getFileInfoTarget(
+      final FileLocation pLoc,
+      final Map<String, FileCoverageInformation> pTargets) {
 
-    String file = loc.getFileName();
-    CoveragePrinter printer = printers.get(file);
-    if (printer == null) {
-      printer = new CoveragePrinterGcov();
-      printers.put(file, printer);
+    assert pLoc.getStartingLineNumber() != 0; // Cannot produce coverage info for dummy file location
+
+    String file = pLoc.getFileName();
+    FileCoverageInformation fileInfos = pTargets.get(file);
+
+    if (fileInfos == null) {
+      fileInfos = new FileCoverageInformation();
+      pTargets.put(file, fileInfos);
     }
-    return printer;
+
+    return fileInfos;
   }
 
-  private static Set<CFANode> getAllLocationsFromReached(ReachedSet reached) {
-    if (reached instanceof ForwardingReachedSet) {
-      reached = ((ForwardingReachedSet)reached).getDelegate();
+  private Set<CFANode> getAllLocationsFromReached(ReachedSet pReached) {
+    if (pReached instanceof ForwardingReachedSet) {
+      pReached = ((ForwardingReachedSet)pReached).getDelegate();
     }
-    if (reached instanceof LocationMappedReachedSet) {
-      return ((LocationMappedReachedSet)reached).getLocations();
+
+    if (pReached instanceof LocationMappedReachedSet) {
+      return ((LocationMappedReachedSet)pReached).getLocations();
 
     } else {
-      return from(reached)
+      return from(pReached)
                   .transform(EXTRACT_LOCATION)
                   .filter(notNull())
                   .toSet();
     }
   }
+
 }

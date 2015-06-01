@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,21 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
-import java.io.IOException;
+import java.util.Map;
 
 
-/**
- * Interface for printers information about coverage
- */
-interface CoveragePrinter {
+public interface CoverageWriter {
 
-  void addVisitedFunction(String name);
+  void write(Map<String, FileCoverageInformation> pCoverage, Appendable pOut);
 
-  void addExistingFunction(String name, int firstLine, int lastLine);
-
-  void addVisitedLine(int line);
-
-  void addExistingLine(int line);
-
-  void print(Appendable out, String originFile) throws IOException;
 }
