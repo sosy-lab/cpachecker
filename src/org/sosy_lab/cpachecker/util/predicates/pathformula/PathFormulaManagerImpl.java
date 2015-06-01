@@ -652,7 +652,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   /**
    * Extract the information about the branching predicates created by
-   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
+   * {@link #buildBranchingFormula(Iterable)} from a satisfying assignment.
    *
    * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).
@@ -670,10 +670,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     Map<Integer, Boolean> preds = Maps.newHashMap();
     for (Map.Entry<AssignableTerm, Object> entry : model.entrySet()) {
       AssignableTerm a = entry.getKey();
+      String canonicalName = FormulaManagerView.parseName(a.getName()).getFirstNotNull();
       if (a instanceof Model.Variable && a.getType() == TermType.Boolean) {
 
-        String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
-        if (!name.equals(a.getName())) {
+        String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
+        if (!name.equals(canonicalName)) {
           // pattern matched, so it's a variable with __ART__ in it
 
           // no NumberFormatException because of RegExp match earlier
