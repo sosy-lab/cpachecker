@@ -92,6 +92,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -217,14 +218,8 @@ public class AutomatonGraphmlParser {
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
-        final List<AutomatonBoolExpr> assertions;
+        final List<AutomatonBoolExpr> assertions = Collections.emptyList();
         boolean leadsToViolationNode = targetNodeFlags.contains(NodeFlag.ISVIOLATION);
-        if (leadsToViolationNode) {
-          AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
-          assertions = Collections.singletonList(otherAutomataSafe);
-        } else {
-          assertions = Collections.emptyList();
-        }
 
         List<AutomatonAction> actions = Collections.emptyList();
         List<CStatement> assumptions = Lists.newArrayList();
@@ -403,7 +398,10 @@ public class AutomatonGraphmlParser {
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
-        if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty()) {
+        if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty() || leadsToViolationNode) {
+          Element sourceNode = docDat.getNodeWithId(sourceStateId);
+          Set<NodeFlag> sourceNodeFlags = sourceNode != null ? docDat.getNodeFlags(sourceNode) : Collections.<NodeFlag>emptySet();
+          boolean sourceIsViolationNode = sourceNodeFlags.contains(NodeFlag.ISVIOLATION);
           matchingTransitions.add(createAutomatonTransition(
               and(conjunctedTriggers,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
@@ -411,7 +409,7 @@ public class AutomatonGraphmlParser {
               Collections.<CStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
               sourceStateId,
-              leadsToViolationNode));
+              sourceIsViolationNode));
         }
         transitions.addAll(matchingTransitions);
         transitions.addAll(nonMatchingTransitions);
@@ -498,9 +496,10 @@ public class AutomatonGraphmlParser {
       return createAutomatonSinkTransition(pTriggers, pAssertions, pActions, pLeadsToViolationNode);
     }
     if (pLeadsToViolationNode) {
+      List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
       return new ViolationCopyingAutomatonTransition(
               pTriggers,
-              pAssertions,
+              assertions,
               pAssumptions,
               pActions,
               pTargetStateId);
