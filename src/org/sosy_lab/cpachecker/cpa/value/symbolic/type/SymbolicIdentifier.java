@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
@@ -162,8 +163,6 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
     private static final Converter SINGLETON = new Converter();
 
     private static final String PREFIX = "s";
-    private static final String SSA_DELIMITER = "@";
-    private static final String FIRST_SSA_INDEX = "1";
 
     private Converter() {
       // DO NOTHING
@@ -214,8 +213,9 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      */
     public SymbolicIdentifier convertToIdentifier(
         String pIdentifierInformation) {
-      final String prefixCut = pIdentifierInformation.substring(PREFIX.length());
-      final String identifierIdOnly = prefixCut.replaceFirst(SSA_DELIMITER + ".*", "");
+
+      final String variableName = FormulaManagerView.parseName(pIdentifierInformation).getFirst();
+      final String identifierIdOnly = variableName.substring(PREFIX.length());
       final long id = Long.parseLong(identifierIdOnly);
 
       return new SymbolicIdentifier(id);
@@ -230,9 +230,8 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      * <code>false</code> otherwise
      */
     public boolean isSymbolicEncoding(String pName) {
-      // we do not care about the SSA index here, although it should be
-      // #FIRST_SSA_INDEX, every index is fine.
-      return pName.matches(PREFIX + "[0-9]+" + SSA_DELIMITER + "[0-9].*");
+      String variableName = FormulaManagerView.parseName(pName).getFirst();
+      return variableName.startsWith(PREFIX);
     }
   }
 }
