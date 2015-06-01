@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,15 +57,19 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class CoverageInformation {
 
-  public static void writeCoverageInfo(Path outputFile, ReachedSet reached, CFA cfa,
-      LogManager logger) {
+  public static void writeCoverageInfo(
+      PrintStream pStatisticsOutput,
+      Path pOutputFile,
+      ReachedSet pReached,
+      CFA pCfa,
+      LogManager pLogger) {
 
-    Set<CFANode> reachedLocations = getAllLocationsFromReached(reached);
+    Set<CFANode> reachedLocations = getAllLocationsFromReached(pReached);
 
     Map<String, CoveragePrinter> printers = new HashMap<>();
 
     //Add information about visited locations
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : pCfa.getAllNodes()) {
        //This part adds lines, which are only on edges, such as "return" or "goto"
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         boolean visited = reachedLocations.contains(edge.getPredecessor())
@@ -81,7 +86,7 @@ public class CoverageInformation {
     }
 
     // Add information about visited functions
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : pCfa.getAllFunctionHeads()) {
       final FileLocation loc = entryNode.getFileLocation();
       if (loc.getStartingLineNumber() == 0) {
         // dummy location
@@ -100,12 +105,12 @@ public class CoverageInformation {
       }
     }
 
-    try (Writer out = Files.openOutputFile(outputFile)) {
+    try (Writer out = Files.openOutputFile(pOutputFile)) {
       for (Map.Entry<String, CoveragePrinter> entry : printers.entrySet()) {
         entry.getValue().print(out, entry.getKey());
       }
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+      pLogger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
     }
   }
 

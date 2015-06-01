@@ -251,7 +251,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       printSubStatistics(out, result, reached);
 
       if (exportCoverage && outputCoverageFile != null && cfa != null) {
-        CoverageInformation.writeCoverageInfo(outputCoverageFile, reached, cfa, logger);
+        CoverageInformation.writeCoverageInfo(out, outputCoverageFile, reached, cfa, logger);
       }
     }
 
