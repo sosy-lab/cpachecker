@@ -43,10 +43,10 @@ class FileCoverageInformation {
     }
   }
 
-  protected final BitSet visitedLines = new BitSet();
-  protected final Set<Integer> allLines = new HashSet<>();
-  protected final Set<String> visitedFunctions = new HashSet<>();
-  protected final Set<FunctionInfo> allFunctions = new HashSet<>();
+  final BitSet visitedLines = new BitSet();
+  final Set<Integer> allLines = new HashSet<>();
+  final Set<String> visitedFunctions = new HashSet<>();
+  final Set<FunctionInfo> allFunctions = new HashSet<>();
 
   public void addVisitedFunction(String pName) {
     visitedFunctions.add(pName);

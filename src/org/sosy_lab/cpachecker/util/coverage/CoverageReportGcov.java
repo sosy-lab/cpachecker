@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInf
  * (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html).
  */
 @Options
-class CoveragePrinterGcov implements CoverageWriter {
+class CoverageReportGcov implements CoverageWriter {
 
   @Option(secure=true,
       name="coverage.export",
@@ -66,7 +66,7 @@ class CoveragePrinterGcov implements CoverageWriter {
 
   private final LogManager logger;
 
-  public CoveragePrinterGcov(Configuration pConfig, LogManager pLogger)
+  public CoverageReportGcov(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);

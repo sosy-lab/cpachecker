@@ -74,7 +74,7 @@ public class CoverageReport {
     pConfig.inject(this);
 
     this.reportWriters = Lists.newArrayList();
-    this.reportWriters.add(new CoveragePrinterGcov(pConfig, pLogger));
+    this.reportWriters.add(new CoverageReportGcov(pConfig, pLogger));
   }
 
   public void writeCoverageReport(
