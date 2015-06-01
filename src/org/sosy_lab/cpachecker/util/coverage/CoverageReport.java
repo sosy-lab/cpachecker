@@ -75,6 +75,8 @@ public class CoverageReport {
 
     this.reportWriters = Lists.newArrayList();
     this.reportWriters.add(new CoverageReportGcov(pConfig, pLogger));
+    this.reportWriters.add(new CoverageReportStdoutSummary(pConfig, pLogger));
+
   }
 
   public void writeCoverageReport(

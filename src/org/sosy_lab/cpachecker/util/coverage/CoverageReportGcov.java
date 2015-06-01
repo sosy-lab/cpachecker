@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Map;
 import java.util.logging.Level;
@@ -75,7 +76,7 @@ class CoverageReportGcov implements CoverageWriter {
   }
 
   @Override
-  public void write(Map<String, FileCoverageInformation> pCoverage, Appendable pStdOut) {
+  public void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
 
     if (!exportCoverage || (outputCoverageFile == null)) {
       return;
