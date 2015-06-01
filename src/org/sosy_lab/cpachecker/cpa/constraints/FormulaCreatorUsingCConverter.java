@@ -34,11 +34,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -85,7 +85,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   }
 
   @Override
-  public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment, VariableMap pVariables) {
+  public BooleanFormula transformAssignment(AssignableTerm pTerm, Object termAssignment, VariableMap pVariables) {
     Formula variable = getVariableForTerm(pTerm, pVariables);
     FormulaType<?> variableType = formulaManager.getFormulaType(variable);
     Formula rightFormula;
@@ -190,7 +190,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
    * @param pVariables the map of possible variables
    * @return a variable representing the given term, in form of a {@link Formula}
    */
-  private Formula getVariableForTerm(Model.AssignableTerm pTerm, VariableMap pVariables) {
+  private Formula getVariableForTerm(AssignableTerm pTerm, VariableMap pVariables) {
     final String name = pTerm.getName() + VARIABLE_SUFFIX;
 
     return pVariables.get(name);

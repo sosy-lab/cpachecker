@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.*;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
 import scala.Enumeration;

@@ -32,7 +32,6 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -53,9 +52,9 @@ public class AssignmentToPathAllocatorTest {
 
   @Test
   public void testFindFirstOccurrenceOfVariable() {
-    Variable varX = new Variable("x", 4, TermType.Integer);
-    Variable varY = new Variable("y", 5, TermType.Integer);
-    Variable varZ = new Variable("z", 6, TermType.Integer);
+    Variable varX = new Variable("x@4", TermType.Integer);
+    Variable varY = new Variable("y@5", TermType.Integer);
+    Variable varZ = new Variable("z@6", TermType.Integer);
 
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     List<SSAMap> ssaMaps = Lists.newArrayList();

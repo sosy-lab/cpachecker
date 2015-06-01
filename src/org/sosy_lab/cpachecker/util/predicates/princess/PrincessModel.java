@@ -30,9 +30,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 
 import scala.Option;
 import ap.SimpleAPI;
@@ -60,7 +61,7 @@ class PrincessModel {
       lName = v.c().name();
       lType = TermType.Integer;
     }
-    return Model.createAssignableTerm(lName, lType);
+    return new Variable(lName, lType);
   }
 
 

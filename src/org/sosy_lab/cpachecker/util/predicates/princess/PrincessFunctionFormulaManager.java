@@ -28,7 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import ap.parser.IExpression;

@@ -30,10 +30,10 @@ import java.math.BigInteger;
 
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -56,7 +56,7 @@ class Z3Model {
     }
   }
 
-  private static Constant toVariable(long z3context, long expr) {
+  private static Variable toVariable(long z3context, long expr) {
     long decl = get_app_decl(z3context, expr);
     long symbol = get_decl_name(z3context, decl);
 
@@ -66,7 +66,7 @@ class Z3Model {
     String lName = get_symbol_string(z3context, symbol);
     long sort = get_sort(z3context, expr);
     TermType lType = toZ3Type(z3context, sort);
-    return Model.createAssignableTerm(lName, lType);
+    return new Variable(lName, lType);
   }
 
 
@@ -103,7 +103,7 @@ class Z3Model {
         break;
       }
       case Z3_BV_SORT: {
-        lValue = interpreteBitvector(z3context, arg);
+        lValue = interpretBitvector(z3context, arg);
         break;
       }
       default:
@@ -141,14 +141,16 @@ class Z3Model {
       Z3FormulaManager mgr,
       long z3context,
       long z3model) {
-
-    model_inc_ref(z3context, z3model);
-
     mgr.getSmtLogger().logGetModel();
+    return new Model(parseMapFromModel(z3context, z3model));
+  }
 
+  private static ImmutableMap<AssignableTerm, Object> parseMapFromModel(
+      long z3context, long z3model
+  ) {
+    model_inc_ref(z3context, z3model);
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
-    // TODO increment all ref-counters and decrement them later?
     int n = model_get_num_consts(z3context, z3model);
     for (int i = 0; i < n; i++) {
       long keyDecl = model_get_const_decl(z3context, z3model, i);
@@ -167,25 +169,25 @@ class Z3Model {
 
       Object lValue;
       switch (lAssignable.getType()) {
-      case Boolean:
-        lValue = isOP(z3context, value, Z3_OP_TRUE); // if IS_TRUE, true, else false. TODO IS_UNKNOWN ?
-        break;
+        case Boolean:
+          lValue = isOP(z3context, value, Z3_OP_TRUE); // if IS_TRUE, true, else false. TODO IS_UNKNOWN ?
+          break;
 
-      case Integer:
-        lValue = new BigInteger(get_numeral_string(z3context, value));
-        break;
+        case Integer:
+          lValue = new BigInteger(get_numeral_string(z3context, value));
+          break;
 
-      case Real:
-        String s = get_numeral_string(z3context, value);
-        lValue = Rational.ofString(s);
-        break;
+        case Real:
+          String s = get_numeral_string(z3context, value);
+          lValue = Rational.ofString(s);
+          break;
 
-      case Bitvector:
-        lValue = interpreteBitvector(z3context, value);
-        break;
+        case Bitvector:
+          lValue = interpretBitvector(z3context, value);
+          break;
 
-      default:
-        throw new IllegalArgumentException("Z3 expr with unhandled type " + lAssignable.getType());
+        default:
+          throw new IllegalArgumentException("Z3 expr with unhandled type " + lAssignable.getType());
       }
 
       model.put(lAssignable, lValue);
@@ -195,10 +197,8 @@ class Z3Model {
       dec_ref(z3context, value);
       dec_ref(z3context, var);
     }
-
-    // cleanup
     model_dec_ref(z3context, z3model);
-    return new Model(model.build());
+    return model.build();
   }
 
   /* INFO:
@@ -206,7 +206,7 @@ class Z3Model {
    * (display (_ bv10 6)) -> #b001010, length=6
    * (display (_ bv10 8)) -> #x0a, length=8, 8 modulo 4 == 0
    */
-  private static Object interpreteBitvector(long z3context, long bv) {
+  private static Object interpretBitvector(long z3context, long bv) {
     long argSort = get_sort(z3context, bv);
     int sortKind = get_sort_kind(z3context, argSort);
     Preconditions.checkArgument(sortKind == Z3_BV_SORT);
