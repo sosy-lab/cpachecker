@@ -236,7 +236,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           throw new CPATransferException("Automaton transition condition could not be evaluated: " + match.getFailureMessage());
         }
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        lSuccessors.add(new AutomatonUnknownState(state));
+        return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
       } else {
         if (match.getValue()) {
           edgeMatched = true;
@@ -249,7 +249,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
               throw new CPATransferException("Automaton transition assertions could not be evaluated: " + assertionsHold.getFailureMessage());
             }
             // cannot yet be evaluated
-            lSuccessors.add(new AutomatonUnknownState(state));
+            return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
 
           } else if (assertionsHold.getValue()) {
             if (!t.canExecuteActionsOn(exprArgs)) {
@@ -257,7 +257,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                 throw new CPATransferException("Automaton transition action could not be executed");
               }
               // cannot yet execute, goto UnknownState
-              lSuccessors.add(new AutomatonUnknownState(state));
+              return Collections.<AutomatonState>singleton(new AutomatonUnknownState(state));
             }
 
             // delay execution as described above
