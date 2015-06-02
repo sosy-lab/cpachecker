@@ -103,6 +103,9 @@ public interface OptEnvironment extends AutoCloseable {
     UNDEF // The result is unknown.
   }
 
+  String dump();
+
   @Override
   void close();
+
 }

@@ -107,4 +107,12 @@ public class OptEnvironmentView implements OptEnvironment {
   public Formula evaluate(Formula f) {
     return  delegate.evaluate(wrappingHandler.unwrap(f));
   }
+
+  /**
+   * @return String representation of the constraint system in the SMT-lib
+   * format.
+   */
+  public String dump() {
+    return delegate.dump();
+  }
 }

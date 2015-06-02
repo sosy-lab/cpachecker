@@ -195,4 +195,9 @@ class Z3OptProver implements OptEnvironment {
   private Rational rationalFromZ3AST(long ast) {
     return Rational.ofString(get_numeral_string(z3context, ast));
   }
+
+  @Override
+  public String dump() {
+    return optimize_to_string(z3context, z3optContext);
+  }
 }
