@@ -180,6 +180,16 @@ public class BVConverter extends Converter {
   }
 
   private String cast(String term, @Nullable Integer availableBitsize, int neededBitsize) {
+
+    // simplify numerals, use the correct size directly instead of expensive casting
+    if (term.matches("(\\(_\\sbv\\d+\\s\\d+\\))")) {
+      String[] splitted = term.split(" ");
+      BigInteger num = BigInteger.valueOf(splitted[1].substring(2));
+      assert num.bitLength() <= neededBitsize:
+        format("numeral %s does not fit into bitvector of length %d", num, neededBitsize);
+      return getNumber(num, neededBitsize);
+    }
+
     final String casted;
     if (availableBitsize == null) {
       casted = term;
@@ -200,9 +210,16 @@ public class BVConverter extends Converter {
   @Override
   public Pair<String, Type<FormulaType<?>>> convertNumeral(String num) {
     BigInteger n = BigInteger.valueOf(num);
-    int bitsize = Math.max(1, n.bitLength()); // we want one bit for bv0
-    assert !n.isNegative() : "Negative numbers should be written with an unary minus.";
-    return Pair.of(format("(_ bv%s %d)", num, bitsize), new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(bitsize)));
+    // sufficient for a valid formula, we want one bit for bv0
+    int bitsize = Math.max(1, n.bitLength());
+    return Pair.of(
+        getNumber(n, bitsize),
+        new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(bitsize)));
+  }
+
+  private String getNumber(BigInteger num, int bitsize) {
+    assert !num.isNegative() : "Negative numbers should be written with an unary minus.";
+    return format("(_ bv%s %d)", num, bitsize);
   }
 
   @Override
@@ -221,11 +238,11 @@ public class BVConverter extends Converter {
       // we convert "((_ divisible N) X)" into "(= (_ bv0 32) (bvmod X (_ bvN 32))"
       assert op.getSecond() == null : "type of MODULO should be unknown.";
       // extract number N from "(_ divisible (_ bvN M)"
-      int divisor = Integer.parseInt(op.getFirst().split(" ")[3].substring(2));
+      int N = Integer.parseInt(op.getFirst().split(" ")[3].substring(2));
       int bitsize = getBVsize(Iterables.getOnlyElement(terms).getSecond().getReturnType());
       return Pair.of(
           format("(= (_ bv0 %d) (bvsrem %s (_ bv%d %d)))",
-              bitsize, Iterables.getOnlyElement(terms).getFirst(), divisor, bitsize),
+              bitsize, Iterables.getOnlyElement(terms).getFirst(), N, bitsize),
           new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(bitsize)));
 
     } else if (terms.size() == 1 && "__string__".equals(op.getFirst())) {
