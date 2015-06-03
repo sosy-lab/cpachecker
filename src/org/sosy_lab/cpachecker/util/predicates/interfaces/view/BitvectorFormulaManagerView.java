@@ -37,12 +37,15 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
 
   private final BitvectorFormulaManager manager;
   private final BooleanFormulaManager bmgr;
+  private final SymbolEncoding symbolEncoding;
 
   public BitvectorFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
-      BitvectorFormulaManager pManager, BooleanFormulaManager pBmgr) {
+      BitvectorFormulaManager pManager, BooleanFormulaManager pBmgr,
+      SymbolEncoding pSymbolEncoding) {
     super(pWrappingHandler);
     this.manager = pManager;
     bmgr = pBmgr;
+    symbolEncoding = pSymbolEncoding;
   }
 
   public BooleanFormula notEqual(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
@@ -139,6 +142,7 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
 
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
+    symbolEncoding.put(pVar, pLength);
     return manager.makeVariable(pLength, pVar);
   }
 

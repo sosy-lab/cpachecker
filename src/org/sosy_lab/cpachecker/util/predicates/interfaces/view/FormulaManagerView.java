@@ -179,7 +179,7 @@ public class FormulaManagerView implements StatisticsProvider {
       case INTEGER:
         rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
             manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
-            ignoreExtractConcat, symbolEncoding);
+            ignoreExtractConcat);
         break;
       case RATIONAL:
         NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
@@ -194,14 +194,14 @@ public class FormulaManagerView implements StatisticsProvider {
         }
         rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
             rmgr, manager.getFunctionFormulaManager(),
-            ignoreExtractConcat, symbolEncoding);
+            ignoreExtractConcat);
       break;
       case FLOAT:
         throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
       default:
         throw new AssertionError();
     }
-    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
+    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager(), symbolEncoding);
 
     integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());

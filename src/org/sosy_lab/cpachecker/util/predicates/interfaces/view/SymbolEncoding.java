@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.getBitvectorTypeWithSize;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -46,8 +48,8 @@ public class SymbolEncoding {
 
   private final Map<String, Type<FormulaType<?>>> encodedSymbols = new HashMap<>();
 
-  public void put(String symbol, FormulaType<?> t) {
-    put(symbol, new Type<FormulaType<?>>(t));
+  public void put(String symbol, int length) {
+    put(symbol, new Type<FormulaType<?>>(getBitvectorTypeWithSize(length)));
   }
 
   public void put(String symbol, FormulaType<?> pReturnType, List<FormulaType<?>> pArgs) {
