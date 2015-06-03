@@ -207,6 +207,7 @@ public class PolicyIterationTest {
             ))
         )
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
+        .put("cpa.predicate.solver.z3.requireProofs", "false")
         .put("cpa.predicate.solver", "Z3")
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.ignoreIrrelevantVariables", "true")

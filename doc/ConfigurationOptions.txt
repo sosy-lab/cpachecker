@@ -495,9 +495,15 @@ counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
 
+# Compute and export information about the verification coverage?
+coverage.enabled = true
+
 # print coverage info to file
 coverage.export = true
 coverage.file = "coverage.info"
+
+# print coverage summary to stdout
+coverage.stdout = true
 
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
