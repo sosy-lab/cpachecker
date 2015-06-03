@@ -58,7 +58,9 @@ public class SymbolEncoding {
     // TODO currently we store all variables (even SSA-indexed ones),
     // but the basic form (without indices) maybe would be enough.
     if (encodedSymbols.containsKey(symbol)) {
-      assert encodedSymbols.get(symbol).equals(t);
+      assert encodedSymbols.get(symbol).equals(t) :
+        String.format("Symbol '%s' of type '%s' is already declared with the type '%s'.",
+            symbol, t, encodedSymbols.get(symbol));
     } else {
       encodedSymbols.put(symbol, t);
     }
