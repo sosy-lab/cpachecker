@@ -1,6 +1,13 @@
+Integration Tests
+-----------------
 
-Running Unit Tests
-------------------
+Integration tests are available in the directory "test/test-sets".
+Please refer to README.txt in this directory for further information.
+
+
+
+Unit Tests
+----------
 
 Run "ant tests" from the project root directory.
 An HTML report with the results will be generated as JUnit.html.
