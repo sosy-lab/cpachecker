@@ -241,7 +241,7 @@ class SmtInterpolEnvironment {
   SmtInterpolTheoremProver createProver(SmtInterpolFormulaManager mgr) {
     checkState(stackDepth == 0,
         "Not allowed to create a new prover environment while solver stack is still non-empty, parallel stacks are not supported.");
-    return new SmtInterpolTheoremProver(mgr, shutdownNotifier);
+    return new SmtInterpolTheoremProver(mgr);
   }
 
   /** Parse a String to Terms and Declarations.

@@ -598,7 +598,7 @@ public final class AbstractionManager {
     int getCount();
   }
 
-  public static class AllSatCallback2 extends
+  public static class AllSatCallbackImpl extends
       DefaultBooleanFormulaVisitor<BooleanFormula>
       implements AllSatResult, AllSatCallback<Region> {
 
@@ -615,7 +615,7 @@ public final class AbstractionManager {
 
     private Region formula;
 
-    public AllSatCallback2(
+    public AllSatCallbackImpl(
         FormulaManagerView fmgr,
         BooleanFormulaManager pBfmgr, RegionCreator pRmgr,
         RegionBuilder pBuilder, Timer pSolveTime, NestedTimer pEnumTime) {

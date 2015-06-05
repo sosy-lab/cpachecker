@@ -23,14 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.time.NestedTimer;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.*;
 
 /**
  * This class provides an interface to an incremental SMT solver
@@ -55,22 +50,16 @@ public interface ProverEnvironment extends BasicProverEnvironment<Void> {
    * and create a region representing all those models.
    *
    * @param important A set of variables appearing in f. Only these variables will appear in the region.
-   * @param mgr The object used for creating regions.
-   * @param solveTime A timer to use for time which the solver needs for finding out whether the formula is satisfiable (without enumerating all the models).
-   * @param enumTime A NestedTimer to use for timing model enumeration (outer: solver; inner: region creation).
    * @return A region representing all satisfying models of the formula.
    * @throws InterruptedException
    */
-  AbstractionManager.AllSatResult allSat(Collection<BooleanFormula> important,
-                      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException, SolverException;
+  <T> T allSat(
+      AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException;
 
   interface AllSatCallback<T> {
     void apply(List<BooleanFormula> model);
     T getResult() throws InterruptedException;
   }
-
-  <T> T allSat2(
-      AllSatCallback<T> callback,
-      List<BooleanFormula> important)
-      throws InterruptedException, SolverException;
 }

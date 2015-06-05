@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatCallback2;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatCallbackImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -908,14 +908,12 @@ public class PredicateAbstractionManager {
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     thmProver.push(predDef);
-    // todo: this is the only use of allSat.
-//    AllSatResult allSatResult = thmProver.allSat(predVars, rmgr,
-//        stats.abstractionSolveTime, stats.abstractionEnumTime);
-    AllSatCallback2 callback = new AllSatCallback2(fmgr, fmgr.getBooleanFormulaManager(),
+    AllSatCallbackImpl
+        callback = new AllSatCallbackImpl(fmgr, fmgr.getBooleanFormulaManager(),
             rmgr, rmgr.newRegionBuilder(shutdownNotifier),
             stats.abstractionSolveTime,
             stats.abstractionEnumTime);
-    Region result = thmProver.allSat2(callback, predVars);
+    Region result = thmProver.allSat(callback, predVars);
 
     // pop() is actually costly sometimes, and we delete the environment anyway
     // thmProver.pop();
