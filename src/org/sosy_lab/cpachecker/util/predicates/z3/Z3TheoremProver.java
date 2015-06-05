@@ -39,6 +39,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -91,7 +92,7 @@ class Z3TheoremProver implements ProverEnvironment {
       inc_ref(z3context, e);
     }
 
-    if (storedConstraints != null) {
+    if (storedConstraints != null) { // Unsat core generation is on.
       String varName = String.format(UNSAT_CORE_TEMP_VARNAME, track_no);
       // TODO: can we do with no casting?
       Z3BooleanFormula t =
@@ -240,6 +241,58 @@ class Z3TheoremProver implements ProverEnvironment {
     return result;
   }
 
+  @Override
+  public <T> T allSat2(AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
+    // unpack formulas to terms
+    long[] importantFormulas = new long[important.size()];
+    int i = 0;
+    for (BooleanFormula impF : important) {
+      importantFormulas[i++] = Z3FormulaManager.getZ3Expr(impF);
+    }
+
+    solver_push(z3context, z3solver);
+    smtLogger.logPush(1);
+    smtLogger.logCheck();
+
+    while (solver_check(z3context, z3solver) == Z3_LBOOL.Z3_L_TRUE.status) {
+      long[] valuesOfModel = new long[importantFormulas.length];
+      List<BooleanFormula> valuesWrapped = new ArrayList<>(importantFormulas.length);
+      long z3model = solver_get_model(z3context, z3solver);
+
+      smtLogger.logGetModel();
+
+      for (int j = 0; j < importantFormulas.length; j++) {
+        long funcDecl = get_app_decl(z3context, importantFormulas[j]);
+        long valueOfExpr = model_get_const_interp(z3context, z3model, funcDecl);
+
+        if (isOP(z3context, valueOfExpr, Z3_OP_FALSE)) {
+          valuesOfModel[j] = mk_not(z3context, importantFormulas[j]);
+          inc_ref(z3context, valuesOfModel[j]);
+        } else {
+          valuesOfModel[j] = importantFormulas[j];
+        }
+        valuesWrapped.add(mgr.encapsulateBooleanFormula(valuesOfModel[j]));
+      }
+
+      // add model to BDD
+      callback.apply(valuesWrapped);
+
+      long negatedModel = mk_not(z3context, mk_and(z3context, valuesOfModel));
+      inc_ref(z3context, negatedModel);
+      solver_assert(z3context, z3solver, negatedModel);
+
+      smtLogger.logAssert(negatedModel);
+      smtLogger.logCheck();
+    }
+
+    // we pushed some levels on assertionStack, remove them and delete solver
+    solver_pop(z3context, z3solver, 1);
+    smtLogger.logPop(1);
+    return callback.getResult();
+  }
+
   /**
    * this class is used to build the predicate abstraction of a formula
    */
@@ -282,7 +335,7 @@ class Z3TheoremProver implements ProverEnvironment {
       return formula;
     }
 
-    public void callback(long[] model) {
+    private void callback(long[] model) {
       if (count == 0) {
         solveTime.stop();
         enumTime.startOuter();

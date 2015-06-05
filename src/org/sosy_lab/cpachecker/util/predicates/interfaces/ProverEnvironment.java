@@ -29,7 +29,8 @@ import java.util.List;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.*;
 
 /**
  * This class provides an interface to an incremental SMT solver
@@ -56,25 +57,20 @@ public interface ProverEnvironment extends BasicProverEnvironment<Void> {
    * @param important A set of variables appearing in f. Only these variables will appear in the region.
    * @param mgr The object used for creating regions.
    * @param solveTime A timer to use for time which the solver needs for finding out whether the formula is satisfiable (without enumerating all the models).
-   * @param regionTime A NestedTimer to use for timing model enumeration (outer: solver; inner: region creation).
+   * @param enumTime A NestedTimer to use for timing model enumeration (outer: solver; inner: region creation).
    * @return A region representing all satisfying models of the formula.
    * @throws InterruptedException
    */
-  AllSatResult allSat(Collection<BooleanFormula> important,
+  AbstractionManager.AllSatResult allSat(Collection<BooleanFormula> important,
                       RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException, SolverException;
 
-  interface AllSatResult {
-
-    /**
-     * The result of an allSat call as an abstract formula.
-     */
-    public Region getResult() throws InterruptedException;
-
-    /**
-     * The number of satisfying assignments contained in the result, of
-     * {@link Integer#MAX_VALUE} if this number is infinite.
-     */
-    public int getCount();
+  interface AllSatCallback<T> {
+    void apply(List<BooleanFormula> model);
+    T getResult() throws InterruptedException;
   }
 
+  <T> T allSat2(
+      AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException;
 }

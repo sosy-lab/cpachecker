@@ -32,8 +32,10 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -73,7 +75,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public void pop() {
     Preconditions.checkNotNull(env);
-    assertedTerms.remove(assertedTerms.size()-1); // remove last term
+    assertedTerms.remove(assertedTerms.size() - 1); // remove last term
     env.pop(1);
   }
 
@@ -149,6 +151,26 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
     }
 
     return result;
+  }
+
+  @Override
+  public <T> T allSat2(AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
+    Term[] importantTerms = new Term[important.size()];
+    int i = 0;
+    for (BooleanFormula impF : important) {
+      importantTerms[i++] = mgr.extractInfo(impF);
+    }
+    for (Term[] model : env.checkAllSat(importantTerms)) {
+      // todo: improve efficiency.
+      List<BooleanFormula> l = new ArrayList<>();
+      for (Term t : model) {
+        l.add(mgr.encapsulateBooleanFormula(t));
+      }
+      callback.apply(l);
+    }
+    return callback.getResult();
   }
 
   /**

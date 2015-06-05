@@ -35,8 +35,10 @@ import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -139,6 +141,46 @@ class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvi
     }
 
     return result;
+  }
+
+  @Override
+  public <T> T allSat2(ProverEnvironment.AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
+
+    // unpack formulas to terms
+    List<IFormula> importantFormulas = new ArrayList<>(important.size());
+    for (BooleanFormula impF : important) {
+      importantFormulas.add(castToFormula(mgr.extractInfo(impF)));
+    }
+
+    stack.push(1);
+    while (stack.checkSat()) {
+      shutdownNotifier.shutdownIfNecessary();
+
+      IFormula newFormula = new IBoolLit(true); // neutral element for AND
+      List<BooleanFormula> wrappedPartialModel = new ArrayList<>(important.size());
+      for (final IFormula f : importantFormulas) {
+        final Option<Object> value = stack.evalPartial(f);
+        if (value.isDefined()) {
+          final boolean isTrueValue = (boolean)value.get();
+          final IFormula newElement = isTrueValue ? f : new INot(f);
+
+          wrappedPartialModel.add(mgr.encapsulateBooleanFormula(newElement));
+          newFormula = new IBinFormula(IBinJunctor.And(), newFormula, newElement);
+        } else {
+          // when does this happen? if formula was not asserted?
+        }
+      }
+      callback.apply(wrappedPartialModel);
+
+      // add negation of current formula to get a new model in next iteration
+      stack.assertTerm(new INot(newFormula));
+    }
+    shutdownNotifier.shutdownIfNecessary();
+    stack.pop(1);
+
+    return callback.getResult();
   }
 
   /**

@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatCallback2;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -70,7 +72,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -129,6 +130,7 @@ public class PredicateAbstractionManager {
   private final RegionCreator rmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
+  private final ShutdownNotifier shutdownNotifier;
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
 
@@ -206,7 +208,9 @@ public class PredicateAbstractionManager {
       Solver pSolver,
       Configuration config,
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       Optional<LiveVariables> pLiveVars) throws InvalidConfigurationException, PredicateParsingFailedException {
+    shutdownNotifier = pShutdownNotifier;
 
     config.inject(this, PredicateAbstractionManager.class);
 
@@ -904,20 +908,26 @@ public class PredicateAbstractionManager {
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     thmProver.push(predDef);
-    AllSatResult allSatResult = thmProver.allSat(predVars, rmgr,
-        stats.abstractionSolveTime, stats.abstractionEnumTime);
+    // todo: this is the only use of allSat.
+//    AllSatResult allSatResult = thmProver.allSat(predVars, rmgr,
+//        stats.abstractionSolveTime, stats.abstractionEnumTime);
+    AllSatCallback2 callback = new AllSatCallback2(fmgr, fmgr.getBooleanFormulaManager(),
+            rmgr, rmgr.newRegionBuilder(shutdownNotifier),
+            stats.abstractionSolveTime,
+            stats.abstractionEnumTime);
+    Region result = thmProver.allSat2(callback, predVars);
 
     // pop() is actually costly sometimes, and we delete the environment anyway
     // thmProver.pop();
 
     // update statistics
-    int numModels = allSatResult.getCount();
+    int numModels = callback.getCount();
     if (numModels < Integer.MAX_VALUE) {
       stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
       stats.allSatCount += numModels;
     }
 
-    return allSatResult.getResult();
+    return result;
   }
 
   /**

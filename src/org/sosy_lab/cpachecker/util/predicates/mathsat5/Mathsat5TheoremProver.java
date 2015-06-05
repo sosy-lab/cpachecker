@@ -34,7 +34,9 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -126,6 +128,46 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
     }
 
     return callback;
+  }
+
+  @Override
+  public <T> T allSat2(AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
+
+    long[] imp = new long[important.size()];
+    int i = 0;
+    for (BooleanFormula impF : important) {
+      imp[i++] = getMsatTerm(impF);
+    }
+    UncoupledAllSatCallback<T> uCallback = new UncoupledAllSatCallback<>(callback);
+    int numModels = msat_all_sat(curEnv, imp, uCallback);
+
+    if (numModels == -1) {
+      throw new RuntimeException("Error occurred during Mathsat allsat: " + msat_last_error_message(curEnv));
+
+    } else if (numModels == -2) {
+      throw new SolverException("Number of models should be finite with boolean predicates");
+    }
+    return callback.getResult();
+  }
+
+  class UncoupledAllSatCallback<T> implements  AllSatModelCallback {
+    private final AllSatCallback<T> clientCallback;
+
+    UncoupledAllSatCallback(AllSatCallback<T> pClientCallback) {
+      clientCallback = pClientCallback;
+    }
+
+    @Override
+    public void callback(long[] model) throws InterruptedException {
+      // todo: casting back and force may be too inefficient.
+      List<BooleanFormula> formulas = new ArrayList<>();
+      for (long m : model) {
+        formulas.add(mgr.encapsulateBooleanFormula(m));
+      }
+      clientCallback.apply(formulas);
+    }
   }
 
   /**

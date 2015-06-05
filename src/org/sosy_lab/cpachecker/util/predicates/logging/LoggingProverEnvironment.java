@@ -33,6 +33,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
@@ -90,6 +91,15 @@ public class LoggingProverEnvironment implements ProverEnvironment {
     AllSatResult asr = wrapped.allSat(important, mgr, solveTime, enumTime);
     logger.log(Level.FINE, "allsat-result:", asr);
     return asr;
+  }
+
+  @Override
+  public <T> T allSat2(AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
+    T result = wrapped.allSat2(callback, important);
+    logger.log(Level.FINE, "allsat-result:", result);
+    return result;
   }
 
   @Override
