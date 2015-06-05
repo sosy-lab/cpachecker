@@ -54,9 +54,11 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       return;
     }
 
+    long numTotalConditions = 0;
     long numTotalFunctions = 0;
     long numTotalLines = 0;
 
+    long numVisitedConditions = 0;
     long numVisitedFunctions = 0;
     long numVisitedLines = 0;
 
@@ -64,9 +66,12 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       FileCoverageInformation info = pCoverage.get(sourcefile);
 
       numTotalFunctions =+ info.allFunctions.size();
-      numTotalLines =+ info.allLines.size();
-
       numVisitedFunctions =+ info.visitedFunctions.size();
+
+      numTotalConditions =+ info.allAssumes.size();
+      numVisitedConditions =+ info.visitedAssumes.size();
+
+      numTotalLines =+ info.allLines.size();
 
       for (Integer line : info.allLines) {
         if (info.visitedLines.get(line)) {
@@ -88,6 +93,13 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       StatisticsUtils.write(pStdOut, 1, 25, "Visited lines", numVisitedLines);
       StatisticsUtils.write(pStdOut, 1, 25, "Total lines", numTotalLines);
       StatisticsUtils.write(pStdOut, 1, 25, "Line coverage", String.format("%.3f", lineCoverage));
+    }
+
+    if (numTotalConditions > 0) {
+      final double conditionCoverage = numVisitedConditions / (double) numTotalConditions;
+      StatisticsUtils.write(pStdOut, 1, 25, "Visited conditions", numVisitedConditions);
+      StatisticsUtils.write(pStdOut, 1, 25, "Total conditions", numTotalConditions);
+      StatisticsUtils.write(pStdOut, 1, 25, "Condition coverage", String.format("%.3f", conditionCoverage));
     }
 
     pStdOut.println();

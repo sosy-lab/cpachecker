@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -159,6 +160,14 @@ public class CoverageReport {
 
     for (int line = startingLine; line <= endingLine; line++) {
       collector.addExistingLine(line);
+    }
+
+    if (pEdge instanceof AssumeEdge) {
+      if (pVisited) {
+        collector.addVisitedAssume((AssumeEdge) pEdge);
+      } else {
+        collector.addExistingAssume((AssumeEdge) pEdge);
+      }
     }
 
     if (pVisited) {
