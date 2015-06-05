@@ -79,12 +79,14 @@ class CoverageReportStdoutSummary implements CoverageWriter {
     pStdOut.println("-----------------------------");
 
     if (numTotalFunctions > 0) {
-      final double functionCoverage = numVisitedFunctions / numTotalFunctions;
+      final double functionCoverage = numVisitedFunctions / (double) numTotalFunctions;
       StatisticsUtils.write(pStdOut, 1, 25, "Function coverage", String.format("%.3f", functionCoverage));
     }
 
     if (numTotalLines > 0) {
-      final double lineCoverage = numVisitedLines / numTotalLines;
+      final double lineCoverage = numVisitedLines / (double) numTotalLines;
+      StatisticsUtils.write(pStdOut, 1, 25, "Visited lines", numVisitedLines);
+      StatisticsUtils.write(pStdOut, 1, 25, "Total lines", numTotalLines);
       StatisticsUtils.write(pStdOut, 1, 25, "Line coverage", String.format("%.3f", lineCoverage));
     }
 
