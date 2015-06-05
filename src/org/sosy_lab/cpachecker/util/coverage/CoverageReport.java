@@ -164,6 +164,7 @@ public class CoverageReport {
 
     if (pEdge instanceof AssumeEdge) {
       if (pVisited) {
+        collector.addExistingAssume((AssumeEdge) pEdge);
         collector.addVisitedAssume((AssumeEdge) pEdge);
       } else {
         collector.addExistingAssume((AssumeEdge) pEdge);
