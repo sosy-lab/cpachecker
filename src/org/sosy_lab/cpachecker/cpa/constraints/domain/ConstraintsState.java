@@ -66,6 +66,14 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
    * Stores identifiers and their corresponding constraints
    */
   private List<Constraint> constraints;
+
+  /**
+   * The last constraint added to this state. This does not have to be the last constraint in
+   * {@link #constraints}.
+   */
+  // It does not have to be the last constraint contained in 'constraints' because we only
+  // add a constraint to 'constraints' if it's not yet in this list.
+  private Constraint lastAddedConstraint;
   private Map<Constraint, BooleanFormula> constraintFormulas;
 
   private Solver solver;
@@ -147,6 +155,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   public boolean add(Constraint pConstraint) {
     checkNotNull(pConstraint);
 
+    lastAddedConstraint = pConstraint;
     return !constraints.contains(pConstraint) && constraints.add(pConstraint);
   }
 
@@ -163,7 +172,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   }
 
   Constraint getLastAddedConstraint() {
-    return checkNotNull(constraints.get(constraints.size() - 1));
+    return checkNotNull(lastAddedConstraint);
   }
 
   @Override
