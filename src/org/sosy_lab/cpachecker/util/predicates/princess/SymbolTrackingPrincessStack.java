@@ -168,7 +168,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     }
 
     // do the hard work
-    final Seq<IFormula> itps = api.getInterpolants(args.toSeq());
+    final Seq<IFormula> itps = api.getInterpolants(args.toSeq(), api.getInterpolants$default$2());
 
     assert itps.length() == partitions.size() - 1 : "There should be (n-1) interpolants for n partitions";
 

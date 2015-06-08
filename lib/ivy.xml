@@ -87,7 +87,7 @@
         </dependency>
 
         <!-- Princess -->
-        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-03-13-r2180" conf="runtime->default"/>
+        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-06-08-r2393" conf="runtime->default"/>
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
