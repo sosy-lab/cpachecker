@@ -56,10 +56,9 @@ public class BVConverter extends Converter {
   private final LogManager logger;
 
   private final Map<String,String> unaryOps; // input-type == output-type
-  private final Map<String,String> binOps; // type is Bool
-  private final Map<String,String> arithmeticOps; // type is BV
+  private final Map<String,Pair<String,String>> binOps; // type is Bool
+  private final Map<String,Pair<String,String>> arithmeticOps; // type is BV
   private final Set<String> ignorableFunctions = Sets.newHashSet("to_int", "to_real");
-
 
   public BVConverter(SymbolEncoding pSymbolEncoding, LogManager pLogger) {
     super();
@@ -70,33 +69,35 @@ public class BVConverter extends Converter {
     unaryOps = new HashMap<>();
     unaryOps.put("-", "bvneg");
     unaryOps.put("not", "not");
-    unaryOps.put("__isSubnormal__", "bvneg");// TODO ?? Boolean [Rational]
+    unaryOps.put("_~_", "bvnot");
+    //unaryOps.put("__isSubnormal__", "bvneg");// TODO ?? Boolean [Rational]
 
+    // add Pair<signed operator, unsigned operator>
     binOps = new HashMap<>();
-    binOps.put("=", "=");
-    binOps.put("<", "bvslt");
-    binOps.put("<=", "bvsle");
-    binOps.put(">", "bvsgt");
-    binOps.put(">=", "bvsge");
+    binOps.put("=", Pair.of("=", "="));
+    binOps.put("<", Pair.of("bvslt", "bvult"));
+    binOps.put("<=", Pair.of("bvsle", "bvule"));
+    binOps.put(">", Pair.of("bvsgt", "bvugt"));
+    binOps.put(">=", Pair.of("bvsge", "bvuge"));
 
+    // add Pair<signed operator, unsigned operator>
     arithmeticOps = new HashMap<>();
-    arithmeticOps.put("+", "bvadd");
-    arithmeticOps.put("-", "bvsub");
-    arithmeticOps.put("*", "bvmul");
-    arithmeticOps.put("/", "bvsdiv");
-    arithmeticOps.put("%", "bvrem");
-    arithmeticOps.put("Integer__*_", "bvmul");
-    arithmeticOps.put("Integer__/_", "bvsdiv");
-    arithmeticOps.put("Integer__%_", "bvsrem");
-    arithmeticOps.put("Rational__*_", "bvmul");
-    arithmeticOps.put("Rational__/_", "bvsdiv");
-    arithmeticOps.put("Rational__%_", "bvsrem");
-    arithmeticOps.put("_&_", "bvand");
-    arithmeticOps.put("_!!_", "bvor");
-    arithmeticOps.put("_^_", "bvxor");
-    arithmeticOps.put("_~_", "bvnot");
-    arithmeticOps.put("_<<_", "bvshl");
-    arithmeticOps.put("_>>_", "bvlshr");
+    arithmeticOps.put("+", Pair.of("bvadd", "bvadd"));
+    arithmeticOps.put("-", Pair.of("bvsub", "bvsub"));
+    arithmeticOps.put("*", Pair.of("bvmul", "bvmul"));
+    arithmeticOps.put("/", Pair.of("bvsdiv", "bvudiv"));
+    arithmeticOps.put("%", Pair.of("bvsrem", "bvurem"));
+    arithmeticOps.put("Integer__*_", Pair.of("bvmul", "bvmul"));
+    arithmeticOps.put("Integer__/_", Pair.of("bvsdiv", "bvudiv"));
+    arithmeticOps.put("Integer__%_", Pair.of("bvsrem", "bvurem"));
+    arithmeticOps.put("Rational__*_", Pair.of("bvmul", "bvmul"));
+    arithmeticOps.put("Rational__/_", Pair.of("bvsdiv", "bvudiv"));
+    arithmeticOps.put("Rational__%_", Pair.of("bvsrem)", "bvurem"));
+    arithmeticOps.put("_&_", Pair.of("bvand", "bvand"));
+    arithmeticOps.put("_!!_", Pair.of("bvor", "bvor"));
+    arithmeticOps.put("_^_", Pair.of("bvxor", "bvxor"));
+    arithmeticOps.put("_<<_", Pair.of("bvshl", "bvshl"));
+    arithmeticOps.put("_>>_", Pair.of("bvlshr", "bvashr"));
   }
 
   private String unescapeSymbol(final String symbol) {
@@ -123,6 +124,29 @@ public class BVConverter extends Converter {
     } else {
       throw new AssertionError("unhandled type: " + t);
     }
+  }
+
+  /** This is a small heuristic to get signess of the result-type.
+   * It is sound, because we only convert precision-predicates and not program-specific SMT-formulas.
+   *
+   * A fully precise method would have to deal with CalculationTypes and ResultTypes
+   * (see {@link org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder} for detail).
+   * As this would create many casts and extractions, we ignore it in favor of this heuristic. */
+  private boolean isOperationSigned(Type<FormulaType<?>> t1, Type<FormulaType<?>> t2) {
+    if (t1.getReturnType().isBitvectorType() && t2.getReturnType().isBitvectorType()) {
+      int s1 = getBVsize(t1.getReturnType());
+      int s2 = getBVsize(t2.getReturnType());
+      // return the signess of the bigger type
+      if (s1 < s2) {
+        return t2.isSigned();
+      } else if (s1 > s2) {
+        return t1.isSigned();
+      } else {
+        // return, whether any of the types is unsigned
+        return t1.isSigned() && t2.isSigned();
+      }
+    }
+    return false;
   }
 
   private String getSMTType(FormulaType<?> t) {
@@ -262,29 +286,31 @@ public class BVConverter extends Converter {
       // ignore and remove ignorable functions, e.g. casts from INT to REAL, we do not need them in BV-theory
       return Iterables.getOnlyElement(terms);
 
-    } else if (terms.size() == 2 && binOps.containsKey(op.getFirst())) {
+    } else if (terms.size() == 2
+        && (binOps.containsKey(op.getFirst()) || arithmeticOps.containsKey(op.getFirst()))) {
       Pair<String, Type<FormulaType<?>>> e1 = terms.get(0);
       Pair<String, Type<FormulaType<?>>> e2 = terms.get(1);
-      int s1 = getBVsize(e1.getSecond().getReturnType());
-      int s2 = getBVsize(e2.getSecond().getReturnType());
+      Type<FormulaType<?>> t1 = e1.getSecond();
+      Type<FormulaType<?>> t2 = e2.getSecond();
+      int s1 = getBVsize(t1.getReturnType());
+      int s2 = getBVsize(t2.getReturnType());
       int commonBitsize = Math.max(s1, s2); // maximum should be sound
+      boolean isOpSigned = isOperationSigned(t1,t2);
+      Type<FormulaType<?>> type;
+      Pair<String,String> operator;
+      if (binOps.containsKey(op.getFirst())) {
+        operator = binOps.get(op.getFirst());
+        type = new Type<FormulaType<?>>(FormulaType.BooleanType);
+      } else {
+        operator = arithmeticOps.get(op.getFirst());
+        type = new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(commonBitsize));
+        type.setSigness(isOpSigned);
+      }
       return Pair.of(format("(%s %s %s)",
-          binOps.get(op.getFirst()),
+          isOpSigned ? operator.getFirst() : operator.getSecond(),
           cast(e1.getFirst(), s1, commonBitsize),
           cast(e2.getFirst(), s2, commonBitsize)),
-          new Type<FormulaType<?>>(FormulaType.BooleanType));
-
-    } else if (terms.size() == 2 && arithmeticOps.containsKey(op.getFirst())) {
-      Pair<String, Type<FormulaType<?>>> e1 = terms.get(0);
-      Pair<String, Type<FormulaType<?>>> e2 = terms.get(1);
-      int s1 = getBVsize(e1.getSecond().getReturnType());
-      int s2 = getBVsize(e2.getSecond().getReturnType());
-      int commonBitsize = Math.max(s1, s2); // maximum should be sound
-      return Pair.of(format("(%s %s %s)",
-          arithmeticOps.get(op.getFirst()),
-          cast(e1.getFirst(), s1, commonBitsize),
-          cast(e2.getFirst(), s2, commonBitsize)),
-          new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(commonBitsize)));
+          type);
 
     } else if (terms.size() == 3 && "ite".equals(op.getFirst())) {
       Pair<String, Type<FormulaType<?>>> cond = terms.get(0);
@@ -300,11 +326,14 @@ public class BVConverter extends Converter {
         int sIf = getBVsize(eIf.getSecond().getReturnType());
         int sElse = getBVsize(eElse.getSecond().getReturnType());
         int commonBitsize = Math.max(sIf, sElse); // maximum should be sound
+        boolean isOpSigned = isOperationSigned(eIf.getSecond(), eElse.getSecond());
+        Type<FormulaType<?>> type = new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(commonBitsize));
+        type.setSigness(isOpSigned);
         return Pair.of(format("(ite %s %s %s)",
             cond.getFirst(),
             cast(eIf.getFirst(), sIf, commonBitsize),
             cast(eElse.getFirst(), sElse, commonBitsize)),
-            new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(commonBitsize)));
+            type);
       }
 
     } else if (symbolEncoding.containsSymbol(op.getFirst())) {
