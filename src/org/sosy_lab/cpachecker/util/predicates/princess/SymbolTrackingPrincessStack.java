@@ -39,6 +39,7 @@ import scala.Option;
 import scala.collection.Seq;
 import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
+import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunction;
 import ap.parser.ITerm;
@@ -103,8 +104,8 @@ class SymbolTrackingPrincessStack implements PrincessStack {
       for (IFunction function : level.functionSymbols) {
         api.addFunction(function);
       }
-      for (Pair<IFormula, IFormula> abbrev : level.abbreviations) {
-        api.addAbbrev(abbrev.getFirst(), abbrev.getSecond());
+      for (Pair<IExpression, IExpression> abbrev : level.abbreviations) {
+        addAbbrevToStack(abbrev.getFirst(), abbrev.getSecond());
       }
       if (!trackingStack.isEmpty()) {
         trackingStack.getLast().mergeWithHigher(level);
@@ -214,10 +215,20 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   }
 
   /** add external definition: abbreviation for formula. */
-  void addAbbrev(IFormula abbrev, IFormula formula) {
-    api.addAbbrev(abbrev, formula);
+  void addAbbrev(IExpression abbrev, IExpression formula) {
+    addAbbrevToStack(abbrev, formula);
     if (!trackingStack.isEmpty()) {
       trackingStack.getLast().abbreviations.add(Pair.of(abbrev, formula));
+    }
+  }
+
+  private void addAbbrevToStack(IExpression abbrev, IExpression formula) {
+    if (abbrev instanceof IFormula) {
+      api.addAbbrev((IFormula)abbrev, (IFormula)formula);
+    } else if (abbrev instanceof ITerm) {
+      api.addAbbrev((ITerm)abbrev, (ITerm)formula);
+    } else {
+      throw new AssertionError("No abbreviation possible for " + abbrev.getClass());
     }
   }
 
@@ -227,7 +238,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     List<IFunction> functionSymbols = new ArrayList<>();
 
     // order is important for abbreviations, because a abbreviation might depend on another one.
-    List<Pair<IFormula, IFormula>> abbreviations = new ArrayList<>();
+    List<Pair<IExpression, IExpression>> abbreviations = new ArrayList<>();
 
     /**  add higher level to current level, we keep the order of creating symbols. */
     void mergeWithHigher(Level other) {
