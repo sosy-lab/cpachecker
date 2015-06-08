@@ -170,7 +170,7 @@ public class PredicateMapParser {
     case INT2BV: {
       final StringBuilder str = new StringBuilder();
       converter = new BVConverter(
-          SymbolEncoding.readSymbolEncoding(symbolEncodingFile),
+          SymbolEncoding.readSymbolEncoding(symbolEncodingFile).withCFA(cfa),
           logger);
       for (String line : commonDefinitions.split("\n")) {
         if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ")) {
@@ -184,7 +184,7 @@ public class PredicateMapParser {
     case BV2INT: {
       final StringBuilder str = new StringBuilder();
       converter = new IntConverter(
-          SymbolEncoding.readSymbolEncoding(symbolEncodingFile),
+          SymbolEncoding.readSymbolEncoding(symbolEncodingFile).withCFA(cfa),
           logger);
       for (String line : commonDefinitions.split("\n")) {
         if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ")) {

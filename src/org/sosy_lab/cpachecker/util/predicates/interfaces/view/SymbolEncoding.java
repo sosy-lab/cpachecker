@@ -29,22 +29,40 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 
 
 public class SymbolEncoding {
 
-  public SymbolEncoding() {}
+  private Set<ASimpleDeclaration> decls = new HashSet<>();
+
+  public SymbolEncoding() { }
 
   private final Map<String, Type<FormulaType<?>>> encodedSymbols = new HashMap<>();
 
@@ -74,6 +92,40 @@ public class SymbolEncoding {
 
   public Type<FormulaType<?>> getType(String symbol) {
     return encodedSymbols.get(symbol);
+  }
+
+  public SymbolEncoding withCFA(CFA pCfa) {
+    decls = getAllDeclarations(pCfa.getAllNodes());
+    return this;
+  }
+
+  /** iterator over all edges and collect all declarations */
+  private Set<ASimpleDeclaration> getAllDeclarations(Collection<CFANode> nodes) {
+    final Set<ASimpleDeclaration> sd = new HashSet<>();
+    for (CFANode node : nodes){
+      final FluentIterable<CFAEdge> edges = CFAUtils.allLeavingEdges(node);
+      for (ADeclarationEdge edge : edges.filter(ADeclarationEdge.class)) {
+        sd.add(edge.getDeclaration());
+      }
+      for (FunctionCallEdge edge : edges.filter(FunctionCallEdge.class)) {
+        final List<? extends AParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
+        for (AParameterDeclaration param : params) {
+          sd.add(param);
+        }
+      }
+      for (FunctionReturnEdge edge : edges.filter(FunctionReturnEdge.class)) {
+        if (edge.getFunctionEntry().getReturnVariable().isPresent()) {
+          final AVariableDeclaration retVar = edge.getFunctionEntry().getReturnVariable().get();
+          sd.add(retVar);
+        }
+      }
+      for (MultiEdge multiEdge : edges.filter(MultiEdge.class)) {
+        for (ADeclarationEdge edge : Iterables.filter(multiEdge.getEdges(), ADeclarationEdge.class)) {
+          sd.add(edge.getDeclaration());
+        }
+      }
+    }
+    return sd;
   }
 
   public void dump(Path symbolEncodingFile) throws IOException {
