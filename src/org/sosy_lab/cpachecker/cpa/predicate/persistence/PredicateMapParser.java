@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.IntConverter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -168,7 +169,23 @@ public class PredicateMapParser {
     switch (encodePredicates) {
     case INT2BV: {
       final StringBuilder str = new StringBuilder();
-      converter = new BVConverter(SymbolEncoding.readSymbolEncoding(symbolEncodingFile), logger);
+      converter = new BVConverter(
+          SymbolEncoding.readSymbolEncoding(symbolEncodingFile),
+          logger);
+      for (String line : commonDefinitions.split("\n")) {
+        if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ")) {
+          final String converted = FormulaParser.convertFormula(converter, line, logger);
+          str.append(converted).append("\n");
+        }
+      }
+      commonDefinitions = str.toString();
+      break;
+    }
+    case BV2INT: {
+      final StringBuilder str = new StringBuilder();
+      converter = new IntConverter(
+          SymbolEncoding.readSymbolEncoding(symbolEncodingFile),
+          logger);
       for (String line : commonDefinitions.split("\n")) {
         if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ")) {
           final String converted = FormulaParser.convertFormula(converter, line, logger);
