@@ -73,7 +73,7 @@ parser code {:
       Symbol symbol = parser.parse();
       return ((String) symbol.value);
     } catch (Exception e) {
-      throw new AssertionError("problem",e);
+      throw new AssertionError("There was a problem while parsing the formula '''" + str + "'''.", e);
     }
   }
   
@@ -114,7 +114,8 @@ funtype ::= LPAR types:lst RPAR type:t
 	{: RESULT = new Type<String>(t, lst); :};
 types ::= type:t types:lst {: lst.add(0,t); RESULT = lst; :}
         | /* empty */ {: RESULT = new LinkedList<String>(); :};
-type ::= symbol:n {: RESULT = n; :};
+type ::= symbol:n {: RESULT = n; :}
+		| LPAR SYMBOL:uscore SYMBOL:bv numeral:n RPAR {: RESULT = "(_ BitVec " + n + ")"; :};
 
 terms ::= term:t terms:lst {: lst.add(0,t); RESULT = lst; :}
         | /* empty */ {: RESULT = new LinkedList<Pair<String, Type<FormulaType<?>>>>(); :};
