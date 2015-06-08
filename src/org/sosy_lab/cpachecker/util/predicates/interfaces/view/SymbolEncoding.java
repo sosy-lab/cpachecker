@@ -50,10 +50,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
@@ -91,7 +96,55 @@ public class SymbolEncoding {
   }
 
   public Type<FormulaType<?>> getType(String symbol) {
-    return encodedSymbols.get(symbol);
+
+    Type<FormulaType<?>> type = Preconditions.checkNotNull(encodedSymbols.get(symbol));
+
+    if (symbol.startsWith(".def_")) {
+      // .def_NUM is a MathSat-helper-variable
+      return type;
+    }
+
+    symbol = symbol.split("@")[0];
+    boolean matched = false;
+    for (ASimpleDeclaration decl : decls) {
+      if (symbol.equals(decl.getQualifiedName())) {
+        matched = true;
+        if (decl.getType() instanceof CSimpleType) {
+          // TODO set global or just local for this type?
+          type.setSigness(!((CSimpleType)decl.getType()).isUnsigned());
+        }
+      }
+    }
+
+    if (matched) {
+      return type;
+    }
+
+    String[] parts = symbol.split("->");
+    for (ASimpleDeclaration decl : decls) {
+      if (parts[0].equals(decl.getQualifiedName())) {
+        CPointerType innerType = ((CPointerType)decl.getType()).getCanonicalType();
+        CCompositeType comp = (CCompositeType)innerType.getType();
+        for (CCompositeTypeMemberDeclaration member : comp.getMembers()) {
+          if (parts[1].equals(member.getName())) {
+            matched = true;
+            if (member.getType() instanceof CSimpleType) {
+              // TODO set global or just local for this type?
+              type.setSigness(!((CSimpleType)member.getType()).isUnsigned());
+            }
+          }
+        }
+      }
+    }
+
+    /* assertion might be thrown for UFs and pointer-related symbols
+     * TODO Are they not declared before?
+    if (!matched) {
+      throw new AssertionError("unknown symbol '" + symbol + "' is not available in declarations '" + decls + "'");
+    }
+    */
+
+    return type;
   }
 
   public SymbolEncoding withCFA(CFA pCfa) {
@@ -167,6 +220,7 @@ public class SymbolEncoding {
   /** just a nice replacement for Pair<T,List<T>> */
   public static class Type<T> {
 
+    private boolean signed = true; // default case: signed identifiers
     private final T returnType;
     private final List<T> parameterTypes;
 
@@ -184,9 +238,18 @@ public class SymbolEncoding {
 
     public List<T> getParameterTypes() { return parameterTypes; }
 
+    public void setSigness(boolean signed) {
+      this.signed = signed;
+    }
+
+    public boolean isSigned() {
+      return signed;
+    }
+
     @Override
     public String toString() {
-      return returnType + " " + parameterTypes;
+      return (isSigned() ? "signed " : "unsinged ")
+          + returnType + " " + parameterTypes;
     }
 
     @SuppressWarnings("unchecked")
