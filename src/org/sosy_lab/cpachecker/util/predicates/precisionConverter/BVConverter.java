@@ -140,12 +140,12 @@ public class BVConverter extends Converter {
   @Override
   public String convertFunctionDeclaration(String symbol, Type<String> type) {
 
-    final Type<FormulaType<?>> bitsize = getType(symbol);
+    final Type<FormulaType<?>> t = getType(symbol);
 
     final List<String> lst = new ArrayList<>();
-    final FormulaType<?> size;
+    final FormulaType<?> retType;
 
-    if (bitsize == null) {
+    if (t == null) {
       // ignore some special symbols like "Integer__*_" and replace them by dummy-symbols
       // TODO we could also remove those symbols completely,
       // but then the parser would have to support empty lines.
@@ -155,17 +155,17 @@ public class BVConverter extends Converter {
       for (@SuppressWarnings("unused") String i : type.getParameterTypes()) {
         lst.add(getSMTType(FormulaType.getBitvectorTypeWithSize(defaultBitsize)));
       }
-      size = FormulaType.getBitvectorTypeWithSize(defaultBitsize);
+      retType = FormulaType.getBitvectorTypeWithSize(defaultBitsize);
       symbol = ignorePrefix + symbol;
     } else {
-      for (FormulaType<?> i : bitsize.getParameterTypes()) {
+      for (FormulaType<?> i : t.getParameterTypes()) {
         lst.add(getSMTType(i));
       }
-      size = bitsize.getReturnType();
+      retType = t.getReturnType();
     }
 
     return format("%s (%s) %s",
-        symbol, Joiner.on(" ").join(lst), getSMTType(size));
+        symbol, Joiner.on(" ").join(lst), getSMTType(retType));
   }
 
   @Override
