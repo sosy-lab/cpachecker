@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -119,12 +120,21 @@ public class EdgeAnalyzer {
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
       Map<String, CType> result = new HashMap<>();
+
+      // Extract arguments
+      String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
       for (AExpression argument : functionCallEdge.getArguments()) {
-        result.putAll(getInvolvedVariables(argument, pCfaEdge));
+        result.putAll(getInvolvedVariables(argument,
+            new VariableNameExtractor(
+                callerFunctionName,
+                Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap())));
       }
-      for (AExpression parameter : functionCallEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getParameterExpressions()) {
+
+      // Extract formal parameters
+      for (AParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionParameters()) {
         result.putAll(getInvolvedVariables(parameter, pCfaEdge));
       }
+
       return result;
     }
     case ReturnStatementEdge: {
@@ -195,6 +205,17 @@ public class EdgeAnalyzer {
   }
 
 
+  private static Map<? extends String, ? extends CType> getInvolvedVariables(AParameterDeclaration pParameter,
+      CFAEdge pCFAEdge) {
+    if (pParameter.getType() instanceof CType) {
+      return Collections.singletonMap(
+          new VariableNameExtractor(pCFAEdge).getVarName(pParameter),
+          (CType) pParameter.getType());
+    }
+    return Collections.emptyMap();
+  }
+
+
   /**
    * Gets the variables involved in the given CInitializer.
    *
@@ -219,16 +240,31 @@ public class EdgeAnalyzer {
     return Collections.emptyMap();
   }
 
+  /**
+   * Gets the variables involved in the given expression.
+   *
+   * @param pExpression the expression to be analyzed.
+   * @param pCFAEdge the CFA edge to obtain the function name from, if required.
+   *
+   * @return the variables involved in the given expression.
+   */
+  public static Map<String, CType> getInvolvedVariables(AExpression pExpression, CFAEdge pCFAEdge) {
+    return getInvolvedVariables(pExpression,
+        new VariableNameExtractor(
+            pCFAEdge,
+            Collections.<String, InvariantsFormula<CompoundInterval>> emptyMap())
+    );
+  }
 
   /**
    * Gets the variables involved in the given expression.
    *
    * @param pExpression the expression to be analyzed.
-   * @param pVariableClassification the variable classification.
+   * @param pVariableNameExtractor the variable name extractor to be used.
    *
    * @return the variables involved in the given expression.
    */
-  public static Map<String, CType> getInvolvedVariables(AExpression pExpression, CFAEdge pCfaEdge) {
+  public static Map<String, CType> getInvolvedVariables(AExpression pExpression, VariableNameExtractor pVariableNameExtractor) {
     if (pExpression == null) { return Collections.emptyMap(); }
     if (pExpression instanceof CExpression) {
       Map<String, CType> result = new HashMap<>();
@@ -237,9 +273,7 @@ public class EdgeAnalyzer {
         InvariantsFormula<CompoundInterval> formula;
         try {
           formula = ((CExpression) leftHandSide).accept(new ExpressionToFormulaVisitor(
-              new VariableNameExtractor(
-                  pCfaEdge,
-                  Collections.<String, InvariantsFormula<CompoundInterval>> emptyMap())));
+              pVariableNameExtractor));
 
           for (String variableName : formula.accept(new CollectVarsVisitor<CompoundInterval>())) {
             result.put(variableName, (CType) leftHandSide.getExpressionType());

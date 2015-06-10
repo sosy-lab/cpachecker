@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -89,6 +90,18 @@ public class VariableNameExtractor {
       final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     this.functionName = pFunctionName;
     this.environment = pEnvironment;
+  }
+
+  public String getVarName(AParameterDeclaration pParameterDeclaration) {
+    String varName = pParameterDeclaration.getName();
+    if (pParameterDeclaration instanceof CSimpleDeclaration) {
+      CSimpleDeclaration decl = (CSimpleDeclaration) pParameterDeclaration;
+
+      if (!(decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal() || decl instanceof CEnumerator)) {
+        varName = scope(varName);
+      }
+    }
+    return varName;
   }
 
   public String getVarName(AExpression pLhs) throws UnrecognizedCodeException {
