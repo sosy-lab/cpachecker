@@ -33,7 +33,7 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
     private final String operator;
 
     // isCommutative is TRUE for "=", "+", "*" and FALSE for "-", "/", "<".
-    private final Boolean isCommutative;
+    private final boolean isCommutative;
 
     /**
      * Creates a new formula with two operands.
