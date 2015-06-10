@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
@@ -123,14 +124,20 @@ public class SymbolEncoding {
     String[] parts = symbol.split("->");
     for (ASimpleDeclaration decl : decls) {
       if (parts[0].equals(decl.getQualifiedName())) {
-        CPointerType innerType = ((CPointerType)decl.getType()).getCanonicalType();
-        CCompositeType comp = (CCompositeType)innerType.getType();
-        for (CCompositeTypeMemberDeclaration member : comp.getMembers()) {
-          if (parts[1].equals(member.getName())) {
-            matched = true;
-            if (member.getType() instanceof CSimpleType) {
-              // TODO set global or just local for this type?
-              type.setSigness(!((CSimpleType)member.getType()).isUnsigned());
+        org.sosy_lab.cpachecker.cfa.types.Type declType = decl.getType();
+        if (declType instanceof CTypedefType) {
+          declType = ((CTypedefType)declType).getCanonicalType();
+        }
+        if (declType instanceof CPointerType) {
+          CPointerType innerType = ((CPointerType) declType).getCanonicalType();
+          CCompositeType comp = (CCompositeType) innerType.getType();
+          for (CCompositeTypeMemberDeclaration member : comp.getMembers()) {
+            if (parts[1].equals(member.getName())) {
+              matched = true;
+              if (member.getType() instanceof CSimpleType) {
+                // TODO set global or just local for this type?
+                type.setSigness(!((CSimpleType) member.getType()).isUnsigned());
+              }
             }
           }
         }
@@ -248,8 +255,7 @@ public class SymbolEncoding {
 
     @Override
     public String toString() {
-      return (isSigned() ? "signed " : "unsinged ")
-          + returnType + " " + parameterTypes;
+      return returnType + " " + parameterTypes;
     }
 
     @SuppressWarnings("unchecked")

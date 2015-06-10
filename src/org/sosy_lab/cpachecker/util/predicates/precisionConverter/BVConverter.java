@@ -336,6 +336,12 @@ public class BVConverter extends Converter {
             type);
       }
 
+    } else if (binBooleanOps.contains(op.getFirst())) {
+      return Pair.of(
+          format("(%s %s)",
+              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair.getProjectionToFirst()))),
+          new Type<FormulaType<?>>(FormulaType.BooleanType));
+
     } else if (symbolEncoding.containsSymbol(op.getFirst())) {
       // UF --> cast every parameter to correct bitsize
       assert op.getSecond().getParameterTypes().size() == terms.size();
