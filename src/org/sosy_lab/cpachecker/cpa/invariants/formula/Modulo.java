@@ -29,17 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The numerator of the fraction.
-   */
-  private final InvariantsFormula<ConstantType> numerator;
-
-  /**
-   * The denominator of the fraction.
-   */
-  private final InvariantsFormula<ConstantType> denominator;
+public class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * Creates a new modulo formula over the given numerator and denominator
@@ -50,8 +40,7 @@ public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implemen
    */
   private Modulo(InvariantsFormula<ConstantType> pNumerator,
       InvariantsFormula<ConstantType> pDenominator) {
-    this.numerator = pNumerator;
-    this.denominator = pDenominator;
+    super("%", false, pNumerator, pDenominator);
   }
 
   /**
@@ -60,7 +49,7 @@ public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implemen
    * @return the numerator of the fraction.
    */
   public InvariantsFormula<ConstantType> getNumerator() {
-    return this.numerator;
+    return super.getOperand1();
   }
 
   /**
@@ -69,29 +58,7 @@ public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implemen
    * @return the denominator of the fraction.
    */
   public InvariantsFormula<ConstantType> getDenominator() {
-    return this.denominator;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof Modulo) {
-      Modulo<?> other = (Modulo<?>) o;
-      return getNumerator().equals(other.getNumerator()) && getDenominator().equals(other.getDenominator());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getNumerator().hashCode() % getDenominator().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s %% %s)", getNumerator(), getDenominator());
+    return super.getOperand2();
   }
 
   @Override

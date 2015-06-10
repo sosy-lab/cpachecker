@@ -29,17 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class ShiftRight<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The formula shifted by this operation.
-   */
-  private final InvariantsFormula<ConstantType> shifted;
-
-  /**
-   * The shift distance formula of this operation.
-   */
-  private final InvariantsFormula<ConstantType> shiftDistance;
+public class ShiftRight<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * Creates a new right shift formula over the given operands.
@@ -50,8 +40,7 @@ public class ShiftRight<ConstantType> extends AbstractFormula<ConstantType> impl
    */
   private ShiftRight(InvariantsFormula<ConstantType> pToShift,
       InvariantsFormula<ConstantType> pShiftDistance) {
-    this.shifted = pToShift;
-    this.shiftDistance = pShiftDistance;
+    super(">>", false, pToShift, pShiftDistance);
   }
 
   /**
@@ -60,7 +49,7 @@ public class ShiftRight<ConstantType> extends AbstractFormula<ConstantType> impl
    * @return the formula shifted by this operation.
    */
   public InvariantsFormula<ConstantType> getShifted() {
-    return this.shifted;
+    return super.getOperand1();
   }
 
   /**
@@ -69,29 +58,7 @@ public class ShiftRight<ConstantType> extends AbstractFormula<ConstantType> impl
    * @return the shift distance formula of this operation.
    */
   public InvariantsFormula<ConstantType> getShiftDistance() {
-    return this.shiftDistance;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof ShiftRight) {
-      ShiftRight<?> other = (ShiftRight<?>) o;
-      return getShifted().equals(other.getShifted()) && getShiftDistance().equals(other.getShiftDistance());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getShifted().hashCode() >> getShiftDistance().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s >> %s)", getShifted(), getShiftDistance());
+    return super.getOperand2();
   }
 
   @Override
