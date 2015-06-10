@@ -261,19 +261,18 @@ class PrincessUtil {
    * @return
    */
   public static IExpression let(IExpression expr, PrincessEnvironment env) {
-    return replaceCommonExpressionsInTree(expr, getCommonSubTreeExpressions(expr), env);
+    return replaceCommonExpressionsInTree(expr, getCommonSubTreeExpressions(expr), env, new HashMap<IExpression, IExpression>());
   }
 
   /**
    * This method replaces parts of the given expression tree that match a key of
    * the map with the corresponding value in the map.
    */
-  private static IExpression replaceCommonExpressionsInTree(IExpression expr, List<IExpression> pCommonExprs, PrincessEnvironment pEnv) {
+  private static IExpression replaceCommonExpressionsInTree(IExpression expr, List<IExpression> pCommonExprs, PrincessEnvironment pEnv, Map<IExpression, IExpression> abbreviatedTerms) {
     if (pCommonExprs.isEmpty()) {
       return expr;
     }
 
-    Map<IExpression, IExpression> abbreviatedTerms = new HashMap<>();
     Iterator<IExpression> it = expr.iterator();
 
     List<IExpression> newChilds = new ArrayList<>();
@@ -281,21 +280,24 @@ class PrincessUtil {
       IExpression child = it.next();
 
       // we do only replace terms that are no variables
-      if (!isVariable(child)) {
-        if (abbreviatedTerms.containsKey(child)) {
-          return abbreviatedTerms.get(child);
-        }
+      if (isVariable(child)) {
+        newChilds.add(child);
 
-        IExpression newChild = replaceCommonExpressionsInTree(child, pCommonExprs, pEnv);
+        // terms where we already have abbreviations for do not need
+        // to be traversed again
+      } else if (abbreviatedTerms.containsKey(child)) {
+          newChilds.add(abbreviatedTerms.get(child));
+
+          // traversal of yet unknown subtree
+      } else {
+        IExpression newChild = replaceCommonExpressionsInTree(child, pCommonExprs, pEnv, abbreviatedTerms);
         if (pCommonExprs.contains(child)) {
-          IExpression abbrev = pEnv.abbrev(child);
+          IExpression abbrev = pEnv.abbrev(newChild);
           abbreviatedTerms.put(child, abbrev);
           newChilds.add(abbrev);
         } else {
           newChilds.add(newChild);
         }
-      } else {
-        newChilds.add(child);
       }
     }
 

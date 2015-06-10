@@ -73,7 +73,7 @@ class PrincessEnvironment {
   private final Map<String, IFormula> boolVariablesCache = new HashMap<>();
   private final Map<String, ITerm> intVariablesCache = new HashMap<>();
 
-  /** The key of this map is the full expression, the value is the abbreviation*/
+  /** The key of this map is the abbreviation, the value is the full expression.*/
   private final Map<IExpression, IExpression> abbrevCache = new HashMap<>();
   private final Map<String, IFunction> functionsCache = new HashMap<>();
   private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
@@ -130,7 +130,7 @@ class PrincessEnvironment {
       stack.addSymbol(s);
     }
     for(Entry<IExpression, IExpression> e : abbrevCache.entrySet()) {
-      stack.addAbbrev(e.getValue(), e.getKey());
+      stack.addAbbrev(e.getKey(), e.getValue());
     }
     registeredStacks.add(stack);
     allStacks.add(stack);
@@ -333,7 +333,7 @@ class PrincessEnvironment {
       stack.addAbbrev(abbrev, expr);
     }
 
-    abbrevCache.put(expr, abbrev);
+    abbrevCache.put(abbrev, expr);
     return abbrev;
   }
 
