@@ -119,7 +119,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     private volatile int interestingVariableLimit = 2;
 
     @Option(secure=true, description="the maximum tree depth of a formula recorded in the environment.")
-    private int maximumFormulaDepth = 4;
+    private volatile int maximumFormulaDepth = 4;
 
     @Option(secure=true, description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
     private AbstractionStateFactories abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
@@ -708,7 +708,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return false;
       }
       cpa.initialPrecisionMap.clear();
-      cpa.options.interestingVariableLimit += inc;
+      synchronized (cpa) {
+        cpa.options.interestingVariableLimit += inc;
+      }
       cpa.logManager.log(Level.INFO, "Adjusting interestingVariableLimit to", cpa.options.interestingVariableLimit);
       return true;
     }
@@ -746,7 +748,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return false;
       }
       cpa.initialPrecisionMap.clear();
-      cpa.options.maximumFormulaDepth += inc;
+      synchronized (cpa) {
+        cpa.options.maximumFormulaDepth += inc;
+      }
       cpa.logManager.log(Level.INFO, "Adjusting maximum formula depth to", cpa.options.maximumFormulaDepth);
       return true;
     }
