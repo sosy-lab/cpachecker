@@ -1016,7 +1016,8 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 
 # when reading predicates from file, convert them to BV-theory. This option
 # depends on the 'variableEncodingFile'.
-cpa.predicate.abstraction.initialPredicates.encodeAsBV = false
+cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
+  enum:     [DISABLE, INT2BV, BV2INT]
 
 # where to read symbols and their possible encoding,this corresponds to
 # 'cpa.predicate.symbolEncodingFile' of a previous execution.
