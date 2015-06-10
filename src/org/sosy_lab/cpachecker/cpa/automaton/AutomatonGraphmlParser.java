@@ -377,9 +377,8 @@ public class AutomatonGraphmlParser {
               throw new IllegalArgumentException("Unrecognized assume case: " + assumeCaseStr);
             }
 
-            AutomatonBoolExpr assumeCaseMatchingExpr = or(
-                not(AutomatonBoolExpr.MatchAssumeEdge.INSTANCE),
-                new AutomatonBoolExpr.MatchAssumeCase(assumeCase));
+            AutomatonBoolExpr assumeCaseMatchingExpr =
+                new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
 
             conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
           }
@@ -855,10 +854,6 @@ public class AutomatonGraphmlParser {
       result = and(result, e);
     }
     return result;
-  }
-
-  private static AutomatonBoolExpr or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-    return not(and(not(pA), not(pB)));
   }
 
 }

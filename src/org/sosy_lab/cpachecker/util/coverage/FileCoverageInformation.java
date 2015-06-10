@@ -29,6 +29,8 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+
 class FileCoverageInformation {
 
   static class FunctionInfo {
@@ -47,6 +49,16 @@ class FileCoverageInformation {
   final Set<Integer> allLines = new HashSet<>();
   final Set<String> visitedFunctions = new HashSet<>();
   final Set<FunctionInfo> allFunctions = new HashSet<>();
+  final Set<AssumeEdge> allAssumes = new HashSet<>();
+  final Set<AssumeEdge> visitedAssumes = new HashSet<>();
+
+  public void addVisitedAssume(AssumeEdge pEdge) {
+    visitedAssumes.add(pEdge);
+  }
+
+  public void addExistingAssume(AssumeEdge pEdge) {
+    allAssumes.add(pEdge);
+  }
 
   public void addVisitedFunction(String pName) {
     visitedFunctions.add(pName);

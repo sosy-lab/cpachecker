@@ -119,7 +119,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     private volatile int interestingVariableLimit = 2;
 
     @Option(secure=true, description="the maximum tree depth of a formula recorded in the environment.")
-    private int maximumFormulaDepth = 4;
+    private volatile int maximumFormulaDepth = 4;
 
     @Option(secure=true, description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
     private AbstractionStateFactories abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
@@ -229,7 +229,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public TransferRelation getTransferRelation() {
-    return InvariantsTransferRelation.INSTANCE;
+    return new InvariantsTransferRelation();
   }
 
   @Override
@@ -485,7 +485,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private static boolean anyOnPath(List<CFAEdge> pPath, Set<String> pRelevantVariables) {
     for (CFAEdge edge : pPath) {
-      if (!Collections.disjoint(InvariantsTransferRelation.INSTANCE.getInvolvedVariables(edge).keySet(), pRelevantVariables)) {
+      if (!Collections.disjoint(EdgeAnalyzer.getInvolvedVariables(edge).keySet(), pRelevantVariables)) {
         return true;
       }
     }
@@ -519,14 +519,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   private static void addTransitivelyRelevantInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
-    Set<String> involvedVariables = InvariantsTransferRelation.INSTANCE.getInvolvedVariables(pEdge).keySet();
+    Set<String> involvedVariables = EdgeAnalyzer.getInvolvedVariables(pEdge).keySet();
     if (!Collections.disjoint(pRelevantVariables, involvedVariables)) {
       addAll(pRelevantVariables, involvedVariables, pLimit);
     }
   }
 
   private static void addInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
-    addAll(pRelevantVariables, InvariantsTransferRelation.INSTANCE.getInvolvedVariables(pEdge).keySet(), pLimit);
+    addAll(pRelevantVariables, EdgeAnalyzer.getInvolvedVariables(pEdge).keySet(), pLimit);
   }
 
   private static <T> void addAll(Collection<T> pTarget, Collection<T> pSource, int pLimit) {
@@ -708,7 +708,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return false;
       }
       cpa.initialPrecisionMap.clear();
-      cpa.options.interestingVariableLimit += inc;
+      synchronized (cpa) {
+        cpa.options.interestingVariableLimit += inc;
+      }
       cpa.logManager.log(Level.INFO, "Adjusting interestingVariableLimit to", cpa.options.interestingVariableLimit);
       return true;
     }
@@ -746,7 +748,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return false;
       }
       cpa.initialPrecisionMap.clear();
-      cpa.options.maximumFormulaDepth += inc;
+      synchronized (cpa) {
+        cpa.options.maximumFormulaDepth += inc;
+      }
       cpa.logManager.log(Level.INFO, "Adjusting maximum formula depth to", cpa.options.maximumFormulaDepth);
       return true;
     }

@@ -25,53 +25,27 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -111,15 +85,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
      = ImmutableMap.of();
 
-  static final InvariantsTransferRelation INSTANCE = new InvariantsTransferRelation();
-
   /**
    * Base name of the variable that is introduced to pass results from
    * returning function calls.
    */
   static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
-
-  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -141,7 +111,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsPrecision pPrecision, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCodeException {
-    InvariantsState state = pState.setTypes(getInvolvedVariables(pEdge));
+    InvariantsState state = pState.setTypes(EdgeAnalyzer.getInvolvedVariables(pEdge));
     switch (pEdge.getEdgeType()) {
     case BlankEdge:
       break;
@@ -501,7 +471,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static boolean containsArrayWildcard(InvariantsFormula<CompoundInterval> pFormula) {
-    for (String pVarName : pFormula.accept(COLLECT_VARS_VISITOR)) {
+    for (String pVarName : pFormula.accept(new CollectVarsVisitor<CompoundInterval>())) {
       if (pVarName.contains("[*]")) {
         return true;
       }
@@ -531,230 +501,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return !Iterables.isEmpty(Iterables.skip(pIterable, pN));
   }
 
-  /**
-   * Gets the variables involved in the given edge.
-   *
-   * @param pCfaEdge the edge to be analyzed.
-   * @param pVariableClassification the variable classification.
-   *
-   * @return the variables involved in the given edge.
-   */
-  public Map<String, CType> getInvolvedVariables(CFAEdge pCfaEdge) {
-    switch (pCfaEdge.getEdgeType()) {
-    case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
-      AExpression expression = assumeEdge.getExpression();
-      return getInvolvedVariables(expression, pCfaEdge);
-    }
-    case MultiEdge: {
-      MultiEdge multiEdge = (MultiEdge) pCfaEdge;
-      Map<String, CType> result = new HashMap<>();
-      for (CFAEdge edge : multiEdge) {
-        result.putAll(getInvolvedVariables(edge));
-      }
-      return result;
-    }
-    case DeclarationEdge: {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
-      ADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof CVariableDeclaration) {
-        CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-        String declaredVariable = variableDeclaration.getQualifiedName();
-        CType type = variableDeclaration.getType();
-        CInitializer initializer = variableDeclaration.getInitializer();
-        if (initializer == null) {
-          return Collections.singletonMap(declaredVariable, type);
-        }
-        Map<String, CType> result = new HashMap<>();
-        result.put(declaredVariable, type);
-        result.putAll(getInvolvedVariables(initializer, pCfaEdge));
-        return result;
-      } else if (declaration instanceof AVariableDeclaration) {
-        throw new UnsupportedOperationException("Only C expressions are supported");
-      } else {
-        return Collections.emptyMap();
-      }
-    }
-    case FunctionCallEdge: {
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
-      Map<String, CType> result = new HashMap<>();
-      for (AExpression argument : functionCallEdge.getArguments()) {
-        result.putAll(getInvolvedVariables(argument, pCfaEdge));
-      }
-      for (AExpression parameter : functionCallEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getParameterExpressions()) {
-        result.putAll(getInvolvedVariables(parameter, pCfaEdge));
-      }
-      return result;
-    }
-    case ReturnStatementEdge: {
-      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
-      if (returnStatementEdge.getExpression().isPresent()) {
-        AExpression returnExpression = returnStatementEdge.getExpression().get();
-        Map<String, CType> result = new HashMap<>();
-        result.put(VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getSuccessor().getFunctionName()),
-            (CType) returnExpression.getExpressionType());
-        result.putAll(getInvolvedVariables(returnExpression, pCfaEdge));
-        return result;
-      }
-      return Collections.emptyMap();
-    }
-    case StatementEdge: {
-      AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
-      AStatement statement = statementEdge.getStatement();
-      if (statement instanceof AExpressionAssignmentStatement) {
-        AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
-        Map<String, CType> result = new HashMap<>();
-        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
-        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getRightHandSide(), pCfaEdge));
-        return result;
-      } else if (statement instanceof AExpressionStatement) {
-        return getInvolvedVariables(((AExpressionStatement) statement).getExpression(), pCfaEdge);
-      } else if (statement instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) statement;
-        Map<String, CType> result = new HashMap<>();
-        result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
-        AFunctionCallExpression functionCallExpression = functionCallAssignmentStatement.getFunctionCallExpression();
-        for (AExpression expression : functionCallExpression.getParameterExpressions()) {
-          result.putAll(getInvolvedVariables(expression, pCfaEdge));
-        }
-        return result;
-      } else if (statement instanceof AFunctionCallStatement) {
-        AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-        Map<String, CType> result = new HashMap<>();
-        for (AExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-          result.putAll(getInvolvedVariables(expression, pCfaEdge));
-        }
-        return result;
-      } else {
-        return Collections.emptyMap();
-      }
-    }
-    case FunctionReturnEdge:
-      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) pCfaEdge;
-      AFunctionCall functionCall = functionReturnEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) functionCall;
-        AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-        if (functionCallExpression != null) {
-          Map<String, CType> result = new HashMap<>();
-          result.put(VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getPredecessor().getFunctionName()),
-              (CType) functionCallExpression.getExpressionType());
-          result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
-          return result;
-        }
-      }
-      return Collections.emptyMap();
-    case BlankEdge:
-    case CallToReturnEdge:
-    default:
-      return Collections.emptyMap();
-    }
-  }
 
-  /**
-   * Gets the variables involved in the given CInitializer.
-   *
-   * @param pCInitializer the CInitializer to be analyzed.
-   * @param pVariableClassification the variable classification.
-   *
-   * @return the variables involved in the given CInitializer.
-   */
-  private Map<String, CType> getInvolvedVariables(CInitializer pCInitializer, CFAEdge pCfaEdge) {
-    if (pCInitializer instanceof CDesignatedInitializer) {
-      return getInvolvedVariables(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerExpression) {
-      return getInvolvedVariables(((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerList) {
-      CInitializerList initializerList = (CInitializerList) pCInitializer;
-      Map<String, CType> result = new HashMap<>();
-      for (CInitializer initializer : initializerList.getInitializers()) {
-        result.putAll(getInvolvedVariables(initializer, pCfaEdge));
-      }
-      return result;
-    }
-    return Collections.emptyMap();
-  }
 
-  /**
-   * Gets the variables involved in the given expression.
-   *
-   * @param pExpression the expression to be analyzed.
-   * @param pVariableClassification the variable classification.
-   *
-   * @return the variables involved in the given expression.
-   */
-  public static Map<String, CType> getInvolvedVariables(AExpression pExpression, CFAEdge pCfaEdge) {
-    if (pExpression == null) {
-      return Collections.emptyMap();
-    } if (pExpression instanceof CExpression) {
-      Map<String, CType> result = new HashMap<>();
-
-      for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(new DefaultCExpressionVisitor<Iterable<ALeftHandSide>, RuntimeException>() {
-
-        @Override
-        protected Iterable<ALeftHandSide> visitDefault(CExpression pExp) {
-          return Collections.emptySet();
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-          return Collections.<ALeftHandSide>singleton(pIastArraySubscriptExpression);
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CFieldReference pIastFieldReference) {
-          return Collections.<ALeftHandSide>singleton(pIastFieldReference);
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CIdExpression pIastIdExpression) {
-          return Collections.<ALeftHandSide>singleton(pIastIdExpression);
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CPointerExpression pPointerExpression) {
-          return Collections.<ALeftHandSide>singleton(pPointerExpression);
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CComplexCastExpression pComplexCastExpression) {
-          return pComplexCastExpression.getOperand().accept(this);
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CBinaryExpression pIastBinaryExpression) {
-          return Iterables.concat(pIastBinaryExpression.getOperand1().accept(this), pIastBinaryExpression.getOperand2().accept(this));
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CCastExpression pIastCastExpression) {
-          return pIastCastExpression.getOperand().accept(this);
-        }
-
-        @Override
-        public Iterable<ALeftHandSide> visit(CUnaryExpression pIastUnaryExpression) {
-          return pIastUnaryExpression.getOperand().accept(this);
-        }
-      }
-        )) {
-        InvariantsFormula<CompoundInterval> formula;
-        try {
-          formula = ((CExpression) leftHandSide).accept(new ExpressionToFormulaVisitor(
-              new VariableNameExtractor(
-                  pCfaEdge,
-                  Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap())));
-
-          for (String variableName : formula.accept(COLLECT_VARS_VISITOR)) {
-            result.put(variableName, (CType) leftHandSide.getExpressionType());
-          }
-        } catch (UnrecognizedCodeException e) {
-          // Don't record the variable name then
-        }
-      }
-
-      return result;
-    } else {
-      throw new UnsupportedOperationException("Only C expressions are supported");
-    }
-  }
 }

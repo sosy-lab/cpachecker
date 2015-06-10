@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -64,6 +64,9 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     ARGState element = (ARGState)pElement;
 
     if (inCPAEnabledAnalysis && element.isTarget()) {
+      if (elementHasSiblings(element)) {
+        removeUnreachedSiblingsFromARG(element, pElements);
+      }
       // strengthening of PredicateCPA already proved if path is infeasible and removed infeasible element
       // thus path is feasible here
       throw new CPAEnabledAnalysisPropertyViolationException("Property violated during successor computation", element, false);

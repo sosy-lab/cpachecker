@@ -107,6 +107,11 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
+    return manager.applyTactic(input, tactic);
+  }
+
+  @Override
   public boolean isBoolean(Formula pF) {
     return pF instanceof BooleanFormula;
   }

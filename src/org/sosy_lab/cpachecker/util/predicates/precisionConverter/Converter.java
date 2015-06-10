@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static java.lang.String.format;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -33,10 +34,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.Ty
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /** This is a dummy converter
  * that returns the identity of the given terms and types. */
 public class Converter {
+
+  protected final Set<String> binBooleanOps = Sets.newHashSet("and", "or");
 
   public Converter() {}
 

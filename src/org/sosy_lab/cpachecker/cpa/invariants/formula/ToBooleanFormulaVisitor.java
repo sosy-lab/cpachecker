@@ -35,8 +35,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
@@ -62,35 +60,20 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
-  private final boolean useBitvectors;
-
   private final ToValueFormulaVisitorProvider<ValueFormulaType> toValueFormulaVisitorProvider;
 
   public static ToFormulaVisitor<CompoundInterval, BooleanFormula> getVisitor(final FormulaManagerView pFmgr,
         final FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
-        boolean pUseBitvectors,
         final MachineModel pMachineModel,
         final Map<String, CType> pVariableTypes) {
-    if (pUseBitvectors) {
-      return new ToBooleanFormulaVisitor<>(pFmgr, pUseBitvectors, pEvaluationVisitor, pMachineModel, pVariableTypes, new ToValueFormulaVisitorProvider<BitvectorFormula>() {
+    return new ToBooleanFormulaVisitor<>(pFmgr, pEvaluationVisitor, pMachineModel, pVariableTypes, new ToValueFormulaVisitorProvider<BitvectorFormula>() {
 
         @Override
         public ToFormulaVisitor<CompoundInterval, BitvectorFormula> getValueVisitor(Integer pSize, ToBooleanFormulaVisitor<BitvectorFormula> pToBooleanFormulaVisitor) {
           return new ToBitvectorFormulaVisitor(pFmgr, pToBooleanFormulaVisitor, pEvaluationVisitor, pSize, pVariableTypes, pMachineModel);
         }
-      });
-    } else {
-      return new ToBooleanFormulaVisitor<>(pFmgr, pUseBitvectors, pEvaluationVisitor, pMachineModel, pVariableTypes, new ToValueFormulaVisitorProvider<NumeralFormula>() {
 
-        @Override
-        public ToFormulaVisitor<CompoundInterval, NumeralFormula> getValueVisitor(Integer pSize,
-            ToBooleanFormulaVisitor<NumeralFormula> pToBooleanFormulaVisitor) {
-          NumeralFormulaManager<NumeralFormula, ? extends NumeralFormula> mgr = pFmgr.getRationalFormulaManager();
-          return new ToNumeralFormulaVisitor<>(pFmgr, mgr, pToBooleanFormulaVisitor, pEvaluationVisitor);
-        }
       });
-    }
-
   }
 
   /**
@@ -99,11 +82,12 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    * converter and evaluation visitor.
    *
    * @param pFmgr the formula manager used.
-   * @param evaluationVisitor the evaluation visitor used to evaluate compound
+   * @param pEvaluationVisitor the evaluation visitor used to evaluate compound
    * state invariants formulae to compound states.
+   * @param pMachineModel the machine model.
+   * @param pToValueFormulaVisitorProvider the formula visitor provider for value formula visitors.
    */
   private ToBooleanFormulaVisitor(FormulaManagerView pFmgr,
-      boolean pUseBitvectors,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       MachineModel pMachineModel,
       Map<String, CType> pTypes,
@@ -113,12 +97,13 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
     this.types = pTypes;
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.evaluationVisitor = pEvaluationVisitor;
-    this.useBitvectors = pUseBitvectors;
   }
 
   /**
    * Gets the corresponding visitor for converting compound state invariants
    * formulae to value type formulae.
+   *
+   * @param pFormula the formula to get the visitor for.
    *
    * @return a visitor for converting compound state invariants formulae to
    * value type formulae.
@@ -256,10 +241,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   public BooleanFormula visit(Equal<CompoundInterval> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     Integer size = ToBitvectorFormulaVisitor.getSize(pEqual, types, machineModel);
     if (size == null) {
-      if (useBitvectors) {
-        return null;
-      }
-      size = 0;
+      return null;
     }
     ValueFormulaType operand1 = pEqual.getOperand1().accept(getValueVisitor(pEqual), pEnvironment);
     ValueFormulaType operand2 = pEqual.getOperand2().accept(getValueVisitor(pEqual), pEnvironment);
@@ -314,10 +296,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   public BooleanFormula visit(LessThan<CompoundInterval> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
     Integer size = ToBitvectorFormulaVisitor.getSize(pLessThan, types, machineModel);
     if (size == null) {
-      if (useBitvectors) {
-        return null;
-      }
-      size = 0;
+      return null;
     }
     ValueFormulaType operand1 = pLessThan.getOperand1().accept(getValueVisitor(pLessThan), pEnvironment);
     ValueFormulaType operand2 = pLessThan.getOperand2().accept(getValueVisitor(pLessThan), pEnvironment);

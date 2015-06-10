@@ -24,10 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import scala.Enumeration;
@@ -248,6 +251,83 @@ class PrincessUtil {
       }
     }
     return result;
+  }
+
+  /**
+   * This method introduces let statements (abbreviations in Princess) for all subtrees
+   * of the given term tree which are equal, such that each subtree of the resulting
+   * tree is unique afterwards
+   * @param term
+   * @return
+   */
+  public static IExpression let(IExpression expr, PrincessEnvironment env) {
+    return replaceCommonExpressionsInTree(expr, getCommonSubTreeExpressions(expr), env, new HashMap<IExpression, IExpression>());
+  }
+
+  /**
+   * This method replaces parts of the given expression tree that match a key of
+   * the map with the corresponding value in the map.
+   */
+  private static IExpression replaceCommonExpressionsInTree(IExpression expr, List<IExpression> pCommonExprs, PrincessEnvironment pEnv, Map<IExpression, IExpression> abbreviatedTerms) {
+    if (pCommonExprs.isEmpty()) {
+      return expr;
+    }
+
+    Iterator<IExpression> it = expr.iterator();
+
+    List<IExpression> newChilds = new ArrayList<>();
+    while (it.hasNext()) {
+      IExpression child = it.next();
+
+      // we do only replace terms that are no variables
+      if (isVariable(child)) {
+        newChilds.add(child);
+
+        // terms where we already have abbreviations for do not need
+        // to be traversed again
+      } else if (abbreviatedTerms.containsKey(child)) {
+          newChilds.add(abbreviatedTerms.get(child));
+
+          // traversal of yet unknown subtree
+      } else {
+        IExpression newChild = replaceCommonExpressionsInTree(child, pCommonExprs, pEnv, abbreviatedTerms);
+        if (pCommonExprs.contains(child)) {
+          IExpression abbrev = pEnv.abbrev(newChild);
+          abbreviatedTerms.put(child, abbrev);
+          newChilds.add(abbrev);
+        } else {
+          newChilds.add(newChild);
+        }
+      }
+    }
+
+    return expr.update(JavaConversions.asScalaBuffer(newChilds));
+  }
+
+  private static List<IExpression> getCommonSubTreeExpressions(IExpression expr) {
+    Deque<IExpression> todo = new ArrayDeque<>();
+    Set<IExpression> seen = new HashSet<>();
+    List<IExpression> duplicates = new ArrayList<>(); // we want to retain the insertion order
+                                                      // largest common subtrees are found first
+                                                      // and should be replaced first
+    todo.add(expr);
+
+    while (!todo.isEmpty()) {
+      IExpression currentExpr = todo.removeLast();
+
+      // this is a duplicate term, we exclude single variables here for these we
+      // do not need let expressions
+      if (!seen.add(currentExpr) && !isVariable(currentExpr)) {
+        duplicates.add(currentExpr);
+        continue;
+      }
+
+      Iterator<IExpression> it = currentExpr.iterator();
+      while (it.hasNext()) {
+        todo.add(it.next());
+      }
+    }
+    return duplicates;
   }
 
 }

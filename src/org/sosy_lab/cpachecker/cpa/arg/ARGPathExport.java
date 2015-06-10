@@ -852,8 +852,8 @@ public class ARGPathExport {
             @Override
             public Edge apply(Edge pOldEdge) {
               TransitionCondition label = new TransitionCondition();
-              label.keyValues.putAll(pOldEdge.label.keyValues);
               label.keyValues.putAll(pEdge.label.keyValues);
+              label.keyValues.putAll(pOldEdge.label.keyValues);
               return new Edge(source, pOldEdge.target, label);
             }
 
@@ -879,8 +879,8 @@ public class ARGPathExport {
             @Override
             public Edge apply(Edge pOldEdge) {
               TransitionCondition label = new TransitionCondition();
-              label.keyValues.putAll(pOldEdge.label.keyValues);
               label.keyValues.putAll(pEdge.label.keyValues);
+              label.keyValues.putAll(pOldEdge.label.keyValues);
               return new Edge(pOldEdge.source, source, label);
             }
 

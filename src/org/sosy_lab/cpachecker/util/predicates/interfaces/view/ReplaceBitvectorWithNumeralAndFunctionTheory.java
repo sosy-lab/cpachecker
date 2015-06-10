@@ -56,14 +56,12 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   private final UninterpretedFunctionDeclaration<T> rightShiftUfDecl;
   private final FormulaType<T> formulaType;
   private final boolean ignoreExtractConcat;
-  private final SymbolEncoding symbolEncoding;
 
   public ReplaceBitvectorWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<? super T, T> rawNumericFormulaManager,
       FunctionFormulaManager rawFunctionManager,
-      final boolean ignoreExtractConcat,
-      final SymbolEncoding pSymbolEncoding) {
+      final boolean ignoreExtractConcat) {
     super(pWrappingHandler);
     numericFormulaManager = rawNumericFormulaManager;
     this.ignoreExtractConcat = ignoreExtractConcat;
@@ -77,8 +75,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
     leftShiftUfDecl = createBinaryFunction("_<<_");
     rightShiftUfDecl = createBinaryFunction("_>>_");
-
-    symbolEncoding = pSymbolEncoding;
   }
 
   @SuppressWarnings("unchecked")
@@ -160,9 +156,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
-    BitvectorType t = getBitvectorTypeWithSize(pLength);
-    symbolEncoding.put(pVar, t);
-    return wrap(t, numericFormulaManager.makeVariable(pVar));
+    return wrap(getBitvectorTypeWithSize(pLength), numericFormulaManager.makeVariable(pVar));
   }
 
   @Override

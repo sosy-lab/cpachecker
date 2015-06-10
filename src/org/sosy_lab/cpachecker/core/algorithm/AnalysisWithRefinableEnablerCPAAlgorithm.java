@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -175,8 +176,10 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     }
 
     try {
-      ((CompositeMergeAgreeCPAEnabledAnalysisOperator) CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator())
-          .setEnablerStateClass(enablerCPA.stateClass);
+      if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof MergeSepOperator)) {
+        ((CompositeMergeAgreeCPAEnabledAnalysisOperator) CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator())
+            .setEnablerStateClass(enablerCPA.stateClass);
+      }
     } catch (ClassCastException e) {
       throw new InvalidConfigurationException("Option cpa.composite.inCPAEnabledAnalysis must be enabled.");
     }
@@ -186,15 +189,12 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
       throw new InvalidConfigurationException("Currently only support forward analyses.");
     }
-    if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof CompositeMergeAgreeCPAEnabledAnalysisOperator)) { throw new InvalidConfigurationException(
-        "Composite CPA must be informed about predicated analysis. "
-            + "Add cpa.composite.inPredicatedAnalysis=true to your configuration options.");
-    }
 
-    if (!(cpa.getMergeOperator() instanceof ARGMergeJoinCPAEnabledAnalysis)) { throw new InvalidConfigurationException(
-        "ARG CPA must be informed about predicated analysis. "
-            + "Add cpa.arg.inPredicatedAnalysis=true to your configuration options.");
-    }
+    if (!(cpa.getMergeOperator() instanceof MergeSepOperator
+        || cpa.getMergeOperator() instanceof ARGMergeJoinCPAEnabledAnalysis)) {
+      throw new InvalidConfigurationException(
+        "ARG CPA must be informed about analysis with enabler CPA. "
+            + "Add cpa.arg.inCPAEnabledAnalysis=true to your configuration options."); }
   }
 
   @Override
@@ -223,7 +223,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       status = algorithm.run(pReachedSet);
     } catch (CPAEnabledAnalysisPropertyViolationException e) {
       if(e.getFailureCause()==null){
-        throw new CPAException("Error state not known to predicated analysis algorithm. Cannot continue analysis.");
+        throw new CPAException("Error state not known to analysis with enabler CPA. Cannot continue analysis.");
       }
       Precision precision =  pReachedSet.getPrecision(((ARGState)e.getFailureCause()).getParents().iterator().next());
       if (e.getFailureCause() != null && !pReachedSet.contains(e.getFailureCause())
@@ -248,7 +248,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
       logger.log(Level.FINEST, "Prepare for refinement by CEGAR algorithm");
 
-      // get predicate state
+      // get enabler state
       AbstractState errorEnablerState = getEnablerState(predecessor);
       CompositeState comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
 
@@ -268,7 +268,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       // create fake edges
       /*try {
         node.getEdgeTo(node);
-        throw new CPAException("Predicated Analysis cannot be run with programs whose CFAs have self-loops.");
+        throw new CPAException("Analysis with enabler CPA cannot be run with programs whose CFAs have self-loops.");
       } catch (IllegalArgumentException e1) {
         // do nothing we require that the edge does not exist
       }*/
@@ -285,7 +285,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
           }
         }
       } catch (ClassCastException e2) {
-        throw new CPAException("Predicated Analysis requires that the error condition is specified as a CExpression (statement) in the specification (automata).");
+        throw new CPAException("Analysis with enabler CPA requires that the error condition is specified as a CExpression (statement) in the specification (automata).");
       }
 
       if(fakeEdgesFromLastRun.isEmpty()){

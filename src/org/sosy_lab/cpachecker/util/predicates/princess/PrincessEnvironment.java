@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -71,6 +72,9 @@ class PrincessEnvironment {
    * so we need to have the same objects. */
   private final Map<String, IFormula> boolVariablesCache = new HashMap<>();
   private final Map<String, ITerm> intVariablesCache = new HashMap<>();
+
+  /** The key of this map is the abbreviation, the value is the full expression.*/
+  private final Map<IExpression, IExpression> abbrevCache = new HashMap<>();
   private final Map<String, IFunction> functionsCache = new HashMap<>();
   private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
@@ -125,7 +129,9 @@ class PrincessEnvironment {
     for (IFunction s : functionsCache.values()) {
       stack.addSymbol(s);
     }
-
+    for(Entry<IExpression, IExpression> e : abbrevCache.entrySet()) {
+      stack.addAbbrev(e.getKey(), e.getValue());
+    }
     registeredStacks.add(stack);
     allStacks.add(stack);
     return stack;
@@ -282,6 +288,7 @@ class PrincessEnvironment {
   TermType getReturnTypeForFunction(IFunction fun) {
     return functionsReturnTypes.get(fun);
   }
+
   public IExpression makeFunction(IFunction funcDecl, List<IExpression> args) {
     checkArgument(args.size() == funcDecl.arity(),
         "functiontype has different number of args.");
@@ -310,6 +317,24 @@ class PrincessEnvironment {
     }
 
     return returnFormula;
+  }
+
+  public IExpression abbrev(IExpression expr) {
+    IExpression abbrev;
+    if (expr instanceof IFormula) {
+      abbrev = api.abbrev((IFormula)expr);
+    } else if (expr instanceof ITerm) {
+      abbrev = api.abbrev((ITerm)expr);
+    } else {
+      throw new AssertionError("no possibility to create abbreviation for " + expr.getClass());
+    }
+
+    for (SymbolTrackingPrincessStack stack : allStacks) {
+      stack.addAbbrev(abbrev, expr);
+    }
+
+    abbrevCache.put(abbrev, expr);
+    return abbrev;
   }
 
   public String getVersion() {

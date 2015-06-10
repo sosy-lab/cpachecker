@@ -54,9 +54,11 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       return;
     }
 
+    long numTotalConditions = 0;
     long numTotalFunctions = 0;
     long numTotalLines = 0;
 
+    long numVisitedConditions = 0;
     long numVisitedFunctions = 0;
     long numVisitedLines = 0;
 
@@ -64,9 +66,12 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       FileCoverageInformation info = pCoverage.get(sourcefile);
 
       numTotalFunctions =+ info.allFunctions.size();
-      numTotalLines =+ info.allLines.size();
-
       numVisitedFunctions =+ info.visitedFunctions.size();
+
+      numTotalConditions =+ info.allAssumes.size();
+      numVisitedConditions =+ info.visitedAssumes.size();
+
+      numTotalLines =+ info.allLines.size();
 
       for (Integer line : info.allLines) {
         if (info.visitedLines.get(line)) {
@@ -79,13 +84,22 @@ class CoverageReportStdoutSummary implements CoverageWriter {
     pStdOut.println("-----------------------------");
 
     if (numTotalFunctions > 0) {
-      final double functionCoverage = numVisitedFunctions / numTotalFunctions;
+      final double functionCoverage = numVisitedFunctions / (double) numTotalFunctions;
       StatisticsUtils.write(pStdOut, 1, 25, "Function coverage", String.format("%.3f", functionCoverage));
     }
 
     if (numTotalLines > 0) {
-      final double lineCoverage = numVisitedLines / numTotalLines;
+      final double lineCoverage = numVisitedLines / (double) numTotalLines;
+      StatisticsUtils.write(pStdOut, 1, 25, "Visited lines", numVisitedLines);
+      StatisticsUtils.write(pStdOut, 1, 25, "Total lines", numTotalLines);
       StatisticsUtils.write(pStdOut, 1, 25, "Line coverage", String.format("%.3f", lineCoverage));
+    }
+
+    if (numTotalConditions > 0) {
+      final double conditionCoverage = numVisitedConditions / (double) numTotalConditions;
+      StatisticsUtils.write(pStdOut, 1, 25, "Visited conditions", numVisitedConditions);
+      StatisticsUtils.write(pStdOut, 1, 25, "Total conditions", numTotalConditions);
+      StatisticsUtils.write(pStdOut, 1, 25, "Condition coverage", String.format("%.3f", conditionCoverage));
     }
 
     pStdOut.println();

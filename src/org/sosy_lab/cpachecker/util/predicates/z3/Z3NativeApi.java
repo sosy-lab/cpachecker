@@ -806,30 +806,74 @@ public final class Z3NativeApi {
 
 
     // GOALS
-    public static native long mk_goal(long context, boolean models, boolean unsat_cores, boolean proofs);
-    public static native void goal_inc_ref(long context, long goal);
-    public static native void goal_dec_ref(long context, long goal);
-    public static native int goal_precision(long context, long goal);
-    public static native void goal_assert(long context, long goal, long ast);
-    public static native boolean goal_inconsistent(long context, long goal);
-    public static native int goal_depth(long context, long goal);
-    public static native void goal_reset(long context, long goal);
-    public static native int goal_size(long context, long goal);
-    public static native long goal_formula(long context, long goal, int index);
-    public static native int goal_num_exprs(long context, long goal);
-    public static native boolean goal_is_decided_sat(long context, long goal);
-    public static native boolean goal_is_decided_unsat(long context, long goal);
-    public static native long goal_translate(long context_source, long goal, long context_target);
-    public static native String goal_to_string(long context, long goal);
+  /**
+   * Create a goal (aka problem). A goal is essentially a set
+   * of formulas, that can be solved and/or transformed using
+   * tactics and solvers.
+   *
+   * If {@code models == true}, then model generation is enabled for the new goal.
+   *
+   * If {@code unsat_cores == true}, then unsat core generation is enabled for
+   * the new goal.
+   *
+   * If {@code proofs == true}, then proof generation is enabled for the new
+   * goal. Remark, the Z3 context c must have been created with proof
+   * generation support.
+
+   * Reference counting must be used to manage goals, even when the Z3_context was
+   * created using {@link #mk_context} instead of {@link #mk_context_rc}.
+   */
+  public static native long mk_goal(long context, boolean models, boolean unsat_cores, boolean proofs);
+
+  public static native void goal_inc_ref(long context, long goal);
+  public static native void goal_dec_ref(long context, long goal);
+  public static native int goal_precision(long context, long goal);
+
+  /**
+   * Add a new formula {@code ast} to the given goal.
+   * @param context Z3_context
+   * @param goal Z3_goal
+   * @param ast Z3_ast
+   */
+  public static native void goal_assert(long context, long goal, long ast);
+  public static native boolean goal_inconsistent(long context, long goal);
+  public static native int goal_depth(long context, long goal);
+  public static native void goal_reset(long context, long goal);
+  public static native int goal_size(long context, long goal);
+
+  /**
+   * Return a formula from the given goal.
+   * @param context Z3_context
+   * @param goal Z3_goal
+   * @param index Formula index. Should be smaller than {@link #goal_size}.
+   * @return Z3_ast
+   */
+  public static native long goal_formula(long context, long goal, int index);
+  public static native int goal_num_exprs(long context, long goal);
+  public static native boolean goal_is_decided_sat(long context, long goal);
+  public static native boolean goal_is_decided_unsat(long context, long goal);
+  public static native long goal_translate(long context_source, long goal, long context_target);
+  public static native String goal_to_string(long context, long goal);
 
 
     // TACTICS AND PROBES
-    public static native long mk_tactic(long context, String name);
-    public static native void tactic_inc_ref(long context, long tactic);
-    public static native void tactic_dec_ref(long context, long tactic);
+  /**
+   * Return a tactic associated with the given name.
+   * The complete list of tactics may be obtained using the procedures
+   * {@link #get_num_tactics} and {@link #get_tactic_name}.
+   *
+   * Tactics are the basic building block for creating custom solvers for
+   * specific problem domains.
+   *
+   * @param context Z3_context
+   * @return Z3_tactic
+   */
+  public static native long mk_tactic(long context, String name);
+  public static native void tactic_inc_ref(long context, long tactic);
+  public static native void tactic_dec_ref(long context, long tactic);
 
-    public static native long mk_probe(long context, String name);
-    public static native void probe_inc_ref(long context, long probe);
+  public static native long mk_probe(long context, String name);
+  public static native void probe_inc_ref(long context, long probe);
   public static native void probe_dec_ref(long context, long probe);
 
   public static native long tactic_and_then(long context, long tactic1, long tactic2);
@@ -866,13 +910,57 @@ public final class Z3NativeApi {
   public static native String tactic_get_descr(long context, String name);
   public static native String probe_get_descr(long context, String name);
   public static native double probe_apply(long context, long probe, long goal);
-  public static native long tactic_apply(long context, long probe, long goal);
-  public static native long tactic_apply_ex(long context, long tactic, long goal, long params);
+
+  /**
+   * Apply tactic {@code t} to the goal {@code goal}.
+   *
+   * @param context Z3_context
+   * @param t Z3_tactic
+   * @param goal Z3_goal
+   * @return Z3_apply_result
+   */
+  public static native long tactic_apply(long context, long t, long goal);
+
+  /**
+   * Apply tactic {@code t} to the goal {@code goal} using the parameter set
+   * {@code params}
+   *
+   * @param context Z3_context
+   * @param tactic Z3_tactic
+   * @param goal Z3_goal
+   * @param params Z3_params
+   * @return Z3_apply_result
+   */
+  public static native long tactic_apply_ex(long context, long tactic,
+      long goal, long params);
   public static native void apply_result_inc_ref(long context, long apply_result);
   public static native void apply_result_dec_ref(long context, long apply_result);
   public static native String apply_result_to_string(long context, long apply_result);
   public static native int apply_result_get_num_subgoals(long context, long apply_result);
+
+  /**
+   * Return one of the subgoals in the {@code Z3_apply_result} object returned
+   * by {#link tactic_apply}.
+   *
+   * Precondition: {@code i < apply_result_get_num_subgoals(c, r)}
+   * @param context Z3_context
+   * @param apply_result Z3_apply_result
+   * @param i Apply result index
+   * @return Z3_goal
+   */
   public static native long apply_result_get_subgoal(long context, long apply_result, int i);
+
+  /**
+   * Convert a model for the subgoal {@link #apply_result_get_subgoal}
+   * for arguments {@code (c, r, i)}
+   * into a model for the original goal {@code g}.
+   * Where {@code g} is the goal used to create {@code r} using {@code tactic_apply(c, t, g)}
+   * @param context Z3_context
+   * @param apply_result Z3_apply_result
+   * @param i index
+   * @param model Z3_model
+   * @return Z3_model
+   */
   public static native long apply_result_convert_model(long context, long apply_result, int i, long model);
 
   // SOLVERS

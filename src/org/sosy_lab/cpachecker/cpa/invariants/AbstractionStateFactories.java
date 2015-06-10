@@ -174,7 +174,7 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
                 AFunctionCall functionCall = summaryEdge.getExpression();
                 if (functionCall instanceof AFunctionCallAssignmentStatement) {
                   AFunctionCallAssignmentStatement assignmentStatement = (AFunctionCallAssignmentStatement) functionCall;
-                  wideningTargets.addAll(InvariantsTransferRelation.getInvolvedVariables(assignmentStatement.getLeftHandSide(), summaryEdge).keySet());
+                  wideningTargets.addAll(EdgeAnalyzer.getInvolvedVariables(assignmentStatement.getLeftHandSide(), summaryEdge).keySet());
                   continue;
                 }
               }
@@ -224,7 +224,7 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
                 }
               }
             }
-            wideningTargets.addAll(InvariantsTransferRelation.INSTANCE.getInvolvedVariables(lastEdge).keySet());
+            wideningTargets.addAll(EdgeAnalyzer.getInvolvedVariables(lastEdge).keySet());
           }
           return wideningTargets.build();
         }
