@@ -85,8 +85,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
      = ImmutableMap.of();
 
-  static final InvariantsTransferRelation INSTANCE = new InvariantsTransferRelation();
-
   /**
    * Base name of the variable that is introduced to pass results from
    * returning function calls.

@@ -229,7 +229,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public TransferRelation getTransferRelation() {
-    return InvariantsTransferRelation.INSTANCE;
+    return new InvariantsTransferRelation();
   }
 
   @Override
