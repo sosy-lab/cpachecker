@@ -280,6 +280,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  @SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;

@@ -703,6 +703,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     @Override
+    @SuppressWarnings("NonAtomicVolatileUpdate") // should by called by one thread only
     public boolean adjustConditions() {
       if (cpa.relevantVariableLimitReached) {
         return false;

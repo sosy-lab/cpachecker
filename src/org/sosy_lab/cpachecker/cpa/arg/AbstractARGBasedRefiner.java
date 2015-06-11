@@ -66,11 +66,6 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     this.logger = argCpa.getLogger();
   }
 
-  @ForOverride
-  protected final ARGCPA getArgCpa() {
-    return argCpa;
-  }
-
   private static final Function<CFAEdge, String> pathToFunctionCalls
         = new Function<CFAEdge, String>() {
     @Override

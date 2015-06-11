@@ -107,6 +107,7 @@ public class CPreprocessor {
     }
 
     @Override
+    @SuppressWarnings("NonAtomicVolatileUpdate") // errorOutputCount written only by one thread
     protected void handleErrorOutput(String pLine) throws IOException {
       if (errorOutputCount == MAX_ERROR_OUTPUT_SHOWN) {
         logger.log(Level.WARNING, "Skipping further preprocessor error output...");

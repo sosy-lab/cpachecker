@@ -68,8 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
  * the strongest post for the given CFA edge. Afterwards it optionally

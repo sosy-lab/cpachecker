@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Optional;
@@ -129,6 +130,7 @@ class Z3OptProver implements OptEnvironment {
     return Z3Model.parseZ3Model(mgr, z3context, z3model);
   }
 
+  @Override
   public Formula evaluate(Formula expr) {
     Z3Formula input = (Z3Formula) expr;
     long z3model = optimize_get_model(z3context, z3optContext);
