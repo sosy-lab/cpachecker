@@ -58,8 +58,26 @@ public interface ProverEnvironment extends BasicProverEnvironment<Void> {
       List<BooleanFormula> important)
       throws InterruptedException, SolverException;
 
+  /**
+   * Interface for the {@link #allSat} callback, parametrized by the return
+   * value.
+   */
   interface AllSatCallback<T> {
+
+    /**
+     * Callback for each possible satisfying assignment to given
+     * {@code important} predicates.
+     * If the predicate is assigned {@code true} in the model, it is returned
+     * as-is in the list,
+     * and otherwise it is negated.
+     * todo: this interface would not work properly for negated predicates.
+     */
     void apply(List<BooleanFormula> model);
+
+    /**
+     * Returning the result generated after all the {@link #apply} calls have
+     * went through.
+     */
     T getResult() throws InterruptedException;
   }
 }
