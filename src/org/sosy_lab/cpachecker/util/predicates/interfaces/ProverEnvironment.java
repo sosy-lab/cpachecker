@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.time.NestedTimer;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 
 /**
  * This class provides an interface to an incremental SMT solver
@@ -54,27 +50,34 @@ public interface ProverEnvironment extends BasicProverEnvironment<Void> {
    * and create a region representing all those models.
    *
    * @param important A set of variables appearing in f. Only these variables will appear in the region.
-   * @param mgr The object used for creating regions.
-   * @param solveTime A timer to use for time which the solver needs for finding out whether the formula is satisfiable (without enumerating all the models).
-   * @param regionTime A NestedTimer to use for timing model enumeration (outer: solver; inner: region creation).
    * @return A region representing all satisfying models of the formula.
    * @throws InterruptedException
    */
-  AllSatResult allSat(Collection<BooleanFormula> important,
-                      RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException, SolverException;
+  <T> T allSat(
+      AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException;
 
-  interface AllSatResult {
+  /**
+   * Interface for the {@link #allSat} callback, parametrized by the return
+   * value.
+   */
+  interface AllSatCallback<T> {
 
     /**
-     * The result of an allSat call as an abstract formula.
+     * Callback for each possible satisfying assignment to given
+     * {@code important} predicates.
+     * If the predicate is assigned {@code true} in the model, it is returned
+     * as-is in the list,
+     * and otherwise it is negated.
+     * todo: this interface would not work properly for negated predicates.
      */
-    public Region getResult() throws InterruptedException;
+    void apply(List<BooleanFormula> model);
 
     /**
-     * The number of satisfying assignments contained in the result, of
-     * {@link Integer#MAX_VALUE} if this number is infinite.
+     * Returning the result generated after all the {@link #apply} calls have
+     * went through.
      */
-    public int getCount();
+    T getResult() throws InterruptedException;
   }
-
 }

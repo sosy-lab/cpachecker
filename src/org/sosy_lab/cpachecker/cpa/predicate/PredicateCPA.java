@@ -178,7 +178,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     predicateManager = new PredicateAbstractionManager(
         abstractionManager, formulaManager, pathFormulaManager,
-        solver, config, logger, cfa.getLiveVariables());
+        solver, config, logger, pShutdownNotifier, cfa.getLiveVariables());
 
     transfer = new PredicateTransferRelation(this, blk, config, direction);
 

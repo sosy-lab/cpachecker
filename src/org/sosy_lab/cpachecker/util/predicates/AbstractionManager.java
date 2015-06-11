@@ -44,12 +44,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.NestedTimer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
@@ -433,6 +438,7 @@ public final class AbstractionManager {
     return vars;
   }
 
+
   public Region buildRegionFromFormula(BooleanFormula pF) {
     return rmgr.fromFormula(pF, fmgr,
         Functions.compose(new Function<AbstractionPredicate, Region>() {
@@ -579,6 +585,112 @@ public final class AbstractionManager {
 
     public Region getPredicate(BooleanFormula var) {
       return AbstractionManager.this.getPredicate(var).getAbstractVariable();
+    }
+  }
+
+  public static interface AllSatResult {
+
+    /**
+     * The result of an allSat call as an abstract formula.
+     */
+    Region getResult() throws InterruptedException;
+
+    /**
+     * The number of satisfying assignments contained in the result, of
+     * {@link Integer#MAX_VALUE} if this number is infinite.
+     */
+    int getCount();
+  }
+
+  public static class AllSatCallbackImpl extends
+      DefaultBooleanFormulaVisitor<BooleanFormula>
+      implements AllSatResult, AllSatCallback<Region> {
+
+    private final BooleanFormulaManager bfmgr;
+
+    private final RegionCreator rmgr;
+    private final RegionBuilder builder;
+
+    private final Timer abstractionSolveTime;
+    private final NestedTimer abstractionEnumTime;
+    private Timer regionTime = null;
+
+    private int count = 0;
+
+    private Region formula;
+
+    public AllSatCallbackImpl(
+        FormulaManagerView fmgr,
+        BooleanFormulaManager pBfmgr, RegionCreator pRmgr,
+        RegionBuilder pBuilder, Timer pAbstractionSolveTime, NestedTimer pAbstractionEnumTime) {
+      super(fmgr);
+      bfmgr = pBfmgr;
+      rmgr = pRmgr;
+      builder = pBuilder;
+      abstractionSolveTime = pAbstractionSolveTime;
+      abstractionEnumTime = pAbstractionEnumTime;
+
+      abstractionSolveTime.start();
+    }
+
+    @Override
+    public void apply(List<BooleanFormula> model) {
+      if (count == 0) {
+        abstractionSolveTime.stop();
+        abstractionEnumTime.startOuter();
+        regionTime = abstractionEnumTime.getCurentInnerTimer();
+      }
+
+      regionTime.start();
+
+      // the abstraction is created simply by taking the disjunction
+      // of all the models found by the all-sat-loop, and storing them in a BDD
+      // first, let's create the BDD corresponding to the model
+      builder.startNewConjunction();
+      for (BooleanFormula f : model) {
+        if (bfmgr.isNot(f)) { // todo: possible bug if the predicate contains
+                             // the negation.
+          builder.addNegativeRegion(rmgr.getPredicate(visit(f)));
+        } else {
+          builder.addPositiveRegion(rmgr.getPredicate(f));
+        }
+      }
+      builder.finishConjunction();
+
+      count++;
+
+      regionTime.stop();
+
+    }
+
+    @Override
+    protected BooleanFormula visitNot(BooleanFormula negated) {
+      return negated;
+    }
+
+    @Override
+    public Region getResult() throws InterruptedException {
+      if (abstractionSolveTime.isRunning()) {
+        abstractionSolveTime.stop();
+      } else {
+        abstractionEnumTime.stopOuter();
+      }
+
+      if (formula == null) {
+        abstractionEnumTime.startBoth();
+        try {
+          formula = builder.getResult();
+          builder.close();
+        } finally {
+          abstractionEnumTime.stopBoth();
+        }
+      }
+      return formula;
+    }
+
+    @Override
+    public int getCount() {
+      return count;
     }
   }
 }

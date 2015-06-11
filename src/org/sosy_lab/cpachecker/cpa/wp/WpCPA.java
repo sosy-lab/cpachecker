@@ -133,7 +133,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger, solver);
     predicateManager = new PredicateAbstractionManager(
         abstractionManager, formulaManager, pathFormulaManager,
-        solver, config, logger, cfa.getLiveVariables());
+        solver, config, logger, pShutdownNotifier, cfa.getLiveVariables());
 
     //
     //
