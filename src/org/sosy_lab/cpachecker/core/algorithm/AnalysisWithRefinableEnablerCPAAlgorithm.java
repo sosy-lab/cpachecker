@@ -443,7 +443,11 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     case VALUE:
       Collection<? extends AbstractState> nextFakeStateResult = enablerTransfer
               .getAbstractSuccessorsForEdge(pFakeEnablerState, SingletonPrecision.getInstance(), pAssumeEdge);
-      assert(nextFakeStateResult != null && nextFakeStateResult.size()>0);
+      if (nextFakeStateResult == null || nextFakeStateResult.size() <= 0) {
+        logger.log(Level.INFO,
+                "Adding error explaining condition makes path infeasible, enabler knows of infeasibility of error, but still try to exclude path");
+        return pFakeEnablerState;
+      }
       // use first element as one possible reason for failure path
       return nextFakeStateResult.iterator().next();
     default:
