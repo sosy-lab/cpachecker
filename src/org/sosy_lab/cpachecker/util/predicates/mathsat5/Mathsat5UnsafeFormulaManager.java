@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
@@ -152,42 +153,34 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
 
   @Override
   protected Long substitute(Long expr, List<Long> substituteFrom, List<Long> substituteTo) {
-    return recSubstitute(
-        expr, substituteFrom, substituteTo, new HashMap<Long, Long>()
-    );
+    checkArgument(substituteFrom.size() == substituteTo.size());
+    Map<Long, Long> replacements = new HashMap<>();
+    for (int i = 0; i < substituteFrom.size(); i++) {
+      replacements.put(substituteFrom.get(i), substituteTo.get(i));
+    }
+    return recSubstitute(expr, replacements);
   }
 
-  private long recSubstitute(Long expr, List<Long> substituteFrom,
-      List<Long> substituteTo, HashMap<Long, Long> memoization) {
+  private long recSubstitute(Long expr, Map<Long, Long> memoization) {
 
     Long out = memoization.get(expr);
-    if (out != null) {
-      return out;
-    }
 
-    try {
-      // Check whether the current expression matches.
-      for (int i=0; i<substituteFrom.size(); i++) {
-        long from = substituteFrom.get(i);
-
-        // Same variables are guaranteed to have same pointer addresses.
-        if (expr == from) {
-          return substituteTo.get(i);
-        }
-      }
-
-      List<Long> updatedChildren = new ArrayList<>();
-      for (int childIdx=0; childIdx<getArity(expr); childIdx++) {
+    if (out == null) {
+      int arity = getArity(expr);
+      long[] updatedChildren = new long[arity];
+      for (int childIdx = 0; childIdx < arity; childIdx++) {
         long child = getArg(expr, childIdx);
-        updatedChildren.add(recSubstitute(child, substituteFrom, substituteTo,
-            memoization));
+        updatedChildren[childIdx] = recSubstitute(child,
+            memoization);
       }
 
-      out = replaceArgs(expr, updatedChildren);
-      return out;
-    } finally {
+      long decl = msat_term_get_decl(expr);
+      out = msat_make_term(msatEnv, decl, updatedChildren);
+
       memoization.put(expr, out);
     }
+
+    return out;
   }
 
   @Override
