@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.IntConverter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -110,7 +111,8 @@ public class PredicateMapParser {
 
   @Option(secure=true, description = "when reading predicates from file, convert them to BV-theory. "
       + "This option depends on the 'variableEncodingFile'.")
-  private Boolean encodeAsBV = false;
+  private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
+  private enum PrecisionConverter {DISABLE, INT2BV, BV2INT}
 
   private final CFA cfa;
 
@@ -163,10 +165,13 @@ public class PredicateMapParser {
     int lineNo = defParsingResult.getFirst();
     String commonDefinitions = defParsingResult.getSecond();
 
-    Converter converter = null;
-    if (encodeAsBV) {
+    final Converter converter;
+    switch (encodePredicates) {
+    case INT2BV: {
       final StringBuilder str = new StringBuilder();
-      converter = new BVConverter(SymbolEncoding.readSymbolEncoding(symbolEncodingFile), logger);
+      converter = new BVConverter(
+          SymbolEncoding.readSymbolEncoding(symbolEncodingFile).withCFA(cfa),
+          logger);
       for (String line : commonDefinitions.split("\n")) {
         if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ")) {
           final String converted = FormulaParser.convertFormula(converter, line, logger);
@@ -174,7 +179,30 @@ public class PredicateMapParser {
         }
       }
       commonDefinitions = str.toString();
+      break;
     }
+    case BV2INT: {
+      final StringBuilder str = new StringBuilder();
+      converter = new IntConverter(
+          SymbolEncoding.readSymbolEncoding(symbolEncodingFile).withCFA(cfa),
+          logger);
+      for (String line : commonDefinitions.split("\n")) {
+        if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ")) {
+          final String converted = FormulaParser.convertFormula(converter, line, logger);
+          str.append(converted).append("\n");
+        }
+      }
+      commonDefinitions = str.toString();
+      break;
+    }
+    case DISABLE: {
+      converter = null;
+      break;
+    }
+    default:
+      throw new AssertionError("invalid value for option");
+    }
+
 
     // second, read map of predicates
     Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
@@ -257,7 +285,7 @@ public class PredicateMapParser {
         // we expect a predicate
         if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
 
-          if (encodeAsBV) {
+          if (encodePredicates != PrecisionConverter.DISABLE) {
             currentLine = FormulaParser.convertFormula(checkNotNull(converter), currentLine, logger);
           }
 

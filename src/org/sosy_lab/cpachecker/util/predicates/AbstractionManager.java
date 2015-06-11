@@ -62,8 +62,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
-
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class stores a mapping between abstract regions and the corresponding
@@ -99,7 +98,11 @@ public final class AbstractionManager {
   private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
+
+  @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+      justification = "Class is not thread-safe, but concurrent read access to this variable is needed for the MBean")
   private volatile int numberOfPredicates = 0;
+
   @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
@@ -154,6 +157,7 @@ public final class AbstractionManager {
   /**
    * creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it
    */
+  @SuppressWarnings("NonAtomicVolatileUpdate") // no thread-safe anyway
   public AbstractionPredicate makePredicate(BooleanFormula atom) {
     AbstractionPredicate result = atomToPredicate.get(atom);
 

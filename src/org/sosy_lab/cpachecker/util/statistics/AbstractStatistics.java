@@ -41,7 +41,7 @@ public abstract class AbstractStatistics implements Statistics {
 
   protected int outputNameColWidth = 50;
 
-  private Map<String, Object> keyValueStats = new TreeMap<>();
+  private final Map<String, Object> keyValueStats = new TreeMap<>();
 
   /**
    * Print a statistics line in a "pretty" fashion.
@@ -69,8 +69,8 @@ public abstract class AbstractStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    for (String key : keyValueStats.keySet()) {
-      put(pOut, key, keyValueStats.get(key));
+    for (Map.Entry<String, Object> item : keyValueStats.entrySet()) {
+      put(pOut, item.getKey(), item.getValue());
     }
   }
 

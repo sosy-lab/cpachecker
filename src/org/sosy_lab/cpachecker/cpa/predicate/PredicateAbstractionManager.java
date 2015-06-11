@@ -544,7 +544,7 @@ public class PredicateAbstractionManager {
       amgr.makePredicate(atom);
       extractPredicates(atom);
     }
-    
+
     return amgr.buildRegionFromFormula(eliminationResult);
 
   }
@@ -1075,7 +1075,7 @@ public class PredicateAbstractionManager {
     List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
 
     for (BooleanFormula atom : atoms) {
-      preds.add(amgr.makePredicate(atom));
+      preds.add(amgr.makePredicate(fmgr.uninstantiate(atom)));
     }
 
     amgr.reorderPredicates();

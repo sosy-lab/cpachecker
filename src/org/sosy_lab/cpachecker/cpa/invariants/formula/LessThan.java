@@ -29,17 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class LessThan<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The left operand of the inequation.
-   */
-  private final InvariantsFormula<ConstantType> operand1;
-
-  /**
-   * The right operand of the inequation.
-   */
-  private final InvariantsFormula<ConstantType> operand2;
+public class LessThan<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * Creates a new less-than inequation over the given operands.
@@ -49,49 +39,7 @@ public class LessThan<ConstantType> extends AbstractFormula<ConstantType> implem
    */
   private LessThan(InvariantsFormula<ConstantType> pOperand1,
       InvariantsFormula<ConstantType> pOperand2) {
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
-  }
-
-  /**
-   * Gets the left operand of the inequation.
-   *
-   * @return the left operand of the inequation.
-   */
-  public InvariantsFormula<ConstantType> getOperand1() {
-    return this.operand1;
-  }
-
-  /**
-   * Gets the right operand of the inequation.
-   *
-   * @return the right operand of the inequation.
-   */
-  public InvariantsFormula<ConstantType> getOperand2() {
-    return this.operand2;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof LessThan) {
-      LessThan<?> other = (LessThan<?>) o;
-      return getOperand1().equals(other.getOperand1())
-          && getOperand2().equals(other.getOperand2());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getOperand1().hashCode() + getOperand2().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s < %s)", getOperand1(), getOperand2());
+    super("<", false, pOperand1, pOperand2);
   }
 
   @Override

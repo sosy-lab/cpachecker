@@ -45,7 +45,7 @@ import com.google.common.collect.Lists;
 
 public class DefaultCanonicalizer implements Canonicalizer {
 
-  private class TransformDoubleNegations extends PatternBasedRule {
+  private static class TransformDoubleNegations extends PatternBasedRule {
 
     // not not a
     // ====>
@@ -74,7 +74,7 @@ public class DefaultCanonicalizer implements Canonicalizer {
 
   }
 
-  private class TransformNotLessOrEq extends PatternBasedRule {
+  private static class TransformNotLessOrEq extends PatternBasedRule {
 
     // not a <= b
     // a, b: Integers
@@ -106,7 +106,7 @@ public class DefaultCanonicalizer implements Canonicalizer {
 
   }
 
-  private class TranswformNotGreaterThan extends PatternBasedRule {
+  private static class TranswformNotGreaterThan extends PatternBasedRule {
 
     // not a > b
     // a, b: Integers

@@ -106,6 +106,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   }
   protected abstract TFormulaInfo makeNumberImpl(String i);
 
+  @Override
   public ResultFormulaType makeNumber(Rational pRational) {
     return wrap(makeNumberImpl(pRational));
   }
