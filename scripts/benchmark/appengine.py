@@ -467,3 +467,4 @@ class AppEngineSystemInfo(object):
         self.cpu_max_frequency = cpu_max_frequency
         self.memory = memory
         self.hostname = 'Google App Engine'
+        self.environment = {}
