@@ -23,38 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-
 
 public class InvariantsWriter {
 
@@ -63,124 +53,144 @@ public class InvariantsWriter {
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
-
-  public InvariantsWriter(PredicateCPA pCpa) {
-    this(pCpa.getSolver().getFormulaManager(), pCpa.getPathFormulaManager());
-  }
+  private final String splitInvariantsForExport;
 
   public InvariantsWriter(
       FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr
-      ) {
+      PathFormulaManager pPfmgr,
+      String pSplitInvariantsForExport) {
     fmgr = pFmgr;
     pfmgr = pPfmgr;
+    splitInvariantsForExport = pSplitInvariantsForExport;
   }
 
+  /** write all invariants for the whole reached-set. */
   public void write(UnmodifiableReachedSet pReachedSet, Appendable pAppendable) throws IOException {
     SetMultimap<CFANode, InvariantsState> locationPredicates = HashMultimap.create();
     for (AbstractState state : pReachedSet) {
-      CFANode location = AbstractStates.extractLocation(state);
+      CFANode location = extractLocation(state);
       if (location != null) {
-        InvariantsState invariantsState = AbstractStates.extractStateByType(state, InvariantsState.class);
+        InvariantsState invariantsState = extractStateByType(state, InvariantsState.class);
         locationPredicates.put(location, invariantsState);
       }
     }
     write(locationPredicates, pAppendable);
   }
 
+  /** write all invariants for a single program location. */
   public void write(final CFANode pCfaNode, UnmodifiableReachedSet pReachedSet, Appendable pAppendable) throws IOException {
-    FluentIterable<InvariantsState> states = FluentIterable.from(pReachedSet).filter(new Predicate<AbstractState>() {
-
-      @Override
-      public boolean apply(@Nullable AbstractState pArg0) {
-        return pArg0 != null && AbstractStates.extractLocation(pArg0).equals(pCfaNode);
-      }
-
-    }).transform(new Function<AbstractState, InvariantsState>() {
-
-      @Override
-      @Nullable
-      public InvariantsState apply(@Nullable AbstractState pArg0) {
-        if (pArg0 == null) {
-          return null;
-        }
-        return AbstractStates.extractStateByType(pArg0, InvariantsState.class);
-      }
-
-    });
     SetMultimap<CFANode, InvariantsState> statesToNode = HashMultimap.create();
-    statesToNode.putAll(pCfaNode, states);
+    statesToNode.putAll(pCfaNode, projectToType(filterLocation(pReachedSet, pCfaNode), InvariantsState.class));
     write(statesToNode, pAppendable);
   }
 
   private void write(SetMultimap<CFANode, InvariantsState> pStates, Appendable pAppendable) throws IOException {
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 
-    Set<String> definitions = Sets.newLinkedHashSet();
+    // (global) definitions used for predicates
+    final Set<String> definitions = Sets.newLinkedHashSet();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)
-    Map<Collection<InvariantsState>, String> predToString = Maps.newHashMap();
+    final Multimap<CFANode, String> cfaNodeToPredicate = HashMultimap.create();
 
     // fill the above set and map
-    Iterator<Collection<InvariantsState>> iterator = pStates.asMap().values().iterator();
-    while (iterator.hasNext()) {
-      Collection<InvariantsState> invariantDisjunctiveParts = iterator.next();
-      String predString;
+    for (CFANode cfaNode : pStates.keySet()) {
+      List<BooleanFormula> formulas = getFormulasForNode(pStates.get(cfaNode), cfaNode);
+      extractPredicatesAndDefinitions(cfaNode, definitions, cfaNodeToPredicate, formulas);
+    }
 
-      // Create the disjunction of the found states
-      BooleanFormula formula = bfmgr.makeBoolean(false);
-      for (InvariantsState state : invariantDisjunctiveParts) {
-        if (state != null) {
-          formula = bfmgr.or(formula, state.getFormulaApproximation(fmgr, pfmgr));
-        }
+    writeInvariants(pAppendable, definitions, cfaNodeToPredicate);
+  }
+
+  /** get formulas representing the abstract states at the cfaNode. */
+  private List<BooleanFormula> getFormulasForNode(Set<InvariantsState> states, CFANode cfaNode) {
+    final List<BooleanFormula> formulas = new ArrayList<>();
+    final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+
+    List<BooleanFormula> stateFormulas = new ArrayList<>();
+    for (InvariantsState state : states) {
+      stateFormulas.add(state.getFormulaApproximation(fmgr, pfmgr));
+    }
+
+    switch (splitInvariantsForExport) {
+    case "LOCATION":
+      // create the disjunction of the found states for the current location
+      formulas.add(bfmgr.or(stateFormulas));
+      break;
+    case "STATE":
+      // do not merge different location-formulas
+      formulas.addAll(stateFormulas);
+      break;
+    case "ATOM":
+      // atomize formulas
+      for (BooleanFormula f : stateFormulas) {
+        formulas.addAll(fmgr.extractAtoms(f, false));
       }
+      break;
+    default:
+      throw new AssertionError("unknown option");
+    }
 
-      // Skip states with no information
-      if (bfmgr.isTrue(formula)) {
-        iterator.remove();
-        continue;
+    // filter out formulas with no information
+    final List<BooleanFormula> filtered = new ArrayList<>();
+    for (BooleanFormula f : formulas) {
+      if (!bfmgr.isTrue(f) && !bfmgr.isFalse(f)) {
+        filtered.add(f);
       }
+    }
 
+    return filtered;
+  }
+
+  /** dump each formula and split it into the predicate and some utility-stuff (named definition)
+   *  that consists of symbol-declarations and solver-specific queries. */
+  private void extractPredicatesAndDefinitions(
+      CFANode cfaNode,
+      Set<String> definitions,
+      Multimap<CFANode, String> cfaNodeToPredicate,
+      List<BooleanFormula> predicates) throws IOException {
+
+    for (BooleanFormula formula : predicates) {
       String s = fmgr.dumpFormula(formula).toString();
-
       List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
       assert !lines.isEmpty();
 
-      // Get the predicate
-      predString = lines.get(lines.size()-1);
+      // Get the predicate from the last line
+      String predString = lines.get(lines.size() - 1);
 
       // Remove the predicate from the dump
       lines.remove(lines.size() - 1);
 
       // Check that the dump format is correct
       if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
-        pAppendable.append("Writing invariants is only supported for solvers which support the Smtlib2 format, please try using Mathsat5.\n");
-        return;
+        throw new AssertionError("Writing invariants is only supported for solvers "
+            + "that support the Smtlib2 format, please try using Mathsat5.");
       }
 
       // Add the definition part of the dump to the set of definitions
       definitions.addAll(lines);
 
       // Record the predicate to write it later at t
-      predToString.put(invariantDisjunctiveParts, predString);
-    }
-
-    LINE_JOINER.appendTo(pAppendable, definitions);
-    pAppendable.append("\n\n");
-
-    for (Map.Entry<CFANode, Collection<InvariantsState>> entry : pStates.asMap().entrySet()) {
-      writeInvariant(pAppendable, toKey(entry.getKey()), entry.getValue(), predToString);
+      cfaNodeToPredicate.put(cfaNode, predString);
     }
   }
 
-  private void writeInvariant(Appendable pAppendable, String pKey,
-      Collection<InvariantsState> pDisjunctiveParts,
-      Map<Collection<InvariantsState>, String> predToString) throws IOException {
-    pAppendable.append(pKey);
-    pAppendable.append(":\n");
-    pAppendable.append(checkNotNull(predToString.get(pDisjunctiveParts)));
-    pAppendable.append('\n');
+  /** write the definitions and predicates in the commonly used precision-format
+   *  (that is defined somewhere else...)*/
+  private void writeInvariants(Appendable pAppendable, Set<String> definitions,
+      Multimap<CFANode, String> cfaNodeToPredicate) throws IOException {
+
+    // write definitions to file
+    LINE_JOINER.appendTo(pAppendable, definitions);
+    pAppendable.append("\n\n");
+
+    // write states to file
+    for (CFANode cfaNode : cfaNodeToPredicate.keySet()) {
+      pAppendable.append(toKey(cfaNode));
+      pAppendable.append(":\n");
+      LINE_JOINER.appendTo(pAppendable, cfaNodeToPredicate.get(cfaNode));
+      pAppendable.append("\n\n");
+    }
   }
 
   private static String toKey(CFANode pCfaNode) {
