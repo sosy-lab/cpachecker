@@ -607,8 +607,8 @@ public final class AbstractionManager {
     private final RegionCreator rmgr;
     private final RegionBuilder builder;
 
-    private final Timer solveTime;
-    private final NestedTimer enumTime;
+    private final Timer abstractionSolveTime;
+    private final NestedTimer abstractionEnumTime;
     private Timer regionTime = null;
 
     private int count = 0;
@@ -618,21 +618,23 @@ public final class AbstractionManager {
     public AllSatCallbackImpl(
         FormulaManagerView fmgr,
         BooleanFormulaManager pBfmgr, RegionCreator pRmgr,
-        RegionBuilder pBuilder, Timer pSolveTime, NestedTimer pEnumTime) {
+        RegionBuilder pBuilder, Timer pAbstractionSolveTime, NestedTimer pAbstractionEnumTime) {
       super(fmgr);
       bfmgr = pBfmgr;
       rmgr = pRmgr;
       builder = pBuilder;
-      solveTime = pSolveTime;
-      enumTime = pEnumTime;
+      abstractionSolveTime = pAbstractionSolveTime;
+      abstractionEnumTime = pAbstractionEnumTime;
+
+      abstractionSolveTime.start();
     }
 
     @Override
     public void apply(List<BooleanFormula> model) {
       if (count == 0) {
-        solveTime.stop();
-        enumTime.startOuter();
-        regionTime = enumTime.getCurentInnerTimer();
+        abstractionSolveTime.stop();
+        abstractionEnumTime.startOuter();
+        regionTime = abstractionEnumTime.getCurentInnerTimer();
       }
 
       regionTime.start();
@@ -664,13 +666,19 @@ public final class AbstractionManager {
 
     @Override
     public Region getResult() throws InterruptedException {
+      if (abstractionSolveTime.isRunning()) {
+        abstractionSolveTime.stop();
+      } else {
+        abstractionEnumTime.stopOuter();
+      }
+
       if (formula == null) {
-        enumTime.startBoth();
+        abstractionEnumTime.startBoth();
         try {
           formula = builder.getResult();
           builder.close();
         } finally {
-          enumTime.stopBoth();
+          abstractionEnumTime.stopBoth();
         }
       }
       return formula;
