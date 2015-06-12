@@ -910,7 +910,7 @@ public class PredicateAbstractionManager {
     thmProver.push(predDef);
     AllSatCallbackImpl
         callback = new AllSatCallbackImpl(fmgr, fmgr.getBooleanFormulaManager(),
-            rmgr, rmgr.newRegionBuilder(shutdownNotifier),
+            amgr, rmgr.newRegionBuilder(shutdownNotifier),
             stats.abstractionSolveTime,
             stats.abstractionEnumTime);
     Region result = thmProver.allSat(callback, predVars);

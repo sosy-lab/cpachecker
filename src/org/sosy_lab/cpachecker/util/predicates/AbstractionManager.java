@@ -582,10 +582,6 @@ public final class AbstractionManager {
     public Region makeExists(Region f1, Region f2) {
       return rmgr.makeExists(f1, f2);
     }
-
-    public Region getPredicate(BooleanFormula var) {
-      return AbstractionManager.this.getPredicate(var).getAbstractVariable();
-    }
   }
 
   public static class AllSatCallbackImpl extends
@@ -594,7 +590,7 @@ public final class AbstractionManager {
 
     private final BooleanFormulaManager bfmgr;
 
-    private final RegionCreator rmgr;
+    private final AbstractionManager amgr;
     private final RegionBuilder builder;
 
     private final Timer abstractionSolveTime;
@@ -607,11 +603,11 @@ public final class AbstractionManager {
 
     public AllSatCallbackImpl(
         FormulaManagerView fmgr,
-        BooleanFormulaManager pBfmgr, RegionCreator pRmgr,
+        BooleanFormulaManager pBfmgr, AbstractionManager pAmgr,
         RegionBuilder pBuilder, Timer pAbstractionSolveTime, NestedTimer pAbstractionEnumTime) {
       super(fmgr);
       bfmgr = pBfmgr;
-      rmgr = pRmgr;
+      amgr = pAmgr;
       builder = pBuilder;
       abstractionSolveTime = pAbstractionSolveTime;
       abstractionEnumTime = pAbstractionEnumTime;
@@ -636,9 +632,9 @@ public final class AbstractionManager {
       for (BooleanFormula f : model) {
         if (bfmgr.isNot(f)) { // todo: possible bug if the predicate contains
                              // the negation.
-          builder.addNegativeRegion(rmgr.getPredicate(visit(f)));
+          builder.addNegativeRegion(amgr.getPredicate(visit(f)).getAbstractVariable());
         } else {
-          builder.addPositiveRegion(rmgr.getPredicate(f));
+          builder.addPositiveRegion(amgr.getPredicate(f).getAbstractVariable());
         }
       }
       builder.finishConjunction();
