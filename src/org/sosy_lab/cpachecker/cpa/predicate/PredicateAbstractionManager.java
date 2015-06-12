@@ -64,16 +64,18 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.AllSatCallbackImpl;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator.RegionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -908,11 +910,7 @@ public class PredicateAbstractionManager {
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     thmProver.push(predDef);
-    AllSatCallbackImpl
-        callback = new AllSatCallbackImpl(fmgr, fmgr.getBooleanFormulaManager(),
-            amgr, rmgr.builder(shutdownNotifier),
-            stats.abstractionSolveTime,
-            stats.abstractionEnumTime);
+    AllSatCallbackImpl callback = new AllSatCallbackImpl();
     Region result = thmProver.allSat(callback, predVars);
 
     // pop() is actually costly sometimes, and we delete the environment anyway
@@ -926,6 +924,85 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  private class AllSatCallbackImpl
+      extends DefaultBooleanFormulaVisitor<BooleanFormula>
+      implements AllSatCallback<Region> {
+
+    private final RegionBuilder builder;
+
+    private Timer regionTime = null;
+
+    private int count = 0;
+
+    private Region formula;
+
+    private AllSatCallbackImpl() {
+      super(fmgr);
+      builder = rmgr.builder(shutdownNotifier);
+
+      stats.abstractionSolveTime.start();
+    }
+
+    @Override
+    public void apply(List<BooleanFormula> model) {
+      if (count == 0) {
+        stats.abstractionSolveTime.stop();
+        stats.abstractionEnumTime.startOuter();
+        regionTime = stats.abstractionEnumTime.getCurentInnerTimer();
+      }
+
+      regionTime.start();
+
+      // the abstraction is created simply by taking the disjunction
+      // of all the models found by the all-sat-loop, and storing them in a BDD
+      // first, let's create the BDD corresponding to the model
+      builder.startNewConjunction();
+      for (BooleanFormula f : model) {
+        if (bfmgr.isNot(f)) { // todo: possible bug if the predicate contains
+                             // the negation.
+          builder.addNegativeRegion(amgr.getPredicate(visit(f)).getAbstractVariable());
+        } else {
+          builder.addPositiveRegion(amgr.getPredicate(f).getAbstractVariable());
+        }
+      }
+      builder.finishConjunction();
+
+      count++;
+
+      regionTime.stop();
+
+    }
+
+    @Override
+    public BooleanFormula visitNot(BooleanFormula negated) {
+      return negated;
+    }
+
+    @Override
+    public Region getResult() throws InterruptedException {
+      if (stats.abstractionSolveTime.isRunning()) {
+        stats.abstractionSolveTime.stop();
+      } else {
+        stats.abstractionEnumTime.stopOuter();
+      }
+
+      if (formula == null) {
+        stats.abstractionEnumTime.startBoth();
+        try {
+          formula = builder.getResult();
+          builder.close();
+        } finally {
+          stats.abstractionEnumTime.stopBoth();
+        }
+      }
+      return formula;
+    }
+
+    private int getCount() {
+      return count;
+    }
   }
 
   /**

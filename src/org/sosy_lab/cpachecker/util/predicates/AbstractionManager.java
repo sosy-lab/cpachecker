@@ -43,18 +43,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.NestedTimer;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator.RegionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
@@ -284,7 +278,7 @@ public final class AbstractionManager {
    * earlier.
    * @return a Predicate
    */
-  private AbstractionPredicate getPredicate(BooleanFormula var) {
+  public AbstractionPredicate getPredicate(BooleanFormula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       throw new IllegalArgumentException(
@@ -494,97 +488,6 @@ public final class AbstractionManager {
     public String getPredicates() {
       // TODO this may run into a ConcurrentModificationException
       return Joiner.on('\n').join(absVarToPredicate.values());
-    }
-  }
-
-  public static class AllSatCallbackImpl extends
-      DefaultBooleanFormulaVisitor<BooleanFormula>
-      implements AllSatCallback<Region> {
-
-    private final BooleanFormulaManager bfmgr;
-
-    private final AbstractionManager amgr;
-    private final RegionBuilder builder;
-
-    private final Timer abstractionSolveTime;
-    private final NestedTimer abstractionEnumTime;
-    private Timer regionTime = null;
-
-    private int count = 0;
-
-    private Region formula;
-
-    public AllSatCallbackImpl(
-        FormulaManagerView fmgr,
-        BooleanFormulaManager pBfmgr, AbstractionManager pAmgr,
-        RegionBuilder pBuilder, Timer pAbstractionSolveTime, NestedTimer pAbstractionEnumTime) {
-      super(fmgr);
-      bfmgr = pBfmgr;
-      amgr = pAmgr;
-      builder = pBuilder;
-      abstractionSolveTime = pAbstractionSolveTime;
-      abstractionEnumTime = pAbstractionEnumTime;
-
-      abstractionSolveTime.start();
-    }
-
-    @Override
-    public void apply(List<BooleanFormula> model) {
-      if (count == 0) {
-        abstractionSolveTime.stop();
-        abstractionEnumTime.startOuter();
-        regionTime = abstractionEnumTime.getCurentInnerTimer();
-      }
-
-      regionTime.start();
-
-      // the abstraction is created simply by taking the disjunction
-      // of all the models found by the all-sat-loop, and storing them in a BDD
-      // first, let's create the BDD corresponding to the model
-      builder.startNewConjunction();
-      for (BooleanFormula f : model) {
-        if (bfmgr.isNot(f)) { // todo: possible bug if the predicate contains
-                             // the negation.
-          builder.addNegativeRegion(amgr.getPredicate(visit(f)).getAbstractVariable());
-        } else {
-          builder.addPositiveRegion(amgr.getPredicate(f).getAbstractVariable());
-        }
-      }
-      builder.finishConjunction();
-
-      count++;
-
-      regionTime.stop();
-
-    }
-
-    @Override
-    protected BooleanFormula visitNot(BooleanFormula negated) {
-      return negated;
-    }
-
-    @Override
-    public Region getResult() throws InterruptedException {
-      if (abstractionSolveTime.isRunning()) {
-        abstractionSolveTime.stop();
-      } else {
-        abstractionEnumTime.stopOuter();
-      }
-
-      if (formula == null) {
-        abstractionEnumTime.startBoth();
-        try {
-          formula = builder.getResult();
-          builder.close();
-        } finally {
-          abstractionEnumTime.stopBoth();
-        }
-      }
-      return formula;
-    }
-
-    public int getCount() {
-      return count;
     }
   }
 }
