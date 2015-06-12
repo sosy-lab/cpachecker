@@ -77,6 +77,7 @@ public class ValueTransferBasedStrongestPostOperator
                                         pShutdownNotifier);
   }
 
+  @Override
   public Optional<ForgettingCompositeState> getStrongestPost(
       final ForgettingCompositeState pOrigin,
       final Precision pPrecision,

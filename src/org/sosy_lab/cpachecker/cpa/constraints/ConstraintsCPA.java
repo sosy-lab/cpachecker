@@ -49,10 +49,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.*;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.FullConstraintsPrecision;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.LocalizedConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 

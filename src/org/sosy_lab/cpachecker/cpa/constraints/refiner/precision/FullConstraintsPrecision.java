@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.refiner;
+package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -51,7 +51,7 @@ public class FullConstraintsPrecision implements ConstraintsPrecision {
   }
 
   @Override
-  public ConstraintsPrecision withIncrement(Increment pIncrement) {
+  public ConstraintsPrecision withIncrement(Increment<?> pIncrement) {
     throw new UnsupportedOperationException(
         FullConstraintsPrecision.class.getSimpleName() + " can't be incremented"
     );

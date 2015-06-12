@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -139,7 +139,7 @@ public class ARGTreePrecisionUpdater {
   public ConstraintsPrecision createConstraintsPrec(
       final ARGState pRefinementRoot,
       final ARGReachedSet pReached,
-      final ConstraintsPrecision.Increment pConstraintsPrecIncrement
+      final ConstraintsPrecision.Increment<?> pConstraintsPrecIncrement
   ) {
     return mergeConstraintsPrecisionsForSubgraph(pRefinementRoot, pReached)
         .withIncrement(pConstraintsPrecIncrement);
@@ -188,7 +188,7 @@ public class ARGTreePrecisionUpdater {
       final ARGReachedSet pReached,
       final ARGState pRefinementRoot,
       final Multimap<CFANode, MemoryLocation> pValuePrecIncrement,
-      final ConstraintsPrecision.Increment pConstraintsPrecIncrement
+      final ConstraintsPrecision.Increment<?> pConstraintsPrecIncrement
   ) {
     List<Precision> precisions = new ArrayList<>(2);
 

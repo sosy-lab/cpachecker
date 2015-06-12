@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecision;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.LocalizedConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner;
@@ -93,12 +93,13 @@ public class SymbolicValueAnalysisRefiner
           + " needs a ConstraintsCPA");
     }
 
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+
     valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision(LocalizedConstraintsPrecision.getEmptyPrecision());
+    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
 
     final LogManager logger = valueAnalysisCpa.getLogger();
-    final CFA cfa = valueAnalysisCpa.getCFA();
-    final Configuration config = valueAnalysisCpa.getConfiguration();
+    final CFA cfa = valueAnalysisCpa.getCFA();;
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     final Solver solver = Solver.create(config, logger, shutdownNotifier);
@@ -212,17 +213,19 @@ public class SymbolicValueAnalysisRefiner
 
     for (ARGState r : roots) {
       Multimap<CFANode, MemoryLocation> valuePrecInc = pInterpolants.extractPrecisionIncrement(r);
-      ConstraintsPrecision.Increment constrPrecInc = getConstraintsIncrement(r, pInterpolants);
+      ConstraintsPrecision.Increment<Constraint> constrPrecInc =
+          getConstraintsIncrement(r, pInterpolants);
 
       precUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
     }
   }
 
-  private ConstraintsPrecision.Increment getConstraintsIncrement(
+  private ConstraintsPrecision.Increment<Constraint> getConstraintsIncrement(
       final ARGState pRefinementRoot,
       final InterpolationTree<ForgettingCompositeState, SymbolicInterpolant> pTree
   ) {
-    ConstraintsPrecision.Increment.Builder increment = ConstraintsPrecision.Increment.builder();
+    ConstraintsPrecision.Increment.Builder<Constraint> increment =
+        ConstraintsPrecision.Increment.builder();
 
     Deque<ARGState> todo =
         new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints.refiner;
+package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -51,7 +51,7 @@ import com.google.common.collect.Multimap;
  * After precision adjustment, the ConstraintsState only consists of <code>'s1(a) > 5'</code>.
  * </p>
  */
-public class LocalizedConstraintsPrecision
+class LocalizedConstraintsPrecision
     implements ConstraintsPrecision {
 
   private final static LocalizedConstraintsPrecision EMPTY = new LocalizedConstraintsPrecision();
@@ -231,12 +231,16 @@ public class LocalizedConstraintsPrecision
     return false;
   }
 
-  public LocalizedConstraintsPrecision withIncrement(final Increment pIncrement) {
+  @Override
+  public LocalizedConstraintsPrecision withIncrement(final Increment<?> pIncrement) {
     LocalizedConstraintsPrecision newPrecision = new LocalizedConstraintsPrecision(this);
 
-    newPrecision.trackedGlobally.addAll(pIncrement.getTrackedGlobally());
-    newPrecision.trackedInFunction.putAll(pIncrement.getTrackedInFunction());
-    newPrecision.trackedLocally.putAll(pIncrement.getTrackedLocally());
+    // Might throw a class cast exception later on if T is not of type Constraint.
+    final Increment<Constraint> constrIncr = (Increment<Constraint>) pIncrement;
+
+    newPrecision.trackedGlobally.addAll(constrIncr.getTrackedGlobally());
+    newPrecision.trackedInFunction.putAll(constrIncr.getTrackedInFunction());
+    newPrecision.trackedLocally.putAll(constrIncr.getTrackedLocally());
 
     return newPrecision;
   }

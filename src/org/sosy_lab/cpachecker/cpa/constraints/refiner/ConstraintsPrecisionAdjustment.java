@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
