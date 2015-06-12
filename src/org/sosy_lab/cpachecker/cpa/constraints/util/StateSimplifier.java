@@ -143,13 +143,22 @@ public class StateSimplifier {
         case UNUSED:
 
           if (!symbolicValues.contains(currId)) {
-            s.disable();
-            Set<ActivityInfo> parent = new HashSet<>();
-            parent.add(s);
-            boolean canBeRemoved = removeOutdatedConstraints0(symIdActivity,
-                symbolicValues,
-                e.getValue(),
-                parent);
+            boolean canBeRemoved;
+
+            if (s.getUsingConstraints().size() < 2) {
+              // the symbolic identifier only occurs in one constraint and is not active,
+              // so it does not constrain any currently existing symbolic identifier
+              canBeRemoved = true;
+            } else {
+
+              s.disable();
+              Set<ActivityInfo> parent = new HashSet<>();
+              parent.add(s);
+              canBeRemoved = removeOutdatedConstraints0(symIdActivity,
+                  symbolicValues,
+                  e.getValue(),
+                  parent);
+            }
 
             if (canBeRemoved) {
               s.markDeleted();
@@ -216,7 +225,7 @@ public class StateSimplifier {
           }
           break;
         default:
-          throw new AssertionError("Unhandled status of ActivityInfo: " + t.getActivity());
+          throw new AssertionError("Unhandled state of ActivityInfo: " + t.getActivity());
       }
     }
 
