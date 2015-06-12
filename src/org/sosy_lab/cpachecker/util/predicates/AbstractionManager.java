@@ -588,23 +588,9 @@ public final class AbstractionManager {
     }
   }
 
-  public static interface AllSatResult {
-
-    /**
-     * The result of an allSat call as an abstract formula.
-     */
-    Region getResult() throws InterruptedException;
-
-    /**
-     * The number of satisfying assignments contained in the result, of
-     * {@link Integer#MAX_VALUE} if this number is infinite.
-     */
-    int getCount();
-  }
-
   public static class AllSatCallbackImpl extends
       DefaultBooleanFormulaVisitor<BooleanFormula>
-      implements AllSatResult, AllSatCallback<Region> {
+      implements AllSatCallback<Region> {
 
     private final BooleanFormulaManager bfmgr;
 
@@ -688,7 +674,6 @@ public final class AbstractionManager {
       return formula;
     }
 
-    @Override
     public int getCount() {
       return count;
     }
