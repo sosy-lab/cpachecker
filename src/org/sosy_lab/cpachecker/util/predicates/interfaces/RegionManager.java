@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Set;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
@@ -36,10 +35,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Function;
 
 /**
- * An AbstractFormulaManager is an object that knows how to create/manipulate
- * AbstractFormulas
+ * A RegionManager encapsulates all operations for creating, inspecting,
+ * and manipulating {@link Region}s.
  */
-public interface RegionManager {
+public interface RegionManager extends RegionCreator {
 
   /**
    * checks whether the data region represented by f1
@@ -49,73 +48,6 @@ public interface RegionManager {
    * @return true if (f1 => f2), false otherwise
    */
   public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException;
-
-  /**
-   * @return a representation of logical truth
-   */
-  public Region makeTrue();
-
-  /**
-   * @return a representation of logical falseness
-   */
-  public Region makeFalse();
-
-  /**
-   * Creates a region representing a negation of the argument
-   * @param f an AbstractFormula
-   * @return (!f1)
-   */
-  public Region makeNot(Region f);
-
-  /**
-   * Creates a region representing an AND of the two argument
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (f1 & f2)
-   */
-  public Region makeAnd(Region f1, Region f2);
-
-  /**
-   * Creates a region representing an OR of the two argument
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (f1 | f2)
-   */
-  public Region makeOr(Region f1, Region f2);
-
-  /**
-   * Creates a region representing an equality (bi-implication) of the two argument
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (f1 <=> f2)
-   */
-  public Region makeEqual(Region f1, Region f2);
-
-  /**
-   * Creates a region representing an disequality (XOR) of the two argument
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (f1 ^ f2)
-   */
-  public Region makeUnequal(Region f1, Region f2);
-
-  /**
-   * Creates a region representing an if then else construct of the three arguments
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @param f3 an AbstractFormula
-   * @return (if f1 then f2 else f3)
-   */
-  public Region makeIte(Region f1, Region f2, Region f3);
-
-  /**
-   * Creates a region representing an existential quantification of the second
-   * argument. If there are more arguments, each of them is quantified.
-   * @param f1 an AbstractFormula
-   * @param f2 one or more AbstractFormulas
-   * @return (exists f2... : f1)
-   */
-  public Region makeExists(Region f1, Region... f2);
 
   /**
    * Creates a new variable and returns the predicate representing it.
@@ -159,11 +91,6 @@ public interface RegionManager {
    * Returns a short string with package name and version number.
    */
   public String getVersion();
-
-  /**
-   * Return a new {@link RegionBuilder} instance.
-   */
-  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
 
   /**
    * Sets the bdd variable ordering.

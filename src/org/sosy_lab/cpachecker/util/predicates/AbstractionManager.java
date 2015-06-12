@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -465,7 +465,7 @@ public final class AbstractionManager {
   }
 
   public RegionCreator getRegionCreator() {
-    return new RegionCreator();
+    return rmgr;
   }
 
   public static interface AbstractionPredicatesMXBean {
@@ -494,93 +494,6 @@ public final class AbstractionManager {
     public String getPredicates() {
       // TODO this may run into a ConcurrentModificationException
       return Joiner.on('\n').join(absVarToPredicate.values());
-    }
-  }
-
-  public class RegionCreator {
-
-    public RegionBuilder newRegionBuilder(ShutdownNotifier pShutdownNotifier) {
-      return rmgr.builder(pShutdownNotifier);
-    }
-
-    /**
-     * @return a representation of logical truth
-     */
-    public Region makeTrue() {
-      return rmgr.makeTrue();
-    }
-
-    /**
-     * @return a representation of logical falseness
-     */
-    public Region makeFalse() {
-      return rmgr.makeFalse();
-    }
-
-    /**
-     * Creates a region representing a negation of the argument
-     *
-     * @param f an AbstractFormula
-     * @return (!f1)
-     */
-    public Region makeNot(Region f) {
-      return rmgr.makeNot(f);
-    }
-
-    /**
-     * Creates a region representing an AND of the two argument
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (f1 & f2)
-     */
-    public Region makeAnd(Region f1, Region f2) {
-      return rmgr.makeAnd(f1, f2);
-    }
-
-    /**
-     * Creates a region representing an OR of the two argument
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (f1 | f2)
-     */
-    public Region makeOr(Region f1, Region f2) {
-      return rmgr.makeOr(f1, f2);
-    }
-
-    /**
-     * Creates a region representing an equality (bi-implication) of the two argument
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (f1 <=> f2)
-     */
-    public Region makeEqual(Region f1, Region f2) {
-      return rmgr.makeEqual(f1, f2);
-    }
-
-    /**
-     * Creates a region representing an if then else construct of the three arguments
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @param f3 an AbstractFormula
-     * @return (if f1 then f2 else f3)
-     */
-    public Region makeIte(Region f1, Region f2, Region f3) {
-      return rmgr.makeIte(f1, f2, f3);
-    }
-
-    /**
-     * Creates a region representing an existential quantification of the two argument
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (\exists f2: f1)
-     */
-    public Region makeExists(Region f1, Region f2) {
-      return rmgr.makeExists(f1, f2);
     }
   }
 
