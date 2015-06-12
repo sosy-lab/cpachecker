@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -74,6 +76,28 @@ public abstract class VariableTrackingPrecision implements Precision {
   public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc, Class<? extends ConfigurableProgramAnalysis> cpaClass)
           throws InvalidConfigurationException {
     return new ConfigurablePrecision(config, vc, cpaClass);
+  }
+
+  /**
+   * This method iterates of every state of the reached set and joins their respective precision into one map.
+   *
+   * @param reached the set of reached states
+   * @return the join over precisions of states in the reached set
+   */
+  public static VariableTrackingPrecision joinVariableTrackingPrecisionsInReachedSet(ReachedSet reached) {
+    Preconditions.checkArgument(reached != null);
+    VariableTrackingPrecision joinedPrecision = null;
+    for (Precision precision : reached.getPrecisions()) {
+      if (precision instanceof WrapperPrecision) {
+        VariableTrackingPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(VariableTrackingPrecision.class);
+        if (joinedPrecision == null) {
+          joinedPrecision = prec;
+        } else {
+          joinedPrecision = joinedPrecision.join(prec);
+        }
+      }
+    }
+    return joinedPrecision;
   }
 
   /**
