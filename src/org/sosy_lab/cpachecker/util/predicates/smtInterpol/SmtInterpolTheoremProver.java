@@ -22,9 +22,10 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -32,7 +33,9 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -41,6 +44,13 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   private final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
   private final List<Term> assertedTerms;
+
+  private final Function<Term, BooleanFormula> encapsulateBoolean = new Function<Term, BooleanFormula>() {
+    @Override
+    public BooleanFormula apply(Term pInput) {
+      return mgr.encapsulateBooleanFormula(pInput);
+    }
+  };
 
   SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
@@ -91,11 +101,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   public List<BooleanFormula> getUnsatCore() {
     Preconditions.checkNotNull(env);
     Term[] terms = env.getUnsatCore();
-    List<BooleanFormula> result = new ArrayList<>(terms.length);
-    for (Term t : terms) {
-      result.add(mgr.encapsulateBooleanFormula(t));
-    }
-    return result;
+    return Lists.transform(Arrays.asList(terms), encapsulateBoolean);
   }
 
 
@@ -109,12 +115,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
       importantTerms[i++] = mgr.extractInfo(impF);
     }
     for (Term[] model : env.checkAllSat(importantTerms)) {
-      // todo: improve efficiency.
-      List<BooleanFormula> l = new ArrayList<>();
-      for (Term t : model) {
-        l.add(mgr.encapsulateBooleanFormula(t));
-      }
-      callback.apply(l);
+      callback.apply(Lists.transform(Arrays.asList(model), encapsulateBoolean));
     }
     return callback.getResult();
   }

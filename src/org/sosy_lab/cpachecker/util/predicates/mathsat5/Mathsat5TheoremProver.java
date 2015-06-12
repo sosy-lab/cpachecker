@@ -32,6 +32,8 @@ import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.LongArrayBackedList;
+import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.AllSatModelCallback;
 
 import com.google.common.base.Preconditions;
 
@@ -107,12 +109,12 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
 
     @Override
     public void callback(long[] model) throws InterruptedException {
-      // todo: casting back and force may be too inefficient.
-      List<BooleanFormula> formulas = new ArrayList<>();
-      for (long m : model) {
-        formulas.add(mgr.encapsulateBooleanFormula(m));
-      }
-      clientCallback.apply(formulas);
+      clientCallback.apply(new LongArrayBackedList<BooleanFormula>(model) {
+        @Override
+        protected BooleanFormula convert(long pE) {
+          return mgr.encapsulateBooleanFormula(pE);
+        }
+      });
     }
   }
 

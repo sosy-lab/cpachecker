@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.LongArrayBackedList;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
@@ -186,7 +187,6 @@ class Z3TheoremProver implements ProverEnvironment {
 
     while (solver_check(z3context, z3solver) == Z3_LBOOL.Z3_L_TRUE.status) {
       long[] valuesOfModel = new long[importantFormulas.length];
-      List<BooleanFormula> valuesWrapped = new ArrayList<>(importantFormulas.length);
       long z3model = solver_get_model(z3context, z3solver);
 
       smtLogger.logGetModel();
@@ -201,11 +201,14 @@ class Z3TheoremProver implements ProverEnvironment {
         } else {
           valuesOfModel[j] = importantFormulas[j];
         }
-        valuesWrapped.add(mgr.encapsulateBooleanFormula(valuesOfModel[j]));
       }
 
-      // add model to BDD
-      callback.apply(valuesWrapped);
+      callback.apply(new LongArrayBackedList<BooleanFormula>(valuesOfModel) {
+        @Override
+        protected BooleanFormula convert(long pE) {
+          return mgr.encapsulateBooleanFormula(pE);
+        }
+      });
 
       long negatedModel = mk_not(z3context, mk_and(z3context, valuesOfModel));
       inc_ref(z3context, negatedModel);
