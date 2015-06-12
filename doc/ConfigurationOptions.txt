@@ -512,6 +512,9 @@ cpa = CompositeCPA.class.getCanonicalName()
 cpa.apron.domain = "OCTAGON"
   allowed values: [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
 
+# get an initial precision from file
+cpa.apron.initialPrecisionFile = no default value
+
 # this option determines which initial precision should be used
 cpa.apron.initialPrecisionType = "STATIC_FULL"
   allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
@@ -522,6 +525,9 @@ cpa.apron.mergeop.onlyMergeAtLoopHeads = false
 # of which type should the merge be?
 cpa.apron.mergeop.type = "SEP"
   allowed values: [SEP, JOIN, WIDENING]
+
+# target file to hold the exported precision
+cpa.apron.precisionFile = no default value
 
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
@@ -884,6 +890,10 @@ cpa.invariants.conditionAdjusterFactory = COMPOUND
   enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
              ABSTRACTION_STRATEGY, COMPOUND]
 
+# export final invariants as formula, for re-using them as
+# PredicatePrecision.
+cpa.invariants.exportInvariantsAsFormulasFile = "InvariantsAsFormulas.txt"
+
 # the maximum number of variables to consider as interesting. -1 one disables
 # the limit, but this is not recommended. 0 means that guessing interesting
 # variables is disabled.
@@ -895,6 +905,12 @@ cpa.invariants.maximumFormulaDepth = 4
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
+
+# instead of writing the exact state-representation as a single formula,
+# write its atoms as a list of formulas. Therefore we ignore operators for
+# conjunction and disjunction.
+cpa.invariants.splitInvariantsForExport = "LOCATION"
+  allowed values: [LOCATION, STATE, ATOM]
 
 # With this option the handling of global variables during the analysis can
 # be fine-tuned. For example while doing a function-wise analysis it is
