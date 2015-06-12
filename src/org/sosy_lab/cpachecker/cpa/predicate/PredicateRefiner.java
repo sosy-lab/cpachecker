@@ -50,6 +50,32 @@ public abstract class PredicateRefiner implements Refiner {
 
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
+    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
+    Solver solver = predicateCpa.getSolver();
+
+    RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
+        config,
+        logger,
+        predicateCpa.getShutdownNotifier(),
+        predicateCpa.getPredicateManager(),
+        staticRefiner,
+        solver);
+
+    return create(pCpa, strategy);
+  }
+
+  public static PredicateCPARefiner create(
+      final ConfigurableProgramAnalysis pCpa,
+      final RefinementStrategy pRefinementStrategy
+  ) throws InvalidConfigurationException {
+
+    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    Configuration config = predicateCpa.getConfiguration();
+    LogManager logger = predicateCpa.getLogger();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
     PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
@@ -68,14 +94,6 @@ public abstract class PredicateRefiner implements Refiner {
 
     PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pfmgr, solver, machineModel);
 
-    RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
-        config,
-        logger,
-        predicateCpa.getShutdownNotifier(),
-        predicateCpa.getPredicateManager(),
-        staticRefiner,
-        solver);
-
     return new PredicateCPARefiner(
         config,
         logger,
@@ -83,7 +101,7 @@ public abstract class PredicateRefiner implements Refiner {
         manager,
         pathChecker,
         pfmgr,
-        strategy,
+        pRefinementStrategy,
         solver,
         predicateCpa.getAssumesStore(),
         predicateCpa.getCfa());

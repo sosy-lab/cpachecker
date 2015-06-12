@@ -290,6 +290,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     } else {
       lastRefinementUsedHeuristics = false;
       super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+      newPredicates = null;
     }
   }
 
@@ -388,6 +389,48 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       boolean pRepeatedCounterexample)
       throws CPAException {
 
+    Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
+        computeNewPrecision(pUnreachableState, pAffectedStates, pReached, pRepeatedCounterexample);
+
+    PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
+    ARGState refinementRoot = newPrecAndRefinementRoot.getSecond();
+
+    updateARGTree(newPrecision, refinementRoot, pReached);
+  }
+
+  private void updateARGTree(PredicatePrecision pNewPrecision, ARGState pRefinementRoot,
+      ARGReachedSet pReached) {
+
+    argUpdate.start();
+
+    List<Precision> precisions = new ArrayList<>(2);
+    List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
+
+    precisions.add(pNewPrecision);
+    precisionTypes.add(Predicates.instanceOf(PredicatePrecision.class));
+
+    UnmodifiableReachedSet reached = pReached.asReachedSet();
+
+    if(isValuePrecisionAvailable(pReached, pRefinementRoot)) {
+      precisions.add(mergeAllValuePrecisionsFromSubgraph(pRefinementRoot, reached));
+      precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+    }
+
+    pReached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
+
+    assert (refinementCount > 0) || reached.size() == 1;
+
+    if (sharePredicates) {
+      pReached.updatePrecisionGlobally(pNewPrecision, Predicates.instanceOf(PredicatePrecision.class));
+    }
+
+    argUpdate.stop();
+  }
+
+  protected Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
+      List<ARGState> pAffectedStates, ARGReachedSet pReached, boolean pRepeatedCounterexample)
+      throws RefinementFailedException {
+
     { // Add predicate "false" to unreachable location
       CFANode loc = extractLocation(pUnreachableState);
       int locInstance = getPredicateState(pUnreachableState)
@@ -483,31 +526,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     precisionUpdate.stop();
 
-
-    argUpdate.start();
-
-    List<Precision> precisions = new ArrayList<>(2);
-    List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
-
-    precisions.add(newPrecision);
-    precisionTypes.add(Predicates.instanceOf(PredicatePrecision.class));
-
-    if(isValuePrecisionAvailable(pReached, refinementRoot)) {
-      precisions.add(mergeAllValuePrecisionsFromSubgraph(refinementRoot, reached));
-      precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
-    }
-
-    pReached.removeSubtree(refinementRoot, precisions, precisionTypes);
-
-    assert (refinementCount > 0) || reached.size() == 1;
-
-    if (sharePredicates) {
-      pReached.updatePrecisionGlobally(newPrecision, Predicates.instanceOf(PredicatePrecision.class));
-    }
-
-    argUpdate.stop();
-
-    newPredicates = null;
+    return Pair.of(newPrecision, refinementRoot);
   }
 
   protected final PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
