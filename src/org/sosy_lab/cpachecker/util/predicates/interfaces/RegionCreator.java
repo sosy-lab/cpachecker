@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 
 /**
  * RegionCreator is an interface that contains all methods for creating
@@ -110,4 +109,43 @@ public interface RegionCreator {
    * @return (exists f2... : f1)
    */
   Region makeExists(Region f1, Region... f2);
+
+  /**
+   * A stateful region builder for regions that are disjunctions
+   * of conjunctive literals.
+   * Using this can be more efficient than calling {@link RegionCreator#makeOr(Region, Region)}
+   * and {@link RegionCreator#makeAnd(Region, Region)} repeatedly.
+   */
+  public static interface RegionBuilder extends AutoCloseable {
+
+    /**
+     * Start a new conjunctive clause.
+     */
+    void startNewConjunction();
+
+    /**
+     * Add a region to the current conjunctive clause.
+     */
+    void addPositiveRegion(Region r);
+
+    /**
+     * Add the negation of a region to the current conjunctive clause.
+     * @param r
+     */
+    void addNegativeRegion(Region r);
+
+    /**
+     * End the current conjunctive clause and add it to the global disjunction.
+     */
+    void finishConjunction();
+
+    /**
+     * Retrieve the disjunction of all the conjunctive clauses created
+     * with this builder so far.
+     */
+    Region getResult() throws InterruptedException;
+
+    @Override
+    public void close();
+  }
 }

@@ -105,41 +105,4 @@ public interface RegionManager extends RegionCreator {
    * @param strategy the reorder strategy that should be applied.
    */
   public void reorder(PredicateOrderingStrategy strategy);
-
-  /**
-   * A stateful region builder for regions that are disjunctions
-   * of conjunctive literals.
-   */
-  public static interface RegionBuilder extends AutoCloseable {
-
-    /**
-     * Start a new conjunctive clause.
-     */
-    void startNewConjunction();
-
-    /**
-     * Add a region to the current conjunctive clause.
-     */
-    void addPositiveRegion(Region r);
-
-    /**
-     * Add the negation of a region to the current conjunctive clause.
-     * @param r
-     */
-    void addNegativeRegion(Region r);
-
-    /**
-     * End the current conjunctive clause and add it to the global disjunction.
-     */
-    void finishConjunction();
-
-    /**
-     * Retrieve the disjunction of all the conjunctive clauses created
-     * with this builder so far.
-     */
-    Region getResult() throws InterruptedException;
-
-    @Override
-    public void close();
-  }
 }
