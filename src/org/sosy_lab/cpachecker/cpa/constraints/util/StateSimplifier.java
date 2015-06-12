@@ -130,6 +130,7 @@ public class StateSimplifier {
 
     final Map<ActivityInfo, Set<ActivityInfo>> symIdActivity = getInitialActivityMap(newState);
     final Set<SymbolicIdentifier> symbolicValues = getExistingSymbolicIds(pValueState);
+    final IdentifierAssignment definiteAssignments = pState.getDefiniteAssignment();
 
     for (Map.Entry<ActivityInfo, Set<ActivityInfo>> e : symIdActivity.entrySet()) {
       final ActivityInfo s = e.getKey();
@@ -144,8 +145,7 @@ public class StateSimplifier {
 
           if (!symbolicValues.contains(currId)) {
             boolean canBeRemoved;
-
-            if (s.getUsingConstraints().size() < 2) {
+            if (s.getUsingConstraints().size() < 2 && !definiteAssignments.containsKey(currId)) {
               // the symbolic identifier only occurs in one constraint and is not active,
               // so it does not constrain any currently existing symbolic identifier
               canBeRemoved = true;
