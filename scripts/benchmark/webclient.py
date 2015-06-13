@@ -154,6 +154,9 @@ def execute_benchmark(benchmark, output_handler):
     except KeyboardInterrupt as e:
         STOPPED_BY_INTERRUPT = True
         raise e
+    except:
+        stop()
+        raise
     finally:
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
