@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
@@ -48,8 +49,7 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
 
   @Override
   protected Pair<List<String>, String> convertToFormula(final PredicateAbstractState pRequirement,
-      final SSAMap pIndices)
-      throws CPAException {
+      final SSAMap pIndices) throws CPAException {
 
     if (!pRequirement.isAbstractionState()) {
       throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState.");
@@ -60,11 +60,13 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
 
     Pair<String, List<String>> pair = PredicatePersistenceUtils.splitFormula(fmgr, formulaBool);
     List<String> list = pair.getSecond();
+    List<String> removeFromList = new ArrayList<>();
     for (String stmt : list) {
       if (!stmt.startsWith("(declare") || !stmt.startsWith("(define")) {
-        pair.getSecond().remove(stmt);
+        removeFromList.add(stmt);
       }
     }
+    list.removeAll(removeFromList);
 
     String secReturn;
     String element = pair.getFirst();

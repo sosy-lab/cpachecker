@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -58,9 +59,10 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
       Value integerValue = pRequirement.getConstantsMapView().get(memLoc);
       if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
-//        throw new Exception("The value of " + memLoc + " is not an integer"); // TODO welche?
+        logger.log(Level.SEVERE, "The value " + integerValue + " of the MemoryLocation " + memLoc + " is not an Integer.");
+      } else {
+        list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " " + integerValue + ")");
       }
-      list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " " + integerValue + ")");
     }
     return list;
   }
