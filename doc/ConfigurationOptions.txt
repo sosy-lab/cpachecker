@@ -1805,6 +1805,17 @@ cpa.value.initAssumptionVars = false
 # get an initial precision from file
 cpa.value.initialPrecisionFile = no default value
 
+# apply optimizations based on equality of input interpolant and candidate
+# interpolant
+cpa.value.interpolation.applyItpEqualityOptimization = true
+
+# apply optimizations based on CFA edges with only variable-renaming
+# semantics
+cpa.value.interpolation.applyRenamingOptimization = true
+
+# apply optimizations based on infeasibility of suffix
+cpa.value.interpolation.applyUnsatSuffixOptimization = true
+
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -2025,6 +2036,11 @@ pcc.arg.cmc.file = "assumptions.txt"
 # Which ARG strategy to use for each partial ARG, strategy based on CPA
 # (true) or on proof checker interface (false)
 pcc.arg.cmc.useArgCpaStrategy = true
+
+# Enable if used property checker implements satisfiesProperty(AbstractState)
+# and checked property is violated for a set iff an element in this set
+# exists for which violates the property
+pcc.checkPropertyPerElement = no default value
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for

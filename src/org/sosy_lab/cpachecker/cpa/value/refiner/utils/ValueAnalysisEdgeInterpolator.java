@@ -32,6 +32,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -51,7 +53,18 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Iterables;
 
+@Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisEdgeInterpolator {
+
+  @Option(secure=true, description="apply optimizations based on equality of input interpolant and candidate interpolant")
+  private boolean applyItpEqualityOptimization = true;
+
+  @Option(secure=true, description="apply optimizations based on CFA edges with only variable-renaming semantics")
+  private boolean applyRenamingOptimization = true;
+
+  @Option(secure=true, description="apply optimizations based on infeasibility of suffix")
+  private boolean applyUnsatSuffixOptimization = true;
+
   /**
    * the shutdownNotifier in use
    */
@@ -88,6 +101,8 @@ public class ValueAnalysisEdgeInterpolator {
   public ValueAnalysisEdgeInterpolator(final Configuration pConfig,final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
+
+    pConfig.inject(this);
 
     try {
       shutdownNotifier  = pShutdownNotifier;
@@ -133,20 +148,21 @@ public class ValueAnalysisEdgeInterpolator {
     // if initial state and successor are equal, return the input interpolant
     // in general, this returned interpolant might be stronger than needed, but only in very rare cases,
     // the weaker interpolant would be different from the input interpolant, so we spare the effort
-    if (initialState.equals(initialSuccessor)) {
+    if (applyItpEqualityOptimization && initialState.equals(initialSuccessor)) {
       return pInputInterpolant;
     }
 
     // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
-    if (isOnlyVariableRenamingEdge(pCurrentEdge)) {
+    if (applyRenamingOptimization && isOnlyVariableRenamingEdge(pCurrentEdge)) {
       return initialSuccessor.createInterpolant();
     }
 
     ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
 
     // return interpolant TRUE if input interpolant is still TRUE and suffix is contradicting by itself
-    if (pInputInterpolant.isTrue()
+    if (applyUnsatSuffixOptimization
+        && pInputInterpolant.isTrue()
         && initialSuccessor.getSize() > 1
         && isSuffixContradicting(remainingErrorPath)) {
       return ValueAnalysisInterpolant.TRUE;
