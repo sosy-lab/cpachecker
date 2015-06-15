@@ -893,10 +893,6 @@ cpa.invariants.conditionAdjusterFactory = COMPOUND
   enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
              ABSTRACTION_STRATEGY, COMPOUND]
 
-# export final invariants as formula, for re-using them as
-# PredicatePrecision.
-cpa.invariants.exportInvariantsAsFormulasFile = "InvariantsAsFormulas.txt"
-
 # the maximum number of variables to consider as interesting. -1 one disables
 # the limit, but this is not recommended. 0 means that guessing interesting
 # variables is disabled.
@@ -908,12 +904,6 @@ cpa.invariants.maximumFormulaDepth = 4
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
-
-# instead of writing the exact state-representation as a single formula,
-# write its atoms as a list of formulas. Therefore we ignore operators for
-# conjunction and disjunction.
-cpa.invariants.splitInvariantsForExport = "LOCATION"
-  allowed values: [LOCATION, STATE, ATOM]
 
 # With this option the handling of global variables during the analysis can
 # be fine-tuned. For example while doing a function-wise analysis it is
@@ -2194,6 +2184,16 @@ spec.transitionToStopForNegatedTokensetMatch = false
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
+
+# export abstract states as formula, e.g. for re-using them as
+# PredicatePrecision.
+statesToFormulas.exportFile = no default value
+
+# instead of writing the exact state-representation as a single formula,
+# write its atoms as a list of formulas. Therefore we ignore operators for
+# conjunction and disjunction.
+statesToFormulas.splitFormulas = LOCATION
+  enum:     [LOCATION, STATE, ATOM]
 
 # Add all assumtions from the control flow automaton to the precision.
 staticRefiner.addAllControlFlowAssumes = false
