@@ -456,8 +456,8 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   public BooleanFormula getFormulaApproximation(FormulaManagerView pMgr, PathFormulaManager pPfmgr) {
     NumeralFormulaManagerView<IntegerFormula, IntegerFormula> nfmgr = pMgr.getIntegerFormulaManager();
     List<BooleanFormula> result = new ArrayList<>();
-    for (String variable : intervals.keySet()) {
-      Interval interval = intervals.get(variable);
+    for (Entry<String, Interval> entry : intervals.entrySet()) {
+      Interval interval = entry.getValue();
       if (interval.isEmpty()) {
         // one invalid interval disqualifies the whole state
         return pMgr.getBooleanFormulaManager().makeBoolean(false);
@@ -465,7 +465,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
 
       // we assume that everything is an SIGNED INTEGER
       // and build "LOW <= X" and "X <= HIGH"
-      NumeralFormula var = nfmgr.makeVariable(variable);
+      NumeralFormula var = nfmgr.makeVariable(entry.getKey());
       Long low = interval.getLow();
       Long high = interval.getHigh();
       if (low != null && low != Long.MIN_VALUE) { // check for unbound interval
