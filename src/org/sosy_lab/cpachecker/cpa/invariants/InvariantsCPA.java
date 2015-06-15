@@ -517,7 +517,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private static boolean anyOnPath(List<CFAEdge> pPath, Set<String> pRelevantVariables) {
     for (CFAEdge edge : pPath) {
-      if (!Collections.disjoint(EdgeAnalyzer.getInvolvedVariables(edge).keySet(), pRelevantVariables)) {
+      if (!Collections.disjoint(EdgeAnalyzer.getInvolvedVariableTypes(edge).keySet(), pRelevantVariables)) {
         return true;
       }
     }
@@ -551,14 +551,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   private static void addTransitivelyRelevantInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
-    Set<String> involvedVariables = EdgeAnalyzer.getInvolvedVariables(pEdge).keySet();
+    Set<String> involvedVariables = EdgeAnalyzer.getInvolvedVariableTypes(pEdge).keySet();
     if (!Collections.disjoint(pRelevantVariables, involvedVariables)) {
       addAll(pRelevantVariables, involvedVariables, pLimit);
     }
   }
 
   private static void addInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
-    addAll(pRelevantVariables, EdgeAnalyzer.getInvolvedVariables(pEdge).keySet(), pLimit);
+    addAll(pRelevantVariables, EdgeAnalyzer.getInvolvedVariableTypes(pEdge).keySet(), pLimit);
   }
 
   private static <T> void addAll(Collection<T> pTarget, Collection<T> pSource, int pLimit) {

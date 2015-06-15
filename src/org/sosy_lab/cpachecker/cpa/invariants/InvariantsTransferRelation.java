@@ -111,7 +111,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsPrecision pPrecision, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCodeException {
-    InvariantsState state = pState.setTypes(EdgeAnalyzer.getInvolvedVariables(pEdge));
+    InvariantsState state = pState.setTypes(EdgeAnalyzer.getInvolvedVariableTypes(pEdge));
     switch (pEdge.getEdgeType()) {
     case BlankEdge:
       break;
