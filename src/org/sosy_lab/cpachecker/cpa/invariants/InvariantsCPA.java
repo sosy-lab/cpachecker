@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,13 +44,9 @@ import javax.annotation.concurrent.GuardedBy;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -64,8 +57,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -96,10 +87,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedV
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -140,21 +129,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Option(secure=true, description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
     private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
-
-    @Option(secure=true, description="export final invariants as formula, for re-using them as PredicatePrecision.")
-    @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path exportInvariantsAsFormulasFile = Paths.get("InvariantsAsFormulas.txt");
-
-    @Option(secure=true,
-        values={
-          "LOCATION", // one formula per location: "(a=2&b=3)|(a=2&b=4)"
-          "STATE", // one formula per state: "a=2&b=3", "a=2&b=4"
-          "ATOM"}, // really split into atoms: "a=2", "b=3", "b=4"
-        toUppercase=true,
-        description="instead of writing the exact state-representation as a single formula, "
-        + "write its atoms as a list of formulas. Therefore we ignore operators for conjunction and disjunction.")
-    private String splitInvariantsForExport = "LOCATION";
-
   }
 
   /**
@@ -204,7 +178,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final MergeOperator mergeOperator;
   private final AbstractDomain abstractDomain;
 
-  private final InvariantsStatistics stats;
+  private final StateToFormulaWriter writer;
 
   /**
    * Gets a factory for creating InvariantCPAs.
@@ -246,7 +220,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       assert pOptions.merge.equalsIgnoreCase("join");
       mergeOperator = new MergeJoinOperator(abstractDomain);
     }
-    this.stats = new InvariantsStatistics();
+    this.writer = new StateToFormulaWriter(config, logManager, shutdownNotifier, cfa);
   }
 
   @Override
@@ -834,41 +808,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
-
-    // solver-statistics dump symbol-encoding
-    stats.solver.collectStatistics(pStatsCollection);
-  }
-
-  /** this statistic dumps invariants as formulas. */
-  private class InvariantsStatistics implements Statistics {
-
-    private final Solver solver;
-    private final FormulaManagerView fmgr;
-    private final PathFormulaManagerImpl pfmgr;
-
-    InvariantsStatistics() throws InvalidConfigurationException {
-      solver = Solver.create(config, logManager, shutdownNotifier);
-      fmgr = solver.getFormulaManager();
-      pfmgr = new PathFormulaManagerImpl(fmgr, config, logManager,
-          shutdownNotifier, cfa, AnalysisDirection.FORWARD);
-    }
-
-    @Override
-    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-      InvariantsWriter writer = new InvariantsWriter(fmgr, pfmgr, options.splitInvariantsForExport);
-      if (options.exportInvariantsAsFormulasFile != null) {
-        try (Writer w = Files.openOutputFile(options.exportInvariantsAsFormulasFile)) {
-          writer.write(pReached, w);
-        } catch (IOException e) {
-          logManager.logUserException(Level.WARNING, e, "Could not write invariants to file");
-        }
-      }
-    }
-
-    @Override
-    public String getName() {
-      return null;
-    }
+    writer.collectStatistics(pStatsCollection);
   }
 }
