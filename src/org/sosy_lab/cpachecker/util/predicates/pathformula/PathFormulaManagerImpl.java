@@ -51,10 +51,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Variable;
-import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -62,6 +58,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Variable;
+import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -619,14 +619,23 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           }
         }
 
-        AssumeEdge edge = null;
-        for (CFAEdge currentEdge : outgoingEdges) {
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
-            edge = (AssumeEdge)currentEdge;
-            break;
+        assert outgoingEdges.size() == 2;
+
+        // We expect there to be exactly one positive and one negative edge
+        AssumeEdge positiveEdge = null;
+        AssumeEdge negativeEdge = null;
+        for (AssumeEdge currentEdge : outgoingEdges.filter(AssumeEdge.class)) {
+          if (currentEdge.getTruthAssumption()) {
+            positiveEdge = currentEdge;
+          } else {
+            negativeEdge = currentEdge;
           }
         }
-        assert edge != null;
+        if (positiveEdge == null || negativeEdge == null) {
+          logger.log(Level.WARNING, "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
+          return bfmgr.makeBoolean(true);
+        }
+
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId(), 0);
 
         // create formula by edge, be sure to use the correct SSA indices!
@@ -641,7 +650,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           pf = pe.getPathFormula();
         }
         pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
-        pf = this.makeAnd(pf, edge);        // conjunct with edge
+        pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
 
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
         branchingFormula = bfmgr.and(branchingFormula, equiv);
