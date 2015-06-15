@@ -54,12 +54,10 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -70,7 +68,7 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
   private final ValueAnalysisTransferRelation transfer;
   private final VariableTrackingPrecision precision;
   private MutableARGPath feasiblePrefix;
-  private Optional<VariableClassification> classification;
+  private final CFA cfa;
 
   /**
    * This method acts as the constructor of the class.
@@ -82,11 +80,10 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
    */
   public ValueAnalysisPrefixProvider(LogManager pLogger, CFA pCfa, Configuration config) throws InvalidConfigurationException {
     logger = pLogger;
+    cfa    = pCfa;
 
-    classification = pCfa.getVarClassification();
-
-    transfer = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-    precision = VariableTrackingPrecision.createStaticPrecision(config, classification, ValueAnalysisCPA.class);
+    transfer = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, cfa);
+    precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), ValueAnalysisCPA.class);
   }
 
   /**
@@ -214,12 +211,16 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     // transition is needed, so we add the final (error) state
     infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
 
+    UseDefRelation useDefRelation = new UseDefRelation(infeasiblePrefix.immutableCopy(),
+        cfa.getVarClassification().isPresent()
+          ? cfa.getVarClassification().get().getIntBoolVars()
+          : Collections.<String>emptySet());
+
     List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
+        logger,
         infeasiblePrefix.immutableCopy(),
-        new UseDefRelation(infeasiblePrefix.immutableCopy(),
-            classification.isPresent()
-              ? classification.get().getIntBoolVars()
-              : Collections.<String>emptySet())).obtainInterpolants();
+        useDefRelation,
+        cfa.getMachineModel()).obtainInterpolants();
 
     return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix.immutableCopy(),
         FluentIterable.from(interpolants).transform(Pair.<ValueAnalysisInterpolant>getProjectionToSecond()).toList());
