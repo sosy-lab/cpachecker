@@ -261,7 +261,29 @@ class PrincessUtil {
    * @return
    */
   public static IExpression let(IExpression expr, PrincessEnvironment env) {
-    return replaceCommonExpressionsInTree(expr, getCommonSubTreeExpressions(expr), env, new HashMap<IExpression, IExpression>());
+    IExpression lettedExp = replaceCommonExpressionsInTree(expr, getCommonSubTreeExpressions(expr), env, new HashMap<IExpression, IExpression>());
+    assert areEqualTerms(expr, lettedExp, env);
+    return lettedExp;
+  }
+
+  /**
+   * Compares two expressions for equality by checking the negated equivalence
+   * of both for satisfiability.
+   */
+  private static boolean areEqualTerms(IExpression expr1, IExpression expr2, PrincessEnvironment env) {
+    SymbolTrackingPrincessStack stack = (SymbolTrackingPrincessStack) env.getNewStack(false);
+    stack.push(1);
+
+    // create !(expr1 <=> expr2) if this is unsat we know that the formulas are equal
+    IFormula formula = new INot(new IBinFormula(IBinJunctor.Eqv(), castToFormula(expr1), castToFormula(expr2)));
+    stack.assertTerm(formula);
+
+    // flip boolean value, when unsat the formulas are equal
+    boolean areEqual = !stack.checkSat();
+
+    stack.close();
+
+    return areEqual;
   }
 
   /**

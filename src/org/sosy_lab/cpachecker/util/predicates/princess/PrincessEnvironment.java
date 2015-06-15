@@ -32,13 +32,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.PathCounterTemplate;
@@ -74,7 +74,7 @@ class PrincessEnvironment {
   private final Map<String, ITerm> intVariablesCache = new HashMap<>();
 
   /** The key of this map is the abbreviation, the value is the full expression.*/
-  private final Map<IExpression, IExpression> abbrevCache = new HashMap<>();
+  private final List<Pair<IExpression, IExpression>> abbrevCache = new ArrayList<>();
   private final Map<String, IFunction> functionsCache = new HashMap<>();
   private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
@@ -129,8 +129,8 @@ class PrincessEnvironment {
     for (IFunction s : functionsCache.values()) {
       stack.addSymbol(s);
     }
-    for(Entry<IExpression, IExpression> e : abbrevCache.entrySet()) {
-      stack.addAbbrev(e.getKey(), e.getValue());
+    for(Pair<IExpression, IExpression> e : abbrevCache) {
+      stack.addAbbrev(e.getFirst(), e.getSecond());
     }
     registeredStacks.add(stack);
     allStacks.add(stack);
@@ -333,7 +333,7 @@ class PrincessEnvironment {
       stack.addAbbrev(abbrev, expr);
     }
 
-    abbrevCache.put(abbrev, expr);
+    abbrevCache.add(Pair.of(abbrev, expr));
     return abbrev;
   }
 
