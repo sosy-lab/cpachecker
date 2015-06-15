@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -105,6 +106,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private ValueAnalysisPrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisReducer reducer;
   private final ValueAnalysisCPAStatistics statistics;
+  private final StateToFormulaWriter writer;
 
   private final Configuration config;
   private final LogManager logger;
@@ -130,6 +132,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
+    writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -288,7 +291,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
-
+    writer.collectStatistics(pStatsCollection);
     precisionAdjustment.collectStatistics(pStatsCollection);
   }
 

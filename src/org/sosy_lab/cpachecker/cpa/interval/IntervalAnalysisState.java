@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,14 +35,21 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 import com.google.common.base.Splitter;
 
 public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
-    AbstractQueryableState, Graphable {
+    AbstractQueryableState, Graphable, FormulaReportingState {
 
   private static final long serialVersionUID = -2030700797958100666L;
 
@@ -442,5 +450,31 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
 
   public Map<String, Interval> getIntervalMapView() {
     return Collections.unmodifiableMap(intervals);
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pMgr, PathFormulaManager pPfmgr) {
+    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> nfmgr = pMgr.getIntegerFormulaManager();
+    List<BooleanFormula> result = new ArrayList<>();
+    for (String variable : intervals.keySet()) {
+      Interval interval = intervals.get(variable);
+      if (interval.isEmpty()) {
+        // one invalid interval disqualifies the whole state
+        return pMgr.getBooleanFormulaManager().makeBoolean(false);
+      }
+
+      // we assume that everything is an SIGNED INTEGER
+      // and build "LOW <= X" and "X <= HIGH"
+      NumeralFormula var = nfmgr.makeVariable(variable);
+      Long low = interval.getLow();
+      Long high = interval.getHigh();
+      if (low != null && low != Long.MIN_VALUE) { // check for unbound interval
+        result.add(pMgr.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
+      }
+      if (high != null && high != Long.MIN_VALUE) { // check for unbound interval
+        result.add(pMgr.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
+      }
+    }
+    return pMgr.getBooleanFormulaManager().and(result);
   }
 }
