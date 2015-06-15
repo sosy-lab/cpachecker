@@ -438,6 +438,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     writer.put(totalInterpolationQueries);
     writer.put(sizeOfInterpolant);
     writer.put(totalPrefixes);
+    writer.put(prefixExtractionTime);
+    writer.put(prefixSelectionTime);
   }
 
   public int getInterpolationOffset() {
