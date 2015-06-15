@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -84,12 +85,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
  // the value of the map entry is the explanation for the user
  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
      = ImmutableMap.of();
-
-  /**
-   * Base name of the variable that is introduced to pass results from
-   * returning function calls.
-   */
-  static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -326,14 +321,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
-    String calledFunctionName = pEdge.getPredecessor().getFunctionName();
     // If the return edge has no statement, no return value is passed: "return;"
     if (!pEdge.getExpression().isPresent()) {
       return pElement;
     }
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     InvariantsFormula<CompoundInterval> returnedState = pEdge.getExpression().get().accept(etfv);
-    String returnValueName = VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
+    String returnValueName = pEdge.getSuccessor().getEntryNode().getReturnVariable().get().getQualifiedName();
     return pElement.assign(returnValueName, returnedState);
   }
 
@@ -345,17 +339,17 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
       String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
 
-      String returnValueName = VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-
-      InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(returnValueName);
-
+      Optional<CVariableDeclaration> var = pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
       InvariantsState result = pElement;
 
       // expression is an assignment operation, e.g. a = g(b);
       if (expression instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) expression;
 
-        result = handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
+        if (var.isPresent()) {
+          InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(var.get().getQualifiedName());
+          result = handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
+        }
       } else {
         Iterator<CExpression> actualParamIterator = summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions().iterator();
         for (String formalParamName : pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {

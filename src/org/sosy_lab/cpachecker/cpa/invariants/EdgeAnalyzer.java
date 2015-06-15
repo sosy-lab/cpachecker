@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
 
@@ -142,8 +143,10 @@ public class EdgeAnalyzer {
       if (returnStatementEdge.getExpression().isPresent()) {
         AExpression returnExpression = returnStatementEdge.getExpression().get();
         Map<String, CType> result = new HashMap<>();
-        result.put(VariableNameExtractor.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, pCfaEdge.getSuccessor().getFunctionName()),
-            (CType) returnExpression.getExpressionType());
+        Optional<? extends AVariableDeclaration> retVar = returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
+        if (retVar.isPresent()) {
+          result.put(retVar.get().getQualifiedName(), (CType) returnExpression.getExpressionType());
+        }
         result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
         return result;
       }
@@ -189,9 +192,10 @@ public class EdgeAnalyzer {
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
         if (functionCallExpression != null) {
           Map<String, CType> result = new HashMap<>();
-          result.put(
-              VariableNameExtractor.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, pCfaEdge.getPredecessor().getFunctionName()),
-              (CType) functionCallExpression.getExpressionType());
+          Optional<? extends AVariableDeclaration> retVar = functionReturnEdge.getFunctionEntry().getReturnVariable();
+          if (retVar.isPresent()) {
+            result.put(retVar.get().getQualifiedName(), (CType) functionCallExpression.getExpressionType());
+          }
           result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
           return result;
         }
