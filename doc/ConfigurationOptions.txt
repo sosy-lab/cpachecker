@@ -163,6 +163,9 @@ analysis.stopAfterError = true
 # create summary call statement edges
 analysis.summaryEdges = false
 
+# traverse in the order defined by the values of an automaton variable
+analysis.traversal.byAutomatonVariable = no default value
+
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
   enum:     [DFS, BFS, RAND, RANDOM_PATH]

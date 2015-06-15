@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
@@ -78,6 +79,10 @@ public class ReachedSetFactory {
       description = "handle abstract states with more automaton matches first? (only if AutomatonCPA enabled)")
   boolean useAutomatonInformation = false;
 
+  @Option(secure=true, name = "traversal.byAutomatonVariable",
+      description = "traverse in the order defined by the values of an automaton variable")
+  String byAutomatonVariable = null;
+
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -111,6 +116,9 @@ public class ReachedSetFactory {
     }
     if (useExplicitInformation) {
       waitlistFactory = ExplicitSortedWaitlist.factory(waitlistFactory);
+    }
+    if (byAutomatonVariable != null) {
+      waitlistFactory = AutomatonVariableWaitlist.factory(waitlistFactory, byAutomatonVariable);
     }
 
     switch (reachedSet) {
