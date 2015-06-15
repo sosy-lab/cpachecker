@@ -113,6 +113,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
       Configuration config, LogManager pLogger,
       ShutdownNotifier shutdownNotifier, CFA cfa)
           throws InvalidConfigurationException {
+    config.inject(this);
     solver = Solver.create(config, pLogger, shutdownNotifier);
     logger = pLogger;
     fmgr = solver.getFormulaManager();
