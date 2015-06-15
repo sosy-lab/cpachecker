@@ -42,12 +42,12 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Iterables;
 
@@ -103,7 +103,9 @@ public class ValueAnalysisEdgeInterpolator {
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
-   * @param pErrorPath the path to check
+   * @param pErrorPath the path to interpolate
+   * @param pCurrentEdge the current edge to interpolate
+   * @param pCallstack the current call stack
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
    * @throws CPAException
@@ -112,7 +114,7 @@ public class ValueAnalysisEdgeInterpolator {
   public ValueAnalysisInterpolant deriveInterpolant(
       final ARGPath pErrorPath,
       final CFAEdge pCurrentEdge,
-      final Deque<ValueAnalysisState> callstack,
+      final Deque<ValueAnalysisState> pCallstack,
       final int pOffset,
       final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
@@ -122,7 +124,7 @@ public class ValueAnalysisEdgeInterpolator {
 
     // TODO callstack-management depends on a forward-iteration on a single path.
     // TODO Thus interpolants have to be computed from front to end. Can we assure this?
-    ValueAnalysisState initialSuccessor = getInitialSuccessor(initialState, pCurrentEdge, callstack);
+    ValueAnalysisState initialSuccessor = getInitialSuccessor(initialState, pCurrentEdge, pCallstack);
 
     if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
@@ -143,8 +145,10 @@ public class ValueAnalysisEdgeInterpolator {
 
     ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
 
-    // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
-    if (initialSuccessor.getSize() > 1 && isSuffixContradicting(remainingErrorPath)) {
+    // return interpolant TRUE if input interpolant is still TRUE and suffix is contradicting by itself
+    if (pInputInterpolant.isTrue()
+        && initialSuccessor.getSize() > 1
+        && isSuffixContradicting(remainingErrorPath)) {
       return ValueAnalysisInterpolant.TRUE;
     }
 
@@ -164,11 +168,11 @@ public class ValueAnalysisEdgeInterpolator {
   }
 
   /**
-   * Interpolation on (long) error paths my be expensive, so it might pay off to limit the set of
+   * Interpolation on (long) error paths may be expensive, so it might pay off to limit the set of
    * memory locations on which to interpolate.
    *
    * This method determines those memory locations on which to interpolate.
-   * Memory locations that are in the candidate interpolant but are not returned herewill end up
+   * Memory locations that are in the candidate interpolant but are not returned here will end up
    * in the final interpolant, without any effort spent on interpolation.
    * Memory locations that are returned here are subject for interpolation, and might be eliminated
    * from the final interpolant (at the cost of doing one interpolation query for each of them).
