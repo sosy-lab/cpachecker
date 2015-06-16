@@ -140,7 +140,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
 
-    if (initialPrecisionFile != null && precisionType.equals("REFINEABLE_EMPTY")) {
+    if (initialPrecisionFile == null && precisionType.equals("REFINEABLE_EMPTY")) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config,
           VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
 
