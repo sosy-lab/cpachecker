@@ -61,6 +61,8 @@ import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
 
+import com.google.common.collect.Iterables;
+
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
  * // TODO logfile is only available as tmpfile in /tmp, perhaps it is not closed?
@@ -168,41 +170,64 @@ class PrincessEnvironment {
     throw new UnsupportedOperationException(); // todo: implement this
   }
 
-  public Appender dumpFormula(final IExpression formula) {
+  public Appender dumpFormula(IExpression formula) {
+    // remove redundant expressions
+    final IExpression lettedFormula = PrincessUtil.let(formula, this);
     return new Appenders.AbstractAppender() {
 
       @Override
       public void appendTo(Appendable out) throws IOException {
-        Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(formula));
+        Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(lettedFormula));
 
         for (IExpression var : declaredFunctions) {
           out.append("(declare-fun ");
-          out.append(getName(var));
+          String name = getName(var);
 
-          // function parameters
-          out.append(" (");
-          if (var instanceof IFunApp) {
-            IFunApp function = (IFunApp) var;
-            Iterator<ITerm> args = JavaConversions.asJavaIterable(function.args()).iterator();
-            while (args.hasNext()) {
-              args.next();
-              // Princess does only support IntegerFormulas in UIFs we don't need
-              // to check the type here separately
-              if (args.hasNext()) {
-                out.append("Int ");
-              } else {
-                out.append("Int");
+          // we do only want to add declare-funs for things we really declared
+          // the rest is done afterwards
+          if (!name.startsWith("abbrev_")) {
+            out.append(name);
+
+            // function parameters
+            out.append(" (");
+            if (var instanceof IFunApp) {
+              IFunApp function = (IFunApp) var;
+              Iterator<ITerm> args = JavaConversions.asJavaIterable(function.args()).iterator();
+              while (args.hasNext()) {
+                args.next();
+                // Princess does only support IntegerFormulas in UIFs we don't need
+                // to check the type here separately
+                if (args.hasNext()) {
+                  out.append("Int ");
+                } else {
+                  out.append("Int");
+                }
               }
             }
-          }
 
-          out.append(") ");
-          out.append(getType(var));
+            out.append(") ");
+            out.append(getType(var));
+            out.append(")\n");
+          }
+        }
+
+        // now as everything we know from the formula is declared we have to add
+        // the abbreviations, too
+        for (Pair<IExpression, IExpression> entry : abbrevCache) {
+          IExpression abbrev = entry.getFirst();
+          IExpression fullFormula = entry.getSecond();
+          String name = getName(Iterables.getOnlyElement(PrincessUtil.getVarsAndUIFs(Collections.singleton(abbrev))));
+          out.append("(define-fun ");
+          out.append(name);
+
+          // the type of each abbreviation + the renamed formula
+          out.append(" ((abbrev_arg Int)) Int (");
+          out.append(fullFormula.toString());
           out.append(")\n");
         }
 
         out.append("(assert ");
-        out.append(formula.toString());
+        out.append(lettedFormula.toString());
         out.append(")");
       }
     };
