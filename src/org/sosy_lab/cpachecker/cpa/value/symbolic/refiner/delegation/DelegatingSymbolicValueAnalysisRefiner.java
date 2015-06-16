@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.VariableTrackingConstraintsPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
@@ -68,11 +68,12 @@ public abstract class DelegatingSymbolicValueAnalysisRefiner implements Refiner 
               + " needs a PredicateCPA");
     }
 
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+
     valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision(VariableTrackingConstraintsPrecision.getEmptyPrecision());
+    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
 
     final LogManager logger = valueAnalysisCpa.getLogger();
-    final Configuration config = valueAnalysisCpa.getConfiguration();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     RefinementStrategy strategy =

@@ -38,7 +38,8 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
   public enum PrecisionType { LOCALIZED, CONSTRAINTS }
 
-  @Option(description = "Type of precision to use", toUppercase = true)
+  @Option(description = "Type of precision to use. Has to be LOCALIZED if"
+      + " DelegatingSymbolicValueAnalysisRefiner is used.", toUppercase = true)
   private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
 
   private final ConstraintsPrecision delegate;
