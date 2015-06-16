@@ -165,8 +165,12 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     MutableARGPath infeasiblePrefix = new MutableARGPath();
     infeasiblePrefix.addAll(currentPrefix);
 
-    // for interpolation, one transition after the infeasible
-    // transition is needed, so we add the final (error) state
+    // for interpolation/refinement to work properly with existing code,
+    // add another transition after the infeasible one, also add FALSE itp
+    infeasiblePrefix.add(Pair.of(Iterables.get(path.asStatesList(), infeasiblePrefix.size()), Iterables.get(path.asEdgesList(), infeasiblePrefix.size())));
+    interpolantSequence.add(fmgr.getBooleanFormulaManager().makeBoolean(false));
+
+    // additionally, add final (target) state, also to satisfy requirements of existing code
     infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
 
     return InfeasiblePrefix.buildForPredicateDomain(infeasiblePrefix.immutableCopy(), interpolantSequence, fmgr);
