@@ -40,10 +40,6 @@ import org.sosy_lab.cpachecker.util.refiner.InterpolationTree;
  * tree to error states, in a way, that only path not yet excluded by previous path interpolation need to be interpolated.
  */
 class ValueAnalysisInterpolationTree extends InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> {
-  /**
-   * the path denoting the empty path
-   */
-  public static final ARGPath EMPTY_PATH = null;
 
   /**
    * This method acts as constructor of the interpolation tree.
