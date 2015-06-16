@@ -150,7 +150,7 @@ public class UseDefBasedInterpolator {
     for (ASimpleDeclaration use : uses) {
 
       Set<MemoryLocation> memoryLocations = (use.getType() instanceof CArrayType)
-        ? memoryLocations = createMemoryLocationsForArray(use)
+        ? createMemoryLocationsForArray(use)
         : Collections.singleton(MemoryLocation.valueOf(use.getQualifiedName()));
 
       for (MemoryLocation memoryLocation : memoryLocations) {
