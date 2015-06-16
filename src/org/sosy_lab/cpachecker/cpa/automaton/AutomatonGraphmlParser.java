@@ -271,7 +271,7 @@ public class AutomatonGraphmlParser {
         List<AutomatonAction> actions = Collections.<AutomatonAction>singletonList(
             new AutomatonAction.Assignment(
                 DISTANCE_TO_VIOLATION,
-                new AutomatonIntExpr.Constant(distance)
+                new AutomatonIntExpr.Constant(-distance)
                 )
             );
         List<CStatement> assumptions = Lists.newArrayList();
@@ -505,7 +505,7 @@ public class AutomatonGraphmlParser {
       // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every graph needs a specified entry node!");
       AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
-      distanceVariable.setValue(distances.get(initialStateName));
+      distanceVariable.setValue(-distances.get(initialStateName));
       Map<String, AutomatonVariable> automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       List<Automaton> result = Lists.newArrayList();
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
