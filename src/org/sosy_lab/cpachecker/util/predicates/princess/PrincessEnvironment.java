@@ -50,11 +50,10 @@ import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
 import ap.parser.IAtom;
-import ap.parser.IBoolLit;
 import ap.parser.IConstant;
 import ap.parser.IExpression;
+import ap.parser.IExpression.BooleanFunApplier;
 import ap.parser.IFormula;
-import ap.parser.IFormulaITE;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
 import ap.parser.IIntLit;
@@ -334,8 +333,8 @@ class PrincessEnvironment {
 
     // boolean term -> build ITE(t > 0, true, false)
     if (returnType == TermType.Boolean) {
-      IFormula condition = ((ITerm)returnFormula).$greater(new IIntLit(IdealInt.ZERO()));
-      returnFormula = new IFormulaITE(condition, new IBoolLit(true), new IBoolLit(false));
+      BooleanFunApplier ap = new BooleanFunApplier(funcDecl);
+      return ap.apply(argsBuf);
 
     } else if (returnType != TermType.Integer) {
       throw new AssertionError("Not possible to have return types for functions other than bool or int.");
