@@ -140,20 +140,18 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
 
-    if (initialPrecisionFile == null && precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = VariableTrackingPrecision.createRefineablePrecision(config,
+    VariableTrackingPrecision tempPrecision;
+    if (initialPrecisionFile != null || precisionType.equals("REFINEABLE_EMPTY")) {
+      tempPrecision = VariableTrackingPrecision.createRefineablePrecision(config,
           VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
-
-      // static full precision is default
-    } else {
-      VariableTrackingPrecision tempPrecision =
-          VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
-
       if (initialPrecisionFile != null) {
         tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile(cfa));
       }
-      precision = tempPrecision;
+      // static full precision is default
+    } else {
+      tempPrecision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
     }
+    precision = tempPrecision;
   }
 
   public ApronManager getManager() {
