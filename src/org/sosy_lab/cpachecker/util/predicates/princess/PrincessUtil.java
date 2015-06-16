@@ -274,8 +274,15 @@ class PrincessUtil {
     SymbolTrackingPrincessStack stack = (SymbolTrackingPrincessStack) env.getNewStack(false);
     stack.push(1);
 
+    IFormula formula;
     // create !(expr1 <=> expr2) if this is unsat we know that the formulas are equal
-    IFormula formula = new INot(new IBinFormula(IBinJunctor.Eqv(), castToFormula(expr1), castToFormula(expr2)));
+    if (expr1 instanceof IFormula) {
+      formula = new INot(new IBinFormula(IBinJunctor.Eqv(), castToFormula(expr1), castToFormula(expr2)));
+
+      // create !(expr1 - expr2 = 0) if this is unsat we know that the formulas are equal
+    } else {
+      formula = new INot(castToTerm(expr1).$minus(castToTerm(expr2)).$eq$eq$eq(new IIntLit(IdealInt.apply(0))));
+    }
     stack.assertTerm(formula);
 
     // flip boolean value, when unsat the formulas are equal
