@@ -129,7 +129,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
       }
 
       valuePrecInc.putAll(currNode, locations);
-      constrPrecInc.whitelist(currNode);
+      constrPrecInc.locallyTracked(currNode, locations);
     }
 
     updateARGTree(pReached, refinementRoot, valuePrecInc, constrPrecInc.build());
