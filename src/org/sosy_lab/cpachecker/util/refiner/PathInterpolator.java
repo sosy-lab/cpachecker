@@ -42,19 +42,10 @@ import com.google.common.collect.Multimap;
  * @param <I> the type of interpolant created by the implementation
  * @param <P> the type of the computed precisions' elements
  */
-public interface PathInterpolator<I extends Interpolant<?>, P> extends Statistics {
+public interface PathInterpolator<I extends Interpolant<?>> extends Statistics {
 
    Map<ARGState, I> performInterpolation(
       ARGPath errorPath,
       I interpolant
-  ) throws CPAException;
-
-  Multimap<CFANode, P> determinePrecisionIncrement(MutableARGPath errorPath)
-      throws CPAException;
-
-  Pair<ARGState, CFAEdge> determineRefinementRoot(
-      MutableARGPath errorPath,
-      Multimap<CFANode, P> increment,
-      boolean isRepeatedRefinement
   ) throws CPAException;
 }

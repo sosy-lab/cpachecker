@@ -127,7 +127,6 @@ public class SymbolicValueAnalysisRefiner
 
     final SymbolicPathInterpolator pathInterpolator =
         new SymbolicPathInterpolator(edgeInterpolator,
-                                    SymbolicInterpolantManager.getInstance(),
                                     feasibilityChecker,
                                     errorPathClassifier,
                                     config,

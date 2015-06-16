@@ -79,15 +79,7 @@ import com.google.common.collect.Multimap;
  */
 @Options(prefix="cpa.value.refiner")
 public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S>>
-    implements PathInterpolator<I, MemoryLocation> {
-
-  /**
-   * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
-   * for the re-exploration of the ARG will be the node closest to the root
-   * where new information is made available through the current refinement
-   */
-  @Option(secure=true, description="whether or not to do lazy-abstraction")
-  private boolean doLazyAbstraction = true;
+    implements PathInterpolator<I> {
 
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
   private boolean pathSlicing = true;
@@ -98,12 +90,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
-  private int interpolationOffset = -1;
-
-  /**
-   * a reference to the assignment-counting state, to make the precision increment aware of thresholds
-   */
-  private UniqueAssignmentsInPathConditionState assignments = null;
+  protected int interpolationOffset = -1;
 
   // statistics
   private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
@@ -118,7 +105,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final Configuration config;
 
   private final EdgeInterpolator<S, ?, I> interpolator;
-  private final InterpolantManager<S, I> interpolantManager;
   private final FeasibilityChecker<S> checker;
   private final ErrorPathClassifier classifier;
 
@@ -126,7 +112,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
   public GenericPathInterpolator(
       final EdgeInterpolator<S, ?, I> pEdgeInterpolator,
-      final InterpolantManager<S, I> pInterpolantManager,
       final FeasibilityChecker<S> pFeasibilityChecker,
       final ErrorPathClassifier pPathClassifier,
       final Configuration pConfig,
@@ -142,7 +127,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     cfa                = pCfa;
     shutdownNotifier   = pShutdownNotifier;
     interpolator       = pEdgeInterpolator;
-    interpolantManager = pInterpolantManager;
     checker = pFeasibilityChecker;
 
     classifier = pPathClassifier;
@@ -319,78 +303,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
         ? errorPathPrefix
         : slicedErrorPathPrefix;
 
-  }
-
-  @Override
-  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
-      throws CPAException {
-
-    assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
-        UniqueAssignmentsInPathConditionState.class);
-
-    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
-
-    Map<ARGState, I> itps =
-        performInterpolation(errorPath.immutableCopy(),
-        interpolantManager.createInitialInterpolant());
-
-    for (Map.Entry<ARGState, I> itp : itps.entrySet()) {
-      addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()),
-          itp.getValue());
-    }
-
-    return increment;
-  }
-
-  /**
-   * This method adds the given variable at the given location to the increment.
-   *
-   * @param increment the current increment
-   * @param currentNode the current node for which to add a new variable
-   * @param itp the interpolant to add to the precision increment
-   */
-  private void addToPrecisionIncrement(
-      final Multimap<CFANode, MemoryLocation> increment,
-      final CFANode currentNode,
-      final I itp
-  ) {
-
-    for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
-      if (assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
-        increment.put(currentNode, memoryLocation);
-      }
-    }
-  }
-
-  /**
-   * This method determines the new refinement root.
-   *
-   * @param errorPath the error path from where to determine the refinement root
-   * @param increment the current precision increment
-   * @param isRepeatedRefinement the flag to determine whether or not this is a repeated refinement
-   * @return the new refinement root
-   * @throws RefinementFailedException if no refinement root can be determined
-   */
-  @Override
-  public Pair<ARGState, CFAEdge> determineRefinementRoot(
-      MutableARGPath errorPath,
-      Multimap<CFANode, MemoryLocation> increment,
-      boolean isRepeatedRefinement
-  ) throws RefinementFailedException {
-
-    if (interpolationOffset == -1) {
-      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
-    }
-
-    // if doing lazy abstraction, use the node closest to the root node where new information is present
-    if (doLazyAbstraction) {
-      return errorPath.get(interpolationOffset);
-    }
-
-    // otherwise, just use the successor of the root node
-    else {
-      return errorPath.get(1);
-    }
   }
 
   /**

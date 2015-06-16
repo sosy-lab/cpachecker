@@ -26,31 +26,44 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import java.util.Collections;
 import java.util.Map;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
+import org.sosy_lab.cpachecker.util.refiner.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refiner.UseDefRelation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value.refiner")
 public class ValueAnalysisPathInterpolator
@@ -62,6 +75,14 @@ public class ValueAnalysisPathInterpolator
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
   private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_BEST_SHALLOW;
 
+  /**
+   * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
+   * for the re-exploration of the ARG will be the node closest to the root
+   * where new information is made available through the current refinement
+   */
+  @Option(secure=true, description="whether or not to do lazy-abstraction")
+  private boolean doLazyAbstraction = true;
+
   // statistics
   private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
@@ -69,10 +90,14 @@ public class ValueAnalysisPathInterpolator
   private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
   private StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
 
+  /**
+   * a reference to the assignment-counting state, to make the precision increment aware of thresholds
+   */
+  private UniqueAssignmentsInPathConditionState assignments = null;
+
   private final CFA cfa;
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Configuration config;
+
+  private final ValueAnalysisInterpolantManager interpolantManager;
 
   public ValueAnalysisPathInterpolator(
       final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
@@ -90,7 +115,6 @@ public class ValueAnalysisPathInterpolator
             pLogger,
             pShutdownNotifier,
             pCfa),
-        ValueAnalysisInterpolantManager.getInstance(),
         pFeasibilityChecker,
         pPathClassifier,
         pConfig,
@@ -99,11 +123,8 @@ public class ValueAnalysisPathInterpolator
         pCfa);
 
     pConfig.inject(this);
-    config = pConfig;
-
-    logger           = pLogger;
     cfa              = pCfa;
-    shutdownNotifier = pShutdownNotifier;
+    interpolantManager = ValueAnalysisInterpolantManager.getInstance();
   }
 
   @Override
@@ -164,5 +185,75 @@ public class ValueAnalysisPathInterpolator
   @Override
   public String getName() {
     return getClass().getSimpleName();
+  }
+
+  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
+      throws CPAException {
+
+    assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
+        UniqueAssignmentsInPathConditionState.class);
+
+    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+
+    Map<ARGState, ValueAnalysisInterpolant> itps =
+        performInterpolation(errorPath.immutableCopy(),
+            interpolantManager.createInitialInterpolant());
+
+    for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
+      addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()),
+          itp.getValue());
+    }
+
+    return increment;
+  }
+
+  /**
+   * This method adds the given variable at the given location to the increment.
+   *
+   * @param increment the current increment
+   * @param currentNode the current node for which to add a new variable
+   * @param itp the interpolant to add to the precision increment
+   */
+  private void addToPrecisionIncrement(
+      final Multimap<CFANode, MemoryLocation> increment,
+      final CFANode currentNode,
+      final ValueAnalysisInterpolant itp
+  ) {
+
+    for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
+      if (assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+        increment.put(currentNode, memoryLocation);
+      }
+    }
+  }
+
+  /**
+   * This method determines the new refinement root.
+   *
+   * @param errorPath the error path from where to determine the refinement root
+   * @param increment the current precision increment
+   * @param isRepeatedRefinement the flag to determine whether or not this is a repeated refinement
+   * @return the new refinement root
+   * @throws RefinementFailedException if no refinement root can be determined
+   */
+  public Pair<ARGState, CFAEdge> determineRefinementRoot(
+      MutableARGPath errorPath,
+      Multimap<CFANode, MemoryLocation> increment,
+      boolean isRepeatedRefinement
+  ) throws RefinementFailedException {
+
+    if (interpolationOffset == -1) {
+      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
+    }
+
+    // if doing lazy abstraction, use the node closest to the root node where new information is present
+    if (doLazyAbstraction) {
+      return errorPath.get(interpolationOffset);
+    }
+
+    // otherwise, just use the successor of the root node
+    else {
+      return errorPath.get(1);
+    }
   }
 }

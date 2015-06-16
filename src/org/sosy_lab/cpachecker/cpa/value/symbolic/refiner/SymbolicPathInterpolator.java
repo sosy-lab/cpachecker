@@ -63,14 +63,13 @@ public class SymbolicPathInterpolator
 
   public SymbolicPathInterpolator(
       final EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> pEdgeInterpolator,
-      final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant> pInterpolantManager,
       final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
       final ErrorPathClassifier pPathClassifier,
       final Configuration pConfig, LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pEdgeInterpolator, pInterpolantManager, pFeasibilityChecker, pPathClassifier, pConfig,
+    super(pEdgeInterpolator, pFeasibilityChecker, pPathClassifier, pConfig,
         pLogger, pShutdownNotifier, pCfa);
 
     pConfig.inject(this);

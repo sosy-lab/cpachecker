@@ -55,11 +55,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * A generic refiner using {@link MemoryLocation MemoryLocations} and
- * a {@link VariableTrackingPrecision}.
+ * A generic refiner using a {@link VariableTrackingPrecision}.
  *
  * @param <S> the type of the state the {@link StrongestPostOperator} and
  *    {@link Interpolant Interpolants} are based on
@@ -86,7 +84,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<T>, T, I extends I
 
   protected final LogManager logger;
 
-  private final PathInterpolator<I, MemoryLocation> interpolator;
+  private final PathInterpolator<I> interpolator;
 
   private final FeasibilityChecker<S> checker;
 
@@ -102,7 +100,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<T>, T, I extends I
 
   public GenericRefiner(
       final FeasibilityChecker<S> pFeasibilityChecker,
-      final PathInterpolator<I, MemoryLocation> pPathInterpolator,
+      final PathInterpolator<I> pPathInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
       final PathExtractor pPathExtractor,
       final Configuration pConfig,
