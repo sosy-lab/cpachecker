@@ -158,6 +158,7 @@ public class CArrayType extends AArrayType implements CType, Serializable {
 
   private static class SerializationProxy implements Serializable {
 
+    private static final long serialVersionUID = -2013901217157144921L;
     private final boolean isConst;
     private final boolean isVolatile;
     private final CType type;
