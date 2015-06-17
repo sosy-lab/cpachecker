@@ -1028,10 +1028,6 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
-# where to read symbols and their possible encoding,this corresponds to
-# 'cpa.predicate.symbolEncodingFile' of a previous execution.
-cpa.predicate.abstraction.initialPredicates.symbolEncodingFile = "SymbolEncoding.txt"
-
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 

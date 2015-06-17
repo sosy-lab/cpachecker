@@ -40,13 +40,11 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -106,11 +104,6 @@ public class PredicateMapParser {
 
   @Option(secure=true, description="Apply location- and function-specific predicates globally (to all locations in the program)")
   private boolean applyGlobally = false;
-
-  @Option(secure=true, description = "where to read symbols and their possible encoding,"
-      + "this corresponds to 'cpa.predicate.symbolEncodingFile' of a previous execution.")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path symbolEncodingFile = Paths.get("SymbolEncoding.txt");
 
   @Option(secure=true, description = "when reading predicates from file, convert them to BV-theory. "
       + "This option depends on the 'variableEncodingFile'.")
