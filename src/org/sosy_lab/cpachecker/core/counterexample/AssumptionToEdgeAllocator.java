@@ -486,7 +486,7 @@ public class AssumptionToEdgeAllocator {
       return null;
     }
 
-    FluentIterable<Class<? extends CType>> acceptedTypes = FluentIterable.from(Arrays.asList(
+    FluentIterable<Class<? extends CType>> acceptedTypes = FluentIterable.from(Arrays.<Class<? extends CType>>asList(
         CSimpleType.class,
         CArrayType.class,
         CPointerType.class));
