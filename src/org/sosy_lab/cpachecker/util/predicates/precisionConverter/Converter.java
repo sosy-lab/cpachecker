@@ -31,6 +31,7 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.Type;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -44,13 +45,15 @@ public class Converter {
 
   public Converter() {}
 
-  public String convertFunctionDeclaration(String symbol, Type<String> pFt) {
+  public String convertFunctionDeclaration(String symbol, Type<String> pFt)
+      throws UnknownFormulaSymbolException {
     return format("%s (%s) %s",
       symbol, Joiner.on(' ').join(pFt.getParameterTypes()), pFt.getReturnType());
   }
 
   public String convertFunctionDefinition(String symbol,
-      Type<String> type, Pair<String, Type<FormulaType<?>>> initializerTerm) {
+      Type<String> type, Pair<String, Type<FormulaType<?>>> initializerTerm)
+          throws UnknownFormulaSymbolException {
     return format("%s (%s) %s %s",
         symbol, Joiner.on(' ').join(type.getParameterTypes()),
         type.getReturnType(), initializerTerm.getFirst());
@@ -60,12 +63,14 @@ public class Converter {
     return wrap(num);
   }
 
-  public Pair<String, Type<FormulaType<?>>> convertSymbol(String symbol) {
+  public Pair<String, Type<FormulaType<?>>> convertSymbol(String symbol)
+      throws UnknownFormulaSymbolException {
     return wrap(symbol);
   }
 
   public Pair<String, Type<FormulaType<?>>> convertTerm(
-      Pair<String, Type<FormulaType<?>>> op, List<Pair<String, Type<FormulaType<?>>>> terms) {
+      Pair<String, Type<FormulaType<?>>> op, List<Pair<String, Type<FormulaType<?>>>> terms)
+          throws UnknownFormulaSymbolException {
     if (terms.isEmpty()) {
       return wrap("(" + op.getFirst() + ")"); // should not happen?
     } else {

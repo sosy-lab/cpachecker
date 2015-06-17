@@ -40,6 +40,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.Type;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
@@ -112,12 +113,9 @@ public class IntConverter extends Converter {
   /** returns the type of a variable as (N,{}),
    * and the type of a uninterpreted function as (N,{N1,N2,...}),
    * where N is the return-type and {N1,N2,...} are the parameter-types. */
-  private Type<FormulaType<?>> getType(String symbol) {
+  private Type<FormulaType<?>> getType(String symbol) throws UnknownFormulaSymbolException {
     symbol = unescapeSymbol(symbol);
-    if (symbolEncoding.containsSymbol(symbol)) {
-      return symbolEncoding.getType(symbol);
-    }
-    return null;
+    return symbolEncoding.getType(symbol);
   }
 
   private String getSMTType(FormulaType<?> t) {
@@ -133,7 +131,8 @@ public class IntConverter extends Converter {
   }
 
   @Override
-  public String convertFunctionDeclaration(String symbol, Type<String> type) {
+  public String convertFunctionDeclaration(String symbol, Type<String> type)
+      throws UnknownFormulaSymbolException {
 
     final Type<FormulaType<?>> t = getType(symbol);
 
@@ -164,7 +163,8 @@ public class IntConverter extends Converter {
 
   @Override
   public String convertFunctionDefinition(String symbol,
-      Type<String> type, @Nullable Pair<String, Type<FormulaType<?>>> initializerTerm) {
+      Type<String> type, @Nullable Pair<String, Type<FormulaType<?>>> initializerTerm)
+          throws UnknownFormulaSymbolException {
     assert !symbolEncoding.containsSymbol(symbol) : "function re-defined";
     assert type.getParameterTypes().isEmpty() : "tmp-function with complex type";
     symbolEncoding.put(symbol, checkNotNull(initializerTerm.getSecond(), initializerTerm));
@@ -181,7 +181,8 @@ public class IntConverter extends Converter {
   }
 
   @Override
-  public Pair<String, Type<FormulaType<?>>> convertSymbol(String symbol) {
+  public Pair<String, Type<FormulaType<?>>> convertSymbol(String symbol)
+      throws UnknownFormulaSymbolException {
     return Pair.of(symbol, /*@Nullable*/ getType(symbol));
   }
 
