@@ -102,6 +102,10 @@ analysis.collectAssumptions = false
 # unknown result with a different configuration
 analysis.combineARGsAfterRestart = false
 
+# restarts the analysis on (spurious or not) counterexamples until the
+# waitlist is empty
+analysis.contiuneOnCounterexample = false
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -358,6 +362,13 @@ cegar.noRefinementInFirstRun = false
 # omitted.
 cegar.refiner = no default value
 
+# maximum count of attempted refinements
+cegar.stopRefiningCount = -1
+
+# threshold (in ms) after which the CEGAR algorithm gives up refining
+# (spurious) counterexamples
+cegar.stopRefiningThreshold = -1
+
 # whether or not to let auxiliary refiner score and refine a path that is
 # feasible for the primary refiner, this allows to only extract prefixes that
 # are exclusive to the auxiliary refiner
@@ -553,6 +564,9 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 # split disequalities considering integer operands into two states or use
 # disequality provided by apron library 
 cpa.apron.splitDisequalities = true
+
+# whether or not add #include <stdio.h> in front of transformed program
+cpa.arg.addInclude = true
 
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
@@ -2056,11 +2070,6 @@ pcc.arg.cmc.file = "assumptions.txt"
 # Which ARG strategy to use for each partial ARG, strategy based on CPA
 # (true) or on proof checker interface (false)
 pcc.arg.cmc.useArgCpaStrategy = true
-
-# Enable if used property checker implements satisfiesProperty(AbstractState)
-# and checked property is violated for a set iff an element in this set
-# exists for which violates the property
-pcc.checkPropertyPerElement = no default value
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for
