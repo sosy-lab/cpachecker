@@ -102,7 +102,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
   /**
    * the strategy on how to select paths for interpolation
    */
-  private final InterpolationStrategy<S, I> strategy;
+  private final InterpolationStrategy<I> strategy;
 
   private final InterpolantManager<S, I> interpolantManager;
 
@@ -478,16 +478,16 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     return predecessorRelation.get(pState);
   }
 
-  private interface InterpolationStrategy<S extends AbstractState, I extends Interpolant<S>> {
+  private interface InterpolationStrategy<I extends Interpolant<?>> {
 
-    public ARGPath getNextPathForInterpolation();
+    ARGPath getNextPathForInterpolation();
 
-    public boolean hasNextPathForInterpolation();
+    boolean hasNextPathForInterpolation();
 
-    public I getInitialInterpolantForRoot(ARGState root);
+    I getInitialInterpolantForRoot(ARGState root);
   }
 
-  private class TopDownInterpolationStrategy implements InterpolationStrategy<S, I> {
+  private class TopDownInterpolationStrategy implements InterpolationStrategy<I> {
 
     /**
      * the states that are the sources for obtaining (partial) error paths
@@ -573,7 +573,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     }
   }
 
-  private class BottomUpInterpolationStrategy implements InterpolationStrategy<S, I> {
+  private class BottomUpInterpolationStrategy implements InterpolationStrategy<I> {
 
     /**
      * the states that are the sources for obtaining error paths
