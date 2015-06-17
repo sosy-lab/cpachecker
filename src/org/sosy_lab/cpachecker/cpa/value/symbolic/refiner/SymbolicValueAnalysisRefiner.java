@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
@@ -124,8 +123,8 @@ public class SymbolicValueAnalysisRefiner
     final PrefixSelector prefixSelector =
         new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
 
-    final SymbolicEdgeInterpolator edgeInterpolator =
-        new SymbolicEdgeInterpolator(feasibilityChecker,
+    final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
+        new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
                                         strongestPostOperator,
                                         SymbolicInterpolantManager.getInstance(),
                                         config,

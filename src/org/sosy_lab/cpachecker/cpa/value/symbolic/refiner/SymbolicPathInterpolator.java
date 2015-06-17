@@ -52,12 +52,8 @@ public class SymbolicPathInterpolator
   @Option(description = "How to choose which prefix to use for interpolation")
   private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
 
-  private final FeasibilityChecker<ForgettingCompositeState> checker;
-  private final GenericPrefixProvider<ForgettingCompositeState> prefixProvider;
-  private final PrefixSelector prefixSelector;
-
   public SymbolicPathInterpolator(
-      final EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> pEdgeInterpolator,
+      final SymbolicEdgeInterpolator pEdgeInterpolator,
       final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
       final GenericPrefixProvider<ForgettingCompositeState> pPrefixProvider,
       final PrefixSelector pPrefixSelector,
@@ -69,9 +65,5 @@ public class SymbolicPathInterpolator
         pLogger, pShutdownNotifier, pCfa);
 
     pConfig.inject(this);
-
-    checker = pFeasibilityChecker;
-    prefixProvider = pPrefixProvider;
-    prefixSelector = pPrefixSelector;
   }
 }
