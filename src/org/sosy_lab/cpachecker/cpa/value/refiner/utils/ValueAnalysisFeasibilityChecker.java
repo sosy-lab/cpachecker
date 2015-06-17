@@ -24,10 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,24 +32,21 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.refiner.GenericFeasibilityChecker;
-import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 import com.google.common.base.Optional;
 
-public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<ValueAnalysisState> {
+public class ValueAnalysisFeasibilityChecker
+    extends GenericFeasibilityChecker<ValueAnalysisState, ValueAnalysisInformation> {
 
   private final LogManager logger;
   private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
@@ -83,58 +77,6 @@ public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<V
     strongestPostOp = pStrongestPostOp;
     logger    = pLogger;
     precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
-  }
-
-  /**
-   * This method checks if the given path is feasible, starting with the given initial state.
-   *
-   * @param path the path to check
-   * @param pInitial the initial state
-   * @param pCallstack the initial callstack
-   * @return true, if the path is feasible, else false
-   * @throws CPAException
-   */
-  public boolean isFeasible(
-      final ARGPath path,
-      final ValueAnalysisState pInitial,
-      final Deque<ValueAnalysisState> pCallstack
-  ) throws CPAException {
-
-    return path.size() == getInfeasiblePrefixes(path, pInitial, pCallstack).get(0).size();
-  }
-
-  @Override
-  protected ValueAnalysisState performAbstractions(ValueAnalysisState pNext, CFANode pLocation, ARGPath pPath) {
-    final ValueAnalysisState valueState = ValueAnalysisState.copyOf(pNext);
-
-    final Set<MemoryLocation> exceedingMemoryLocations = obtainExceedingMemoryLocations(pPath);
-
-    // some variables might be blacklisted or tracked by BDDs
-    // so perform abstraction computation here
-    for (MemoryLocation memoryLocation : valueState.getTrackedMemoryLocations()) {
-      if (!precision.isTracking(memoryLocation,
-          valueState.getTypeForMemoryLocation(memoryLocation), pLocation)) {
-        valueState.forget(memoryLocation);
-      }
-    }
-
-    for(MemoryLocation exceedingMemoryLocation : exceedingMemoryLocations) {
-      valueState.forget(exceedingMemoryLocation);
-    }
-
-    return valueState;
-  }
-
-  private Set<MemoryLocation> obtainExceedingMemoryLocations(ARGPath path) {
-    UniqueAssignmentsInPathConditionState assignments =
-        AbstractStates.extractStateByType(path.getLastState(),
-        UniqueAssignmentsInPathConditionState.class);
-
-    if(assignments == null) {
-      return Collections.emptySet();
-    }
-
-    return assignments.getMemoryLocationsExceedingHardThreshold();
   }
 
   public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)

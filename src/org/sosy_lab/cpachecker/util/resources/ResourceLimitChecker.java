@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.core.ShutdownNotifier.interruptCurrentThreadOnShutdown;
+import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
 import java.math.RoundingMode;
 import java.util.List;
@@ -34,6 +34,8 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.management.JMException;
 
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,8 +44,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;

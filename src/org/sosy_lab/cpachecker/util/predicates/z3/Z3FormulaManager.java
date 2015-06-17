@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -42,7 +43,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
+
+import com.google.common.base.Splitter;
 
 @Options(prefix = "cpa.predicate.solver.z3")
 public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
@@ -276,23 +278,24 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
       @Override
       public void appendTo(Appendable out) throws IOException {
-        StringBuilder modified = new StringBuilder();
         String txt = Z3NativeApi.benchmark_to_smtlib_string(getEnvironment(), "dumped-formula", "", "unknown", "", 0, new long[]{}, expr);
-        String[] lines = txt.split("\n");
 
-        for (String line: lines) {
-          if (!(line.startsWith("(set-info")
+        for (String line : Splitter.on('\n').split(txt)) {
+
+          if (line.startsWith("(set-info")
               || line.startsWith(";")
-              || line.startsWith("(check"))) {
-            modified.append(line);
-            modified.append(" ");
+              || line.startsWith("(check")) {
+            // ignore
+          } else if (line.startsWith("(assert")
+              || line.startsWith("(dec")) {
+            out.append('\n');
+            out.append(line);
+          } else {
+            // Z3 spans formulas over multiple lines, append to previous line
+            out.append(' ');
+            out.append(line.trim());
           }
         }
-
-        out.append(modified.toString()
-          .replace("(assert", "\n(assert")
-          .replace("(dec", "\n(dec")
-          .trim());
       }
     };
   }

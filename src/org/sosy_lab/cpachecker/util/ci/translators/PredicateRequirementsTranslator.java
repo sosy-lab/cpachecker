@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 public class PredicateRequirementsTranslator extends AbstractRequirementsTranslator<PredicateAbstractState>{
 
   private final FormulaManagerView fmgr;
-  private static int counter;
+  private int counter;
 
   public PredicateRequirementsTranslator() {
     super(PredicateAbstractState.class);
@@ -47,8 +48,8 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
   }
 
   @Override
-  protected Pair<List<String>, String> convertToFormula(PredicateAbstractState pRequirement, SSAMap pIndices)
-      throws CPAException {
+  protected Pair<List<String>, String> convertToFormula(final PredicateAbstractState pRequirement,
+      final SSAMap pIndices) throws CPAException {
 
     if (!pRequirement.isAbstractionState()) {
       throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState.");
@@ -59,23 +60,20 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
 
     Pair<String, List<String>> pair = PredicatePersistenceUtils.splitFormula(fmgr, formulaBool);
     List<String> list = pair.getSecond();
+    List<String> removeFromList = new ArrayList<>();
     for (String stmt : list) {
       if (!stmt.startsWith("(declare") || !stmt.startsWith("(define")) {
-        pair.getSecond().remove(stmt);
+        removeFromList.add(stmt);
       }
     }
+    list.removeAll(removeFromList);
 
     String secReturn;
     String element = pair.getFirst();
-    if (element.indexOf("(", 8) == -1) {
-      secReturn = element.substring(9,15);
-      secReturn = "(define_fun .defci" + (counter++) + " Bool() (" + secReturn + "))";
-    } else {
-      list.remove(element);
-      String name = element.substring(8,12);
-      secReturn = "(define_fun " + name + ")";
-//        secReturn = "(declare_ " + name + ")"; // TODO welche Variante?
-    }
+    // element =(assert ...)
+    element = element.substring(element.indexOf('t') + 1, element.length() - 1);
+    secReturn = "(define-fun .defci" + (counter++) + " Bool() " + element + ")";
+
 
     return Pair.of(list, secReturn);
   }

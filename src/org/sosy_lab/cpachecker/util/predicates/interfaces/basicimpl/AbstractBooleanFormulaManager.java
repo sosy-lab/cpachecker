@@ -243,4 +243,13 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   protected abstract boolean isIfThenElse(TFormulaInfo pBits);
+
+  @Override
+  public BooleanFormula applyTactic(BooleanFormula f, Tactic tactic) {
+    return wrap(applyTacticImpl(extractInfo(f), tactic));
+  }
+
+  protected TFormulaInfo applyTacticImpl(TFormulaInfo f, Tactic tactic) {
+    throw new UnsupportedOperationException("Tactics are not supported by the solver");
+  }
 }

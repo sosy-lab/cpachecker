@@ -874,15 +874,6 @@ public class VariableClassificationBuilder {
     return false;
   }
 
-  /**
-   * Use {@link FunctionEntryNode#getReturnVariable()} and
-   * {@link AReturnStatement#asAssignment()} instead.
-   */
-  @Deprecated
-  public static String createFunctionReturnVariable(final String function) {
-    return function + SCOPE_SEPARATOR + FUNCTION_RETURN_VARIABLE;
-  }
-
   /** returns the value of a (nested) IntegerLiteralExpression
    * or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {

@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.refiner.ForgetfulState;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**

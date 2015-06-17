@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.Queue;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -76,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
@@ -84,6 +86,60 @@ import com.google.common.base.Joiner;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
 public class CustomInstruction{
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((ciEndNodes == null) ? 0 : ciEndNodes.hashCode());
+    result = prime * result + ((ciStartNode == null) ? 0 : ciStartNode.hashCode());
+    result = prime * result + ((inputVariables == null) ? 0 : inputVariables.hashCode());
+    result = prime * result + ((outputVariables == null) ? 0 : outputVariables.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CustomInstruction other = (CustomInstruction) obj;
+    if (ciEndNodes == null) {
+      if (other.ciEndNodes != null) {
+        return false;
+      }
+    } else if (!ciEndNodes.equals(other.ciEndNodes)) {
+      return false;
+    }
+    if (ciStartNode == null) {
+      if (other.ciStartNode != null) {
+        return false;
+      }
+    } else if (!ciStartNode.equals(other.ciStartNode)) {
+      return false;
+    }
+    if (inputVariables == null) {
+      if (other.inputVariables != null) {
+        return false;
+      }
+    } else if (!inputVariables.equals(other.inputVariables)) {
+      return false;
+    }
+    if (outputVariables == null) {
+      if (other.outputVariables != null) {
+        return false;
+      }
+    } else if (!outputVariables.equals(other.outputVariables)) {
+      return false;
+    }
+    return true;
+  }
 
   private final CFANode ciStartNode;
   private final Collection<CFANode> ciEndNodes;
@@ -135,43 +191,55 @@ public class CustomInstruction{
    * Returns the (fake!) SMT description which is a
    * conjunctions of output variables and predicates (IVj = 0) for each input variable j.
    * Note that this is prefix notation!
-   * @return (and (= IV1 0) (and (= IV2 0) (and OV1 OV2)))
+   * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
-  public String getFakeSMTDescription() {
+  public Pair<List<String>, String> getFakeSMTDescription() {
+    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
+      return Pair.of(Collections.<String> emptyList(),
+        "(define-fun ci() Bool true)");
+    }
     StringBuilder sb = new StringBuilder();
+    sb.append("(define-fun ci() Bool(");
     int BracketCounter = 0;
 
     if (inputVariables.size() != 0) {
       String last = inputVariables.get(inputVariables.size()-1);
-      for (String variable : inputVariables) {
-        if (!(outputVariables.size()==0 && variable.equals(last))) {
+      for (int i=0; i<inputVariables.size(); i++) {
+        String variable = inputVariables.get(i);
+        if (outputVariables.size()==0 && variable.equals(last)) {
+          sb.append(getAssignmentOfVariableToZero(variable, false));
+        } else {
           sb.append("(and ");
+          sb.append(getAssignmentOfVariableToZero(variable, false));
           BracketCounter++;
         }
-        sb.append(getAssignmentOfVariableToZero(variable, false));
       }
     }
 
-    if (outputVariables.size() > 0) {
+    if (outputVariables.size() != 0) {
       String last = outputVariables.get(outputVariables.size()-1);
-      for (String variable : outputVariables) {
-
+      for (int i=0; i<outputVariables.size(); i++) {
+        String variable = outputVariables.get(i);
         if (variable.equals(last)) {
           sb.append(" ");
-          sb.append(getAssignmentOfVariableToZero(last, true));
-          break;
-
+          sb.append(getAssignmentOfVariableToZero(variable, true));
         } else {
           sb.append("(and ");
           sb.append(getAssignmentOfVariableToZero(variable, true));
+          BracketCounter++;
         }
       }
     }
 
-    for (int i=0; i<BracketCounter; i++) {
+    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of define-fun ci Bool(...)
       sb.append(")");
     }
-    return sb.toString();
+
+    List<String> outputVariableList = new ArrayList<>();
+    for (String var : outputVariables) {
+      outputVariableList.add("(declare-fun " + var + "@1 () Int)");
+    }
+    return Pair.of(outputVariableList, sb.toString());
   }
 
   /**
@@ -180,7 +248,7 @@ public class CustomInstruction{
    * @param isOutputVariable boolean if the variable is an output variable
    * @return
    */
-  private String getAssignmentOfVariableToZero(String var, boolean isOutputVariable) {
+  private String getAssignmentOfVariableToZero(final String var, final boolean isOutputVariable) {
     StringBuilder sb = new StringBuilder();
     sb.append("(= ");
     sb.append(var);
@@ -199,7 +267,7 @@ public class CustomInstruction{
    * @throws AppliedCustomInstructionParsingFailedException if the matching of the variables of ci and aci
    * is not clear, or their structure dosen't fit.
    */
-  public AppliedCustomInstruction inspectAppliedCustomInstruction(CFANode aciStartNode)
+  public AppliedCustomInstruction inspectAppliedCustomInstruction(final CFANode aciStartNode)
         throws InterruptedException, AppliedCustomInstructionParsingFailedException {
     Map<String, String> mapping = new HashMap<>();
     Set<String> outVariables = new HashSet<>();
@@ -233,8 +301,7 @@ public class CustomInstruction{
         CFAEdge aciEdge = aciPred.getLeavingEdge(i);
         CFANode aciSucc = aciEdge.getSuccessor();
 
-        Map<String,String> currentCiVarToAciVar = new HashMap<>(); // required for decide which variables will be the output variables
-        computeMappingOfCiAndAci(ciEdge, aciEdge, mapping, currentCiVarToAciVar, outVariables);
+        computeMappingOfCiAndAci(ciEdge, aciEdge, mapping, outVariables);
 
         // breadth-first-search
         if (!visitedNodes.contains(Pair.of(ciSucc, aciSucc))) {
@@ -253,7 +320,7 @@ public class CustomInstruction{
       ssaMapBuilder.setIndex(var,new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), 1);
     }
 
-    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, Pair.of(outputVariables, getFakeSMTDescriptionForACI(mapping)), ssaMapBuilder.build()); // TODO
+    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
   }
 
   /**
@@ -261,67 +328,62 @@ public class CustomInstruction{
    * conjunctions of output variables and predicates (IVj = 0) for each input variable j.
    * Note that this is prefix notation, and that the variables of aci are used instead of
    * those from the ci!
-   * @return (and (= IV1 0) (and (= IV2 0) (and OV1 OV2)))
+   * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
-  private String getFakeSMTDescriptionForACI(Map<String,String> map) {
+  private Pair<List<String>, String> getFakeSMTDescriptionForACI(final Map<String,String> map) {
+    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
+      return Pair.of(Collections.<String> emptyList(),
+        "(define-fun ci() Bool true)");
+    }
     StringBuilder sb = new StringBuilder();
+    sb.append("(define-fun aci() Bool(");
     int BracketCounter = 0;
 
     if (inputVariables.size() != 0) {
       String last = inputVariables.get(inputVariables.size()-1);
-      for (String variable : inputVariables) {
+      for (int i=0; i<inputVariables.size(); i++) {
+        String variable = inputVariables.get(i);
         if (outputVariables.size()==0 && variable.equals(last)) {
-          sb.append("(= ");
-          sb.append(map.get(variable));
-          sb.append(" 0)");
+          sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
         } else {
-          sb.append("(and (= ");
-          sb.append(map.get(variable));
-          sb.append(" 0)");
+          sb.append("(and ");
+          sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
           BracketCounter++;
         }
       }
     }
 
     if (outputVariables.size() != 0) {
-
-      if (outputVariables.size() == 1) {
-        sb.append(" ");
-        sb.append(outputVariables.get(0));
-
-      } else {
-        String lastButOne = outputVariables.get(outputVariables.size()-2);
-        for (String variable : outputVariables) {
-
-          if (variable.equals(map.get(lastButOne))) {
-            sb.append("(and ");
-            sb.append(map.get(variable));
-            sb.append("@1 ");
-            sb.append(outputVariables.get(outputVariables.size()-1));
-            sb.append(")");
-            break;
-
-          } else {
-            sb.append("(and ");
-            sb.append(map.get(variable));
-            sb.append("@1");
-            BracketCounter++;
-          }
+      String last = outputVariables.get(outputVariables.size()-1);
+      for (int i=0; i<outputVariables.size(); i++) {
+        String variable = outputVariables.get(i);
+        if (variable.equals(last)) {
+          sb.append(" ");
+          sb.append(getAssignmentOfVariableToZero(map.get(variable), true));
+        } else {
+          sb.append("(and ");
+          sb.append(getAssignmentOfVariableToZero(map.get(variable), true));
+          BracketCounter++;
         }
-
       }
     }
 
-    for (int i=0; i<BracketCounter; i++) {
+    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of define-fun ci Bool(...)
       sb.append(")");
     }
-    return sb.toString();
+
+    List<String> outputVariableList = new ArrayList<>();
+    for (String var : outputVariables) {
+      outputVariableList.add("(declare-fun " + map.get(var) + "@1 () Int)");
+    }
+    return Pair.of(outputVariableList, sb.toString());
   }
 
 
   /**
    * Computes the mapping of variables of the given CI and ACI.
-   * That means all variables of the CI and ACI will be mapped, except those
+   * That means the structure of the ci is compared to the aci's structure.
+   * All variables of the CI and ACI will be mapped, except those
    * which have different types. The latter ones will throw exceptions.
    * The mapping will be stored in the given Map ciVarToAciVar.
    * @param ciEdge CFAEdge of CustomInstruction (CI)
@@ -331,8 +393,8 @@ public class CustomInstruction{
    * @param outVariables Collection of output variables
    * @throws AppliedCustomInstructionParsingFailedException
    */
-  private void computeMappingOfCiAndAci(CFAEdge ciEdge, CFAEdge aciEdge,
-          Map<String, String> ciVarToAciVar, Map<String,String> currentCiVarToAciVar, Collection<String> outVariables)
+  private void computeMappingOfCiAndAci(final CFAEdge ciEdge, final CFAEdge aciEdge,
+      final Map<String, String> ciVarToAciVar, final Collection<String> outVariables)
           throws AppliedCustomInstructionParsingFailedException{
 
     if (ciEdge.getEdgeType() != aciEdge.getEdgeType()) {
@@ -344,43 +406,42 @@ public class CustomInstruction{
         // no additional check needed.
         return;
       case AssumeEdge:
-        compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar, currentCiVarToAciVar, outVariables);
+        compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar, outVariables);
         return;
       case StatementEdge:
-        compareStatementEdge((CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, currentCiVarToAciVar, outVariables);
+        compareStatementEdge((CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
         return;
       case DeclarationEdge:
-        compareDeclarationEdge((CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, currentCiVarToAciVar, outVariables);
+        compareDeclarationEdge((CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
         return;
       case ReturnStatementEdge:
-        compareReturnStatementEdge((CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar, currentCiVarToAciVar, outVariables);
+        compareReturnStatementEdge((CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar, outVariables);
         return;
       case FunctionCallEdge:
-        compareFunctionCallEdge((CFunctionCallEdge)ciEdge, (CFunctionCallEdge)aciEdge, ciVarToAciVar, currentCiVarToAciVar, outVariables);
+        compareFunctionCallEdge((CFunctionCallEdge)ciEdge, (CFunctionCallEdge)aciEdge, ciVarToAciVar, outVariables);
         return;
       case FunctionReturnEdge:
         // no additional check needed.
         return;
       case MultiEdge:
-        compareMultiEdge((MultiEdge) ciEdge, (MultiEdge) aciEdge, ciVarToAciVar, currentCiVarToAciVar, outVariables);
+        compareMultiEdge((MultiEdge) ciEdge, (MultiEdge) aciEdge, ciVarToAciVar, outVariables);
         return;
       case CallToReturnEdge:
-        compareCallToReturnEdge(ciEdge, aciEdge, ciVarToAciVar, currentCiVarToAciVar, outVariables);
-        return;
+        throw new AppliedCustomInstructionParsingFailedException("The ci edge " + ciEdge + " is a CallToReturnEdge, which is not supported!");
     }
   }
 
-  private void compareAssumeEdge(CAssumeEdge ciEdge, CAssumeEdge aciEdge, Map<String,String> ciVarToAciVar, Map<String,String> currentCiVarToAciVar,
-        Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+  private void compareAssumeEdge(final CAssumeEdge ciEdge, final CAssumeEdge aciEdge,
+      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getTruthAssumption() != aciEdge.getTruthAssumption()) {
       throw new AppliedCustomInstructionParsingFailedException("The truthAssumption of the CAssumeEdges " + ciEdge + " and " + aciEdge + "are different!");
     }
-    ciEdge.getExpression().accept(new StructureComparisonVisitor(aciEdge.getExpression(), ciVarToAciVar, currentCiVarToAciVar));
+    ciEdge.getExpression().accept(new StructureComparisonVisitor(aciEdge.getExpression(), ciVarToAciVar));
   }
 
-  private void compareStatementEdge(CStatementEdge ciEdge, CStatementEdge aciEdge, Map<String,String> ciVarToAciVar, Map<String,String> currentCiVarToAciVar,
-        Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+  private void compareStatementEdge(final CStatementEdge ciEdge, final CStatementEdge aciEdge,
+      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getStatement() instanceof CFunctionSummaryStatementEdge && aciEdge.getStatement() instanceof CFunctionSummaryStatementEdge) {
       CFunctionSummaryStatementEdge ciStmt = (CFunctionSummaryStatementEdge) ciEdge.getStatement();
@@ -390,51 +451,52 @@ public class CustomInstruction{
         throw new AppliedCustomInstructionParsingFailedException("The functionName of the CFunctionSummaryStatementEdges " + ciEdge + " and " + aciEdge + " are different!");
       }
 
-      compareStatementsOfStatementEdge(ciStmt.getFunctionCall(), aciStmt.getFunctionCall(), ciVarToAciVar, currentCiVarToAciVar, outVariables);
+      compareStatementsOfStatementEdge(ciStmt.getFunctionCall(), aciStmt.getFunctionCall(), ciVarToAciVar, outVariables);
 
     }
-    compareStatementsOfStatementEdge(ciEdge.getStatement(), aciEdge.getStatement(), ciVarToAciVar, currentCiVarToAciVar, outVariables);
+    compareStatementsOfStatementEdge(ciEdge.getStatement(), aciEdge.getStatement(), ciVarToAciVar, outVariables);
 
   }
 
-  private void compareStatementsOfStatementEdge(CStatement ci, CStatement aci,
-        Map<String, String> ciVarToAciVar, Map<String, String> currentCiVarToAciVar,
-        Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+  private void compareStatementsOfStatementEdge(final CStatement ci, final CStatement aci,
+      final Map<String, String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
 
     if (ci instanceof CExpressionAssignmentStatement && aci instanceof CExpressionAssignmentStatement) {
       CExpressionAssignmentStatement ciStmt = (CExpressionAssignmentStatement) ci;
       CExpressionAssignmentStatement aciStmt = (CExpressionAssignmentStatement) aci;
 
       // left side => output variables
-      ciStmt.getLeftHandSide().accept(new StructureComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
+      Map<String,String> currentCiVarToAciVar = new HashMap<>();
+      ciStmt.getLeftHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
       outVariables.addAll(currentCiVarToAciVar.keySet());
 
       // right side: just proof it
-      ciStmt.getRightHandSide().accept(new StructureComparisonVisitor(aciStmt.getRightHandSide(), ciVarToAciVar, currentCiVarToAciVar));
+      ciStmt.getRightHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getRightHandSide(), ciVarToAciVar, currentCiVarToAciVar));
     }
 
     else if (ci instanceof CExpressionStatement && aci instanceof CExpressionStatement) {
       CExpressionStatement ciStmt = (CExpressionStatement) ci;
       CExpressionStatement aciStmt = (CExpressionStatement) aci;
-      ciStmt.getExpression().accept(new StructureComparisonVisitor(aciStmt.getExpression(), ciVarToAciVar, currentCiVarToAciVar));
+      ciStmt.getExpression().accept(new StructureComparisonVisitor(aciStmt.getExpression(), ciVarToAciVar));
     }
 
     else if (ci instanceof CFunctionCallAssignmentStatement && aci instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement ciStmt = (CFunctionCallAssignmentStatement) ci;
       CFunctionCallAssignmentStatement aciStmt = (CFunctionCallAssignmentStatement) aci;
 
-      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, currentCiVarToAciVar, outVariables);
-
       // left side => output variables
-      ciStmt.getLeftHandSide().accept(new StructureComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
+      Map<String,String> currentCiVarToAciVar = new HashMap<>();
+      ciStmt.getLeftHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
       outVariables.addAll(ciVarToAciVar.keySet());
+
+      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, outVariables);
     }
 
     else if (ci instanceof CFunctionCallStatement && aci instanceof CFunctionCallStatement) {
       CFunctionCallStatement ciStmt = (CFunctionCallStatement) ci;
       CFunctionCallStatement aciStmt = (CFunctionCallStatement) aci;
 
-      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, currentCiVarToAciVar, outVariables);
+      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, outVariables);
     }
 
     else {
@@ -442,33 +504,29 @@ public class CustomInstruction{
     }
   }
 
-  private void compareFunctionCallExpressions(CFunctionCallExpression exp, CFunctionCallExpression aexp,
-      Map<String, String> ciVarToAciVar, Map<String, String> currentCiVarToAciVar,
-      Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+  private void compareFunctionCallExpressions(final CFunctionCallExpression exp,
+      final CFunctionCallExpression aexp, final Map<String, String> ciVarToAciVar,
+      final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
     if (!exp.getExpressionType().equals(aexp.getExpressionType())){
       throw new AppliedCustomInstructionParsingFailedException("The expressionType of the CStatementEdges " + exp + " and " + aexp + " are different!");
     }
 
     exp.getFunctionNameExpression().accept(
-        new StructureComparisonVisitor(aexp.getFunctionNameExpression(), ciVarToAciVar, currentCiVarToAciVar));
+        new StructureComparisonVisitor(aexp.getFunctionNameExpression(), ciVarToAciVar));
 
     List<CExpression> ciList = exp.getParameterExpressions();
     List<CExpression> aciList = aexp.getParameterExpressions();
     for (int i=0; i<ciList.size(); i++) {
-      ciList.get(i).accept(new StructureComparisonVisitor(aciList.get(i), ciVarToAciVar, currentCiVarToAciVar));
+      ciList.get(i).accept(new StructureComparisonVisitor(aciList.get(i), ciVarToAciVar));
     }
   }
 
-  private void compareDeclarationEdge(CDeclarationEdge ciEdge, CDeclarationEdge aciEdge,
-        Map<String,String> ciVarToAciVar, Map<String,String> currentCiVarToAciVar, Collection<String> outVariables)
+  private void compareDeclarationEdge(final CDeclarationEdge ciEdge, final CDeclarationEdge aciEdge,
+      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables)
         throws AppliedCustomInstructionParsingFailedException {
 
     CDeclaration ciDec = ciEdge.getDeclaration();
     CDeclaration aciDec = aciEdge.getDeclaration();
-
-    if (!ciEdge.getDeclaration().getClass().equals(aciEdge.getDeclaration().getClass())) {
-      throw new AppliedCustomInstructionParsingFailedException("The CDeclarationEdges of ci " + ciEdge + " and aci " + aciEdge + " have different declarations!");
-    }
 
     if (ciDec instanceof CVariableDeclaration && aciDec instanceof CVariableDeclaration) {
       CVariableDeclaration ciVarDec = (CVariableDeclaration) ciDec;
@@ -483,27 +541,16 @@ public class CustomInstruction{
       if (!ciDec.getQualifiedName().equals(aciDec.getQualifiedName())) {
         throw new AppliedCustomInstructionParsingFailedException("The CVariableDeclaration of ci " + ciVarDec + " and aci " + aciVarDec + " have different qualified names!");
       }
-      if (ciVarDec.getInitializer() instanceof CInitializerExpression && aciVarDec.getInitializer() instanceof CInitializerExpression) {
-        ((CInitializerExpression) ciVarDec.getInitializer()).getExpression().accept(new StructureComparisonVisitor(((CInitializerExpression) aciVarDec.getInitializer()).getExpression(), ciVarToAciVar, currentCiVarToAciVar));
-      }
 
-      else if (ciVarDec.getInitializer() instanceof CDesignatedInitializer && aciVarDec.getInitializer() instanceof CDesignatedInitializer) {
-        throw new AppliedCustomInstructionParsingFailedException("The code contains a CDesignatedInitializer, which is unsupported.");
-      }
-
-      else if (ciVarDec.getInitializer() instanceof CInitializerList && aciVarDec.getInitializer() instanceof CInitializerList) {
-        List<CInitializer> ciList = ((CInitializerList)ciVarDec.getInitializer()).getInitializers();
-        List<CInitializer> aciList = ((CInitializerList)aciVarDec.getInitializer()).getInitializers();
-
-        if (ciList.size() != aciList.size()) {
-          throw new AppliedCustomInstructionParsingFailedException("The CInitializerList of the Initializer of the VariableDeclaration of ci " + ciVarDec + " and aci " + aciVarDec + " have different length.");
+      compareInitializer(ciVarDec.getInitializer(), aciVarDec.getInitializer(), ciVarToAciVar, outVariables);
+      if (ciVarDec.getInitializer() != null) {
+        if (ciVarDec.getInitializer() instanceof CInitializerExpression
+            || ciVarDec.getInitializer() instanceof CInitializerList) {
+          outVariables.add(ciVarDec.getName());
         } else {
-          for (int i=0; i<ciList.size(); i++) {
-            compareInitializer(ciList.get(i), aciList.get(i), ciVarToAciVar, currentCiVarToAciVar, outVariables);
-          }
+          throw new AppliedCustomInstructionParsingFailedException("Unsupported initializer: "
+              + ciVarDec.getInitializer());
         }
-      } else {
-        throw new AppliedCustomInstructionParsingFailedException("The CVariableDeclaration of ci " + ciVarDec + " and aci " + aciVarDec + " have different Initializer.");
       }
     }
 
@@ -520,12 +567,12 @@ public class CustomInstruction{
     }
   }
 
-  private void compareInitializer(CInitializer ciI, CInitializer aciI,
-      Map<String,String> ciVarToAciVar, Map<String,String> currentCiVarToAciVar, Collection<String> outVariables)
+  private void compareInitializer(final CInitializer ciI, final CInitializer aciI,
+      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
     if (ciI instanceof CInitializerExpression && aciI instanceof CInitializerExpression) {
-      ((CInitializerExpression) ciI).getExpression().accept(new StructureComparisonVisitor(((CInitializerExpression) aciI).getExpression(), ciVarToAciVar, currentCiVarToAciVar));
+      ((CInitializerExpression) ciI).getExpression().accept(new StructureComparisonVisitor(((CInitializerExpression) aciI).getExpression(), ciVarToAciVar));
     }
 
     else if (ciI instanceof CDesignatedInitializer && aciI instanceof CDesignatedInitializer) {
@@ -540,7 +587,7 @@ public class CustomInstruction{
         throw new AppliedCustomInstructionParsingFailedException("The CInitializerList of the Initializer of ci " + ciI + " and aci " + aciI + " have different length.");
       } else {
         for (int i=0; i<ciList.size(); i++) {
-          compareInitializer(ciList.get(i), aciList.get(i), ciVarToAciVar, currentCiVarToAciVar, outVariables);
+          compareInitializer(ciList.get(i), aciList.get(i), ciVarToAciVar, outVariables);
         }
       }
     } else {
@@ -548,11 +595,13 @@ public class CustomInstruction{
     }
   }
 
-  private void compareReturnStatementEdge(CReturnStatementEdge ciEdge, CReturnStatementEdge aciEdge, Map<String,String> ciVarToAciVar,
-      Map<String,String> currentCiVarToAciVar, Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+  private void compareReturnStatementEdge(final CReturnStatementEdge ciEdge,
+      final CReturnStatementEdge aciEdge, final Map<String,String> ciVarToAciVar,
+      final Collection<String> outVariables)
+          throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent()){
-      ciEdge.getExpression().get().accept(new StructureComparisonVisitor(aciEdge.getExpression().get(), ciVarToAciVar, currentCiVarToAciVar));
+      ciEdge.getExpression().get().accept(new StructureComparisonVisitor(aciEdge.getExpression().get(), ciVarToAciVar));
 
     } else if ((!ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent())
           ||(ciEdge.getExpression().isPresent() && !aciEdge.getExpression().isPresent()) ){
@@ -560,8 +609,8 @@ public class CustomInstruction{
     }
   }
 
-  private void compareFunctionCallEdge(CFunctionCallEdge ciEdge, CFunctionCallEdge aciEdge, Map<String,String> ciVarToAciVar,
-      Map<String,String> currentCiVarToAciVar, Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+  private void compareFunctionCallEdge(final CFunctionCallEdge ciEdge, final CFunctionCallEdge aciEdge,
+      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
 
     List<CExpression> ciArguments = ciEdge.getArguments();
     List<CExpression> aciArguments = aciEdge.getArguments();
@@ -569,37 +618,29 @@ public class CustomInstruction{
       throw new AppliedCustomInstructionParsingFailedException("The amount of arguments of the FunctionCallEdges " + ciEdge + " and " + aciEdge + " are different!");
     }
     for (int i=0; i<ciArguments.size(); i++) {
-      ciArguments.get(i).accept(new StructureComparisonVisitor(aciArguments.get(i), ciVarToAciVar, currentCiVarToAciVar));
+      ciArguments.get(i).accept(new StructureComparisonVisitor(aciArguments.get(i), ciVarToAciVar));
     }
   }
 
-  private void compareMultiEdge(MultiEdge ciEdge, MultiEdge aciEdge, Map<String,String> ciVarToAciVar,
-      Map<String,String> currentCiVarToAciVar, Collection<String> outVariables)
+  private void compareMultiEdge(final MultiEdge ciEdge, final MultiEdge aciEdge,
+      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
     if (ciEdge.getEdges().size() != aciEdge.getEdges().size()) {
       throw new AppliedCustomInstructionParsingFailedException("The MulitEdges of ci " + ciEdge + " and aci " + aciEdge + " have a different amount of edges");
     }
     for (int i=0; i<ciEdge.getEdges().size(); i++) {
-      computeMappingOfCiAndAci(ciEdge.getEdges().get(i), aciEdge.getEdges().get(i), ciVarToAciVar, currentCiVarToAciVar, outVariables);
+      computeMappingOfCiAndAci(ciEdge.getEdges().get(i), aciEdge.getEdges().get(i), ciVarToAciVar, outVariables);
     }
   }
 
-  private void compareCallToReturnEdge(CFAEdge ciEdge, CFAEdge aciEdge, Map<String,String> ciVarToAciVar,
-      Map<String,String> currentCiVarToAciVar, Collection<String> outVariables) {
-    // TODO fehlte in der Mail ...
-  }
+  private static class StructureComparisonVisitor implements CExpressionVisitor<Void, AppliedCustomInstructionParsingFailedException>{
 
+    protected CExpression aciExp;
+    protected final Map<String,String> ciVarToAciVar;
 
-  private class StructureComparisonVisitor implements CExpressionVisitor<Void, AppliedCustomInstructionParsingFailedException>{
-
-    private CExpression aciExp;
-    private final Map<String,String> ciVarToAciVar;
-    private final Map<String,String> currentCiVarToAciVar;
-
-    public StructureComparisonVisitor(final CExpression pAciExp, final Map<String,String> pCiVarToAciVar, final Map<String,String> pCurrentCiVarToAciVar) {
+    public StructureComparisonVisitor(final CExpression pAciExp, final Map<String,String> pCiVarToAciVar) {
       aciExp = pAciExp;
       ciVarToAciVar = pCiVarToAciVar;
-      currentCiVarToAciVar = pCurrentCiVarToAciVar;
     }
 
     @Override
@@ -613,13 +654,10 @@ public class CustomInstruction{
         throw new AppliedCustomInstructionParsingFailedException("The expression type of ci " + ciExp + " and aci " + aciExp + " are different.");
       }
 
-      // TODO: deep copy?
-      CArraySubscriptExpression tmpAci = aciAExp;
-
-      aciExp = tmpAci.getArrayExpression();
+      aciExp = aciAExp.getArrayExpression();
       ciExp.getArrayExpression().accept(this);
 
-      aciExp = tmpAci.getSubscriptExpression();
+      aciExp = aciAExp.getSubscriptExpression();
       ciExp.getSubscriptExpression().accept(this);
       return null;
     }
@@ -651,11 +689,10 @@ public class CustomInstruction{
         if (!ciExp.getExpressionType().equals(aciIdExp.getExpressionType())) {
           throw new AppliedCustomInstructionParsingFailedException("The expression type of the IdExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciIdExp + " (" + aciIdExp.getExpressionType() + ").");
         }
-        if (ciVarToAciVar.containsKey(ciExp.getName()) && !ciVarToAciVar.get(ciExp.getName()).equals(aciIdExp.getName())) {
-          throw new AppliedCustomInstructionParsingFailedException("The mapping is not clear. The map contains " + ciExp.getName() + " with the value " + ciVarToAciVar.get(ciExp.getName()) + ", which is different to " + aciIdExp.getName() + ".");
+        if (ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName()) && !ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName()).equals(aciIdExp.getDeclaration().getQualifiedName())) {
+          throw new AppliedCustomInstructionParsingFailedException("The mapping is not clear. The map contains " + ciExp.getDeclaration().getQualifiedName() + " with the value " + ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName()) + ", which is different to " + aciIdExp.getDeclaration().getQualifiedName() + ".");
         } else {
-          ciVarToAciVar.put(ciExp.getName(), aciIdExp.getName());
-          currentCiVarToAciVar.put(ciExp.getName(), aciIdExp.getName());
+          computeMapping(ciExp.getDeclaration().getQualifiedName(), aciIdExp.getDeclaration().getQualifiedName());
         }
       }
 
@@ -672,43 +709,56 @@ public class CustomInstruction{
       }
 
       else if (aciExp instanceof CIntegerLiteralExpression) {
-        if (ciExp.getExpressionType() instanceof CSimpleType) {
-          CSimpleType ciST = (CSimpleType) ciExp.getExpressionType();
-
-          if (isValidSimpleType(ciST)) {
-            ciVarToAciVar.put(ciExp.getName(), ((CIntegerLiteralExpression) aciExp).getValue().toString());
-            currentCiVarToAciVar.put(ciExp.getName(), ((CIntegerLiteralExpression) aciExp).getValue().toString());
-          } else {
-            throw new AppliedCustomInstructionParsingFailedException("The simpleType of the ci " + ciExp + " is not a valid one.");
-          }
-        } else {
-          // TODO: Exception werfen?
-          throw new AppliedCustomInstructionParsingFailedException("");
-        }
+        compareSimpleTypes(ciExp, ((CIntegerLiteralExpression) aciExp).getValue(), (CSimpleType) aciExp.getExpressionType());
       }
 
       else if (aciExp instanceof CFloatLiteralExpression) {
-        if (ciExp.getExpressionType() instanceof CSimpleType) {
-          CSimpleType ciST = (CSimpleType) ciExp.getExpressionType();
-          if (isValidSimpleType(ciST)) {
-            ciVarToAciVar.put(ciExp.getName(), ((CIntegerLiteralExpression) aciExp).getValue().toString());
-            currentCiVarToAciVar.put(ciExp.getName(), ((CIntegerLiteralExpression) aciExp).getValue().toString());
-          } else {
-            throw new AppliedCustomInstructionParsingFailedException("The simpleType of the ci " + ciExp + " is not a valid one.");
-          }
-        } else {
-          // TODO: Exception werfen?
-          throw new AppliedCustomInstructionParsingFailedException("");
-        }
+        compareSimpleTypes(ciExp, ((CFloatLiteralExpression) aciExp).getValue(), (CSimpleType) aciExp.getExpressionType());
+      } else {
+        throw new AppliedCustomInstructionParsingFailedException("The aci expression " + ciExp + " is not a CSimpleType.");
       }
       return null;
     }
 
-    private boolean isValidSimpleType(CSimpleType ciST) {
-      if (ciST.getType().isIntegerType()
-          && ciST.isComplex() == ciST.isImaginary() && ciST.isImaginary() == ciST.isLong()
-          && ciST.isLong() == ciST.isLongLong() && ciST.isLongLong() == ciST.isShort()
-          && ciST.isShort() == ciST.isSigned() && ciST.isSigned() == ciST.isUnsigned()) {
+    protected void computeMapping(String ciString, String aciString) {
+      ciVarToAciVar.put(ciString, aciString);
+    }
+
+    private void compareSimpleTypes(final CIdExpression ciExp, final Number aciExpValue, final CSimpleType aciType) throws AppliedCustomInstructionParsingFailedException {
+      if (ciExp.getExpressionType() instanceof CSimpleType) {
+        CSimpleType ciST = (CSimpleType) ciExp.getExpressionType();
+
+        if (isValidSimpleType(ciST, aciType)) {
+          if (!ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName())) {
+            ciVarToAciVar.put(ciExp.getName(), aciExpValue.toString());
+          } else if (!ciVarToAciVar.get(ciExp.getName()).equals(aciExpValue.toString())) {
+            throw new AppliedCustomInstructionParsingFailedException("The mapping is not clear. The map contains " + ciExp.getName() + " with the value " + ciVarToAciVar.get(ciExp.getName()) + ", which is different to " + aciExpValue.toString() + ".");
+          }
+        } else {
+          throw new AppliedCustomInstructionParsingFailedException("The simpleType of the ci " + ciExp + " is not a valid one.");
+        }
+      } else {
+        throw new AppliedCustomInstructionParsingFailedException("The aci expression " + aciExp + " is not a CIdExpression.");
+      }
+    }
+
+    private boolean isValidSimpleType(final CSimpleType ciST, final CSimpleType pAciType) {
+      if (ciST.isComplex()==pAciType.isComplex()
+          && ciST.isConst() == pAciType.isConst()
+          && ciST.isImaginary() == pAciType.isImaginary()
+          && ciST.isLong() == pAciType.isLong()
+          && ciST.isLongLong() == pAciType.isLongLong()
+          && ciST.isShort() == pAciType.isShort()
+          && ciST.isSigned() == pAciType.isSigned()
+          && ciST.isUnsigned() == pAciType.isUnsigned()
+          && ciST.isVolatile() == pAciType.isVolatile()
+          && (ciST.getType().isIntegerType() || ciST.getType().isFloatingPointType())
+          && ciST.isComplex() == ciST.isImaginary()
+          && ciST.isImaginary() == ciST.isLong()
+          && ciST.isLong() == ciST.isLongLong()
+          && ciST.isLongLong() == ciST.isShort()
+          && ciST.isShort() == ciST.isSigned()
+          && ciST.isSigned() == ciST.isUnsigned()) {
         return true;
       }
       return false;
@@ -771,13 +821,11 @@ public class CustomInstruction{
         if (!ciExp.getCalculationType().equals(aciBinExp.getCalculationType())) {
           throw new AppliedCustomInstructionParsingFailedException("The calculationType of the CBinaryExpression of ci " + ciExp + " and aci " + aciBinExp + " are different.");
         }
-        // TODO: deep copy?
-        CBinaryExpression tmpAci = aciBinExp;
 
-        aciExp = tmpAci.getOperand1();
+        aciExp = aciBinExp.getOperand1();
         ciExp.getOperand1().accept(this);
 
-        aciExp = tmpAci.getOperand2();
+        aciExp = aciBinExp.getOperand2();
         ciExp.getOperand2().accept(this);
 
       } else {
@@ -914,15 +962,6 @@ public class CustomInstruction{
     @Override
     public Void visit(final CImaginaryLiteralExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-//      if (!(aciExp instanceof CImaginaryLiteralExpression)) {
-//        throw new AppliedCustomInstructionParsingFailedException("The aci expression " + aciExp + " is not from the type CImaginaryLiteralExpression, but ci is.");
-//      }
-//      CImaginaryLiteralExpression aciIExp = (CImaginaryLiteralExpression) aciExp;
-//      if (!ciExp.getExpressionType().equals(aciIExp.getExpressionType())) {
-//        throw new AppliedCustomInstructionParsingFailedException("The expression type of the CImaginaryLiteralExpression of ci " + ciExp + " and aci " + aciIExp + " are different.");
-//      }
-//      ciExp.getValue().accept(new StructureComparisonVisitor(aciIExp.getValue(), ciVarToAciVar, currentCiVarToAciVar));
-//      return null;
       throw new AppliedCustomInstructionParsingFailedException("The code contains a CImaginaryLiteralExpression, which is unsupported.");
     }
 
@@ -940,6 +979,24 @@ public class CustomInstruction{
         throw new AppliedCustomInstructionParsingFailedException("The label name of the CAddressOfLabelExpression of ci " + ciExp + " and aci " + aciAExp + " are different.");
       }
       return null;
+    }
+
+  }
+
+  private static class StructureExtendedComparisonVisitor extends StructureComparisonVisitor {
+
+    private final Map<String,String> currentCiVarToAciVar;
+
+    public StructureExtendedComparisonVisitor(CExpression pAciExp, Map<String, String> pCiVarToAciVar,
+        Map<String, String> pCurrentCiVarToAciVar) {
+      super(pAciExp, pCiVarToAciVar);
+      currentCiVarToAciVar = pCurrentCiVarToAciVar;
+    }
+
+    @Override
+    protected void computeMapping(String ciString, String aciString) {
+      ciVarToAciVar.put(ciString, aciString);
+      currentCiVarToAciVar.put(ciString, aciString);
     }
 
   }

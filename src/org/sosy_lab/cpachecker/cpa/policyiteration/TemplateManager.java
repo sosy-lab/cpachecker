@@ -11,35 +11,45 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.LinearExpression;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.stator.policy")
 public class TemplateManager {
@@ -58,6 +68,10 @@ public class TemplateManager {
   @Option(secure=true, description="Generate templates from assert statements")
   private boolean generateFromAsserts = true;
 
+  @Option(secure=true, description="Generate templates from all program "
+      + "statements")
+  private boolean generateFromStatements = true;
+
   @Option(secure=true,
       description="Ignore the template type and encode with a rational variable")
   private boolean encodeTemplatesAsRationals = false;
@@ -71,6 +85,10 @@ public class TemplateManager {
         + " every combination (x, y, z)")
   private boolean generateCube = false;
 
+  @Option(secure=true,
+    description="Strategy for filtering variables out of templates")
+  private VarFilteringStrategy varFiltering = VarFilteringStrategy.ALL_LIVE;
+
   private final CFA cfa;
   private final LogManager logger;
 
@@ -80,7 +98,11 @@ public class TemplateManager {
    */
   private final CFAEdge dummyEdge;
 
-  private final ImmutableSet<Template> generatedTemplates;
+  private final ImmutableSet<Template> extractedFromAssertTemplates;
+  private final ImmutableSet<Template> extractedTemplates;
+  private final Set<Template> extraTemplates;
+  private final Set<Template> generatedTemplates;
+  private final PolicyIterationStatistics statistics;
 
   // Temporary variables created by CPA checker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
@@ -95,8 +117,10 @@ public class TemplateManager {
   public TemplateManager(
       LogManager pLogger,
       Configuration pConfig,
-      CFA pCfa
-      ) throws InvalidConfigurationException{
+      CFA pCfa, PolicyIterationStatistics pStatistics)
+        throws InvalidConfigurationException {
+    statistics = pStatistics;
+    extraTemplates = new HashSet<>();
     pConfig.inject(this, TemplateManager.class);
 
     cfa = pCfa;
@@ -106,45 +130,59 @@ public class TemplateManager {
         FileLocation.DUMMY,
         new CFANode("dummy-1"), new CFANode("dummy-2"), "Dummy Edge");
     if (generateFromAsserts) {
-      generatedTemplates = ImmutableSet.copyOf(templatesFromAsserts());
+      extractedFromAssertTemplates = ImmutableSet.copyOf(templatesFromAsserts());
     } else {
-      generatedTemplates = ImmutableSet.of();
+      extractedFromAssertTemplates = ImmutableSet.of();
     }
-    logger.log(Level.FINE, "Generated templates", generatedTemplates);
+    logger.log(Level.FINE, "Generated from assert templates",
+        extractedFromAssertTemplates);
+
+    if (generateFromStatements) {
+      extractedTemplates = ImmutableSet.copyOf(extractTemplates());
+    } else {
+      extractedTemplates = ImmutableSet.of();
+    }
+    logger.log(Level.FINE, "Generated templates", extractedFromAssertTemplates);
+    generatedTemplates = new HashSet<>();
+
+    allVariables = ImmutableList.copyOf(
+        cfa.getLiveVariables().get().getAllLiveVariables());
   }
 
+  public PolicyPrecision precisionForNode(CFANode node) {
+    return new PolicyPrecision(templatesForNode(node));
+  }
 
-  public Set<Template> templatesForNode(CFANode node) {
+  public Set<Template> templatesForNode(final CFANode node) {
     if (cache.containsKey(node)) {
       return cache.get(node);
     }
 
     ImmutableSet.Builder<Template> out = ImmutableSet.builder();
-    LiveVariables liveVariables = cfa.getLiveVariables().get();
-    List<ASimpleDeclaration> liveVars = ImmutableList.copyOf(
-        liveVariables.getLiveVariablesForNode(node));
-    for (ASimpleDeclaration s : liveVars) {
+    List<ASimpleDeclaration> usedVars = ImmutableList.copyOf(getVarsForNode(node));
+    out.addAll(extractTemplatesForNode(node));
+    out.addAll(extraTemplates);
 
+    for (ASimpleDeclaration s : usedVars) {
       if (!shouldProcessVariable(s)) {
         continue;
       }
       String varName = s.getQualifiedName();
-      CSimpleType type = (CSimpleType) s.getType();
       CIdExpression idExpression = new CIdExpression(
           FileLocation.DUMMY, (CSimpleDeclaration)s
       );
       logger.log(Level.FINEST, "Processing variable", varName);
       if (generateUpperBound) {
-        out.add(Template.of(LinearExpression.ofVariable(idExpression), type));
+        out.add(Template.of(LinearExpression.ofVariable(idExpression)));
       }
       if (generateLowerBound) {
-        out.add(Template.of(LinearExpression.ofVariable(idExpression).negate(), type));
+        out.add(Template.of(LinearExpression.ofVariable(idExpression).negate()));
       }
     }
 
     if (generateOctagons) {
-      for (ASimpleDeclaration s1 : liveVars) {
-        for (ASimpleDeclaration s2 : liveVars) {
+      for (ASimpleDeclaration s1 : usedVars) {
+        for (ASimpleDeclaration s2 : usedVars) {
           if (!shouldProcessVariable(s1)
               || !shouldProcessVariable(s2)) {
             continue;
@@ -168,28 +206,27 @@ public class TemplateManager {
               FileLocation.DUMMY, (CSimpleDeclaration)s2
           );
 
-          CSimpleType type = (CSimpleType) s1.getType();
           LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
               idExpression1);
           LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
               idExpression2);
 
-          out.addAll(genOctagonConstraints(expr1, expr2, type));
+          out.addAll(genOctagonConstraints(expr1, expr2));
 
           if (generateMoreTemplates) {
             out.addAll(genOctagonConstraints(
-                expr1.multByConst(Rational.ofLong(2)), expr2, type));
+                expr1.multByConst(Rational.ofLong(2)), expr2));
             out.addAll(genOctagonConstraints(expr1,
-                expr2.multByConst(Rational.ofLong(2)), type));
+                expr2.multByConst(Rational.ofLong(2))));
           }
         }
       }
     }
 
     if (generateCube) {
-      for (ASimpleDeclaration s1 : liveVars) {
-        for (ASimpleDeclaration s2 : liveVars) {
-          for (ASimpleDeclaration s3 : liveVars) {
+      for (ASimpleDeclaration s1 : usedVars) {
+        for (ASimpleDeclaration s2 : usedVars) {
+          for (ASimpleDeclaration s3 : usedVars) {
             if (!shouldProcessVariable(s1)
                 || !shouldProcessVariable(s2) || !shouldProcessVariable(s3)) {
               continue;
@@ -210,16 +247,13 @@ public class TemplateManager {
               continue;
             }
 
-            CSimpleType type = (CSimpleType) s1.getType();
             CIdExpression idExpression1 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s1
-            );
+                FileLocation.DUMMY, (CSimpleDeclaration)s1);
             CIdExpression idExpression2 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s2
-            );
+                FileLocation.DUMMY, (CSimpleDeclaration)s2);
             CIdExpression idExpression3 = new CIdExpression(
-                FileLocation.DUMMY, (CSimpleDeclaration)s3
-            );
+                FileLocation.DUMMY, (CSimpleDeclaration)s3);
+
             LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
                 idExpression1);
             LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
@@ -227,65 +261,73 @@ public class TemplateManager {
             LinearExpression<CIdExpression> expr3 = LinearExpression.ofVariable(
                 idExpression3);
 
-            out.addAll(genCubicConstraints(expr1, expr2, expr3, type));
+            out.addAll(genCubicConstraints(expr1, expr2, expr3));
 
             if (generateMoreTemplates) {
               out.addAll(
                   genCubicConstraints(
-                      expr1.multByConst(Rational.ofLong(2)), expr2, expr3, type));
+                      expr1.multByConst(Rational.ofLong(2)), expr2, expr3));
               out.addAll(
                   genCubicConstraints(
-                      expr1, expr2.multByConst(Rational.ofLong(2)), expr3, type));
+                      expr1, expr2.multByConst(Rational.ofLong(2)), expr3));
               out.addAll(
                   genCubicConstraints(
-                      expr1, expr2, expr3.multByConst(Rational.ofLong(2)), type));
+                      expr1, expr2, expr3.multByConst(Rational.ofLong(2))));
             }
           }
         }
       }
     }
 
-    out.addAll(generatedTemplates);
+    out.addAll(extractedFromAssertTemplates);
+    Set<Template> outBuild = out.build();
 
-    cache.putAll(node, out.build());
+    if (varFiltering == VarFilteringStrategy.ONE_LIVE) {
+
+      // Filter templates to make sure at least one is alive.
+      outBuild = Sets.filter(outBuild, new Predicate<Template>() {
+        @Override
+        public boolean apply(Template input) {
+          return shouldUseTemplate(input, node);
+        }
+      });
+    }
+
+    cache.putAll(node, outBuild);
     return cache.get(node);
   }
 
   private Set<Template> genOctagonConstraints(
       LinearExpression<CIdExpression> expr1,
-      LinearExpression<CIdExpression> expr2,
-      CSimpleType type
-  ) {
+      LinearExpression<CIdExpression> expr2) {
     HashSet<Template> out = new HashSet<>(4);
-    out.add(Template.of(expr1.add(expr2), type));
-    out.add(Template.of(expr1.negate().sub(expr2), type));
-    out.add(Template.of(expr1.sub(expr2), type));
-    out.add(Template.of(expr2.sub(expr1), type));
+    out.add(Template.of(expr1.add(expr2)));
+    out.add(Template.of(expr1.negate().sub(expr2)));
+    out.add(Template.of(expr1.sub(expr2)));
+    out.add(Template.of(expr2.sub(expr1)));
     return out;
   }
 
   private Set<Template> genCubicConstraints(
       LinearExpression<CIdExpression> expr1,
       LinearExpression<CIdExpression> expr2,
-      LinearExpression<CIdExpression> expr3,
-      CSimpleType type
-  ) {
+      LinearExpression<CIdExpression> expr3) {
     HashSet<Template> out = new HashSet<>(4);
     // No negated.
-    out.add(Template.of(expr1.add(expr2).add(expr3), type));
+    out.add(Template.of(expr1.add(expr2).add(expr3)));
 
     // 1 negated.
-    out.add(Template.of(expr1.add(expr2).sub(expr3), type));
-    out.add(Template.of(expr1.sub(expr2).add(expr3), type));
-    out.add(Template.of(expr1.negate().add(expr2).add(expr3), type));
+    out.add(Template.of(expr1.add(expr2).sub(expr3)));
+    out.add(Template.of(expr1.sub(expr2).add(expr3)));
+    out.add(Template.of(expr1.negate().add(expr2).add(expr3)));
 
     // 2 Negated
-    out.add(Template.of(expr1.negate().add(expr2).sub(expr3), type));
-    out.add(Template.of(expr1.negate().sub(expr2).add(expr3), type));
-    out.add(Template.of(expr1.sub(expr2).sub(expr3), type));
+    out.add(Template.of(expr1.negate().add(expr2).sub(expr3)));
+    out.add(Template.of(expr1.negate().sub(expr2).add(expr3)));
+    out.add(Template.of(expr1.sub(expr2).sub(expr3)));
 
     // All negated.
-    out.add(Template.of(expr1.negate().sub(expr2).sub(expr3), type));
+    out.add(Template.of(expr1.negate().sub(expr2).sub(expr3)));
 
     return out;
   }
@@ -305,6 +347,7 @@ public class TemplateManager {
       PathFormula contextFormula) {
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
+    int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
 
     for (Entry<CIdExpression, Rational> entry : template.linearExpression) {
       Rational coeff = entry.getValue();
@@ -312,8 +355,9 @@ public class TemplateManager {
 
       final Formula item;
       try {
-        item = pfmgr.expressionToFormula(
-            contextFormula, declaration, dummyEdge);
+        item = normalizeLength(pfmgr.expressionToFormula(
+            contextFormula, declaration, dummyEdge),
+            maxBitvectorSize, fmgr);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
@@ -351,8 +395,7 @@ public class TemplateManager {
 
   public boolean shouldUseRationals(Template template) {
     return encodeTemplatesAsRationals
-        || !template.linearExpression.isIntegral()
-        || !template.getType().getType().isIntegerType();
+        || !template.isIntegral();
   }
 
   /**
@@ -413,14 +456,129 @@ public class TemplateManager {
 
           // Add template and its negation.
           templates.add(t);
-          templates.add(
-              Template.of(t.linearExpression.negate(), t.getType())
-          );
+          templates.add(Template.of(t.linearExpression.negate()));
         }
 
       }
     }
     return templates;
+  }
+
+  private Set<Template> extractTemplatesForNode(CFANode node) {
+    Set<Template> out = new HashSet<>();
+    for (Template t : extractedTemplates) {
+      if (shouldUseTemplate(t, node)) {
+        out.add(t);
+      }
+    }
+    return out;
+  }
+
+  private boolean shouldUseTemplate(Template t, CFANode node) {
+    if (varFiltering == VarFilteringStrategy.ALL) {
+      return true;
+    }
+    LiveVariables liveVariables = cfa.getLiveVariables().get();
+    for (Entry<CIdExpression, Rational> e : t.linearExpression) {
+      CIdExpression id = e.getKey();
+      if (varFiltering == VarFilteringStrategy.ONE_LIVE &&
+          !liveVariables.isVariableLive(id.getDeclaration(), node)) {
+        return true;
+      }
+      if (varFiltering == VarFilteringStrategy.ALL_LIVE &&
+          !liveVariables.isVariableLive(id.getDeclaration(), node)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private Set<Template> extractTemplates() {
+    Set<Template> out = new HashSet<>();
+    for (CFANode node : cfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
+        for (Template t : extractTemplatesFromEdge(edge)) {
+          if (t.size() > 1) {
+            out.add(t);
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  private Set<Template> extractTemplatesFromEdge(CFAEdge edge) {
+    Set<Template> out = new HashSet<>();
+    switch (edge.getEdgeType()) {
+      case ReturnStatementEdge:
+        CReturnStatementEdge e = (CReturnStatementEdge) edge;
+        if (e.getExpression().isPresent()) {
+          out.addAll(expressionToTemplate(e.getExpression().get()));
+        }
+        break;
+      case FunctionCallEdge:
+        CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
+        for (CExpression arg : callEdge.getArguments()) {
+          out.addAll(expressionToTemplate(arg));
+        }
+        break;
+      case AssumeEdge:
+        CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+        out.addAll(expressionToTemplate(assumeEdge.getExpression()));
+        break;
+      case StatementEdge:
+        out.addAll(extractTemplatesFromStatementEdge((CStatementEdge) edge));
+        break;
+      case MultiEdge:
+        MultiEdge multiEdge = (MultiEdge) edge;
+        for (CFAEdge child : multiEdge.getEdges()) {
+          out.addAll(extractTemplatesFromEdge(child));
+        }
+        break;
+    }
+    return out;
+  }
+
+  private Set<Template> extractTemplatesFromStatementEdge(CStatementEdge edge) {
+    Set<Template> out = new HashSet<>();
+    CStatement statement = edge.getStatement();
+    if (statement instanceof CExpressionStatement) {
+      out.addAll(expressionToTemplate(
+          ((CExpressionStatement)statement).getExpression()));
+    } else if (statement instanceof CExpressionAssignmentStatement) {
+      CExpressionAssignmentStatement assignment =
+          (CExpressionAssignmentStatement)statement;
+      CLeftHandSide lhs =
+          assignment.getLeftHandSide();
+      if (lhs instanceof CIdExpression) {
+        CIdExpression id = (CIdExpression)lhs;
+        out.addAll(expressionToTemplate(assignment.getRightHandSide()));
+        if (!shouldProcessVariable(id.getDeclaration())) {
+          return out;
+        }
+
+        Template tLhs = Template.of(LinearExpression.ofVariable(id));
+        Optional<Template> x =
+            recExpressionToTemplate(assignment.getRightHandSide());
+        if (x.isPresent()) {
+          Template tX = x.get();
+          out.add(Template.of(tLhs.linearExpression.sub(tX.linearExpression)));
+        }
+      }
+    }
+    return out;
+
+  }
+
+  private Set<Template> expressionToTemplate(CExpression expression) {
+    HashSet<Template> out = new HashSet<>(2);
+    Optional<Template> t = recExpressionToTemplate(expression);
+    if (!t.isPresent()) {
+      return out;
+    }
+    out.add(t.get());
+    out.add(Template.of(t.get().linearExpression.negate()));
+    return out;
   }
 
   private Optional<Template> recExpressionToTemplate(CExpression expression) {
@@ -462,12 +620,11 @@ public class TemplateManager {
 
         // Calculation type is the casting of both types to a suitable "upper"
         // type.
-        CSimpleType type = (CSimpleType)binaryExpression.getCalculationType();
         Template t;
         if (operator == CBinaryExpression.BinaryOperator.PLUS) {
-          t = Template.of(a.add(b), type);
+          t = Template.of(a.add(b));
         } else {
-          t = Template.of(a.sub(b), type);
+          t = Template.of(a.sub(b));
         }
         return Optional.of(t);
       } else {
@@ -475,26 +632,123 @@ public class TemplateManager {
       }
     } else if (expression instanceof CLiteralExpression
         && expression.getExpressionType() instanceof CSimpleType) {
-      return Optional.of(Template.of(
-          LinearExpression.<CIdExpression>empty(),
-          (CSimpleType)(expression).getExpressionType()
-      ));
+      return Optional.of(Template.of(LinearExpression.<CIdExpression>empty()));
     } else if (expression instanceof CIdExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       CIdExpression idExpression = (CIdExpression)expression;
-      return Optional.of(Template.of(
-              LinearExpression.ofVariable(idExpression),
-              (CSimpleType) expression.getExpressionType()));
+      return Optional.of(Template.of(LinearExpression.ofVariable(idExpression)));
     } else {
       return Optional.absent();
     }
   }
 
+
   private Template useCoeff(
       CIntegerLiteralExpression literal, Template other) {
     Rational coeff = Rational.ofBigInteger(literal.getValue());
-    return Template.of(other.linearExpression.multByConst(coeff),
-        other.getType()
-    );
+    return Template.of(other.linearExpression.multByConst(coeff));
+  }
+
+  public void addGeneratedTemplates(Set<Template> templates) {
+    generatedTemplates.addAll(templates);
+  }
+
+  public boolean adjustPrecision() {
+    boolean changed = false;
+    for (Template t : generatedTemplates) {
+      changed |= addTemplateToExtra(t);
+    }
+    try {
+      if (changed) {
+        logger.log(Level.INFO, "LPI Refinement: Using new templates",
+            generatedTemplates);
+        generatedTemplates.clear();
+        return true;
+      }
+      if (!generateOctagons) {
+        logger.log(Level.INFO, "LPI Refinement: Generating octagons");
+        generateOctagons = true;
+        return true;
+      }
+      if (!generateMoreTemplates) {
+        logger.log(Level.INFO, "LPI Refinement: Generating more templates");
+        generateMoreTemplates = true;
+        return true;
+      }
+      if (!generateCube) {
+        logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
+        generateCube = true;
+        return true;
+      }
+      return false;
+    } finally {
+      cache.clear();
+    }
+  }
+
+  private boolean addTemplateToExtra(Template t) {
+    // Do not add intervals.
+    if (t.size() == 1) return false;
+
+    for (Template o : extraTemplates) {
+      // Do not add templates which are multiples of already existing templates.
+      if (o.getLinearExpression().isMultipleOf(t.getLinearExpression())) {
+        return false;
+      }
+    }
+    boolean out = extraTemplates.add(t);
+    if (out) {
+      statistics.incWideningTemplatesGenerated();
+    }
+    return out;
+  }
+
+  public Iterable<ASimpleDeclaration> getVarsForNode(CFANode node) {
+    if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
+      return cfa.getLiveVariables().get().getLiveVariablesForNode(node);
+    } else {
+      return allVariables;
+    }
+  }
+
+  private final ImmutableList<ASimpleDeclaration> allVariables;
+
+  private enum VarFilteringStrategy {
+    ALL_LIVE,
+    ONE_LIVE,
+    ALL
+  }
+
+  private Formula normalizeLength(Formula f, int maxBitvectorSize,
+      FormulaManagerView fmgr) {
+    if (!(f instanceof BitvectorFormula)) return f;
+    BitvectorFormula bv = (BitvectorFormula) f;
+    return fmgr.getBitvectorFormulaManager().extend(
+        bv,
+        Math.max(0,
+            maxBitvectorSize - fmgr.getBitvectorFormulaManager().getLength(bv)),
+        true);
+  }
+
+  private int getBitvectorSize(Template t, PathFormulaManager pfmgr,
+      PathFormula contextFormula, FormulaManagerView fmgr) {
+    int length = 0;
+
+    // Figure out the maximum bitvector size.
+    for (Entry<CIdExpression, Rational> entry : t.linearExpression) {
+      Formula item;
+      try {
+        item = pfmgr.expressionToFormula(contextFormula, entry.getKey(),
+            dummyEdge);
+      } catch (UnrecognizedCCodeException e) {
+        throw new UnsupportedOperationException();
+      }
+      if (!(item instanceof BitvectorFormula)) continue;
+      BitvectorFormula b = (BitvectorFormula) item;
+      length = Math.max(
+          fmgr.getBitvectorFormulaManager().getLength(b),
+          length);
+    }
+    return length;
   }
 }

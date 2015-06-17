@@ -1967,18 +1967,13 @@ class ASTConverter {
 
     String name = convert(d.getName());
     String origName = name;
-    if (Strings.isNullOrEmpty(name)) {
+    if (name.isEmpty()) {
       name = "__anon_type_";
       if (d.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
         name += ((IASTSimpleDeclaration)d.getParent()).getDeclarators()[0].getName().getRawSignature();
       } else {
         name += anonTypeCounter++;
       }
-    }
-
-    // if the origName is null we want it to be empty
-    if (origName == null) {
-      origName = "";
     }
 
     CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name, origName);

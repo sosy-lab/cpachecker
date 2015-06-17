@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -104,7 +105,6 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;

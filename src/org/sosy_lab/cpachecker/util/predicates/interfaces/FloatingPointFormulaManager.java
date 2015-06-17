@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.common.rationals.Rational;
+
+
 /**
  * This interface represents the floating-foint theory
  */
@@ -32,6 +35,7 @@ public interface FloatingPointFormulaManager {
   public FloatingPointFormula makeNumber(double n, FormulaType.FloatingPointType type);
   public FloatingPointFormula makeNumber(BigDecimal n, FormulaType.FloatingPointType type);
   public FloatingPointFormula makeNumber(String n, FormulaType.FloatingPointType type);
+  public FloatingPointFormula makeNumber(Rational n, FormulaType.FloatingPointType type);
 
   public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType type);
 

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -46,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
@@ -143,7 +143,8 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
           Configuration.builder().copyFrom(config).clearOption("analysis.algorithm.testGen")
               .setOption("EvalOnlyOnePathAutomaton.cpa.automaton.inputFile", pAutomatonPath.getAbsolutePath()).build();
       CPABuilder localBuilder =
-          new CPABuilder(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier), reachedSetFactory);
+          new CPABuilder(lConfig, logger, ShutdownNotifier
+              .createWithParent(shutdownNotifier), reachedSetFactory);
 
       currentCPA = localBuilder.buildCPAWithSpecAutomatas(cfa);
 

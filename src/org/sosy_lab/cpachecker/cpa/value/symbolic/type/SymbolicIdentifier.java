@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
@@ -187,28 +188,46 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      * the given
      * identifier.
      * <p/>
-     * <p>For a given identifier p, <code>convert(convert(p)) = p</code> is always true.
+     * <p>For a given identifier p,
+     * <code>convertToIdentifier(convertToStringEncoding(p)) = p</code>
+     * is always true.
      *
-     * @param pIdentifier the <code>SymbolicIdentifier</code> to convert to a string
+     * @param pIdentifier the <code>SymbolicIdentifier</code> to convert to a
+     *    string
      * @return a <code>String</code> containing all information necessary for converting it to a
      * identifier
      */
-    public String convert(SymbolicIdentifier pIdentifier) {
+    public String convertToStringEncoding(SymbolicIdentifier pIdentifier) {
       return PREFIX + pIdentifier.getId();
+    }
+
+    /**
+     * Returns, for a String representation s of a {@link SymbolicIdentifier},
+     * the string encoding that would result from calling
+     * convertToStringEncoding(convertToIdentifier(s)).
+     */
+    public String normalizeStringEncoding(final String pStringRepresentation) {
+      return convertToStringEncoding(convertToIdentifier(pStringRepresentation));
     }
 
     /**
      * Converts a given encoding of a {@link SymbolicIdentifier} to the corresponding
      * <code>SymbolicIdentifier</code>.
      * <p/>
-     * Only valid encodings, as produced by {@link #convert(SymbolicIdentifier)}, are allowed.
+     * Only valid encodings, as produced by {@link #convertToStringEncoding(SymbolicIdentifier)},
+     * are allowed.
      *
      * @param pIdentifierInformation a <code>String</code> encoding of a
      * <code>SymbolicIdentifier</code>
      * @return the <code>SymbolicIdentifier</code> representing the given encoding
      */
-    public SymbolicIdentifier convert(String pIdentifierInformation) {
-      final long id = Long.parseLong(pIdentifierInformation.substring(PREFIX.length()));
+    public SymbolicIdentifier convertToIdentifier(
+        String pIdentifierInformation) {
+
+      final String variableName = FormulaManagerView.parseName(pIdentifierInformation).getFirst();
+      final String identifierIdOnly = variableName.substring(PREFIX.length());
+      final long id = Long.parseLong(identifierIdOnly);
+
       return new SymbolicIdentifier(id);
     }
 
@@ -221,7 +240,8 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      * <code>false</code> otherwise
      */
     public boolean isSymbolicEncoding(String pName) {
-      return pName.matches(PREFIX + "[0-9]+");
+      String variableName = FormulaManagerView.parseName(pName).getFirst();
+      return variableName.startsWith(PREFIX);
     }
   }
 }

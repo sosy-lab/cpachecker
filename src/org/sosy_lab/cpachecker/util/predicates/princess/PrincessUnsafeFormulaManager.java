@@ -28,7 +28,7 @@ import static scala.collection.JavaConversions.asJavaCollection;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import ap.basetypes.IdealInt;

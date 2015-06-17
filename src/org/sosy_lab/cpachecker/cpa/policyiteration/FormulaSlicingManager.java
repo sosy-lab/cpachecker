@@ -102,10 +102,11 @@ public class FormulaSlicingManager {
       Formula uninstantiatedF = fmgr.uninstantiate(f);
       Set<String> containedVariables = fmgr.extractFunctionNames(
           uninstantiatedF, false);
+      BooleanFormula constant = bfmgr.makeBoolean(!isInsideNot);
       if (!Sets.intersection(closure, containedVariables).isEmpty()) {
         return f;
       } else {
-        // Hack to propagate the call variables,
+        // Hack to propagate the call variables across the abstraction.
         if (containedVariables.size() == 2) {
           Iterator<String> iterator = containedVariables.iterator();
           String first = iterator.next();
@@ -116,10 +117,10 @@ public class FormulaSlicingManager {
           )) {
             return f;
           } else {
-            return bfmgr.makeBoolean(!isInsideNot);
+            return constant;
           }
         } else {
-          return bfmgr.makeBoolean(!isInsideNot);
+          return constant;
         }
       }
     }

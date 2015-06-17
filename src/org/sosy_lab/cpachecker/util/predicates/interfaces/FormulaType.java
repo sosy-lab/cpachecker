@@ -287,4 +287,28 @@ public abstract class FormulaType<T extends Formula> {
     return new ArrayFormulaType<>(pDomainSort, pRangeSort);
   }
 
+  /** parse a string and return the corresponding type,
+   * this method is the counterpart of 'toString()'. */
+  public static FormulaType<?> fromString(String t) {
+    if (BooleanType.toString().equals(t)) {
+      return BooleanType;
+    } else if (IntegerType.toString().equals(t)) {
+      return IntegerType;
+    } else if (RationalType.toString().equals(t)) {
+      return RationalType;
+    } else if (t.startsWith("FloatingPoint<")) {
+      // FloatingPoint<exp=11,mant=52>
+      String[] exman = t.substring(14, t.length() - 1).split(",");
+      return FormulaType.getFloatingPointType(
+          Integer.parseInt(exman[0].substring(4)),
+          Integer.parseInt(exman[1].substring(5)));
+    } else if (t.startsWith("Bitvector<")) {
+      // Bitvector<32>
+      return FormulaType.getBitvectorTypeWithSize(
+          Integer.parseInt(t.substring(10, t.length() - 1)));
+    } else {
+      throw new AssertionError("unknown type:" + t);
+    }
+  }
+
 }

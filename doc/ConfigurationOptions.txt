@@ -65,15 +65,15 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use a analysis which proves if the program satisfies a specified property
+# with the help of an enabler CPA to separate differnt program paths
+analysis.algorithm.analysisWithEnabler = false
+
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
-
-# use a predicated analysis which proves if the program satisfies a specified
-# property with the help of a PredicateCPA to separate differnt program paths
-analysis.algorithm.predicatedAnalysis = false
 
 # use a proof check algorithm to validate a previously generated proof
 analysis.algorithm.proofCheck = false
@@ -162,6 +162,9 @@ analysis.stopAfterError = true
 
 # create summary call statement edges
 analysis.summaryEdges = false
+
+# traverse in the order defined by the values of an automaton variable
+analysis.traversal.byAutomatonVariable = no default value
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
@@ -332,6 +335,10 @@ cbmc.options.unwindings = 0
 cbmc.timelimit = 0ms
 cbmc.timelimit = 0
 
+# if this score is exceeded by the first analysis, the auxilliary analysis
+# will be refined
+cegar.domainScoreThreshold = 1024
+
 # Whether to do refinement immediately after finding an error state, or
 # globally after the ARG has been unrolled completely.
 cegar.globalRefinement = false
@@ -340,9 +347,6 @@ cegar.globalRefinement = false
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
 cegar.refiner = no default value
-
-# the maximum score for which always the primary refinement will be performed
-cegar.scoringThreshold = 65536
 
 # whether or not to let auxiliary refiner score and refine a path that is
 # feasible for the primary refiner, this allows to only extract prefixes that
@@ -494,9 +498,15 @@ counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
 
+# Compute and export information about the verification coverage?
+coverage.enabled = true
+
 # print coverage info to file
 coverage.export = true
 coverage.file = "coverage.info"
+
+# print coverage summary to stdout
+coverage.stdout = true
 
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
@@ -504,6 +514,9 @@ cpa = CompositeCPA.class.getCanonicalName()
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = "OCTAGON"
   allowed values: [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
+
+# get an initial precision from file
+cpa.apron.initialPrecisionFile = no default value
 
 # this option determines which initial precision should be used
 cpa.apron.initialPrecisionType = "STATIC_FULL"
@@ -515,6 +528,9 @@ cpa.apron.mergeop.onlyMergeAtLoopHeads = false
 # of which type should the merge be?
 cpa.apron.mergeop.type = "SEP"
   allowed values: [SEP, JOIN, WIDENING]
+
+# target file to hold the exported precision
+cpa.apron.precisionFile = no default value
 
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
@@ -528,10 +544,10 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 # disequality provided by apron library 
 cpa.apron.splitDisequalities = true
 
-# inform merge operator in predicated analysis that it should delete the
-# subgraph of the merged nodewhich is required to get at most one successor
+# inform merge operator in CPA enabled analysis that it should delete the
+# subgraph of the merged node which is required to get at most one successor
 # per CFA edge.
-cpa.arg.deleteInPredicatedAnalysis = false
+cpa.arg.deleteInCPAEnabledAnalysis = false
 
 # Dump all ARG related statistics files after each iteration of the CPA
 # algorithm? (for debugging and demonstration)
@@ -561,7 +577,7 @@ cpa.arg.errorPath.exportImmediately = false
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 
 # Filter for irrelevant counterexamples to reduce the number of similar
-# counterexamples reported. Only relevant with analysis.stopAfterErrors=false
+# counterexamples reported. Only relevant with analysis.stopAfterError=false
 # and cpa.arg.errorPath.exportImmediately=true. Put the weakest and cheapest
 # filter first, e.g., PathEqualityCounterexampleFilter.
 cpa.arg.errorPath.filters = ImmutableList.<Class<? extends CounterexampleFilter>>of(
@@ -581,9 +597,11 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
-# inform ARG CPA if it is run in a predicated analysis because then it
+# inform ARG CPA if it is run in a CPA enabled analysis because then it
 # mustbehave differntly during merge.
-cpa.arg.inPredicatedAnalysis = false
+# inform ARG CPA if it is run in an analysis with enabler CPA because then it
+# must behave differntly during merge.
+cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
@@ -747,9 +765,9 @@ cpa.chc.generalizationOperator = "Widen"
 cpa.chc.merge = "SEP"
   allowed values: [SEP, JOIN]
 
-# inform Composite CPA if it is run in a predicated analysis because then it
-# mustbehave differntly during merge.
-cpa.composite.inPredicatedAnalysis = false
+# inform Composite CPA if it is run in a CPA enabled analysis because then it
+# must behave differntly during merge.
+cpa.composite.inCPAEnabledAnalysis = false
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
@@ -1004,6 +1022,15 @@ cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
 # Apply location- and function-specific predicates globally (to all locations
 # in the program)
 cpa.predicate.abstraction.initialPredicates.applyGlobally = false
+
+# when reading predicates from file, convert them to BV-theory. This option
+# depends on the 'variableEncodingFile'.
+cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
+  enum:     [DISABLE, INT2BV, BV2INT]
+
+# where to read symbols and their possible encoding,this corresponds to
+# 'cpa.predicate.symbolEncodingFile' of a previous execution.
+cpa.predicate.abstraction.initialPredicates.symbolEncodingFile = "SymbolEncoding.txt"
 
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
@@ -1274,6 +1301,13 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
+# Max. number of prefixes to extract
+cpa.predicate.refinement.maxPrefixCount = 64
+
+# Max. length of feasible prefixes to extract from if at least one prefix was
+# already extracted
+cpa.predicate.refinement.maxPrefixLength = 1024
+
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
@@ -1290,16 +1324,17 @@ cpa.predicate.refinement.predicateBasisStrategy = TARGET
   enum:     [ALL, TARGET, CUTPOINT]
 
 # which sliced prefix should be used for interpolation
-cpa.predicate.refinement.prefixPreference = DEFAULT
-  enum:     [DEFAULT, SHORTEST, LONGEST, RANDOM, DOMAIN_BEST_SHALLOW,
-             DOMAIN_WORST_SHALLOW, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
-             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
-             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
-             REFINE_DEEP, ITP_LENGTH_SHORT_SHALLOW, ITP_LENGTH_LONG_SHALLOW,
-             ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP, ASSIGNMENTS_FEWEST_SHALLOW,
-             ASSIGNMENTS_FEWEST_DEEP, ASSIGNMENTS_MOST_SHALLOW, ASSIGNMENTS_MOST_DEEP,
-             ASSUMPTIONS_FEWEST_SHALLOW, ASSUMPTIONS_FEWEST_DEEP,
-             ASSUMPTIONS_MOST_SHALLOW, ASSUMPTIONS_MOST_DEEP, FEASIBLE]
+cpa.predicate.refinement.prefixPreference = NONE
+  enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
+             DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
+             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
+             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
+             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
+             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
+             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
+             ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
+             ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
+             ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
@@ -1434,6 +1469,9 @@ cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
+
+# where to dump variables and their possible encoding
+cpa.predicate.symbolEncodingFile = "symbolEncoding.txt"
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
@@ -1648,15 +1686,14 @@ cpa.stator.congruence.trackCongruenceSum = false
 # Check whether the policy depends on the initial value
 cpa.stator.policy.checkPolicyInitialCondition = true
 
+# Check target states reachability
+cpa.stator.policy.checkTargetStates = true
+
 # Ignore the template type and encode with a rational variable
 cpa.stator.policy.encodeTemplatesAsRationals = false
 
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = Rational.ONE
-
-# Perform formula slicing after abstractions to propagate the pointer
-# information
-cpa.stator.policy.formulaSlicing = true
 
 # Generate cubic constraints: templates +/- x +/- y +/- z for every
 # combination (x, y, z)
@@ -1664,6 +1701,9 @@ cpa.stator.policy.generateCube = false
 
 # Generate templates from assert statements
 cpa.stator.policy.generateFromAsserts = true
+
+# Generate templates from all program statements
+cpa.stator.policy.generateFromStatements = true
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
@@ -1674,18 +1714,28 @@ cpa.stator.policy.generateMoreTemplates = false
 # Generate octagon templates for all combinations of variables. 
 cpa.stator.policy.generateOctagons = false
 
+# Generate new templates using polyhedra widening
+cpa.stator.policy.generateTemplatesUsingWidening = false
+
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
+
+# Whether to join states on merge (leads to cycles in ARG)
+cpa.stator.policy.joinOnMerge = true
 
 # Any intermediate state with formula length bigger than specified will be
 # checked for reachability. Set to 0 to disable.
 cpa.stator.policy.lengthLimitForSATCheck = 300
 
+# Remove UFs and ITEs from policies. NOTE: Currently seems to decrease
+# performance.
+cpa.stator.policy.linearizePolicy = false
+
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
 
 # Run simple congruence analysis
-cpa.stator.policy.runCongruence = false
+cpa.stator.policy.runCongruence = true
 
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.stator.policy.runHopefulValueDetermination = true
@@ -1696,9 +1746,19 @@ cpa.stator.policy.shortCircuitSyntactic = true
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true
 
+# Number of refinements after which the unrolling depth is increased
+cpa.stator.policy.unrollingRefinementThreshold = 2
+
+# Cache formulas produced by path formula manager
+cpa.stator.policy.useCachingPathFormulaManager = true
+
 # Use the optimized abstraction, which takes into the account the previously
 # obtained bound at the location.
 cpa.stator.policy.usePreviousBounds = true
+
+# Strategy for filtering variables out of templates
+cpa.stator.policy.varFiltering = ALL_LIVE
+  enum:     [ALL_LIVE, ONE_LIVE, ALL]
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
@@ -1742,8 +1802,19 @@ cpa.value.blk.onlyAtNonLinearCFA = false
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.value.initAssumptionVars = false
 
-# get an initial precison from file
+# get an initial precision from file
 cpa.value.initialPrecisionFile = no default value
+
+# apply optimizations based on equality of input interpolant and candidate
+# interpolant
+cpa.value.interpolation.applyItpEqualityOptimization = true
+
+# apply optimizations based on CFA edges with only variable-renaming
+# semantics
+cpa.value.interpolation.applyRenamingOptimization = true
+
+# apply optimizations based on infeasibility of suffix
+cpa.value.interpolation.applyUnsatSuffixOptimization = true
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
@@ -1780,16 +1851,23 @@ cpa.value.refinement.itpSortedTargets = false
 # whether or not to perform path slicing before interpolation
 cpa.value.refinement.pathSlicing = true
 
+# whether to perform (more precise) edge-based interpolation or (more
+# efficient) path-based interpolation
+cpa.value.refinement.performEdgeBasedInterpolation = true
+
 # which prefix of an actual counterexample trace should be used for
 # interpolation
-cpa.value.refinement.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_WORST_SHALLOW,
-             DOMAIN_BEST_BOUNDED, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
-             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
-             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
-             REFINE_DEEP, REFINE_DEEP_DOMAIN, ITP_LENGTH_SHORT_SHALLOW,
-             ITP_LENGTH_LONG_SHALLOW, ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP,
-             RANDOM, MEDIAN, MIDDLE, FEASIBLE]
+cpa.value.refinement.prefixPreference = DOMAIN_GOOD_SHORT
+  enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
+             DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
+             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
+             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
+             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
+             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
+             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
+             ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
+             ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
+             ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
@@ -1803,29 +1881,6 @@ cpa.value.refinement.useGlobalPrecision = false
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
-
-# whether or not to do lazy-abstraction
-cpa.value.refiner.doLazyAbstraction = true
-
-# whether or not to perform path slicing before interpolation
-cpa.value.refiner.pathSlicing = true
-
-# whether to perform (more precise) edge-based interpolation or (more
-# efficient) path-based interpolation
-cpa.value.refiner.performEdgeBasedInterpolation = true
-
-# which prefix of an actual counterexample trace should be used for
-# interpolation
-cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, RANDOM, DOMAIN_BEST_SHALLOW,
-             DOMAIN_WORST_SHALLOW, DOMAIN_BEST_DEEP, DOMAIN_WORST_DEEP,
-             DOMAIN_PRECISE_BEST_SHALLOW, DOMAIN_PRECISE_WORST_SHALLOW,
-             DOMAIN_PRECISE_BEST_DEEP, DOMAIN_PRECISE_WORST_DEEP, REFINE_SHALLOW,
-             REFINE_DEEP, ITP_LENGTH_SHORT_SHALLOW, ITP_LENGTH_LONG_SHALLOW,
-             ITP_LENGTH_SHORT_DEEP, ITP_LENGTH_LONG_DEEP, ASSIGNMENTS_FEWEST_SHALLOW,
-             ASSIGNMENTS_FEWEST_DEEP, ASSIGNMENTS_MOST_SHALLOW, ASSIGNMENTS_MOST_DEEP,
-             ASSUMPTIONS_FEWEST_SHALLOW, ASSUMPTIONS_FEWEST_DEEP,
-             ASSUMPTIONS_MOST_SHALLOW, ASSUMPTIONS_MOST_DEEP, FEASIBLE]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -1863,6 +1918,14 @@ custominstructions.definitionFile = no default value
 # Qualified name of class for abstract state which provides custom
 # instruction requirements.
 custominstructions.requirementsStateClassName = no default value
+
+# Enable to use lazy refinement in current analysis instead of restarting
+# from root after each refinement.
+enabledanalysis.allowLazyRefinement = false
+
+# Which CPA is used as enabler in the current analysis.
+enabledanalysis.enablerCPA = PREDICATE
+  enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -1973,13 +2036,14 @@ pcc.arg.cmc.configFiles = no default value
 # write collected assumptions to file
 pcc.arg.cmc.file = "assumptions.txt"
 
-# Enable if partial ARGs can be read based using different CPA object than
-# checker
-pcc.arg.cmc.interleavedMode = false
-
 # Which ARG strategy to use for each partial ARG, strategy based on CPA
 # (true) or on proof checker interface (false)
-pcc.arg.cmc.useArgCpaStrategy = false
+pcc.arg.cmc.useArgCpaStrategy = true
+
+# Enable if used property checker implements satisfiesProperty(AbstractState)
+# and checked property is violated for a set iff an element in this set
+# exists for which violates the property
+pcc.checkPropertyPerElement = no default value
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for
@@ -2139,6 +2203,16 @@ spec.transitionToStopForNegatedTokensetMatch = false
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
+
+# export abstract states as formula, e.g. for re-using them as
+# PredicatePrecision.
+statesToFormulas.exportFile = no default value
+
+# instead of writing the exact state-representation as a single formula,
+# write its atoms as a list of formulas. Therefore we ignore operators for
+# conjunction and disjunction.
+statesToFormulas.splitFormulas = LOCATION
+  enum:     [LOCATION, STATE, ATOM]
 
 # Add all assumtions from the control flow automaton to the precision.
 staticRefiner.addAllControlFlowAssumes = false

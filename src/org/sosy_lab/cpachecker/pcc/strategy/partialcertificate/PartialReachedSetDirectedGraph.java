@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,7 +53,7 @@ public class PartialReachedSetDirectedGraph {
       numNodes = 0;
       adjacencyList = new ArrayList<>(0);
     } else {
-      nodes = pNodes;
+      nodes = Arrays.copyOf(pNodes, pNodes.length);
       numNodes = nodes.length;
       adjacencyList = new ArrayList<>(nodes.length);
       for (@SuppressWarnings("unused") AbstractState node : nodes) {

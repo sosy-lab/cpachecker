@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,7 +43,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathA
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -89,7 +90,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(secure=true, description="get an initial precison from file")
+  @Option(secure=true, description="get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
@@ -105,6 +106,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private ValueAnalysisPrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisReducer reducer;
   private final ValueAnalysisCPAStatistics statistics;
+  private final StateToFormulaWriter writer;
 
   private final Configuration config;
   private final LogManager logger;
@@ -132,6 +134,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
+    writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -291,7 +294,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
-
+    writer.collectStatistics(pStatsCollection);
     precisionAdjustment.collectStatistics(pStatsCollection);
     transferRelation.collectStatistics(pStatsCollection);
   }

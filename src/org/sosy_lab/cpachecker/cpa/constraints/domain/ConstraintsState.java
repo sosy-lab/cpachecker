@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.VariableMap;
@@ -48,7 +47,10 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -319,8 +321,8 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException, UnrecognizedCCodeException {
     Model validAssignment = prover.getModel();
 
-    for (Map.Entry<Model.AssignableTerm, Object> entry : validAssignment.entrySet()) {
-      Model.AssignableTerm term = entry.getKey();
+    for (Map.Entry<AssignableTerm, Object> entry : validAssignment.entrySet()) {
+      AssignableTerm term = entry.getKey();
       Object termAssignment = entry.getValue();
 
       if (isSymbolicTerm(term)) {
@@ -384,11 +386,11 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     return new IdentifierAssignment(definiteAssignment);
   }
 
-  private boolean isSymbolicTerm(Model.AssignableTerm pTerm) {
+  private boolean isSymbolicTerm(AssignableTerm pTerm) {
     return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm.getName());
   }
 
-  private boolean isOnlySatisfyingAssignment(Model.AssignableTerm pTerm, Object termAssignment, BooleanFormula pFormula)
+  private boolean isOnlySatisfyingAssignment(AssignableTerm pTerm, Object termAssignment, BooleanFormula pFormula)
       throws SolverException, InterruptedException, UnrecognizedCCodeException {
 
     VariableMap freeVariables = new VariableMap(formulaManager.extractFreeVariableMap(pFormula));
@@ -406,17 +408,17 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   }
 
   private SymbolicIdentifier toSymbolicIdentifier(String pEncoding) {
-    return SymbolicIdentifier.Converter.getInstance().convert(pEncoding);
+    return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(pEncoding);
   }
 
-  private Value convertToValue(Object pTermAssignment, Model.TermType pType) {
-    if (pType.equals(Model.TermType.Integer) || pType.equals(Model.TermType.Bitvector)
-        || pType.equals(Model.TermType.FloatingPoint) || pType.equals(Model.TermType.Real)) {
+  private Value convertToValue(Object pTermAssignment, TermType pType) {
+    if (pType.equals(TermType.Integer) || pType.equals(TermType.Bitvector)
+        || pType.equals(TermType.FloatingPoint) || pType.equals(TermType.Real)) {
       assert pTermAssignment instanceof Number;
 
       return new NumericValue((Number) pTermAssignment);
 
-    } else if (pType.equals(Model.TermType.Boolean)) {
+    } else if (pType.equals(TermType.Boolean)) {
       return BooleanValue.valueOf(true);
 
     } else {

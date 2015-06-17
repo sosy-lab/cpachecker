@@ -45,6 +45,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,8 +58,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -595,7 +596,7 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, getModel(pProver), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMap.<Integer, Boolean>of());
     }
 
     // add formula to solver environment
@@ -607,7 +608,7 @@ public final class InterpolationManager {
 
     if (stillSatisfiable) {
       Model model = getModel(pProver);
-      return CounterexampleTraceInfo.feasible(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      return CounterexampleTraceInfo.feasible(f, RichModel.of(model), pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -616,7 +617,8 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return CounterexampleTraceInfo.feasible(f, Model.empty(), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, RichModel.empty(),
+          ImmutableMap.<Integer, Boolean>of());
     }
   }
 

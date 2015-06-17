@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -35,8 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,13 +54,13 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
-import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Multimap;
@@ -144,7 +144,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
     interpolatingRefiner  = new ValueAnalysisPathInterpolator(
         pFeasibilityChecker,
         pStrongestPostOperator,
-        new ErrorPathClassifier(pCfa.getVarClassification(), pCfa.getLoopStructure()),
+        new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig),
         pConfig, pLogger, pShutdownNotifier, pCfa);
 
     config                = pConfig;
@@ -165,7 +165,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       }
     }
 
-    return CounterexampleInfo.feasible(pErrorPath, Model.empty());
+    return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
   }
 
   /**

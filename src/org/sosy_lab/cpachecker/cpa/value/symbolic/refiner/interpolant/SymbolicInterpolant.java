@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
-import org.sosy_lab.cpachecker.util.refiner.Interpolant;
+import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**

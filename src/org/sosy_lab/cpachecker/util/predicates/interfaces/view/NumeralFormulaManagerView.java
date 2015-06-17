@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -126,6 +127,11 @@ public class NumeralFormulaManagerView
   @Override
   public ResultFormulaType makeNumber(BigDecimal pNumber) {
     return manager.makeNumber(pNumber);
+  }
+
+  @Override
+  public ResultFormulaType makeNumber(Rational pRational) {
+      return manager.makeNumber(pRational);
   }
 
   @Override

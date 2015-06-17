@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -71,6 +71,6 @@ public interface FormulaCreator {
    * @param termAssignment the value of the assignment
    * @return a <code>BooleanFormula</code> representing the given assignment
    */
-  BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment, VariableMap pVariables)
+  BooleanFormula transformAssignment(AssignableTerm pTerm, Object termAssignment, VariableMap pVariables)
   ;
 }

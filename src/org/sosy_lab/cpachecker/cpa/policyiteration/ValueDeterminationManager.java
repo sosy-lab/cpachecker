@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -9,18 +8,19 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 
 public class ValueDeterminationManager {
 
@@ -48,6 +48,40 @@ public class ValueDeterminationManager {
     pfmgr = pPfmgr;
   }
 
+  static class ValueDeterminationConstraints {
+    final ImmutableTable<Template, Integer, Formula> outVars;
+    final ImmutableSet<BooleanFormula> constraints;
+
+    private ValueDeterminationConstraints(
+        ImmutableTable<Template, Integer, Formula> pOutVars,
+        ImmutableSet<BooleanFormula> pConstraints) {
+      outVars = pOutVars;
+      constraints = pConstraints;
+    }
+  }
+
+  /**
+   * Cheaper version of value determination.
+   * May under-approximate the true result (the resulting constraint system is
+   * strictly stronger due to sharing variables).
+   */
+  public ValueDeterminationConstraints valueDeterminationFormulaCheap(
+      PolicyAbstractedState stateWithUpdates,
+      final Map<Template, PolicyBound> updated
+  ) {
+    return valueDeterminationFormula(stateWithUpdates, updated, false);
+  }
+
+  /**
+   * Sound value determination procedure.
+   */
+  public ValueDeterminationConstraints valueDeterminationFormula(
+      PolicyAbstractedState stateWithUpdates,
+      final Map<Template, PolicyBound> updated
+  ) {
+    return valueDeterminationFormula(stateWithUpdates, updated, true);
+  }
+
   /**
    * Convert a value determination problem into a single formula.
    *
@@ -58,16 +92,17 @@ public class ValueDeterminationManager {
    * The abstract state associated with the <code>focusedNode</code>
    * is the <b>new</b> state, with <code>updated</code> applied.
    *
-   * @return Global constraint for value determination and types of the abstract
-   * domain elements.
+   * @return Global constraint for value determination and
+   * table <code>(template + location) -> formula</code> denoting the abstract
+   * value.
    */
-  public Pair<ImmutableMap<String, FormulaType<?>>, Set<BooleanFormula>> valueDeterminationFormula(
+  private ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState stateWithUpdates,
       final Map<Template, PolicyBound> updated,
       boolean useUniquePrefix
   ) {
     Set<BooleanFormula> constraints = new HashSet<>();
-    Map<String, FormulaType<?>> types = new HashMap<>();
+    Table<Template, Integer, Formula> outVars = HashBasedTable.create();
 
     long uniquePrefix = 0;
 
@@ -103,30 +138,25 @@ public class ValueDeterminationManager {
         // Give the element to the constraint generator.
         String prefix;
         if (useUniquePrefix) {
-          // This creates A LOT of constraints.
-          // Which is bad => consequently, everything times out.
           prefix = String.format(VISIT_PREFIX, ++uniquePrefix);
         } else {
+
+          // Merge variables sharing the same policy.
           prefix = String.format(VISIT_PREFIX, bound.serializePolicy(state));
         }
 
         generateConstraintsFromPolicyBound(
-            bound,
-            state,
-
-            template,
-            backpointer,
-            prefix,
-            stateWithUpdates,
-            constraints, types, visited,
-            updated
+            bound, state, template, backpointer, prefix, stateWithUpdates,
+            constraints, outVars, visited, updated
         );
       }
 
       visitedLocationIDs.add(state.getLocationID());
     }
 
-    return Pair.of(ImmutableMap.copyOf(types), constraints);
+    return new ValueDeterminationConstraints(
+        ImmutableTable.copyOf(outVars),
+        ImmutableSet.copyOf(constraints));
   }
 
   /**
@@ -141,14 +171,12 @@ public class ValueDeterminationManager {
   private void generateConstraintsFromPolicyBound(
       PolicyBound bound,
       PolicyAbstractedState toState,
-
       Template template,
       PolicyAbstractedState incomingState,
-
       final String prefix,
       PolicyAbstractedState stateWithUpdates,
       Set<BooleanFormula> constraints,
-      Map<String, FormulaType<?>> types,
+      Table<Template, Integer, Formula> outVars,
       Set<String> visited,
       final Map<Template, PolicyBound> updated
   ) {
@@ -159,15 +187,14 @@ public class ValueDeterminationManager {
           }
         };
     PathFormula policyFormula = bound.getFormula();
-    PathFormula startPathFormula = bound.getStartPathFormula();
+    PathFormula startPathFormula = bound.getStartPathFormula(fmgr);
 
-    final String abstractDomainElement = absDomainVarName(toState, template);
     final Formula policyOutTemplate = fmgr.renameFreeVariablesAndUFs(
         templateManager.toFormula(pfmgr, fmgr, template, policyFormula), addPrefix);
     final Formula abstractDomainFormula =
         fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
-            abstractDomainElement);
-    types.put(abstractDomainElement, fmgr.getFormulaType(policyOutTemplate));
+            absDomainVarName(toState, template));
+    outVars.put(template, toState.getLocationID(), abstractDomainFormula);
 
     // Shortcut: don't follow the nodes not in the policy, as the value
     // determination does not update them.
@@ -229,7 +256,7 @@ public class ValueDeterminationManager {
    * @return Variable name representing the bound in the abstract domain
    * for the given template for the given state.
    */
-  public String absDomainVarName(PolicyAbstractedState state, Template template) {
+  private String absDomainVarName(PolicyAbstractedState state, Template template) {
     return String.format(
         BOUND_VAR_NAME, state.getLocationID(), template.toFormulaString());
   }

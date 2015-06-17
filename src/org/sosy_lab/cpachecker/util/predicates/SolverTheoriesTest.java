@@ -241,7 +241,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     ArrayFormula<IntegerFormula, IntegerFormula> _b = amgr.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     IntegerFormula _b_at_i_plus_1 = amgr.select(_b, _i_plus_1);
 
-    assertThat(_b_at_i_plus_1.toString()).comparesEqualTo("(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
+    assertThat(_b_at_i_plus_1.toString()).isEqualTo("(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
   }
 
   @Test
@@ -252,6 +252,6 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     ArrayFormula<BitvectorFormula, BitvectorFormula> _b = amgr.makeArray("b", FormulaType.getBitvectorTypeWithSize(64), FormulaType.getBitvectorTypeWithSize(32));
     BitvectorFormula _b_at_i = amgr.select(_b, _i);
 
-    assertThat(_b_at_i.toString()).comparesEqualTo("(select b i)"); // Compatibility to all solvers not guaranteed
+    assertThat(_b_at_i.toString()).isEqualTo("(select b i)"); // Compatibility to all solvers not guaranteed
   }
 }

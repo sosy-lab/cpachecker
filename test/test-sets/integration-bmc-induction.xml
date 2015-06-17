@@ -18,6 +18,7 @@
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <exclude>../programs/loop-lit/afnp2014_true-unreach-call.c.i</exclude>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_3_true-unreach-call.cil.c</exclude>

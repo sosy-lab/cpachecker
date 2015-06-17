@@ -92,6 +92,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -100,6 +101,8 @@ import com.google.common.collect.Sets;
 
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
+
+  private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
 
@@ -178,13 +181,30 @@ public class AutomatonGraphmlParser {
       Map<String, Deque<String>> stacks = Maps.newHashMap();
 
       // Create graph
-      Multimap<String, Node> graph = HashMultimap.create();
+      Multimap<String, Node> leavingEdges = HashMultimap.create();
+      Multimap<String, Node> enteringEdges = HashMultimap.create();
       String entryNodeId = null;
+
+      Set<String> violationStates = Sets.newHashSet();
+
       for (int i = 0; i < edges.getLength(); i++) {
         Node stateTransitionEdge = edges.item(i);
 
         String sourceStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
-        graph.put(sourceStateId, stateTransitionEdge);
+        String targetStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
+        leavingEdges.put(sourceStateId, stateTransitionEdge);
+        enteringEdges.put(targetStateId, stateTransitionEdge);
+
+        Element sourceStateNode = docDat.getNodeWithId(sourceStateId);
+        Element targetStateNode = docDat.getNodeWithId(targetStateId);
+        EnumSet<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceStateNode);
+        EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
+        if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
+          violationStates.add(sourceStateId);
+        }
+        if (sourceNodeFlags.contains(NodeFlag.ISVIOLATION)) {
+          violationStates.add(targetStateId);
+        }
       }
 
       // Find entry
@@ -198,9 +218,30 @@ public class AutomatonGraphmlParser {
 
       Preconditions.checkNotNull(entryNodeId, "You must define an entry node.");
 
+      // Determine distances to violation states
+      Queue<String> waitlist = new ArrayDeque<>(violationStates);
+      Map<String, Integer> distances = Maps.newHashMap();
+      for (String violationState : violationStates) {
+        distances.put(violationState, 0);
+      }
+      while (!waitlist.isEmpty()) {
+        String current = waitlist.poll();
+        int newDistance = distances.get(current) + 1;
+        for (Node enteringEdge : enteringEdges.get(current)) {
+          String sourceStateId = GraphMlDocumentData.getAttributeValue(enteringEdge, "source", "Every transition needs a source!");
+          Integer oldDistance = distances.get(sourceStateId);
+          if (oldDistance == null || oldDistance > newDistance) {
+            distances.put(sourceStateId, newDistance);
+            waitlist.offer(sourceStateId);
+          }
+        }
+      }
+      // Sink nodes have infinite distance to the target location, encoded as -1
+      distances.put(AutomatonGraphmlCommon.SINK_NODE_ID, -1);
+
       Set<Node> visitedEdges = new HashSet<>();
       Queue<Node> waitingEdges = new ArrayDeque<>();
-      waitingEdges.addAll(graph.get(entryNodeId));
+      waitingEdges.addAll(leavingEdges.get(entryNodeId));
       visitedEdges.addAll(waitingEdges);
       while (!waitingEdges.isEmpty()) {
         Node stateTransitionEdge = waitingEdges.poll();
@@ -208,7 +249,7 @@ public class AutomatonGraphmlParser {
         String sourceStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
         String targetStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
 
-        for (Node successorEdge : graph.get(targetStateId)) {
+        for (Node successorEdge : leavingEdges.get(targetStateId)) {
           if (visitedEdges.add(successorEdge)) {
             waitingEdges.add(successorEdge);
           }
@@ -217,16 +258,22 @@ public class AutomatonGraphmlParser {
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
-        final List<AutomatonBoolExpr> assertions;
+        final List<AutomatonBoolExpr> assertions = Collections.emptyList();
         boolean leadsToViolationNode = targetNodeFlags.contains(NodeFlag.ISVIOLATION);
         if (leadsToViolationNode) {
-          AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
-          assertions = Collections.singletonList(otherAutomataSafe);
-        } else {
-          assertions = Collections.emptyList();
+          violationStates.add(targetStateId);
         }
 
-        List<AutomatonAction> actions = Collections.emptyList();
+        Integer distance = distances.get(targetStateId);
+        if (distance == null) {
+          distance = Integer.MAX_VALUE;
+        }
+        List<AutomatonAction> actions = Collections.<AutomatonAction>singletonList(
+            new AutomatonAction.Assignment(
+                DISTANCE_TO_VIOLATION,
+                new AutomatonIntExpr.Constant(-distance)
+                )
+            );
         List<CStatement> assumptions = Lists.newArrayList();
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
@@ -382,9 +429,8 @@ public class AutomatonGraphmlParser {
               throw new IllegalArgumentException("Unrecognized assume case: " + assumeCaseStr);
             }
 
-            AutomatonBoolExpr assumeCaseMatchingExpr = or(
-                not(AutomatonBoolExpr.MatchAssumeEdge.INSTANCE),
-                new AutomatonBoolExpr.MatchAssumeCase(assumeCase));
+            AutomatonBoolExpr assumeCaseMatchingExpr =
+                new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
 
             conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
           }
@@ -403,7 +449,10 @@ public class AutomatonGraphmlParser {
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
-        if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty()) {
+        if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty() || leadsToViolationNode) {
+          Element sourceNode = docDat.getNodeWithId(sourceStateId);
+          Set<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceNode);
+          boolean sourceIsViolationNode = sourceNodeFlags.contains(NodeFlag.ISVIOLATION);
           matchingTransitions.add(createAutomatonTransition(
               and(conjunctedTriggers,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
@@ -411,7 +460,7 @@ public class AutomatonGraphmlParser {
               Collections.<CStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
               sourceStateId,
-              leadsToViolationNode));
+              sourceIsViolationNode));
         }
         transitions.addAll(matchingTransitions);
         transitions.addAll(nonMatchingTransitions);
@@ -453,9 +502,11 @@ public class AutomatonGraphmlParser {
         automatonStates.add(state);
       }
 
-      // Build and return the result ----
+      // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every graph needs a specified entry node!");
-      Map<String, AutomatonVariable> automatonVariables = Collections.emptyMap();
+      AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
+      distanceVariable.setValue(-distances.get(initialStateName));
+      Map<String, AutomatonVariable> automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       List<Automaton> result = Lists.newArrayList();
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
@@ -498,9 +549,10 @@ public class AutomatonGraphmlParser {
       return createAutomatonSinkTransition(pTriggers, pAssertions, pActions, pLeadsToViolationNode);
     }
     if (pLeadsToViolationNode) {
+      List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
       return new ViolationCopyingAutomatonTransition(
               pTriggers,
-              pAssertions,
+              assertions,
               pAssumptions,
               pActions,
               pTargetStateId);
@@ -856,10 +908,6 @@ public class AutomatonGraphmlParser {
       result = and(result, e);
     }
     return result;
-  }
-
-  private static AutomatonBoolExpr or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-    return not(and(not(pA), not(pB)));
   }
 
 }

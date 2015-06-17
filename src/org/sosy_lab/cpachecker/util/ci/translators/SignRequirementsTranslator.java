@@ -26,40 +26,41 @@ package org.sosy_lab.cpachecker.util.ci.translators;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+import com.google.common.base.Preconditions;
+
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<SignState> {
 
-  public SignRequirementsTranslator(Class<SignState> pAbstractStateClass, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier, LogManager pLog) {
-    super(pAbstractStateClass, pConfig, pShutdownNotifier, pLog);
+  public SignRequirementsTranslator(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLog) {
+    super(SignState.class, pConfig, pShutdownNotifier, pLog);
   }
 
   @Override
-  protected List<String> getVarsInRequirements(SignState pRequirement) {
-    List<String> list = new ArrayList<>();
-    list.addAll(pRequirement.getSignMapView().keySet());
-    return list;
+  protected List<String> getVarsInRequirements(final SignState pRequirement) {
+    return new ArrayList<>(pRequirement.getSignMapView().keySet());
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(SignState pRequirement, SSAMap pIndices) {
+  protected List<String> getListOfIndependentRequirements(final SignState pRequirement, final SSAMap pIndices) {
     List<String> list = new ArrayList<>();
-    for (String key : pRequirement.getSignMapView().keySet()) {
-      SIGN sign = pRequirement.getSignMapView().get(key);
-      list.add("(= " + getVarWithIndex(key, pIndices) + " " + sign + ")");
+    for (String var : pRequirement.getSignMapView().keySet()) {
+      list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
     }
     return list;
   }
 
-  public String getRequirement(String var, SIGN sign) {
+  private String getRequirement(final String var, final SIGN sign) {
     StringBuilder sb = new StringBuilder();
+    Preconditions.checkArgument(sign != SIGN.EMPTY);
+    Preconditions.checkArgument(sign != SIGN.ALL);
 
     if (sign.covers(SIGN.PLUS)) {
       sb.append("(> ");

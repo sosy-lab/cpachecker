@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 public class AppliedCustomInstruction {
 
   private final CFANode ciStartNode;
-  private final Collection<CFANode> ciEndNode;
+  private final Collection<CFANode> ciEndNodes;
   private final Pair<List<String>, String> fakeDescription;
   private final SSAMap indicesForReturnVars;
 
@@ -46,14 +46,14 @@ public class AppliedCustomInstruction {
    * Constructor of AppliedCustomInstruction.
    * Creates a AppliedCustomInstruction with a start node and a set of endNodes
    * @param pCiStartNode CFANode
-   * @param pCiEndNode ImmutableSet
+   * @param pCiEndNodes ImmutableSet
    */
-  public AppliedCustomInstruction (final CFANode pCiStartNode, final Collection<CFANode> pCiEndNode,
-      final Pair<List<String>, String> pFaceDescription, final SSAMap pIndicesForReturnVars){
+  public AppliedCustomInstruction (final CFANode pCiStartNode, final Collection<CFANode> pCiEndNodes,
+      final Pair<List<String>, String> pFakeDescription, final SSAMap pIndicesForReturnVars){
 
     ciStartNode = pCiStartNode;
-    ciEndNode = pCiEndNode;
-    fakeDescription = pFaceDescription;
+    ciEndNodes = pCiEndNodes;
+    fakeDescription = pFakeDescription;
     indicesForReturnVars = pIndicesForReturnVars;
   }
 
@@ -63,7 +63,7 @@ public class AppliedCustomInstruction {
    * @return true if pState equals ciStartNode, false if not.
    * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
    */
-  public boolean isStartState (AbstractState pState) throws CPAException {
+  public boolean isStartState (final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
       throw new CPAException("The State " + pState+ " has to contain a location state!");
@@ -78,13 +78,13 @@ public class AppliedCustomInstruction {
    * @return true if pState equals ciEndNode, false if not.
    * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
    */
-  public boolean isEndState (AbstractState pState) throws CPAException {
+  public boolean isEndState (final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
       throw new CPAException("The State " + pState+ " has to contain a location state!");
     }
 
-    return ciEndNode.contains(locState);
+    return ciEndNodes.contains(locState);
   }
 
   public Pair<List<String>, String> getFakeSMTDescription() {

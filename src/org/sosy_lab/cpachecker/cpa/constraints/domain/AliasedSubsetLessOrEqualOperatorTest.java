@@ -31,14 +31,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;

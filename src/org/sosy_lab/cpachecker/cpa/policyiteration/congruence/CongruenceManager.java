@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.stator.congruence")
@@ -73,6 +74,18 @@ public class CongruenceManager {
     return new CongruenceState(abstraction);
   }
 
+  public boolean isLessOrEqual(CongruenceState a, CongruenceState b) {
+    for (Entry<Template, Congruence> e : b) {
+      Template template = e.getKey();
+      Congruence congruence = e.getValue();
+      Optional<Congruence> smallerCongruence = a.get(template);
+      if (!smallerCongruence.isPresent()
+          || smallerCongruence.get() != congruence) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   public CongruenceState performAbstraction(
       CFANode node,
@@ -163,10 +176,10 @@ public class CongruenceManager {
   }
 
   private boolean shouldUseTemplate(Template template) {
-    return
-        template.getType().getType().isIntegerType()
-            && ((template.getKind() == Kind.UPPER_BOUND)
-            || (trackCongruenceSum && template.getKind() == Kind.SUM));
+    return template.isIntegral() && (
+        (template.getKind() == Kind.UPPER_BOUND)
+        || (trackCongruenceSum && template.getKind() == Kind.SUM)
+    );
   }
 
   private Formula makeBv(BitvectorFormulaManager bvfmgr, Formula other, int value) {

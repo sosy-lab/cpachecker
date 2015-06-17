@@ -636,6 +636,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         return interval.negate();
 
       case AMPER:
+      case TILDE:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value
 
       default:

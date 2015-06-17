@@ -48,15 +48,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 
-public class EdgeFormulaNegation implements CandidateInvariant {
+public class EdgeFormulaNegation extends LocationFormulaInvariant {
 
   private final AssumeEdge edge;
 
   private final Set<CFANode> locations;
 
   public EdgeFormulaNegation(Set<CFANode> pLocations, AssumeEdge pEdge) {
+    super(pLocations);
     Preconditions.checkNotNull(pEdge);
     this.locations = checkNotNull(pLocations);
     this.edge = pEdge;
@@ -67,7 +67,8 @@ public class EdgeFormulaNegation implements CandidateInvariant {
     return getOnlyElement(CFAUtils.leavingEdges(predecessor).filter(AssumeEdge.class).filter(not(equalTo(edge))));
   }
 
-  public BooleanFormula getCandidate(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
+  @Override
+  public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
     PathFormula invariantPathFormula = pPFMGR.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
     return pFMGR.getBooleanFormulaManager().not(pFMGR.uninstantiate(invariantPathFormula.getFormula()));
   }
@@ -92,14 +93,6 @@ public class EdgeFormulaNegation implements CandidateInvariant {
   @Override
   public String toString() {
     return getNegatedAssumeEdge().toString();
-  }
-
-  @Override
-  public BooleanFormula getAssertion(ReachedSet pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
-    Iterable<AbstractState> locationStates = AbstractStates.filterLocations(pReachedSet, locations);
-    FluentIterable<BooleanFormula> assertions = FluentIterable.from(
-        BMCHelper.assertAt(locationStates, getCandidate(pFMGR, pPFMGR), pFMGR));
-    return pFMGR.getBooleanFormulaManager().and(assertions.toList());
   }
 
   @Override

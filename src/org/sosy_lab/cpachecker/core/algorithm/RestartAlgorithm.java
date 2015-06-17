@@ -37,6 +37,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;

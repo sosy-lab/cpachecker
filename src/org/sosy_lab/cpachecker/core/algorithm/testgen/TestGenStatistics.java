@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 
-
+@SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
 public class TestGenStatistics implements Statistics {
 
   private final Timer totalTimer = new Timer();

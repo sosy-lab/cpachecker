@@ -221,3 +221,8 @@
 .idea/workspace.xml
 .idea/uiDesigner.xml
 .idea/dictionaries
+
+# Generated files.
+src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaParser.java
+src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaScanner.java
+src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaSymbols.java

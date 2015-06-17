@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.iteration;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 
 
 public abstract class AbstractIterationStrategy implements TestGenIterationStrategy {
@@ -70,7 +70,7 @@ public abstract class AbstractIterationStrategy implements TestGenIterationStrat
   }
 
   @Override
-  public AlgorithmStatus runAlgorithm() throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException {
+  public AlgorithmStatus runAlgorithm() throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
     stats.beforeCpaAlgortihm();
     AlgorithmStatus status = model.getAlgorithm().run(model.getLocalReached());
     stats.afterCpaAlgortihm(model.getAlgorithm());

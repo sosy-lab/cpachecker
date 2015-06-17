@@ -67,7 +67,8 @@ public class ReachingDefUtils {
     Vector<String> globalVariables = new Vector<>();
     Vector<CFANode> nodes = new Vector<>();
 
-    while (!(pMainNode instanceof FunctionEntryNode)) {
+    assert(pMainNode instanceof FunctionEntryNode);
+    /*while (!(pMainNode instanceof FunctionEntryNode)) {
       out = pMainNode.getLeavingEdge(0);
       if (out instanceof CDeclarationEdge
           && ((CDeclarationEdge) out).getDeclaration() instanceof CVariableDeclaration) {
@@ -76,7 +77,7 @@ public class ReachingDefUtils {
       nodes.add(pMainNode);
       pMainNode = pMainNode.getLeavingEdge(0).getSuccessor();
     }
-
+TODO delete */
     Map<FunctionEntryNode, Set<String>> result = new HashMap<>();
 
     HashSet<FunctionEntryNode> reachedFunctions = new HashSet<>();
@@ -162,7 +163,7 @@ public class ReachingDefUtils {
     protected String visitDefault(CExpression pExp) {
       return null;
     }
-
+// TODO adapt, need more
     @Override
     public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws UnsupportedCCodeException {
       warning = "Analysis may be unsound in case of aliasing.";

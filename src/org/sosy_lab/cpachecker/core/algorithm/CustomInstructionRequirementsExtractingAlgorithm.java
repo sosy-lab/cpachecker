@@ -33,6 +33,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,7 +42,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParser;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications;
@@ -78,6 +78,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private Class<? extends AbstractState> requirementsStateClass;
 
   private CFA cfa;
+  private final Configuration config;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
@@ -98,6 +99,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     analysis = analysisAlgorithm;
     this.logger = logger;
     this.shutdownNotifier = sdNotifier;
+    this.config = config;
 
     if (cpa instanceof ARGCPA) {
       throw new InvalidConfigurationException("The given cpa " + cpa + "is not an instance of ARGCPA");
@@ -126,14 +128,14 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      PredicatedAnalysisPropertyViolationException {
+      CPAEnabledAnalysisPropertyViolationException {
 
     logger.log(Level.INFO, " Start analysing to compute requirements.");
 
     AlgorithmStatus status = analysis.run(pReachedSet);
 
     // analysis was unsound
-    if (status.isSound()) {
+    if (!status.isSound()) {
       logger.log(Level.SEVERE, "Do not extract requirements since analysis failed.");
       return status;
     }
@@ -168,8 +170,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    */
   private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
-
-    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix, requirementsStateClass, null); // TODO
+    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix, requirementsStateClass, config, shutdownNotifier, logger);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
     for (ARGState node : ciStartNodes) {

@@ -26,18 +26,20 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 import java.util.Collection;
 import java.util.Deque;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -159,6 +161,16 @@ public class ValueTransferBasedStrongestPostOperator
             callStateValueState, (FunctionExitNode) pEdge.getPredecessor());
 
     return getNewCompositeState(currentValueState, constraintsState);
+  }
+
+  @Override
+  public ForgettingCompositeState performAbstraction(
+      final ForgettingCompositeState pNext,
+      final CFANode pCurrNode,
+      final ARGPath pErrorPath,
+      final Precision pPrecision
+  ) {
+    return pNext;
   }
 
   private Optional<ValueAnalysisState> strengthenValueState(

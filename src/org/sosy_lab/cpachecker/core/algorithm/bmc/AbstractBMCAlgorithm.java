@@ -24,15 +24,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
-import static java.util.Collections.unmodifiableSet;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,7 +40,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -82,7 +80,7 @@ import com.google.common.collect.Iterables;
 @Options(prefix="bmc")
 abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
-  private static final Predicate<AbstractState> IS_STOP_STATE =
+  static final Predicate<AbstractState> IS_STOP_STATE =
     Predicates.compose(new Predicate<AssumptionStorageState>() {
                              @Override
                              public boolean apply(AssumptionStorageState pArg0) {
@@ -215,10 +213,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (targetLocations == null) {
       targetLocations = cfa.getAllNodes();
     }
-    final Set<CandidateInvariant> candidateInvariants = getCandidateInvariants(cfa, targetLocations);
+    final CandidateGenerator candidateGenerator = getCandidateInvariants(cfa, targetLocations);
 
     try {
-      if (candidateInvariants.isEmpty()) {
+      if (!candidateGenerator.produceMoreCandidates()) {
         for (AbstractState state : from(reachedSet.getWaitlist()).toList()) {
           reachedSet.removeOnlyFromWaitlist(state);
         }
@@ -248,14 +246,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           if (invariantGenerator.isProgramSafe()) {
             // The reachedSet might contain target states which would give a wrong
             // indication of safety to the caller. So remove them.
-            for (CandidateInvariant candidateInvariant : candidateInvariants) {
+            for (CandidateInvariant candidateInvariant : candidateGenerator) {
               candidateInvariant.assumeTruth(reachedSet);
             }
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
 
           // Perform a bounded model check on each candidate invariant
-          Iterator<CandidateInvariant> candidateInvariantIterator = candidateInvariants.iterator();
+          Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
           while (candidateInvariantIterator.hasNext()) {
             CandidateInvariant candidateInvariant = candidateInvariantIterator.next();
             // first check safety in k iterations
@@ -269,10 +267,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
               return AlgorithmStatus.SOUND_AND_PRECISE;
             }
           }
-          if (candidateInvariants.isEmpty()) {
-            // no remaining invariants to be proven
-            return status;
-          }
 
           // second check soundness
           boolean sound;
@@ -281,7 +275,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           if (status.isSound()) {
 
             // check bounding assertions
-            sound = checkBoundingAssertions(reachedSet, prover);
+            sound = candidateGenerator.hasCandidatesAvailable() ? checkBoundingAssertions(reachedSet, prover) : true;
 
             if (invariantGenerator.isProgramSafe()) {
               return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -290,12 +284,18 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             // try to prove program safety via induction
             if (induction) {
               final int k = CPAs.retrieveCPA(cpa, BoundsCPA.class).getMaxLoopIterations();
-              sound = sound || kInductionProver.check(k, unmodifiableSet(candidateInvariants), getStopLocations(reachedSet));
-              candidateInvariants.removeAll(kInductionProver.getConfirmedCandidates());
+              sound = sound || kInductionProver.check(k, from(candidateGenerator).toSet());
+              candidateGenerator.confirmCandidates(kInductionProver.getConfirmedCandidates());
             }
-            if (sound || invariantGenerator.isProgramSafe()) {
+            if (invariantGenerator.isProgramSafe()
+                || (sound && !candidateGenerator.produceMoreCandidates())) {
               return AlgorithmStatus.SOUND_AND_PRECISE;
             }
+          }
+
+          if (!candidateGenerator.hasCandidatesAvailable()) {
+            // no remaining invariants to be proven
+            return status;
           }
         }
         while (status.isSound() && adjustConditions());
@@ -311,7 +311,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    *
    * @return the candidate invariants to be checked.
    */
-  protected abstract Set<CandidateInvariant> getCandidateInvariants(CFA cfa,
+  protected abstract CandidateGenerator getCandidateInvariants(CFA cfa,
       Collection<CFANode> targetLocations);
 
   /**
@@ -424,7 +424,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     }
   }
 
-
   protected KInductionProver createInductionProver() {
      return induction ? new KInductionProver(
         cfa,
@@ -436,9 +435,5 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         reachedSetFactory,
         havocLoopTerminationConditionVariablesOnly,
         shutdownNotifier) : null;
-  }
-  
-  private static Set<CFANode> getStopLocations(ReachedSet pReachedSet) {
-    return from(pReachedSet).filter(IS_STOP_STATE).transform(AbstractStates.EXTRACT_LOCATION).toSet();
   }
 }

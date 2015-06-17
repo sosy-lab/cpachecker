@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,13 +51,13 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -71,11 +72,15 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
+import com.google.common.base.Equivalence;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
@@ -89,6 +94,34 @@ public class LiveVariables {
   public enum EvaluationStrategy {
     FUNCTION_WISE, GLOBAL
   }
+
+  /**
+   * Equivalence implementation especially for the use with live variables. We
+   * have to use this wrapper, because of the storageType in CVariableDeclarations
+   * which do not always have to be the same for exactly the same variable (e.g.
+   * one declaration is extern, and afterwards the real declaration is following which
+   * then has storageType auto, for live variables we need to consider them as one.
+   */
+  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<ASimpleDeclaration>() {
+
+    @Override
+    protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
+      if (pA instanceof CVariableDeclaration && pB instanceof CVariableDeclaration) {
+        return ((CVariableDeclaration)pA).equalsWithoutStorageClass(pB);
+      } else {
+        return pA.equals(pB);
+      }
+    }
+
+    @Override
+    protected int doHash(ASimpleDeclaration pT) {
+      if (pT instanceof CVariableDeclaration) {
+        return ((CVariableDeclaration)pT).hashCodeWithOutStorageClass();
+      } else {
+        return pT.hashCode();
+      }
+    }
+  };
 
   @Options(prefix="liveVar")
   private static class LiveVariablesConfiguration {
@@ -194,8 +227,8 @@ public class LiveVariables {
   }
 
   // For ensuring deterministic behavior, all collections should be sorted!
-  private final ImmutableSetMultimap<CFANode, ASimpleDeclaration> liveVariables; // sorted by construction
-  private final ImmutableSortedSet<ASimpleDeclaration> globalVariables;
+  private final ImmutableSetMultimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> liveVariables; // sorted by construction
+  private final ImmutableSortedSet<Equivalence.Wrapper<ASimpleDeclaration>> globalVariables;
   private final VariableClassification variableClassification;
   private final EvaluationStrategy evaluationStrategy;
   private final Language language;
@@ -206,16 +239,17 @@ public class LiveVariables {
   private final ImmutableSetMultimap<CFANode, String> liveVariablesStrings; // sorted by construction
   private final ImmutableSortedSet<String> globalVariablesStrings;
 
-  private LiveVariables(Multimap<CFANode, ASimpleDeclaration> pLiveVariables,
+  private LiveVariables(Multimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> pLiveVariables,
                         VariableClassification pVariableClassification,
-                        Set<ASimpleDeclaration> pGlobalVariables,
+                        Set<Equivalence.Wrapper<ASimpleDeclaration>> pGlobalVariables,
                         EvaluationStrategy pEvaluationStrategy,
                         Language pLanguage) {
-    Ordering<ASimpleDeclaration> declarationOrdering = Ordering.natural().onResultOf(ASimpleDeclaration.GET_QUALIFIED_NAME);
+
+    Ordering<Equivalence.Wrapper<ASimpleDeclaration>> declarationOrdering = Ordering.natural().onResultOf(FROM_EQUIV_WRAPPER_TO_STRING);
 
     // ImmutableSortedSetMultimap does not exist, in order to create a sorted immutable Multimap
     // we sort it and create an immutable copy (Guava's Immutable* classes guarantee to keep the order).
-    SortedSetMultimap<CFANode, ASimpleDeclaration> sortedLiveVariables =
+    SortedSetMultimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> sortedLiveVariables =
         TreeMultimap.create(Ordering.natural(), declarationOrdering);
     sortedLiveVariables.putAll(pLiveVariables);
     liveVariables = ImmutableSetMultimap.copyOf(sortedLiveVariables);
@@ -228,16 +262,16 @@ public class LiveVariables {
     evaluationStrategy = pEvaluationStrategy;
     language = pLanguage;
 
-    globalVariablesStrings = ImmutableSortedSet.copyOf(
-        Collections2.transform(globalVariables, ASimpleDeclaration.GET_QUALIFIED_NAME));
-    liveVariablesStrings = ImmutableSetMultimap.copyOf(
-        Multimaps.transformValues(liveVariables, ASimpleDeclaration.GET_QUALIFIED_NAME));
+    globalVariablesStrings = ImmutableSortedSet.copyOf(Collections2.transform(globalVariables, FROM_EQUIV_WRAPPER_TO_STRING));
+
+    liveVariablesStrings = ImmutableSetMultimap.copyOf(Multimaps.transformValues(liveVariables, FROM_EQUIV_WRAPPER_TO_STRING));
   }
 
   public boolean isVariableLive(ASimpleDeclaration variable, CFANode location) {
     String varName = variable.getQualifiedName();
+    final Wrapper<ASimpleDeclaration> wrappedDecl = LIVE_DECL_EQUIVALENCE.wrap(variable);
 
-    if (globalVariables.contains(variable)
+    if (globalVariables.contains(wrappedDecl)
         || (language == Language.C
              && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
@@ -246,7 +280,7 @@ public class LiveVariables {
     }
 
     // check if a variable is live at a given point
-    return liveVariables.containsEntry(location, variable);
+    return liveVariables.containsEntry(location, wrappedDecl);
   }
 
   public boolean isVariableLive(final String varName, CFANode location) {
@@ -267,7 +301,17 @@ public class LiveVariables {
    * without duplicates and with deterministic iteration order.
    */
   public FluentIterable<ASimpleDeclaration> getLiveVariablesForNode(CFANode pNode) {
-    return from(liveVariables.get(pNode)).append(globalVariables);
+    return from(liveVariables.get(pNode)).append(globalVariables).transform(
+        FROM_EQUIV_WRAPPER);
+  }
+
+  /**
+   * @return iterable of all variables which are alive at at least one node.
+   */
+  public FluentIterable<ASimpleDeclaration> getAllLiveVariables() {
+    return from(ImmutableSet.copyOf(liveVariables.values())).append(globalVariables)
+        .transform(FROM_EQUIV_WRAPPER);
+
   }
 
   /**
@@ -331,13 +375,14 @@ public class LiveVariables {
                                                  final CFA cfa,
                                                  final LiveVariablesConfiguration config) throws AssertionError {
     // prerequisites for creating the live variables
-    Set<ASimpleDeclaration> globalVariables;
+    Set<Wrapper<ASimpleDeclaration>> globalVariables;
     switch (config.evaluationStrategy) {
     case FUNCTION_WISE: globalVariables = FluentIterable.from(globalsList)
                                                         .transform(DECLARATION_FILTER)
                                                         .filter(notNull())
                                                         .filter(not(or(instanceOf(CTypeDeclaration.class),
                                                                        instanceOf(CFunctionDeclaration.class))))
+                                                        .transform(TO_EQUIV_WRAPPER)
                                                         .toSet();
       break;
     case GLOBAL: globalVariables = Collections.emptySet(); break;
@@ -355,7 +400,7 @@ public class LiveVariables {
     ResourceLimitChecker limitChecker = new ResourceLimitChecker(liveVarsNotifier, limits);
 
     Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, liveVarsNotifier, config.evaluationStrategy);
-    Multimap<CFANode, ASimpleDeclaration> liveVariables = null;
+    Multimap<CFANode, Wrapper<ASimpleDeclaration>> liveVariables = null;
 
     limitChecker.start();
 
@@ -391,7 +436,24 @@ public class LiveVariables {
           return pInput.getFirst();
       }};
 
-  private static Multimap<CFANode, ASimpleDeclaration> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
+  public final static Function<ASimpleDeclaration, Equivalence.Wrapper<ASimpleDeclaration>> TO_EQUIV_WRAPPER =
+      new Function<ASimpleDeclaration, Equivalence.Wrapper<ASimpleDeclaration>>() {
+    @Override
+    public Equivalence.Wrapper<ASimpleDeclaration> apply(ASimpleDeclaration pInput) {
+      return LIVE_DECL_EQUIVALENCE.wrap(pInput);
+  }};
+
+  private final static Function<Equivalence.Wrapper<ASimpleDeclaration>, ASimpleDeclaration> FROM_EQUIV_WRAPPER =
+      new Function<Equivalence.Wrapper<ASimpleDeclaration>, ASimpleDeclaration>() {
+    @Override
+    public ASimpleDeclaration apply(Equivalence.Wrapper<ASimpleDeclaration> pInput) {
+      return pInput.get();
+    }};
+
+  public final static Function<Equivalence.Wrapper<ASimpleDeclaration>, String> FROM_EQUIV_WRAPPER_TO_STRING =
+      Functions.compose(ASimpleDeclaration.GET_QUALIFIED_NAME, FROM_EQUIV_WRAPPER);
+
+  private static Multimap<CFANode, Wrapper<ASimpleDeclaration>> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
                                               AnalysisParts analysisParts, EvaluationStrategy evaluationStrategy) {
 
     Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();

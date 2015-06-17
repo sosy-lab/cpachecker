@@ -28,10 +28,10 @@ import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;

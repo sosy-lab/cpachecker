@@ -34,11 +34,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier.Converter;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -60,13 +61,6 @@ import com.google.common.base.Optional;
  * and {@link FormulaManagerView}.
  */
 public class FormulaCreatorUsingCConverter implements FormulaCreator {
-
-  /**
-   * Suffix that has to be appended to all variable names.
-   * Since {@link CtoFormulaConverter} uses single static assignments (SSA), but we don't,
-   * we can just append the first SSA index to every variable name.
-   */
-  private static final String VARIABLE_SUFFIX = "@1";
 
   private final FormulaManagerView formulaManager;
   private final CtoFormulaConverter toFormulaTransformer;
@@ -98,7 +92,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   }
 
   @Override
-  public BooleanFormula transformAssignment(Model.AssignableTerm pTerm, Object termAssignment, VariableMap pVariables) {
+  public BooleanFormula transformAssignment(AssignableTerm pTerm, Object termAssignment, VariableMap pVariables) {
     Formula variable = getVariableForTerm(pTerm, pVariables);
     FormulaType<?> variableType = formulaManager.getFormulaType(variable);
     Formula rightFormula;
@@ -203,8 +197,10 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
    * @param pVariables the map of possible variables
    * @return a variable representing the given term, in form of a {@link Formula}
    */
-  private Formula getVariableForTerm(Model.AssignableTerm pTerm, VariableMap pVariables) {
-    final String name = pTerm.getName() + VARIABLE_SUFFIX;
+  private Formula getVariableForTerm(AssignableTerm pTerm, VariableMap pVariables) {
+    final Converter symIdConverter = Converter.getInstance();
+
+    final String name = symIdConverter.normalizeStringEncoding(pTerm.getName());
 
     return pVariables.get(name);
   }

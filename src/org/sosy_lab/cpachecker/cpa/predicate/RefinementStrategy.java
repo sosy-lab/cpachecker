@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
@@ -198,8 +197,8 @@ public abstract class RefinementStrategy {
           // If the previous itp was true, and the current one is false,
           // this means that the code block between them is in itself infeasible.
           // We can add this information to the cache to speed up later sat checks.
-          PredicateAbstractState s = getPredicateState(w);
-          BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
+          // PredicateAbstractState s = getPredicateState(w);
+          // BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
           // solver.addUnsatisfiableFormulaToCache(blockFormula);
           // TODO disabled, because tree-interpolation returns true-false-interpolants
           // without an unsatisfiable intermediate formula

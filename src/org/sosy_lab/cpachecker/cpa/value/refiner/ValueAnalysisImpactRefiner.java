@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,7 +49,6 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -63,13 +63,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.GenericRefiner.RestartStrategy;
-import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.refinement.GenericRefiner.RestartStrategy;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.HashMultimap;
@@ -170,8 +170,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     interpolatingRefiner  =
         new ValueAnalysisPathInterpolator(checker,
                                           pStrongestPostOp,
-                                          new ErrorPathClassifier(pCfa.getVarClassification(),
-                                                                  pCfa.getLoopStructure()),
+                                          new ValueAnalysisPrefixProvider(logger, pCfa, pConfig),
                                           pConfig, pLogger, pShutdownNotifier, pCfa);
   }
 
@@ -181,8 +180,8 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     totalTime.start();
     refinementCounter++;
 
-    List<ARGState> targets  = getErrorStates(pReached);
-    targetCounter       = targetCounter + targets.size();
+    List<ARGState> targets = getErrorStates(pReached);
+    targetCounter = targetCounter + targets.size();
 
     // stop once any feasible counterexample is found
     if (isAnyPathFeasible(new ARGReachedSet(pReached), getTargetPaths(targets))) {
@@ -190,7 +189,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       return false;
     }
 
-    ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, getTargetPaths(targets), useTopDownInterpolationStrategy);
 
     Set<ARGState> interpolatedTargets = new HashSet<>();
     while (interpolationTree.hasNextPathForInterpolation()) {

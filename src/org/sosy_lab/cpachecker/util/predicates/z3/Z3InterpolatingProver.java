@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
@@ -159,7 +159,7 @@ class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
       } else { // if (currentSubtree <= lastSubtree) {
         // merge-point in tree, several children at a node -> pop from stack and conjunct
         final List<Long> children = new ArrayList<>();
-        while (!stack.isEmpty() && currentSubtree <= stack.peekLast().getFirst()) {
+        while (!stack.isEmpty() && currentSubtree <= stack.peekLast().getFirstNotNull()) {
           // adding at front is important for tree-structure!
           children.add(0, stack.pollLast().getSecond());
         }

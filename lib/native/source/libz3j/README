@@ -1,9 +1,9 @@
 Shared object file for Z3 is bundled together with CPAchecker.
 
 For building libz3j.so, follow these steps:
-- Checkout Z3 from http://z3.codeplex.com
-- Switch to the "opt" branch.
-- Run "python scripts/mk_make.py"
+- Checkout Z3 from git@github.com:Z3Prover/z3.git
+- Switch to the "unstable" branch.
+- Run "./configure"
 - Switch to the "build" directory, run "make" and "strip libz3.so".
 - From this folder:
     -> Run "./buildZ3wrapper $Z3PATH/src/api"

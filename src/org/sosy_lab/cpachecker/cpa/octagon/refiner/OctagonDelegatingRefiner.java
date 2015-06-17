@@ -31,6 +31,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -42,8 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -63,11 +63,11 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
-import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -161,7 +161,9 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
       throws InvalidConfigurationException {
     super(pCpa);
-    pOctagonCPA.getConfiguration().inject(this);
+
+    final Configuration config = pOctagonCPA.getConfiguration();
+    config.inject(this);
 
     cfa                   = pOctagonCPA.getCFA();
     logger                = pOctagonCPA.getLogger();
@@ -170,8 +172,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     interpolatingRefiner  = new ValueAnalysisPathInterpolator(
         pValueAnalysisFeasibilityChecker,
         pValueAnalysisPostOperator,
-        new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure()),
-        pOctagonCPA.getConfiguration(),
+        new ValueAnalysisPrefixProvider(logger, cfa, config),
+        config,
         logger, shutdownNotifier, cfa);
 
     valueChecker = pValueAnalysisFeasibilityChecker;
@@ -202,7 +204,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       }
     }
 
-    return CounterexampleInfo.feasible(pErrorPath, Model.empty());
+    return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
   }
 
   /**

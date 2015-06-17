@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -71,6 +71,8 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
@@ -85,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedV
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 
 import com.google.common.base.Preconditions;
@@ -95,7 +98,7 @@ import com.google.common.collect.Iterables;
 /**
  * This is a CPA for collecting simple invariants about integer variables.
  */
-public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdjustingCPA {
+public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdjustingCPA, StatisticsProvider {
 
   /**
    * A formula visitor for collecting the variables contained in a formula.
@@ -119,14 +122,13 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     private volatile int interestingVariableLimit = 2;
 
     @Option(secure=true, description="the maximum tree depth of a formula recorded in the environment.")
-    private int maximumFormulaDepth = 4;
+    private volatile int maximumFormulaDepth = 4;
 
     @Option(secure=true, description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
     private AbstractionStateFactories abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
 
     @Option(secure=true, description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
     private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
-
   }
 
   /**
@@ -176,6 +178,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final MergeOperator mergeOperator;
   private final AbstractDomain abstractDomain;
 
+  private final StateToFormulaWriter writer;
+
   /**
    * Gets a factory for creating InvariantCPAs.
    *
@@ -197,7 +201,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
   public InvariantsCPA(Configuration pConfig, LogManager pLogManager, InvariantsOptions pOptions,
-      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa) {
+      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory, CFA pCfa)
+          throws InvalidConfigurationException {
     this.config = pConfig;
     this.logManager = pLogManager;
     this.shutdownNotifier = pShutdownNotifier;
@@ -215,6 +220,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       assert pOptions.merge.equalsIgnoreCase("join");
       mergeOperator = new MergeJoinOperator(abstractDomain);
     }
+    this.writer = new StateToFormulaWriter(config, logManager, shutdownNotifier, cfa);
   }
 
   @Override
@@ -229,7 +235,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public TransferRelation getTransferRelation() {
-    return InvariantsTransferRelation.INSTANCE;
+    return new InvariantsTransferRelation();
   }
 
   @Override
@@ -485,7 +491,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private static boolean anyOnPath(List<CFAEdge> pPath, Set<String> pRelevantVariables) {
     for (CFAEdge edge : pPath) {
-      if (!Collections.disjoint(InvariantsTransferRelation.INSTANCE.getInvolvedVariables(edge).keySet(), pRelevantVariables)) {
+      if (!Collections.disjoint(EdgeAnalyzer.getInvolvedVariableTypes(edge).keySet(), pRelevantVariables)) {
         return true;
       }
     }
@@ -519,14 +525,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   private static void addTransitivelyRelevantInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
-    Set<String> involvedVariables = InvariantsTransferRelation.INSTANCE.getInvolvedVariables(pEdge).keySet();
+    Set<String> involvedVariables = EdgeAnalyzer.getInvolvedVariableTypes(pEdge).keySet();
     if (!Collections.disjoint(pRelevantVariables, involvedVariables)) {
       addAll(pRelevantVariables, involvedVariables, pLimit);
     }
   }
 
   private static void addInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
-    addAll(pRelevantVariables, InvariantsTransferRelation.INSTANCE.getInvolvedVariables(pEdge).keySet(), pLimit);
+    addAll(pRelevantVariables, EdgeAnalyzer.getInvolvedVariableTypes(pEdge).keySet(), pLimit);
   }
 
   private static <T> void addAll(Collection<T> pTarget, Collection<T> pSource, int pLimit) {
@@ -708,7 +714,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return false;
       }
       cpa.initialPrecisionMap.clear();
-      cpa.options.interestingVariableLimit += inc;
+      synchronized (cpa) {
+        cpa.options.interestingVariableLimit += inc;
+      }
       cpa.logManager.log(Level.INFO, "Adjusting interestingVariableLimit to", cpa.options.interestingVariableLimit);
       return true;
     }
@@ -746,7 +754,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return false;
       }
       cpa.initialPrecisionMap.clear();
-      cpa.options.maximumFormulaDepth += inc;
+      synchronized (cpa) {
+        cpa.options.maximumFormulaDepth += inc;
+      }
       cpa.logManager.log(Level.INFO, "Adjusting maximum formula depth to", cpa.options.maximumFormulaDepth);
       return true;
     }
@@ -796,5 +806,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   }
 
-
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    writer.collectStatistics(pStatsCollection);
+  }
 }

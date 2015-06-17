@@ -39,13 +39,13 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -178,7 +178,7 @@ class KInductionProver implements AutoCloseable {
   }
 
   public Collection<CandidateInvariant> getConfirmedCandidates() {
-    return confirmedCandidates;
+    return from(confirmedCandidates).toSet();
   }
 
   /**
@@ -243,23 +243,21 @@ class KInductionProver implements AutoCloseable {
     if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
       BooleanFormula lhi = bfmgr.makeBoolean(false);
       for (CFANode loopHead : pStopLocations) {
-        lhi = bfmgr.or(lhi, getCurrentLocationInvariants(loopHead, fmgr, pfmgr, pStopLocations));
+        lhi = bfmgr.or(lhi, getCurrentLocationInvariants(loopHead, fmgr, pfmgr));
       }
       loopHeadInvariants = lhi;
     }
     return loopHeadInvariants;
   }
 
-  public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR, Set<CFANode> pStopLocations) throws CPATransferException, InterruptedException {
+  public BooleanFormula getCurrentLocationInvariants(CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
     BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
 
-    if (pStopLocations.contains(pLocation)) {
-      for (EdgeFormulaNegation ci : from(getConfirmedCandidates()).filter(EdgeFormulaNegation.class)) {
-        invariant = bfmgr.and(invariant, ci.getCandidate(pFMGR, pPFMGR));
-      }
+    for (CandidateInvariant confirmedCandidate : this.confirmedCandidates) {
+      invariant = bfmgr.and(invariant, confirmedCandidate.getFormula(pFMGR, pPFMGR));
     }
 
     return invariant;
@@ -301,7 +299,6 @@ class KInductionProver implements AutoCloseable {
    *
    * @param k The k value to use in the check.
    * @param candidateInvariants What should be checked.
-   * @param pStopLocations
    * @return <code>true</code> if k-induction successfully proved the
    * correctness of all candidate invariants.
    *
@@ -311,7 +308,7 @@ class KInductionProver implements AutoCloseable {
    * step case was interrupted.
    */
   public final boolean check(final int k,
-      final Set<CandidateInvariant> candidateInvariants, Set<CFANode> pStopLocations)
+      final Set<CandidateInvariant> candidateInvariants)
       throws CPAException, InterruptedException {
     stats.inductionPreparation.start();
 
@@ -365,8 +362,9 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Assert the known invariants at the loop head at the first iteration.
+    Set<CFANode> stopLocations = getStopLocations(reached);
     Iterable<AbstractState> loopHeadStates =
-        AbstractStates.filterLocations(reached, pStopLocations).filter(new Predicate<AbstractState>() {
+        AbstractStates.filterLocations(reached, stopLocations).filter(new Predicate<AbstractState>() {
 
           @Override
           public boolean apply(AbstractState pArg0) {
@@ -376,13 +374,14 @@ class KInductionProver implements AutoCloseable {
             BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
             return ls != null && ls.getDeepestIteration() <= 1;
           }});
-    BooleanFormula invariants = getCurrentLoopHeadInvariants(pStopLocations);
+    BooleanFormula invariants = getCurrentLoopHeadInvariants(stopLocations);
     BooleanFormula loopHeadInv = bfmgr.and(from(BMCHelper.assertAt(loopHeadStates, invariants, fmgr)).toList());
 
     // Create the formula asserting the faultiness of the successor
     stepCaseBoundsCPA.setMaxLoopIterations(k + 1);
     stepCaseCallstackCPA.setMaxRecursionDepth(k + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
+    stopLocations = getStopLocations(reached);
 
     this.previousK = k + 1;
 
@@ -419,7 +418,7 @@ class KInductionProver implements AutoCloseable {
 
       // Re-attempt the proof immediately, if new invariants are available
       BooleanFormula oldInvariants = invariants;
-      BooleanFormula currentInvariants = getCurrentLoopHeadInvariants(pStopLocations);
+      BooleanFormula currentInvariants = getCurrentLoopHeadInvariants(stopLocations);
       while (!isInvariant && !currentInvariants.equals(oldInvariants)) {
         push(fmgr.instantiate(currentInvariants, SSAMap.emptySSAMap().withDefault(1)));
         isInvariant = prover.isUnsat();
@@ -430,7 +429,7 @@ class KInductionProver implements AutoCloseable {
 
         pop();
         oldInvariants = currentInvariants;
-        currentInvariants = getCurrentLoopHeadInvariants(pStopLocations);
+        currentInvariants = getCurrentLoopHeadInvariants(stopLocations);
       }
 
       // If the proof is successful, move the problem from the set of open
@@ -545,6 +544,10 @@ class KInductionProver implements AutoCloseable {
       return Precisions.replaceByType(pPrecision, newPrecision, Predicates.instanceOf(EdgeExclusionPrecision.class));
     }
     return pPrecision;
+  }
+
+  private static Set<CFANode> getStopLocations(ReachedSet pReachedSet) {
+    return from(pReachedSet).filter(BMCAlgorithm.IS_STOP_STATE).transform(AbstractStates.EXTRACT_LOCATION).toSet();
   }
 
 }

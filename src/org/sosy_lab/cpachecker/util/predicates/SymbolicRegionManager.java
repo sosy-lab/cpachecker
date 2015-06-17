@@ -30,8 +30,8 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Set;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;

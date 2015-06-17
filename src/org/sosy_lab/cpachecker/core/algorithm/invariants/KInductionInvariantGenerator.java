@@ -36,6 +36,8 @@ import java.util.concurrent.Future;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,8 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;

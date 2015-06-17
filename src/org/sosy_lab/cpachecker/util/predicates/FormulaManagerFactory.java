@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -48,7 +49,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;

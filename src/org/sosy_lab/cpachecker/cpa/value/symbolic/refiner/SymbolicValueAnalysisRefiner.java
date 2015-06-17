@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -57,10 +57,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.GenericRefiner;
-import org.sosy_lab.cpachecker.util.refiner.InterpolationTree;
-import org.sosy_lab.cpachecker.util.refiner.PathExtractor;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
+import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
+import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Multimap;
@@ -114,8 +115,14 @@ public class SymbolicValueAnalysisRefiner
                                                     cfa,
                                                     shutdownNotifier);
 
-    final ErrorPathClassifier errorPathClassifier =
-        new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
+
+    final GenericPrefixProvider<ForgettingCompositeState> prefixProvider =
+        new GenericPrefixProvider<>(strongestPostOperator,
+                                    ForgettingCompositeState.getInitialState(),
+                                    logger, cfa, config, ValueAnalysisCPA.class);
+
+    final PrefixSelector prefixSelector =
+        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
 
     final SymbolicEdgeInterpolator edgeInterpolator =
         new SymbolicEdgeInterpolator(feasibilityChecker,
@@ -128,7 +135,8 @@ public class SymbolicValueAnalysisRefiner
     final SymbolicPathInterpolator pathInterpolator =
         new SymbolicPathInterpolator(edgeInterpolator,
                                     feasibilityChecker,
-                                    errorPathClassifier,
+                                    prefixProvider,
+                                    prefixSelector,
                                     config,
                                     logger,
                                     shutdownNotifier,

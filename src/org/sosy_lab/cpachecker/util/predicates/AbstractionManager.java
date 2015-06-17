@@ -43,12 +43,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -57,8 +56,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
-
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class stores a mapping between abstract regions and the corresponding
@@ -94,7 +92,11 @@ public final class AbstractionManager {
   private final LinkedList<Integer> randomListOfVarIDs = new LinkedList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
+
+  @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+      justification = "Class is not thread-safe, but concurrent read access to this variable is needed for the MBean")
   private volatile int numberOfPredicates = 0;
+
   @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
@@ -149,6 +151,7 @@ public final class AbstractionManager {
   /**
    * creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it
    */
+  @SuppressWarnings("NonAtomicVolatileUpdate") // no thread-safe anyway
   public AbstractionPredicate makePredicate(BooleanFormula atom) {
     AbstractionPredicate result = atomToPredicate.get(atom);
 
@@ -275,7 +278,7 @@ public final class AbstractionManager {
    * earlier.
    * @return a Predicate
    */
-  private AbstractionPredicate getPredicate(BooleanFormula var) {
+  public AbstractionPredicate getPredicate(BooleanFormula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       throw new IllegalArgumentException(
@@ -429,6 +432,7 @@ public final class AbstractionManager {
     return vars;
   }
 
+
   public Region buildRegionFromFormula(BooleanFormula pF) {
     return rmgr.fromFormula(pF, fmgr,
         Functions.compose(new Function<AbstractionPredicate, Region>() {
@@ -455,7 +459,7 @@ public final class AbstractionManager {
   }
 
   public RegionCreator getRegionCreator() {
-    return new RegionCreator();
+    return rmgr;
   }
 
   public static interface AbstractionPredicatesMXBean {
@@ -484,97 +488,6 @@ public final class AbstractionManager {
     public String getPredicates() {
       // TODO this may run into a ConcurrentModificationException
       return Joiner.on('\n').join(absVarToPredicate.values());
-    }
-  }
-
-  public class RegionCreator {
-
-    public RegionBuilder newRegionBuilder(ShutdownNotifier pShutdownNotifier) {
-      return rmgr.builder(pShutdownNotifier);
-    }
-
-    /**
-     * @return a representation of logical truth
-     */
-    public Region makeTrue() {
-      return rmgr.makeTrue();
-    }
-
-    /**
-     * @return a representation of logical falseness
-     */
-    public Region makeFalse() {
-      return rmgr.makeFalse();
-    }
-
-    /**
-     * Creates a region representing a negation of the argument
-     *
-     * @param f an AbstractFormula
-     * @return (!f1)
-     */
-    public Region makeNot(Region f) {
-      return rmgr.makeNot(f);
-    }
-
-    /**
-     * Creates a region representing an AND of the two argument
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (f1 & f2)
-     */
-    public Region makeAnd(Region f1, Region f2) {
-      return rmgr.makeAnd(f1, f2);
-    }
-
-    /**
-     * Creates a region representing an OR of the two argument
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (f1 | f2)
-     */
-    public Region makeOr(Region f1, Region f2) {
-      return rmgr.makeOr(f1, f2);
-    }
-
-    /**
-     * Creates a region representing an equality (bi-implication) of the two argument
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (f1 <=> f2)
-     */
-    public Region makeEqual(Region f1, Region f2) {
-      return rmgr.makeEqual(f1, f2);
-    }
-
-    /**
-     * Creates a region representing an if then else construct of the three arguments
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @param f3 an AbstractFormula
-     * @return (if f1 then f2 else f3)
-     */
-    public Region makeIte(Region f1, Region f2, Region f3) {
-      return rmgr.makeIte(f1, f2, f3);
-    }
-
-    /**
-     * Creates a region representing an existential quantification of the two argument
-     *
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (\exists f2: f1)
-     */
-    public Region makeExists(Region f1, Region f2) {
-      return rmgr.makeExists(f1, f2);
-    }
-
-    public Region getPredicate(BooleanFormula var) {
-      return AbstractionManager.this.getPredicate(var).getAbstractVariable();
     }
   }
 }

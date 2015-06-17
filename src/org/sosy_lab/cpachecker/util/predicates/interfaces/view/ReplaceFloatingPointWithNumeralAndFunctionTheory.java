@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
@@ -203,6 +204,11 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
   @Override
   public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
     return wrap(type, numericFormulaManager.makeNumber(pN));
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(Rational n, FloatingPointType type) {
+    return wrap(type, numericFormulaManager.makeNumber(n));
   }
 
   @Override

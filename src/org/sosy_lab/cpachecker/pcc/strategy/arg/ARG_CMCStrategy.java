@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -61,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;

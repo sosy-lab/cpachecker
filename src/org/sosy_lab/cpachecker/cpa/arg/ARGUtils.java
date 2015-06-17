@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -644,7 +644,7 @@ public class ARGUtils {
   public static void produceTestGenPathAutomaton(Appendable sb, String name, CounterexampleTraceInfo pCounterExampleTrace)
       throws IOException {
 
-    Model model = pCounterExampleTrace.getModel();
+    RichModel model = pCounterExampleTrace.getModel();
     CFAPathWithAssumptions assignmentCFAPath = model.getCFAPathWithAssignments();
 
     int stateCounter = 1;
@@ -702,7 +702,7 @@ public class ARGUtils {
 
     Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
-    Model model = pCounterExample.getTargetPathModel();
+    RichModel model = pCounterExample.getTargetPathModel();
     CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
     if (cfaPath != null) {
       ARGPath targetPath = pCounterExample.getTargetPath();
@@ -820,7 +820,7 @@ public class ARGUtils {
     Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
     if (pCounterExample != null) {
-      Model model = pCounterExample.getTargetPathModel();
+      RichModel model = pCounterExample.getTargetPathModel();
       CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
       if (cfaPath != null) {
         ARGPath targetPath = pCounterExample.getTargetPath();

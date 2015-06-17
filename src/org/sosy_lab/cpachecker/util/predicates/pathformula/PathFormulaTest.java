@@ -95,19 +95,19 @@ public class PathFormulaTest {
         .setIndex("b", CNumericTypes.INT, 2)
         .setIndex("c", CNumericTypes.INT, 3);
 
-    assertThat(builder.getIndex("a")).is(1);
-    assertThat(builder.getIndex("b")).is(2);
-    assertThat(builder.getIndex("c")).is(3);
+    assertThat(builder.getIndex("a")).isEqualTo(1);
+    assertThat(builder.getIndex("b")).isEqualTo(2);
+    assertThat(builder.getIndex("c")).isEqualTo(3);
 
-    assertThat(builder.getFreshIndex("a")).is(2);
-    assertThat(builder.getFreshIndex("b")).is(3);
-    assertThat(builder.getFreshIndex("c")).is(4);
+    assertThat(builder.getFreshIndex("a")).isEqualTo(2);
+    assertThat(builder.getFreshIndex("b")).isEqualTo(3);
+    assertThat(builder.getFreshIndex("c")).isEqualTo(4);
 
     // simple var
     builder = builder.setIndex("b", CNumericTypes.INT, 5);
 
-    assertThat(builder.getIndex("b")).is(5);
-    assertThat(builder.getFreshIndex("b")).is(6);
+    assertThat(builder.getIndex("b")).isEqualTo(5);
+    assertThat(builder.getFreshIndex("b")).isEqualTo(6);
   }
 
   @Test
@@ -117,19 +117,19 @@ public class PathFormulaTest {
         .setIndex("b", CNumericTypes.INT, 2)
         .setIndex("c", CNumericTypes.INT, 3);
 
-    assertThat(builder.getIndex("a")).is(1);
-    assertThat(builder.getIndex("b")).is(2);
-    assertThat(builder.getIndex("c")).is(3);
+    assertThat(builder.getIndex("a")).isEqualTo(1);
+    assertThat(builder.getIndex("b")).isEqualTo(2);
+    assertThat(builder.getIndex("c")).isEqualTo(3);
 
-    assertThat(builder.getFreshIndex("a")).is(2);
-    assertThat(builder.getFreshIndex("b")).is(3);
-    assertThat(builder.getFreshIndex("c")).is(4);
+    assertThat(builder.getFreshIndex("a")).isEqualTo(2);
+    assertThat(builder.getFreshIndex("b")).isEqualTo(3);
+    assertThat(builder.getFreshIndex("c")).isEqualTo(4);
 
     // simple var
     builder = builder.setIndex("b", CNumericTypes.INT, 5);
 
-    assertThat(builder.getIndex("b")).is(5);
-    assertThat(builder.getFreshIndex("b")).is(6);
+    assertThat(builder.getIndex("b")).isEqualTo(5);
+    assertThat(builder.getFreshIndex("b")).isEqualTo(6);
 
 
     // latest used var
@@ -137,18 +137,18 @@ public class PathFormulaTest {
     bamfvp.put("c", 7);
     builder.mergeFreshValueProviderWith(bamfvp);
 
-    assertThat(builder.getIndex("c")).is(3);
-    assertThat(builder.getFreshIndex("c")).is(8);
+    assertThat(builder.getIndex("c")).isEqualTo(3);
+    assertThat(builder.getFreshIndex("c")).isEqualTo(8);
 
     BAMFreshValueProvider bamfvp2 = new BAMFreshValueProvider();
     bamfvp2.put("c", 9);
     builder.mergeFreshValueProviderWith(bamfvp2);
-    assertThat(builder.getFreshIndex("c")).is(10);
+    assertThat(builder.getFreshIndex("c")).isEqualTo(10);
 
     builder = builder.setIndex("c", CNumericTypes.INT, 15);
 
-    assertThat(builder.getIndex("c")).is(15);
-    assertThat(builder.getFreshIndex("c")).is(16);
+    assertThat(builder.getIndex("c")).isEqualTo(15);
+    assertThat(builder.getFreshIndex("c")).isEqualTo(16);
   }
 
   @Test

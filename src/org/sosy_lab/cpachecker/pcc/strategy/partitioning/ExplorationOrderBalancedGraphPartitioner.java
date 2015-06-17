@@ -30,7 +30,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 

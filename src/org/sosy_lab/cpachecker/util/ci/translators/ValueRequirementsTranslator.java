@@ -25,25 +25,27 @@ package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class ValueRequirementsTranslator extends CartesianRequirementsTranslator<ValueAnalysisState> {
 
-  public ValueRequirementsTranslator(Class<ValueAnalysisState> pAbstractStateClass, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier, LogManager pLog) {
-    super(pAbstractStateClass, pConfig, pShutdownNotifier, pLog);
+  public ValueRequirementsTranslator(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLog) {
+    super(ValueAnalysisState.class, pConfig, pShutdownNotifier, pLog);
   }
 
   @Override
-  protected List<String> getVarsInRequirements(ValueAnalysisState pRequirement) {
-    List<String> list = new ArrayList<>();
+  protected List<String> getVarsInRequirements(final ValueAnalysisState pRequirement) {
+    List<String> list = new ArrayList<>(pRequirement.getConstantsMapView().size());
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
       list.add(memLoc.getAsSimpleString());
     }
@@ -51,14 +53,16 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(ValueAnalysisState pRequirement, SSAMap pIndices) {
+  protected List<String> getListOfIndependentRequirements(final ValueAnalysisState pRequirement,
+      final SSAMap pIndices) {
     List<String> list = new ArrayList<>();
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
-      Integer integerValue = null;
-//      if () { // TODO
-//        throw new Exception(""); // TODO welche?
-//      }
-      list.add("(= " + getVarWithIndex(memLoc.getFunctionName(), pIndices) + " " + integerValue + ")");
+      Value integerValue = pRequirement.getConstantsMapView().get(memLoc);
+      if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
+        logger.log(Level.SEVERE, "The value " + integerValue + " of the MemoryLocation " + memLoc + " is not an Integer.");
+      } else {
+        list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " " + integerValue + ")");
+      }
     }
     return list;
   }

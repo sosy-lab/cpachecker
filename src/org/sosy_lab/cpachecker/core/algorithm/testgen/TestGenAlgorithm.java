@@ -28,6 +28,7 @@ import java.io.Writer;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -41,7 +42,6 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
@@ -143,7 +143,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      PredicatedAnalysisPropertyViolationException {
+      CPAEnabledAnalysisPropertyViolationException {
     startupConfig.getShutdownNotifier().shutdownIfNecessary();
     stats.getTotalTimer().start();
 

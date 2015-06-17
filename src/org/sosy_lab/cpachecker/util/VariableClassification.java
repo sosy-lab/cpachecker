@@ -39,7 +39,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -463,15 +462,6 @@ public class VariableClassification {
     }
 
     return score;
-  }
-
-  /**
-   * Use {@link FunctionEntryNode#getReturnVariable()} and
-   * {@link AReturnStatement#asAssignment()} instead.
-   */
-  @Deprecated
-  public static String createFunctionReturnVariable(final String function) {
-    return VariableClassificationBuilder.createFunctionReturnVariable(function);
   }
 
   @Override

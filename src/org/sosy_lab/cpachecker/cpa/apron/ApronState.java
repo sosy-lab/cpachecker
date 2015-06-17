@@ -36,18 +36,32 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.Abstract0;
 import apron.Dimchange;
 import apron.Dimension;
+import apron.DoubleScalar;
 import apron.Interval;
 import apron.Lincons0;
 import apron.Linexpr0;
 import apron.Tcons0;
+import apron.Texpr0BinNode;
+import apron.Texpr0CstNode;
+import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
+import apron.Texpr0UnNode;
+
+import com.google.common.math.DoubleMath;
 
 /**
  * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which
@@ -55,7 +69,7 @@ import apron.Texpr0Node;
  * provides a mapping from variable names to variables.
  *
  */
-public class ApronState implements AbstractState, Serializable {
+public class ApronState implements AbstractState, Serializable, FormulaReportingState {
 
   private static final long serialVersionUID = -7953805400649927048L;
 
@@ -537,5 +551,122 @@ logger.log(Level.FINEST, "apron state: isEqual");
     byte[] deserialized = new byte[in.readInt()];
     in.readFully(deserialized);
     apronState = Abstract0.deserialize(apronManager.getManager(), deserialized);
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pPfmgr) {
+    BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
+    BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
+    Tcons0[] constraints = apronState.toTcons(apronManager.getManager());
+
+    BooleanFormula result = bFmgr.makeBoolean(true);
+
+    for (Tcons0 cons : constraints) {
+      result = bFmgr.and(result, createFormula(bFmgr, bitFmgr, cons));
+    }
+
+    return result;
+  }
+
+  private BooleanFormula createFormula(BooleanFormulaManager bFmgr,
+                                       final BitvectorFormulaManager bitFmgr,
+                                       final Tcons0 constraint) {
+    Texpr0Node tree = constraint.toTexpr0Node();
+    BitvectorFormula formula = new Texpr0ToFormulaVisitor(bitFmgr).visit(tree);
+
+    //TODO fix size, machinemodel needed?
+    BitvectorFormula rightHandside = bitFmgr.makeBitvector(32, 0);
+    switch(constraint.kind) {
+    case Tcons0.DISEQ: return bFmgr.not(bitFmgr.equal(formula, rightHandside));
+    case Tcons0.EQ: return bitFmgr.equal(formula, rightHandside);
+    case Tcons0.SUP: return bitFmgr.greaterThan(formula, rightHandside, true);
+    case Tcons0.SUPEQ: return bitFmgr.greaterOrEquals(formula, rightHandside, true);
+      default:
+        throw new AssertionError("unhandled constraint kind");
+    }
+  }
+
+  abstract class Texpr0NodeTraversal<T> {
+
+   T visit(Texpr0Node node) {
+      if (node instanceof Texpr0BinNode) {
+        return visit((Texpr0BinNode)node);
+      } else if (node instanceof Texpr0CstNode) {
+        return visit((Texpr0CstNode)node);
+      } else if (node instanceof Texpr0DimNode) {
+        return visit((Texpr0DimNode)node);
+      } else if (node instanceof Texpr0UnNode) {
+        return visit((Texpr0UnNode)node);
+      }
+
+      throw new AssertionError("Unhandled Texpr0Node subclass.");
+    }
+
+   abstract T visit(Texpr0BinNode node);
+   abstract T visit(Texpr0CstNode node);
+   abstract T visit(Texpr0DimNode node);
+   abstract T visit(Texpr0UnNode node);
+  }
+
+  class Texpr0ToFormulaVisitor extends Texpr0NodeTraversal<BitvectorFormula> {
+
+    BitvectorFormulaManager bitFmgr;
+
+    public Texpr0ToFormulaVisitor(BitvectorFormulaManager pBitFmgr) {
+      bitFmgr = pBitFmgr;
+    }
+
+    @Override
+    BitvectorFormula visit(Texpr0BinNode pNode) {
+      BitvectorFormula left = visit(pNode.getLeftArgument());
+      BitvectorFormula right = visit(pNode.getRightArgument());
+      switch(pNode.getOperation()) {
+
+      // real operations
+      case Texpr0BinNode.OP_ADD: return bitFmgr.add(left, right);
+      case Texpr0BinNode.OP_DIV: return bitFmgr.divide(left, right, true);
+      case Texpr0BinNode.OP_MOD: return bitFmgr.modulo(left, right, true);
+      case Texpr0BinNode.OP_SUB: return bitFmgr.subtract(left, right);
+      case Texpr0BinNode.OP_MUL: return bitFmgr.multiply(left, right);
+      case Texpr0BinNode.OP_POW: throw new AssertionError("Pow not implemented in this visitor");
+      default:
+        throw new AssertionError("Unhandled operator for binary nodes.");
+      }
+    }
+
+    @Override
+    BitvectorFormula visit(Texpr0CstNode pNode) {
+      if (pNode.isScalar()) {
+        double value = ((DoubleScalar)pNode.getConstant().inf()).get();
+        if (DoubleMath.isMathematicalInteger(value)) {
+          // TODO fix size, machineModel needed?
+          return bitFmgr.makeBitvector(32, (int) value);
+        }
+      }
+      throw new AssertionError("intervals not handled");
+    }
+
+    @Override
+    BitvectorFormula visit(Texpr0DimNode pNode) {
+
+      // TODO fix size, machinemodel needed?
+      if (isInt(pNode.dim)) {
+        return bitFmgr.makeVariable(32, integerToIndexMap.get(pNode.dim).getAsSimpleString());
+      } else {
+        return bitFmgr.makeVariable(32, realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getAsSimpleString());
+      }
+    }
+
+    @Override
+    BitvectorFormula visit(Texpr0UnNode pNode) {
+      BitvectorFormula operand = visit(pNode.getArgument());
+      switch(pNode.getOperation()) {
+      case Texpr0UnNode.OP_NEG: return bitFmgr.negate(operand);
+      case Texpr0UnNode.OP_SQRT: throw new AssertionError("sqrt not implemented in this visitor");
+      default:
+        // nothing to do here, we ignore casts
+      }
+      return operand;
+    }
   }
 }

@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier;
+
 
 /**
  * This class is a thread which should be registered as a VM shutdown hook.

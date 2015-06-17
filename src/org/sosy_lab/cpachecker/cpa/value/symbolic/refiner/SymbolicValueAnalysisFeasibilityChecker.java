@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
-import org.sosy_lab.cpachecker.util.refiner.GenericFeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 
 /**
  * Feasibility checker for value analysis handling symbolic values.
@@ -46,7 +45,7 @@ import org.sosy_lab.cpachecker.util.refiner.GenericFeasibilityChecker;
  * ValueAnalysisTransferRelation and as such cannot fully handle symbolic values.
  */
 public class SymbolicValueAnalysisFeasibilityChecker
-    extends GenericFeasibilityChecker<ForgettingCompositeState>
+    extends GenericFeasibilityChecker<ForgettingCompositeState, ValueAnalysisInformation>
     implements SymbolicFeasibilityChecker {
 
   public SymbolicValueAnalysisFeasibilityChecker(
@@ -70,11 +69,5 @@ public class SymbolicValueAnalysisFeasibilityChecker
     final ConstraintsState constraintsState = new ConstraintsState();
 
     return new ForgettingCompositeState(valueState, constraintsState);
-  }
-
-  @Override
-  protected ForgettingCompositeState performAbstractions(ForgettingCompositeState pNext,
-      CFANode pLocation, ARGPath pPath) {
-    return pNext;
   }
 }

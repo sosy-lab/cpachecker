@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,7 +48,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCChecker;
 import org.sosy_lab.cpachecker.core.algorithm.realctools.RealCChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;

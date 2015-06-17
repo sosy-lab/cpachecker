@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import java.util.List;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;

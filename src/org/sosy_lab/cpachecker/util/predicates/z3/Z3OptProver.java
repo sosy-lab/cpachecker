@@ -26,16 +26,18 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 
 class Z3OptProver implements OptEnvironment {
@@ -128,6 +130,25 @@ class Z3OptProver implements OptEnvironment {
     return Z3Model.parseZ3Model(mgr, z3context, z3model);
   }
 
+  @Override
+  public Formula evaluate(Formula expr) {
+    Z3Formula input = (Z3Formula) expr;
+    long z3model = optimize_get_model(z3context, z3optContext);
+    model_inc_ref(z3context, z3model);
+
+    PointerToLong out = new PointerToLong();
+    boolean status = model_eval(z3context, z3model, input.getFormulaInfo(),
+        true, out);
+    Verify.verify(status, "Error during model evaluation");
+
+    Formula outValue = mgr.getFormulaCreator().encapsulate(
+        mgr.getFormulaType(expr), out.value
+    );
+
+    model_dec_ref(z3context, z3model);
+    return outValue;
+  }
+
   void setParam(String key, String value) {
     long keySymbol = mk_string_symbol(z3context, key);
     long valueSymbol = mk_string_symbol(z3context, value);
@@ -175,5 +196,10 @@ class Z3OptProver implements OptEnvironment {
 
   private Rational rationalFromZ3AST(long ast) {
     return Rational.ofString(get_numeral_string(z3context, ast));
+  }
+
+  @Override
+  public String dump() {
+    return optimize_to_string(z3context, z3optContext);
   }
 }

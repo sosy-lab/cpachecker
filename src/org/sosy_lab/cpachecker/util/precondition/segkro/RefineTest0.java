@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 
 import org.junit.Before;
 import org.mockito.Mockito;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -53,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;

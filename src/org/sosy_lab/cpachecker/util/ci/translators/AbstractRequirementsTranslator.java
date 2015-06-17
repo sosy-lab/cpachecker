@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
@@ -47,7 +48,7 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
   }
 
   protected Collection<T> extractRequirements(final Collection<AbstractState> pStates) {
-    Collection<T> requirements = new ArrayList<>();
+    Collection<T> requirements = new ArrayList<>(pStates.size());
     for (AbstractState state : pStates) {
       requirements.add(extractRequirement(state));
     }
@@ -57,30 +58,42 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
   protected abstract Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices)
       throws CPAException;
 
-  private Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertRequirements(
-      final AbstractState pre, final Collection<AbstractState> post, final SSAMap postIndices,
-      final int index) throws CPAException {
+  public Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertRequirements(
+      final AbstractState pre, final Collection<? extends AbstractState> post, final SSAMap postIndices)
+          throws CPAException {
 
     Pair<List<String>, String> formulaPre = convertToFormula(extractRequirement(pre), SSAMap.emptySSAMap());
-    formulaPre = Pair.of(formulaPre.getFirst(), renameDefine(formulaPre.getSecond(), ("pre" + index)));
+    formulaPre = Pair.of(formulaPre.getFirst(), renameDefine(formulaPre.getSecond(), "pre"));
+
+    if (post.isEmpty()) {
+      return Pair.of(formulaPre, Pair.of(Collections.<String>emptyList(), "(define-fun post true)"));
+    }
 
     List<String> list = new ArrayList<>();
     StringBuilder sb = new StringBuilder();
+    String definition;
+    Pair<List<String>, String> formula;
     int BracketCounter = 0;
     int amount = post.size();
 
+    sb.append("(define-fun post Bool () ");
+
     for (AbstractState state : post){
-      Pair<List<String>, String> formula = convertToFormula(extractRequirement(state), postIndices);
+      formula = convertToFormula(extractRequirement(state), postIndices);
       list.addAll(formula.getFirst());
 
       if (BracketCounter != amount-1) {
         sb.append("(or ");
         BracketCounter++;
       }
-      String definition = formula.getSecond().substring(formula.getSecond().indexOf("(", 1)+1);
+      if (formula.getSecond().indexOf("(", 1) == -1) {
+        definition = formula.getSecond().substring(formula.getSecond().lastIndexOf(" "), formula.getSecond().length()-1);
+      } else {
+        definition = formula.getSecond().substring(formula.getSecond().indexOf("(", 1)+1, formula.getSecond().length()-1);
+      }
       sb.append(definition);
     }
-    for (int i=0; i<BracketCounter; i++) {
+    for (int i=0; i<BracketCounter+1; i++) {
       sb.append(")");
     }
 

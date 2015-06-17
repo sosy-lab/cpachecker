@@ -31,15 +31,12 @@ import java.math.MathContext;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Variable;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Function;
+import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.ModelIterator;
 
 import com.google.common.collect.ImmutableMap;
@@ -72,7 +69,7 @@ class Mathsat5Model {
     }
   }
 
-  private static Constant toConstant(final long env, final long variableId) {
+  private static AssignableTerm toConstant(final long env, final long variableId) {
     if (!msat_term_is_constant(env, variableId)) {
       throw new IllegalArgumentException("Given mathsat id doesn't correspond to a constant! (" +
                                          msat_term_repr(variableId) + ")");
@@ -81,13 +78,7 @@ class Mathsat5Model {
     final long declarationId = msat_term_get_decl(variableId);
     final String name = msat_decl_get_name(declarationId);
     final TermType type = toMathsatType(env, msat_decl_get_return_type(declarationId));
-
-    final Pair<String, Integer> nameIndex = FormulaManagerView.parseName(name);
-    if (nameIndex.getSecond() != null) {
-      return new Variable(nameIndex.getFirst(), nameIndex.getSecond(), type);
-    } else {
-      return new Constant(nameIndex.getFirst(), type);
-    }
+    return new Variable(name, type);
   }
 
 

@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
-import org.sosy_lab.cpachecker.util.refiner.InterpolantManager;
+import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
 /**
  * Manager for {@link SymbolicInterpolant}.

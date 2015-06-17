@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -63,13 +63,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.PrefixProvider;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -81,6 +78,10 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -120,7 +121,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DEFAULT;
+  private PrefixPreference prefixPreference = PrefixPreference.NONE;
 
   Configuration config;
 
@@ -134,6 +135,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
   private final StatTimer buildCounterexampeTraceTime = new StatTimer("Building the counterexample trace");
   private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
+
   private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
   private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
@@ -177,6 +179,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   protected final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
+  private final PrefixProvider prefixProvider;
   private final PathChecker pathChecker;
   private final RefinementStrategy strategy;
   private final Solver solver;
@@ -187,6 +190,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
+      final PrefixProvider pPrefixProvider,
       final PathFormulaManager pPathFormulaManager,
       final RefinementStrategy pStrategy,
       final Solver pSolver,
@@ -207,6 +211,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     fmgr = solver.getFormulaManager();
     strategy = pStrategy;
     cfa = pCfa;
+
+    prefixProvider = pPrefixProvider;
 
     config = pConfig;
 
@@ -310,22 +316,29 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   private ARGPath performRefinementSelection(ARGPath allStatesTrace) throws CPAException, InterruptedException {
-    PrefixProvider provider = new PredicateBasedPrefixProvider(logger, solver, pfmgr);
+    List<InfeasiblePrefix> infeasiblePrefixes = extractInfeasiblePrefixes(allStatesTrace);
 
-    prefixExtractionTime.start();
-    List<ARGPath> infeasilbePrefixes = provider.getInfeasilbePrefixes(allStatesTrace);
-    prefixExtractionTime.stop();
+    if(!infeasiblePrefixes.isEmpty()) {
+      totalPrefixes.setNextValue(infeasiblePrefixes.size());
 
-    totalPrefixes.setNextValue(infeasilbePrefixes.size());
-
-    if(allStatesTrace != infeasilbePrefixes.get(0)) {
-      ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
       prefixSelectionTime.start();
-      allStatesTrace = classifier.obtainSlicedPrefix(prefixPreference, allStatesTrace, infeasilbePrefixes);
+      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
+      allStatesTrace = selector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes).getPath();
       prefixSelectionTime.stop();
     }
 
     return allStatesTrace;
+  }
+
+  private List<InfeasiblePrefix> extractInfeasiblePrefixes(ARGPath allStatesTrace) throws CPAException,
+      InterruptedException {
+
+    prefixExtractionTime.start();
+    List<InfeasiblePrefix> infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(
+        allStatesTrace);
+    prefixExtractionTime.stop();
+
+    return infeasiblePrefixes;
   }
 
   /**
@@ -338,7 +351,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @return true, if refinement selection has to be performed, else false
    */
   private boolean isRefinementSelectionEnabled(ARGPath errorPath) {
-    return prefixPreference != PrefixPreference.DEFAULT
+    return prefixPreference != PrefixPreference.NONE
         && (errorPath.size() - transformPath(errorPath).size()) == 1;
   }
 
@@ -504,16 +517,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(edges);
 
-    Model model = counterexample.getModel();
+    RichModel model = counterexample.getModel();
 
     Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
         pathChecker.extractVariableAssignment(edges, ssamaps, model);
 
     CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
-    Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
 
-    model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);
-
+    model = model.withAssignmentInformation(pathWithAssignments);
     return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
   }
 

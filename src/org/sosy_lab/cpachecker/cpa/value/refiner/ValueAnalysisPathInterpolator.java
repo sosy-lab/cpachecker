@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -35,7 +37,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
@@ -43,29 +46,28 @@ import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.Un
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
-import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
-import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
-import org.sosy_lab.cpachecker.util.refiner.InterpolantManager;
-import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
-import org.sosy_lab.cpachecker.util.refiner.UseDefRelation;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
+import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.value.refiner")
+@Options(prefix="cpa.value.refinement")
 public class ValueAnalysisPathInterpolator
     extends GenericPathInterpolator<ValueAnalysisState, ValueAnalysisInterpolant> {
 
@@ -73,7 +75,7 @@ public class ValueAnalysisPathInterpolator
   private boolean performEdgeBasedInterpolation = true;
 
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_BEST_SHALLOW;
+  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
 
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
@@ -88,7 +90,9 @@ public class ValueAnalysisPathInterpolator
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
   private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
   private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
-  private StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
+  private final StatInt totalPrefixes             = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
+  private final StatTimer prefixExtractionTime    = new StatTimer("Extracting infeasible sliced prefixes");
+  private final StatTimer prefixSelectionTime     = new StatTimer("Selecting infeasible sliced prefixes");
 
   /**
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
@@ -98,11 +102,13 @@ public class ValueAnalysisPathInterpolator
   private final CFA cfa;
 
   private final ValueAnalysisInterpolantManager interpolantManager;
+  private final LogManager logger;
+  private final Configuration config;
 
   public ValueAnalysisPathInterpolator(
       final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
-      final ErrorPathClassifier pPathClassifier,
+      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -116,7 +122,7 @@ public class ValueAnalysisPathInterpolator
             pShutdownNotifier,
             pCfa),
         pFeasibilityChecker,
-        pPathClassifier,
+        pPrefixProvider,
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -125,13 +131,15 @@ public class ValueAnalysisPathInterpolator
     pConfig.inject(this);
     cfa              = pCfa;
     interpolantManager = ValueAnalysisInterpolantManager.getInstance();
+    logger = pLogger;
+    config = pConfig;
   }
 
   @Override
   public Map<ARGState, ValueAnalysisInterpolant> performInterpolation(
       final ARGPath errorPath,
       final ValueAnalysisInterpolant interpolant
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
 
     if (performEdgeBasedInterpolation) {
       return super.performInterpolation(errorPath, interpolant);
@@ -139,8 +147,7 @@ public class ValueAnalysisPathInterpolator
     } else {
       totalInterpolations.inc();
       timerInterpolation.start();
-
-      ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
+      ARGPath errorPathPrefix = performRefinementSelection(errorPath, interpolant);
 
       Map<ARGState, ValueAnalysisInterpolant> interpolants =
           performPathBasedInterpolation(errorPathPrefix);
@@ -160,16 +167,20 @@ public class ValueAnalysisPathInterpolator
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 
-    assert(prefixPreference != PrefixPreference.DEFAULT)
+    assert(prefixPreference != PrefixPreference.NONE)
     : "static path-based interpolation requires a sliced infeasible prefix"
-    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_BEST_DEEP;
+    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_GOOD_LONG;
+
+    UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
+        cfa.getVarClassification().isPresent()
+          ? cfa.getVarClassification().get().getIntBoolVars()
+          : Collections.<String>emptySet());
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
+        logger,
         errorPathPrefix,
-        new UseDefRelation(errorPathPrefix,
-            cfa.getVarClassification().isPresent()
-              ? cfa.getVarClassification().get().getIntBoolVars()
-              : Collections.<String>emptySet())).obtainInterpolants();
+        useDefRelation,
+        cfa.getMachineModel()).obtainInterpolantsAsMap();
 
     totalInterpolationQueries.setNextValue(1);
 
@@ -188,7 +199,7 @@ public class ValueAnalysisPathInterpolator
   }
 
   public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         UniqueAssignmentsInPathConditionState.class);
@@ -255,5 +266,21 @@ public class ValueAnalysisPathInterpolator
     else {
       return errorPath.get(1);
     }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
+    writer.put(timerInterpolation);
+    writer.put(totalInterpolations);
+    writer.put(totalInterpolationQueries);
+    writer.put(sizeOfInterpolant);
+    writer.put(totalPrefixes);
+    writer.put(prefixExtractionTime);
+    writer.put(prefixSelectionTime);
+  }
+
+  public int getInterpolationOffset() {
+    return interpolationOffset;
   }
 }

@@ -23,22 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.ArrayDeque;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -47,9 +59,14 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class UseDefBasedInterpolator {
 
   /**
+   * the logger in use
+   */
+  private final LogManager logger;
+
+  /**
    * the use-def relation of the final, failing (assume) edge
    */
-  private final org.sosy_lab.cpachecker.util.refiner.UseDefRelation useDefRelation;
+  private final UseDefRelation useDefRelation;
 
   /**
    * the sliced infeasible prefix for which to compute the interpolants
@@ -57,28 +74,42 @@ public class UseDefBasedInterpolator {
   private final ARGPath slicedPrefix;
 
   /**
+   * the machine model in use
+   */
+  private final MachineModel machineModel;
+
+  /**
    * This class allows the creation of (fake) interpolants by using the use-def-relation.
    * This interpolation approach only works if the given path is a sliced prefix,
-   * obtained via {@link org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier#obtainSlicedPrefix}.
+   * obtained via {@link PrefixSelector#obtainSlicedPrefix}.
    *
    * @param pSlicedPrefix
    * @param pUseDefRelation
+   * @param pMachineModel
    */
-  public UseDefBasedInterpolator(ARGPath pSlicedPrefix, org.sosy_lab.cpachecker.util.refiner.UseDefRelation pUseDefRelation) {
+  public UseDefBasedInterpolator(
+      final LogManager pLogger,
+      final ARGPath pSlicedPrefix,
+      final UseDefRelation pUseDefRelation,
+      final MachineModel pMachineModel
+  ) {
+    logger         = pLogger;
     slicedPrefix   = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
+    machineModel   = pMachineModel;
   }
 
   /**
-   * This method obtains the mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s.
+   * This method obtains the interpolation sequence as pairs of {@link ARGState}s
+   * and their respective {@link ValueAnalysisInterpolant}s.
    *
-   * @return the (ordered) mapping mapping from {@link ARGState}s to {@link ValueAnalysisInterpolant}s
+   * @return the (ordered) list of {@link ARGState}s and their respective {@link ValueAnalysisInterpolant}s
    */
-  public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolants() {
+  public List<Pair<ARGState, ValueAnalysisInterpolant>> obtainInterpolants() {
     Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence = useDefRelation.getExpandedUses(slicedPrefix);
     ValueAnalysisInterpolant trivialItp = ValueAnalysisInterpolant.FALSE;
 
-    ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new ArrayDeque<>();
+    LinkedList<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new LinkedList<>();
     PathIterator iterator = slicedPrefix.reversePathIterator();
     while (iterator.hasNext()) {
       ARGState state = iterator.getAbstractState();
@@ -100,24 +131,67 @@ public class UseDefBasedInterpolator {
       iterator.advance();
     }
 
-    return convertToLinkedMap(interpolants);
+    return interpolants;
+  }
+
+  /**
+   * This method obtains the interpolation sequence as mapping from {@link ARGState}s
+   * to their respective {@link ValueAnalysisInterpolant}s.
+   *
+   * @return the (ordered) mapping from {@link ARGState}s to their respective {@link ValueAnalysisInterpolant}s
+   */
+  public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolantsAsMap() {
+
+    Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
+    for(Pair<ARGState, ValueAnalysisInterpolant> itp : obtainInterpolants()) {
+      interpolants.put(itp.getFirst(), itp.getSecond());
+    }
+
+    return interpolants;
   }
 
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
     HashMap<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
-    for(ASimpleDeclaration use : uses) {
-      useDefInterpolant.put(MemoryLocation.valueOf(use.getQualifiedName()), UnknownValue.getInstance());
+
+    for (ASimpleDeclaration use : uses) {
+
+      Set<MemoryLocation> memoryLocations = (use.getType() instanceof CArrayType)
+        ? memoryLocations = createMemoryLocationsForArray(use)
+        : Collections.singleton(MemoryLocation.valueOf(use.getQualifiedName()));
+
+      for (MemoryLocation memoryLocation : memoryLocations) {
+        useDefInterpolant.put(memoryLocation, UnknownValue.getInstance());
+      }
     }
 
     return new ValueAnalysisInterpolant(useDefInterpolant, Collections.<MemoryLocation, Type>emptyMap());
   }
 
-  private Map<ARGState, ValueAnalysisInterpolant> convertToLinkedMap(
-      ArrayDeque<Pair<ARGState, ValueAnalysisInterpolant>> itps) {
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
-    for(Pair<ARGState, ValueAnalysisInterpolant> itp : itps) {
-      interpolants.put(itp.getFirst(), itp.getSecond());
+  /**
+   * This method returns a set of memory locations for an array.
+   *
+   * As this interpolation is static, memory locations for the whole array are added.
+   * If the size of the array is not known statically, than a fixed number of memory locations
+   * are created.
+   */
+  private Set<MemoryLocation> createMemoryLocationsForArray(ASimpleDeclaration arrayDeclaration) {
+    CArrayType arrayType = (CArrayType)arrayDeclaration.getType();
+
+    int length = 20; // magic
+    if (arrayType.getLength() instanceof CLiteralExpression) {
+      try {
+        length = NumberFormat.getInstance().parse(arrayType.getLength().toString()).intValue();
+      } catch (ParseException e) {
+        logger.log(Level.INFO, e, "Could not parse array length expression", arrayType.getLength().toString(), "to an integer representation.");
+      }
     }
-    return interpolants;
+
+    Set<MemoryLocation> arrayMemoryLocations = new HashSet<>();
+    int size = machineModel.getSizeof(arrayType.getType());
+    for (int i = 0; i < length; i++) {
+      arrayMemoryLocations.add(MemoryLocation.valueOf(arrayDeclaration.getQualifiedName(), i * size));
+    }
+
+    return arrayMemoryLocations;
   }
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
-import org.sosy_lab.cpachecker.util.refiner.InterpolationTree;
+import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 
 /**
  * This class represents an interpolation tree, i.e. a set of states connected through a successor-predecessor-relation.
@@ -45,16 +45,18 @@ class ValueAnalysisInterpolationTree extends InterpolationTree<ValueAnalysisStat
    * This method acts as constructor of the interpolation tree.
    *
    * @param pLogger the logger to use
-   * @param pTargets the set of target states from which to build the interpolation tree
-   * @param useTopDownInterpolationStrategy the flag to choose the strategy to apply
+   * @param pTargetPaths the set of target paths from which to build the interpolation tree
+   * @param pUseTopDownInterpolationStrategy the flag to choose the strategy to apply
    */
-  ValueAnalysisInterpolationTree(final LogManager pLogger, final Collection<ARGState> pTargets,
-      final boolean useTopDownInterpolationStrategy) {
-
+  ValueAnalysisInterpolationTree(
+      final LogManager pLogger,
+      final List<ARGPath> pTargetPaths,
+      final boolean pUseTopDownInterpolationStrategy
+  ) {
     super(ValueAnalysisInterpolantManager.getInstance(),
           pLogger,
-          pTargets,
-          useTopDownInterpolationStrategy);
+          pTargetPaths,
+          pUseTopDownInterpolationStrategy);
   }
 
   protected Set<Map.Entry<ARGState, ValueAnalysisInterpolant>> getInterpolantMapping() {

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,18 +36,15 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
-import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
-import org.sosy_lab.cpachecker.util.refiner.PathExtractor;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
+import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 
 /**
  * {@link PathExtractor} that sorts paths by their length or interpolant quality.
@@ -63,12 +59,12 @@ public class SortingPathExtractor extends PathExtractor {
       description = "heuristic to sort targets based on the quality of interpolants derivable from them")
   private boolean itpSortedTargets = false;
 
-  private final FeasibilityChecker<ValueAnalysisState> checker;
-  private final ErrorPathClassifier classifier;
+  private final PrefixSelector prefixSelector;
+  private final PrefixProvider prefixProvider;
 
   public SortingPathExtractor(
-      final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
-      final ErrorPathClassifier pClassifier,
+      final PrefixProvider pPrefixProvider,
+      final PrefixSelector pPrefixSelector,
       final LogManager pLogger,
       final Configuration pConfig
   ) throws InvalidConfigurationException {
@@ -76,8 +72,8 @@ public class SortingPathExtractor extends PathExtractor {
     super(pLogger);
     pConfig.inject(this);
 
-    checker = pFeasibilityChecker;
-    classifier = pClassifier;
+    prefixProvider = pPrefixProvider;
+    prefixSelector = pPrefixSelector;
   }
 
   /**
@@ -100,11 +96,11 @@ public class SortingPathExtractor extends PathExtractor {
           ARGPath path2 = ARGUtils.getOnePathTo(target2);
 
           if(itpSortedTargets) {
-            List<ARGPath> prefixes1 = checker.getInfeasilbePrefixes(path1);
-            List<ARGPath> prefixes2 = checker.getInfeasilbePrefixes(path2);
+            List<InfeasiblePrefix> prefixes1 = prefixProvider.extractInfeasiblePrefixes(path1);
+            List<InfeasiblePrefix> prefixes2 = prefixProvider.extractInfeasiblePrefixes(path2);
 
-            int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_BEST_SHALLOW);
-            int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_BEST_SHALLOW);
+            int score1 = prefixSelector.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_GOOD_SHORT);
+            int score2 = prefixSelector.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_GOOD_SHORT);
 
             if(score1 == score2) {
               return 0;

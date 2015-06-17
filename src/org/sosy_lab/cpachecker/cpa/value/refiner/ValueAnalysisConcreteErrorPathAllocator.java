@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -58,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -128,7 +128,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+  public RichModel allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     pPath.remove(pPath.size() - 1);
 
@@ -137,7 +137,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     CFAPathWithAssumptions pathWithAssignments =
         CFAPathWithAssumptions.of(concreteStatePath, logger, machineModel);
 
-    Model model = Model.empty();
+    RichModel model = RichModel.empty();
 
     return model.withAssignmentInformation(pathWithAssignments);
   }

@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
+import org.sosy_lab.common.rationals.LinearExpression;
+import org.sosy_lab.common.rationals.Rational;
 
 /**
  * Converts a set of invariants to the pretty text representation.

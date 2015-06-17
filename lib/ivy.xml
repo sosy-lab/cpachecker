@@ -27,7 +27,7 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.510" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.527" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -70,7 +70,7 @@
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="0.24" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth" name="truth" rev="0.26" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
         <dependency org="com.google.guava" name="guava-testlib" rev="18.0" conf="test->default; contrib->sources"/>
@@ -87,15 +87,15 @@
         </dependency>
 
         <!-- Princess -->
-        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-03-13-r2180" conf="runtime->default"/>
+        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-06-08-r2393" conf="runtime->default"/>
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.2" transitive="false" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.2" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.3" transitive="false" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.3" conf="build->default; contrib->sources" />
 
         <!-- FindBugs -->
-        <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.0" conf="findbugs->default"/>
+        <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.SolverFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 

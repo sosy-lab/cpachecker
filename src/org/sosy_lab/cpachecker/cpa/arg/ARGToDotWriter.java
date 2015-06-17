@@ -242,7 +242,7 @@ public class ARGToDotWriter {
 
     final StringBuilder builder = new StringBuilder();
 
-    if (hintLabel != "") {
+    if (!hintLabel.isEmpty()) {
       builder.append(" {");
       builder.append(" rank=same;\n");
 

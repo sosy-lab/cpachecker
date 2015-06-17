@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -59,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;

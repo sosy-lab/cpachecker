@@ -30,27 +30,27 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 
 import com.google.common.collect.FluentIterable;
 
 /**
- * {@link org.sosy_lab.cpachecker.util.refiner.PathExtractor PathExtractor} that extracts all target
+ * {@link PathExtractor PathExtractor} that extracts all target
  * states and sorts them.
  */
 public class SortingGlobalPathExtractor extends SortingPathExtractor {
 
   public SortingGlobalPathExtractor(
-      FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
-      ErrorPathClassifier pClassifier,
+      PrefixProvider pPrefixProvider,
+      PrefixSelector pPrefixSelector,
       LogManager pLogger,
       Configuration pConfig
   ) throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker, pClassifier, pLogger, pConfig);
+    super(pPrefixProvider, pPrefixSelector, pLogger, pConfig);
   }
 
   /**

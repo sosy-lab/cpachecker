@@ -52,6 +52,7 @@ public class InvariantsMergeOperator implements MergeOperator {
     AbstractionState abstractionState1 = state1.determineAbstractionState(precision);
     AbstractionState abstractionState2 = state2.determineAbstractionState(precision);
     Set<String> wideningTargets = abstractionState1.determineWideningTargets(abstractionState2);
+    wideningTargets = wideningTargets == null ? state1.getEnvironment().keySet() : wideningTargets;
     Set<InvariantsFormula<CompoundInterval>> wideningHints = Sets.union(abstractionState1.getWideningHints(), abstractionState2.getWideningHints());
     state1 = state1.widen(state2, precision, wideningTargets, wideningHints);
     if (state1 != pState1 && definitelyImplies(state2, reduceToGivenVariables(reduceToInterestingVariables(state1, precision), Sets.difference(state1.getEnvironment().keySet(), wideningTargets)))) {

@@ -29,12 +29,12 @@ import java.util.HashSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.refiner.UseDefRelation;
+import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.ArrayListMultimap;

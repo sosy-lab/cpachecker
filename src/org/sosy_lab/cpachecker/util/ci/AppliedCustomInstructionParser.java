@@ -37,28 +37,35 @@ import java.util.Queue;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -82,7 +89,7 @@ public class AppliedCustomInstructionParser {
    * @throws AppliedCustomInstructionParsingFailedException
    * @throws InterruptedException
    */
-  public CustomInstructionApplications parse (Path file)
+  public CustomInstructionApplications parse (final Path file)
       throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
 
     Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
@@ -99,11 +106,6 @@ public class AppliedCustomInstructionParser {
 
       while ((line = br.readLine()) != null) {
         shutdownNotifier.shutdownIfNecessary();
-
-        if ((line = br.readLine()) == null) {
-          throw new AppliedCustomInstructionParsingFailedException("Wrong format, specification of end nodes not found. Expect that a custom instruction is specified in two lines. First line contains the start node and second line the end nodes.");
-        }
-
         startNode = getCFANode(line, cfaInfo);
 
         try {
@@ -126,7 +128,7 @@ public class AppliedCustomInstructionParser {
    * @return a new CFANode with respect to the given parameters
    * @throws AppliedCustomInstructionParsingFailedException if the node can't be created
    */
-  public CFANode getCFANode (String pNodeID, CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
+  protected CFANode getCFANode (final String pNodeID, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
     try{
       return cfaInfo.getNodeByNodeNumber(Integer.parseInt(pNodeID));
     } catch (NumberFormatException ex) {
@@ -141,7 +143,7 @@ public class AppliedCustomInstructionParser {
    * @return Immutable Set of CFANodes out of the String[]
    * @throws AppliedCustomInstructionParsingFailedException
    */
-  public ImmutableSet<CFANode> getCFANodes (String[] pNodes, CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
+  protected ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (int i=0; i<pNodes.length; i++) {
       builder.add(getCFANode(pNodes[i], cfaInfo));
@@ -149,7 +151,7 @@ public class AppliedCustomInstructionParser {
     return builder.build();
   }
 
-  public CustomInstruction readCustomInstruction(String functionName)
+  protected CustomInstruction readCustomInstruction(final String functionName)
       throws InterruptedException, AppliedCustomInstructionParsingFailedException {
     FunctionEntryNode function = cfa.getFunctionHead(functionName);
 
@@ -243,7 +245,8 @@ public class AppliedCustomInstructionParser {
     return new CustomInstruction(ciStartNode, ciEndNodes, inputVariablesAsList, outputVariablesAsList, shutdownNotifier);
   }
 
-  private void addNewInputVariables(CFAEdge pLeavingEdge, Set<String> pPredOutputVars, Set<String> pInputVariables) {
+  private void addNewInputVariables(final CFAEdge pLeavingEdge, final Set<String> pPredOutputVars,
+      final Set<String> pInputVariables) {
     for(String var : getPotentialInputVariables(pLeavingEdge)) {
       if(!pPredOutputVars.contains(var)) {
         pInputVariables.add(var);
@@ -252,50 +255,71 @@ public class AppliedCustomInstructionParser {
   }
 
   private Collection<String> getPotentialInputVariables(CFAEdge pLeavingEdge) {
-    if (pLeavingEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+    if (pLeavingEdge instanceof CStatementEdge) {
+      CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
 
-      if (pLeavingEdge instanceof CStatementEdge) {
-        CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
+      if (edgeStmt instanceof CExpressionAssignmentStatement) {
+        return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionAssignmentStatement) edgeStmt)
+            .getRightHandSide());
+      }
 
-        if (edgeStmt instanceof CExpressionAssignmentStatement) {
-          return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionAssignmentStatement) edgeStmt)
-              .getRightHandSide());
+      else if (edgeStmt instanceof CExpressionStatement) {
+        return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionStatement) edgeStmt)
+            .getExpression());
+      }
+
+      else if (edgeStmt instanceof CFunctionCallStatement) {
+        Set<String> edgeInputVariables = new HashSet<>();
+        for (CExpression exp : ((CFunctionCallStatement) edgeStmt).getFunctionCallExpression()
+            .getParameterExpressions()) {
+          edgeInputVariables.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(exp));
         }
+        return edgeInputVariables;
+      }
 
-        else if (edgeStmt instanceof CExpressionStatement) {
-          return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CExpressionStatement) edgeStmt)
+      else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
+        return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CFunctionCallAssignmentStatement) edgeStmt)
+            .getRightHandSide().getFunctionNameExpression());
+      }
+    }
+
+
+    else if (pLeavingEdge instanceof CDeclarationEdge) {
+      CDeclaration edgeDec = ((CDeclarationEdge) pLeavingEdge).getDeclaration();
+      if (edgeDec instanceof CVariableDeclaration) {
+        CInitializer edgeDecInit = ((CVariableDeclaration) edgeDec).getInitializer();
+        if (edgeDecInit instanceof CInitializerExpression) {
+          return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CInitializerExpression) edgeDecInit)
               .getExpression());
-        }
-
-        else if (edgeStmt instanceof CFunctionCallStatement) {
-          Set<String> edgeInputVariables = new HashSet<>();
-          for (CExpression exp : ((CFunctionCallStatement) edgeStmt).getFunctionCallExpression()
-              .getParameterExpressions()) {
-            edgeInputVariables.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(exp));
-          }
-          return edgeInputVariables;
-        }
-        else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
-          return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CFunctionCallAssignmentStatement) edgeStmt)
-                  .getRightHandSide().getFunctionNameExpression());
         }
       }
     }
-      /**
-       * TODO: für alle Kantentypen: Welche noch?!
-       * - CDeclarationEdge + CDeclaration CVariableDeclaration -> all vars in initializer  become potential input vars
-       * - CReturnStatementEdge: if getExpression isPresent -> all vars in expression  become potential input vars
-       * - CAssumeEdge: all vars in expression  become potential input vars
-       * - CFunctionCallEdge: all vars in getArgumentExpressions become potential input vars
-       */
-    // else
+
+    else if (pLeavingEdge instanceof CReturnStatementEdge) {
+      Optional<CExpression> edgeExp = ((CReturnStatementEdge) pLeavingEdge).getExpression();
+      if (edgeExp.isPresent()) {
+        return CIdExpressionCollectorVisitor.getVariablesOfExpression(edgeExp.get());
+      }
+    }
+
+    else if (pLeavingEdge instanceof CAssumeEdge) {
+      return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CAssumeEdge) pLeavingEdge).getExpression());
+    }
+
+    else if (pLeavingEdge instanceof CFunctionCallEdge) {
+      Collection<String> inputVars = new HashSet<>();
+      for (CExpression argument : ((CFunctionCallEdge) pLeavingEdge).getArguments()) {
+        inputVars.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(argument));
+      }
+      return inputVars;
+    }
     return Collections.emptySet();
   }
 
 
 
-  private Set<String> getOutputVariablesForSuccessorAndAddNewOutputVariables(CFAEdge pLeavingEdge,
-      Set<String> pPredOutputVars, Set<String> pOutputVariables) {
+  private Set<String> getOutputVariablesForSuccessorAndAddNewOutputVariables(final CFAEdge pLeavingEdge,
+      final Set<String> pPredOutputVars, final Set<String> pOutputVariables) {
     Set<String> edgeOutputVariables = null;
     if (pLeavingEdge instanceof CStatementEdge) {
       CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
@@ -312,7 +336,11 @@ public class AppliedCustomInstructionParser {
         return pPredOutputVars;
       }
     } else if (pLeavingEdge instanceof CDeclarationEdge) {
-      // TODO if pLeavingedge  CDeclarationEdge --> getQualifiedVariablename --> edgeOutputVariables variable
+      // TODO: so?
+      // if pLeavingedge  CDeclarationEdge --> getQualifiedVariablename --> edgeOutputVariables variable
+      edgeOutputVariables = new HashSet<>();
+      edgeOutputVariables.add(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
+
     } else {
       return pPredOutputVars;
     }

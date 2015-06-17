@@ -33,18 +33,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -60,15 +63,17 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.GenericRefiner;
-import org.sosy_lab.cpachecker.util.refiner.InterpolationTree;
-import org.sosy_lab.cpachecker.util.refiner.PathExtractor;
-import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
+import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
+import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
@@ -90,6 +95,23 @@ public class ValueAnalysisRefiner
       secure = true,
       description = "whether or not to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
+
+  @Option(secure = true, description = "when to export the interpolation tree"
+      + "\nNEVER:   never export the interpolation tree"
+      + "\nFINAL:   export the interpolation tree once after each refinement"
+      + "\nALWAYD:  export the interpolation tree once after each interpolation, i.e. multiple times per refinmenet",
+      values = { "NEVER", "FINAL", "ALWAYS" })
+  private String exportInterpolationTree = "NEVER";
+
+  @Option(secure = true, description = "export interpolation trees to this file template")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
+
+  private ValueAnalysisPathInterpolator interpolator;
+
+  private ValueAnalysisPrefixProvider prefixProvider;
+
+  private PrefixSelector classifier;
 
   /**
    * keep log of previous refinements to identify repeated one
@@ -124,16 +146,18 @@ public class ValueAnalysisRefiner
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
-    final ErrorPathClassifier pathClassifier = new ErrorPathClassifier(cfa.getVarClassification(),
-                                                                       cfa.getLoopStructure());
+    final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
+        new ValueAnalysisPrefixProvider(logger, cfa, config);
+    final PrefixSelector prefixSelector = new PrefixSelector(cfa.getVarClassification(),
+                                                             cfa.getLoopStructure());
 
     ValueAnalysisRefiner refiner = new ValueAnalysisRefiner(
         checker,
         strongestPostOp,
-        new SortingPathExtractor(checker,
-                                 pathClassifier,
+        new SortingPathExtractor(prefixProvider,
+                                 prefixSelector,
                                  logger, config),
-        pathClassifier,
+        prefixProvider,
         config,
         logger,
         valueAnalysisCpa.getShutdownNotifier(),
@@ -146,28 +170,80 @@ public class ValueAnalysisRefiner
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
-      final ErrorPathClassifier pPathClassifier,
+      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
       final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
     super(pFeasibilityChecker,
-          new ValueAnalysisPathInterpolator(pFeasibilityChecker,
-                                            pStrongestPostOperator,
-                                            pPathClassifier,
-                                            pConfig, pLogger, pShutdownNotifier, pCfa),
-          ValueAnalysisInterpolantManager.getInstance(),
-          pPathExtractor,
-          pConfig,
-          pLogger,
-          pShutdownNotifier,
-          pCfa);
+        new ValueAnalysisPathInterpolator(pFeasibilityChecker,
+            pStrongestPostOperator,
+            pPrefixProvider,
+            pConfig, pLogger, pShutdownNotifier, pCfa),
+        ValueAnalysisInterpolantManager.getInstance(),
+        pPathExtractor,
+        pConfig,
+        pLogger,
+        pShutdownNotifier,
+        pCfa);
 
     pConfig.inject(this);
 
     checker = pFeasibilityChecker;
 
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pLogger, pShutdownNotifier, pCfa.getMachineModel());
+    interpolator   = new ValueAnalysisPathInterpolator(pFeasibilityChecker,
+        pStrongestPostOperator,
+        pPrefixProvider,
+        pConfig,
+        pLogger,
+        pShutdownNotifier,
+        pCfa);
+    prefixProvider = new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig);
+    classifier     = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
+  }
+
+  @Override
+  protected void refineUsingInterpolants(
+      final ARGReachedSet pReached,
+      final InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree
+  ) {
+    final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
+
+    Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
+    Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(restartStrategy);
+
+    for (ARGState root : refinementRoots) {
+      root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
+
+      if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(
+          pInterpolationTree.extractPrecisionIncrement(root).values())) {
+        root = relocateRepeatedRefinementRoot(root);
+      }
+
+      List<Precision> precisions = new ArrayList<>(2);
+      // merge the value precisions of the subtree, and refine it
+      precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
+          .withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
+
+      // merge the predicate precisions of the subtree, if available
+      if (predicatePrecisionIsAvailable) {
+        precisions.add(mergePredicatePrecisionsForSubgraph(root, pReached));
+      }
+
+      refinementInformation.put(root, precisions);
+    }
+
+    for (Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
+      List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
+
+      precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+      if (predicatePrecisionIsAvailable) {
+        precisionTypes.add(Predicates.instanceOf(PredicatePrecision.class));
+      }
+
+      pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
+    }
   }
 
   private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached) {
@@ -192,7 +268,6 @@ public class ValueAnalysisRefiner
     return mergedPrecision;
   }
 
-
   /**
    * Merge all predicate precisions in the subgraph below the refinement root
    * into a new predicate precision
@@ -200,8 +275,10 @@ public class ValueAnalysisRefiner
    * @return a new predicate precision containing all predicate precision from
    * the subgraph below the refinement root.
    */
-  private PredicatePrecision mergePredicatePrecisionsForSubgraph(final ARGState pRefinementRoot,
-      final ARGReachedSet pReached) {
+  private PredicatePrecision mergePredicatePrecisionsForSubgraph(
+      final ARGState pRefinementRoot,
+      final ARGReachedSet pReached
+  ) {
 
     PredicatePrecision mergedPrecision = PredicatePrecision.empty();
 
@@ -241,54 +318,6 @@ public class ValueAnalysisRefiner
       }
     }
     return subgraph;
-  }
-
-
-  @Override
-  protected void refineUsingInterpolants(ARGReachedSet pReached,
-      InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree) {
-
-    final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
-
-    Collection<ARGState> refinementRoots =
-        pInterpolationTree.obtainRefinementRoots(restartStrategy);
-
-    for (ARGState root : refinementRoots) {
-      root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
-
-      if (refinementRoots.size() == 1) {
-        final Collection<MemoryLocation> usedLocations =
-            pInterpolationTree.extractPrecisionIncrement(root).values();
-
-        if (isSimilarRepeatedRefinement(usedLocations)) {
-          root = relocateRepeatedRefinementRoot(root);
-        }
-      }
-
-      Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
-      List<Precision> precisions = new ArrayList<>(2);
-      // merge the value precisions of the subtree, and refine it
-      precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
-          .withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
-
-      // merge the predicate precisions of the subtree, if available
-      if (predicatePrecisionIsAvailable) {
-        precisions.add(mergePredicatePrecisionsForSubgraph(root, pReached));
-      }
-
-      refinementInformation.put(root, precisions);
-
-      for (Map.Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
-        List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
-
-        precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
-        if (predicatePrecisionIsAvailable) {
-          precisionTypes.add(Predicates.instanceOf(PredicatePrecision.class));
-        }
-
-        pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
-      }
-    }
   }
 
   /**
@@ -404,7 +433,7 @@ public class ValueAnalysisRefiner
    * @throws CPAException
    */
   @Override
-  protected Model createModel(ARGPath errorPath) throws InterruptedException, CPAException {
+  protected RichModel createModel(ARGPath errorPath) throws InterruptedException, CPAException {
     return concreteErrorPathAllocator.allocateAssignmentsToPath(checker.evaluate(errorPath));
   }
 

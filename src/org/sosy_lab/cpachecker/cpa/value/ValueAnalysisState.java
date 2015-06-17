@@ -40,12 +40,10 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.AliasedSubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -62,7 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.refiner.ForgetfulState;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;

@@ -23,28 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import java.util.ArrayDeque;
-import java.util.List;
-
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.refiner.EdgeInterpolator;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier.PrefixPreference;
-import org.sosy_lab.cpachecker.util.refiner.FeasibilityChecker;
-import org.sosy_lab.cpachecker.util.refiner.GenericPathInterpolator;
-import org.sosy_lab.cpachecker.util.refiner.InterpolantManager;
-import org.sosy_lab.cpachecker.util.refiner.PathInterpolator;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
+import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
+import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 
 /**
  * {@link PathInterpolator} for
@@ -55,42 +49,29 @@ import org.sosy_lab.cpachecker.util.refiner.PathInterpolator;
 public class SymbolicPathInterpolator
     extends GenericPathInterpolator<ForgettingCompositeState, SymbolicInterpolant> {
 
-  private final FeasibilityChecker<ForgettingCompositeState> checker;
-  private final ErrorPathClassifier classifier;
-
   @Option(description = "How to choose which prefix to use for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.FLOAT_AND_BITVECTOR_BEST;
+  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
+
+  private final FeasibilityChecker<ForgettingCompositeState> checker;
+  private final GenericPrefixProvider<ForgettingCompositeState> prefixProvider;
+  private final PrefixSelector prefixSelector;
 
   public SymbolicPathInterpolator(
       final EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> pEdgeInterpolator,
       final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
-      final ErrorPathClassifier pPathClassifier,
+      final GenericPrefixProvider<ForgettingCompositeState> pPrefixProvider,
+      final PrefixSelector pPrefixSelector,
       final Configuration pConfig, LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pEdgeInterpolator, pFeasibilityChecker, pPathClassifier, pConfig,
+    super(pEdgeInterpolator, pFeasibilityChecker, pPrefixProvider, pConfig,
         pLogger, pShutdownNotifier, pCfa);
 
     pConfig.inject(this);
 
     checker = pFeasibilityChecker;
-    classifier = pPathClassifier;
-  }
-
-  @Override
-  protected ARGPath obtainErrorPathPrefix(
-      final ARGPath pErrorPath,
-      final SymbolicInterpolant pInterpolant
-  ) throws CPAException {
-
-    final List<ARGPath> prefixes =
-        checker.getInfeasiblePrefixes(pErrorPath,
-                                      pInterpolant.reconstructState(),
-                                      new ArrayDeque<ForgettingCompositeState>());
-
-    totalPrefixes.setNextValue(prefixes.size());
-
-    return classifier.obtainSlicedPrefix(prefixPreference, pErrorPath, prefixes);
+    prefixProvider = pPrefixProvider;
+    prefixSelector = pPrefixSelector;
   }
 }

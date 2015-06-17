@@ -23,24 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.util.Collection;
+import java.util.List;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingGlobalPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.refiner.ErrorPathClassifier;
-import org.sosy_lab.cpachecker.util.refiner.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
@@ -74,11 +76,12 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
         new ValueAnalysisGlobalRefiner(
             checker,
             strongestPostOp,
-            new ErrorPathClassifier(cfa.getVarClassification(),
-                                    cfa.getLoopStructure()),
+            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            new PrefixSelector(cfa.getVarClassification(),
+                               cfa.getLoopStructure()),
             config,
             logger,
-        valueAnalysisCpa.getShutdownNotifier(),
+            valueAnalysisCpa.getShutdownNotifier(),
             cfa);
 
     return refiner;
@@ -87,7 +90,8 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   ValueAnalysisGlobalRefiner(
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
-      final ErrorPathClassifier pPathClassifier,
+      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
+      final PrefixSelector pPrefixSelector,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa
@@ -95,8 +99,8 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
 
     super(pFeasibilityChecker,
           pStrongestPostOperator,
-          new SortingGlobalPathExtractor(pFeasibilityChecker, pPathClassifier, pLogger, pConfig),
-          pPathClassifier,
+          new SortingGlobalPathExtractor(pPrefixProvider, pPrefixSelector, pLogger, pConfig),
+          pPrefixProvider,
           pConfig, pLogger, pShutdownNotifier, pCfa);
 
     pConfig.inject(this, ValueAnalysisGlobalRefiner.class);
@@ -106,8 +110,8 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
    * This method creates the interpolation tree, depending on the selected interpolation strategy.
    */
   @Override
-  protected ValueAnalysisInterpolationTree createInterpolationTree(Collection<ARGState> targets) {
-    return new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+  protected ValueAnalysisInterpolationTree createInterpolationTree(final List<ARGPath> targetsPaths) {
+    return new ValueAnalysisInterpolationTree(logger, targetsPaths, useTopDownInterpolationStrategy);
   }
 }
 
