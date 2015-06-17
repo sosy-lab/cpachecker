@@ -86,7 +86,7 @@ import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisRefiner
-    extends GenericRefiner<ValueAnalysisState, ValueAnalysisInformation, ValueAnalysisInterpolant> {
+    extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant> {
 
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;

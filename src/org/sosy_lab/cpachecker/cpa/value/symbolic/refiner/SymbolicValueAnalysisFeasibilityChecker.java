@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
  * ValueAnalysisTransferRelation and as such cannot fully handle symbolic values.
  */
 public class SymbolicValueAnalysisFeasibilityChecker
-    extends GenericFeasibilityChecker<ForgettingCompositeState, ValueAnalysisInformation>
+    extends GenericFeasibilityChecker<ForgettingCompositeState>
     implements SymbolicFeasibilityChecker {
 
   public SymbolicValueAnalysisFeasibilityChecker(

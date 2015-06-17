@@ -70,7 +70,7 @@ import com.google.common.collect.Lists;
  * @see GenericPathInterpolator
  */
 @Options(prefix = "cpa.value.refinement")
-public abstract class GenericRefiner<S extends ForgetfulState<T>, T, I extends Interpolant<S>>
+public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S>>
     implements Refiner, StatisticsProvider {
 
   @Option(secure = true, description = "when to export the interpolation tree"

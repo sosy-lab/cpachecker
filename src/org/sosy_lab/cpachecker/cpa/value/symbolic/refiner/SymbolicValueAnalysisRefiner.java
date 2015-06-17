@@ -71,7 +71,7 @@ import com.google.common.collect.Multimap;
  */
 @Options(prefix = "cpa.value.refinement")
 public class SymbolicValueAnalysisRefiner
-    extends GenericRefiner<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> {
+    extends GenericRefiner<ForgettingCompositeState, SymbolicInterpolant> {
 
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;

@@ -47,7 +47,7 @@ import com.google.common.base.Optional;
 /**
  * Generic feasibility checker
  */
-public abstract class GenericFeasibilityChecker<S extends ForgetfulState<T>, T>
+public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
     implements FeasibilityChecker<S> {
 
   private final LogManager logger;
@@ -128,23 +128,5 @@ public abstract class GenericFeasibilityChecker<S extends ForgetfulState<T>, T>
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
-  }
-
-  private Optional<S> getSuccessor(final S pNext,
-      final CFAEdge pEdge,
-      final Deque<S> pCallstack)
-      throws CPAException {
-
-    S next = pNext;
-
-    if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      next = strongestPostOp.handleFunctionCall(next, pEdge, pCallstack);
-    }
-
-    if (!pCallstack.isEmpty() && pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      next = strongestPostOp.handleFunctionReturn(next, pEdge, pCallstack);
-    }
-
-    return strongestPostOp.getStrongestPost(next, precision, pEdge);
   }
 }

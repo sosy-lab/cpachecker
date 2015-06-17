@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import com.google.common.base.Optional;
 
 public class ValueAnalysisFeasibilityChecker
-    extends GenericFeasibilityChecker<ValueAnalysisState, ValueAnalysisInformation> {
+    extends GenericFeasibilityChecker<ValueAnalysisState> {
 
   private final LogManager logger;
   private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
