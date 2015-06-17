@@ -59,7 +59,7 @@ import com.google.common.collect.Iterables;
  * or given state.
  * Uses a {@link StrongestPostOperator} for interpreting the semantics of operations.
  */
-public class GenericPrefixProvider<S extends AbstractState> implements PrefixProvider {
+public class GenericPrefixProvider<S extends ForgetfulState<?>> implements PrefixProvider {
 
   private final LogManager logger;
   private final StrongestPostOperator<S> strongestPost;
