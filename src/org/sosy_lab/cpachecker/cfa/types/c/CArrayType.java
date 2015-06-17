@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -30,8 +34,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 
-public class CArrayType extends AArrayType implements CType {
+public class CArrayType extends AArrayType implements CType, Serializable {
 
+
+  private static final long serialVersionUID = -6314468260643330323L;
 
   private final CExpression    length;
   private boolean   isConst;
@@ -140,5 +146,30 @@ public class CArrayType extends AArrayType implements CType {
         getType().getCanonicalType(isConst || pForceConst,
                                    isVolatile || pForceVolatile),
         length);
+  }
+
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    throw new InvalidObjectException("Proxy required");
+  }
+
+  private static class SerializationProxy implements Serializable {
+
+    private final boolean isConst;
+    private final boolean isVolatile;
+    private final CType type;
+
+    public SerializationProxy(CArrayType arrayType) {
+      isConst = arrayType.isConst;
+      isVolatile = arrayType.isVolatile;
+      type = arrayType.getType();
+    }
+
+    private Object readResolve() {
+      return new CArrayType(isConst, isVolatile, type, null);
+    }
   }
 }

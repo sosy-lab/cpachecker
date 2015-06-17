@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableList;
  */
 public final class CFunctionTypeWithNames extends CFunctionType implements CType {
 
+  private static final long serialVersionUID = -3585082910610497708L;
   private final List<CParameterDeclaration> parameters;
 
   public CFunctionTypeWithNames(
