@@ -37,7 +37,7 @@ import com.google.common.base.Optional;
 /**
  * Interface for the strongest post-operator as used in CEGAR.
  */
-public interface StrongestPostOperator<S extends AbstractState> {
+public interface StrongestPostOperator<S extends ForgetfulState> {
 
   /**
    * Computes the abstract state that represents the region of states reachable from the given state
