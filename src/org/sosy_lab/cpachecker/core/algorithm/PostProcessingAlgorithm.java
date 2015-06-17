@@ -56,11 +56,11 @@ public class PostProcessingAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReached) throws CPAException, InterruptedException {
-    boolean sound = true;
+  public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
+    AlgorithmStatus sound = AlgorithmStatus.SOUND_AND_PRECISE;
 
     // run the inner algorithm to fill the reached set
-    sound &= innerAlgorithm.run(pReached);
+    sound.update(innerAlgorithm.run(pReached));
     postProcessor.postProcess(pReached);
 
     return sound;

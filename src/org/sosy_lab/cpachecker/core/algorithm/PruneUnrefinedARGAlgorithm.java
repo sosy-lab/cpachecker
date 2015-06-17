@@ -34,11 +34,11 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -73,7 +73,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
   }
 
   @Override
-  public boolean run(ReachedSet reachedOrig) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet reachedOrig) throws CPAException, InterruptedException {
     ReachedSet reached = reachedSetFactory.create();
     FunctionEntryNode mainFunction = cfa.getMainFunction();
     AbstractState initialElement = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
@@ -81,7 +81,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
     reached.add(initialElement, initialPrecision);
 
     // compute explicit version of ART
-    boolean sound = algorithm.run(reachedOrig);
+    AlgorithmStatus sound = algorithm.run(reachedOrig);
 
     if (!algorithm.reset()) {
       throw new CPAException("Reset in PruneUnrefinedARGAlgorithm did not work");

@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateARGCombiningHelper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -552,6 +552,11 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       ((StatisticsProvider)restartAlgorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
+  }
+
+  @Override
+  public boolean reset() {
+    return false;
   }
 
 }

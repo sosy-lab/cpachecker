@@ -667,15 +667,16 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     }
 
   }
-  
+
   @Override
   public boolean reset() {
     fakeEdgesFromLastRun.clear();
     initialWrappedState = null;
     pathToFailure = null;
     repeatedFailure = false;
-    oldPrecision = null;
-
+    initialWrappedState = null;
+    oldEnablerPrecision = null;
+    locConstructor = null;
     return algorithm.reset();
   }
 }
