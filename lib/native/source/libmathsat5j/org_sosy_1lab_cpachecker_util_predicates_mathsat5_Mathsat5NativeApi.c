@@ -522,6 +522,14 @@ TERM_RETURN
   CALL2(msat_term, make_fp_##name) \
   TERM_RETURN
 
+#define make_term_fp_rounding_unary(name) \
+  DEFINE_FUNC(jterm, 1make_1fp_1##name) WITH_THREE_ARGS(jenv, jterm, jterm) \
+  ENV_ARG(1) \
+  TERM_ARG(2) \
+  TERM_ARG(3) \
+  CALL3(msat_term, make_fp_##name) \
+  TERM_RETURN
+
 #define make_term_fp_binary(name) \
   DEFINE_FUNC(jterm, 1make_1fp_1##name) WITH_THREE_ARGS(jenv, jterm, jterm) \
   ENV_ARG(1) \
@@ -550,13 +558,20 @@ TERM_RETURN
   TERM_RETURN
 
 make_term_fp_unary(neg)
+make_term_fp_unary(abs)
 make_term_fp_unary(isnan)
 make_term_fp_unary(isinf)
 make_term_fp_unary(iszero)
 make_term_fp_unary(issubnormal)
+make_term_fp_unary(isnormal)
+make_term_fp_unary(isneg)
+make_term_fp_unary(ispos)
+make_term_fp_rounding_unary(sqrt)
 make_term_fp_binary(equal)
 make_term_fp_binary(lt)
 make_term_fp_binary(leq)
+make_term_fp_binary(max)
+make_term_fp_binary(min)
 make_term_fp_rounding_binary(plus)
 make_term_fp_rounding_binary(minus)
 make_term_fp_rounding_binary(times)
@@ -564,6 +579,13 @@ make_term_fp_rounding_binary(div)
 make_term_fp_rounding_cast(cast, 1cast)
 make_term_fp_rounding_cast(from_sbv, 1from_1sbv)
 make_term_fp_rounding_cast(from_ubv, 1from_1ubv)
+
+DEFINE_FUNC(jterm, 1make_1fp_1round_1to_1int) WITH_THREE_ARGS(jenv, jterm, jterm)
+ENV_ARG(1)
+TERM_ARG(2)
+TERM_ARG(3)
+CALL3(msat_term, make_fp_round_to_int)
+TERM_RETURN
 
 DEFINE_FUNC(jterm, 1make_1fp_1to_1bv) WITH_FOUR_ARGS(jenv, int, jterm, jterm)
 ENV_ARG(1)
