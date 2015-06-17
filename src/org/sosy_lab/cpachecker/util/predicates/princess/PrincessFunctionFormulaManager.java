@@ -23,35 +23,41 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import ap.parser.IExpression;
+import ap.parser.IFunction;
 
-class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, PrincessEnvironment.FunctionType, TermType, PrincessEnvironment> {
+import com.google.common.base.Predicates;
 
-  private final PrincessUnsafeFormulaManager unsafeManager;
+class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, IFunction, TermType, PrincessEnvironment> {
 
   PrincessFunctionFormulaManager(
-          PrincessFormulaCreator creator,
-          PrincessUnsafeFormulaManager unsafeManager) {
-    super(creator, unsafeManager);
-    this.unsafeManager = unsafeManager;
+      PrincessFormulaCreator creator,
+      PrincessUnsafeFormulaManager unsafe) {
+    super(creator, unsafe);
   }
 
   @Override
   protected IExpression createUninterpretedFunctionCallImpl(
-      PrincessEnvironment.FunctionType pFuncDecl, List<IExpression> pArgs) {
-    assert pArgs.size() == pFuncDecl.getArgs().size() : "functiontype has different number of args.";
-    return unsafeManager.createUIFCallImpl(
-        pFuncDecl.getFuncDecl(), pFuncDecl.getResultType(), pArgs);
+      IFunction pFuncDecl, List<IExpression> pArgs) {
+    return getFormulaCreator().getEnv().makeFunction(pFuncDecl, pArgs);
   }
 
   @Override
-  protected PrincessEnvironment.FunctionType declareUninterpretedFunctionImpl(
-        String pName, TermType pReturnType, List<TermType> pArgTypes) {
-    return getFormulaCreator().getEnv().declareFun(pName, pReturnType, pArgTypes);
+  protected IFunction declareUninterpretedFunctionImpl(
+        String pName, TermType pReturnType, List<TermType> args) {
+    checkArgument(pReturnType == TermType.Integer || pReturnType == TermType.Boolean,
+        "Princess does not support return types of UFs other than Integer");
+    checkArgument(from(args).allMatch(Predicates.equalTo(TermType.Integer)),
+        "Princess does not support argument types of UFs other than Integer");
+
+    return getFormulaCreator().getEnv().declareFun(pName, args.size(), pReturnType);
   }
 }

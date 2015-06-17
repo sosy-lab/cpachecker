@@ -175,8 +175,9 @@ public final class CompositeTransferRelation implements TransferRelation {
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
-      Collection<? extends AbstractState> componentSuccessors =
-          lCurrentTransfer.getAbstractSuccessorsForEdge(lCurrentElement, lCurrentPrecision, cfaEdge);
+      Collection<? extends AbstractState> componentSuccessors;
+      componentSuccessors = lCurrentTransfer.getAbstractSuccessorsForEdge(
+          lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {

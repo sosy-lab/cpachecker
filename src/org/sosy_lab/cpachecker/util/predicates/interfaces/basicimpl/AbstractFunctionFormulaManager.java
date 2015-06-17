@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -60,6 +62,8 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TFunctionDecl
   @Override
   public final <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgTypes) {
+    checkArgument(!pArgTypes.contains(FormulaType.BooleanType),
+        "Uninterpreted functions with boolean arguments are currently not supported in CPAchecker.");
 
     List<TType> argTypes = new ArrayList<>(pArgTypes.size());
     for (FormulaType<?> argtype : pArgTypes) {

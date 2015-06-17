@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableList;
 public abstract class AbstractSingleWrapperState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
 
   private static final long serialVersionUID = -332757795984736107L;
-  private static Function<AbstractState, AbstractState> unwrapFunction
+  private static final Function<AbstractState, AbstractState> unwrapFunction
       = new Function<AbstractState, AbstractState>() {
 
     @Override

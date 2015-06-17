@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.math.BigInteger;
 
@@ -187,13 +186,5 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   @Override
   public Long greaterOrEquals(Long pNumber1, Long pNumber2, boolean signed) {
     return lessOrEquals(pNumber2, pNumber1, signed);
-  }
-
-  @Override
-  public boolean isEqual(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_EQ)
-        && get_app_num_args(z3context, pNumber) == 2
-        && get_sort(z3context, get_app_arg(z3context, pNumber, 0)) == Z3_BV_SORT
-        && get_sort(z3context, get_app_arg(z3context, pNumber, 1)) == Z3_BV_SORT;
   }
 }

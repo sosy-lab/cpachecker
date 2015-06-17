@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
@@ -271,7 +271,7 @@ public class ARGStatistics implements IterationStatistics {
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
 
-          Model model = createModelForPath(path);
+          RichModel model = createModelForPath(path);
           cex = CounterexampleInfo.feasible(path, model);
         }
       }
@@ -283,7 +283,7 @@ public class ARGStatistics implements IterationStatistics {
     return counterexamples;
   }
 
-  private Model createModelForPath(ARGPath pPath) {
+  private RichModel createModelForPath(ARGPath pPath) {
 
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
         CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
@@ -303,9 +303,9 @@ public class ARGStatistics implements IterationStatistics {
     }
 
     if(result == null) {
-      return Model.empty();
+      return RichModel.empty();
     } else {
-      return Model.empty().withAssignmentInformation(result);
+      return RichModel.empty().withAssignmentInformation(result);
     }
   }
 

@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
@@ -118,7 +115,7 @@ public abstract class FormulaType<T extends Formula> {
   };
 
   public static BitvectorType getBitvectorTypeWithSize(int size) {
-    return BitvectorType.getBitvectorType(size);
+    return new BitvectorType(size);
   }
 
   public static final class BitvectorType extends FormulaType<BitvectorFormula> {
@@ -126,21 +123,6 @@ public abstract class FormulaType<T extends Formula> {
 
     private BitvectorType(int size) {
       this.size = (size);
-    }
-    private static Map<Integer, BitvectorType> table = new HashMap<>();
-    /**
-     * Gets the Raw Bitvector-Type with the given size.
-     * @param size
-     * @return
-     */
-    private static BitvectorType getBitvectorType(int size) {
-      int hashValue = size;
-      BitvectorType value = table.get(hashValue);
-      if (value == null) {
-        value = new BitvectorType(size);
-        table.put(hashValue, value);
-      }
-      return value;
     }
 
     @Override
@@ -152,13 +134,26 @@ public abstract class FormulaType<T extends Formula> {
       return size;
     }
 
-    public BitvectorType withSize(int size) {
-      return getBitvectorType(size);
-    }
-
     @Override
     public String toString() {
       return "Bitvector<" + getSize() + ">";
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (pObj == this) {
+        return true;
+      }
+      if (!(pObj instanceof BitvectorType)) {
+        return false;
+      }
+      BitvectorType other = (BitvectorType)pObj;
+      return size == other.size;
+    }
+
+    @Override
+    public int hashCode() {
+      return size;
     }
   }
 
@@ -290,6 +285,30 @@ public abstract class FormulaType<T extends Formula> {
   public static <TD extends Formula, TR extends Formula> ArrayFormulaType<TD, TR>
   getArrayType(FormulaType<TD> pDomainSort, FormulaType<TR> pRangeSort) {
     return new ArrayFormulaType<>(pDomainSort, pRangeSort);
+  }
+
+  /** parse a string and return the corresponding type,
+   * this method is the counterpart of 'toString()'. */
+  public static FormulaType<?> fromString(String t) {
+    if (BooleanType.toString().equals(t)) {
+      return BooleanType;
+    } else if (IntegerType.toString().equals(t)) {
+      return IntegerType;
+    } else if (RationalType.toString().equals(t)) {
+      return RationalType;
+    } else if (t.startsWith("FloatingPoint<")) {
+      // FloatingPoint<exp=11,mant=52>
+      String[] exman = t.substring(14, t.length() - 1).split(",");
+      return FormulaType.getFloatingPointType(
+          Integer.parseInt(exman[0].substring(4)),
+          Integer.parseInt(exman[1].substring(5)));
+    } else if (t.startsWith("Bitvector<")) {
+      // Bitvector<32>
+      return FormulaType.getBitvectorTypeWithSize(
+          Integer.parseInt(t.substring(10, t.length() - 1)));
+    } else {
+      throw new AssertionError("unknown type:" + t);
+    }
   }
 
 }

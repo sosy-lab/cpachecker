@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -71,7 +69,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginDescriptor;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper.OffsetDescriptor;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginLineDescriptor;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -83,11 +85,14 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -97,8 +102,9 @@ import com.google.common.collect.Sets;
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
 
-  @Option(secure=true, description="Consider the negative semantics of tokens provided with path automatons.")
-  private boolean considerNegativeSemanticsAttribute = false; // legacy: token matching needs this
+  private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
+
+  public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
 
   @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
@@ -112,11 +118,14 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
 
-  @Option(secure=true, description="Do not try to \"catch up\" with witness lines: If they do not match, go to the sink.")
-  private boolean strictLineMatching = false;
+  @Option(secure=true, description="Match the character offset within the file.")
+  private boolean matchOffset = true;
 
-  @Option(secure=true, description="If a witness represents a single path in Automaton match both starting and ending lines of the CFA edge (ending line = starting line of the next edge). If matching CFA edge exists, go to the sink for the other edges, otherwise match starting lines as usual.")
-  private boolean singlePathMatching = false;
+  @Option(secure=true, description="Match the branching information at a branching location.")
+  private boolean matchAssumeCase = true;
+
+  @Option(secure=true, description="Do not try to \"catch up\" with witness guards: If they do not match, go to the sink.")
+  private boolean strictMatching = false;
 
   @Option(secure=true, description="File for exporting the path automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -158,7 +167,10 @@ public class AutomatonGraphmlParser {
 
       // Extract the information on the automaton ----
       Node nameAttribute = graphNode.getAttributes().getNamedItem("name");
-      String automatonName = nameAttribute == null ? "WitnessAutomaton" : nameAttribute.getTextContent();
+      String automatonName = WITNESS_AUTOMATON_NAME;
+      if (nameAttribute != null) {
+        automatonName += "_" + nameAttribute.getTextContent();
+      }
       String initialStateName = null;
 
       // Create transitions ----
@@ -169,13 +181,30 @@ public class AutomatonGraphmlParser {
       Map<String, Deque<String>> stacks = Maps.newHashMap();
 
       // Create graph
-      Multimap<String, Node> graph = HashMultimap.create();
+      Multimap<String, Node> leavingEdges = HashMultimap.create();
+      Multimap<String, Node> enteringEdges = HashMultimap.create();
       String entryNodeId = null;
+
+      Set<String> violationStates = Sets.newHashSet();
+
       for (int i = 0; i < edges.getLength(); i++) {
         Node stateTransitionEdge = edges.item(i);
 
         String sourceStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
-        graph.put(sourceStateId, stateTransitionEdge);
+        String targetStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
+        leavingEdges.put(sourceStateId, stateTransitionEdge);
+        enteringEdges.put(targetStateId, stateTransitionEdge);
+
+        Element sourceStateNode = docDat.getNodeWithId(sourceStateId);
+        Element targetStateNode = docDat.getNodeWithId(targetStateId);
+        EnumSet<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceStateNode);
+        EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
+        if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
+          violationStates.add(sourceStateId);
+        }
+        if (sourceNodeFlags.contains(NodeFlag.ISVIOLATION)) {
+          violationStates.add(targetStateId);
+        }
       }
 
       // Find entry
@@ -189,9 +218,30 @@ public class AutomatonGraphmlParser {
 
       Preconditions.checkNotNull(entryNodeId, "You must define an entry node.");
 
+      // Determine distances to violation states
+      Queue<String> waitlist = new ArrayDeque<>(violationStates);
+      Map<String, Integer> distances = Maps.newHashMap();
+      for (String violationState : violationStates) {
+        distances.put(violationState, 0);
+      }
+      while (!waitlist.isEmpty()) {
+        String current = waitlist.poll();
+        int newDistance = distances.get(current) + 1;
+        for (Node enteringEdge : enteringEdges.get(current)) {
+          String sourceStateId = GraphMlDocumentData.getAttributeValue(enteringEdge, "source", "Every transition needs a source!");
+          Integer oldDistance = distances.get(sourceStateId);
+          if (oldDistance == null || oldDistance > newDistance) {
+            distances.put(sourceStateId, newDistance);
+            waitlist.offer(sourceStateId);
+          }
+        }
+      }
+      // Sink nodes have infinite distance to the target location, encoded as -1
+      distances.put(AutomatonGraphmlCommon.SINK_NODE_ID, -1);
+
       Set<Node> visitedEdges = new HashSet<>();
       Queue<Node> waitingEdges = new ArrayDeque<>();
-      waitingEdges.addAll(graph.get(entryNodeId));
+      waitingEdges.addAll(leavingEdges.get(entryNodeId));
       visitedEdges.addAll(waitingEdges);
       while (!waitingEdges.isEmpty()) {
         Node stateTransitionEdge = waitingEdges.poll();
@@ -199,7 +249,7 @@ public class AutomatonGraphmlParser {
         String sourceStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
         String targetStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
 
-        for (Node successorEdge : graph.get(targetStateId)) {
+        for (Node successorEdge : leavingEdges.get(targetStateId)) {
           if (visitedEdges.add(successorEdge)) {
             waitingEdges.add(successorEdge);
           }
@@ -208,19 +258,22 @@ public class AutomatonGraphmlParser {
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
-        final List<AutomatonBoolExpr> assertions;
-        if (!targetNodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(targetStateId).isEmpty()
-            || targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-          AutomatonBoolExpr otherAutomataSafe =
-              new AutomatonBoolExpr.Negation(
-                  new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY)
-              );
-          assertions = Collections.singletonList(otherAutomataSafe);
-        } else {
-          assertions = Collections.emptyList();
+        final List<AutomatonBoolExpr> assertions = Collections.emptyList();
+        boolean leadsToViolationNode = targetNodeFlags.contains(NodeFlag.ISVIOLATION);
+        if (leadsToViolationNode) {
+          violationStates.add(targetStateId);
         }
 
-        List<AutomatonAction> actions = Collections.emptyList();
+        Integer distance = distances.get(targetStateId);
+        if (distance == null) {
+          distance = Integer.MAX_VALUE;
+        }
+        List<AutomatonAction> actions = Collections.<AutomatonAction>singletonList(
+            new AutomatonAction.Assignment(
+                DISTANCE_TO_VIOLATION,
+                new AutomatonIntExpr.Constant(-distance)
+                )
+            );
         List<CStatement> assumptions = Lists.newArrayList();
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
@@ -229,7 +282,7 @@ public class AutomatonGraphmlParser {
           stateTransitions.put(sourceStateId, transitions);
         }
 
-        // Handle stack
+        // Handle call stack
         Deque<String> currentStack = stacks.get(sourceStateId);
         if (currentStack == null) {
           currentStack = new ArrayDeque<>();
@@ -256,27 +309,39 @@ public class AutomatonGraphmlParser {
 
         AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
 
+        // Add assumptions to the transition
         if (considerAssumptions) {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
-          Scope scope = this.scope;
-          if (!newStack.isEmpty() && scope instanceof CProgramScope) {
-            scope = ((CProgramScope) scope).createFunctionScope(newStack.peek());
-          }
-          for (String assumeCode : transAssumes) {
-            assumptions.addAll(removeDuplicates(adjustCharAssignments(
-                AutomatonASTComparator.generateSourceASTOfBlock(
-                    tryFixArrayInitializers(assumeCode),
-                    cparser,
-                    scope))));
+          Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
+          Preconditions.checkArgument(assumptionScopes.size() < 2, "At most one assumption scope must be provided for an edge.");
+          if (!transAssumes.isEmpty()) {
+            Scope scope = this.scope;
+            if (scope instanceof CProgramScope
+                && (!assumptionScopes.isEmpty() || !newStack.isEmpty())) {
+              final String functionName;
+              if (!assumptionScopes.isEmpty()) {
+                functionName = assumptionScopes.iterator().next();
+              } else {
+                functionName = newStack.peek();
+              }
+              scope = ((CProgramScope) scope).createFunctionScope(functionName);
+            }
+            for (String assumeCode : transAssumes) {
+              assumptions.addAll(removeDuplicates(adjustCharAssignments(
+                  AutomatonASTComparator.generateSourceASTOfBlock(
+                      tryFixArrayInitializers(assumeCode),
+                      cparser,
+                      scope))));
+            }
           }
         }
 
         if (matchOriginLine) {
           Set<String> originFileTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
-          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
+          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge.");
 
           Set<String> originLineTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINLINE);
-          Preconditions.checkArgument(originLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge!");
+          Preconditions.checkArgument(originLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge.");
 
           int matchOriginLineNumber = -1;
           if (originLineTags.size() > 0) {
@@ -284,135 +349,39 @@ public class AutomatonGraphmlParser {
           }
           if (matchOriginLineNumber > 0) {
             Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
-            OriginDescriptor originDescriptor = new OriginDescriptor(matchOriginFileName, matchOriginLineNumber);
+            LocationDescriptor originDescriptor = new OriginLineDescriptor(matchOriginFileName, matchOriginLineNumber);
 
-            AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.And(conjunctedTriggers,
-                new AutomatonBoolExpr.MatchStartingLineInOrigin(originDescriptor, true));
-
-            if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
-              // Transition to the BOTTOM state
-              AutomatonBoolExpr trigger = new AutomatonBoolExpr.And(
-                  AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE,
-                  startingLineMatchingExpr);
-              transitions.add(new AutomatonTransition(
-                  trigger,
-                  assertions, assumptions, actions, AutomatonInternalState.BOTTOM, null));
-            } else {
-              // Generate special conditions for single path error trace
-              Collection<Node> siblings = graph.get(sourceStateId);
-              Collection<Node> children = graph.get(targetStateId);
-              assert siblings != null;
-              if (singlePathMatching
-                  && siblings.size() <= 1
-                  && children != null
-                  && children.size() == 1) {
-                Node targetTransitionEdge = children.iterator().next();
-
-                Set<String> targetOriginFileTags = GraphMlDocumentData.getDataOnNode(targetTransitionEdge, KeyDef.ORIGINFILE);
-                Preconditions.checkArgument(targetOriginFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
-
-                Set<String> targetOriginLineTags = GraphMlDocumentData.getDataOnNode(targetTransitionEdge, KeyDef.ORIGINLINE);
-
-                if (!targetOriginLineTags.isEmpty()) {
-                  Preconditions.checkArgument(targetOriginLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge!");
-
-                  Optional<String> matchTargetOriginFileName = targetOriginFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(targetOriginFileTags.iterator().next());
-                  int matchTargetOriginLineNumber = Integer.parseInt(targetOriginLineTags.iterator().next());
-
-                  OriginDescriptor targetOriginDescriptor = new OriginDescriptor(matchTargetOriginFileName, matchTargetOriginLineNumber);
-
-                  AutomatonBoolExpr matchEdgeTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
-                      new AutomatonBoolExpr.MatchEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
-
-                  AutomatonTransition tr = new AutomatonTransition(matchEdgeTriggers, assertions, assumptions, actions, targetStateId);
-                  transitions.add(0, tr);
-
-                  AutomatonBoolExpr existsMatchEdgeTriggers = new AutomatonBoolExpr.And(
-                      new AutomatonBoolExpr.Negation(matchEdgeTriggers),
-                      new AutomatonBoolExpr.ExistsMatchingEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
-
-                  AutomatonTransition trSink = new AutomatonTransition(
-                      existsMatchEdgeTriggers,
-                      assertions,
-                      Collections.<AutomatonAction>emptyList(),
-                      AutomatonInternalState.BOTTOM);
-                  transitions.add(trSink);
-
-                  conjunctedTriggers = new AutomatonBoolExpr.And(
-                      new AutomatonBoolExpr.Negation(existsMatchEdgeTriggers),
-                      startingLineMatchingExpr);
-                } else {
-                  conjunctedTriggers = startingLineMatchingExpr;
-                }
-              } else {
-                conjunctedTriggers = startingLineMatchingExpr;
-              }
-              AutomatonBoolExpr relevantLineMatchTrigger = new AutomatonBoolExpr.And(
-                  AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE, conjunctedTriggers);
-
-              AutomatonTransition relevantLineMatchTransition =
-                  new AutomatonTransition(
-                      relevantLineMatchTrigger,
-                      assertions,
-                      assumptions,
-                      actions,
-                      targetStateId);
-              transitions.add(0, relevantLineMatchTransition);
-
-              /*
-               * If there are non-path-relevant edges in the automaton, they
-               * can be accepted if no assumptions are attached.
-               */
-              AutomatonBoolExpr irrelevantLineMatchTrigger = AutomatonBoolExpr.FALSE;
-              if (!matchSourcecodeData && assumptions.isEmpty()) {
-                irrelevantLineMatchTrigger = new AutomatonBoolExpr.And(
-                      new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
-                      conjunctedTriggers
-                    );
-                AutomatonTransition irrelevantLineMatchTransition =
-                    new AutomatonTransition(
-                        irrelevantLineMatchTrigger,
-                        assertions,
-                        assumptions,
-                        actions,
-                        targetStateId);
-                transitions.add(irrelevantLineMatchTransition);
-              }
-
-              AutomatonBoolExpr elseTrigger = new AutomatonBoolExpr.And(
-                  new AutomatonBoolExpr.Negation(relevantLineMatchTrigger),
-                  new AutomatonBoolExpr.Negation(irrelevantLineMatchTrigger)
-                  );
-              final AutomatonTransition elseTransition;
-              if (strictLineMatching) {
-                // If both do not apply, go to the sink
-                elseTransition = new AutomatonTransition(
-                    elseTrigger,
-                    assertions,
-                    Collections.<AutomatonAction>emptyList(),
-                    AutomatonInternalState.BOTTOM);
-              } else {
-                // If both do not apply, loop back to the source state
-                elseTransition = new AutomatonTransition(
-                    elseTrigger,
-                    assertions,
-                    Collections.<AutomatonAction>emptyList(),
-                    sourceStateId);
-              }
-              transitions.add(elseTransition);
-            }
-          } else {
-            AutomatonTransition tr = new AutomatonTransition(
-                new AutomatonBoolExpr.Negation(
-                    AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
-                      assertions, assumptions, actions, targetStateId);
-            transitions.add(0, tr);
+            AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
+            conjunctedTriggers = and(conjunctedTriggers, startingLineMatchingExpr);
           }
 
         }
+
+        if (matchOffset) {
+          Set<String> originFileTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
+          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge.");
+
+          Set<String> offsetTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.OFFSET);
+          Preconditions.checkArgument(offsetTags.size() <  2, "At most one offset data tag must be provided for each edge.");
+
+          int offset = -1;
+          if (offsetTags.size() > 0) {
+            offset = Integer.parseInt(offsetTags.iterator().next());
+          }
+
+          if (offset >= 0) {
+            Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
+            LocationDescriptor originDescriptor = new OffsetDescriptor(matchOriginFileName, offset);
+
+            AutomatonBoolExpr offsetMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
+            conjunctedTriggers = and(conjunctedTriggers, offsetMatchingExpr);
+          }
+
+        }
+
         if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
-          Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided!");
+          Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided.");
           final String sourceCode;
           if (sourceCodeDataTags.isEmpty()) {
             sourceCode = "";
@@ -420,40 +389,81 @@ public class AutomatonGraphmlParser {
             sourceCode = sourceCodeDataTags.iterator().next();
           }
           final AutomatonBoolExpr exactEdgeMatch = new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode);
-          conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, exactEdgeMatch);
+          conjunctedTriggers = and(conjunctedTriggers, exactEdgeMatch);
+        }
 
-          if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
-            // Transition to the BOTTOM state
-            transitions.add(new AutomatonTransition(conjunctedTriggers, assertions, actions, AutomatonInternalState.BOTTOM));
-          } else {
-            // Transition to the next state
-            transitions.add(new AutomatonTransition(conjunctedTriggers, assertions, actions, targetStateId));
-            transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(conjunctedTriggers), assertions, actions, AutomatonInternalState.BOTTOM));
+        // If the triggers do not apply, none of the above transitions is taken
+        Collection<AutomatonTransition> nonMatchingTransitions = new ArrayList<>();
+        if (strictMatching) {
+          // If we are doing strict matching, anything that does not match must go to the sink
+          nonMatchingTransitions.add(createAutomatonSinkTransition(
+              not(conjunctedTriggers),
+              Collections.<AutomatonBoolExpr>emptyList(),
+              Collections.<AutomatonAction>emptyList(),
+              leadsToViolationNode));
 
-            // If CPAchecker has more than one edge for the same piece of source code, allow the automaton to wait them out
-            LinkedList<AutomatonTransition> followStateTransitions = stateTransitions.get(targetStateId);
-            if (followStateTransitions == null) {
-              followStateTransitions = Lists.newLinkedList();
-              stateTransitions.put(targetStateId, followStateTransitions);
-            }
-            followStateTransitions.add(new AutomatonTransition(conjunctedTriggers, assertions, actions, targetStateId));
-          }
         } else {
-          if (considerNegativeSemanticsAttribute) {
-            final Optional<Boolean> matchPositiveCase;
-            switch (docDat.getDataValueWithDefault(stateTransitionEdge, KeyDef.TOKENSNEGATED, "").toLowerCase()) {
-              case "true":
-                matchPositiveCase = Optional.of(false);
-                break;
-              case "false":
-                matchPositiveCase = Optional.of(true);
-                break;
-              default:
-                matchPositiveCase = Optional.absent();
+          // If we are more lenient, we just wait in the source state until the witness checker catches up with the witness,
+          // i.e. until some CFA edge matches the triggers
+          nonMatchingTransitions.add(createAutomatonTransition(
+              not(conjunctedTriggers),
+              assertions,
+              Collections.<CStatement>emptyList(),
+              Collections.<AutomatonAction>emptyList(),
+              sourceStateId,
+              leadsToViolationNode));
+        }
+
+        if (matchAssumeCase) {
+          Set<String> assumeCaseTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.CONTROLCASE);
+
+          if (assumeCaseTags.size() > 0) {
+            Preconditions.checkArgument(assumeCaseTags.size() <  2, "At most one assume case tag must be provided for each edge.");
+            String assumeCaseStr = assumeCaseTags.iterator().next();
+            final boolean assumeCase;
+            if (assumeCaseStr.equalsIgnoreCase(AssumeCase.THEN.toString())) {
+              assumeCase = true;
+            } else if (assumeCaseStr.equalsIgnoreCase(AssumeCase.ELSE.toString())) {
+              assumeCase = false;
+            } else {
+              throw new IllegalArgumentException("Unrecognized assume case: " + assumeCaseStr);
             }
-            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchAssumeCase(matchPositiveCase));
+
+            AutomatonBoolExpr assumeCaseMatchingExpr =
+                new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
+
+            conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
           }
         }
+
+        Collection<AutomatonTransition> matchingTransitions = new ArrayList<>();
+
+        // If the triggers match, there must be one successor state that moves the automaton forwards
+        matchingTransitions.add(createAutomatonTransition(
+            conjunctedTriggers,
+            assertions,
+            assumptions,
+            actions,
+            targetStateId,
+            leadsToViolationNode));
+
+        // Multiple CFA edges in a sequence might match the triggers,
+        // so in that case we ALSO need a transition back to the source state
+        if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty() || leadsToViolationNode) {
+          Element sourceNode = docDat.getNodeWithId(sourceStateId);
+          Set<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceNode);
+          boolean sourceIsViolationNode = sourceNodeFlags.contains(NodeFlag.ISVIOLATION);
+          matchingTransitions.add(createAutomatonTransition(
+              and(conjunctedTriggers,
+                  new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
+              assertions,
+              Collections.<CStatement>emptyList(),
+              Collections.<AutomatonAction>emptyList(),
+              sourceStateId,
+              sourceIsViolationNode));
+        }
+        transitions.addAll(matchingTransitions);
+        transitions.addAll(nonMatchingTransitions);
       }
 
       // Create states ----
@@ -467,18 +477,17 @@ public class AutomatonGraphmlParser {
           transitions = new ArrayList<>();
         }
 
-        if (!nodeFlags.contains(NodeFlag.ISSINKNODE) && graph.get(stateId).isEmpty()) {
-          AutomatonBoolExpr otherAutomataSafe =
-              new AutomatonBoolExpr.Negation(
-                  new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY)
-              );
+        if (nodeFlags.contains(NodeFlag.ISVIOLATION)) {
+          AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
           List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
           transitions.add(
-              new AutomatonTransition(
+              createAutomatonTransition(
                   AutomatonBoolExpr.TRUE,
                   assertions,
+                  Collections.<CStatement>emptyList(),
                   Collections.<AutomatonAction>emptyList(),
-                  stateId));
+                  stateId,
+                  true));
         }
 
         if (nodeFlags.contains(NodeFlag.ISENTRY)) {
@@ -493,9 +502,11 @@ public class AutomatonGraphmlParser {
         automatonStates.add(state);
       }
 
-      // Build and return the result ----
+      // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every graph needs a specified entry node!");
-      Map<String, AutomatonVariable> automatonVariables = Collections.emptyMap();
+      AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
+      distanceVariable.setValue(-distances.get(initialStateName));
+      Map<String, AutomatonVariable> automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       List<Automaton> result = Lists.newArrayList();
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
@@ -504,7 +515,7 @@ public class AutomatonGraphmlParser {
         try (Writer w = Files.openOutputFile(automatonDumpFile)) {
           automaton.writeDotFile(w);
         } catch (IOException e) {
-         // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+          // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
         }
       }
 
@@ -519,6 +530,100 @@ public class AutomatonGraphmlParser {
     } catch (CParserException e) {
       throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
     }
+  }
+
+  private static AutomatonBoolExpr createViolationAssertion() {
+    return and(
+        not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY))
+        );
+  }
+
+  private static AutomatonTransition createAutomatonTransition(
+      AutomatonBoolExpr pTriggers,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumptions,
+      List<AutomatonAction> pActions,
+      String pTargetStateId,
+      boolean pLeadsToViolationNode) {
+    if (pTargetStateId.equals(AutomatonGraphmlCommon.SINK_NODE_ID)) {
+      return createAutomatonSinkTransition(pTriggers, pAssertions, pActions, pLeadsToViolationNode);
+    }
+    if (pLeadsToViolationNode) {
+      List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
+      return new ViolationCopyingAutomatonTransition(
+              pTriggers,
+              assertions,
+              pAssumptions,
+              pActions,
+              pTargetStateId);
+    }
+    return new AutomatonTransition(
+            pTriggers,
+            pAssertions,
+            pAssumptions,
+            pActions,
+            pTargetStateId);
+  }
+
+  private static AutomatonTransition createAutomatonSinkTransition(
+      AutomatonBoolExpr pTriggers,
+      List<AutomatonBoolExpr> pAssertions,
+      List<AutomatonAction> pActions,
+      boolean pLeadsToViolationNode) {
+    if (pLeadsToViolationNode) {
+      return new ViolationCopyingAutomatonTransition(
+          pTriggers,
+          pAssertions,
+          pActions,
+          AutomatonInternalState.BOTTOM);
+    }
+    return new AutomatonTransition(
+        pTriggers,
+        pAssertions,
+        pActions,
+        AutomatonInternalState.BOTTOM);
+  }
+
+  private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
+
+    private ViolationCopyingAutomatonTransition(
+        AutomatonBoolExpr pTriggers,
+        List<AutomatonBoolExpr> pAssertions,
+        List<CStatement> pAssumptions,
+        List<AutomatonAction> pActions,
+        String pTargetStateId) {
+      super(pTriggers, pAssertions, pAssumptions, pActions, pTargetStateId);
+    }
+
+    private ViolationCopyingAutomatonTransition(
+        AutomatonBoolExpr pTriggers,
+        List<AutomatonBoolExpr> pAssertions,
+        List<AutomatonAction> pActions,
+        AutomatonInternalState pTargetState) {
+      super(pTriggers, pAssertions, pActions, pTargetState);
+    }
+
+    @Override
+    public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
+      String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
+      List<String> violatedPropertyDescriptions = new ArrayList<>();
+      if (!Strings.isNullOrEmpty(own)) {
+        violatedPropertyDescriptions.add(own);
+      }
+      for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
+        if (other != pArgs.getState() && other.getInternalState().isTarget()) {
+          Optional<String> violatedPropertyDescription = other.getOptionalViolatedPropertyDescription();
+          if (violatedPropertyDescription.isPresent() && !violatedPropertyDescription.get().isEmpty()) {
+            violatedPropertyDescriptions.add(violatedPropertyDescription.get());
+          }
+        }
+      }
+      if (violatedPropertyDescriptions.isEmpty() && own == null) {
+        return null;
+      }
+      return Joiner.on(',').join(violatedPropertyDescriptions);
+    }
+
   }
 
   /**
@@ -775,6 +880,34 @@ public class AutomatonGraphmlParser {
       pLogger.logException(Level.WARNING, e, "SAX parser configured incorrectly. Could not determine whether or not the path describes a graphml automaton.");
       return false;
     }
+  }
+
+  private static AutomatonBoolExpr not(AutomatonBoolExpr pA) {
+    if (pA.equals(AutomatonBoolExpr.TRUE)) {
+      return AutomatonBoolExpr.FALSE;
+    }
+    if (pA.equals(AutomatonBoolExpr.FALSE)) {
+      return AutomatonBoolExpr.TRUE;
+    }
+    return new AutomatonBoolExpr.Negation(pA);
+  }
+
+  private static AutomatonBoolExpr and(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
+    if (pA.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
+      return pB;
+    }
+    if (pB.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
+      return pA;
+    }
+    return new AutomatonBoolExpr.And(pA, pB);
+  }
+
+  private static AutomatonBoolExpr and(AutomatonBoolExpr... pExpressions) {
+    AutomatonBoolExpr result = AutomatonBoolExpr.TRUE;
+    for (AutomatonBoolExpr e : pExpressions) {
+      result = and(result, e);
+    }
+    return result;
   }
 
 }

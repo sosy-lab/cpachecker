@@ -24,10 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 
-import java.io.ObjectStreamException;
-import java.io.Serializable;
-
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -41,9 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
  * A Formula represented as a TFormulaInfo object.
  * @param <TFormulaInfo> the solver specific type.
  */
-abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
-
-  private static final long serialVersionUID = 7662624283533815801L;
+abstract class AbstractFormula<TFormulaInfo> implements Formula {
 
   private final TFormulaInfo formulaInfo;
 
@@ -77,7 +71,6 @@ abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
 /**
  * Simple ArrayFormula implementation.
  */
-@SuppressWarnings("serial")
 class ArrayFormulaImpl<TI extends Formula, TE extends Formula, TFormulaInfo>
     extends AbstractFormula<TFormulaInfo>
     implements ArrayFormula<TI, TE> {
@@ -103,7 +96,6 @@ class ArrayFormulaImpl<TI extends Formula, TE extends Formula, TFormulaInfo>
 /**
  * Simple BooleanFormula implementation. Just tracing the size and the sign-treatment
  */
-@SuppressWarnings("serial")
 class BitvectorFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BitvectorFormula {
   public BitvectorFormulaImpl(TFormulaInfo info) {
     super(info);
@@ -113,7 +105,6 @@ class BitvectorFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> i
 /**
  * Simple FloatingPointFormula implementation.
  */
-@SuppressWarnings("serial")
 class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements FloatingPointFormula {
   public FloatingPointFormulaImpl(TFormulaInfo info) {
     super(info);
@@ -123,36 +114,15 @@ class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInf
 /**
  * Simple BooleanFormula implementation.
  */
-@SuppressWarnings("serial")
 class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BooleanFormula {
   public BooleanFormulaImpl(TFormulaInfo pT) {
     super(pT);
-  }
-
-  private Object writeReplace() throws ObjectStreamException {
-    return new SerialProxyFormula(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this).toString());
-  }
-
-  private static class SerialProxyFormula implements Serializable {
-
-    private static final long serialVersionUID = -7575415230982043491L;
-    private final String formula;
-
-    public SerialProxyFormula(final String pF) {
-      formula = pF;
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-      return GlobalInfo.getInstance().getFormulaManager().parse(formula);
-    }
-
   }
 }
 
 /**
  * Simple IntegerFormula implementation.
  */
-@SuppressWarnings("serial")
 class IntegerFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements IntegerFormula {
   public IntegerFormulaImpl(TFormulaInfo pTerm) {
     super(pTerm);
@@ -162,7 +132,6 @@ class IntegerFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> imp
 /**
  * Simple RationalFormula implementation.
  */
-@SuppressWarnings("serial")
 class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements RationalFormula {
   public RationalFormulaImpl(TFormulaInfo pTerm) {
     super(pTerm);

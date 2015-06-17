@@ -36,6 +36,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,7 +45,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -99,7 +99,8 @@ class SmtInterpolEnvironment {
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate pSmtLogfile) throws InvalidConfigurationException {
+      @Nullable PathCounterTemplate pSmtLogfile, long randomSeed)
+          throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = checkNotNull(pShutdownNotifier);
@@ -120,6 +121,7 @@ class SmtInterpolEnvironment {
     }
 
     try {
+      script.setOption(":random-seed", randomSeed);
       script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
       script.setOption(":produce-unsat-cores", true);
@@ -216,6 +218,7 @@ class SmtInterpolEnvironment {
       try {
         PrintWriter out = new PrintWriter(Files.openOutputFile(logfile));
 
+        out.println("(set-option :random-seed " + script.getOption(":random-seed") + ")");
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");
         out.println("(set-option :produce-unsat-cores true)");
@@ -238,7 +241,7 @@ class SmtInterpolEnvironment {
   SmtInterpolTheoremProver createProver(SmtInterpolFormulaManager mgr) {
     checkState(stackDepth == 0,
         "Not allowed to create a new prover environment while solver stack is still non-empty, parallel stacks are not supported.");
-    return new SmtInterpolTheoremProver(mgr, shutdownNotifier);
+    return new SmtInterpolTheoremProver(mgr);
   }
 
   /** Parse a String to Terms and Declarations.
@@ -514,6 +517,41 @@ class SmtInterpolEnvironment {
     checkState(stackDepth > 0, "interpolants should be on higher levels");
     try {
       return script.getInterpolants(partition);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  /**
+   * Compute a sequence of interpolants. The nesting array describes the
+   * start of the subtree for tree interpolants. For inductive sequences of
+   * interpolants use a nesting array completely filled with 0.
+   *
+   * Example:
+   *
+   * A  D
+   * |  |
+   * B  E
+   * | /
+   * C
+   * |
+   * F  H
+   * | /
+   * G
+   *
+   * arrayIndex     = [0,1,2,3,4,5,6,7]  // only for demonstration, not needed
+   * partition      = [A,B,D,E,C,F,H,G]  // post-order of tree
+   * startOfSubTree = [0,0,2,2,0,0,6,0]  // index of left-most leaf of the current element
+   *
+   * @param partition The array of formulas (post-order of tree).
+   *                  This should contain either top-level names or conjunction of top-level names.
+   * @param startOfSubtree The start of the subtree containing the formula at this index as root.
+   * @return Tree interpolants respecting the nesting relation.
+   */
+  public Term[] getTreeInterpolants(Term[] partition, int[] startOfSubTree) {
+    checkState(stackDepth > 0, "interpolants should be on higher levels");
+    try {
+      return script.getInterpolants(partition, startOfSubTree);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

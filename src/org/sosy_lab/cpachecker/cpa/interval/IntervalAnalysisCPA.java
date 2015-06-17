@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -41,19 +44,23 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 @Options(prefix="cpa.interval")
-public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofChecker {
+public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
 
   /**
    * This method returns a CPAfactory for the interval analysis CPA.
@@ -96,13 +103,20 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofCh
    */
   private PrecisionAdjustment precisionAdjustment;
 
+  private final IntervalAnalysisReducer reducer;
+
+  private final StateToFormulaWriter writer;
+
   /**
    * This method acts as the constructor of the interval analysis CPA.
    *
    * @param config the configuration of the CPAinterval analysis CPA.
+
    * @throws InvalidConfigurationException
    */
-  private IntervalAnalysisCPA(Configuration config) throws InvalidConfigurationException {
+  private IntervalAnalysisCPA(Configuration config, LogManager logger,
+      ShutdownNotifier shutdownNotifier, CFA cfa)
+          throws InvalidConfigurationException {
     config.inject(this);
 
     abstractDomain      = DelegateAbstractDomain.<IntervalAnalysisState>getInstance();
@@ -114,6 +128,11 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofCh
     transferRelation    = new IntervalAnalysisTransferRelation(config);
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    reducer = new IntervalAnalysisReducer();
+
+    writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
+
   }
 
   /* (non-Javadoc)
@@ -146,6 +165,11 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofCh
   @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
+  }
+
+  @Override
+  public Reducer getReducer() {
+    return reducer;
   }
 
   /* (non-Javadoc)
@@ -201,5 +225,10 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis, ProofCh
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     return abstractDomain.isLessOrEqual(pState, pOtherState);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    writer.collectStatistics(pStatsCollection);
   }
 }

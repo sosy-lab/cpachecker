@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public class NullValue implements Value {
 
+  private static final long serialVersionUID = 49593725475613735L;
+
   private static final NullValue SINGLETON = new NullValue();
 
   private NullValue() {

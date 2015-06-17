@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -61,7 +62,7 @@ public class JConstructorDeclaration extends JMethodDeclaration {
   public JConstructorDeclaration(FileLocation pFileLocation,
       JConstructorType pType, String pName, String simpleName,
       List<JParameterDeclaration> pParameterDeclarations,
-      VisibilityModifier pVisibility, boolean pIsStrictfp, JClassType declaringClass) {
+      VisibilityModifier pVisibility, boolean pIsStrictfp, JClassOrInterfaceType declaringClass) {
     super(pFileLocation, pType, pName, simpleName, pParameterDeclarations, pVisibility,
         false, false, false, false, false,
         pIsStrictfp, declaringClass);

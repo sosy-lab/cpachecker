@@ -1,20 +1,16 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Predicate;
@@ -24,27 +20,21 @@ import com.google.common.collect.Sets;
 public class FormulaSlicingManager {
   private final LogManager logger;
   private final FormulaManagerView fmgr;
-  private final UnsafeFormulaManager unsafeManager;
-  private final BooleanFormulaManager bfmgr;
+  private final BooleanFormulaManagerView bfmgr;
 
-  private static final String NOT_FUNC_NAME = "not";
   private static final String POINTER_ADDR_VAR_NAME = "ADDRESS_OF";
 
-  public FormulaSlicingManager(LogManager pLogger,
-      FormulaManagerView pFmgr,
-      UnsafeFormulaManager pUnsafeManager,
-      BooleanFormulaManager pBfmgr) {
+  public FormulaSlicingManager(LogManager pLogger, FormulaManagerView pFmgr) {
     logger = pLogger;
     fmgr = pFmgr;
-    unsafeManager = pUnsafeManager;
-    bfmgr = pBfmgr;
+    bfmgr = fmgr.getBooleanFormulaManager();
   }
 
   /**
-   * @return Over-approximation of the formla {@code f} which deals only
+   * @return Over-approximation of the formula {@code f} which deals only
    * with pointers.
    */
-  BooleanFormula pointerFormulaSlice(BooleanFormula f) throws InterruptedException {
+  public BooleanFormula pointerFormulaSlice(BooleanFormula f) {
     Set<String> closure = findClosure(f, new Predicate<String>() {
       @Override
       public boolean apply(String input) {
@@ -52,31 +42,27 @@ public class FormulaSlicingManager {
       }
     });
     logger.log(Level.FINE, "Closure =", closure);
-    Formula out = recSliceFormula(
-        f, ImmutableSet.copyOf(closure), false, new HashMap<Formula, Formula>());
-    logger.log(Level.FINE, "Produced =", out);
-    return fmgr.simplify((BooleanFormula)out);
+    BooleanFormula slice = new RecursiveSliceVisitor(ImmutableSet.copyOf(closure)).visit(f);
+    logger.log(Level.FINE, "Produced =", slice);
+    return slice;
   }
 
   /**
-   * @return Transitive closure of variables in {@code f} which satisfy the
-   * condition {@code seedCondition}.
+   * @return Closure with respect to interacts-relation of
+   * <b>uninstantiated</b> variables in {@code f} which satisfy the condition
+   * {@code seedCondition}.
    */
   private Set<String> findClosure(BooleanFormula f, Predicate<String> seedCondition) {
-
     Set<String> closure = new HashSet<>();
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(f, false, false);
+    Set<BooleanFormula> atoms = fmgr.uninstantiate(fmgr.extractAtoms(f, false));
     boolean changed = true;
     while (changed) {
       changed = false;
       for (BooleanFormula atom : atoms) {
-        Set<String> variableNames = fmgr.extractVariableNames(atom);
+        Set<String> variableNames = fmgr.extractFunctionNames(atom, false);
         for (String s : variableNames) {
           if (seedCondition.apply(s) || closure.contains(s)) {
-            int origClosureSize = closure.size();
-            closure.addAll(variableNames);
-            int newClosureSize = closure.size();
-            changed = newClosureSize > origClosureSize;
+            changed |= closure.addAll(variableNames);
             break;
           }
         }
@@ -85,26 +71,42 @@ public class FormulaSlicingManager {
     return closure;
   }
 
-  /**
-   * Slice of the formula AST containing the variables in
-   * {@code closure}
-   */
-  private Formula recSliceFormula(
-      Formula f,
-      ImmutableSet<String> closure,
-      boolean isInsideNot,
-      Map<Formula, Formula> memoization) throws InterruptedException {
-    Formula out = memoization.get(f);
-    if (out != null) {
-      return out;
+  private class RecursiveSliceVisitor extends BooleanFormulaTransformationVisitor {
+
+    private final boolean isInsideNot;
+    private final Set<String> closure;
+
+    // We need to handle negated formulas differently from non-negated formulas,
+    // and we need a separate super.cache for negated/non-negated formulas
+    // (Example: in ((a & b) | (!a & c)), "a" needs to be replaced once by "true"
+    // and once by "false").
+    // Thus we need two visitor instances with different settings for isInsideNot,
+    // and they both delegate to the other when encountering a negation.
+    private RecursiveSliceVisitor visitorForNegatedFormula;
+
+    RecursiveSliceVisitor(Set<String> pClosure) {
+      this(false, pClosure);
+
+      visitorForNegatedFormula = new RecursiveSliceVisitor(true, pClosure);
+      visitorForNegatedFormula.visitorForNegatedFormula = this;
     }
 
-    if (unsafeManager.isAtom(f)) {
-      Set<String> containedVariables = fmgr.extractVariableNames(f);
+    RecursiveSliceVisitor(boolean pIsInsideNot, Set<String> pClosure) {
+      super(fmgr, new HashMap<BooleanFormula, BooleanFormula>());
+      isInsideNot = pIsInsideNot;
+      closure = pClosure;
+    }
+
+    @Override
+    protected BooleanFormula visitAtom(BooleanFormula f) {
+      Formula uninstantiatedF = fmgr.uninstantiate(f);
+      Set<String> containedVariables = fmgr.extractFunctionNames(
+          uninstantiatedF, false);
+      BooleanFormula constant = bfmgr.makeBoolean(!isInsideNot);
       if (!Sets.intersection(closure, containedVariables).isEmpty()) {
-        out = f;
+        return f;
       } else {
-        // Hack to propagate the call variables,
+        // Hack to propagate the call variables across the abstraction.
         if (containedVariables.size() == 2) {
           Iterator<String> iterator = containedVariables.iterator();
           String first = iterator.next();
@@ -113,29 +115,19 @@ public class FormulaSlicingManager {
               !first.substring(0, first.indexOf("::")).equals(
               second.substring(0, second.indexOf("::"))
           )) {
-            out = f;
+            return f;
           } else {
-            out = bfmgr.makeBoolean(!isInsideNot);
+            return constant;
           }
         } else {
-          out = bfmgr.makeBoolean(!isInsideNot);
+          return constant;
         }
       }
-    } else {
-      int count = unsafeManager.getArity(f);
-      List<Formula> newArgs = new ArrayList<>(count);
-      String name = unsafeManager.getName(f);
-      if (name.equals(NOT_FUNC_NAME)) {
-        isInsideNot = !isInsideNot;
-      }
-      for (int i=0; i<count; i++) {
-        newArgs.add(
-            recSliceFormula(
-                unsafeManager.getArg(f, i), closure, isInsideNot, memoization));
-      }
-      out = unsafeManager.replaceArgs(f, newArgs);
     }
-    memoization.put(f, out);
-    return out;
+
+    @Override
+    protected BooleanFormula visitNot(BooleanFormula pOperand) {
+      return bfmgr.not(visitorForNegatedFormula.visitIfNotSeen(pOperand));
+    }
   }
 }

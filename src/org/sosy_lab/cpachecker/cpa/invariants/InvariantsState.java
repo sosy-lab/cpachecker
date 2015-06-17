@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
@@ -653,12 +654,12 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pfmgr) {
     FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver();
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeBoolean(true);
     ToFormulaVisitor<CompoundInterval, BooleanFormula> toBooleanFormulaVisitor =
-        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, true, machineModel, variableTypes);
+        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, machineModel, variableTypes);
 
     final Predicate<String> acceptVariable = new Predicate<String>() {
 

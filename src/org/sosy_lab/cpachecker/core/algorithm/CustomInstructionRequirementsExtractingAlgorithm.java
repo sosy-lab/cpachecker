@@ -33,6 +33,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,7 +42,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParser;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications;
@@ -75,7 +75,10 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
   private String requirementsStateClassName;
 
-  private Class<AbstractState> requirementsStateClass;
+  private Class<? extends AbstractState> requirementsStateClass;
+
+  private CFA cfa;
+  private final Configuration config;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
@@ -86,6 +89,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param sdNotifier ShutdownNotifier
    * @throws InvalidConfigurationException if the given Path not exists
    */
+  @SuppressWarnings("unchecked")
   public CustomInstructionRequirementsExtractingAlgorithm(final Algorithm analysisAlgorithm,
       final ConfigurableProgramAnalysis cpa, final Configuration config, final LogManager logger,
       final ShutdownNotifier sdNotifier, final CFA cfa) throws InvalidConfigurationException {
@@ -95,6 +99,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     analysis = analysisAlgorithm;
     this.logger = logger;
     this.shutdownNotifier = sdNotifier;
+    this.config = config;
 
     if (cpa instanceof ARGCPA) {
       throw new InvalidConfigurationException("The given cpa " + cpa + "is not an instance of ARGCPA");
@@ -105,53 +110,55 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     }
 
     try {
-      // TODO warning?
-      requirementsStateClass = (Class<AbstractState>) Class.forName(requirementsStateClassName);
+      requirementsStateClass = (Class<? extends AbstractState>) Class.forName(requirementsStateClassName);
     } catch (ClassNotFoundException e) {
       throw new InvalidConfigurationException("The abstract state " + requirementsStateClassName + " is unknown.");
+    } catch (ClassCastException ex) {
+      throw new InvalidConfigurationException(requirementsStateClassName + "is not an abstract state.");
     }
 
     if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
                                           requirementsStateClass) == null) {
-      throw new InvalidConfigurationException(requirementsStateClassName + "is not an abstract state.");
+      throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
     }
 
     // TODO to be continued: CFA integration
+    this.cfa = cfa;
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      PredicatedAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+      CPAEnabledAnalysisPropertyViolationException {
 
     logger.log(Level.INFO, " Start analysing to compute requirements.");
 
+    AlgorithmStatus status = analysis.run(pReachedSet);
+
     // analysis was unsound
-    if (!analysis.run(pReachedSet)) {
+    if (!status.isSound()) {
       logger.log(Level.SEVERE, "Do not extract requirements since analysis failed.");
-      return false;
+      return status;
     }
 
     shutdownNotifier.shutdownIfNecessary();
     logger.log(Level.INFO, "Get custom instruction applications in program.");
 
-    CustomInstructionApplications aci = null;
+    CustomInstructionApplications cia = null;
     try {
-      aci = new CustomInstructionApplications(new AppliedCustomInstructionParser(shutdownNotifier)
-                  .parse(appliedCustomInstructionsDefinition));
+      cia = new AppliedCustomInstructionParser(shutdownNotifier, cfa).parse(appliedCustomInstructionsDefinition);
     } catch (FileNotFoundException ex) {
       logger.log(Level.SEVERE, "The file '" + appliedCustomInstructionsDefinition + "' was not found", ex);
-      return false;
+      return status.withSound(false);
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Parsing the file '" + appliedCustomInstructionsDefinition + "' failed.", e);
-      return false;
+      return status.withSound(false);
     }
 
     shutdownNotifier.shutdownIfNecessary();
     logger.log(Level.INFO, "Start extracting requirements for applied custom instructions");
 
-    extractRequirements((ARGState)pReachedSet.getFirstState(), aci);
-
-    return true;
+    extractRequirements((ARGState)pReachedSet.getFirstState(), cia);
+    return status;
   }
 
   /**
@@ -163,8 +170,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    */
   private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
-
-    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix, requirementsStateClass);
+    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix, requirementsStateClass, config, shutdownNotifier, logger);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
     for (ARGState node : ciStartNodes) {

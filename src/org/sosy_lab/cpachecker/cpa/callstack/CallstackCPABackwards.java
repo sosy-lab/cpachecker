@@ -51,7 +51,7 @@ import com.google.common.collect.Iterables;
 
 public class CallstackCPABackwards extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  private final Reducer reducer = new CallstackReducer();
+  private final Reducer reducer;
   private final CFA cfa;
 
   public static CPAFactory factory() {
@@ -61,6 +61,7 @@ public class CallstackCPABackwards extends AbstractCPA implements ConfigurablePr
   public CallstackCPABackwards(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super("sep", "sep", new CallstackTransferRelationBackwards(config, pLogger));
     this.cfa = pCFA;
+    reducer = new CallstackReducer();
   }
 
   @Override
@@ -78,12 +79,16 @@ public class CallstackCPABackwards extends AbstractCPA implements ConfigurablePr
       if (!artificialLoops.isEmpty()) {
         Loop singleLoop = Iterables.getOnlyElement(artificialLoops);
         if (singleLoop.getLoopNodes().contains(pNode)) {
-          return new CallstackState(null,
-              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, pNode);
+          return new CallstackState(
+              null,
+              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, pNode
+          );
         }
       }
     }
-    return new CallstackState(null, pNode.getFunctionName(), pNode);
+    return new CallstackState(
+        null, pNode.getFunctionName(), pNode
+    );
   }
 
   @Override

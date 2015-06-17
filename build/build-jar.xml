@@ -9,7 +9,7 @@
     <!-- These properties can and should be overridden from including file. -->
     <property name="class.main" value=""/>
     <property name="project.url" value=""/>
-    <property name="jar.excludes" value=""/>
+    <property name="jar.excludes" value="**/*Test.class **/*Test$*.class"/>
 
     <target name="jar" depends="determine-version,build" description="Create a runnable JAR file">
         <property name="jar.file" value="${ivy.module}-${version}.jar"/>
@@ -32,7 +32,7 @@
         </jar>
     </target>
 
-    <target name="sources" depends="determine-version">
+    <target name="sources" depends="determine-version, resolve-dependencies">
         <jar basedir="${source.dir}/"
                 destfile="${ivy.module}-${version}-sources.jar"
                 includes="**/*.java"

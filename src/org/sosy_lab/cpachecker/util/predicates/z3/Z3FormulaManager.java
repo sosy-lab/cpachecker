@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -42,20 +43,20 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
+import com.google.common.base.Splitter;
+
 @Options(prefix = "cpa.predicate.solver.z3")
-public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
+public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
   @Option(secure=true, description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
@@ -70,7 +71,12 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   String objectivePrioritizationMode = "box";
 
   private final Z3SmtLogger z3smtLogger;
+
+  // Pointer from class is needed to avoid GC claiming this listener.
+  private final ShutdownNotifier.ShutdownRequestListener interruptListener;
   private Z3AstMatcher z3astMatcher;
+  private final long z3params;
+  private final ShutdownNotifier shutdownNotfier;
 
   private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
@@ -96,19 +102,26 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3BitvectorFormulaManager pBitpreciseManager,
       Z3QuantifiedFormulaManager pQuantifiedManager,
       Z3ArrayFormulaManager pArrayManager,
-      Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
+      Z3SmtLogger smtLogger, Configuration config, long pZ3params,
+      ShutdownNotifier.ShutdownRequestListener pInterruptListener,
+      ShutdownNotifier pShutdownNotifier) throws
+        InvalidConfigurationException {
 
     super(pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager,
         pIntegerManager, pRationalManager, pBitpreciseManager, null, pQuantifiedManager, pArrayManager);
 
     config.inject(this);
+    z3params = pZ3params;
     this.z3smtLogger = smtLogger;
     this.z3astMatcher = new Z3AstMatcher(this);
+    interruptListener = pInterruptListener;
+    pShutdownNotifier.register(interruptListener);
+    shutdownNotfier = pShutdownNotifier;
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate solverLogfile)
+      @Nullable PathCounterTemplate solverLogfile, long randomSeed)
       throws InvalidConfigurationException {
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
@@ -133,22 +146,22 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     }
 
     long cfg = mk_config();
-    set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
+    set_param_value(cfg, "MODEL", "true");
 
     if (extraOptions.requireProofs) {
       set_param_value(cfg, "PROOF", "true");
     }
+    global_param_set("smt.random_seed", String.valueOf(randomSeed));
 
     // TODO add some other params, memory-limit?
     final long context = mk_context_rc(cfg);
-    pShutdownNotifier.register(
+    ShutdownNotifier.ShutdownRequestListener interruptListener =
         new ShutdownNotifier.ShutdownRequestListener() {
           @Override
           public void shutdownRequested(String reason) {
             interrupt(context);
           }
-        }
-    );
+        };
     del_config(cfg);
 
     long boolSort = mk_bool_sort(context);
@@ -173,6 +186,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       smtLogger.logOption("proof", "true");
     }
 
+    long z3params = mk_params(context);
+    params_inc_ref(context, z3params);
+    params_set_uint(context, z3params, mk_string_symbol(context, ":random-seed"), 42);
+    smtLogger.logOption("random-seed", Integer.toString((int)randomSeed));
+
     Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, integerSort, realSort, smtLogger);
 
     // Create managers
@@ -193,17 +211,17 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
         creator,
         unsafeManager, functionTheory, booleanTheory,
         integerTheory, rationalTheory, bitvectorTheory, quantifierManager, arrayManager,
-        smtLogger, config);
+        smtLogger, config, z3params, interruptListener, pShutdownNotifier);
   }
 
   @Override
   public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
-    return new Z3TheoremProver(this, pGenerateUnsatCore);
+    return new Z3TheoremProver(this, z3params, shutdownNotfier, pGenerateUnsatCore);
   }
 
   @Override
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean pShared) {
-    return new Z3InterpolatingProver(this);
+  public Z3InterpolatingProver newProverEnvironmentWithInterpolation(boolean pShared) {
+    return new Z3InterpolatingProver(this, z3params);
   }
 
   @Override
@@ -213,7 +231,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   @Override
   public OptEnvironment newOptEnvironment() {
-    Z3OptProver out = new Z3OptProver(this);
+    Z3OptProver out = new Z3OptProver(this, shutdownNotfier);
     out.setParam(OPT_ENGINE_CONFIG_KEY, this.optimizationEngine);
     out.setParam(OPT_PRIORITY_CONFIG_KEY, this.objectivePrioritizationMode);
     return out;
@@ -260,23 +278,24 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
       @Override
       public void appendTo(Appendable out) throws IOException {
-        StringBuilder modified = new StringBuilder();
         String txt = Z3NativeApi.benchmark_to_smtlib_string(getEnvironment(), "dumped-formula", "", "unknown", "", 0, new long[]{}, expr);
-        String[] lines = txt.split("\n");
 
-        for (String line: lines) {
-          if (!(line.startsWith("(set-info")
+        for (String line : Splitter.on('\n').split(txt)) {
+
+          if (line.startsWith("(set-info")
               || line.startsWith(";")
-              || line.startsWith("(check"))) {
-            modified.append(line);
-            modified.append(" ");
+              || line.startsWith("(check")) {
+            // ignore
+          } else if (line.startsWith("(assert")
+              || line.startsWith("(dec")) {
+            out.append('\n');
+            out.append(line);
+          } else {
+            // Z3 spans formulas over multiple lines, append to previous line
+            out.append(' ');
+            out.append(line.trim());
           }
         }
-
-        out.append(modified.toString()
-          .replace("(assert", "\n(assert")
-          .replace("(dec", "\n(dec")
-          .trim());
       }
     };
   }
@@ -290,4 +309,10 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     return z3smtLogger.cloneWithNewLogfile();
   }
 
+  @Override
+  public void close() {
+    long context = getFormulaCreator().getEnv();
+    params_dec_ref(context, z3params);
+    del_context(context);
+  }
 }

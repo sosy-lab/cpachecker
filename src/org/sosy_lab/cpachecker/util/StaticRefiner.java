@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 
@@ -66,7 +64,7 @@ abstract public class StaticRefiner {
     pConfig.inject(this, StaticRefiner.class);
   }
 
-  protected Set<CIdExpression> getVariablesOfAssume(AssumeEdge pAssume) throws CPATransferException {
+  protected Set<CIdExpression> getVariablesOfAssume(AssumeEdge pAssume) {
     if (pAssume.getExpression() instanceof CExpression) {
       CExpression ce = (CExpression) pAssume.getExpression();
       CIdExpressionCollectorVisitor referencedVariablesVisitor = new CIdExpressionCollectorVisitor();

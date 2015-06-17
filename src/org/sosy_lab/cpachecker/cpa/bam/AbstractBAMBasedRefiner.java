@@ -23,16 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -44,8 +41,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
@@ -61,7 +57,9 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computeCounterexampleTimer = new Timer();
 
   private final BAMTransferRelation transfer;
-  private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<>();
+  private final BAMCPA bamCpa;
+  private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
+  private ARGState rootOfSubgraph = null;
 
   final static BackwardARGState DUMMY_STATE_FOR_MISSING_BLOCK = new BackwardARGState(new ARGState(null, null));
 
@@ -69,7 +67,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       throws InvalidConfigurationException {
     super(pCpa);
 
-    BAMCPA bamCpa = (BAMCPA)pCpa;
+    bamCpa = (BAMCPA)pCpa;
     transfer = bamCpa.getTransferRelation();
     bamCpa.getStatistics().addRefiner(this);
   }
@@ -78,6 +76,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
+  @ForOverride
   protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException;
 
   @Override
@@ -92,23 +91,23 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
       return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new BAMReachedSet(transfer, pReached, pPath, pathStateToReachedState), pPath);
+      return performRefinement0(new BAMReachedSet(transfer, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph), pPath);
     }
   }
 
   @Override
   protected final ARGPath computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
+    assert pReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
 
-    pathStateToReachedState.clear();
+    subgraphStatesToReachedState.clear();
 
     computePathTimer.start();
     try {
-      ARGState subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, pathStateToReachedState);
-        if (subgraph == DUMMY_STATE_FOR_MISSING_BLOCK) {
+        rootOfSubgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, subgraphStatesToReachedState);
+        if (rootOfSubgraph == DUMMY_STATE_FOR_MISSING_BLOCK) {
           return null;
         }
       } finally {
@@ -117,47 +116,13 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
       computeCounterexampleTimer.start();
       try {
-        return ARGUtils.getRandomPath(subgraph);
+        // We assume, that every path in the subgraph reaches the target state. Thus we choose randomly.
+        return ARGUtils.getRandomPath(rootOfSubgraph);
       } finally {
         computeCounterexampleTimer.stop();
       }
     } finally {
       computePathTimer.stop();
-    }
-  }
-
-  private static class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
-
-    private final BAMTransferRelation transfer;
-    private final ARGPath path;
-    private final Map<ARGState, ARGState> pathStateToReachedState;
-
-    private BAMReachedSet(BAMTransferRelation pTransfer, ARGReachedSet pReached, ARGPath pPath, Map<ARGState, ARGState> pPathElementToReachedState) {
-      super(pReached);
-      this.transfer = pTransfer;
-      this.path = pPath;
-      this.pathStateToReachedState = pPathElementToReachedState;
-    }
-
-    @Override
-    public void removeSubtree(ARGState element, Precision newPrecision,
-        Predicate<? super Precision> pPrecisionType) {
-      ArrayList<Precision> listP = new ArrayList<>();
-      listP.add(newPrecision);
-      ArrayList<Predicate<? super Precision>> listPT = new ArrayList<>();
-      listPT.add(pPrecisionType);
-      removeSubtree(element, listP, listPT);
-    }
-
-    @Override
-    public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
-      Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
-      transfer.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes, pathStateToReachedState);
-    }
-
-    @Override
-    public void removeSubtree(ARGState pE) {
-      throw new UnsupportedOperationException();
     }
   }
 }

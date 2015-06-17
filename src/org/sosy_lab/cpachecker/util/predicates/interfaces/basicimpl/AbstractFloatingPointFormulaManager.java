@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
@@ -59,6 +60,11 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
 
   protected FloatingPointFormula wrap(TFormulaInfo pTerm) {
     return getFormulaCreator().encapsulateFloatingPoint(pTerm);
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(Rational n, FormulaType.FloatingPointType type) {
+    return wrap(makeNumberImpl(n.toString(), type));
   }
 
   @Override

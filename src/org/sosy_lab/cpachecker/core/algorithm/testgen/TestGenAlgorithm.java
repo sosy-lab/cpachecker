@@ -28,6 +28,7 @@ import java.io.Writer;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -41,7 +42,6 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.IterationStrategyFactory;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
@@ -124,8 +124,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
   public TestGenAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier, CFA pCfa,
-      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException,
-      CPAException {
+      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
@@ -143,8 +142,8 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      PredicatedAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+      CPAEnabledAnalysisPropertyViolationException {
     startupConfig.getShutdownNotifier().shutdownIfNecessary();
     stats.getTotalTimer().start();
 
@@ -188,7 +187,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER, "Identified error path.");
           if (stopOnError) {
             stats.getTotalTimer().stop();
-            return true;
+            return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
       }
@@ -205,7 +204,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
          * If we didn't find an error, the program is safe and sound, in the sense of a concolic test.
          */
         stats.getTotalTimer().stop();
-        return true;
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
       /*

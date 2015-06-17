@@ -133,6 +133,16 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     return Objects.equals(other.cStorageClass, cStorageClass);
   }
 
+  public int hashCodeWithOutStorageClass() {
+    final int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  public boolean equalsWithoutStorageClass(Object obj) {
+    return super.equals(obj);
+  }
+
   @Override
   public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
     return pV.visit(this);

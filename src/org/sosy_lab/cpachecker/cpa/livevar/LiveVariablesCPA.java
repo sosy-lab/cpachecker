@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.livevar;
 import java.util.Collections;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -37,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -56,7 +56,9 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -146,8 +148,10 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
 
       // all other function types
       } else {
-        transfer.putInitialLiveVariables(pNode, Collections.singleton((ASimpleDeclaration)returnVarName.get()));
-        return new LiveVariablesState(ImmutableSet.of((ASimpleDeclaration)returnVarName.get()));
+
+        final Wrapper<ASimpleDeclaration> wrappedVar = LiveVariables.LIVE_DECL_EQUIVALENCE.wrap((ASimpleDeclaration)returnVarName.get());
+        transfer.putInitialLiveVariables(pNode, Collections.singleton(wrappedVar));
+        return new LiveVariablesState(ImmutableSet.of(wrappedVar));
       }
 
     } else {
@@ -166,7 +170,7 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
    * makes only sense if the analysis was completed
    * @return a Multimap containing the variables that are live at each location
    */
-  public Multimap<CFANode, ASimpleDeclaration> getLiveVariables() {
+  public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
     return transfer.getLiveVariables();
   }
 

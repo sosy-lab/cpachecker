@@ -27,9 +27,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -107,7 +107,9 @@ public class BooleanFormulaSubject extends Subject<BooleanFormulaSubject, Boolea
 
       // get unsat core for failure message
       final List<BooleanFormula> unsatCore = prover.getUnsatCore();
-      if (unsatCore.isEmpty()) {
+      if (unsatCore.isEmpty()
+          || (unsatCore.size() == 1 && getSubject().equals(unsatCore.get(0)))) {
+        // empty or trivial unsat core
         fail("is", "satisfiable");
       } else {
         failWithBadResults("is", "satisfiable", "has unsat core", unsatCore);

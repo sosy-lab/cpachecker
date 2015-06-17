@@ -36,20 +36,24 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -59,19 +63,23 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-
-import javax.annotation.Nonnull;
 
 @Options(prefix = "cpa.bam")
 public class BAMTransferRelation implements TransferRelation {
@@ -121,6 +129,9 @@ public class BAMTransferRelation implements TransferRelation {
   private final BAMCPA bamCPA;
   private final ProofChecker wrappedProofChecker;
 
+  // Callstack-CPA is used for additional recursion handling
+  private final CallstackTransferRelation callstackTransfer;
+
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private Map<Pair<ARGState, Block>, Collection<ARGState>> correctARGsForBlocks = null;
 
@@ -147,6 +158,7 @@ public class BAMTransferRelation implements TransferRelation {
     logger = pLogger;
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier, null);
     reachedSetFactory = pReachedSetFactory;
+    callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
     wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = bamCpa.getReducer();
     PCCInformation.instantiate(pConfig);
@@ -230,8 +242,45 @@ public class BAMTransferRelation implements TransferRelation {
 
     // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
     // if there are several leaving edges, the wrapped CPA should handle all of them.
-    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+
+    // The Callstack-CPA is not able to handle a recursion of the form f-g-f,
+    // because the operation Reduce splits it into f-g and g-f.
+    // Thus we check for recursion here and (if we do not handle recursion here)
+    // set a flag for the Callstack-CPA, such that it knows about the recursion.
+    final boolean foundRecursion = !handleRecursiveProcedures && isRecursiveCall(node);
+    if (foundRecursion) {
+      callstackTransfer.enableRecursiveContext();
+    }
+    final Collection<? extends AbstractState> result = wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+    if (foundRecursion) {
+      callstackTransfer.disableRecursiveContext();
+    }
+    return result;
   }
+
+
+  /**
+   * check if
+   * - the current node is before a function-block and
+   * - the block was entered before (and thus is part of the stack).
+   */
+  private boolean isRecursiveCall(final CFANode node) {
+    if (!partitioning.isCallNode(node)) {
+
+      // TODO Why filter for functionCallEdge?
+      // If only LoopBlocks are used, we can have recursive Loops, too.
+
+      for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
+        for (Block block : Lists.transform(stack, Triple.<Block>getProjectionToThird())) {
+          if (block.getCallNodes().contains(e.getSuccessor())) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
 
   private Collection<? extends AbstractState> doFixpointIterationForRecursion(
           final AbstractState pHeadOfMainFunctionState, final Precision pPrecision, final CFANode pHeadOfMainFunction)
@@ -297,6 +346,7 @@ public class BAMTransferRelation implements TransferRelation {
       // update waitlist
       for (final ReachedSet reachedSet : argCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
+          logger.log(Level.ALL, "re-adding state", recursionUpdateState);
           reachedSet.reAddToWaitlist(recursionUpdateState);
         }
         // else if (pHeadOfMainFunctionState == recursionUpdateState) {
@@ -587,7 +637,8 @@ public class BAMTransferRelation implements TransferRelation {
       reducedResult = cachedReturnStates;
       statesForFurtherAnalysis = reducedResult;
 
-    } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 && ((ARGState)reached.getLastState()).isTarget()) {
+    } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 &&
+        reached.getLastState() != null && ((ARGState)reached.getLastState()).isTarget()) {
       assert Iterables.getOnlyElement(cachedReturnStates) == reached.getLastState() :
               "cache hit only allowed for finished reached-sets or target-states";
 
@@ -660,8 +711,16 @@ public class BAMTransferRelation implements TransferRelation {
     logger.log(Level.ALL, "rebuilding state with root state", rootState);
     logger.log(Level.ALL, "rebuilding state with entry state", entryState);
     logger.log(Level.ALL, "rebuilding state with expanded state", expandedState);
+
+    final CFANode location = extractLocation(expandedState);
+    if (!(location instanceof FunctionExitNode)) {
+      logger.log(Level.ALL, "rebuilding skipped because of non-function-exit-location");
+      assert isTargetState(expandedState) : "only target states are returned without rebuild";
+      return expandedState;
+    }
+
     final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(
-            rootState, entryState, expandedState, extractLocation(expandedState));
+            rootState, entryState, expandedState, (FunctionExitNode)location);
     logger.log(Level.ALL, "rebuilding finished with state", rebuildState);
 
     // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
@@ -833,14 +892,28 @@ public class BAMTransferRelation implements TransferRelation {
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
   ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet,
-                                                 Map<ARGState, ARGState> pPathElementToReachedState)
-          throws InterruptedException, RecursiveAnalysisFailedException {
+                                                 Map<ARGState, ARGState> pPathElementToReachedState) {
     assert reachedSet.asReachedSet().contains(target);
+    assert pPathElementToReachedState.isEmpty() : "new path should be started with empty set of states.";
 
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(
             partitioning, wrappedReducer, argCache, pPathElementToReachedState,
             abstractStateToReachedSet, expandedToReducedCache, logger);
-    return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
+    return cexSubgraphComputer.computeCounterexampleSubgraph(
+        target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
+  }
+
+  /** searches through all available reachedSet for a matching state and returns its precision */
+  Precision getPrecisionForState(final ARGState state, final UnmodifiableReachedSet mainReachedSet) {
+    if (mainReachedSet.contains(state)) {
+      return mainReachedSet.getPrecision(state);
+    }
+    for (UnmodifiableReachedSet rs : abstractStateToReachedSet.values()) {
+      if (rs.contains(state)) {
+        return rs.getPrecision(state);
+      }
+    }
+    throw new AssertionError("No reachedset found for state " + state + ". Where does this state come from?");
   }
 
   void clearCaches() {

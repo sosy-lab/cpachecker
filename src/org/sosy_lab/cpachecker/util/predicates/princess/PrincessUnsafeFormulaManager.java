@@ -23,18 +23,22 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.isBoolean;
 import static scala.collection.JavaConversions.asJavaCollection;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
+import ap.basetypes.IdealInt;
 import ap.parser.BooleanCompactifier;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
-import ap.parser.IFunction;
+import ap.parser.IIntFormula;
+import ap.parser.IIntLit;
+import ap.parser.IIntRelation;
 import ap.parser.PartialEvaluator;
 
 import com.google.common.collect.ImmutableList;
@@ -48,11 +52,6 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   @Override
   public boolean isAtom(IExpression t) {
     return PrincessUtil.isAtom(t);
-  }
-
-  @Override
-  public boolean isLiteral(IExpression t) {
-    return PrincessUtil.isNot(t) || isAtom(t);
   }
 
   @Override
@@ -95,23 +94,32 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   public IExpression replaceName(IExpression t, String pNewName) {
 
     if (isVariable(t)) {
-      boolean isBoolean = t instanceof IFormula;
-      TermType type = isBoolean ? TermType.Boolean : TermType.Integer;
-      return getFormulaCreator().makeVariable(type, pNewName);
+      return getFormulaCreator().makeVariable(isBoolean(t) ? TermType.Boolean : TermType.Integer,
+                                              pNewName);
+
     } else if (isUF(t)) {
       IFunApp fun = (IFunApp) t;
-      PrincessEnvironment.FunctionType funcDecl = getFormulaCreator().getEnv().getFunctionDeclaration(fun.fun());
       List<IExpression> args = ImmutableList.<IExpression>copyOf(asJavaCollection(fun.args()));
-      return createUIFCallImpl(fun.fun(), funcDecl.getResultType(), args);
+      PrincessEnvironment env = getFormulaCreator().getEnv();
+      TermType returnType = env.getReturnTypeForFunction(fun.fun());
+      return env.makeFunction(env.declareFun(pNewName, args.size(), returnType), args);
+
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }
   }
 
-  IExpression createUIFCallImpl(IFunction funcDecl, TermType resultType, List<IExpression> args) {
-    IExpression ufc = getFormulaCreator().getEnv().makeFunction(funcDecl, resultType, args);
-    assert PrincessUtil.isUIF(ufc);
-    return ufc;
+  @Override
+  protected List<? extends IExpression> splitNumeralEqualityIfPossible(IExpression pF) {
+    // Princess does not support Equal.
+    // Formulas are converted from "a==b" to "a+(-b)==0".
+    if (pF instanceof IIntFormula && ((IIntFormula)pF).rel() == IIntRelation.EqZero()) {
+      return ImmutableList.of(
+          ((IIntFormula)pF).t().$less$eq(new IIntLit(IdealInt.ZERO())),
+          ((IIntFormula)pF).t().$greater$eq(new IIntLit(IdealInt.ZERO()))
+      );
+    }
+    return ImmutableList.of(pF);
   }
 
   @Override

@@ -33,8 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
@@ -104,6 +104,12 @@ class PrincessInterpolatingProver extends PrincessAbstractProver implements Inte
       result.add(mgr.encapsulateBooleanFormula(itp));
     }
     return result;
+  }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<Integer>> partitionedFormulas, int[] startOfSubTree) {
+    throw new UnsupportedOperationException("directly receiving of tree interpolants is not supported." +
+        "Use another solver or another strategy for interpolants.");
   }
 
   @Override

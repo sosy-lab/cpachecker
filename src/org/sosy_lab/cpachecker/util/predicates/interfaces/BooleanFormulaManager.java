@@ -138,4 +138,23 @@ public interface BooleanFormulaManager {
   /** Check, if the formula matches XOR(a,b) with two (or more) boolean args. */
   public boolean isXor(BooleanFormula bits);
 
+  /** Apply a tactic which performs formula transformation */
+  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic);
+
+  /** Strategies for transforming the formula AST. */
+  enum Tactic {
+    NNF("nnf"),
+    CNF("tseitin-cnf")
+    ;
+
+    private final String name;
+
+    Tactic(String pName) {
+      name = pName;
+    }
+
+    public String getTacticName() {
+      return name;
+    }
+  }
 }

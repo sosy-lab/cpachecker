@@ -23,17 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 
 class Z3OptProver implements OptEnvironment {
@@ -43,13 +47,15 @@ class Z3OptProver implements OptEnvironment {
   private static final String Z3_INFINITY_REPRESENTATION = "oo";
   private long z3context;
   private long z3optContext;
+  private final ShutdownNotifier shutdownNotifier;
 
-  Z3OptProver(Z3FormulaManager pMgr) {
+  Z3OptProver(Z3FormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
     mgr = pMgr;
     rfmgr = (Z3RationalFormulaManager)pMgr.getRationalFormulaManager();
     z3context = mgr.getEnvironment();
     z3optContext = mk_optimize(z3context);
     optimize_inc_ref(z3context, z3optContext);
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
   }
 
   @Override
@@ -74,13 +80,19 @@ class Z3OptProver implements OptEnvironment {
 
   @Override
   public OptStatus check() throws InterruptedException, SolverException {
-    int status = optimize_check(z3context, z3optContext);
-    if (status == Z3_LBOOL.Z3_L_FALSE.status) {
-      return OptStatus.UNSAT;
-    } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
-      return OptStatus.UNDEF;
-    } else {
-      return OptStatus.OPT;
+    try {
+      int status = optimize_check(z3context, z3optContext);
+      if (status == Z3_LBOOL.Z3_L_FALSE.status) {
+        return OptStatus.UNSAT;
+      } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
+        return OptStatus.UNDEF;
+      } else {
+        return OptStatus.OPT;
+      }
+    } catch (Z3SolverException e) {
+      // check if it's a timeout
+      shutdownNotifier.shutdownIfNecessary();
+      throw e;
     }
   }
 
@@ -118,6 +130,25 @@ class Z3OptProver implements OptEnvironment {
     return Z3Model.parseZ3Model(mgr, z3context, z3model);
   }
 
+  @Override
+  public Formula evaluate(Formula expr) {
+    Z3Formula input = (Z3Formula) expr;
+    long z3model = optimize_get_model(z3context, z3optContext);
+    model_inc_ref(z3context, z3model);
+
+    PointerToLong out = new PointerToLong();
+    boolean status = model_eval(z3context, z3model, input.getFormulaInfo(),
+        true, out);
+    Verify.verify(status, "Error during model evaluation");
+
+    Formula outValue = mgr.getFormulaCreator().encapsulate(
+        mgr.getFormulaType(expr), out.value
+    );
+
+    model_dec_ref(z3context, z3model);
+    return outValue;
+  }
+
   void setParam(String key, String value) {
     long keySymbol = mk_string_symbol(z3context, key);
     long valueSymbol = mk_string_symbol(z3context, value);
@@ -126,6 +157,10 @@ class Z3OptProver implements OptEnvironment {
     optimize_set_params(z3context, z3optContext, params);
   }
 
+  /**
+   * Dumps the optimized objectives and the constraints on the solver in the
+   * SMT-lib format. Super-useful!
+   */
   @Override
   public String toString() {
     return optimize_to_string(z3context, z3optContext);
@@ -161,5 +196,10 @@ class Z3OptProver implements OptEnvironment {
 
   private Rational rationalFromZ3AST(long ast) {
     return Rational.ofString(get_numeral_string(z3context, ast));
+  }
+
+  @Override
+  public String dump() {
+    return optimize_to_string(z3context, z3optContext);
   }
 }

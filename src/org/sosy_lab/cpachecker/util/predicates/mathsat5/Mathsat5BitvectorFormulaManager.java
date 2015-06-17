@@ -202,9 +202,4 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   public Long greaterOrEquals(Long pNumber1, Long pNumber2, boolean signed) {
     return lessOrEquals(pNumber2, pNumber1, signed);
   }
-
-  @Override
-  public boolean isEqual(Long pNumber) {
-    return msat_term_is_equal(mathsatEnv, pNumber);
-  }
 }

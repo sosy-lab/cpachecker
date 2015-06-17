@@ -32,7 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.errorprone.annotations.ForOverride;
 
 public abstract class AbstractARGBasedRefiner implements Refiner {
 
@@ -63,10 +64,6 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
     this.logger = argCpa.getLogger();
-  }
-
-  protected final ARGCPA getArgCpa() {
-    return argCpa;
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
@@ -111,7 +108,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
-      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), Model.empty()));
+      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), RichModel
+          .empty()));
       throw e;
     }
 
@@ -163,6 +161,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @return
    * @throws InterruptedException
    */
+  @ForOverride
   @Nullable
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
     return ARGUtils.getOnePathTo(pLastElement);

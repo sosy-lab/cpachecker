@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+import org.sosy_lab.common.rationals.ExtendedRational;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.math.DoubleMath;
 

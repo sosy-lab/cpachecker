@@ -34,6 +34,7 @@ import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.TestLogManager;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -361,7 +361,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     assertEquals(expected, empty);
   }
 
-  private PathFormula makePathFormulaWithVariable(String var, int index) throws Exception {
+  private PathFormula makePathFormulaWithVariable(String var, int index) {
     NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
         fmgr.getRationalFormulaManager();
 
@@ -372,7 +372,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     return new PathFormula(f, s, PointerTargetSet.emptyPointerTargetSet(), 1);
   }
 
-  private BooleanFormula makeVariableEquality(String var, int index1, int index2) throws Exception {
+  private BooleanFormula makeVariableEquality(String var, int index1, int index2) {
     NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
         fmgr.getRationalFormulaManager();
 

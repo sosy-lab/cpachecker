@@ -111,7 +111,7 @@ public class SMGStateTest {
   }
 
   @Test
-  public void PredecessorsTest() throws SMGInconsistentException {
+  public void PredecessorsTest() {
     SMGState original = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE);
     SMGState second = new SMGState(original);
     Assert.assertNotEquals(original.getId(), second.getId());

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -30,7 +31,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.octagon.OctagonFloatManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonIntManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
@@ -80,7 +80,10 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   private OctagonCPA(Configuration config, LogManager log,
                      ShutdownNotifier shutdownNotifier, CFA cfa)
-                     throws InvalidConfigurationException, InvalidCFAException {
+                     throws InvalidConfigurationException, CPAException {
+    if (!cfa.getLoopStructure().isPresent()) {
+      throw new CPAException("OctagonCPA cannot work without loop-structure information in CFA.");
+    }
     config.inject(this);
     logger = log;
     OctagonDomain octagonDomain = new OctagonDomain(logger);
@@ -91,7 +94,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       octagonManager = new OctagonIntManager();
     }
 
-    this.transferRelation = new OctagonTransferRelation(logger, cfa);
+    this.transferRelation = new OctagonTransferRelation(logger, cfa.getLoopStructure().get());
 
     MergeOperator octagonMergeOp = OctagonMergeOperator.getInstance(octagonDomain, config);
 

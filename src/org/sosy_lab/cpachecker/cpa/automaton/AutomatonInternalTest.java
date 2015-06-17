@@ -197,7 +197,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void transitionVariableReplacement() throws Exception {
+  public void transitionVariableReplacement() {
     LogManager mockLogger = mock(LogManager.class);
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, mockLogger);
     args.putTransitionVariable(1, "hi");

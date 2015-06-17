@@ -41,7 +41,7 @@ public class PartitioningCPATest {
   private AbstractDomain domain;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     cpa = new PartitioningCPA();
     domain = cpa.getAbstractDomain();
   }

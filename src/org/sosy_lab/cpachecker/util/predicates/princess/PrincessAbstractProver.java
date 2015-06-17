@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 
 abstract class PrincessAbstractProver {
 
@@ -40,7 +40,7 @@ abstract class PrincessAbstractProver {
   /** This function causes the SatSolver to check all the terms on the stack,
    * if their conjunction is SAT or UNSAT.
    */
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() {
     return !stack.checkSat();
   }
 

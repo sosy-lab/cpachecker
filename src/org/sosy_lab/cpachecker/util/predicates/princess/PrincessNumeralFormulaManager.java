@@ -25,16 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.*;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
 import ap.basetypes.IdealInt;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
-import ap.parser.IIntFormula;
 import ap.parser.IIntLit;
-import ap.parser.IIntRelation;
 import ap.parser.ITerm;
 
 
@@ -91,14 +89,6 @@ abstract class PrincessNumeralFormulaManager
   @Override
   public IFormula equal(IExpression pNumber1, IExpression pNumber2) {
     return castToTerm(pNumber1).$eq$eq$eq(castToTerm(pNumber2));
-  }
-
-  @Override
-  public boolean isEqual(IExpression pNumber) {
-    // Princess does not support Equal.
-    // Formulas are converted from "a==b" to "a+(-b)==0".
-    // So this will never return true for the original terms, but only for a intermediate result.
-    return pNumber instanceof IIntFormula && ((IIntFormula)pNumber).rel() == IIntRelation.EqZero();
   }
 
   @Override

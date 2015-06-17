@@ -27,10 +27,11 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -43,7 +44,7 @@ public class PCCStrategyBuilder {
   private static final String PARALLEL_STRATEGY_CLASS_PREFIX = "org.sosy_lab.cpachecker.pcc.strategy.parallel";
 
   public static PCCStrategy buildStrategy(String pPccStrategy, Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, ConfigurableProgramAnalysis pCpa, CFA pCfa) throws InvalidConfigurationException {
     if (pPccStrategy == null) { throw new InvalidConfigurationException(
         "No PCC strategy defined."); }
 
@@ -69,27 +70,16 @@ public class PCCStrategyBuilder {
       Class<?>[] paramTypes;
       for (Constructor<?> con : cons) {
         paramTypes = con.getParameterTypes();
-        if (paramTypes.length != 4) {
-          continue;
-        } else {
-          if (paramTypes[0] == Configuration.class
-              && paramTypes[1] == LogManager.class
-              && paramTypes[2] == ShutdownNotifier.class) {
-            if (pCpa == null) {
-              return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCpa);
-            }
-            if (paramTypes[3] == ProofChecker.class) {
-              if (!(pCpa instanceof ProofChecker)) {
-                continue;
+        if (paramTypes.length == 4) {
+          if (checkRequiredParameters(paramTypes)) {
+            if (paramTypes[3] == CFA.class) {
+              return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCfa);
+            } else {
+              if (pCpa == null
+                  || (paramTypes[3] == ProofChecker.class && pCpa instanceof ProofChecker)
+                  || (paramTypes[3] == PropertyCheckerCPA.class && pCpa instanceof PropertyCheckerCPA)) {
+                return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCpa);
               }
-              return (PCCStrategy) con.newInstance(pConfig, pLogger, pShutdownNotifier, pCpa);
-            }
-            if (paramTypes[3] == PropertyCheckerCPA.class) {
-              if (!(pCpa instanceof PropertyCheckerCPA)) {
-                continue;
-              }
-              return (PCCStrategy) con.newInstance(pConfig,
-                  pLogger, pShutdownNotifier, pCpa);
             }
           }
         }
@@ -105,5 +95,11 @@ public class PCCStrategyBuilder {
       throw new UnsupportedOperationException(
           "Creation of specified PropertyChecker instance failed.", e);
     }
+  }
+
+  private static boolean checkRequiredParameters(Class<?>[] paramTypes) {
+    return paramTypes[0] == Configuration.class
+        && paramTypes[1] == LogManager.class
+        && paramTypes[2] == ShutdownNotifier.class;
   }
 }

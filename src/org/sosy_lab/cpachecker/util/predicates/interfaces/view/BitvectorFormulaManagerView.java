@@ -28,6 +28,7 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 
@@ -35,15 +36,19 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorT
 public class BitvectorFormulaManagerView extends BaseManagerView implements BitvectorFormulaManager {
 
   private final BitvectorFormulaManager manager;
+  private final BooleanFormulaManager bmgr;
+  private final SymbolEncoding symbolEncoding;
 
-  public BitvectorFormulaManagerView(FormulaManagerView pViewManager,
-      BitvectorFormulaManager pManager) {
-    super(pViewManager);
+  public BitvectorFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+      BitvectorFormulaManager pManager, BooleanFormulaManager pBmgr,
+      SymbolEncoding pSymbolEncoding) {
+    super(pWrappingHandler);
     this.manager = pManager;
+    bmgr = pBmgr;
+    symbolEncoding = pSymbolEncoding;
   }
 
   public BooleanFormula notEqual(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    BooleanFormulaManagerView bmgr = getViewManager().getBooleanFormulaManager();
     return bmgr.not(equal(pNumber1, pNumber2));
   }
   public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, long pI) {
@@ -54,19 +59,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, BigInteger pI) {
     BitvectorType t = (BitvectorType)pType;
     return makeBitvector(t.getSize(), pI);
-  }
-
-  public BitvectorFormula makeVariable(int pLength, String pVar, int idx) {
-    return makeVariable(pLength, FormulaManagerView.makeName(pVar, idx));
-  }
-
-  public BitvectorFormula makeVariable(FormulaType<BitvectorFormula> pType, String name) {
-    BitvectorType t = (BitvectorType)pType;
-    return makeVariable(t.getSize(), name);
-  }
-  public BitvectorFormula makeVariable(FormulaType<BitvectorFormula> pType, String name, int idx) {
-    BitvectorType t = (BitvectorType)pType;
-    return makeVariable(t.getSize(), name, idx);
   }
 
   @Override
@@ -121,12 +113,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
 
 
   @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    return manager.isEqual(pNumber);
-  }
-
-
-  @Override
   public BitvectorFormula not(BitvectorFormula pBits) {
     return manager.not(pBits);
   }
@@ -156,6 +142,7 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
 
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
+    symbolEncoding.put(pVar, pLength);
     return manager.makeVariable(pLength, pVar);
   }
 

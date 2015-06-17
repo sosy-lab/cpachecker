@@ -36,6 +36,7 @@
   <sourcefiles>
     <requiredfiles>../programs/java/Statements</requiredfiles>
     <option name="-cp">test/programs/java/Statements</option>
+    <withoutfile>AnonymousClass_true_assert</withoutfile>
     <withoutfile>Arrays_true_assert</withoutfile>
     <withoutfile>Assert1_true_assert</withoutfile>
     <withoutfile>Assert2_true_assert</withoutfile>
@@ -72,6 +73,7 @@
     <withoutfile>NumberOperators_true_assert</withoutfile>
     <withoutfile>Readable</withoutfile>
     <withoutfile>StaticInitializer_true_assert</withoutfile>
+    <withoutfile>StringConcatenation</withoutfile>
     <withoutfile>SuperClass</withoutfile>
     <withoutfile>Switch2_false_assert</withoutfile>
     <withoutfile>Switch_true_assert</withoutfile>

@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -36,6 +37,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ArrayAccess;
 import org.eclipse.jdt.core.dom.ArrayCreation;
 import org.eclipse.jdt.core.dom.ArrayInitializer;
@@ -227,10 +229,9 @@ class ASTConverter {
   }
 
   /**
-   * This method returns the number of Pre Side Assignments
-   * of converted Statements.
+   * This method returns the next pre side assignment.
    *
-   * @return number of Pre Side Assignments of converted Statements
+   * @return the next pre side assignment
    */
   public JAstNode getNextPreSideAssignment() {
     return preSideAssignments.removeFirst();
@@ -728,7 +729,7 @@ class ASTConverter {
       params = convert(p);
 
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     String name;
@@ -918,7 +919,7 @@ class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
@@ -1232,62 +1233,26 @@ class ASTConverter {
     IMethodBinding binding = cIC.resolveConstructorBinding();
 
     boolean canBeResolved = binding != null;
+    final AnonymousClassDeclaration anonymousDeclaration = cIC.getAnonymousClassDeclaration();
 
+    if (anonymousDeclaration != null) {
+      scope.addAnonymousClassDeclaration(anonymousDeclaration);
+    }
 
     if (canBeResolved) {
       scope.registerClass(binding.getDeclaringClass());
     }
 
-    @SuppressWarnings("unchecked")
-    List<Expression> p = cIC.arguments();
+    List<JExpression> params = getParameterExpressions(cIC);
 
-    List<JExpression> params;
+    String name = getFullName(cIC);
 
-    if (p.size() > 0) {
-      params = convert(p);
-
-    } else {
-      params = new ArrayList<>();
-    }
-
-    String name;
-    String simpleName;
-
-    if (canBeResolved) {
-      name = NameConverter.convertName(binding);
-      simpleName = binding.getName();
-    } else {
-      // If binding can't be resolved, the constructor is not parsed in all cases.
-      name = cIC.toString();
-      simpleName = cIC.toString();
-    }
-
-    JConstructorDeclaration declaration = (JConstructorDeclaration) scope.lookupMethod(name);
-
-    if (declaration == null) {
-
-      if (canBeResolved) {
-
-        ModifierBean mb = ModifierBean.getModifiers(binding);
-
-        declaration =
-            new JConstructorDeclaration(getFileLocation(cIC),
-                convertConstructorType(binding), name, simpleName,
-                new ArrayList<JParameterDeclaration>(),
-                mb.getVisibility(), mb.isStrictFp(),
-                (JClassType) getDeclaringClassType(binding));
-
-      } else {
-        declaration =
-            new JConstructorDeclaration(getFileLocation(cIC), JConstructorType.createUnresolvableConstructorType(), name,
-                simpleName, new ArrayList<JParameterDeclaration>(), VisibilityModifier.NONE, false,
-                JClassType.createUnresolvableType());
-      }
-    }
+    JConstructorDeclaration declaration = getConstructorDeclaration(cIC);
 
     JExpression functionName =
         new JIdExpression(getFileLocation(cIC), convert(cIC.resolveTypeBinding()), name, declaration);
-    JIdExpression idExpression = (JIdExpression) functionName;
+    /*JIdExpression idExpression = (JIdExpression) functionName;
+
 
     if (idExpression.getDeclaration() != null) {
       // clone idExpression because the declaration in it is wrong
@@ -1296,12 +1261,205 @@ class ASTConverter {
 
       functionName =
           new JIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
+    }*/
+
+    assert declaration.getParameters().size() == params.size();
+    return new JClassInstanceCreation(getFileLocation(cIC),
+                                      declaration.getType().getReturnType(),
+                                      functionName,
+                                      params,
+                                      declaration);
+  }
+
+  private JConstructorDeclaration getConstructorDeclaration(ClassInstanceCreation pCIC) {
+    final AnonymousClassDeclaration anonymousDecl = pCIC.getAnonymousClassDeclaration();
+    String fullName = getFullName(pCIC);
+    JConstructorDeclaration declaration;
+
+    if (anonymousDecl == null) {
+      declaration = (JConstructorDeclaration) scope.lookupMethod(fullName);
+
+    } else {
+      declaration = getConstructorOfAnonymousClass(anonymousDecl, pCIC.resolveConstructorBinding());
     }
 
+    if (declaration == null) {
+      declaration = getDefaultConstructor(pCIC);
+    }
 
-    return new JClassInstanceCreation(getFileLocation(cIC),
-        (JClassType) getDeclaringClassType(binding), functionName,
-        params, declaration);
+    return declaration;
+  }
+
+  private JConstructorDeclaration getDefaultConstructor(ClassInstanceCreation pCIC) {
+    String fullName = getFullName(pCIC);
+    String simpleName = getSimpleName(pCIC);
+    final IMethodBinding constructorBinding = pCIC.resolveConstructorBinding();
+
+    if (constructorBinding != null) {
+      final ModifierBean mb = ModifierBean.getModifiers(constructorBinding);
+
+      return new JConstructorDeclaration(getFileLocation(pCIC),
+                                         convertConstructorType(constructorBinding),
+                                         fullName,
+                                         simpleName,
+                                         Collections.<JParameterDeclaration>emptyList(),
+                                         mb.getVisibility(),
+                                         mb.isStrictFp(),
+                                         getDeclaringClassType(constructorBinding));
+
+    } else {
+      return new JConstructorDeclaration(getFileLocation(pCIC),
+                                         JConstructorType.createUnresolvableConstructorType(),
+                                         fullName,
+                                         simpleName,
+                                         Collections.<JParameterDeclaration>emptyList(),
+                                         VisibilityModifier.NONE,
+                                         false,
+                                         JClassType.createUnresolvableType());
+    }
+  }
+
+  private JConstructorDeclaration getConstructorOfAnonymousClass(
+      AnonymousClassDeclaration pAnonymousDecl, IMethodBinding pInstanceCreation) {
+
+    final ITypeBinding anonymousDeclBinding = pAnonymousDecl.resolveBinding();
+
+    if (anonymousDeclBinding != null) {
+
+      final FileLocation fileLoc = getFileLocation(pAnonymousDecl);
+      final boolean takesVarArgs = false;
+      final boolean isStrictFP = false;
+
+      final JClassOrInterfaceType returnType = convertClassOrInterfaceType(anonymousDeclBinding);
+
+      List<JParameterDeclaration> parameterDeclarations;
+      List<JType> parameterTypes;
+
+      // no instance creation exists if direct super type is an interface
+      if (pInstanceCreation != null) {
+        parameterDeclarations =
+            getParameterDeclarations(pInstanceCreation.getParameterTypes(), fileLoc);
+
+        parameterTypes = new ArrayList<>(parameterDeclarations.size());
+
+      } else {
+        parameterDeclarations = Collections.emptyList();
+        parameterTypes = Collections.emptyList();
+      }
+
+      for (JParameterDeclaration d : parameterDeclarations) {
+        parameterTypes.add(d.getType());
+      }
+
+      final JConstructorType constructorType = new JConstructorType(returnType,
+                                                                    parameterTypes,
+                                                                    takesVarArgs);
+
+      final String fullName =
+          NameConverter.convertAnonymousClassConstructorName(anonymousDeclBinding, parameterTypes);
+      final JClassOrInterfaceType declaringClass =
+          convertClassOrInterfaceType(anonymousDeclBinding.getDeclaringClass());
+
+      return new JConstructorDeclaration(fileLoc,
+                                         constructorType,
+                                         fullName,
+                                         fullName,
+                                         parameterDeclarations,
+                                         VisibilityModifier.PRIVATE,
+                                         isStrictFP,
+                                         declaringClass);
+    } else {
+      logger.logf(Level.WARNING, "Binding for anonymous class %s can't be resolved.",
+          pAnonymousDecl.toString());
+      return null;
+    }
+  }
+
+  private List<JParameterDeclaration> getParameterDeclarations(
+      ITypeBinding[] pBindings, FileLocation pFileLoc) {
+
+    List<JParameterDeclaration> declarations = new ArrayList<>(pBindings.length);
+
+    for (ITypeBinding binding : pBindings) {
+      declarations.add(getParameterDeclaration(binding, pFileLoc));
+    }
+
+    return declarations;
+  }
+
+  private JParameterDeclaration getParameterDeclaration(
+      ITypeBinding pBinding, FileLocation pFileLoc) {
+
+    final JType parameterType = convert(pBinding);
+    final String simpleName = pBinding.getName();
+    final String qualifiedName = pBinding.getQualifiedName();
+
+    // TODO: Currently no parameter is handled as final. Find out how to find out whether a
+    // parameter is final and add it instead of 'false'.
+    return new JParameterDeclaration(pFileLoc, parameterType, simpleName, qualifiedName, false);
+  }
+
+  private String getFullName(ClassInstanceCreation pCIC) {
+    IMethodBinding binding = pCIC.resolveConstructorBinding();
+
+    if (binding != null) {
+      return NameConverter.convertName(binding);
+
+    } else {
+      AnonymousClassDeclaration anonymousDeclaration = pCIC.getAnonymousClassDeclaration();
+
+      if (anonymousDeclaration != null) {
+        return NameConverter.convertClassOrInterfaceToFullName(
+            anonymousDeclaration.resolveBinding());
+
+      } else {
+        return pCIC.toString();
+      }
+    }
+  }
+
+  private String getSimpleName(ClassInstanceCreation pCIC) {
+    IMethodBinding binding = pCIC.resolveConstructorBinding();
+
+    if (binding != null) {
+      return getSimpleName(binding.getDeclaringClass());
+
+    } else {
+      AnonymousClassDeclaration anonymousDeclaration = pCIC.getAnonymousClassDeclaration();
+
+      if (anonymousDeclaration != null) {
+        return getSimpleName(anonymousDeclaration.resolveBinding());
+
+      } else {
+        return pCIC.toString();
+      }
+    }
+  }
+
+  private String getSimpleName(ITypeBinding pBinding) {
+    String name = pBinding.getName();
+
+    if (name.isEmpty()) {
+      name = NameConverter.convertClassOrInterfaceToFullName(pBinding);
+    }
+
+    return name;
+  }
+
+  private List<JExpression> getParameterExpressions(ClassInstanceCreation pCIC) {
+    @SuppressWarnings("unchecked")
+    List<Expression> p = pCIC.arguments();
+
+    List<JExpression> params;
+
+    if (p.size() > 0) {
+      params = convert(p);
+
+    } else {
+      params = Collections.emptyList();
+    }
+
+    return params;
   }
 
 
@@ -1340,7 +1498,7 @@ class ASTConverter {
     FileLocation fileloc = getFileLocation(Ace);
     JArrayInitializer initializer =
         (JArrayInitializer) convertExpressionWithoutSideEffects(
-                                      Ace.getInitializer());
+            Ace.getInitializer());
 
     JArrayType type = convert(Ace.getType());
     List<JExpression> length = new ArrayList<>(type.getDimensions());
@@ -1526,13 +1684,15 @@ class ASTConverter {
 
   private JAstNode convert(MethodInvocation mi) {
 
-    boolean canBeResolve = mi.resolveMethodBinding() != null;
+    IMethodBinding methodBinding = mi.resolveMethodBinding();
+    boolean canBeResolved = methodBinding != null;
 
     JClassOrInterfaceType declaringClassType = null;
 
-    if (canBeResolve) {
-      declaringClassType = (JClassOrInterfaceType) convert(mi.resolveMethodBinding().getDeclaringClass());
-      scope.registerClass(mi.resolveMethodBinding().getDeclaringClass());
+    if (canBeResolved) {
+      ITypeBinding declaringClass = methodBinding.getDeclaringClass();
+      declaringClassType = (JClassOrInterfaceType) convert(declaringClass);
+      scope.registerClass(declaringClass);
     }
 
     @SuppressWarnings("unchecked")
@@ -1542,7 +1702,7 @@ class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = new ArrayList<>();
+      params = Collections.emptyList();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(mi.getName());
@@ -1550,11 +1710,10 @@ class ASTConverter {
     JMethodDeclaration declaration = null;
     JExpression referencedVariableName = null;
 
-
     ModifierBean mb = null;
 
-    if (canBeResolve) {
-      mb = ModifierBean.getModifiers(mi.resolveMethodBinding());
+    if (canBeResolved) {
+      mb = ModifierBean.getModifiers(methodBinding);
 
       if (!mb.isStatic) {
         referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
@@ -1577,11 +1736,11 @@ class ASTConverter {
 
     if (declaration == null) {
 
-      if (canBeResolve) {
+      if (canBeResolved) {
         declaration = scope.createExternMethodDeclaration(
-            convertMethodType(mi.resolveMethodBinding()),
+            convertMethodType(methodBinding),
             methodName.toASTString(),
-            mi.resolveMethodBinding().getName(),
+            methodBinding.getName(),
             VisibilityModifier.PUBLIC,
             mb.isFinal(), mb.isAbstract(), mb.isStatic(), mb.isNative(),
             mb.isSynchronized(), mb.isStrictFp(), declaringClassType);
@@ -2343,7 +2502,7 @@ class ASTConverter {
 
   public void assignRunTimeClass(JReferencedMethodInvocationExpression methodInvocation,
       JClassInstanceCreation functionCall) {
-    JClassType returnType = functionCall.getExpressionType();
+    JClassOrInterfaceType returnType = functionCall.getExpressionType();
 
     methodInvocation.setRunTimeBinding(returnType);
   }
@@ -2369,7 +2528,7 @@ class ASTConverter {
     JConstructorType type = new JConstructorType((JClassType)
         convert(classBinding), paramTypes, false);
 
-    String simpleName = classBinding.getName();
+    String simpleName = getSimpleName(classBinding);
 
     return new JConstructorDeclaration(FileLocation.DUMMY, type,
         NameConverter.convertDefaultConstructorName(classBinding),

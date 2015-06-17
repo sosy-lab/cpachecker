@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
@@ -48,6 +47,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+
+import com.google.errorprone.annotations.ForOverride;
 
 /**
  * Abstract class for the refinement strategy that should be used after a spurious
@@ -102,6 +103,7 @@ public abstract class RefinementStrategy {
     return true;
   }
 
+  @ForOverride
   protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
     int equalPrecisions = 0;
     int differentPrecisions = 0;
@@ -175,9 +177,11 @@ public abstract class RefinementStrategy {
           // If the previous itp was true, and the current one is false,
           // this means that the code block between them is in itself infeasible.
           // We can add this information to the cache to speed up later sat checks.
-          PredicateAbstractState s = getPredicateState(w);
-          BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
-          solver.addUnsatisfiableFormulaToCache(blockFormula);
+          // PredicateAbstractState s = getPredicateState(w);
+          // BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
+          // solver.addUnsatisfiableFormulaToCache(blockFormula);
+          // TODO disabled, because tree-interpolation returns true-false-interpolants
+          // without an unsatisfiable intermediate formula
           // TODO: Move caching to InterpolationManager.buildCounterexampleTrace
         }
         break;
@@ -227,6 +231,7 @@ public abstract class RefinementStrategy {
     assert !pReached.asReachedSet().contains(lastElement);
   }
 
+  @ForOverride
   protected abstract void startRefinementOfPath();
 
   /**
@@ -238,6 +243,7 @@ public abstract class RefinementStrategy {
    * @return True if no refinement was necessary (this implies that refinement
    *          on all of the state's parents is also not necessary)
    */
+  @ForOverride
   protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state) throws InterruptedException, SolverException;
 
   /**
@@ -251,6 +257,7 @@ public abstract class RefinementStrategy {
    * @throws CPAException
    * @throws InterruptedException
    */
+  @ForOverride
   protected abstract void finishRefinementOfPath(
       final ARGState unreachableState,
       List<ARGState> affectedStates,

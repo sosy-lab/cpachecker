@@ -107,7 +107,7 @@ public class Cartesian {
   }
 
   /** Create a generic array containing references to the given objects. */
-  private static <T> T[] newArray(Class<? super T> elementType, Iterable<? extends T> from) {
+  private static <T> T[] newArray(Class<T> elementType, Iterable<? extends T> from) {
     List<T> list = new ArrayList<T>();
     for (T f : from) {
       list.add(f);

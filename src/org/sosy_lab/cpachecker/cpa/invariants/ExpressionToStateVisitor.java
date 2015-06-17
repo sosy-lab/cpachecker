@@ -35,9 +35,9 @@ interface ExpressionToStateVisitor extends CRightHandSideVisitor<CompoundInterva
 
   boolean hasBaseState();
 
-  CompoundInterval getVarState(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
+  CompoundInterval getVarState(CIdExpression pCIdExpression);
 
   InvariantsState copyAndSetBaseState(CIdExpression pCIdExpression, CompoundInterval pStateToSet)
-      throws UnrecognizedCCodeException;
+      ;
 
 }

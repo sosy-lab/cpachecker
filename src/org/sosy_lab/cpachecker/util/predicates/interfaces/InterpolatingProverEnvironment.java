@@ -76,4 +76,31 @@ public interface InterpolatingProverEnvironment<T> extends BasicProverEnvironmen
    *         where P_i is the conjunction of all formulas in partition i.
    */
   List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas);
+
+  /**
+   * Compute a sequence of interpolants. The nesting array describes the
+   * start of the subtree for tree interpolants. For inductive sequences of
+   * interpolants use a nesting array completely filled with 0.
+   *
+   * Example:
+   *
+   * A  D
+   * |  |
+   * B  E
+   * | /
+   * C
+   * |
+   * F  H
+   * | /
+   * G
+   *
+   * arrayIndex     = [0,1,2,3,4,5,6,7]  // only for demonstration, not needed
+   * partition      = [A,B,D,E,C,F,H,G]  // post-order of tree
+   * startOfSubTree = [0,0,2,2,0,0,6,0]  // index of left-most leaf of the current element
+   *
+   * @param partitions of formulas
+   * @param startOfSubtree The start of the subtree containing the formula at this index as root.
+   * @return Tree interpolants respecting the nesting relation.
+   */
+  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree);
 }

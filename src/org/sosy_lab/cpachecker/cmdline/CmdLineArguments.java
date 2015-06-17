@@ -95,6 +95,7 @@ class CmdLineArguments {
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
   private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp.spc";
   private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE = "config/specification/sv-comp-memorysafety.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -376,7 +377,7 @@ class CmdLineArguments {
                                                PropertyType.VALID_FREE,
                                                PropertyType.VALID_MEMTRACK))) {
                 putIfNotExistent(options, "memorysafety.check", "true");
-                newValue = null;
+                newValue = MEMORYSAFETY_SPECIFICATION_FILE;
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
                 newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
@@ -390,7 +391,7 @@ class CmdLineArguments {
               }
 
             } else {
-              ERROR_OUTPUT.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+              ERROR_OUTPUT.println("The property file " + newValue + " does not exist.");
               System.exit(ERROR_EXIT_CODE);
             }
           }

@@ -27,11 +27,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.RecursiveBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 import com.google.common.collect.ImmutableSortedSet;
 
@@ -45,10 +42,8 @@ public class FormulaMeasuring {
     private int disjunctions = 0;
     private int negations = 0;
     private int atoms = 0;
-    private int arithmeticEquals = 0;
     private final Set<String> variables = new HashSet<>();
 
-    public int getArithmeticEquals() { return arithmeticEquals; }
     public int getAtoms() { return atoms; }
     public int getConjunctions() { return conjunctions; }
     public int getDisjunctions() { return disjunctions; }
@@ -74,13 +69,11 @@ public class FormulaMeasuring {
 
     private final FormulaMeasures measures;
     private final FormulaManagerView fmgr;
-    private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
 
     FormulaMeasuringVisitor(FormulaManagerView pFmgr, FormulaMeasures pMeasures) {
       super(pFmgr);
       measures = pMeasures;
       fmgr = pFmgr;
-      rfmgr = pFmgr.getRationalFormulaManager();
     }
 
     @Override
@@ -100,13 +93,6 @@ public class FormulaMeasuring {
       measures.atoms++;
 
       BooleanFormula atom = fmgr.uninstantiate(pAtom);
-
-      if (fmgr.isPurelyArithmetic(atom)) {
-        if (rfmgr.isEqual(atom)) {
-          measures.arithmeticEquals++;
-        }
-      }
-
       measures.variables.addAll(fmgr.extractVariableNames(atom));
       return null;
     }

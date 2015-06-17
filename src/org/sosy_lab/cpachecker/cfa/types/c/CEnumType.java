@@ -43,16 +43,18 @@ import com.google.common.collect.ImmutableList;
 public final class CEnumType implements CComplexType {
 
   private final ImmutableList<CEnumerator> enumerators;
-  private final String                     name;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final String name;
+  private final String origName;
+  private boolean isConst;
+  private boolean isVolatile;
 
   public CEnumType(final boolean pConst, final boolean pVolatile,
-      final List<CEnumerator> pEnumerators, final String pName) {
+      final List<CEnumerator> pEnumerators, final String pName, final String pOrigName) {
     isConst = pConst;
     isVolatile = pVolatile;
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName;
+    origName = pOrigName;
   }
 
   @Override
@@ -82,6 +84,11 @@ public final class CEnumType implements CComplexType {
   @Override
   public String getQualifiedName() {
     return ("enum " + name).trim();
+  }
+
+  @Override
+  public String getOrigName() {
+    return origName;
   }
 
   @Override
@@ -249,12 +256,30 @@ public final class CEnumType implements CComplexType {
   }
 
   @Override
+  public boolean equalsWithOrigName(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CEnumType)) {
+      return false;
+    }
+
+    CEnumType other = (CEnumType) obj;
+
+    return isConst == other.isConst
+           && isVolatile == other.isVolatile
+           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
+           && Objects.equals(enumerators, other.enumerators);
+  }
+
+  @Override
   public CEnumType getCanonicalType() {
     return getCanonicalType(false, false);
   }
 
   @Override
   public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name);
+    return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
   }
 }

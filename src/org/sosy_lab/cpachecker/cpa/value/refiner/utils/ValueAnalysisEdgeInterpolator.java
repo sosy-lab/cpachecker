@@ -24,36 +24,47 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import static com.google.common.collect.Iterables.skip;
-
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
+@Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisEdgeInterpolator {
+
+  @Option(secure=true, description="apply optimizations based on equality of input interpolant and candidate interpolant")
+  private boolean applyItpEqualityOptimization = true;
+
+  @Option(secure=true, description="apply optimizations based on CFA edges with only variable-renaming semantics")
+  private boolean applyRenamingOptimization = true;
+
+  @Option(secure=true, description="apply optimizations based on infeasibility of suffix")
+  private boolean applyUnsatSuffixOptimization = true;
+
   /**
    * the shutdownNotifier in use
    */
@@ -91,6 +102,8 @@ public class ValueAnalysisEdgeInterpolator {
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
+    pConfig.inject(this);
+
     try {
       shutdownNotifier  = pShutdownNotifier;
       checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
@@ -105,26 +118,28 @@ public class ValueAnalysisEdgeInterpolator {
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
-   * @param pErrorPath the path to check
+   * @param pErrorPath the path to interpolate
+   * @param pCurrentEdge the current edge to interpolate
+   * @param pCallstack the current call stack
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
-   * @param useDefRelation the use-def relation, containing the variables relevant for proving the infeasibility
-   * of the target assumption
    * @throws CPAException
    * @throws InterruptedException
    */
   public ValueAnalysisInterpolant deriveInterpolant(
       final ARGPath pErrorPath,
       final CFAEdge pCurrentEdge,
+      final Deque<ValueAnalysisState> pCallstack,
       final int pOffset,
-      final ValueAnalysisInterpolant pInputInterpolant,
-      final Set<MemoryLocation> useDefRelation) throws CPAException, InterruptedException {
+      final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
-    ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
+    ValueAnalysisState initialState = pInputInterpolant.createValueAnalysisState();
 
-    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pCurrentEdge);
+    // TODO callstack-management depends on a forward-iteration on a single path.
+    // TODO Thus interpolants have to be computed from front to end. Can we assure this?
+    ValueAnalysisState initialSuccessor = getInitialSuccessor(initialState, pCurrentEdge, pCallstack);
 
     if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
@@ -133,31 +148,27 @@ public class ValueAnalysisEdgeInterpolator {
     // if initial state and successor are equal, return the input interpolant
     // in general, this returned interpolant might be stronger than needed, but only in very rare cases,
     // the weaker interpolant would be different from the input interpolant, so we spare the effort
-    if (initialState.equals(initialSuccessor)) {
+    if (applyItpEqualityOptimization && initialState.equals(initialSuccessor)) {
       return pInputInterpolant;
     }
 
     // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
-    if (isOnlyVariableRenamingEdge(pCurrentEdge)) {
+    if (applyRenamingOptimization && isOnlyVariableRenamingEdge(pCurrentEdge)) {
       return initialSuccessor.createInterpolant();
     }
 
-    // restrict candidate interpolant to use-def relation, to reduce the number of itp-queries
-    if (!useDefRelation.isEmpty()) {
-      initialSuccessor.retainAll(useDefRelation);
-    }
+    ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
 
-    MutableARGPath remainingErrorPathM = new MutableARGPath();
-    remainingErrorPathM.addAll(Lists.newArrayList(skip(ErrorPathClassifier.pathToList(pErrorPath), pOffset + 1)));
-    ARGPath remainingErrorPath = remainingErrorPathM.immutableCopy();
-
-    // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
-    if (initialSuccessor.getSize() > 1 && isSuffixContradicting(remainingErrorPath)) {
+    // return interpolant TRUE if input interpolant is still TRUE and suffix is contradicting by itself
+    if (applyUnsatSuffixOptimization
+        && pInputInterpolant.isTrue()
+        && initialSuccessor.getSize() > 1
+        && isSuffixContradicting(remainingErrorPath)) {
       return ValueAnalysisInterpolant.TRUE;
     }
 
-    for (MemoryLocation currentMemoryLocation : initialSuccessor.getTrackedMemoryLocations()) {
+    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(pCurrentEdge, initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate interpolant
@@ -170,6 +181,29 @@ public class ValueAnalysisEdgeInterpolator {
     }
 
     return initialSuccessor.createInterpolant();
+  }
+
+  /**
+   * Interpolation on (long) error paths may be expensive, so it might pay off to limit the set of
+   * memory locations on which to interpolate.
+   *
+   * This method determines those memory locations on which to interpolate.
+   * Memory locations that are in the candidate interpolant but are not returned here will end up
+   * in the final interpolant, without any effort spent on interpolation.
+   * Memory locations that are returned here are subject for interpolation, and might be eliminated
+   * from the final interpolant (at the cost of doing one interpolation query for each of them).
+   *
+   * Basically, one could return here the intersection of those memory locations that are contained
+   * in the candidate interpolant and those that are referenced in the current edge.
+   * Hence, all memory locations that are in the candidate interpolant but are not referenced in
+   * the current edge would also end up in the final interpolant.
+   * This optimization was removed again in commit r16007 because the payoff did not justify
+   * maintaining the code, esp. as other optimizations work equally well with less code.
+   */
+  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final CFAEdge pCurrentEdge,
+      ValueAnalysisState candidateInterpolant) {
+
+    return candidateInterpolant.getTrackedMemoryLocations();
   }
 
   /**
@@ -201,8 +235,21 @@ public class ValueAnalysisEdgeInterpolator {
    * @return the initial successor
    * @throws CPATransferException
    */
-  private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState, CFAEdge initialEdge)
+  private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState,
+      final CFAEdge initialEdge, final Deque<ValueAnalysisState> callstack)
       throws CPATransferException {
+
+    // we enter a function, so lets add the previous state to the stack
+    if (initialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      callstack.addLast(initialState);
+    }
+
+    // we leave a function, so rebuild return-state before assigning the return-value.
+    if (!callstack.isEmpty() && initialEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      // rebuild states with info from previous state
+      final ValueAnalysisState callState = callstack.removeLast();
+      initialState = initialState.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)initialEdge.getPredecessor());
+    }
 
     Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
         initialState,

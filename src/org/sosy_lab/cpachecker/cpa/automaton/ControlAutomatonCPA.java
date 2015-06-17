@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -63,6 +63,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -73,6 +75,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -121,7 +126,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final CFA cfa;
   private final LogManager logger;
 
-  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCFA)
+  protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
 
     pConfig.inject(this, ControlAutomatonCPA.class);
@@ -143,13 +148,22 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     precisionAdjustment = new PrecisionAdjustment() { // Handle the BREAK state
 
       @Override
-      public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
-          UnmodifiableReachedSet pStates, AbstractState fullState) throws CPAException, InterruptedException {
+      public Optional<PrecisionAdjustmentResult> prec(
+          AbstractState pState, Precision pPrecision,
+          UnmodifiableReachedSet pStates,
+          Function<AbstractState, AbstractState> projection,
+          AbstractState fullState) throws CPAException, InterruptedException {
 
-        PrecisionAdjustmentResult wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates, fullState);
+        Optional<PrecisionAdjustmentResult> wrappedPrec
+            = lPrecisionAdjustment.prec(pState, pPrecision, pStates, projection, fullState);
+
+        if (!wrappedPrec.isPresent()) {
+          // Bottom.
+          return wrappedPrec;
+        }
 
         if (((AutomatonState) pState).getInternalStateName().equals("_predefinedState_BREAK")) {
-          return wrappedPrec.withAction(Action.BREAK);
+          return Optional.of(wrappedPrec.get().withAction(Action.BREAK));
         }
 
         return wrappedPrec;

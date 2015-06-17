@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 

@@ -23,8 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 /**
@@ -40,6 +44,21 @@ public class Z3Test extends SolverBasedTest0 {
   @Test(expected=Exception.class)
   public void testErrorHandling() throws Exception {
     // Will exit(1) without an exception handler.
+    //noinspection ConstantConditions,ResultOfMethodCallIgnored
     rmgr.makeNumber("not-a-number");
+  }
+
+  @Test
+  public void testCongruence() throws Exception {
+    IntegerFormula x;
+    x = imgr.makeVariable("x");
+
+    try (ProverEnvironment env = mgr.newProverEnvironment(false, false)) {
+      //noinspection ResultOfMethodCallIgnored
+      env.push(imgr.modularCongruence(x, imgr.makeNumber(0), 2));
+      //noinspection ResultOfMethodCallIgnored
+      env.push(imgr.equal(x, imgr.makeNumber(1)));
+      assertThat(env.isUnsat()).isEqualTo(true);
+    }
   }
 }

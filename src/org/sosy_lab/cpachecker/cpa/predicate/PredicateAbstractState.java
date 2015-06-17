@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -36,10 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
@@ -71,7 +67,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     private static final long serialVersionUID = 8341054099315063986L;
 
-    private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf,
+    private AbstractionState(PathFormula pf,
         AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
@@ -186,10 +182,10 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  public static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
+  public static PredicateAbstractState mkAbstractionState(
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
-    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations);
+    return new AbstractionState(pF, pA, pAbstractionLocations);
   }
 
   public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
@@ -261,11 +257,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     return pathFormula;
   }
 
-  protected Object readResolve() throws ObjectStreamException {
+  protected Object readResolve() {
     if (this instanceof AbstractionState) {
       // consistency check
-      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
       /*Pair<String,Integer> splitName;
+      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManager();
       SSAMap ssa = pathFormula.getSsa();
 
       for (String var : mgr.extractFreeVariableMap(abstractionFormula.asInstantiatedFormula()).keySet()) {
@@ -283,7 +279,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
         }
       }*/
 
-      return new AbstractionState(mgr.getBooleanFormulaManager(), pathFormula,
+      return new AbstractionState(pathFormula,
           abstractionFormula, PathCopyingPersistentTreeMap.<CFANode, Integer> of());
     }
     return new NonAbstractionState(pathFormula, abstractionFormula,

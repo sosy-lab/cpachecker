@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -74,6 +74,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
@@ -560,7 +561,7 @@ public class ARGUtils {
    * @param s an ARGState
    * @return The children with covered states transparently replaced.
    */
-  public static final Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
+  public static Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
     return new AbstractCollection<ARGState>() {
 
       @Override
@@ -643,7 +644,7 @@ public class ARGUtils {
   public static void produceTestGenPathAutomaton(Appendable sb, String name, CounterexampleTraceInfo pCounterExampleTrace)
       throws IOException {
 
-    Model model = pCounterExampleTrace.getModel();
+    RichModel model = pCounterExampleTrace.getModel();
     CFAPathWithAssumptions assignmentCFAPath = model.getCFAPathWithAssignments();
 
     int stateCounter = 1;
@@ -701,7 +702,7 @@ public class ARGUtils {
 
     Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
-    Model model = pCounterExample.getTargetPathModel();
+    RichModel model = pCounterExample.getTargetPathModel();
     CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
     if (cfaPath != null) {
       ARGPath targetPath = pCounterExample.getTargetPath();
@@ -819,7 +820,7 @@ public class ARGUtils {
     Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
     if (pCounterExample != null) {
-      Model model = pCounterExample.getTargetPathModel();
+      RichModel model = pCounterExample.getTargetPathModel();
       CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
       if (cfaPath != null) {
         ARGPath targetPath = pCounterExample.getTargetPath();
@@ -835,7 +836,7 @@ public class ARGUtils {
 
     int multiEdgeCount = 0; // see below
 
-    for (ARGState s : pPathStates) {
+    for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
 
       CFANode loc = AbstractStates.extractLocation(s);
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");

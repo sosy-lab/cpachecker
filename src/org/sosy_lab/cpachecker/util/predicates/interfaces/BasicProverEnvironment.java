@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 
 /**
  * Super interface for {@link ProverEnvironment} and {@link InterpolatingProverEnvironment}

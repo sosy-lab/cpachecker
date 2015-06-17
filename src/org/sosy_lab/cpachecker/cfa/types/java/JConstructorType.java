@@ -36,18 +36,19 @@ public class JConstructorType extends JMethodType implements JType {
   /**
    * Creates a new <code>JConstructorType</code> object with the given attributes.
    *
-   * @param pReturnType a {@link JClassType} describing the class the described constructor creates
+   * @param pReturnType a {@link JClassOrInterfaceType} describing the class the described
+   *    constructor creates
    * @param pParameters the parameters the constructor takes
    * @param pTakesVarArgs if <code>true</code>, the constructor takes a variable amount of
    *        arguments, otherwise not
    */
-  public JConstructorType(JClassType pReturnType, List<JType> pParameters, boolean pTakesVarArgs) {
+  public JConstructorType(JClassOrInterfaceType pReturnType, List<JType> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
   }
 
   @Override
-  public JClassType getReturnType() {
-    return (JClassType) super.getReturnType();
+  public JClassOrInterfaceType getReturnType() {
+    return (JClassOrInterfaceType) super.getReturnType();
   }
 
   /**

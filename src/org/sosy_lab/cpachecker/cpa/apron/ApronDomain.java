@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -41,7 +40,7 @@ class ApronDomain implements AbstractDomain {
 
   private final LogManager logger;
 
-  public ApronDomain(LogManager log) throws InvalidConfigurationException {
+  public ApronDomain(LogManager log) {
     logger = log;
   }
 

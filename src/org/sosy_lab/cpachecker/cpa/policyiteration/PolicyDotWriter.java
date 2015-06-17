@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
+import org.sosy_lab.common.rationals.LinearExpression;
+import org.sosy_lab.common.rationals.Rational;
 
 /**
  * Converts a set of invariants to the pretty text representation.
@@ -14,9 +14,6 @@ public class PolicyDotWriter {
   public String toDOTLabel(Map<Template, PolicyBound> data) {
     StringBuilder b = new StringBuilder();
     b.append("\n");
-
-    // TODO: might want to do it as a pre-processing rather than
-    // only for printing.
 
     // Convert to the readable format.
     Map<LinearExpression<?>, PolicyBound> toSort = new HashMap<>();
@@ -33,14 +30,14 @@ public class PolicyDotWriter {
     while (toSort.size() > 0) {
       LinearExpression<?> template, negTemplate;
       template = toSort.keySet().iterator().next();
-      Rational upperBound = toSort.get(template).bound;
+      Rational upperBound = toSort.get(template).getBound();
 
       negTemplate = template.negate();
 
       toSort.remove(template);
 
       if (toSort.containsKey(negTemplate)) {
-        Rational lowerBound = toSort.get(negTemplate).bound.negate();
+        Rational lowerBound = toSort.get(negTemplate).getBound().negate();
         toSort.remove(negTemplate);
 
         // Rotate the pair if necessary.

@@ -68,8 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
  * the strongest post for the given CFA edge. Afterwards it optionally
@@ -82,6 +80,11 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       description = "maximum blocksize before a satisfiability check is done\n"
           + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
   private int satCheckBlockSize = 0;
+
+  @Option(secure = true,
+      description = "Enables sat checks at abstraction location.\n"
+          + "Infeasible paths are already excluded by transfer relation and not later by precision adjustment. This property is required in proof checking.")
+  private boolean satCheckAtAbstraction = false;
 
   @Option(secure=true, description = "check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
@@ -190,6 +193,11 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       CFANode loc, boolean doAbstraction)
           throws SolverException, InterruptedException {
     if (doAbstraction) {
+      if (satCheckAtAbstraction) {
+        if (unsatCheck(oldState.getAbstractionFormula(), pathFormula)) {
+          return Collections.emptySet();
+        }
+      }
       return Collections.singleton(
           new PredicateAbstractState.ComputeAbstractionState(
               pathFormula, oldState.getAbstractionFormula(), loc,
@@ -198,6 +206,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       return handleNonAbstractionFormulaLocation(pathFormula, oldState);
     }
   }
+
 
   /**
    * Does special things when we do not compute an abstraction for the
@@ -212,15 +221,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         (satCheck ? "with satisfiability check" : ""));
 
     if (satCheck) {
-      satCheckTimer.start();
-
-      boolean unsat = formulaManager.unsat(oldState.getAbstractionFormula(), pathFormula);
-
-      satCheckTimer.stop();
-
-      if (unsat) {
-        numSatChecksFalse++;
-        logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
+      if (unsatCheck(oldState.getAbstractionFormula(), pathFormula)) {
         return Collections.emptySet();
       }
     }
@@ -228,6 +229,26 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     // create the new abstract state for non-abstraction location
     return Collections.singleton(
         mkNonAbstractionStateWithNewPathFormula(pathFormula, oldState));
+  }
+
+  /**
+   * Checks if lastAbstraction & pathFromLastAbstraction is unsat.
+   * Collects sat check information for statistics
+   */
+  private boolean unsatCheck(final AbstractionFormula lastAbstraction, final PathFormula pathFormulaFromLastAbstraction)
+      throws SolverException, InterruptedException {
+    satCheckTimer.start();
+
+    boolean unsat = formulaManager.unsat(lastAbstraction, pathFormulaFromLastAbstraction);
+
+    satCheckTimer.stop();
+
+    if (unsat) {
+      numSatChecksFalse++;
+      logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
+    }
+
+    return unsat;
   }
 
   /**
@@ -364,8 +385,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  @SuppressWarnings("unused")
-  @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
       AbstractStateWithAssumptions pAssumeElement) throws CPATransferException, InterruptedException {
 
@@ -448,7 +467,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
       abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
-      return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
+      return PredicateAbstractState.mkAbstractionState(newPathFormula,
           abs, abstractionLocations);
     }
   }

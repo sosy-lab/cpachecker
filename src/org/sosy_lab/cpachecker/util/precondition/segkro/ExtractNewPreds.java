@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import static org.sosy_lab.cpachecker.util.precondition.segkro.FormulaUtils.*;
-
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -67,16 +64,6 @@ public class ExtractNewPreds {
     this.mgrv = pSolver.getFormulaManager();
   }
 
-  private Collection<BooleanFormula> extractLiterals(BooleanFormula pInputFormula) {
-    return mgrv.extractLiterals(pInputFormula, false, false, false); // TODO: check the argument 'conjunctionsOnly'
-  }
-
-  private void printFormulaCollection(PrintStream pOut, Collection<BooleanFormula> pC) {
-    for (BooleanFormula f: pC) {
-      pOut.println("===" + f);
-    }
-  }
-
   public List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
     final List<BooleanFormula> resultPredicates = Lists.newArrayList();
     final LinkedList<BooleanFormula> resultPredicatesPrime = Lists.newLinkedList();
@@ -106,7 +93,14 @@ public class ExtractNewPreds {
         }
 
         for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
-          final boolean tupleContainsOnlyBasePredicates = !containsFormulasNotFrom(tuple, pBasePredicates);
+          boolean containsFormulasNotFrom = false;
+          for (BooleanFormula f: tuple) {
+            if (!pBasePredicates.contains(f)) {
+              containsFormulasNotFrom = true; // TODO: Test this!!
+              break;
+            }
+          }
+          final boolean tupleContainsOnlyBasePredicates = !containsFormulasNotFrom;
 
           // The rules ELIM and EQ are only applied to the base predicates!!
           final boolean isBasicPredicatesOnlyRule = false
@@ -129,7 +123,7 @@ public class ExtractNewPreds {
               List<Integer> positions = Lists.newArrayList();
               for (int posInResult=0; posInResult<resultPredicates.size(); posInResult++) {
                 for (BooleanFormula tf: tuple) {
-                  if (equalFormula(resultPredicates.get(posInResult), tf)) {
+                  if (resultPredicates.get(posInResult).equals(tf)) {
                     positions.add(posInResult);
                   }
                 }
@@ -173,7 +167,8 @@ public class ExtractNewPreds {
   public List<BooleanFormula> extractNewPreds(BooleanFormula pConjunctiveFormula) throws SolverException, InterruptedException {
     // Start with the list of basic predicates
     //  (extracted from the conjunctive formula)
-    Collection<BooleanFormula> literals = extractLiterals(pConjunctiveFormula);
+    // TODO: check whether to use extractDisjuncts instead
+    Collection<BooleanFormula> literals = mgrv.extractLiterals(pConjunctiveFormula);
     return extractNewPreds(literals);
   }
 

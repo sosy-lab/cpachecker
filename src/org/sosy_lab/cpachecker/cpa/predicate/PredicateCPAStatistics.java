@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.*;
 
@@ -47,7 +46,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -133,11 +131,8 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final LoopInvariantsWriter loopInvariantsWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
 
-  private final Timer invariantGeneratorTime;
-
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      Timer pInvariantGeneratorTimer,
       Configuration pConfig)
           throws InvalidConfigurationException {
 
@@ -145,13 +140,12 @@ class PredicateCPAStatistics extends AbstractStatistics {
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
-    invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
 
     pConfig.inject(this, PredicateCPAStatistics.class);
 
     final FormulaManagerView fmgr = cpa.getSolver().getFormulaManager();
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, fmgr, pRmgr);
-    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, fmgr);
+    abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), fmgr);
 
     if (exportPredmap && predmapFile != null) {
       precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), fmgr);
@@ -356,10 +350,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
     }
     out.println("Time for prec operator:              " + prec.totalPrecTime);
     if (prec.numAbstractions > 0) {
-      if (invariantGeneratorTime.getNumberOfIntervals() > 0) {
-        out.println("  Time for generating invariants:    " + invariantGeneratorTime);
-        out.println("  Time for extracting invariants:    " + prec.invariantGenerationTime);
-      }
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);

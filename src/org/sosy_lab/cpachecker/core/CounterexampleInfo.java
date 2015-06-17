@@ -30,7 +30,7 @@ import java.util.Collections;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
 import com.google.common.collect.Lists;
@@ -40,14 +40,14 @@ public class CounterexampleInfo {
   private final boolean spurious;
 
   private final ARGPath targetPath;
-  private final Model model;
+  private final RichModel model;
 
   // list with additional information about the counterexample
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null);
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, Model pModel) {
+  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, RichModel pModel) {
     spurious = pSpurious;
     targetPath = pTargetPath;
     model = pModel;
@@ -63,7 +63,7 @@ public class CounterexampleInfo {
     return SPURIOUS;
   }
 
-  public static CounterexampleInfo feasible(ARGPath pTargetPath, Model pModel) {
+  public static CounterexampleInfo feasible(ARGPath pTargetPath, RichModel pModel) {
     return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel));
   }
 
@@ -77,7 +77,7 @@ public class CounterexampleInfo {
     return targetPath;
   }
 
-  public Model getTargetPathModel() {
+  public RichModel getTargetPathModel() {
     checkState(!spurious);
 
     return model;

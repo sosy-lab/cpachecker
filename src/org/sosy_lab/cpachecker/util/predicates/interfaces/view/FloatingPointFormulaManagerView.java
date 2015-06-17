@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
@@ -39,9 +40,9 @@ public class FloatingPointFormulaManagerView
 
   private final FloatingPointFormulaManager manager;
 
-  public FloatingPointFormulaManagerView(FormulaManagerView pViewManager,
+  public FloatingPointFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       FloatingPointFormulaManager pManager) {
-    super(pViewManager);
+    super(pWrappingHandler);
     this.manager = pManager;
   }
 
@@ -133,6 +134,11 @@ public class FloatingPointFormulaManagerView
 
   @Override
   public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
+    return manager.makeNumber(pN, type);
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(Rational pN, FormulaType.FloatingPointType type) {
     return manager.makeNumber(pN, type);
   }
 

@@ -28,7 +28,6 @@ import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.*;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.SortedSet;
 
@@ -66,9 +65,9 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
     enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
 
-    @Option(secure=true, description="with this option enabled, unction calls taht occur"
+    @Option(secure=true, description="With this option enabled, unction calls that occur"
         + " in the CFA are followed. By disabling this option one can traverse a function"
-        + " withou following function calls (in this case FunctionSummaryEdges are used)")
+        + " without following function calls (in this case FunctionSummaryEdges are used)")
     private boolean followFunctionCalls = true;
 
     public LocationStateFactory(CFA pCfa, LocationStateType locationType, Configuration config) throws InvalidConfigurationException {
@@ -119,6 +118,8 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   private static class BackwardsLocationState extends LocationState implements AbstractQueryableState, Targetable {
 
+    private static final long serialVersionUID = 6825257572921009531L;
+
     private final CFA cfa;
     private boolean followFunctionCalls;
 
@@ -151,6 +152,8 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   }
 
   private static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
+
+    private static final long serialVersionUID = -2918748452708606128L;
 
     protected BackwardsLocationStateNoTarget(CFANode pLocationNode, CFA pCfa, boolean pFollowFunctionCalls) {
       super(pLocationNode, pCfa, pFollowFunctionCalls);
@@ -252,7 +255,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   // no equals and hashCode because there is always only one element per CFANode
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     return new SerialProxy(locationNode.getNodeNumber());
   }
 
@@ -264,7 +267,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       this.nodeNumber = nodeNumber;
     }
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
       return cfaInfo.getLocationStateFactory().getState(cfaInfo.getNodeByNodeNumber(nodeNumber));
     }

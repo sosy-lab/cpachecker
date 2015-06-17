@@ -144,4 +144,71 @@ class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, 
     return isOP(z3context, pParam, Z3_OP_ITE);
   }
 
+  /**
+   * @param pParam Z3_ast
+   * @return Z3_ast with the tactic applied.
+   */
+  @Override
+  public Long applyTacticImpl(Long pParam, Tactic tactic) {
+    long tseitinTactic = mk_tactic(z3context, tactic.getTacticName());
+    tactic_inc_ref(z3context, tseitinTactic);
+
+    long goal = mk_goal(z3context, true, false, false);
+    goal_inc_ref(z3context, goal);
+    goal_assert(z3context, goal, pParam);
+
+    long result = tactic_apply(z3context, tseitinTactic, goal);
+    apply_result_inc_ref(z3context, result);
+
+    try {
+      return applyResultToAST(result);
+    } finally {
+      apply_result_dec_ref(z3context, result);
+      goal_dec_ref(z3context, goal);
+      tactic_dec_ref(z3context, tseitinTactic);
+    }
+  }
+
+  private long applyResultToAST(long applyResult) {
+    int no_subgoals = apply_result_get_num_subgoals(z3context, applyResult);
+    long[] goal_formulas = new long[no_subgoals];
+
+    for (int i=0; i<no_subgoals; i++) {
+      long subgoal = apply_result_get_subgoal(z3context, applyResult, i);
+      goal_inc_ref(z3context, subgoal);
+      long subgoal_ast = goalToAST(subgoal);
+      inc_ref(z3context, subgoal_ast);
+      goal_formulas[i] = subgoal_ast;
+      goal_dec_ref(z3context, subgoal);
+    }
+    try {
+      return goal_formulas.length == 1 ?
+          goal_formulas[0] :
+          mk_or(z3context, goal_formulas.length, goal_formulas);
+    } finally {
+      for (int i=0; i<no_subgoals; i++) {
+        dec_ref(z3context, goal_formulas[i]);
+      }
+    }
+  }
+
+  private long goalToAST(long goal) {
+    int no_subgoal_f = goal_size(z3context, goal);
+    long[] subgoal_formulas = new long[no_subgoal_f];
+    for (int k=0; k<no_subgoal_f; k++) {
+      long f = goal_formula(z3context, goal, k);
+      inc_ref(z3context, f);
+      subgoal_formulas[k] = f;
+    }
+    try {
+      return subgoal_formulas.length == 1 ?
+          subgoal_formulas[0] :
+          mk_and(z3context, subgoal_formulas.length, subgoal_formulas);
+    } finally {
+      for (int k=0; k<no_subgoal_f; k++) {
+        dec_ref(z3context, subgoal_formulas[k]);
+      }
+    }
+  }
+
 }

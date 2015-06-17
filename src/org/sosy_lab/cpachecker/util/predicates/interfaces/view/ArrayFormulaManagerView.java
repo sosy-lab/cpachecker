@@ -36,8 +36,8 @@ public class ArrayFormulaManagerView
 
   private ArrayFormulaManager manager;
 
-  ArrayFormulaManagerView(FormulaManagerView pViewManager, ArrayFormulaManager pManager) {
-    super(pViewManager);
+  ArrayFormulaManagerView(FormulaWrappingHandler pWrappingHandler, ArrayFormulaManager pManager) {
+    super(pWrappingHandler);
     this.manager = pManager;
   }
 
@@ -79,19 +79,21 @@ public class ArrayFormulaManagerView
     return wrap(inputArrayType, result);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray) {
-    if (pArray instanceof WrappingFormula) {
-      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula) pArray).getType();
+    if (pArray instanceof WrappingFormula<?,?>) {
+      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula<?,?>) pArray).getType();
       return (FTI) t.getIndexType();
     }
     return manager.getIndexType(pArray);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray) {
-    if (pArray instanceof WrappingFormula) {
-      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula) pArray).getType();
+    if (pArray instanceof WrappingFormula<?,?>) {
+      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula<?,?>) pArray).getType();
       return (FTE) t.getElementType();
     }
     return manager.getElementType(pArray);

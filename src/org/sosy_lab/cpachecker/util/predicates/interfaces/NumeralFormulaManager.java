@@ -27,6 +27,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
+import org.sosy_lab.common.rationals.Rational;
+
+
 /**
  * This interface represents the Numeral-Theory
  *
@@ -57,6 +60,8 @@ public interface NumeralFormulaManager
 
   public ResultFormulaType makeNumber(String pI);
 
+  public ResultFormulaType makeNumber(Rational pRational);
+
   public ResultFormulaType makeVariable(String pVar);
 
   public FormulaType<ResultFormulaType> getFormulaType();
@@ -86,7 +91,6 @@ public interface NumeralFormulaManager
   // ----------------- Numeric relations, return type BooleanFormula -----------------
 
   public BooleanFormula equal(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isEqual(BooleanFormula number);
 
   public BooleanFormula greaterThan(ParamFormulaType number1, ParamFormulaType number2);
 

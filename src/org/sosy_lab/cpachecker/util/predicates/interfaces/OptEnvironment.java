@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 
 import com.google.common.base.Optional;
 
@@ -89,14 +89,23 @@ public interface OptEnvironment extends AutoCloseable {
   Model getModel() throws SolverException;
 
   /**
+   * Evaluate the formula with the previously generated model.
+   * Assumes that the previous call was {@link #getModel}.
+   */
+  Formula evaluate(Formula f);
+
+  /**
    * Status of the optimization problem.
    */
-  public enum OptStatus {
+  enum OptStatus {
     OPT, // All good, the solution was found (may be unbounded).
     UNSAT,  // SMT problem is unsatisfiable.
     UNDEF // The result is unknown.
   }
 
+  String dump();
+
   @Override
   void close();
+
 }

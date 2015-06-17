@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,14 +37,15 @@ import com.google.common.collect.ImmutableList;
 public final class CCompositeType implements CComplexType, Serializable {
 
   private static final long serialVersionUID = -839957929135012583L;
-  private final CComplexType.ComplexTypeKind    kind;
-  private List<CCompositeTypeMemberDeclaration> members;
-  private final String                name;
+  private final CComplexType.ComplexTypeKind kind;
+  private transient List<CCompositeTypeMemberDeclaration> members;
+  private final String name;
+  private final String origName;
   private boolean   isConst;
   private boolean   isVolatile;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
-      final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
+      final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName, final String pOrigName) {
 
     checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
     isConst= pConst;
@@ -50,6 +53,7 @@ public final class CCompositeType implements CComplexType, Serializable {
     kind = pKind;
     members = ImmutableList.copyOf(pMembers);
     name = pName.intern();
+    origName = pOrigName.intern();
   }
 
   @Override
@@ -74,6 +78,12 @@ public final class CCompositeType implements CComplexType, Serializable {
   public String getQualifiedName() {
     return (kind.toASTString() + " " + name).trim();
   }
+
+  @Override
+  public String getOrigName() {
+    return origName;
+  }
+
 
   @Override
   public String toString() {
@@ -234,13 +244,43 @@ public final class CCompositeType implements CComplexType, Serializable {
   }
 
   @Override
+  public boolean equalsWithOrigName(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CCompositeType)) {
+      return false;
+    }
+
+    CCompositeType other = (CCompositeType) obj;
+
+    return isConst == other.isConst
+           && isVolatile == other.isVolatile
+           && kind == other.kind
+           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()));
+  }
+
+  @Override
   public CCompositeType getCanonicalType() {
     return getCanonicalType(false, false);
   }
 
   @Override
   public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name);
+    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name, origName);
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+
+    out.writeObject(new ArrayList<>(members));
+  }
+
+  @SuppressWarnings("unchecked")
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    members = ImmutableList.copyOf((ArrayList<CCompositeTypeMemberDeclaration>)in.readObject());
   }
 
 }

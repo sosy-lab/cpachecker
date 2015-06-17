@@ -84,7 +84,8 @@ public class BAMCEXSubgraphComputer {
    *         because one real state can be used multiple times in one path.
    *         The map "pathStateToReachedState" should be used to search the correct real state.
    */
-  BackwardARGState computeCounterexampleSubgraph(final ARGState target, final ARGReachedSet reachedSet, final BackwardARGState newTreeTarget) {
+  BackwardARGState computeCounterexampleSubgraph(final ARGState target,
+      final ARGReachedSet reachedSet, final BackwardARGState newTreeTarget) {
     assert reachedSet.asReachedSet().contains(target);
 
     //start by creating ARGElements for each node needed in the tree
@@ -145,7 +146,15 @@ public class BAMCEXSubgraphComputer {
           // is inserted between newCurrentState and child.
 
           assert pathStateToReachedState.containsKey(newChild) : "end of subgraph was not handled";
-          assert pathStateToReachedState.get(newCurrentState) == currentState : "callstate must be from outer reachedset";
+          assert pathStateToReachedState.get(newCurrentState) == currentState : "input-state must be from outer reachedset";
+
+          // check that at block output locations the first reached state is used for the CEXsubgraph,
+          // i.e. the reduced abstract state from the (most) inner block's reached set.
+          ARGState matchingChild = (ARGState) expandedToReducedCache.get(child);
+          while (expandedToReducedCache.containsKey(matchingChild)) {
+            matchingChild = (ARGState) expandedToReducedCache.get(matchingChild);
+          }
+          assert pathStateToReachedState.get(newChild) == matchingChild : "output-state must be from (most) inner reachedset";
 
         } else {
           // child is a normal successor
@@ -243,6 +252,11 @@ public class BAMCEXSubgraphComputer {
 
     void updateDecreaseId() {
       decreasingStateID = nextDecreaseID--;
+    }
+
+    @Override
+    public String toString() {
+      return "BackwardARGState {{" + super.toString() + "}}";
     }
   }
 }

@@ -27,6 +27,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -34,7 +35,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithPropertyCheck;
+import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
@@ -43,19 +44,21 @@ import org.sosy_lab.cpachecker.core.algorithm.ContinueOnCounterexampleAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PostProcessingAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.PredicatedAnalysisAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PruneUnrefinedARGAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
@@ -104,10 +107,18 @@ public class CoreComponentsFactory {
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.predicatedAnalysis",
-      description="use a predicated analysis which proves if the program satisfies a specified property"
-          + " with the help of a PredicateCPA to separate differnt program paths")
-  private boolean usePredicatedAnalysisAlgorithm = false;
+  @Option(secure=true,
+      description="memorize previously used (incomplete) reached sets after a restart of the analysis")
+  private boolean memorizeReachedAfterRestart = false;
+
+  @Option(secure=true, name="combineARGsAfterRestart",
+      description="combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration")
+  private boolean useARGCombiningAlgorithm = false;
+
+  @Option(secure=true, name="algorithm.analysisWithEnabler",
+      description="use a analysis which proves if the program satisfies a specified property"
+          + " with the help of an enabler CPA to separate differnt program paths")
+  private boolean useAnalysisWithEnablerCPAAlgorithm = false;
 
   @Option(secure=true, name="algorithm.proofCheck",
       description="use a proof check algorithm to validate a previously generated proof")
@@ -172,19 +183,22 @@ public class CoreComponentsFactory {
 
     if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
-      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier);
+      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
 
+      if (useARGCombiningAlgorithm) {
+        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier, cfa);
+      }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
 
-      if (usePredicatedAnalysisAlgorithm) {
-        algorithm = new PredicatedAnalysisAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
+      if (useAnalysisWithEnablerCPAAlgorithm) {
+        algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
       if (useCEGAR) {
@@ -212,7 +226,7 @@ public class CoreComponentsFactory {
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, cfa, shutdownNotifier, config, logger);
       }
 
       if (useAdjustableConditions) {
@@ -265,7 +279,11 @@ public class CoreComponentsFactory {
     if (useRestartingAlgorithm) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
-      reached = new ForwardingReachedSet(reached);
+      if (memorizeReachedAfterRestart) {
+        reached = new HistoryForwardingReachedSet(reached);
+      } else {
+        reached = new ForwardingReachedSet(reached);
+      }
     }
 
     return reached;

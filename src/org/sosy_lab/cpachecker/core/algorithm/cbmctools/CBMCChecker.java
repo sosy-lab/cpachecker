@@ -89,7 +89,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final MachineModel machineModel;
 
-  public CBMCChecker(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException, CPAException {
+  public CBMCChecker(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     this.logger = logger;
 
     if (cfa.getLanguage() == Language.JAVA) {

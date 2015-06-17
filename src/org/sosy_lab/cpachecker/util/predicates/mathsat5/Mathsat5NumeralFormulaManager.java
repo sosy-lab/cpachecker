@@ -127,9 +127,4 @@ abstract class Mathsat5NumeralFormulaManager
   public Long lessOrEquals(Long pNumber1, Long pNumber2) {
     return msat_make_leq(mathsatEnv, pNumber1, pNumber2);
   }
-
-  @Override
-  public boolean isEqual(Long pNumber) {
-    return msat_term_is_equal(mathsatEnv, pNumber);
-  }
 }

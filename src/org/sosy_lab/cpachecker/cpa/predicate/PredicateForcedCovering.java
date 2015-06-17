@@ -125,6 +125,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     imgr = new InterpolationManager(
                                                    predicateCpa.getPathFormulaManager(),
                                                    predicateCpa.getSolver(),
+                                                   predicateCpa.getCfa().getLoopStructure(),
+                                                   predicateCpa.getCfa().getVarClassification(),
                                                    config,
                                                    predicateCpa.getShutdownNotifier(),
                                                    pLogger);

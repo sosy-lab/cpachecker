@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -476,8 +477,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     }
   }
 
-  private Formula handleSizeof(CExpression pExp, CType pCType)
-      throws UnrecognizedCCodeException {
+  private Formula handleSizeof(CExpression pExp, CType pCType) {
     return mgr.makeNumber(
         conv
           .getFormulaTypeFromCType(pExp.getExpressionType()),
@@ -511,12 +511,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
-      } else if (functionName.equals("__builtin_inf")
-          || functionName.equals("__builtin_inff")
-          || functionName.equals("__builtin_infl")) {
+      } else if (BuiltinFunctions.isInfinity(functionName)) {
 
         if (parameters.size() == 0) {
-          CType resultType = getTypeForFloatFunction("__builtin_inf", functionName);
+          CType resultType = BuiltinFunctions.getFunctionType(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
@@ -525,12 +523,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (functionName.equals("__builtin_huge_val")
-          || functionName.equals("__builtin_huge_valf")
-          || functionName.equals("__builtin_huge_vall")) {
+      } else if (BuiltinFunctions.isHugeVal(functionName)) {
 
         if (parameters.size() == 0) {
-          CType resultType = getTypeForFloatFunction("__builtin_huge_val", functionName);
+          CType resultType = BuiltinFunctions.getFunctionType(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
@@ -539,12 +535,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (functionName.equals("__builtin_nan")
-          || functionName.equals("__builtin_nanf")
-          || functionName.equals("__builtin_nanl")) {
+      } else if (BuiltinFunctions.isNaN(functionName)) {
 
         if (parameters.size() == 1) {
-          CType resultType = getTypeForFloatFunction("__builtin_nan", functionName);
+          CType resultType = BuiltinFunctions.getFunctionType(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
@@ -553,12 +547,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (functionName.equals("__builtin_fabs")
-          || functionName.equals("__builtin_fabsf")
-          || functionName.equals("__builtin_fabsl")) {
+      } else if (BuiltinFunctions.isAbsolute(functionName)) {
 
         if (parameters.size() == 1) {
-          CType paramType = getTypeForFloatFunction("__builtin_fabs", functionName);
+          CType paramType = BuiltinFunctions.getFunctionType(functionName);
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
           if (formulaType.isFloatingPointType()) {
             Formula param = processOperand(parameters.get(0), paramType, paramType);
@@ -569,13 +561,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (functionName.equals("__fpclassify")
-          || functionName.equals("__fpclassifyd")
-          || functionName.equals("__fpclassifyf")
-          || functionName.equals("__fpclassifyl")) {
+      } else if (BuiltinFunctions.isFloatClassify(functionName)) {
 
         if (parameters.size() == 1) {
-          CType paramType = getTypeForFloatFunction("__fpclassify", functionName);
+          CType paramType = BuiltinFunctions.getFunctionType(functionName);
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
@@ -657,25 +646,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final CType realReturnType = conv.getReturnType(e, edge);
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUninterpretedFunction(functionName, resultFormulaType, arguments);
-    }
-  }
-
-  private CType getTypeForFloatFunction(String prefix, String name) {
-    assert name.startsWith(prefix);
-    name = name.substring(prefix.length());
-    assert name.length() <= 1;
-    if (name.isEmpty()) {
-      return CNumericTypes.DOUBLE;
-    }
-    switch (name.charAt(0)) {
-    case 'f':
-      return CNumericTypes.FLOAT;
-    case 'd':
-      return CNumericTypes.DOUBLE;
-    case 'l':
-      return CNumericTypes.LONG_DOUBLE;
-    default:
-      throw new AssertionError();
     }
   }
 

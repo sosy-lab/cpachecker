@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @Options(prefix="pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
 
@@ -86,6 +88,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   }
 
   @Override
+  @SuppressFBWarnings(value="OS_OPEN_STREAM", justification="Do not close stream o because it wraps stream zos/fos which need to remain open and would be closed if o.close() is called.")
   public void writeProof(UnmodifiableReachedSet pReached) {
 
     OutputStream fos = null;

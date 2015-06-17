@@ -98,9 +98,9 @@ public class SubstitutionRule extends PatternBasedRule {
     final Formula eq = pAssignment.get("eq");
     final Formula lt = pAssignment.get("lt");
 
-    final Formula e = Preconditions.checkNotNull(pAssignment.get("e"));
-    final Formula x = Preconditions.checkNotNull(pAssignment.get("x"));
-    final Formula y = Preconditions.checkNotNull(pAssignment.get("y"));
+    Preconditions.checkNotNull(pAssignment.get("e"));
+    Preconditions.checkNotNull(pAssignment.get("x"));
+    Preconditions.checkNotNull(pAssignment.get("y"));
 
     final Formula parentOfX = pAssignment.get("x.parent");
     if (parentOfX == null) {

@@ -251,6 +251,20 @@ public class SignCExpressionVisitor
     if (pRight == SIGN.ZERO) {
       return pLeft;
     }
+    if(pLeft == SIGN.ZERO) {
+      switch(pRight) {
+      case PLUS:
+        return SIGN.MINUS;
+      case MINUS:
+        return SIGN.PLUS;
+      case PLUS0:
+        return SIGN.MINUS0;
+      case MINUS0:
+        return SIGN.PLUS0;
+      default:
+        return pRight;
+      }
+    }
     if (pLeft == SIGN.PLUS && pRight == SIGN.MINUS) {
       return SIGN.PLUS;
     }
@@ -280,7 +294,7 @@ public class SignCExpressionVisitor
     return SIGN.EMPTY;
   }
 
-  private SIGN evaluateDivideOperator(SIGN left, SIGN right) throws UnsupportedCCodeException {
+  private SIGN evaluateDivideOperator(SIGN left, SIGN right) {
     if (right == SIGN.ZERO) {
       transferRel.logger.log(Level.WARNING, "Possibly dividing by zero", edgeOfExpr);
       return SIGN.ALL;

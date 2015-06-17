@@ -29,16 +29,17 @@ import javax.annotation.Nullable;
 
 import org.junit.After;
 import org.junit.Before;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -94,6 +95,7 @@ public abstract class SolverBasedTest0 {
   protected FunctionFormulaManager fmgr;
   protected NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
   protected @Nullable NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
+  protected @Nullable BitvectorFormulaManager bvmgr;
   protected @Nullable QuantifiedFormulaManager qmgr;
   protected @Nullable ArrayFormulaManager amgr;
 
@@ -115,13 +117,8 @@ public abstract class SolverBasedTest0 {
   public final void initSolver() throws Exception {
     config = createTestConfigBuilder().build();
 
-    try {
-      factory = new FormulaManagerFactory(config, logger,
-          ShutdownNotifier.create());
-    } catch (NoClassDefFoundError e) {
-      assume().withFailureMessage("Scala is not on class path")
-              .that(e.getMessage()).doesNotContain("scala");
-    }
+    factory = new FormulaManagerFactory(config, logger, ShutdownNotifier
+        .create());
     mgr = factory.getFormulaManager();
 
     fmgr = mgr.getFunctionFormulaManager();
@@ -131,6 +128,11 @@ public abstract class SolverBasedTest0 {
       rmgr = mgr.getRationalFormulaManager();
     } catch (UnsupportedOperationException e) {
       rmgr = null;
+    }
+    try {
+      bvmgr = mgr.getBitvectorFormulaManager();
+    } catch (UnsupportedOperationException e) {
+      bvmgr = null;
     }
     try {
       qmgr = mgr.getQuantifiedFormulaManager();
@@ -159,6 +161,13 @@ public abstract class SolverBasedTest0 {
             .that(rmgr).isNotNull();
   }
 
+  /**
+   * Skip test if the solver does not support bitvectors.
+   */
+  protected final void requireBitvectors() {
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of bitvectors")
+            .that(bvmgr).isNotNull();
+  }
   /**
    * Skip test if the solver does not support quantifiers.
    */
@@ -192,7 +201,7 @@ public abstract class SolverBasedTest0 {
    */
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormulaOfSolver())")
-  public static final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
+  public static SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
       final FormulaManager mgr) {
     return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
           @Override
@@ -208,7 +217,7 @@ public abstract class SolverBasedTest0 {
    */
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(ProverEnvironment())")
-  public static final SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
+  public static SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
     return new SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>() {
           @Override
           public ProverEnvironmentSubject getSubject(FailureStrategy pFs, BasicProverEnvironment<?> pFormula) {

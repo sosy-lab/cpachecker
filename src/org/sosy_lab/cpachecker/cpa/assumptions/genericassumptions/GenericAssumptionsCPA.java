@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -56,7 +55,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
 
-  private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private GenericAssumptionsCPA(Configuration config, LogManager logger) {
     transferRelation = new GenericAssumptionsTransferRelation();
     topState = new GenericAssumptionsState(ImmutableList.<CExpression>of());
     abstractDomain = new GenericAssumptionsDomain(topState);

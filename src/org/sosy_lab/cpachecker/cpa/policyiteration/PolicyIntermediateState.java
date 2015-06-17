@@ -1,42 +1,65 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.Set;
+import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableMap;
 
 public final class PolicyIntermediateState extends PolicyState {
+
+  /**
+   * Formula + SSA associated with the state.
+   */
   private final PathFormula pathFormula;
-  private final ImmutableMultimap<Location, Location> trace;
+
+  /**
+   * Abstract states used for generating this state.
+   *
+   * locationID -> PolicyAbstractedState.
+   */
+  private final ImmutableMap<Integer, PolicyAbstractedState> generatingStates;
+
+  private transient PolicyIntermediateState mergedInto;
 
   private PolicyIntermediateState(
-      Location pLocation,
-      Set<Template> pTemplates,
+      CFANode node,
       PathFormula pPathFormula,
-      Multimap<Location, Location> pTrace) {
-    super(pLocation, pTemplates);
+      Map<Integer, PolicyAbstractedState> pGeneratingStates
+      ) {
+    super(node);
+
     pathFormula = pPathFormula;
-    trace = ImmutableMultimap.copyOf(pTrace);
+    generatingStates = ImmutableMap.copyOf(pGeneratingStates);
   }
 
   public static PolicyIntermediateState of(
-      Location pLocation,
-      Set<Template> pTemplates,
+      CFANode node,
       PathFormula pPathFormula,
-      Multimap<Location, Location> pTrace
+      Map<Integer, PolicyAbstractedState> generatingStates
   ) {
-    return new PolicyIntermediateState(pLocation, pTemplates, pPathFormula, pTrace);
+    return new PolicyIntermediateState(
+        node, pPathFormula, generatingStates);
+  }
+
+  public void setMergedInto(PolicyIntermediateState other) {
+    mergedInto = other;
+  }
+
+  public boolean isMergedInto(PolicyIntermediateState other) {
+    return other == mergedInto;
+  }
+
+  /**
+   * @return Starting {@link PathFormula} for possible starting locations.
+   */
+  public ImmutableMap<Integer, PolicyAbstractedState> getGeneratingStates() {
+    return generatingStates;
   }
 
   public PathFormula getPathFormula() {
     return pathFormula;
-  }
-
-  public ImmutableMultimap<Location, Location> getTrace() {
-    return trace;
   }
 
   @Override
@@ -46,29 +69,11 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toDOTLabel() {
-    return pathFormula.toString() + "\n" + pathFormula.getSsa().toString();
+    return "";
   }
 
   @Override
   public String toString() {
-    return String.format("%s: %s", getLocation(), pathFormula);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hashCode(pathFormula, super.hashCode());
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    PolicyIntermediateState other = (PolicyIntermediateState)o;
-    return (
-        pathFormula.equals(other.pathFormula) && super.equals(o));
+    return pathFormula.toString() + "\nLength: " + pathFormula.getLength();
   }
 }

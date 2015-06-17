@@ -52,6 +52,12 @@ public class BAMBlockOperator extends BlockOperator {
         || partitioning.isReturnNode(succLoc);
   }
 
+  @Override
+  public boolean alwaysReturnsFalse() {
+    return super.alwaysReturnsFalse()
+        && partitioning.getBlocks().isEmpty();
+  }
+
   public BlockPartitioning getPartitioning() {
     checkState(partitioning != null);
     return partitioning;

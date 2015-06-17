@@ -23,25 +23,36 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 
+import scala.collection.JavaConversions;
 import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
+import ap.parser.IAtom;
+import ap.parser.IConstant;
 import ap.parser.IExpression;
+import ap.parser.IExpression.BooleanFunApplier;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
@@ -49,9 +60,7 @@ import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
@@ -60,43 +69,18 @@ import com.google.common.collect.ImmutableList;
  */
 class PrincessEnvironment {
 
-  public static class FunctionType {
-
-    private final IFunction funcDecl;
-    private final TermType resultType;
-    private final List<TermType> args;
-
-    FunctionType(IFunction funcDecl, TermType resultType, List<TermType> args) {
-      this.funcDecl = funcDecl;
-      this.resultType = resultType;
-      this.args = ImmutableList.copyOf(args);
-    }
-
-    public IFunction getFuncDecl() { return funcDecl; }
-    public TermType getResultType() { return resultType; }
-    public List<TermType> getArgs() { return args; }
-
-  }
-
   /** cache for variables, because they do not implement equals() and hashCode(),
    * so we need to have the same objects. */
   private final Map<String, IFormula> boolVariablesCache = new HashMap<>();
   private final Map<String, ITerm> intVariablesCache = new HashMap<>();
-  private final Map<String, FunctionType> functionsCache = new HashMap<>();
 
-  private final Map<IFunction, FunctionType> declaredFunctions = new HashMap<>();
-
-  // order is important for abbreviations, because a abbreviation might depend on another one.
-  private final List<Pair<IFormula, IFormula>> abbrevFormulas = new ArrayList<>();
-  // for faster lookup, key: abbreviation, entry: long formula.
-  private final BiMap<IFormula, IFormula> abbrevFormulasMap = HashBiMap.create();
+  /** The key of this map is the abbreviation, the value is the full expression.*/
+  private final List<Pair<IExpression, IExpression>> abbrevCache = new ArrayList<>();
+  private final Map<String, IFunction> functionsCache = new HashMap<>();
+  private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
   private final @Nullable PathCounterTemplate basicLogfile;
-
-  /** formulas can be simplified through replacing them with an abbrev-formula. */
-  // TODO do we have to check, that no other symbol equals an abbreviation-symbol?
-  private static final String ABBREV = "ABBREV_";
-  private static final UniqueIdGenerator abbrevIndex = new UniqueIdGenerator();
+  private final ShutdownNotifier shutdownNotifier;
 
   /** the wrapped api is the first created api.
    * It will never be used outside of this class and never be closed.
@@ -104,12 +88,16 @@ class PrincessEnvironment {
    * Each api has its own stack for formulas. */
   private final SimpleAPI api;
   private final List<SymbolTrackingPrincessStack> registeredStacks = new ArrayList<>();
+  private final List<SymbolTrackingPrincessStack> reusableStacks = new ArrayList<>();
+  private final List<SymbolTrackingPrincessStack> allStacks = new ArrayList<>();
 
   /** The Constructor creates the wrapped Element, sets some options
-   * and initializes the logger. */
+   * and initializes the logger.
+   * @param pShutdownNotifier */
   public PrincessEnvironment(Configuration config, final LogManager pLogger,
-      final PathCounterTemplate pBasicLogfile) throws InvalidConfigurationException {
+      final PathCounterTemplate pBasicLogfile, ShutdownNotifier pShutdownNotifier) {
     basicLogfile = pBasicLogfile;
+    shutdownNotifier = pShutdownNotifier;
     api = getNewApi(false); // this api is only used local in this environment, no need for interpolation
   }
 
@@ -117,8 +105,20 @@ class PrincessEnvironment {
   /** This method returns a new stack, that is registered in this environment.
    * All variables are shared in all registered stacks. */
   PrincessStack getNewStack(boolean useForInterpolation) {
+    // shortcut if we have a reusable stack
+    for (Iterator<SymbolTrackingPrincessStack> it = reusableStacks.iterator(); it.hasNext();) {
+      SymbolTrackingPrincessStack stack = it.next();
+      if (stack.canBeUsedForInterpolation() == useForInterpolation) {
+        registeredStacks.add(stack);
+        it.remove();
+        return stack;
+      }
+    }
+
+    // if not we have to create a new one
+
     SimpleAPI newApi = getNewApi(useForInterpolation);
-    SymbolTrackingPrincessStack stack = new SymbolTrackingPrincessStack(this, newApi);
+    SymbolTrackingPrincessStack stack = new SymbolTrackingPrincessStack(this, newApi, useForInterpolation, shutdownNotifier);
 
     // add all symbols, that are available until now
     for (IFormula s : boolVariablesCache.values()) {
@@ -127,13 +127,14 @@ class PrincessEnvironment {
     for (ITerm s : intVariablesCache.values()) {
       stack.addSymbol(s);
     }
-    for (FunctionType s : functionsCache.values()) {
-      stack.addSymbol(s.funcDecl);
+    for (IFunction s : functionsCache.values()) {
+      stack.addSymbol(s);
     }
-    for (Pair<IFormula, IFormula> abbrev : abbrevFormulas) {
-      stack.addAbbrev(abbrev.getFirst(), abbrev.getSecond());
+    for(Pair<IExpression, IExpression> e : abbrevCache) {
+      stack.addAbbrev(e.getFirst(), e.getSecond());
     }
     registeredStacks.add(stack);
+    allStacks.add(stack);
     return stack;
   }
 
@@ -153,12 +154,107 @@ class PrincessEnvironment {
   }
 
   void unregisterStack(SymbolTrackingPrincessStack stack) {
+    assert registeredStacks.contains(stack) : "cannot unregister stack, it is not registered";
+    registeredStacks.remove(stack);
+    reusableStacks.add(stack);
+  }
+
+  void removeStack(SymbolTrackingPrincessStack stack) {
     assert registeredStacks.contains(stack) : "cannot remove stack, it is not registered";
     registeredStacks.remove(stack);
+    allStacks.remove(stack);
   }
 
   public List<IExpression> parseStringToTerms(String s) {
     throw new UnsupportedOperationException(); // todo: implement this
+  }
+
+  public Appender dumpFormula(IExpression formula) {
+    // remove redundant expressions
+    final IExpression lettedFormula = PrincessUtil.let(formula, this);
+    return new Appenders.AbstractAppender() {
+
+      @Override
+      public void appendTo(Appendable out) throws IOException {
+        Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(lettedFormula));
+
+        for (IExpression var : declaredFunctions) {
+          out.append("(declare-fun ");
+          String name = getName(var);
+
+          // we do only want to add declare-funs for things we really declared
+          // the rest is done afterwards
+          if (!name.startsWith("abbrev_")) {
+            out.append(name);
+
+            // function parameters
+            out.append(" (");
+            if (var instanceof IFunApp) {
+              IFunApp function = (IFunApp) var;
+              Iterator<ITerm> args = JavaConversions.asJavaIterable(function.args()).iterator();
+              while (args.hasNext()) {
+                args.next();
+                // Princess does only support IntegerFormulas in UIFs we don't need
+                // to check the type here separately
+                if (args.hasNext()) {
+                  out.append("Int ");
+                } else {
+                  out.append("Int");
+                }
+              }
+            }
+
+            out.append(") ");
+            out.append(getType(var));
+            out.append(")\n");
+          }
+        }
+
+        // now as everything we know from the formula is declared we have to add
+        // the abbreviations, too
+        for (Pair<IExpression, IExpression> entry : abbrevCache) {
+          IExpression abbrev = entry.getFirst();
+          IExpression fullFormula = entry.getSecond();
+          String name = getName(Iterables.getOnlyElement(PrincessUtil.getVarsAndUIFs(Collections.singleton(abbrev))));
+          out.append("(define-fun ");
+          out.append(name);
+
+          // the type of each abbreviation + the renamed formula
+          out.append(" ((abbrev_arg Int)) Int (");
+          out.append(fullFormula.toString());
+          out.append(")\n");
+        }
+
+        out.append("(assert ");
+        out.append(lettedFormula.toString());
+        out.append(")");
+      }
+    };
+  }
+
+  private String getName(IExpression var) {
+    if (var instanceof IAtom) {
+      return ((IAtom) var).pred().name();
+    } else if (var instanceof IConstant) {
+      return ((IConstant)var).toString();
+    } else if (var instanceof IFunApp) {
+      String fullStr = ((IFunApp)var).fun().toString();
+      return fullStr.substring(0, fullStr.indexOf("/"));
+    }
+
+    throw new IllegalArgumentException("The given parameter is no variable or function");
+  }
+
+  private String getType(IExpression var) {
+    if (var instanceof IFormula) {
+      return "Bool";
+
+      // functions are included here, they cannot be handled separate for princess
+    } else if (var instanceof ITerm) {
+      return "Int";
+    }
+
+    throw new IllegalArgumentException("The given parameter is no variable or function");
   }
 
   public IExpression makeVariable(TermType type, String varname) {
@@ -169,7 +265,7 @@ class PrincessEnvironment {
           return boolVariablesCache.get(varname);
         } else {
           IFormula var = api.createBooleanVariable(varname);
-          for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          for (SymbolTrackingPrincessStack stack : allStacks) {
             stack.addSymbol(var);
           }
           boolVariablesCache.put(varname, var);
@@ -182,7 +278,7 @@ class PrincessEnvironment {
           return intVariablesCache.get(varname);
         } else {
           ITerm var = api.createConstant(varname);
-          for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          for (SymbolTrackingPrincessStack stack : allStacks) {
             stack.addSymbol(var);
           }
           intVariablesCache.put(varname, var);
@@ -197,73 +293,72 @@ class PrincessEnvironment {
 
   /** This function declares a new functionSymbol, that has a given number of params.
    * Princess has no support for typed params, only their number is important. */
-  public FunctionType declareFun(String name, TermType resultType, List<TermType> args) {
+  public IFunction declareFun(String name, int nofArgs, TermType returnType) {
     if (functionsCache.containsKey(name)) {
-      FunctionType function = functionsCache.get(name);
-      assert function.getResultType() == resultType;
-      assert function.getArgs().equals(args);
-      return function;
+      assert returnType == functionsReturnTypes.get(functionsCache.get(name));
+      return functionsCache.get(name);
+
     } else {
-      final FunctionType type = declareFun0(name, resultType, args);
-      functionsCache.put(name, type);
-      return type;
+      IFunction funcDecl = api.createFunction(name, nofArgs);
+      for (SymbolTrackingPrincessStack stack : allStacks) {
+         stack.addSymbol(funcDecl);
+      }
+      functionsCache.put(name, funcDecl);
+      functionsReturnTypes.put(funcDecl, returnType);
+      return funcDecl;
     }
   }
 
-  /** This function declares a new functionSymbol, that has a given number of params.
-   * Princess has no support for typed params, only their number is important. */
-  private FunctionType declareFun0(String name, TermType resultType, List<TermType> args) {
-    IFunction funcDecl = api.createFunction(name, args.size());
-    for (SymbolTrackingPrincessStack stack : registeredStacks) {
-       stack.addSymbol(funcDecl);
-    }
-    FunctionType type = new FunctionType(funcDecl, resultType, args);
-    declaredFunctions.put(funcDecl, type);
-    return type;
+  TermType getReturnTypeForFunction(IFunction fun) {
+    return functionsReturnTypes.get(fun);
   }
 
-  public FunctionType getFunctionDeclaration(IFunction f) {
-    return declaredFunctions.get(f);
-  }
+  public IExpression makeFunction(IFunction funcDecl, List<IExpression> args) {
+    checkArgument(args.size() == funcDecl.arity(),
+        "functiontype has different number of args.");
 
-  public IExpression makeFunction(IFunction funcDecl, TermType resultType, List<IExpression> args) {
     final ArrayBuffer<ITerm> argsBuf = new ArrayBuffer<>();
     for (IExpression arg : args) {
-      final ITerm termArg;
+      ITerm termArg;
       if (arg instanceof IFormula) { // boolean term -> build ITE(t,0,1), TODO why not ITE(t,1,0) ??
-        termArg = new ITermITE((IFormula)arg, new IIntLit(IdealInt.apply(0)), new IIntLit(IdealInt.apply(1)));
+        termArg = new ITermITE((IFormula)arg, new IIntLit(IdealInt.ZERO()), new IIntLit(IdealInt.ONE()));
       } else {
         termArg = (ITerm) arg;
       }
       argsBuf.$plus$eq(termArg);
     }
 
-    final ITerm t = new IFunApp(funcDecl, argsBuf.toSeq());
+    IExpression returnFormula = new IFunApp(funcDecl, argsBuf.toSeq());
+    TermType returnType = getReturnTypeForFunction(funcDecl);
 
-    switch (resultType) {
-      case Boolean:
-        return t;
-      case Integer:
-        return t;
-      default:
-        throw new AssertionError("unknown resulttype");
+    // boolean term -> build ITE(t > 0, true, false)
+    if (returnType == TermType.Boolean) {
+      BooleanFunApplier ap = new BooleanFunApplier(funcDecl);
+      return ap.apply(argsBuf);
+
+    } else if (returnType != TermType.Integer) {
+      throw new AssertionError("Not possible to have return types for functions other than bool or int.");
     }
+
+    return returnFormula;
   }
 
-  /** create a short replacement/abbreviation function for a long formula. */
-  public IFormula abbrev(IFormula longFormula) {
-    if (abbrevFormulasMap.inverse().containsKey(longFormula)) {
-      return abbrevFormulasMap.inverse().get(longFormula);
+  public IExpression abbrev(IExpression expr) {
+    IExpression abbrev;
+    if (expr instanceof IFormula) {
+      abbrev = api.abbrev((IFormula)expr);
+    } else if (expr instanceof ITerm) {
+      abbrev = api.abbrev((ITerm)expr);
     } else {
-      final String abbrevName = ABBREV + abbrevIndex.getFreshId();
-      final IFormula abbrev = api.abbrev(longFormula, abbrevName);
-      abbrevFormulas.add(Pair.of(abbrev, longFormula));
-      abbrevFormulasMap.put(abbrev, longFormula);
-      for (SymbolTrackingPrincessStack stack : registeredStacks) {
-        stack.addAbbrev(abbrev, longFormula);
-      }
-      return abbrev;
+      throw new AssertionError("no possibility to create abbreviation for " + expr.getClass());
     }
+
+    for (SymbolTrackingPrincessStack stack : allStacks) {
+      stack.addAbbrev(abbrev, expr);
+    }
+
+    abbrevCache.add(Pair.of(abbrev, expr));
+    return abbrev;
   }
 
   public String getVersion() {

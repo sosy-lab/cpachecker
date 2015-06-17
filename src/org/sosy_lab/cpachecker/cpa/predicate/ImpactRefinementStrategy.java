@@ -93,7 +93,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   protected ImpactRefinementStrategy(final Configuration config, final LogManager logger,
       final Solver pSolver,
       final PredicateAbstractionManager pPredAbsMgr)
-          throws InvalidConfigurationException, CPAException {
+          throws InvalidConfigurationException {
     super(pSolver);
 
     bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();

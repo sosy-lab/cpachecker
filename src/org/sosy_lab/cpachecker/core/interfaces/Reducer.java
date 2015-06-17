@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 
 public interface Reducer {
@@ -79,5 +80,5 @@ public interface Reducer {
    * returnState <------------  rebuildState
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
-                                              AbstractState expandedState, CFANode exitLocation);
+      AbstractState expandedState, FunctionExitNode exitLocation);
   }

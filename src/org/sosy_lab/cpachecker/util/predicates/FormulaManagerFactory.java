@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -48,8 +49,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
@@ -77,7 +78,6 @@ public class FormulaManagerFactory {
     SMTINTERPOL,
     Z3,
     PRINCESS
-    ;
   }
 
   @Option(secure=true, name="solver.logAllQueries",
@@ -88,6 +88,10 @@ public class FormulaManagerFactory {
       description = "Export solver queries in Smtlib format into a file.")
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
+
+  @Option(secure=true, name="solver.random-seed",
+      description = "Random seed for SMT solver.")
+  private long randomSeed = 42;
 
   @Option(secure=true, description="Which SMT solver to use.")
   private Solvers solver = Solvers.SMTINTERPOL;
@@ -122,6 +126,7 @@ public class FormulaManagerFactory {
     }
 
     fmgr = instantiateSolver(solver, config);
+    GlobalInfo.getInstance().storeFormulaManager(fmgr);
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
@@ -136,14 +141,14 @@ public class FormulaManagerFactory {
     try {
       switch (solver) {
       case SMTINTERPOL:
-        return loadSmtInterpol().create(config, logger, shutdownNotifier, logfile);
+        return loadSmtInterpol().create(config, logger, shutdownNotifier, logfile, randomSeed);
 
       case MATHSAT5:
-          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, logfile);
+          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
 
       case Z3:
         try {
-          return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile);
+          return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
         } catch (UnsatisfiedLinkError e) {
           if (e.getMessage().contains("libfoci.so")) {
             throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."
@@ -155,6 +160,7 @@ public class FormulaManagerFactory {
         }
 
       case PRINCESS:
+        // TODO: pass randomSeed to Princess
         return PrincessFormulaManager.create(config, logger, shutdownNotifier, logfile);
 
       default:
@@ -187,7 +193,7 @@ public class FormulaManagerFactory {
   public static interface SolverFactory {
     FormulaManager create(Configuration config, LogManager logger,
         ShutdownNotifier pShutdownNotifier,
-        @Nullable PathCounterTemplate solverLogfile) throws InvalidConfigurationException;
+        @Nullable PathCounterTemplate solverLogfile, long randomSeed) throws InvalidConfigurationException;
   }
 
   // ------------------------- SmtInterpol -------------------------

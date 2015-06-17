@@ -30,12 +30,12 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironment<Integer> {
+class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironmentWithAssumptions<Integer> {
 
   private final boolean useSharedEnv;
 
@@ -84,6 +84,7 @@ class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements Inte
     } catch (IllegalArgumentException e) {
       String msg = Strings.nullToEmpty(e.getMessage());
       if (msg.contains("impossible to build a suitable congruence graph")
+          || msg.contains("can't build ie-local interpolant")
           || msg.contains("splitting of AB-mixed terms not supported")) {
         // This is not a bug in CPAchecker, but a problem of MathSAT which happens during interpolation
         throw new SolverException(e.getMessage(), e);
@@ -108,6 +109,12 @@ class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements Inte
     //return itps;
 
     throw new UnsupportedOperationException("directly receiving an inductive sequence of interpolants is not supported." +
+            "Use another solver or another strategy for interpolants.");
+  }
+
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<Integer>> partitionedFormulas, int[] startOfSubTree) {
+    throw new UnsupportedOperationException("directly receiving of tree interpolants is not supported." +
             "Use another solver or another strategy for interpolants.");
   }
 }

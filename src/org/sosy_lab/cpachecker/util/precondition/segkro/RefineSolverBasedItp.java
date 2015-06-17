@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -35,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionHelper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -69,7 +70,6 @@ import com.google.common.collect.Multimap;
 public class RefineSolverBasedItp implements PreconditionRefiner {
 
   private static enum FormulaMode { INSTANTIATED, UNINSTANTIATED }
-  private static enum PreMode { ELIMINATE_DEAD }
 
   private final InterpolationWithCandidates ipc;
   private final BooleanFormulaManagerView bmgr;
@@ -95,8 +95,8 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
     helper = new PreconditionHelper(mgrv, pConfig, pLogger, pShutdownNotifier, pCfa);
   }
 
-  private Collection<BooleanFormula> literals(BooleanFormula pF, FormulaMode pMode) {
-    return mgrv.extractLiterals(pF, false, false, pMode == FormulaMode.UNINSTANTIATED);
+  private Set<BooleanFormula> uninstantiatedLiterals(BooleanFormula pF) {
+    return mgrv.uninstantiate(mgrv.extractLiterals(pF));
   }
 
   @VisibleForTesting
@@ -196,7 +196,6 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
     while (reverseIt.hasNext()) {
 
       final CFAEdge t = reverseIt.getIncomingEdge();
-      final PathPosition currentPos = reverseIt.getPosition();
       reverseIt.advance();
       final PathPosition nextPos = reverseIt.getPosition();
 
@@ -244,7 +243,7 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
                 mgrv.instantiate(predsNew, instantiateWith),
                 t.getSuccessor()));
 
-        result.putAll(t.getSuccessor(), literals(preAtK.getFormula(), FormulaMode.UNINSTANTIATED));
+        result.putAll(t.getSuccessor(), uninstantiatedLiterals(preAtK.getFormula()));
       }
     }
 
@@ -262,7 +261,7 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
   private PathFormula computeCounterCondition(
       final CFAEdge pTransition,
       final PathFormula pCounterStatePrecond)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws CPATransferException, InterruptedException {
 
     return pmgrFwd.makeAnd(pCounterStatePrecond, pTransition);
   }
@@ -296,8 +295,8 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
     Builder<BooleanFormula> globalPreds = ImmutableList.builder();
     ImmutableMultimap.Builder<CFANode, BooleanFormula> localPreds = ImmutableMultimap.builder();
 
-    globalPreds.addAll(literals(pcViolation.getFormula(), FormulaMode.UNINSTANTIATED));
-    globalPreds.addAll(literals(pcValid.getFormula(), FormulaMode.UNINSTANTIATED));
+    globalPreds.addAll(uninstantiatedLiterals(pcViolation.getFormula()));
+    globalPreds.addAll(uninstantiatedLiterals(pcValid.getFormula()));
 
     // Get additional predicates from the states along the trace
     //    (or the WPs along the trace)...

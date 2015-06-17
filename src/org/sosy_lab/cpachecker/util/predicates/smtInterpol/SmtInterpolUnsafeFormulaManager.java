@@ -27,7 +27,10 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
+import com.google.common.collect.ImmutableList;
+
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.LetTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -57,13 +60,10 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
   }
 
   @Override
-  public boolean isLiteral(Term t) {
-    return SmtInterpolUtil.isNot(t) || SmtInterpolUtil.isAtom(t);
-  }
-
-
-  @Override
   public int getArity(Term pT) {
+    assert !(pT instanceof LetTerm)
+        : "Formulas used by CPAchecker are expected to not have LetTerms."
+            + " Check how this formula was created: " + pT;
     return SmtInterpolUtil.getArity(pT);
   }
 
@@ -115,6 +115,22 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }
+  }
+
+  @Override
+  protected List<Term> splitNumeralEqualityIfPossible(Term pF) {
+    if (SmtInterpolUtil.isFunction(pF, "=") && SmtInterpolUtil.getArity(pF) == 2) {
+      Term arg0 = SmtInterpolUtil.getArg(pF, 0);
+      Term arg1 = SmtInterpolUtil.getArg(pF, 1);
+      assert arg0.getSort().equals(arg1.getSort());
+      if (!SmtInterpolUtil.isBoolean(arg0)) {
+        return ImmutableList.of(
+            getFormulaCreator().getEnv().term("<=", arg0, arg1),
+            getFormulaCreator().getEnv().term("<=", arg1, arg0)
+        );
+      }
+    }
+    return ImmutableList.of(pF);
   }
 
   Term createUIFCallImpl(String funcDecl, Term[] args) {

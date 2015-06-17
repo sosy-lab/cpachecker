@@ -37,13 +37,13 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GraphPartitionerFactory
 @Options(prefix = "pcc.partitioning")
 public class PartitioningIOHelper {
 
-  @Option(secure=true, description = "If enabled uses the number of nodes saved in certificate to compute partition number otherwise the size of certificate")
+  @Option(secure=true, description = "If enabled uses the number of nodes saved in certificate to compute partition number otherwise the number of states explored during analysis")
   private boolean useGraphSizeToComputePartitionNumber = false;
   @Option(secure=true,
       description = "Specifies the maximum size of the partition. This size is used to compute the number of partitions if a proof (reached set) should be written. Default value 0 means always a single partition.")

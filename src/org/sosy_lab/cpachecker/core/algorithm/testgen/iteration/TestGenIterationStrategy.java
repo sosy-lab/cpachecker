@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.testgen.iteration;
 
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 
 /**
  *
@@ -42,7 +43,7 @@ public interface TestGenIterationStrategy {
 
   public TestGenIterationStrategy.IterationModel getModel();
 
-  public boolean runAlgorithm() throws PredicatedAnalysisPropertyViolationException, CPAException, InterruptedException;
+  public AlgorithmStatus runAlgorithm() throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException;
 
   /**
    *

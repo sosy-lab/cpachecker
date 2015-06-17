@@ -36,11 +36,11 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FormulaLet;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -68,10 +69,11 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile)
+      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile,
+      long randomSeed)
           throws InvalidConfigurationException {
 
-    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile);
+    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile, randomSeed);
     SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env);
 
     // Create managers
@@ -106,7 +108,8 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
 
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    return encapsulateBooleanFormula(getOnlyElement(getEnvironment().parseStringToTerms(pS)));
+    Term term = getOnlyElement(getEnvironment().parseStringToTerms(pS));
+    return encapsulateBooleanFormula(new FormulaUnLet().unlet(term));
   }
 
 
@@ -117,6 +120,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
       @Override
       public void appendTo(Appendable out) throws IOException {
         Set<Term> seen = new HashSet<>();
+        Set<FunctionSymbol> declaredFunctions = new HashSet<>();
         Deque<Term> todo = new ArrayDeque<>();
         PrintTerm termPrinter = new PrintTerm();
 
@@ -141,17 +145,22 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
           }
 
           if (func.getDefinition() == null) {
-            out.append("(declare-fun ");
-            out.append(PrintTerm.quoteIdentifier(func.getName()));
-            out.append(" (");
-            for (Sort paramSort : func.getParameterSorts()) {
-              termPrinter.append(out, paramSort);
-              out.append(' ');
-            }
-            out.append(") ");
-            termPrinter.append(out, func.getReturnSort());
-            out.append(")\n");
+            if (declaredFunctions.add(func)) {
+              out.append("(declare-fun ");
+              out.append(PrintTerm.quoteIdentifier(func.getName()));
+              out.append(" (");
+              int counter = 0;
+              for (Sort paramSort : func.getParameterSorts()) {
+                termPrinter.append(out, paramSort);
 
+                if (++counter < func.getParameterSorts().length) {
+                  out.append(' ');
+                }
+              }
+              out.append(") ");
+              termPrinter.append(out, func.getReturnSort());
+              out.append(")\n");
+            }
           } else {
             // We would have to print a (define-fun) command and
             // recursively traverse into func.getDefinition() (in post-order!).

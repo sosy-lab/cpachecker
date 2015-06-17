@@ -23,22 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager.getMsatTerm;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.time.NestedTimer;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.LongArrayBackedList;
+import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.AllSatModelCallback;
 
 import com.google.common.base.Preconditions;
 
@@ -48,10 +43,10 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
 
   Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
       boolean generateModels, boolean generateUnsatCore) {
-    super(pMgr, createConfig(pMgr, generateModels, generateUnsatCore), USE_SHARED_ENV, true);
+    super(pMgr, createConfig(generateModels, generateUnsatCore), USE_SHARED_ENV, true);
   }
 
-  private static long createConfig(Mathsat5FormulaManager mgr,
+  private static long createConfig(
       boolean generateModels, boolean generateUnsatCore) {
     long cfg = msat_create_config();
     if (generateModels) {
@@ -82,137 +77,44 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
     return result;
   }
 
-  @Override
-  public AllSatResult allSat(Collection<BooleanFormula> important,
-      RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException {
-    checkNotNull(rmgr);
-    checkNotNull(solveTime);
-    checkNotNull(enumTime);
-    Preconditions.checkState(curEnv != 0);
 
-    if (important.isEmpty()) {
-      throw new RuntimeException("Error occurred during Mathsat allsat: all-sat should not be called with empty 'important'-Collection");
-    }
+  @Override
+  public <T> T allSat(AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
 
     long[] imp = new long[important.size()];
     int i = 0;
     for (BooleanFormula impF : important) {
-
       imp[i++] = getMsatTerm(impF);
-
     }
-
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(this, rmgr, solveTime, enumTime, curEnv);
-    solveTime.start();
-    int numModels;
-    try {
-      numModels = msat_all_sat(curEnv, imp, callback);
-    } finally {
-      if (solveTime.isRunning()) {
-        solveTime.stop();
-      } else {
-        enumTime.stopOuter();
-      }
-    }
+    MathsatAllSatCallback<T> uCallback = new MathsatAllSatCallback<>(callback);
+    int numModels = msat_all_sat(curEnv, imp, uCallback);
 
     if (numModels == -1) {
       throw new RuntimeException("Error occurred during Mathsat allsat: " + msat_last_error_message(curEnv));
 
     } else if (numModels == -2) {
-      // infinite models
-      callback.setInfiniteNumberOfModels();
-    } else {
-      assert numModels == callback.count;
+      throw new SolverException("Number of models should be finite with boolean predicates");
     }
-
-    return callback;
+    return callback.getResult();
   }
 
-  /**
-   * callback used to build the predicate abstraction of a formula
-   */
-  static class MathsatAllSatCallback implements Mathsat5NativeApi.AllSatModelCallback, AllSatResult {
+  class MathsatAllSatCallback<T> implements  AllSatModelCallback {
+    private final AllSatCallback<T> clientCallback;
 
-    private final ShutdownNotifier shutdownNotifier;
-    private final RegionCreator rmgr;
-    private final RegionBuilder builder;
-
-    private final Timer solveTime;
-    private final NestedTimer enumTime;
-    private Timer regionTime = null;
-
-    private int count = 0;
-
-    private Region formula = null;
-    private long env;
-
-    private Mathsat5TheoremProver prover;
-
-    public MathsatAllSatCallback(Mathsat5TheoremProver prover, RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime, long env) {
-      this.rmgr = rmgr;
-      this.prover = prover;
-      this.solveTime = pSolveTime;
-      this.enumTime = pEnumTime;
-      this.env = env;
-      this.shutdownNotifier = prover.mgr.getShutdownNotifier();
-      builder = rmgr.newRegionBuilder(shutdownNotifier);
-    }
-
-    public void setInfiniteNumberOfModels() {
-      count = Integer.MAX_VALUE;
-      formula = rmgr.makeTrue();
-    }
-
-    @Override
-    public int getCount() {
-      return count;
-    }
-
-    @Override
-    public Region getResult() throws InterruptedException {
-      if (formula == null) {
-        enumTime.startBoth();
-        try {
-          formula = builder.getResult();
-          builder.close();
-        } finally {
-          enumTime.stopBoth();
-        }
-      }
-      return formula;
+    MathsatAllSatCallback(AllSatCallback<T> pClientCallback) {
+      clientCallback = pClientCallback;
     }
 
     @Override
     public void callback(long[] model) throws InterruptedException {
-      if (count == 0) {
-        solveTime.stop();
-        enumTime.startOuter();
-        regionTime = enumTime.getCurentInnerTimer();
-      }
-
-      shutdownNotifier.shutdownIfNecessary();
-
-      regionTime.start();
-
-      // the abstraction is created simply by taking the disjunction
-      // of all the models found by msat_all_sat, and storing them
-      // in a BDD
-      // first, let's create the BDD corresponding to the model
-      builder.startNewConjunction();
-      for (long t : model) {
-        if (msat_term_is_not(env, t)) {
-          t = msat_term_get_arg(t, 0);
-
-          builder.addNegativeRegion(rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t)));
-        } else {
-          builder.addPositiveRegion(rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t)));
+      clientCallback.apply(new LongArrayBackedList<BooleanFormula>(model) {
+        @Override
+        protected BooleanFormula convert(long pE) {
+          return mgr.encapsulateBooleanFormula(pE);
         }
-      }
-      builder.finishConjunction();
-
-      count++;
-
-      regionTime.stop();
+      });
     }
   }
 

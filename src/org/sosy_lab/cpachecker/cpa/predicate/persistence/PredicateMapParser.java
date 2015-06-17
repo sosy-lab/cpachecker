@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -33,6 +35,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,6 +55,12 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.IntConverter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -95,6 +105,11 @@ public class PredicateMapParser {
   @Option(secure=true, description="Apply location- and function-specific predicates globally (to all locations in the program)")
   private boolean applyGlobally = false;
 
+  @Option(secure=true, description = "when reading predicates from file, convert them to BV-theory. "
+      + "This option depends on the 'variableEncodingFile'.")
+  private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
+  private enum PrecisionConverter {DISABLE, INT2BV, BV2INT}
+
   private final CFA cfa;
 
   private final LogManager logger;
@@ -103,10 +118,10 @@ public class PredicateMapParser {
 
   private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
 
-  public PredicateMapParser(Configuration config, CFA pCfa,
+  public PredicateMapParser(Configuration pConfig, CFA pCfa,
       LogManager pLogger,
       FormulaManagerView pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
-    config.inject(this);
+    pConfig.inject(this);
 
     cfa = pCfa;
     logger = pLogger;
@@ -146,6 +161,45 @@ public class PredicateMapParser {
     int lineNo = defParsingResult.getFirst();
     String commonDefinitions = defParsingResult.getSecond();
 
+    final Converter converter;
+    switch (encodePredicates) {
+    case INT2BV: {
+      final StringBuilder str = new StringBuilder();
+      converter = new BVConverter(
+          new SymbolEncoding(cfa),
+          logger);
+      for (String line : commonDefinitions.split("\n")) {
+        String converted = convertFormula(converter, line);
+        if (converted != null) {
+          str.append(converted).append("\n");
+        }
+      }
+      commonDefinitions = str.toString();
+      break;
+    }
+    case BV2INT: {
+      final StringBuilder str = new StringBuilder();
+      converter = new IntConverter(
+          new SymbolEncoding(cfa),
+          logger);
+      for (String line : commonDefinitions.split("\n")) {
+        final String converted = convertFormula(converter, line);
+        if (converted != null) {
+          str.append(converted).append("\n");
+        }
+      }
+      commonDefinitions = str.toString();
+      break;
+    }
+    case DISABLE: {
+      converter = null;
+      break;
+    }
+    default:
+      throw new AssertionError("invalid value for option");
+    }
+
+
     // second, read map of predicates
     Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
     SetMultimap<String, AbstractionPredicate> functionPredicates = HashMultimap.create();
@@ -156,7 +210,6 @@ public class PredicateMapParser {
     while ((currentLine = reader.readLine()) != null) {
       lineNo++;
       currentLine = currentLine.trim();
-
       if (currentLine.isEmpty()) {
         // blank lines separates sections
         currentSet = null;
@@ -227,6 +280,17 @@ public class PredicateMapParser {
       } else {
         // we expect a predicate
         if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
+
+          if (encodePredicates != PrecisionConverter.DISABLE) {
+            currentLine = convertFormula(converter, currentLine);
+            if (currentLine == null) {
+              // ignore formula, if converting fails.
+              // We parse only predicates for a precision,
+              // so we can ignore some predicates without losing too much information.
+              continue;
+            }
+          }
+
           BooleanFormula f;
           try {
             f = fmgr.parse(commonDefinitions + currentLine);
@@ -245,6 +309,24 @@ public class PredicateMapParser {
     return new PredicatePrecision(
         ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
         localPredicates, functionPredicates, globalPredicates);
+  }
+
+  private @Nullable String convertFormula(final Converter converter, final String line) {
+    if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ") || line.startsWith("(assert ")) {
+      try {
+        return FormulaParser.convertFormula(checkNotNull(converter), line, logger);
+      } catch (UnknownFormulaSymbolException e) {
+        if (e.getMessage().contains("unknown symbol in formula: .def_")) {
+          // ignore Mathsat5-specific helper symbols,
+          // they are based on 'real' unknown symbols.
+        } else {
+          logger.log(Level.INFO, e.getMessage());
+        }
+        return null;
+      }
+    } else {
+      return line;
+    }
   }
 
   private CFANode getCFANodeWithId(int id) {

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -39,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * For the future, floats, symbolic values, and SMG nodes should
  * also be supported.
  */
-public interface Value {
+public interface Value extends Serializable {
   public boolean isNumericValue();
 
   /** True if we have no idea about this value(can not track it), false otherwise. */
@@ -98,7 +97,7 @@ public interface Value {
       return false;
     }
 
-    protected Object readResolve() throws ObjectStreamException {
+    protected Object readResolve() {
       return instance;
     }
 

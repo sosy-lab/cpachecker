@@ -26,9 +26,14 @@ package org.sosy_lab.cpachecker.core.defaults;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 /**
  * Implementation of prec operator which does not change the precision or
@@ -47,7 +52,7 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
   private int extraIterations         = 0;
 
   /**
-   * the size of the reached set in the previous call to {@link #prec(AbstractState, Precision, UnmodifiableReachedSet, AbstractState)}.
+   * the size of the reached set in the previous call to {@link #prec}.
    */
   private int previousReachedSetSize  = 0;
 
@@ -79,9 +84,11 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(final AbstractState pState,
+  public Optional<PrecisionAdjustmentResult> prec(final AbstractState pState,
       final Precision pPrecision,
-      final UnmodifiableReachedSet pStates, final AbstractState fullState)
+      final UnmodifiableReachedSet pStates,
+      Function<AbstractState, AbstractState> projection,
+      final AbstractState fullState)
           throws CPAException {
 
     resetCountersIfNecessary(pStates);
@@ -91,18 +98,18 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     if (extraIterationsLimitReached()) {
-      return PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK);
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
     }
 
     if (((Targetable)pState).isTarget()) {
       foundTargetCounter++;
 
       if (foundTargetLimitReached()) {
-        return PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK);
+        return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
       }
     }
 
-    return PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE);
+    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
   }
 
   /**

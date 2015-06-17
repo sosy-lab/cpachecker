@@ -36,7 +36,7 @@ public class PartialCertificateTypeProvider {
     ALL,
     HEURISTIC,
     ARG,
-    MONOTONESTOPARG;
+    MONOTONESTOPARG
   }
 
   @Option(secure=true,

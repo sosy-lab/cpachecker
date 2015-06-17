@@ -165,7 +165,7 @@ class ASTTypeConverter {
       // We have seen this type already.
       // Replace it with a CElaboratedType.
       if (oldType != null) {
-        return new CElaboratedType(false, false, kind, oldType.getName(), oldType);
+        return new CElaboratedType(false, false, kind, oldType.getName(), oldType.getOrigName(), oldType);
       }
 
       // empty linkedList for the Fields of the struct, they are created afterwards
@@ -173,7 +173,7 @@ class ASTTypeConverter {
       // otherwise they would not point to the correct struct
       // TODO: volatile and const cannot be checked here until no, so both is set
       //       to false
-      CCompositeType compType = new CCompositeType(false, false, kind, ImmutableList.<CCompositeTypeMemberDeclaration>of(), name);
+      CCompositeType compType = new CCompositeType(false, false, kind, ImmutableList.<CCompositeTypeMemberDeclaration>of(), name, name);
 
       // We need to cache compType before converting the type of its fields!
       // Otherwise we run into an infinite recursion if the type of one field
@@ -182,7 +182,7 @@ class ASTTypeConverter {
       // we cheat and put a CElaboratedType instance in the map.
       // This means that wherever the ICompositeType instance appears, it will be
       // replaced by an CElaboratedType.
-      typeConversions.get(filePrefix).put(t, new CElaboratedType(false, false, kind, name, compType));
+      typeConversions.get(filePrefix).put(t, new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType));
 
       compType.setMembers(conv(ct.getFields()));
 
@@ -305,9 +305,9 @@ class ASTTypeConverter {
 
     // We have seen this type already.
     if (oldType != null) {
-      return new CTypedefType(false, false, t.getName(), oldType);
+      return new CTypedefType(false, false, scope.getFileSpecificTypeName(name), oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
-      return new CTypedefType(false, false, t.getName(), convert(t.getType()));
+      return new CTypedefType(false, false, scope.getFileSpecificTypeName(name), convert(t.getType()));
     }
   }
 
@@ -356,10 +356,14 @@ class ASTTypeConverter {
     // TODO we ignore the enumerators here
     CComplexType realType = scope.lookupType("enum " + e.getName());
     String name = e.getName();
+    String origName = name;
     if (realType != null) {
       name = realType.getName();
+      origName = realType.getOrigName();
+    } else {
+      name = scope.getFileSpecificTypeName(name);
     }
-    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, realType);
+    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, origName, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -433,13 +437,15 @@ class ASTTypeConverter {
       type = scope.lookupTypedef(name);
       if (type == null) {
         type = scope.lookupType(name);
+      } else {
+        return type;
       }
     }
     if (type == null) {
-      type = convert((IType) binding);
+      return convert((IType) binding);
     }
 
-    return new CTypedefType(d.isConst(), d.isVolatile(), name, type);
+    return new CTypedefType(d.isConst(), d.isVolatile(), scope.getFileSpecificTypeName(name), type);
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
@@ -480,12 +486,16 @@ class ASTTypeConverter {
     }
 
     String name = ASTConverter.convert(d.getName());
+    String origName = name;
     CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
     if (realType != null) {
       name = realType.getName();
+      origName = realType.getOrigName();
+    } else {
+      name = scope.getFileSpecificTypeName(name);
     }
 
-    return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);
+    return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, origName, realType);
   }
 
   /** returns a pointerType, that wraps the type. */

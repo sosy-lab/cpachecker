@@ -28,11 +28,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -43,6 +46,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
@@ -59,7 +63,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for tracking method Declaration over ASTs
   // Used to resolve dynamic Bindings
-  private final Map<String, MethodDeclaration> allParsedMethodDeclaration = new HashMap<>();
+  private final Map<String, JMethodDeclaration> allParsedMethodDeclaration = new HashMap<>();
 
   // Data structures for handling method declarations
   // private Queue<MethodDeclaration> methodDeclarations = new LinkedList<>();
@@ -113,6 +117,41 @@ class CFABuilder extends ASTVisitor {
   }
 
   @Override
+  public boolean visit(AnonymousClassDeclaration pClassDeclaration) {
+    ITypeBinding classBinding = pClassDeclaration.resolveBinding();
+
+    if (classBinding == null) {
+      logger.logf(Level.WARNING,
+          "Binding for anonymous class %s can't be resolved. Skipping class body.",
+          pClassDeclaration.toString());
+
+      return SKIP_CHILDREN;
+    }
+
+    scope.enterClass(astCreator.convertClassOrInterfaceType(pClassDeclaration.resolveBinding()));
+
+    return super.visit(pClassDeclaration);
+  }
+
+  @Override
+  public void endVisit(AnonymousClassDeclaration pClassDeclaration) {
+
+    // Create possible constructors of anonymous class. This is either a default constructor
+    // or all constructors inherited of a direct super class.
+    createConstructors(pClassDeclaration);
+
+    scope.leaveClass();
+  }
+
+  private void createConstructors(AnonymousClassDeclaration pClassDeclaration) {
+    CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger, scope, astCreator);
+
+    methodBuilder.createConstructors(pClassDeclaration);
+
+    addMethodToCfas(methodBuilder.getStartNode(), methodBuilder.getCfaNodes());
+  }
+
+  @Override
   public boolean visit(TypeDeclaration typeDec) {
 
     ITypeBinding classBinding = typeDec.resolveBinding();
@@ -147,26 +186,28 @@ class CFABuilder extends ASTVisitor {
     //methodDeclarations.add(fd);
 
     // parse Method
-    CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger,
-        scope, astCreator);
+    CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger, scope, astCreator);
 
     md.accept(methodBuilder);
 
     FunctionEntryNode startNode = methodBuilder.getStartNode();
-    String methodName = startNode.getFunctionName();
+    Set<CFANode> allMethodNodes = methodBuilder.getCfaNodes();
 
-    if (cfas.containsKey(methodName)) {
-      throw new CFAGenerationRuntimeException("Duplicate method "
-        + methodName);
-    }
-
-
-    cfas.put(methodName, startNode);
-    cfaNodes.putAll(methodName, methodBuilder.getCfaNodes());
-    allParsedMethodDeclaration.put(methodName, md);
-
+    addMethodToCfas(startNode, allMethodNodes);
 
     return SKIP_CHILDREN;
+  }
+
+  private void addMethodToCfas(FunctionEntryNode pStartNode, Set<CFANode> pMethodNodes) {
+    String methodName = pStartNode.getFunctionName();
+
+    if (cfas.containsKey(methodName)) {
+      throw new CFAGenerationRuntimeException("Duplicate method " + methodName);
+    }
+
+    cfas.put(methodName, pStartNode);
+    cfaNodes.putAll(methodName, pMethodNodes);
+    allParsedMethodDeclaration.put(methodName, (JMethodDeclaration) pStartNode.getFunctionDefinition());
   }
 
   @Override
@@ -252,7 +293,7 @@ class CFABuilder extends ASTVisitor {
     return scope;
   }
 
-  public Map<String, MethodDeclaration> getAllParsedMethodDeclaration() {
+  public Map<String, JMethodDeclaration> getAllParsedMethodDeclaration() {
     return allParsedMethodDeclaration;
   }
 

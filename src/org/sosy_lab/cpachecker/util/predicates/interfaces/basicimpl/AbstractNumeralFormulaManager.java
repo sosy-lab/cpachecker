@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -104,6 +105,14 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     return wrap(makeNumberImpl(i));
   }
   protected abstract TFormulaInfo makeNumberImpl(String i);
+
+  @Override
+  public ResultFormulaType makeNumber(Rational pRational) {
+    return wrap(makeNumberImpl(pRational));
+  }
+  protected TFormulaInfo makeNumberImpl(Rational pRational) {
+    return makeNumberImpl(pRational.toString());
+  }
 
   @Override
   public ResultFormulaType makeNumber(double pNumber) {
@@ -305,12 +314,4 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   }
 
   protected abstract TFormulaInfo lessOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2);
-
-
-  @Override
-  public boolean isEqual(BooleanFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isEqual(param);
-  }
-  protected abstract boolean isEqual(TFormulaInfo pParam) ;
 }

@@ -34,6 +34,7 @@ import java.util.Set;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -117,7 +118,7 @@ class SmtInterpolUtil {
         if (t.getSort().getName().equals("Int") && rat.isIntegral()) {
           return rat.numerator();
         }
-        return org.sosy_lab.cpachecker.util.rationals.Rational.of(
+        return org.sosy_lab.common.rationals.Rational.of(
             rat.numerator(), rat.denominator());
       }
 
@@ -139,8 +140,8 @@ class SmtInterpolUtil {
           return -((Double)value).doubleValue();
         } else if (value instanceof Float) {
           return -((Float)value).floatValue();
-        } else if (value instanceof org.sosy_lab.cpachecker.util.rationals.Rational) {
-          return ((org.sosy_lab.cpachecker.util.rationals.Rational)value).negate();
+        } else if (value instanceof org.sosy_lab.common.rationals.Rational) {
+          return ((org.sosy_lab.common.rationals.Rational)value).negate();
         }
       }
     }
@@ -194,11 +195,6 @@ class SmtInterpolUtil {
   /** t1 = t2 */
   public static boolean isEquivalence(Term t) {
     return isFunction(t, "=") && getArity(t) == 2 && isBoolean(getArg(t, 0)) && isBoolean(getArg(t, 1));
-  }
-
-  /** num1 = num2, non-boolean version */
-  public static boolean isNumeralEqual(Term t) {
-    return isFunction(t, "=") && getArity(t) == 2 && !isBoolean(getArg(t, 0)) && !isBoolean(getArg(t, 1));
   }
 
   public static boolean isFunction(Term t, String name) {
@@ -263,7 +259,10 @@ class SmtInterpolUtil {
   public static Set<Term> getVarsAndUIFs(Collection<Term> termList) {
     Set<Term> result = new HashSet<>();
     Set<Term> seen = new HashSet<>();
-    Deque<Term> todo = new ArrayDeque<>(termList);
+    Deque<Term> todo = new ArrayDeque<>();
+    for (Term t : termList) {
+      todo.add(new FormulaUnLet().unlet(t));
+    }
 
     while (!todo.isEmpty()) {
       Term t = todo.removeLast();

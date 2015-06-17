@@ -23,23 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * Trivial implementation of an invariant generator
- * that does nothing and always returns an empty reached set.
+ * that does nothing and always returns the invariant true.
  */
 public class DoNothingInvariantGenerator implements InvariantGenerator {
-
-  private final UnmodifiableReachedSet reachedSet;
-  private final Timer timer = new Timer();
-
-  public DoNothingInvariantGenerator(ReachedSetFactory factory) {
-    reachedSet = factory.create();
-  }
 
   @Override
   public void start(CFANode pInitialLocation) { }
@@ -48,12 +39,15 @@ public class DoNothingInvariantGenerator implements InvariantGenerator {
   public void cancel() { }
 
   @Override
-  public UnmodifiableReachedSet get()  {
-    return reachedSet;
+  public InvariantSupplier get()  {
+    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 
   @Override
-  public Timer getTimeOfExecution() {
-    return timer;
+  public boolean isProgramSafe() {
+    return false;
   }
+
+  @Override
+  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) { }
 }

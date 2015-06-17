@@ -251,11 +251,6 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public int getWaitlistSize() {
-    return waitlist.size();
-  }
-
-  @Override
   public Precision getPrecision(AbstractState state) {
     Preconditions.checkNotNull(state);
     Precision prec = reached.get(state);

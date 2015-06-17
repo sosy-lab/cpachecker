@@ -2,6 +2,9 @@
 <component inheritJdk="true">
 	<contentEntry url="file://$MODULE_DIR$">
 		<excludeFolder url="file://$MODULE_DIR$/src/org/sosy_lab/cpachecker/appengine"/>
+		<excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks"/>
+		<excludeFolder url="file://$MODULE_DIR$/test/results"/>
+		<excludeFolder url="file://$MODULE_DIR$/war"/>
 	</contentEntry>
 	<lib name="common.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/common-sources.jar!/"/>
@@ -17,9 +20,6 @@
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/smtinterpol-sources.zip!/"/>
 		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/smtinterpol-sources.zip!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/smtinterpol-comp.jar!/"/>
-	</lib>
-	<lib name="jsr305.jar" scope="COMPILE">
-		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/jsr305.jar!/"/>
 	</lib>
 	<lib name="javabdd.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/javabdd-sources.jar!/"/>
@@ -61,6 +61,17 @@
 		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/guava-testlib-sources.jar!/"/>
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/test/guava-testlib.jar!/"/>
 	</lib>
+	<lib name="annotations.jar" scope="COMPILE">
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/build/annotations.jar!/"/>
+	</lib>
+	<lib name="truth.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/truth-sources.jar!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/truth-sources.jar!/"/>
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/test/truth.jar!/"/>
+	</lib>
+	<lib name="smt-parser.jar" scope="COMPILE">
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/smt-parser.jar!/"/>
+	</lib>
 	<lib name="objenesis.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/test/objenesis.jar!/"/>
 	</lib>
@@ -97,5 +108,14 @@
 	</lib>
 	<lib name="meconsole010.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/meconsole010.jar!/"/>
+	</lib>
+	<lib name="princess.jar" scope="COMPILE">
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/princess.jar!/"/>
+	</lib>
+	<lib name="scala-library.jar" scope="COMPILE">
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/scala-library.jar!/"/>
+	</lib>
+	<lib name="scala-actors.jar" scope="COMPILE">
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/scala-actors.jar!/"/>
 	</lib>
 </component>

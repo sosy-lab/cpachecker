@@ -591,7 +591,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       SMGState state, Precision precision, CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException {
+          throws CPATransferException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
     logger.log(Level.FINEST, "Code:", cfaEdge.getCode());
@@ -2485,12 +2485,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     private SMGKnownValue(long pValue) {
-      checkNotNull(pValue);
       value = BigInteger.valueOf(pValue);
     }
 
     private SMGKnownValue(int pValue) {
-      checkNotNull(pValue);
       value = BigInteger.valueOf(pValue);
     }
 
@@ -2556,7 +2554,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       super(pValue);
     }
 
-    public static final SMGKnownSymValue valueOf(int pValue) {
+    public static SMGKnownSymValue valueOf(int pValue) {
 
       if (pValue == 0) {
         return ZERO;
@@ -2567,7 +2565,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    public static final SMGKnownSymValue valueOf(long pValue) {
+    public static SMGKnownSymValue valueOf(long pValue) {
 
       if (pValue == 0) {
         return ZERO;
@@ -2578,7 +2576,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    public static final SMGKnownSymValue valueOf(BigInteger pValue) {
+    public static SMGKnownSymValue valueOf(BigInteger pValue) {
 
       checkNotNull(pValue);
 
@@ -2725,7 +2723,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return valueOf(getValue().add(pRVal.getValue()));
     }
 
-    public static final SMGKnownExpValue valueOf(int pValue) {
+    public static SMGKnownExpValue valueOf(int pValue) {
 
       if (pValue == 0) {
         return ZERO;
@@ -2736,7 +2734,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    public static final SMGKnownExpValue valueOf(long pValue) {
+    public static SMGKnownExpValue valueOf(long pValue) {
 
       if (pValue == 0) {
         return ZERO;
@@ -2747,7 +2745,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    public static final SMGKnownExpValue valueOf(BigInteger pValue) {
+    public static SMGKnownExpValue valueOf(BigInteger pValue) {
 
       checkNotNull(pValue);
 
@@ -2984,7 +2982,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return new SMGKnownAddress(pObject, SMGKnownExpValue.valueOf(pOffset));
       }
 
-      public static final SMGKnownAddress valueOf(SMGObject object, SMGKnownExpValue offset) {
+      public static SMGKnownAddress valueOf(SMGObject object, SMGKnownExpValue offset) {
         return new SMGKnownAddress(object, offset);
       }
 
@@ -3056,7 +3054,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return object;
     }
 
-    public static final SMGAddress valueOf(SMGObject object, SMGExplicitValue offset) {
+    public static SMGAddress valueOf(SMGObject object, SMGExplicitValue offset) {
       return new SMGAddress(object, offset);
     }
 

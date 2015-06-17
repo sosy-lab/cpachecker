@@ -34,19 +34,20 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 public class VariableClassification {
@@ -64,6 +65,9 @@ public class VariableClassification {
   // then all essential variables (by propagation)
   private final Set<String> relevantVariables;
   private final Set<String> addressedVariables;
+
+  private final Multiset<String> assumedVariables;
+  private final Multiset<String> assignedVariables;
 
   /** Fields information doesn't take any aliasing information into account,
    *  fields are considered per type, not per composite instance */
@@ -89,7 +93,9 @@ public class VariableClassification {
       Set<Partition> pIntBoolPartitions,
       Set<Partition> pIntEqualPartitions,
       Set<Partition> pIntAddPartitions,
-      Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions) {
+      Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions,
+      Multiset<String> pAssumedVariables,
+      Multiset<String> pAssignedVariables) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
@@ -102,6 +108,8 @@ public class VariableClassification {
     intEqualPartitions = ImmutableSet.copyOf(pIntEqualPartitions);
     intAddPartitions = ImmutableSet.copyOf(pIntAddPartitions);
     edgeToPartitions = ImmutableMap.copyOf(pEdgeToPartitions);
+    assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
+    assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
   }
 
   @VisibleForTesting
@@ -117,8 +125,9 @@ public class VariableClassification {
         ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
-        ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of()
-        );
+        ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of(),
+        ImmutableMultiset.<String>of(),
+        ImmutableMultiset.<String>of());
   }
 
   public boolean hasRelevantNonIntAddVars() {
@@ -215,6 +224,21 @@ public class VariableClassification {
   }
 
   /**
+   * This method return all variables (i.e., their qualified name), that occur in an assumption.
+   */
+  public Multiset<String> getAssumedVariables() {
+    return assumedVariables;
+  }
+
+  /**
+   * This method return all variables (i.e., their qualified name), that occur
+   * as left-hand side in an assignment.
+   */
+  public Multiset<String> getAssignedVariables() {
+    return assignedVariables;
+  }
+
+  /**
    * This function returns a partition containing all vars,
    * that are dependent from a given CFAEdge.
    * This method cannot be used for {@link FunctionCallEdge}s,
@@ -253,12 +277,97 @@ public class VariableClassification {
   }
 
   /**
-   * Use {@link FunctionEntryNode#getReturnVariable()} and
-   * {@link AReturnStatement#asAssignment()} instead.
+   * This method computes for a set of variables (qualified names) a score,
+   * which serves as rough estimate how expensive tracking it might be to
+   * track these variables, e.g. variables with a boolean character have a
+   * lower score than variables being used as loop counters.
+   *
+   * @param variableNames a collection of variables (qualified names)
+   * @param loopStructure the loop structure, to identify loop-counter variables
+   * @return the score for the given collection of variables
    */
-  @Deprecated
-  public static String createFunctionReturnVariable(final String function) {
-    return VariableClassificationBuilder.createFunctionReturnVariable(function);
+  public int obtainDomainTypeScoreForVariables(Collection<String> variableNames,
+      Optional<LoopStructure> loopStructure) {
+    final int BOOLEAN_VAR   = 2;
+    final int INTEQUAL_VAR  = 4;
+    final int UNKNOWN_VAR   = 16;
+
+    if(variableNames.isEmpty()) {
+      return UNKNOWN_VAR;
+    }
+
+    int newScore = 1;
+    int oldScore = newScore;
+    for (String variableName : variableNames) {
+      int factor = UNKNOWN_VAR;
+
+      if (getIntBoolVars().contains(variableName)) {
+        factor = BOOLEAN_VAR;
+
+      } else if (getIntEqualVars().contains(variableName)) {
+        factor = INTEQUAL_VAR;
+      }
+
+      newScore = newScore * factor;
+
+      if (loopStructure.isPresent()
+          && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
+        return Integer.MAX_VALUE;
+      }
+
+      // check for overflow
+      if(newScore < oldScore) {
+        return Integer.MAX_VALUE - 1;
+      }
+      oldScore = newScore;
+    }
+
+    return newScore;
+  }
+
+  public int obtainDomainTypeScoreForVariables2(Collection<String> variableNames,
+      Optional<LoopStructure> loopStructure) {
+    final int BOOLEAN_VAR   = 1;
+    final int INTEQUAL_VAR  = 100;
+    final int INTADD_VAR    = 1000;
+    final int UNKNOWN_VAR   = 10000;
+    final int LOOP_VAR      = 1000000000;
+
+    if(variableNames.isEmpty()) {
+      return 0;
+    }
+
+    int newScore = 0;
+    int oldScore = newScore;
+    for (String variableName : variableNames) {
+      int summand = UNKNOWN_VAR;
+
+      if (getIntBoolVars().contains(variableName)) {
+        summand = BOOLEAN_VAR;
+
+      } else if (getIntEqualVars().contains(variableName)) {
+        summand = INTEQUAL_VAR;
+      }
+
+      else if (getIntAddVars().contains(variableName)) {
+        summand = INTADD_VAR;
+      }
+
+      if (loopStructure.isPresent()
+          && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
+        summand = LOOP_VAR;
+      }
+
+      newScore = newScore + summand;
+
+      // check for overflow
+      if(newScore < oldScore) {
+        return Integer.MAX_VALUE - 1;
+      }
+      oldScore = newScore;
+    }
+
+    return newScore;
   }
 
   @Override

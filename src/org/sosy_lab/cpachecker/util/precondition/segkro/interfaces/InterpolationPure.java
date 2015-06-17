@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 
 public interface InterpolationPure {
 
-  public BooleanFormula getInterpolant(BooleanFormula pPrefix, BooleanFormula pPostfix) throws SolverException, InterruptedException;
+  public BooleanFormula getInterpolant(BooleanFormula pPrefix, BooleanFormula pPostfix);
 
 }

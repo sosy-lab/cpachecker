@@ -29,8 +29,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 
 class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
@@ -49,15 +54,17 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException {
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState pElement, Precision pPrecision,
+      UnmodifiableReachedSet pElements,
+      Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException {
 
     if (checkReachedSetSize(pElements)) {
       logger.log(Level.WARNING, "Reached set size threshold reached, terminating.");
-      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
+      return Optional.of(PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK));
     }
 
-    return PrecisionAdjustmentResult.create(pElement, pPrecision, delegate.prec(pElement, pPrecision));
+    return Optional.of(PrecisionAdjustmentResult.create(pElement, pPrecision, delegate.prec(pElement, pPrecision)));
   }
 
 

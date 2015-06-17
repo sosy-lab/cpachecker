@@ -158,16 +158,17 @@ public class RTTState extends AbstractAppender implements
     checkNotNull(javaRunTimeClassName);
 
 
-
-    String iD ;
-
+    String iD;
+    String uniqueObject;
     if (javaRunTimeClassName.equals(NULL_REFERENCE)) {
-     iD = "";
+      iD = "";
+      uniqueObject = javaRunTimeClassName;
+
     } else {
-     iD = Integer.toString(RTTTransferRelation.nextId());
+      iD = Integer.toString(RTTTransferRelation.nextId());
+      uniqueObject = NameProvider.getInstance().getUniqueObjectName(javaRunTimeClassName, iD);
     }
 
-    String uniqueObject = javaRunTimeClassName + iD;
     identificationMap.put(uniqueObject, iD);
     classTypeMap.put(uniqueObject, javaRunTimeClassName);
     constantsMap.put(variableName, uniqueObject);

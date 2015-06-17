@@ -33,6 +33,8 @@ import com.google.common.base.Optional;
  */
 public class BooleanValue implements Value {
 
+  private static final long serialVersionUID = -35132790150256304L;
+
   // static objects for singleton pattern
   private static final BooleanValue TRUE_VALUE = new BooleanValue(true);
   private static final BooleanValue FALSE_VALUE = new BooleanValue(false);

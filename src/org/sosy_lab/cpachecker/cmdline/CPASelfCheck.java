@@ -122,7 +122,7 @@ public class CPASelfCheck {
     }
   }
 
-  private static CFA createCFA() throws IOException, ParserException, InvalidConfigurationException {
+  private static CFA createCFA() throws ParserException, InvalidConfigurationException {
     String code = "int main() {\n"
                 + "  int a;\n"
                 + "  a = 1;\n"
@@ -198,7 +198,7 @@ public class CPASelfCheck {
     return ensure(stop.stop(initial, reached, initialPrec), "Did not stop on same element!");
   }
 
-  private static List<Class<ConfigurableProgramAnalysis>> getCPAs() throws ClassNotFoundException, IOException {
+  private static List<Class<ConfigurableProgramAnalysis>> getCPAs() throws IOException {
     Set<ClassInfo> cpaCandidates = ClassPath.from(Thread.currentThread().getContextClassLoader())
                                             .getTopLevelClasses("org.sosy_lab.cpachecker.cpa");
 

@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import java.io.ObjectStreamException;
-import java.io.Serializable;
-
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -40,12 +36,13 @@ abstract class Z3Formula implements Formula {
   private final long z3expr;
   private final long z3context;
 
+  private int hashCache = 0;
+
   Z3Formula(long z3context, long z3expr) {
     this.z3expr = z3expr;
     this.z3context = z3context;
 
-    // TODO: find a way to decrease the references automatically.
-    // Why finalizers are bad again?
+    // NOTE: references are never removed, so eventually we run out of space.
     Z3NativeApi.inc_ref(z3context, z3expr);
   }
 
@@ -64,7 +61,10 @@ abstract class Z3Formula implements Formula {
 
   @Override
   public int hashCode() {
-    return Z3NativeApi.get_ast_hash(z3context, z3expr);
+    if (hashCache == 0) {
+      hashCache = Z3NativeApi.get_ast_hash(z3context, z3expr);
+    }
+    return hashCache;
   }
 
   public Long getFormulaInfo() {
@@ -109,29 +109,9 @@ class Z3RationalFormula extends Z3Formula implements RationalFormula {
   }
 }
 
-class Z3BooleanFormula extends Z3Formula implements BooleanFormula, Serializable {
-
+class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
   public Z3BooleanFormula(long z3context, long z3expr) {
     super(z3context, z3expr);
-  }
-
-  private Object writeReplace() throws ObjectStreamException {
-    return new SerialProxyFormula(GlobalInfo.getInstance().getFormulaManager().dumpFormula(this).toString());
-  }
-
-  private static class SerialProxyFormula implements Serializable {
-
-    private static final long serialVersionUID = -1089641469719848665L;
-    private final String formula;
-
-    public SerialProxyFormula(final String pF) {
-      formula = pF;
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-      return GlobalInfo.getInstance().getFormulaManager().parse(formula);
-    }
-
   }
 }
 

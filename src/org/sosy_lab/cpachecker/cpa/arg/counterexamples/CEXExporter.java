@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExport;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -60,6 +60,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.PathToRealCTranslator;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -120,6 +122,10 @@ public class CEXExporter {
   @Option(secure=true, name="exportImmediately",
           description="export error paths to files immediately after they were found")
   private boolean dumpErrorPathImmediately = false;
+
+  @Option(secure=true, name="codeStyle",
+          description="use either CMBC or real C")
+  private String codeStyle = "CMBC";
 
   private final LogManager logger;
   private final ARGPathExport witnessExporter;
@@ -212,7 +218,11 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (errorPathSourceFile != null) {
-        pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+        if (codeStyle.equals("REALC")) {
+          pathProgram = PathToRealCTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
+        } else {
+          pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+        }
       }
 
     } else {
@@ -223,7 +233,11 @@ public class CEXExporter {
       pathElements = ARGUtils.getAllStatesOnPathsTo(lastState);
 
       if (errorPathSourceFile != null) {
-        pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+        if (codeStyle.equals("REALC")) {
+          pathProgram = PathToRealCTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
+        } else {
+          pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+        }
       }
     }
 
@@ -268,7 +282,6 @@ public class CEXExporter {
         witnessExporter.writePath(pAppendable, rootState,
                 ARGUtils.CHILDREN_OF_STATE,
                 Predicates.in(pathElements),
-                isTargetPathEdge,
                 counterexample);
       }
     });
@@ -276,7 +289,7 @@ public class CEXExporter {
 
   private Appender createErrorPathWithVariableAssignmentInformation(
           final List<CFAEdge> edgePath, final CounterexampleInfo counterexample) {
-    final Model model = counterexample == null ? null : counterexample.getTargetPathModel();
+    final RichModel model = counterexample == null ? null : counterexample.getTargetPathModel();
     return new Appender() {
       @Override
       public void appendTo(Appendable out) throws IOException {
@@ -295,7 +308,7 @@ public class CEXExporter {
           out.append(edge.toString());
           out.append(System.lineSeparator());
           //TODO Erase, counterexample is supposed to be independent of Assignable terms
-          for (Model.AssignableTerm term : model.getAllAssignedTerms(edge)) {
+          for (AssignableTerm term : model.getAllAssignedTerms(edge)) {
             out.append('\t');
             out.append(term.toString());
             out.append(": ");

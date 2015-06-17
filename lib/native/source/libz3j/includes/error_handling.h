@@ -11,7 +11,7 @@ void Z3JavaErrorHandler(Z3_context c, Z3_error_code e) {
 
         // These errors normally should not occur and we don't wish them
         // to be caught.
-        throwException(env, "java/lang/Exception", errMsg);
+        throwException(env, "org/sosy_lab/cpachecker/util/predicates/z3/Z3SolverException", errMsg);
     }
 }
 

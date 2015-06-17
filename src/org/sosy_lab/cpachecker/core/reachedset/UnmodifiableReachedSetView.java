@@ -79,7 +79,7 @@ public class UnmodifiableReachedSetView
 
   @Override
   public Collection<AbstractState> getReached(AbstractState pState) throws UnsupportedOperationException {
-    throw new UnsupportedOperationException("Unwrapping may prevent to know the location");
+    throw new UnsupportedOperationException("Unwrapping prevents knowing the partition");
   }
 
   @Override
@@ -95,11 +95,6 @@ public class UnmodifiableReachedSetView
   @Override
   public Collection<AbstractState> getWaitlist() {
     return Collections2.transform(underlying.getWaitlist(), mapStateFunction);
-  }
-
-  @Override
-  public int getWaitlistSize() {
-    return underlying.getWaitlistSize();
   }
 
   @Override

@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -132,7 +132,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   public ImpactAlgorithm(Configuration config, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException, CPAException {
+      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;
@@ -141,7 +141,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
-    imgr = new InterpolationManager(pfmgr, solver, config, pShutdownNotifier, logger);
+    imgr = new InterpolationManager(pfmgr, solver, cfa.getLoopStructure(), cfa.getVarClassification(), config, pShutdownNotifier, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {
@@ -153,10 +153,10 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     unwind(pReachedSet);
     pReachedSet.popFromWaitlist();
-    return true;
+    return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
   private void expand(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {

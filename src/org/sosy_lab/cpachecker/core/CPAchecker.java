@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.core.ShutdownNotifier.interruptCurrentThreadOnShutdown;
+import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.io.FileNotFoundException;
@@ -38,6 +38,8 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -54,8 +56,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -169,10 +171,6 @@ public class CPAchecker {
   @Option(secure=true, description="Do not report unknown if analysis terminated, report true (UNSOUND!).")
   private boolean unknownAsTrue = false;
 
-  @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "
-      + " Useful for incomplete analysis with no counterexample checking.")
-  private boolean reportFalseAsUnknown = false;
-
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
@@ -283,18 +281,18 @@ public class CPAchecker {
       // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
-      boolean isComplete = runAlgorithm(algorithm, reached, stats);
+      AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
       violatedPropertyDescription = findViolatedProperties(reached);
       if (violatedPropertyDescription != null) {
-        if (reportFalseAsUnknown) {
+        if (!status.isPrecise()) {
           result = Result.UNKNOWN;
         } else {
           result = Result.FALSE;
         }
       } else {
         violatedPropertyDescription = "";
-        result = analyzeResult(reached, isComplete);
+        result = analyzeResult(reached, status.isSound());
         if (unknownAsTrue && result == Result.UNKNOWN) {
           result = Result.TRUE;
         }
@@ -378,13 +376,13 @@ public class CPAchecker {
     }
   }
 
-  private boolean runAlgorithm(final Algorithm algorithm,
+  private AlgorithmStatus runAlgorithm(final Algorithm algorithm,
       final ReachedSet reached,
       final MainCPAStatistics stats) throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Starting analysis ...");
 
-    boolean isComplete = true;
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownNotifier);
@@ -393,14 +391,14 @@ public class CPAchecker {
     try {
 
       do {
-        isComplete &= algorithm.run(reached);
+        status = status.update(algorithm.run(reached));
 
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
       } while (!stopAfterError && reached.hasWaitingState());
 
       logger.log(Level.INFO, "Stopping analysis ...");
-      return isComplete;
+      return status;
 
     } finally {
       stats.stopAnalysisTimer();
@@ -502,7 +500,7 @@ public class CPAchecker {
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }
 
-    if (pReached.getWaitlistSize() == 0) {
+    if (!pReached.hasWaitingState()) {
       throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
     }
 

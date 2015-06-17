@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,7 +43,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -62,7 +63,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
     @Option(secure=true, description = "List of further options which will be passed to Mathsat in addition to the default options. "
         + "Format is 'key1=value1,key2=value2'")
-    private String furtherOptions = "random_seed=42";
+    private String furtherOptions = "";
 
     private final @Nullable PathCounterTemplate logfile;
 
@@ -86,9 +87,17 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   private final LogManager logger;
   private final long mathsatConfig;
   private final Mathsat5Settings settings;
+  private final long randomSeed;
 
   private final ShutdownNotifier shutdownNotifier;
   private final TerminationTest terminationTest;
+
+  @Options(prefix="cpa.predicate.solver.mathsat5")
+  private static class ExtraOptions {
+    @Option(secure=true, description="Load less stable optimizing version of"
+        + " mathsat5 solver.")
+    boolean loadOptimathsat5 = false;
+  }
 
   private Mathsat5FormulaManager(
       LogManager pLogger,
@@ -103,12 +112,14 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       Mathsat5FloatingPointFormulaManager pFloatingPointmanager,
       Mathsat5ArrayFormulaManager pArrayManager,
       Mathsat5Settings pSettings,
+      long pRandomSeed,
       final ShutdownNotifier pShutdownNotifier) {
     super(creator, unsafeManager, pFunctionManager, pBooleanManager,
         pIntegerManager, pRationalManager, pBitpreciseManager, pFloatingPointmanager, null, null);
 
     mathsatConfig = pMathsatConfig;
     settings = pSettings;
+    randomSeed = pRandomSeed;
     logger = checkNotNull(pLogger);
 
     shutdownNotifier = checkNotNull(pShutdownNotifier);
@@ -131,13 +142,22 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
   public static Mathsat5FormulaManager create(LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate solverLogFile) throws InvalidConfigurationException {
+      @Nullable PathCounterTemplate solverLogFile, long randomSeed) throws InvalidConfigurationException {
+
+    ExtraOptions extraOptions = new ExtraOptions();
+    config.inject(extraOptions);
+    if (extraOptions.loadOptimathsat5) {
+      NativeLibraries.loadLibrary("optimathsat5j");
+    } else {
+      NativeLibraries.loadLibrary("mathsat5j");
+    }
 
     // Init Msat
     Mathsat5Settings settings = new Mathsat5Settings(config, solverLogFile);
 
     long msatConf = msat_create_config();
     msat_set_option_checked(msatConf, "theory.la.split_rat_eq", "false");
+    msat_set_option_checked(msatConf, "random_seed", Long.toString(randomSeed));
 
     for (Map.Entry<String, String> option : settings.furtherOptionsMap.entrySet()) {
       try {
@@ -165,7 +185,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     return new Mathsat5FormulaManager(logger, msatConf, creator,
         unsafeManager, functionTheory, booleanTheory,
         integerTheory, rationalTheory, bitvectorTheory, floatingPointTheory, arrayTheory,
-        settings, pShutdownNotifier);
+        settings, randomSeed, pShutdownNotifier);
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {
@@ -184,7 +204,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
   @Override
   public OptEnvironment newOptEnvironment() {
-    throw new UnsupportedOperationException("MathSAT5 does not support optimization");
+    return new Mathsat5OptProver(this, mathsatConfig);
   }
 
   @Override
@@ -219,6 +239,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     }
 
     msat_set_option_checked(cfg, "theory.la.split_rat_eq", "false");
+    msat_set_option_checked(cfg, "random_seed", Long.toString(randomSeed));
 
     for (Map.Entry<String, String> option : settings.furtherOptionsMap.entrySet()) {
       msat_set_option_checked(cfg, option.getKey(), option.getValue());
