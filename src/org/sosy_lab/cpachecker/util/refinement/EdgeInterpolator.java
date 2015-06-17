@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Classes implementing this interface are able to derive interpolants from edges.
  */
-public interface EdgeInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S>> {
+public interface EdgeInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S>> {
 
   I deriveInterpolant(
       ARGPath errorPath,

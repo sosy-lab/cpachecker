@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -57,7 +56,7 @@ import com.google.common.base.Optional;
  */
 @Options(prefix = "cpa.value.refiner")
 public class ElementTestingSymbolicEdgeInterpolator
-    implements EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> {
+    implements SymbolicEdgeInterpolator {
 
   @Option(description = "Whether to refine the precision of ConstraintsCPA")
   private boolean refineConstraintsCPA = true;

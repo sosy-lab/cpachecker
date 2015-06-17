@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
 
@@ -33,5 +32,5 @@ import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
  */
 public interface SymbolicEdgeInterpolator
-    extends EdgeInterpolator<ForgettingCompositeState, ValueAnalysisInformation, SymbolicInterpolant> {
+    extends EdgeInterpolator<ForgettingCompositeState, SymbolicInterpolant> {
 }

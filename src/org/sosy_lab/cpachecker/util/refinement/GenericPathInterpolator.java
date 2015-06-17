@@ -98,14 +98,14 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  private final EdgeInterpolator<S, ?, I> interpolator;
+  private final EdgeInterpolator<S, I> interpolator;
   private final FeasibilityChecker<S> checker;
   private final GenericPrefixProvider<S> prefixProvider;
 
   private Set<Integer> visitedPathPrefixes = new HashSet<>();
 
   public GenericPathInterpolator(
-      final EdgeInterpolator<S, ?, I> pEdgeInterpolator,
+      final EdgeInterpolator<S, I> pEdgeInterpolator,
       final FeasibilityChecker<S> pFeasibilityChecker,
       final GenericPrefixProvider<S> pPrefixProvider,
       final Configuration pConfig,

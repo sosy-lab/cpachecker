@@ -54,7 +54,7 @@ import com.google.common.base.Optional;
  */
 @Options(prefix="cpa.value.interpolation")
 public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S>>
-    implements EdgeInterpolator<S, T, I> {
+    implements EdgeInterpolator<S, I> {
 
   @Option(secure=true, description="apply optimizations based on equality of input interpolant and candidate interpolant")
   private boolean applyItpEqualityOptimization = true;
