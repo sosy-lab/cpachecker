@@ -81,6 +81,26 @@ public interface ConstraintsPrecision extends Precision {
       return new Builder<S>();
     }
 
+    public String toString() {
+      StringBuilder sb = new StringBuilder("ConstraintsPrecision.Increment[");
+
+      if (!trackedLocally.isEmpty()) {
+        sb.append("\n\tTracked locally:\n");
+        sb.append(trackedLocally.toString());
+      }
+      if (!trackedInFunction.isEmpty()) {
+        sb.append("\n\tTracked in function:\n");
+        sb.append(trackedInFunction.toString());
+      }
+      if (!trackedGlobally.isEmpty()) {
+        sb.append("\n\tTracked globally:\n");
+        sb.append(trackedGlobally.toString());
+      }
+      sb.append("]");
+
+      return sb.toString();
+    }
+
     public static class Builder<T> {
       private Multimap<CFANode, T> trackedLocally = HashMultimap.create();
       private Multimap<String, T> trackedInFunction = HashMultimap.create();;
