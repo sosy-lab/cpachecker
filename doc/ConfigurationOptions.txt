@@ -1166,6 +1166,9 @@ cpa.predicate.ignoreExtractConcat = true
 # Ignore variables that are not relevant for reachability properties.
 cpa.predicate.ignoreIrrelevantVariables = true
 
+# do not include assumptions of states into path formula during strengthening
+cpa.predicate.ignoreStateAssumptions = false
+
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
@@ -2032,11 +2035,6 @@ pcc.arg.cmc.file = "assumptions.txt"
 # Which ARG strategy to use for each partial ARG, strategy based on CPA
 # (true) or on proof checker interface (false)
 pcc.arg.cmc.useArgCpaStrategy = true
-
-# Enable if used property checker implements satisfiesProperty(AbstractState)
-# and checked property is violated for a set iff an element in this set
-# exists for which violates the property
-pcc.checkPropertyPerElement = no default value
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for
