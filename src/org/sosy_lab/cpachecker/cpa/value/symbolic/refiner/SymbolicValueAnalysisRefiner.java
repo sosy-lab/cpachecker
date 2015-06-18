@@ -28,6 +28,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 /**
@@ -175,37 +177,6 @@ public class SymbolicValueAnalysisRefiner
           pCfa);
 
     explicitOnlyRefiner = ValueAnalysisRefiner.create(pValueCpa);
-  }
-
-  @Override
-  public CounterexampleInfo performRefinement(
-      final ARGReachedSet pReachedSet
-  ) throws CPAException {
-
-    try {
-      // Perform refinement without symbolic values first.
-      // We require a lot less resources if it is possible to identify the target states as
-      // infeasible without using symbolic values (and as such, also without SAT checks).
-      final CounterexampleInfo explicitOnlyCex = explicitOnlyRefiner.performRefinement(pReachedSet);
-      if (!explicitOnlyCex.isSpurious()) {
-        final CounterexampleInfo symbolicValueCex = super.performRefinement(pReachedSet);
-
-        // if the symbolic refiner reports a target state as feasible, we return the value
-        // analysis's counterexample. It might describe a path actually infeasible according to the
-        // symbolic value analysis, but we get a detailed counterexample, in exchange. (symbolic
-        // value analysis's counterexample has an empty model, at the moment)
-        if (!symbolicValueCex.isSpurious()) {
-          return explicitOnlyCex;
-        } else {
-          return symbolicValueCex;
-        }
-
-      } else {
-        return CounterexampleInfo.spurious();
-      }
-    } catch (InterruptedException e) {
-      throw new CPAException("Error while performing refinement", e);
-    }
   }
 
   @Override

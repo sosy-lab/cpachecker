@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
@@ -54,12 +55,16 @@ import com.google.common.base.Optional;
  * {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and
  * <code>ConstraintsCPA</code>.
  */
-@Options(prefix = "cpa.value.refiner")
+
+@Options(prefix = "cpa.value.refinement")
 public class ElementTestingSymbolicEdgeInterpolator
     implements SymbolicEdgeInterpolator {
 
   @Option(description = "Whether to refine the precision of ConstraintsCPA")
   private boolean refineConstraintsCPA = true;
+
+  @Option(description = "Whether to try to not use any constraints in refinement")
+  private boolean avoidConstraints = true;
 
   private final FeasibilityChecker<ForgettingCompositeState> checker;
   private final StrongestPostOperator<ForgettingCompositeState> strongestPost;
@@ -138,17 +143,35 @@ public class ElementTestingSymbolicEdgeInterpolator
       final ARGPath pSuffix
   ) throws CPAException, InterruptedException {
 
-    ForgettingCompositeState reducedState;
+    ForgettingCompositeState reducedState = pSuccessorState;
+    boolean reduceConstraints = refineConstraintsCPA;
 
-    if (refineConstraintsCPA) {
+    if (avoidConstraints) {
+      reducedState = removeAllConstraints(pSuccessorState);
+
+      if (isPathFeasible(pSuffix, pSuccessorState)) {
+        reducedState = pSuccessorState;
+      } else {
+        reduceConstraints = false;
+      }
+    }
+
+    if (reduceConstraints) {
       reducedState =
-          reduceConstraintsToNecessaryState(pSuccessorState, pSuffix);
+          reduceConstraintsToNecessaryState(reducedState, pSuffix);
 
     } else {
       reducedState = pSuccessorState;
     }
 
     return reduceValuesToNecessaryState(reducedState, pSuffix);
+  }
+
+  private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
+    ForgettingCompositeState newState =
+        new ForgettingCompositeState(pState.getValueState(), new ConstraintsState());
+
+    return newState;
   }
 
   private ForgettingCompositeState reduceConstraintsToNecessaryState(
