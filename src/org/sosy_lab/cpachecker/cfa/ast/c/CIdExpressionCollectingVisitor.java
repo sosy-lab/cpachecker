@@ -162,7 +162,7 @@ public class CIdExpressionCollectingVisitor
   public Set<CIdExpression> visit(CFunctionCallExpression pIastFunctionCallExpression) {
     Set<CIdExpression> result = Collections.emptySet();
     for (CExpression e: pIastFunctionCallExpression.getParameterExpressions()) {
-      Sets.union(result, e.accept(this));
+      result = Sets.union(result, e.accept(this));
     }
     return result;
   }
