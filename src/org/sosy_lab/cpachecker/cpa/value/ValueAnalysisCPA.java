@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -69,11 +70,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -122,16 +123,18 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     config.inject(this);
 
+    Timer precisionReadTime = new Timer();
+
     abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
-    precision           = initializePrecision(config, cfa);
+    precision           = initializePrecision(config, cfa, precisionReadTime);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
 
     precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, cfa);
 
     reducer             = new ValueAnalysisReducer();
-    statistics          = new ValueAnalysisCPAStatistics(this, config);
+    statistics          = new ValueAnalysisCPAStatistics(this, config, precisionReadTime);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
   }
 
@@ -160,17 +163,22 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     return null;
   }
 
-  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa, Timer pPrecisionReadTime) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     } else {
-      // create precision with empty, refinable component precision
-      VariableTrackingPrecision precision = VariableTrackingPrecision.createRefineablePrecision(config,
-                      VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
-      // refine the refinable component precision with increment from file
-      return precision.withIncrement(restoreMappingFromFile(cfa));
+      try {
+        pPrecisionReadTime.start();
+        // create precision with empty, refinable component precision
+        VariableTrackingPrecision precision = VariableTrackingPrecision.createRefineablePrecision(config,
+            VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
+        // refine the refinable component precision with increment from file
+        return precision.withIncrement(restoreMappingFromFile(cfa));
+      } finally {
+        pPrecisionReadTime.stop();
+      }
     }
   }
 

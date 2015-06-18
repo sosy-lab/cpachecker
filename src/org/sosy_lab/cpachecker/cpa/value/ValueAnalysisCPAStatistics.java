@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -53,9 +54,12 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   private Path precisionFile = null;
 
   private final ValueAnalysisCPA cpa;
+  private final Timer precisionReadTime;
 
-  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config) throws InvalidConfigurationException {
+  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config, Timer pPrecisionReadTime)
+      throws InvalidConfigurationException {
     this.cpa = cpa;
+    precisionReadTime = pPrecisionReadTime;
 
     config.inject(this, ValueAnalysisCPAStatistics.class);
   }
@@ -80,6 +84,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put(numberOfVariables);
     writer.put(numberOfGlobalVariables);
+    writer.put("Initial precision read time", precisionReadTime);
 
     if (precisionFile != null) {
       exportPrecision(reached);

@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -101,6 +102,8 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
+  private final Timer precisionReadTime = new Timer();
+
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -145,7 +148,12 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
       tempPrecision = VariableTrackingPrecision.createRefineablePrecision(config,
           VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
       if (initialPrecisionFile != null) {
-        tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile(cfa));
+        precisionReadTime.start();
+        try {
+          tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile(cfa));
+        } finally {
+          precisionReadTime.stop();
+        }
       }
       // static full precision is default
     } else {
@@ -257,6 +265,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
         if (precisionFile != null) {
           exportPrecision(pReached);
         }
+        pOut.println("Initial precision read time:     " + precisionReadTime);
 
       }
 

@@ -36,8 +36,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -131,7 +131,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
    * @throws      InvalidConfigurationException
    */
   public PredicatePrecision prepareInitialPredicates() throws InvalidConfigurationException {
+    Timer precisionReadTime = new Timer();
+    precisionReadTime.start();
+
     PredicatePrecision result = internalPrepareInitialPredicates();
+
+    precisionReadTime.stop();
+    statistics.addKeyValueStatistic("Initial precision read time", precisionReadTime);
 
     statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());
     statistics.addKeyValueStatistic("Init. location predicates", result.getLocalPredicates().size());
