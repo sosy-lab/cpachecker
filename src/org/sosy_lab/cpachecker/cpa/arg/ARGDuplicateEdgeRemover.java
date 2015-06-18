@@ -61,7 +61,7 @@ public class ARGDuplicateEdgeRemover implements PostProcessor {
           }
           if (currentVisit.getEdgeToChild(child).equals(currentVisit.getEdgeToChild(otherChild))) {
             Preconditions.checkState(child.isCovered() || otherChild.isCovered(),
-                    "Has at least two childs for some edge and none of it is covered. Preparation for ARG translation to C file failed. Retry using CallstackPCC instead of Callstack CPA or enable option cpa.arg.deleteInPredicatedAnalysis.");
+                    "Has at least two childs for some edge and none of it is covered. Preparation for ARG translation to C file failed. Retry using CallstackPCC instead of Callstack CPA or enable option cpa.arg.deleteInCPAEnabledAnalysis.");
 
             if (child.isCovered() &&
                 (child.getCoveringState() == otherChild
@@ -84,7 +84,6 @@ public class ARGDuplicateEdgeRemover implements PostProcessor {
         // TODO also remove from reached set?
       }
     }
-
   }
 
 }
