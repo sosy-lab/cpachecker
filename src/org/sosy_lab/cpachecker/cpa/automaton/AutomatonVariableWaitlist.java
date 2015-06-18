@@ -39,15 +39,15 @@ public class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    int sortKey = 0;
+    Integer sortKey = null;
     for (AutomatonState automatonState : AbstractStates.asIterable(pState).filter(AutomatonState.class)) {
       AutomatonVariable variable = automatonState.getVars().get(variableId);
       if (variable != null) {
-        sortKey = Math.max(sortKey, variable.getValue());
+        sortKey = sortKey == null ? variable.getValue() : Math.max(sortKey, variable.getValue());
       }
     }
 
-    return sortKey;
+    return sortKey == null ? 0 : sortKey;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy, final String pVariableId) {
