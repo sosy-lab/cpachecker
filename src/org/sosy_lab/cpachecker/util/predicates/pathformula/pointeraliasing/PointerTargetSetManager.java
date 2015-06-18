@@ -395,7 +395,7 @@ public class PointerTargetSetManager {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula = formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(newBase));
     if (lastBase != null) {
-      final Integer lastSize = typeHandler.getSizeof(bases.get(lastBase));
+      final int lastSize = typeHandler.getSizeof(bases.get(lastBase));
       final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
                                                   formulaManager.makeNumber(pointerType, lastSize));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
