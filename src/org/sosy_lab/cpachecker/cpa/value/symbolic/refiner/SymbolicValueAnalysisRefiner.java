@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.logging.Level;
 
+import org.matheclipse.core.reflection.system.For;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,6 +58,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
@@ -153,9 +156,9 @@ public class SymbolicValueAnalysisRefiner
     return refiner;
   }
 
-  protected SymbolicValueAnalysisRefiner(
-      final SymbolicFeasibilityChecker pFeasibilityChecker,
-      final SymbolicPathInterpolator pInterpolator,
+  public SymbolicValueAnalysisRefiner(
+      final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
+      final PathInterpolator<SymbolicInterpolant> pInterpolator,
       final PathExtractor pPathExtractor,
       final Configuration pConfig,
       final LogManager pLogger,
