@@ -28,6 +28,7 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -95,7 +96,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   public BooleanFormula transformAssignment(AssignableTerm pTerm, Object termAssignment, VariableMap pVariables) {
     Formula variable = getVariableForTerm(pTerm, pVariables);
     FormulaType<?> variableType = formulaManager.getFormulaType(variable);
-    Formula rightFormula;
+    Formula rightFormula = null;
 
     if (termAssignment instanceof Number) {
 
@@ -113,14 +114,14 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
       } else if (termAssignment instanceof Float || termAssignment instanceof Double) {
         assert variableType.isFloatingPointType();
-        final FloatingPointFormula variableAsFloat = (FloatingPointFormula) variable;
+        final FloatingPointFormula variableAsFloat = (FloatingPointFormula)variable;
         final Double assignmentAsDouble;
 
         if (termAssignment instanceof Float) {
-          assignmentAsDouble = ((Float) termAssignment).doubleValue();
+          assignmentAsDouble = ((Float)termAssignment).doubleValue();
         } else {
           assert termAssignment instanceof Double;
-          assignmentAsDouble = (Double) termAssignment;
+          assignmentAsDouble = (Double)termAssignment;
         }
 
         if (assignmentAsDouble.isNaN()) {
@@ -136,6 +137,8 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
           decimalValue = BigDecimal.valueOf(assignmentAsDouble);
         }
 
+      } else if (termAssignment instanceof Rational) {
+        rightFormula = formulaManager.getRationalFormulaManager().makeNumber((Rational) termAssignment);
       } else {
         throw new AssertionError("Unhandled assignment number " + termAssignment);
       }
@@ -143,8 +146,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       if (integerValue != null) {
         rightFormula = formulaManager.makeNumber(variableType, integerValue);
 
-      } else {
-        assert decimalValue != null;
+      } else if (decimalValue != null) {
 
         if (variableType.isRationalType()) {
           rightFormula = formulaManager.getRationalFormulaManager().makeNumber(decimalValue);
@@ -161,6 +163,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       throw new AssertionError("Unhandled assignment object " + termAssignment);
     }
 
+    assert rightFormula != null;
     return formulaManager.makeEqual(variable, rightFormula);
   }
 
