@@ -40,8 +40,9 @@ import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
  * {@link Refiner} for {@link ValueAnalysisCPA} using symbolic values and {@link ConstraintsCPA}
+ * that extracts a precision for both CPAs from the precision created by {@link PredicateRefiner}.
  */
-public abstract class DelegatingSymbolicValueAnalysisRefiner implements Refiner {
+public abstract class PredicateExtractionRefiner implements Refiner {
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, CPAException {
@@ -52,19 +53,19 @@ public abstract class DelegatingSymbolicValueAnalysisRefiner implements Refiner 
 
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(
-          DelegatingSymbolicValueAnalysisRefiner.class.getSimpleName()
+          PredicateExtractionRefiner.class.getSimpleName()
               + " needs a ValueAnalysisCPA");
     }
 
     if (constraintsCpa == null) {
       throw new InvalidConfigurationException(
-          DelegatingSymbolicValueAnalysisRefiner.class.getSimpleName()
+          PredicateExtractionRefiner.class.getSimpleName()
               + " needs a ConstraintsCPA");
     }
 
     if (predicateCPA == null) {
       throw new InvalidConfigurationException(
-          DelegatingSymbolicValueAnalysisRefiner.class.getSimpleName()
+          PredicateExtractionRefiner.class.getSimpleName()
               + " needs a PredicateCPA");
     }
 
