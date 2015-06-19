@@ -273,8 +273,11 @@ def _submitRun(run, benchmark, counter = 0):
     headers = {"Content-Type": "application/x-www-form-urlencoded",
                "Content-Encoding": "deflate",
                "Accept": "text/plain",
-               "Connection": "Keep-Alive", 
-               "Authorization": "Basic " + _base64_user_pwd}
+               "Connection": "Keep-Alive"}
+    
+    if _base64_user_pwd:
+        headers.update({"Authorization": "Basic " + _base64_user_pwd})
+    
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     path = _webclient.path + "runs/"
     
@@ -287,7 +290,7 @@ def _submitRun(run, benchmark, counter = 0):
         return runID
 
     else:
-        raise urllib2.HTTPError(response.read(), response.getcode())
+        raise urllib2.HTTPError(path, response.getcode(), response.read(), response.getheaders(), None)
 
 def _handleOptions(run, params, rlimits):
     # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
@@ -376,8 +379,10 @@ def _getResults(runIDs, output_handler, benchmark):
 
 def _isFinished(runID, benchmark, connection):
 
-    headers = {"Accept": "text/plain", "Connection": "Keep-Alive", \
-               "Authorization": "Basic " + _base64_user_pwd}
+    headers = {"Accept": "text/plain", "Connection": "Keep-Alive"}
+    if _base64_user_pwd:
+        headers.update({"Authorization": "Basic " + _base64_user_pwd})
+        
     path = _webclient.path + "runs/" + runID + "/state"
     connection.request("GET", path, headers=headers)
     response = connection.getresponse()
@@ -405,8 +410,10 @@ def _isFinished(runID, benchmark, connection):
 
 def _getAndHandleResult(runID, run, output_handler, benchmark, connection):
     # download result as zip file
-    headers = {"Accept": "application/zip", "Connection": "Keep-Alive", \
-               "Authorization": "Basic " + _base64_user_pwd}
+    headers = {"Accept": "application/zip", "Connection": "Keep-Alive"}
+    if _base64_user_pwd:
+        headers.update({"Authorization": "Basic " + _base64_user_pwd})
+    
     path = _webclient.path + "runs/" + runID + "/result"
     
     counter = 0
