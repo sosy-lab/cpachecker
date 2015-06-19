@@ -32,6 +32,7 @@ import base64
 import io
 import logging
 import os
+import random
 import shutil
 import threading
 import zlib
@@ -68,6 +69,7 @@ class WebClientError(Exception):
 
 _thread_local = threading.local()
 _unfinished_run_ids = set()
+_groupId = None
 _webclient = None
 _base64_user_pwd = None
 _svn_branch = None
@@ -126,7 +128,9 @@ def init(config, benchmark):
         
     if config.cloudUser:
         _base64_user_pwd = base64.b64encode(config.cloudUser.encode("utf-8")).decode("utf-8")
-        
+    
+    _groupId = str(random.randint(0, 1000000))
+    
     benchmark.executable = 'scripts/cpa.sh'
 
 def get_system_info():
@@ -245,9 +249,8 @@ def _submitRun(run, benchmark, counter = 0):
             programTexts.append(programText)
     params = {'programText': programTexts}
 
-    if benchmark.config.revision:
-        params['svnBranch'] = _svn_branch
-        params['revision'] = _svn_revision
+    params['svnBranch'] = _svn_branch
+    params['revision'] = _svn_revision
 
     if run.propertyfile:
         with open(run.propertyfile, 'r') as propertyFile:
@@ -268,6 +271,8 @@ def _submitRun(run, benchmark, counter = 0):
     if invalidOption:
         raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
             .format(run.options, run.identifier))
+
+    params['groupId'] = _groupId;
 
     # prepare request
     headers = {"Content-Type": "application/x-www-form-urlencoded",
