@@ -77,8 +77,6 @@ public class SymbolicValueAnalysisRefiner
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
-  private final ValueAnalysisRefiner explicitOnlyRefiner;
-
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
@@ -150,8 +148,7 @@ public class SymbolicValueAnalysisRefiner
         config,
         logger,
         shutdownNotifier,
-        cfa,
-        valueAnalysisCpa);
+        cfa);
 
     return refiner;
   }
@@ -163,8 +160,7 @@ public class SymbolicValueAnalysisRefiner
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa,
-      final ValueAnalysisCPA pValueCpa
+      final CFA pCfa
   ) throws InvalidConfigurationException {
 
     super(pFeasibilityChecker,
@@ -175,8 +171,6 @@ public class SymbolicValueAnalysisRefiner
           pLogger,
           pShutdownNotifier,
           pCfa);
-
-    explicitOnlyRefiner = ValueAnalysisRefiner.create(pValueCpa);
   }
 
   @Override
@@ -229,7 +223,6 @@ public class SymbolicValueAnalysisRefiner
 
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    explicitOnlyRefiner.collectStatistics(pStatsCollection);
     super.collectStatistics(pStatsCollection);
   }
 
