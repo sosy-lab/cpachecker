@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
@@ -39,8 +40,8 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 5745797034946117366L;
-  private final Collection<String> globalVars;
-  private final Deque<Pair<String, Collection<String>>> localVars;
+  private final Set<String> globalVars;
+  private final Deque<Pair<String, Set<String>>> localVars;
 
   private final Collection<Triple<Integer, String, String>> warnings;
 
@@ -48,7 +49,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
   public UninitializedVariablesState(String entryFunction) {
-    globalVars = new ArrayList<>();
+    globalVars = new HashSet<>();
     localVars = new LinkedList<>();
     warnings = new ArrayList<>();
     // create context of the entry function
@@ -56,9 +57,9 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   }
 
   public UninitializedVariablesState(Collection<String> globalVars,
-                                       Deque<Pair<String, Collection<String>>> localVars,
+                                       Deque<Pair<String, Set<String>>> localVars,
                                        Collection<Triple<Integer, String, String>> warnings) {
-    this.globalVars = globalVars;
+    this.globalVars = new HashSet<>(globalVars);
     this.localVars = localVars;
     this.warnings = warnings;
   }
@@ -91,7 +92,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     return localVars.peekLast().getSecond();
   }
 
-  public Deque<Pair<String, Collection<String>>> getallLocalVariables() {
+  public Deque<Pair<String, Set<String>>> getallLocalVariables() {
     return localVars;
   }
 
@@ -105,7 +106,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   }
 
   public void callFunction(String functionName) {
-    localVars.addLast(Pair.of(functionName, (Collection<String>)new ArrayList<String>()));
+    localVars.addLast(Pair.of(functionName, (Set<String>) new HashSet<String>()));
   }
 
   public void returnFromFunction() {
@@ -141,11 +142,11 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   @Override
   protected UninitializedVariablesState clone() {
-    LinkedList<Pair<String, Collection<String>>> newLocalVars = new LinkedList<>();
+    LinkedList<Pair<String, Set<String>>> newLocalVars = new LinkedList<>();
 
-    for (Pair<String, Collection<String>> localContext : localVars) {
+    for (Pair<String, Set<String>> localContext : localVars) {
       newLocalVars.addLast(Pair.of(localContext.getFirst(),
-                                   (Collection<String>)new ArrayList<>(localContext.getSecond())));
+                                   (Set<String>)new HashSet<>(localContext.getSecond())));
     }
 
     return new UninitializedVariablesState(new ArrayList<>(globalVars), newLocalVars,
@@ -159,7 +160,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     for (String var : globalVars) {
       sb.append(" " + var + " ");
     }
-    for (Pair<String, Collection<String>> stackframe: localVars) {
+    for (Pair<String, Set<String>> stackframe: localVars) {
       sb.append("> <" + stackframe.getFirst() + ":");
       for (String var : stackframe.getSecond()) {
         sb.append(" " + var + " ");

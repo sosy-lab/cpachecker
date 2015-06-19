@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cpa.uninitvars;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+
+import com.google.common.collect.Sets;
 
 public class UninitializedVariablesDomain implements AbstractDomain {
 
@@ -37,10 +40,16 @@ public class UninitializedVariablesDomain implements AbstractDomain {
       UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
       UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
 
+    if (uninitVarsElement2.getGlobalVariables().containsAll(uninitVarsElement1.getGlobalVariables())
+        && uninitVarsElement2.getLocalVariables().containsAll(uninitVarsElement1.getLocalVariables())) {
+      return element2;
+    }
+
       UninitializedVariablesState newElement = uninitVarsElement1.clone();
 
-      newElement.getGlobalVariables().addAll(uninitVarsElement2.getGlobalVariables());
-      newElement.getLocalVariables().addAll(uninitVarsElement2.getLocalVariables());
+    newElement.getGlobalVariables().addAll(uninitVarsElement2.getGlobalVariables());
+    newElement.getLocalVariables().addAll(uninitVarsElement2.getLocalVariables());
+
       // only the local variables of the current context need to be joined,
       // the others are already identical (were joined before calling the last function)
 
@@ -53,24 +62,24 @@ public class UninitializedVariablesDomain implements AbstractDomain {
       UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
       UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
 
-      if (!uninitVarsElement1.getGlobalVariables().containsAll(
-                              uninitVarsElement2.getGlobalVariables())) {
+      if (!uninitVarsElement2.getGlobalVariables().containsAll(
+                              uninitVarsElement1.getGlobalVariables())) {
         return false;
       }
 
       // need to check all function contexts
-      Iterator<Pair<String, Collection<String>>> it1 = uninitVarsElement1.getallLocalVariables().iterator();
-      Iterator<Pair<String, Collection<String>>> it2 = uninitVarsElement2.getallLocalVariables().iterator();
+      Iterator<Pair<String, Set<String>>> it1 = uninitVarsElement1.getallLocalVariables().iterator();
+      Iterator<Pair<String, Set<String>>> it2 = uninitVarsElement2.getallLocalVariables().iterator();
 
       while (it1.hasNext()) {
         assert it2.hasNext();
 
-        Pair<String, Collection<String>> stackframe1 = it1.next();
-        Pair<String, Collection<String>> stackframe2   = it2.next();
+        Pair<String, Set<String>> stackframe1 = it1.next();
+        Pair<String, Set<String>> stackframe2   = it2.next();
 
         assert stackframe1.getFirst().equals(stackframe1.getFirst());
 
-        if (!stackframe1.getSecond().containsAll(stackframe2.getSecond())) {
+        if (!stackframe2.getSecond().containsAll(stackframe1.getSecond())) {
           return false;
         }
       }
