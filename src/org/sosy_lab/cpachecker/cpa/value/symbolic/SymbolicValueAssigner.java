@@ -52,8 +52,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
-import com.sun.javafx.fxml.expression.ExpressionValue;
-
 /**
  * This class allows assignment of new {@link SymbolicIdentifier}s
  * to {@link MemoryLocation}s of {@link ValueAnalysisState} object.
