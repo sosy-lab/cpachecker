@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -67,6 +69,7 @@ public class SymbolicDelegatingRefiner implements Refiner {
   private final SymbolicValueAnalysisRefiner explicitRefiner;
   private final SymbolicValueAnalysisRefiner symbolicRefiner;
 
+  private final LogManager logger;
 
   public static SymbolicDelegatingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -161,7 +164,7 @@ public class SymbolicDelegatingRefiner implements Refiner {
     final PathInterpolator<SymbolicInterpolant> explicitPathInterpolator =
         new GenericPathInterpolator<>(
             explicitEdgeInterpolator,
-            feasibilityChecker,
+            explicitFeasibilityChecker,
             explicitPrefixProvider,
             config, logger, shutdownNotifier, cfa);
 
@@ -206,16 +209,25 @@ public class SymbolicDelegatingRefiner implements Refiner {
                                                        pLogger,
                                                        pShutdownNotifier,
                                                        pCfa);
+    logger = pLogger;
   }
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    boolean refinementSucessful = explicitRefiner.performRefinement(pReached);
+    logger.log(Level.FINER, "Trying to refine using explicit refiner only");
+    boolean refinementSuccessful = explicitRefiner.performRefinement(pReached);
 
-    if (!refinementSucessful) {
-      refinementSucessful = symbolicRefiner.performRefinement(pReached);
+    if (!refinementSuccessful) {
+      logger.log(Level.FINER, "Refinement using explicit refiner only failed");
+      logger.log(Level.FINER, "Trying to refine using symbolic refiner");
+      refinementSuccessful = symbolicRefiner.performRefinement(pReached);
+      logger.logf(Level.FINER,
+          "Refinement using symbolic refiner finished with status %s", refinementSuccessful);
+
+    } else {
+      logger.log(Level.FINER, "Refinement using explicit refiner only successful");
     }
 
-    return refinementSucessful;
+    return refinementSuccessful;
   }
 }
