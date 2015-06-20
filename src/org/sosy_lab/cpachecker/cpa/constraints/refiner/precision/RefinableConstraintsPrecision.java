@@ -38,7 +38,7 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
   public enum PrecisionType { CONSTRAINTS, LOCATION }
 
-  @Option(description = "Type of precision to use. Has to be VARIABLES if"
+  @Option(description = "Type of precision to use. Has to be LOCATION if"
       + " PredicateExtractionRefiner is used.", toUppercase = true)
   private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
 
