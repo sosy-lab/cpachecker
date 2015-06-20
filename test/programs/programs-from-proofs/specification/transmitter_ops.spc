@@ -1,0 +1,18 @@
+OBSERVER AUTOMATON MonitorM_EAssignmentAutomaton
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  MATCH {kernel_st = 0;} -> GOTO STATE2;
+  MATCH  {M_E = 2;}  -> ERROR;
+  MATCH  {M_E = 1;}  -> ERROR;
+ 
+STATE USEFIRST STATE1:
+  MATCH  {M_E = 1;}  -> ERROR;
+  MATCH  {M_E = 2;}  -> GOTO STATE2; 
+ 
+STATE USEFIRST STATE2:
+  MATCH  {M_E = 1;}  -> GOTO STATE1;
+  MATCH  {M_E = 2;}  -> ERROR;
+  
+END AUTOMATON
