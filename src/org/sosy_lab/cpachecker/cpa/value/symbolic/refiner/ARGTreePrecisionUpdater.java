@@ -139,7 +139,7 @@ public class ARGTreePrecisionUpdater {
   public ConstraintsPrecision createConstraintsPrec(
       final ARGState pRefinementRoot,
       final ARGReachedSet pReached,
-      final ConstraintsPrecision.Increment<?> pConstraintsPrecIncrement
+      final ConstraintsPrecision.Increment pConstraintsPrecIncrement
   ) {
     return mergeConstraintsPrecisionsForSubgraph(pRefinementRoot, pReached)
         .withIncrement(pConstraintsPrecIncrement);
@@ -188,7 +188,7 @@ public class ARGTreePrecisionUpdater {
       final ARGReachedSet pReached,
       final ARGState pRefinementRoot,
       final Multimap<CFANode, MemoryLocation> pValuePrecIncrement,
-      final ConstraintsPrecision.Increment<?> pConstraintsPrecIncrement
+      final ConstraintsPrecision.Increment pConstraintsPrecIncrement
   ) {
     List<Precision> precisions = new ArrayList<>(2);
 

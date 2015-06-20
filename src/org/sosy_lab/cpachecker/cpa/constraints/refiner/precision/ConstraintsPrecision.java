@@ -36,8 +36,6 @@ import com.google.common.collect.Multimap;
 
 /**
  * Precision for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
- *
- * @param <T> type of the increment
  */
 public interface ConstraintsPrecision extends Precision {
 
@@ -48,37 +46,37 @@ public interface ConstraintsPrecision extends Precision {
 
   ConstraintsPrecision join(ConstraintsPrecision pOther);
   
-  ConstraintsPrecision withIncrement(Increment<?> pIncrement);
+  ConstraintsPrecision withIncrement(Increment pIncrement);
 
-  class Increment<T> {
-    private Multimap<CFANode, T> trackedLocally = HashMultimap.create();
-    private Multimap<String, T> trackedInFunction = HashMultimap.create();
-    private Set<T> trackedGlobally = new HashSet<>();
+  class Increment {
+    private Multimap<CFANode, Constraint> trackedLocally = HashMultimap.create();
+    private Multimap<String, Constraint> trackedInFunction = HashMultimap.create();
+    private Set<Constraint> trackedGlobally = new HashSet<>();
 
     private Increment(
-        final Multimap<CFANode, T> pTrackedLocally,
-        final Multimap<String, T> pTrackedInFunction,
-        final Set<T> pTrackedGlobally
+        final Multimap<CFANode, Constraint> pTrackedLocally,
+        final Multimap<String, Constraint> pTrackedInFunction,
+        final Set<Constraint> pTrackedGlobally
     ) {
       trackedLocally = pTrackedLocally;
       trackedInFunction = pTrackedInFunction;
       trackedGlobally = pTrackedGlobally;
     }
 
-    public Set<T> getTrackedGlobally() {
+    public Set<Constraint> getTrackedGlobally() {
       return trackedGlobally;
     }
 
-    public Multimap<String, T> getTrackedInFunction() {
+    public Multimap<String, Constraint> getTrackedInFunction() {
       return trackedInFunction;
     }
 
-    public Multimap<CFANode, T> getTrackedLocally() {
+    public Multimap<CFANode, Constraint> getTrackedLocally() {
       return trackedLocally;
     }
 
-    public static <S> Builder<S> builder() {
-      return new Builder<S>();
+    public static Builder builder() {
+      return new Builder();
     }
 
     public String toString() {
@@ -101,65 +99,65 @@ public interface ConstraintsPrecision extends Precision {
       return sb.toString();
     }
 
-    public static class Builder<T> {
-      private Multimap<CFANode, T> trackedLocally = HashMultimap.create();
-      private Multimap<String, T> trackedInFunction = HashMultimap.create();;
-      private Set<T> trackedGlobally = new HashSet<>();
+    public static class Builder {
+      private Multimap<CFANode, Constraint> trackedLocally = HashMultimap.create();
+      private Multimap<String, Constraint> trackedInFunction = HashMultimap.create();;
+      private Set<Constraint> trackedGlobally = new HashSet<>();
 
       private Builder() {
         // DO NOTHING
       }
 
-      public Builder<T> locallyTracked(
+      public Builder locallyTracked(
           final CFANode pNode,
-          final T pConstraint
+          final Constraint pConstraint
       ) {
         trackedLocally.put(pNode, pConstraint);
         return this;
       }
 
-      public Builder<T> locallyTracked(
+      public Builder locallyTracked(
           final CFANode pNode,
-          final Collection<T> pConstraints
+          final Collection<Constraint> pConstraints
       ) {
         trackedLocally.putAll(pNode, pConstraints);
         return this;
       }
 
-      public Builder<T> locallyTracked(
-          final Multimap<CFANode, T> pTrackedLocally
+      public Builder locallyTracked(
+          final Multimap<CFANode, Constraint> pTrackedLocally
       ) {
         trackedLocally.putAll(pTrackedLocally);
         return this;
       }
 
-      public Builder<T> functionWiseTracked(
+      public Builder functionWiseTracked(
           final String pFunctionName,
-          final T pConstraint
+          final Constraint pConstraint
       ) {
         trackedInFunction.put(pFunctionName, pConstraint);
         return this;
       }
 
-      public Builder<T> functionWiseTracked(
-          final Multimap<String, T> pTrackedFunctionWise
+      public Builder functionWiseTracked(
+          final Multimap<String, Constraint> pTrackedFunctionWise
       ) {
         trackedInFunction.putAll(pTrackedFunctionWise);
         return this;
       }
 
-      public Builder<T> globallyTracked(final T pConstraint) {
+      public Builder globallyTracked(final Constraint pConstraint) {
         trackedGlobally.add(pConstraint);
         return this;
       }
 
-      public Builder<T> globallyTracked(final Set<T> pTrackedGlobally) {
+      public Builder globallyTracked(final Set<Constraint> pTrackedGlobally) {
         trackedGlobally.addAll(pTrackedGlobally);
         return this;
       }
 
-      public Increment<T> build() {
-        return new Increment<>(trackedLocally, trackedInFunction, trackedGlobally);
+      public Increment build() {
+        return new Increment(trackedLocally, trackedInFunction, trackedGlobally);
       }
 
     }

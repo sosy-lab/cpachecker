@@ -45,16 +45,17 @@ import com.google.common.collect.Multimap;
  * ConstraintsPrecision that uses the code constraints represent.
  *
  * <p>Example:
- * A LocalizedConstraintsPrecision contains for location <code>N12</code> the precision
+ * A ConstraintBasedConstraintsPrecision contains for location <code>N12</code> the precision
  * <code>'a > 5'</code>. The ConstraintsState to adjust at this location is
  * <code>'s1(a) > 5, s3(b) > 5'</code>.
  * After precision adjustment, the ConstraintsState only consists of <code>'s1(a) > 5'</code>.
  * </p>
  */
-class LocalizedConstraintsPrecision
+class ConstraintBasedConstraintsPrecision
     implements ConstraintsPrecision {
 
-  private final static LocalizedConstraintsPrecision EMPTY = new LocalizedConstraintsPrecision();
+  private final static ConstraintBasedConstraintsPrecision
+      EMPTY = new ConstraintBasedConstraintsPrecision();
 
   private Multimap<CFANode, Constraint> trackedLocally;
   private Multimap<String, Constraint> trackedInFunction;
@@ -65,10 +66,10 @@ class LocalizedConstraintsPrecision
   }
 
   /**
-   * Creates a new <code>LocalizedConstraintsPrecision</code> with the given constraints as precision.
+   * Creates a new <code>ConstraintBasedConstraintsPrecision</code> with the given constraints as precision.
    */
-  private LocalizedConstraintsPrecision(
-      final LocalizedConstraintsPrecision pPrecision
+  private ConstraintBasedConstraintsPrecision(
+      final ConstraintBasedConstraintsPrecision pPrecision
   ) {
     checkNotNull(pPrecision);
 
@@ -77,7 +78,7 @@ class LocalizedConstraintsPrecision
     trackedGlobally = pPrecision.trackedGlobally;
   }
 
-  private LocalizedConstraintsPrecision(
+  private ConstraintBasedConstraintsPrecision(
       final Multimap<CFANode, Constraint> pTrackedLocally,
       final Multimap<String, Constraint> pTrackedInFunction,
       final Set<Constraint> pTrackedGlobally
@@ -87,7 +88,7 @@ class LocalizedConstraintsPrecision
     trackedGlobally = pTrackedGlobally;
   }
 
-  private LocalizedConstraintsPrecision() {
+  private ConstraintBasedConstraintsPrecision() {
     trackedLocally = HashMultimap.create();
     trackedInFunction = HashMultimap.create();
     trackedGlobally = new HashSet<>();
@@ -125,10 +126,10 @@ class LocalizedConstraintsPrecision
    * @param pOther the precision to join with this precision
    * @return the join of both precisions
    */
-  public LocalizedConstraintsPrecision join(final ConstraintsPrecision pOther) {
-    assert pOther instanceof LocalizedConstraintsPrecision;
+  public ConstraintBasedConstraintsPrecision join(final ConstraintsPrecision pOther) {
+    assert pOther instanceof ConstraintBasedConstraintsPrecision;
 
-    LocalizedConstraintsPrecision other = (LocalizedConstraintsPrecision) pOther;
+    ConstraintBasedConstraintsPrecision other = (ConstraintBasedConstraintsPrecision) pOther;
     Multimap<CFANode, Constraint> joinedLocal = HashMultimap.create(trackedLocally);
     Multimap<String, Constraint> joinedFunctionwise = HashMultimap.create(trackedInFunction);
     Set<Constraint> joinedGlobal = new HashSet<>(trackedGlobally);
@@ -137,7 +138,7 @@ class LocalizedConstraintsPrecision
     addNewFunctionConstraints(joinedFunctionwise, other.trackedInFunction);
     addNewGlobalConstraints(joinedGlobal, other.trackedGlobally);
 
-    return new LocalizedConstraintsPrecision(joinedLocal, joinedFunctionwise, joinedGlobal);
+    return new ConstraintBasedConstraintsPrecision(joinedLocal, joinedFunctionwise, joinedGlobal);
   }
 
   private void addNewLocalConstraints(
@@ -232,15 +233,12 @@ class LocalizedConstraintsPrecision
   }
 
   @Override
-  public LocalizedConstraintsPrecision withIncrement(final Increment<?> pIncrement) {
-    LocalizedConstraintsPrecision newPrecision = new LocalizedConstraintsPrecision(this);
+  public ConstraintBasedConstraintsPrecision withIncrement(final Increment pIncrement) {
+    ConstraintBasedConstraintsPrecision newPrecision = new ConstraintBasedConstraintsPrecision(this);
 
-    // Might throw a class cast exception later on if T is not of type Constraint.
-    final Increment<Constraint> constrIncr = (Increment<Constraint>) pIncrement;
-
-    newPrecision.trackedGlobally.addAll(constrIncr.getTrackedGlobally());
-    newPrecision.trackedInFunction.putAll(constrIncr.getTrackedInFunction());
-    newPrecision.trackedLocally.putAll(constrIncr.getTrackedLocally());
+    newPrecision.trackedGlobally.addAll(pIncrement.getTrackedGlobally());
+    newPrecision.trackedInFunction.putAll(pIncrement.getTrackedInFunction());
+    newPrecision.trackedLocally.putAll(pIncrement.getTrackedLocally());
 
     return newPrecision;
   }
@@ -253,7 +251,7 @@ class LocalizedConstraintsPrecision
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    LocalizedConstraintsPrecision that = (LocalizedConstraintsPrecision) o;
+    ConstraintBasedConstraintsPrecision that = (ConstraintBasedConstraintsPrecision) o;
 
     return Objects.equals(trackedLocally, that.trackedLocally);
   }
@@ -265,7 +263,7 @@ class LocalizedConstraintsPrecision
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("LocalizedConstraintsPrecision[");
+    StringBuilder sb = new StringBuilder("ConstraintBasedConstraintsPrecision[");
 
     sb.append("\nLocally tracked: {");
     if (!trackedLocally.keySet().isEmpty()) {

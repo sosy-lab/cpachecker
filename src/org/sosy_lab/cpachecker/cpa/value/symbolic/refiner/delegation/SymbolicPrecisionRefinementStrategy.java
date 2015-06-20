@@ -36,6 +36,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision.Increment;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision.Increment.Builder;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -114,7 +115,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
 
     Multimap<CFANode, MemoryLocation> valuePrecInc = HashMultimap.create();
 
-    Builder<MemoryLocation> constrPrecInc = Increment.builder();
+    Builder constrPrecInc = Increment.builder();
 
     for (Map.Entry<CFANode, Collection<AbstractionPredicate>> entry : localPrec.entrySet()) {
       // this is actually the predecessor of a node we will use for precision adjustment
@@ -129,7 +130,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
       }
 
       valuePrecInc.putAll(currNode, locations);
-      constrPrecInc.locallyTracked(currNode, locations);
+      constrPrecInc.locallyTracked(currNode, (Constraint) null); // we only need the node
     }
 
     updateARGTree(pReached, refinementRoot, valuePrecInc, constrPrecInc.build());
@@ -139,7 +140,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
       final ARGReachedSet pReached,
       final ARGState pRefinementRoot,
       final Multimap<CFANode, MemoryLocation> pValuePrecInc,
-      final Increment<MemoryLocation> pConstrPrecInc
+      final Increment pConstrPrecInc
   ) {
 
     final ARGTreePrecisionUpdater precUpdater = ARGTreePrecisionUpdater.getInstance();

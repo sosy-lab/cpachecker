@@ -36,9 +36,9 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 @Options(prefix = "cpa.constraints.refinement")
 public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
-  public enum PrecisionType { LOCALIZED, CONSTRAINTS }
+  public enum PrecisionType { CONSTRAINTS, LOCATION }
 
-  @Option(description = "Type of precision to use. Has to be LOCALIZED if"
+  @Option(description = "Type of precision to use. Has to be VARIABLES if"
       + " PredicateExtractionRefiner is used.", toUppercase = true)
   private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
 
@@ -50,10 +50,10 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
     switch (precisionType) {
       case CONSTRAINTS:
-        delegate = LocalizedConstraintsPrecision.getEmptyPrecision();
+        delegate = ConstraintBasedConstraintsPrecision.getEmptyPrecision();
         break;
-      case LOCALIZED:
-        delegate = VariableTrackingConstraintsPrecision.getEmptyPrecision();
+      case LOCATION:
+        delegate = LocationBasedConstraintsPrecision.getEmptyPrecision();
         break;
       default:
         throw new AssertionError("Unhandled precision type " + precisionType);
@@ -78,7 +78,7 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
   }
 
   @Override
-  public ConstraintsPrecision withIncrement(Increment<?> pIncrement) {
+  public ConstraintsPrecision withIncrement(Increment pIncrement) {
     return new RefinableConstraintsPrecision(delegate.withIncrement(pIncrement));
   }
 }

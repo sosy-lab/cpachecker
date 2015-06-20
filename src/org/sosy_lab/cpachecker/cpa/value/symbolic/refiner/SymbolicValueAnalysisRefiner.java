@@ -187,18 +187,18 @@ public class SymbolicValueAnalysisRefiner
 
     for (ARGState r : roots) {
       Multimap<CFANode, MemoryLocation> valuePrecInc = pInterpolants.extractPrecisionIncrement(r);
-      ConstraintsPrecision.Increment<Constraint> constrPrecInc =
+      ConstraintsPrecision.Increment constrPrecInc =
           getConstraintsIncrement(r, pInterpolants);
 
       precUpdater.updateARGTree(pReached, r, valuePrecInc, constrPrecInc);
     }
   }
 
-  private ConstraintsPrecision.Increment<Constraint> getConstraintsIncrement(
+  private ConstraintsPrecision.Increment getConstraintsIncrement(
       final ARGState pRefinementRoot,
       final InterpolationTree<ForgettingCompositeState, SymbolicInterpolant> pTree
   ) {
-    ConstraintsPrecision.Increment.Builder<Constraint> increment =
+    ConstraintsPrecision.Increment.Builder increment =
         ConstraintsPrecision.Increment.builder();
 
     Deque<ARGState> todo =

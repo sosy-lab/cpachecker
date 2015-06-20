@@ -51,7 +51,7 @@ public class FullConstraintsPrecision implements ConstraintsPrecision {
   }
 
   @Override
-  public ConstraintsPrecision withIncrement(Increment<?> pIncrement) {
+  public ConstraintsPrecision withIncrement(Increment pIncrement) {
     throw new UnsupportedOperationException(
         FullConstraintsPrecision.class.getSimpleName() + " can't be incremented"
     );
