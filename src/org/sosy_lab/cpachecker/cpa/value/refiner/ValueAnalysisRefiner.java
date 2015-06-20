@@ -96,23 +96,6 @@ public class ValueAnalysisRefiner
       description = "whether or not to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
 
-  @Option(secure = true, description = "when to export the interpolation tree"
-      + "\nNEVER:   never export the interpolation tree"
-      + "\nFINAL:   export the interpolation tree once after each refinement"
-      + "\nALWAYD:  export the interpolation tree once after each interpolation, i.e. multiple times per refinmenet",
-      values = { "NEVER", "FINAL", "ALWAYS" })
-  private String exportInterpolationTree = "NEVER";
-
-  @Option(secure = true, description = "export interpolation trees to this file template")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
-
-  private ValueAnalysisPathInterpolator interpolator;
-
-  private ValueAnalysisPrefixProvider prefixProvider;
-
-  private PrefixSelector classifier;
-
   /**
    * keep log of previous refinements to identify repeated one
    */
@@ -192,15 +175,6 @@ public class ValueAnalysisRefiner
     checker = pFeasibilityChecker;
 
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pLogger, pShutdownNotifier, pCfa.getMachineModel());
-    interpolator   = new ValueAnalysisPathInterpolator(pFeasibilityChecker,
-        pStrongestPostOperator,
-        pPrefixProvider,
-        pConfig,
-        pLogger,
-        pShutdownNotifier,
-        pCfa);
-    prefixProvider = new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig);
-    classifier     = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
   }
 
   @Override
