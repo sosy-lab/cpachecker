@@ -60,7 +60,9 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
       final Configuration pConfig,
       final CFA pCfa
   ) throws InvalidConfigurationException {
-    explicitStrongestPost = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
+    // use default config so no symbolic values are used
+    explicitStrongestPost =
+        new ValueAnalysisStrongestPostOperator(pLogger, Configuration.defaultConfiguration(), pCfa);
   }
 
   @Override
