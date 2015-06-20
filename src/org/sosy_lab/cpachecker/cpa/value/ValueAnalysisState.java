@@ -134,10 +134,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
     if (valueToAdd instanceof SymbolicValue) {
       valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
-      symbolicValues.putAndCopy(pMemLoc, (SymbolicValue) valueToAdd);
+      symbolicValues = symbolicValues.putAndCopy(pMemLoc, (SymbolicValue) valueToAdd);
 
     } else if (symbolicValues.containsKey(pMemLoc)) {
-      symbolicValues.removeAndCopy(pMemLoc);
+      symbolicValues = symbolicValues.removeAndCopy(pMemLoc);
     }
 
     constantsMap = constantsMap.putAndCopy(pMemLoc, checkNotNull(valueToAdd));
