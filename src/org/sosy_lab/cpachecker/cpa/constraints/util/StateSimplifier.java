@@ -30,6 +30,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -50,7 +54,16 @@ import com.google.common.collect.Iterables;
  * Provides different methods for simplifying a <code>ConstraintsState</code>
  * through {@link #simplify(ConstraintsState, ValueAnalysisState)}.
  */
+@Options(prefix = "cpa.constraints")
 public class StateSimplifier {
+
+  @Option(description = "Whether to remove trivial constraints from constraints states during"
+      + "simplification")
+  private boolean removeTrivial = false;
+
+  @Option(description = "Whether to remove constraints that can't add any more information to"
+      + "analysis during simplification")
+  private boolean removeOutdated = true;
 
   @SuppressWarnings("unused")
   private final MachineModel machineModel;
@@ -58,7 +71,12 @@ public class StateSimplifier {
   @SuppressWarnings("unused")
   private final LogManager logger;
 
-  public StateSimplifier(MachineModel pMachineModel, LogManager pLogger) {
+  public StateSimplifier(
+      final MachineModel pMachineModel,
+      final LogManager pLogger,
+      final Configuration pConfig
+  ) throws InvalidConfigurationException {
+    pConfig.inject(this);
     machineModel = pMachineModel;
     logger = pLogger;
   }
@@ -78,7 +96,14 @@ public class StateSimplifier {
   ) {
     ConstraintsState newState = pState;
 
-    newState = removeOutdatedConstraints(newState, pValueState);
+    if (removeTrivial) {
+      newState = removeTrivialConstraints(newState, newState.getDefiniteAssignment());
+    }
+
+    if (removeOutdated) {
+      newState = removeOutdatedConstraints(newState, pValueState);
+    }
+
     return newState;
   }
 

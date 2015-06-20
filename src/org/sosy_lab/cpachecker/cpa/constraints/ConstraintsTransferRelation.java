@@ -120,7 +120,7 @@ public class ConstraintsTransferRelation
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    simplifier = new StateSimplifier(machineModel, logger);
+    simplifier = new StateSimplifier(machineModel, logger, pConfig);
 
     solver = pSolver;
     formulaManager = solver.getFormulaManager();
