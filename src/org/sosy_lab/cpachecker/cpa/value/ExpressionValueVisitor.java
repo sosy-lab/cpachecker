@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -171,6 +172,16 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     return locationEvaluator.getStructureFieldLocationFromRelativePoint(
         pStartLocation, pMemberName, pStructType);
+  }
+
+  public MemoryLocation evaluateMemLocForArraySlot(
+      final MemoryLocation pArrayStartLocation,
+      final int pSlotNumber,
+      final CArrayType pArrayType
+  ) throws UnrecognizedCCodeException {
+    MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
+
+    return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
   }
 
   private static class MemoryLocationEvaluator extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCCodeException> {
@@ -312,6 +323,26 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       }
 
       return null;
+    }
+
+    protected MemoryLocation getArraySlotLocationFromArrayStart(
+        final MemoryLocation pArrayStartLocation,
+        final int pSlotNumber,
+        final CArrayType pArrayType
+    ) throws UnrecognizedCCodeException {
+
+      long typeSize = evv.getSizeof(pArrayType.getType());
+      long offset = typeSize * pSlotNumber;
+
+      if (pArrayStartLocation.isOnFunctionStack()) {
+
+        return MemoryLocation.valueOf(pArrayStartLocation.getFunctionName(),
+            pArrayStartLocation.getIdentifier(),
+            pArrayStartLocation.getOffset() + offset);
+      } else {
+        return MemoryLocation.valueOf(pArrayStartLocation.getIdentifier(),
+            offset + pArrayStartLocation.getOffset());
+      }
     }
 
     @Override
