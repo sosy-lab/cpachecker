@@ -208,14 +208,25 @@ public class ValueTransferBasedStrongestPostOperator
   ) throws CPATransferException {
 
     Collection<? extends AbstractState> successors =
-        constraintsTransfer.strengthen(pConstraintsState,
+        constraintsTransfer.getAbstractSuccessorsForEdge(
+            pConstraintsState,
+            SingletonPrecision.getInstance(),
+            pOperation);
+
+    if (isContradiction(successors)) {
+      return Optional.absent();
+    }
+
+    final ConstraintsState successor = (ConstraintsState) Iterables.get(successors, 0);
+    successors =
+        constraintsTransfer.strengthen(successor,
                                        ImmutableList.<AbstractState>of(pValueState),
                                        pOperation,
                                        SingletonPrecision.getInstance());
 
     if (successors == null) {
       // nothing changed
-      return Optional.of(pConstraintsState);
+      return Optional.of(successor);
 
     } else if (isContradiction(successors)) {
       return Optional.absent();
