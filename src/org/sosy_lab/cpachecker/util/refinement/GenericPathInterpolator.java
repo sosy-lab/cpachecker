@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -139,12 +140,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
       ARGPath errorPathPrefix = performRefinementSelection(errorPath, interpolant);
 
-      if (visitedPathPrefixes.contains(errorPathPrefix.toString().hashCode())) {
-        throw new RefinementFailedException(Reason.RepeatedPathPrefix, errorPathPrefix);
-      }
-
-      visitedPathPrefixes.add(errorPathPrefix.toString().hashCode());
-
       Map<ARGState, I> interpolants =
           performEdgeBasedInterpolation(errorPathPrefix, interpolant);
 
@@ -184,6 +179,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       prefixSelectionTime.start();
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
       pErrorPath = selector.selectSlicedPrefix(prefixPreference, infeasilbePrefixes).getPath();
+      logger.logf(Level.FINER, "Sliced prefix selected:\n %s", pErrorPath);
       prefixSelectionTime.stop();
     }
 
@@ -223,6 +219,11 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     if (pathSlicing && prefixPreference != PrefixPreference.NONE) {
       errorPathPrefix = sliceErrorPath(errorPathPrefix);
     }
+
+    if (visitedPathPrefixes.contains(errorPathPrefix.toString().hashCode())) {
+      throw new RefinementFailedException(Reason.RepeatedPathPrefix, errorPathPrefix);
+    }
+    visitedPathPrefixes.add(errorPathPrefix.toString().hashCode());
 
     Map<ARGState, I> pathInterpolants = new LinkedHashMap<>(errorPathPrefix.size());
 
