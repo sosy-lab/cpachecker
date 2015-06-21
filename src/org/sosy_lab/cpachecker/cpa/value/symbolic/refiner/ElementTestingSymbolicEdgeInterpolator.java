@@ -60,11 +60,13 @@ import com.google.common.base.Optional;
 public class ElementTestingSymbolicEdgeInterpolator
     implements SymbolicEdgeInterpolator {
 
-  @Option(description = "Whether to refine the precision of ConstraintsCPA")
-  private boolean refineConstraintsCPA = true;
+  private enum RefinementStrategy { CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY }
 
   @Option(description = "Whether to try to not use any constraints in refinement")
   private boolean avoidConstraints = true;
+
+  @Option(description = "The refinement strategy to use")
+  private RefinementStrategy strategy = RefinementStrategy.CONSTRAINTS_FIRST;
 
   private final FeasibilityChecker<ForgettingCompositeState> checker;
   private final StrongestPostOperator<ForgettingCompositeState> strongestPost;
@@ -144,7 +146,7 @@ public class ElementTestingSymbolicEdgeInterpolator
   ) throws CPAException, InterruptedException {
 
     ForgettingCompositeState reducedState = pSuccessorState;
-    boolean reduceConstraints = refineConstraintsCPA;
+    boolean reduceConstraints = true;
 
     if (avoidConstraints) {
       reducedState = removeAllConstraints(pSuccessorState);
@@ -156,15 +158,25 @@ public class ElementTestingSymbolicEdgeInterpolator
       }
     }
 
-    if (reduceConstraints) {
-      reducedState =
-          reduceConstraintsToNecessaryState(reducedState, pSuffix);
-
-    } else {
-      reducedState = pSuccessorState;
+    switch (strategy) {
+      case CONSTRAINTS_FIRST:
+        if (reduceConstraints) {
+          reducedState = reduceConstraintsToNecessaryState(reducedState, pSuffix);
+        }
+        reducedState = reduceValuesToNecessaryState(reducedState, pSuffix);
+        break;
+      case VALUES_ONLY:
+        reducedState = reduceValuesToNecessaryState(reducedState, pSuffix);
+        break;
+      case VALUES_FIRST:
+        reducedState = reduceValuesToNecessaryState(reducedState, pSuffix);
+        reducedState = reduceConstraintsToNecessaryState(reducedState, pSuffix);
+        break;
+      default:
+        throw new AssertionError("Unhandled strategy " + strategy);
     }
 
-    return reduceValuesToNecessaryState(reducedState, pSuffix);
+    return reducedState;
   }
 
   private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
