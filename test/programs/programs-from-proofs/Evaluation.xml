@@ -1,9 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<!-- set memlimit="2000"?-->
 <benchmark tool="cpachecker" timelimit="1000" cpuCores="4">
-  c<option name="-disable-java-assertions"/>
-  <!--<option name="-heap">2000M</option>-->
+  <option name="-disable-java-assertions"/>
   <option name="-noout"/>
   <option name="-nolog"/>
   <option name="-setprop">statistics.memory=false</option>
@@ -68,7 +66,7 @@
 	</sourcefiles>
 	<sourcefiles>
 	  <option name="-config">test/programs/programs-from-proofs/config/Value+Location.properties</option>
-	  <option name="-setprop">specification=test/programs/programs-from-proofs/specification/tokenrring04.spc</option>
+	  <option name="-setprop">specification=test/programs/programs-from-proofs/specification/tokenring04.spc</option>
 	  <option name="-setprop">analysis.traversal.order=dfs</option>
 	  <include>token_ring.04.cil.c</include>
 	</sourcefiles>
@@ -3699,7 +3697,7 @@
 	  <include>token_ring.04.cil.c</include>
 </sourcefiles>
 	<sourcefiles>
-<option name="-setprop">pcc.proofgen.doPCC=true</optiono>
+<option name="-setprop">pcc.proofgen.doPCC=true</option>
 	  <option name="-config">test/programs/programs-from-proofs/config/Value+Location.properties</option>
 	  <option name="-setprop">specification=test/programs/programs-from-proofs/specification/transmitter_ops.spc</option>
 	  <option name="-setprop">analysis.traversal.order=bfs</option>
