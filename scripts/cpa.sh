@@ -112,4 +112,4 @@ esac
 
 # run CPAchecker
 # stack size is set because on some systems it is too small for recursive algorithms and very large programs
-exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE} -Xss1024k $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
+exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE} -Xss5120k $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
