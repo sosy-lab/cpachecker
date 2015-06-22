@@ -363,14 +363,13 @@ def _handleOptions(run, params, rlimits):
     return False
 
 def _getResults(runIDs, output_handler, benchmark):
-    connection = _get_connection()
-    
+        
     while len(runIDs) > 0 :
         start = time()
         finishedRunIDs = []
         for runID in runIDs.keys():
-            if _isFinished(runID, benchmark, connection):
-                if(_getAndHandleResult(runID, runIDs[runID], output_handler, benchmark, connection)):
+            if _isFinished(runID, benchmark):
+                if(_getAndHandleResult(runID, runIDs[runID], output_handler, benchmark)):
                     finishedRunIDs.append(runID)
 
         for runID in finishedRunIDs:
@@ -378,11 +377,12 @@ def _getResults(runIDs, output_handler, benchmark):
         
         end = time();
         duration = end - start
-        if duration < 1:
-            sleep(1 - duration)
+        if duration < 5:
+            sleep(5 - duration)
     
 
-def _isFinished(runID, benchmark, connection):
+def _isFinished(runID, benchmark):
+    connection = _get_connection()
 
     headers = {"Accept": "text/plain", "Connection": "Keep-Alive"}
     if _base64_user_pwd:
@@ -413,7 +413,9 @@ def _isFinished(runID, benchmark, connection):
 
         return False
 
-def _getAndHandleResult(runID, run, output_handler, benchmark, connection):
+def _getAndHandleResult(runID, run, output_handler, benchmark):
+    connection = _get_connection()
+    
     # download result as zip file
     headers = {"Accept": "application/zip", "Connection": "Keep-Alive"}
     if _base64_user_pwd:
@@ -435,7 +437,7 @@ def _getAndHandleResult(runID, run, output_handler, benchmark, connection):
             _unfinished_run_ids.remove(runID)
         else:
             logging.info('Could not get result of run {0}: {1}'.format(run.identifier, response.read()))
-            sleep(10)
+            sleep(1)
 
     if success:
         # unzip result
