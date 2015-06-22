@@ -41,34 +41,60 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
+import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 
 public class SymbolEncoding {
 
-  private Set<ASimpleDeclaration> decls = new HashSet<>();
+  private Set<CSimpleDeclaration> decls = new HashSet<>();
+  private MachineModel machineModel = null;
 
+  /** This set contains function symbols that have a (maybe) unknown, but valid type.
+   *  We do not care about the type, because it is automatically determined. */
+  private final static Set<String> functionSymbols = Sets.newHashSet(
+      "and", "or", "not",
+      "=", "<", ">", "<=", ">=",
+      "+", "-", "*", "/",
+      "Integer__*_", "Integer__/_", "Integer__%_",
+      "Rational__*_", "Rational__/_", "Rational__%_",
+      "_~_", "_&_", "_!!_", "_^_", "_<<_", "_>>_",
+      "bvnot", "bvslt", "bvult", "bvsle", "bvule", "bvsgt", "bvugt", "bvsge", "bvuge",
+      "bvadd", "bvsub", "bvmul", "bvsdiv", "bvudiv", "bvsrem", "bvurem",
+      "bvand", "bvor", "bvxor", "bvshl", "bvlshr", "bvashr"
+      );
+
+  /** create an empty symbol encoding */
   public SymbolEncoding() { }
+
+  /** create symbol encoding with information about symbol
+   * from variables of the CFA */
+  public SymbolEncoding(CFA pCfa) {
+    decls = getAllDeclarations(pCfa.getAllNodes());
+    machineModel = pCfa.getMachineModel();
+  }
+
 
   private final Map<String, Type<FormulaType<?>>> encodedSymbols = new HashMap<>();
 
@@ -96,91 +122,73 @@ public class SymbolEncoding {
     return encodedSymbols.containsKey(symbol);
   }
 
-  public Type<FormulaType<?>> getType(String symbol) {
+  public Type<FormulaType<?>> getType(String symbol) throws UnknownFormulaSymbolException {
 
-    Type<FormulaType<?>> type = Preconditions.checkNotNull(encodedSymbols.get(symbol));
-
-    if (symbol.startsWith(".def_")) {
-      // .def_NUM is a MathSat-helper-variable
-      return type;
+    if (functionSymbols.contains(symbol)) {
+      return null;
     }
 
-    symbol = symbol.split("@")[0];
-    boolean matched = false;
-    for (ASimpleDeclaration decl : decls) {
+    if (encodedSymbols.containsKey(symbol)) {
+      return encodedSymbols.get(symbol);
+    }
+
+    symbol = symbol.split("@")[0]; // sometimes we need to clean up SSA-indices
+    for (CSimpleDeclaration decl : decls) {
       if (symbol.equals(decl.getQualifiedName())) {
-        matched = true;
-        if (decl.getType() instanceof CSimpleType) {
-          // TODO set global or just local for this type?
-          type.setSigness(!((CSimpleType)decl.getType()).isUnsigned());
-        }
+        CType cType = decl.getType().getCanonicalType();
+        return getType(cType);
       }
     }
 
-    if (matched) {
-      return type;
-    }
+    // ignore complex types
+    throw new UnknownFormulaSymbolException(symbol);
+  }
 
-    String[] parts = symbol.split("->");
-    for (ASimpleDeclaration decl : decls) {
-      if (parts[0].equals(decl.getQualifiedName())) {
-        org.sosy_lab.cpachecker.cfa.types.Type declType = decl.getType();
-        if (declType instanceof CTypedefType) {
-          declType = ((CTypedefType)declType).getCanonicalType();
-        }
-        if (declType instanceof CPointerType) {
-          CPointerType innerType = ((CPointerType) declType).getCanonicalType();
-          CCompositeType comp = (CCompositeType) innerType.getType();
-          for (CCompositeTypeMemberDeclaration member : comp.getMembers()) {
-            if (parts[1].equals(member.getName())) {
-              matched = true;
-              if (member.getType() instanceof CSimpleType) {
-                // TODO set global or just local for this type?
-                type.setSigness(!((CSimpleType) member.getType()).isUnsigned());
-              }
-            }
-          }
-        }
-      }
+  private Type<FormulaType<?>> getType(CType cType) {
+    final FormulaType<?> fType;
+    if (cType instanceof CSimpleType && ((CSimpleType)cType).getType().isFloatingPointType()) {
+      fType = FormulaType.RationalType;
+    } else {
+      int length = machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits();
+      fType = BitvectorType.getBitvectorTypeWithSize(length);
     }
-
-    /* assertion might be thrown for UFs and pointer-related symbols
-     * TODO Are they not declared before?
-    if (!matched) {
-      throw new AssertionError("unknown symbol '" + symbol + "' is not available in declarations '" + decls + "'");
+    Type<FormulaType<?>> type = new Type<FormulaType<?>>(fType);
+    if (cType instanceof CSimpleType) {
+      type.setSigness(!((CSimpleType)cType).isUnsigned());
     }
-    */
-
     return type;
   }
 
-  public SymbolEncoding withCFA(CFA pCfa) {
-    decls = getAllDeclarations(pCfa.getAllNodes());
-    return this;
-  }
-
   /** iterator over all edges and collect all declarations */
-  private Set<ASimpleDeclaration> getAllDeclarations(Collection<CFANode> nodes) {
-    final Set<ASimpleDeclaration> sd = new HashSet<>();
+  private Set<CSimpleDeclaration> getAllDeclarations(Collection<CFANode> nodes) {
+    final Set<CSimpleDeclaration> sd = new HashSet<>();
     for (CFANode node : nodes){
+
+      if (node instanceof CFunctionEntryNode) {
+        Optional<? extends CVariableDeclaration> retVar = ((CFunctionEntryNode) node).getReturnVariable();
+        if (retVar.isPresent()) {
+          sd.add(retVar.get());
+        }
+      }
+
       final FluentIterable<CFAEdge> edges = CFAUtils.allLeavingEdges(node);
-      for (ADeclarationEdge edge : edges.filter(ADeclarationEdge.class)) {
+      for (CDeclarationEdge edge : edges.filter(CDeclarationEdge.class)) {
         sd.add(edge.getDeclaration());
       }
-      for (FunctionCallEdge edge : edges.filter(FunctionCallEdge.class)) {
-        final List<? extends AParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
-        for (AParameterDeclaration param : params) {
+      for (CFunctionCallEdge edge : edges.filter(CFunctionCallEdge.class)) {
+        final List<? extends CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
+        for (CParameterDeclaration param : params) {
           sd.add(param);
         }
       }
-      for (FunctionReturnEdge edge : edges.filter(FunctionReturnEdge.class)) {
-        if (edge.getFunctionEntry().getReturnVariable().isPresent()) {
-          final AVariableDeclaration retVar = edge.getFunctionEntry().getReturnVariable().get();
-          sd.add(retVar);
+      for (CFunctionReturnEdge edge : edges.filter(CFunctionReturnEdge.class)) {
+        Optional<? extends CVariableDeclaration> retVar = edge.getFunctionEntry().getReturnVariable();
+        if (retVar.isPresent()) {
+          sd.add(retVar.get());
         }
       }
       for (MultiEdge multiEdge : edges.filter(MultiEdge.class)) {
-        for (ADeclarationEdge edge : Iterables.filter(multiEdge.getEdges(), ADeclarationEdge.class)) {
+        for (CDeclarationEdge edge : Iterables.filter(multiEdge.getEdges(), CDeclarationEdge.class)) {
           sd.add(edge.getDeclaration());
         }
       }
@@ -188,6 +196,8 @@ public class SymbolEncoding {
     return sd;
   }
 
+  /** write out the current symbol encoding in a format,
+   * that can be read again via {@link readSymbolEncoding}. */
   public void dump(Path symbolEncodingFile) throws IOException {
     if (symbolEncodingFile != null) {
       Files.writeFile(symbolEncodingFile, new Appender() {
@@ -204,7 +214,8 @@ public class SymbolEncoding {
     }
   }
 
-  /** parse the file into a map */
+  /** parse the file into a map for a new SymbolEncoding. */
+  @Deprecated /* we use the CFA directly to get the encoding */
   public static SymbolEncoding readSymbolEncoding(Path symbolEncodingFile) throws IOException {
     final SymbolEncoding encoding = new SymbolEncoding();
     Files.checkReadableFile(symbolEncodingFile);
@@ -276,4 +287,15 @@ public class SymbolEncoding {
 
     public final static Type<Integer> BOOL = new Type<>(-1);
   }
+
+  public static class UnknownFormulaSymbolException extends CPAException {
+
+    private static final long serialVersionUID = 150615L;
+
+    public UnknownFormulaSymbolException(String symbol) {
+      super("unknown symbol in formula: " + symbol);
+    }
+
+  }
+
 }

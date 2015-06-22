@@ -42,6 +42,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.Type;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.base.Throwables;
 
@@ -65,18 +66,22 @@ parser code {:
   }
 
 
-  public static String convertFormula(Converter converter, String str, LogManager pLogger) {
+  public static String convertFormula(Converter converter, String str, LogManager pLogger)
+      throws UnknownFormulaSymbolException {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     try (InputStream input = new ByteArrayInputStream(str.getBytes())) {
       Scanner scanner = new FormulaScanner(input, pLogger, sf);
       FormulaParser parser = new FormulaParser(scanner, sf, converter, pLogger);
       Symbol symbol = parser.parse();
       return ((String) symbol.value);
+    } catch (UnknownFormulaSymbolException e) {
+      // we throw 'e' again to have it in the signature of this method
+      throw e;
     } catch (Exception e) {
       throw new AssertionError("There was a problem while parsing the formula '''" + str + "'''.", e);
     }
   }
-  
+
   Converter getConverter(){
       return converter;
   }

@@ -55,8 +55,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -632,15 +631,19 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    NumeralFormulaManager<NumeralFormula, RationalFormula> nfmgr = manager.getRationalFormulaManager();
+    NumeralFormulaManager<IntegerFormula, IntegerFormula> nfmgr = manager.getIntegerFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
 
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
-      RationalFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
-      // TODO explicitfloat: handle the case that it's not a long
-      // The following is a hack
-      RationalFormula val = nfmgr.makeNumber(entry.getValue().asLong(CNumericTypes.INT));
-      formula = bfmgr.and(formula, nfmgr.equal(var, val));
+      NumericValue num = entry.getValue().asNumericValue();
+      if (num != null) {
+        // TODO explicit-float: handle the case that it's not a long
+        IntegerFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
+        IntegerFormula val = nfmgr.makeNumber(num.longValue());
+        formula = bfmgr.and(formula, nfmgr.equal(var, val));
+      } else {
+        // ignore in formula-approximation
+      }
     }
 
     return formula;

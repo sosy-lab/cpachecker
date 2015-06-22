@@ -89,6 +89,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
+  @Option(secure=true, description = "do not include assumptions of states into path formula during strengthening")
+  private boolean ignoreStateAssumptions = false;
+
   // statistics
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
@@ -356,7 +359,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         /*
          * Add additional assumptions from an automaton state.
          */
-        if (lElement instanceof AbstractStateWithAssumptions) {
+        if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
           element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
         }
 

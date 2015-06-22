@@ -104,21 +104,20 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   }
 
   @Override
-  public Long replaceName(Long t, String newName) {
+  public Long replaceArgsAndName(Long t, String newName, List<Long> newArgs) {
     if (isUF(t)) {
       long decl = msat_term_get_decl(t);
       int arity = msat_decl_get_arity(decl);
       long retType = msat_decl_get_return_type(decl);
       long[] argTypes = new long[arity];
-      long[] args = new long[arity];
       for (int i = 0; i < arity; i++) {
-        args[i] = msat_term_get_arg(t, i);
         argTypes[i] = msat_decl_get_arg_type(decl, i);
       }
       long funcType = msat_get_function_type(msatEnv, argTypes, argTypes.length, retType);
       long funcDecl = msat_declare_function(msatEnv, newName, funcType);
-      return msat_make_uf(msatEnv, funcDecl, args);
+      return msat_make_uf(msatEnv, funcDecl, Longs.toArray(newArgs));
     } else if (isVariable(t)) {
+      checkArgument(newArgs.isEmpty());
       return creator.makeVariable(msat_term_get_type(t), newName);
     } else {
       throw new IllegalArgumentException("Can't set the name from the given formula!");

@@ -840,6 +840,31 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
+# Type of less-or-equal operator to use
+cpa.constraints.lessOrEqualType = ALIASED_SUBSET
+  enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
+
+# Type of merge operator to use
+cpa.constraints.mergeType = SEP
+  enum:     [SEP, JOIN_FITTING_CONSTRAINT]
+
+# Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
+# is used.
+cpa.constraints.refinement.precisionType = CONSTRAINTS
+  enum:     [CONSTRAINTS, LOCATION]
+
+# Whether to remove constraints that can't add any more information
+# toanalysis during simplification
+cpa.constraints.removeOutdated = true
+
+# Whether to remove trivial constraints from constraints states
+# duringsimplification
+cpa.constraints.removeTrivial = false
+
+# When to check the satisfiability of constraints
+cpa.constraints.satCheckStrategy = AT_ASSUME
+  enum:     [AT_ASSUME, AT_TARGET]
+
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
@@ -1028,10 +1053,6 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
-# where to read symbols and their possible encoding,this corresponds to
-# 'cpa.predicate.symbolEncodingFile' of a previous execution.
-cpa.predicate.abstraction.initialPredicates.symbolEncodingFile = "SymbolEncoding.txt"
-
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
@@ -1169,6 +1190,9 @@ cpa.predicate.ignoreExtractConcat = true
 
 # Ignore variables that are not relevant for reachability properties.
 cpa.predicate.ignoreIrrelevantVariables = true
+
+# do not include assumptions of states into path formula during strengthening
+cpa.predicate.ignoreStateAssumptions = false
 
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
@@ -1827,6 +1851,9 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# Whether to try to not use any constraints in refinement
+cpa.value.refinement.avoidConstraints = true
+
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 
@@ -1872,8 +1899,14 @@ cpa.value.refinement.prefixPreference = DOMAIN_GOOD_SHORT
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
+cpa.value.refinement.restart = PIVOT
+  enum:     [ROOT, PIVOT, COMMON]
 cpa.value.refinement.restart = ROOT
   enum:     [ROOT, PIVOT, COMMON]
+
+# The refinement strategy to use
+cpa.value.refinement.strategy = CONSTRAINTS_FIRST
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
 
 # globalPrec
 cpa.value.refinement.useGlobalPrecision = false
@@ -1885,6 +1918,9 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Default size of arrays whose length can't be determined.
+cpa.value.symbolic.defaultArraySize = 20
 
 # If this option is set to true, an own symbolic identifier is assigned to
 # each array slot when handling non-deterministic arrays of fixed length. If
@@ -1898,6 +1934,19 @@ cpa.value.symbolic.handlePointers = true
 # If this option is set to true, an own symbolic identifier is assigned to
 # each struct member when handling non-deterministic structs.
 cpa.value.symbolic.handleStructs = true
+
+# How to choose which prefix to use for interpolation
+cpa.value.symbolic.refiner.prefixPreference = DOMAIN_GOOD_SHORT
+  enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
+             DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
+             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
+             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
+             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
+             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
+             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
+             ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
+             ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
+             ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
 
 # Use symbolic values. This allows tracking of non-deterministic values.
 # Symbolic values should always be used in conjunction with ConstraintsCPA.
@@ -2039,11 +2088,6 @@ pcc.arg.cmc.file = "assumptions.txt"
 # Which ARG strategy to use for each partial ARG, strategy based on CPA
 # (true) or on proof checker interface (false)
 pcc.arg.cmc.useArgCpaStrategy = true
-
-# Enable if used property checker implements satisfiesProperty(AbstractState)
-# and checked property is violated for a set iff an element in this set
-# exists for which violates the property
-pcc.checkPropertyPerElement = no default value
 
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for

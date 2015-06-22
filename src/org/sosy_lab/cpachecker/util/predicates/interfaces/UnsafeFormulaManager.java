@@ -138,6 +138,7 @@ public interface UnsafeFormulaManager {
   /**
    * Replaces the name and the arguments of the given formula.
    * The old and the new name need to be of the same type.
+   * If f is a variable, use an empty list of arguments.
    * @param f
    * @param newName
    * @param args
@@ -151,14 +152,6 @@ public interface UnsafeFormulaManager {
   * @return
   */
   <T extends Formula> T replaceArgs(T f, List<Formula> args);
-  /**
-   * Replaces the name of the given formula
-   * The old and the new name need to be of the same type.
-   * @param f
-   * @param newName
-   * @return
-   */
-  <T extends Formula> T replaceName(T f, String newName);
 
   /**
    * If the given formula is a numeral (i.e., non-boolean) equality "x = y",

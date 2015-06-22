@@ -81,6 +81,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -954,7 +955,8 @@ public class FormulaManagerView implements StatisticsProvider {
       if (unsafeManager.isFreeVariable(tt)) {
         String oldName = unsafeManager.getName(tt);
         String newName = pRenameFunction.apply(oldName);
-        Formula renamed = unsafeManager.replaceName(tt, newName);
+        Formula renamed = unsafeManager.replaceArgsAndName(
+            tt, newName, ImmutableList.<Formula>of());
         pCache.put(tt, renamed);
 
       } else if (unsafeManager.isBoundVariable(tt)) {
