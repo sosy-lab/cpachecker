@@ -173,7 +173,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
     // TODO: handle the case that the result is not a numeric value
     final Value castedValue = AbstractExpressionValueVisitor.castCValue(
-        value, op.getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
+        value, expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
 
 
     return convertExplicitValueToExpression(expr, castedValue);

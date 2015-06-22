@@ -579,8 +579,8 @@ public class CtoFormulaConverter {
         intValue = intValue.negate();
       }
       Value floatValue = AbstractExpressionValueVisitor.castCValue(
-          intValue, e.getExpressionType(), targetType,
-          machineModel, logger, e.getFileLocation());
+          intValue, targetType, machineModel,
+          logger, e.getFileLocation());
       return new CFloatLiteralExpression(e.getFileLocation(), targetType,
           floatValue.asNumericValue().bigDecimalValue());
     }
