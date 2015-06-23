@@ -92,8 +92,17 @@ public class ValueTransferBasedStrongestPostOperator
 
     assert oldValues != null && oldConstraints != null;
 
+    Optional<ValueAnalysisState> maybeValues = strengthenValueState(oldValues, oldConstraints, pPrecision, pOperation);
+    ValueAnalysisState strengthenedValues;
+
+    if (maybeValues.isPresent()) {
+      strengthenedValues = maybeValues.get();
+    } else {
+      return Optional.absent();
+    }
+
     final Collection<ValueAnalysisState> successors =
-        valueTransfer.getAbstractSuccessorsForEdge(oldValues, pPrecision, pOperation);
+        valueTransfer.getAbstractSuccessorsForEdge(strengthenedValues, pPrecision, pOperation);
 
     if (isContradiction(successors)) {
       return Optional.absent();
@@ -108,15 +117,7 @@ public class ValueTransferBasedStrongestPostOperator
         return Optional.absent();
 
       } else {
-        Optional<ValueAnalysisState> nextValueState =
-            strengthenValueState(onlyValueState, nextConstraints.get(), pPrecision, pOperation);
-
-        if (!nextValueState.isPresent()) {
-          return Optional.absent();
-
-        } else {
-          return Optional.of(getNewCompositeState(nextValueState.get(), nextConstraints.get()));
-        }
+        return Optional.of(getNewCompositeState(onlyValueState, nextConstraints.get()));
       }
     }
   }
