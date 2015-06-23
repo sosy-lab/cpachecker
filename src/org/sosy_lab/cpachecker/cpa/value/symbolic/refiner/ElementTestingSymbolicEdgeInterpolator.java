@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import java.util.Deque;
+import java.util.HashSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
@@ -151,7 +153,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     if (avoidConstraints) {
       reducedState = removeAllConstraints(pSuccessorState);
 
-      if (isPathFeasible(pSuffix, pSuccessorState)) {
+      if (isPathFeasible(pSuffix, reducedState)) {
         reducedState = pSuccessorState;
       } else {
         reduceConstraints = false;
@@ -180,8 +182,10 @@ public class ElementTestingSymbolicEdgeInterpolator
   }
 
   private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
+    IdentifierAssignment definiteAssignments = pState.getConstraintsState().getDefiniteAssignment();
     ForgettingCompositeState newState =
-        new ForgettingCompositeState(pState.getValueState(), new ConstraintsState());
+        new ForgettingCompositeState(pState.getValueState(),
+                                     new ConstraintsState(new HashSet<Constraint>(), definiteAssignments));
 
     return newState;
   }
