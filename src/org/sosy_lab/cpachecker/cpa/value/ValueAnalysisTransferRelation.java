@@ -119,6 +119,9 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -149,6 +152,11 @@ public class ValueAnalysisTransferRelation
       + "this option sets unknown (uninitialized) variables to 1L, "
       + "when the true-branch is handled.")
   private boolean initAssumptionVars = false;
+
+  @Option(secure=true, description = "Whether to replace symbolic values with a concrete value"
+      + " when only one value is possible for an assumption to be true"
+      + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression).")
+  private boolean assignSymbolicAssumptionVars = true;
 
   @Option(secure=true, description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
       + " assumptions.")
@@ -1102,11 +1110,11 @@ public class ValueAnalysisTransferRelation
       Value rightValue  = rVarInBinaryExp.accept(this);
 
       if (isEqualityAssumption(binaryOperator)) {
-        if (leftValue.isUnknown() && rightValue.isExplicitlyKnown() && isAssignable(lVarInBinaryExp)) {
-          assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue, pE.getExpressionType());
+        if (isEligibleForAssignment(leftValue) && rightValue.isExplicitlyKnown() && isAssignable(lVarInBinaryExp)) {
+          assignConcreteValue(lVarInBinaryExp, leftValue, rightValue, pE.getExpressionType());
 
-        } else if (rightValue.isUnknown() && leftValue.isExplicitlyKnown() && isAssignable(rVarInBinaryExp)) {
-          assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue, pE.getExpressionType());
+        } else if (isEligibleForAssignment(rightValue) && leftValue.isExplicitlyKnown() && isAssignable(rVarInBinaryExp)) {
+          assignConcreteValue(rVarInBinaryExp, rightValue, leftValue, pE.getExpressionType());
         }
       }
 
@@ -1128,6 +1136,38 @@ public class ValueAnalysisTransferRelation
       }
 
       return super.visit(pE);
+    }
+
+    private boolean isEligibleForAssignment(final Value pValue) {
+      return pValue.isUnknown() || (!pValue.isExplicitlyKnown() && assignSymbolicAssumptionVars);
+    }
+
+    private void assignConcreteValue(
+        final CExpression pVarInBinaryExp,
+        final Value pOldValue,
+        final Value pNewValue,
+        final CType pValueType
+    ) throws UnrecognizedCCodeException {
+      if (pOldValue instanceof SymbolicValue) {
+        SymbolicIdentifier id = null;
+
+        if (pOldValue instanceof SymbolicIdentifier) {
+          id = (SymbolicIdentifier) pOldValue;
+        } else if (pOldValue instanceof ConstantSymbolicExpression) {
+          Value innerVal = ((ConstantSymbolicExpression)pOldValue).getValue();
+
+          if (innerVal instanceof SymbolicValue) {
+            assert innerVal instanceof SymbolicIdentifier;
+            id = (SymbolicIdentifier) innerVal;
+          }
+        }
+
+        if (id != null) {
+          assignableState.assignConstant(id, pNewValue);
+        }
+      }
+
+      assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
     }
 
     private boolean assumingUnknownToBeZero(Value value1, Value value2) {
