@@ -203,7 +203,11 @@ def _submitRunsParallel(runSet, benchmark):
                 runIDs[runID] = run
                 _unfinished_run_ids.add(runID)
                 logging.debug('Submitted run {0}/{1} with id {2}'.\
-                    format(submissonCounter, len(runSet.runs), runID))
+                        format(submissonCounter, len(runSet.runs), runID))
+                if submissonCounter % 50 == 0:
+                    logging.info('Submitted run {0}/{1}'.\
+                                format(submissonCounter, len(runSet.runs)))
+                    
 
             except (urllib2.HTTPError, WebClientError) as e:
                 try:
