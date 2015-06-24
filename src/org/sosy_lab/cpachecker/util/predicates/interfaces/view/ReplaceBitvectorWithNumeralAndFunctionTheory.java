@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -120,24 +121,15 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return value;
   }
 
-  private Map<Integer, UninterpretedFunctionDeclaration<T>> extendSignedMethods = new HashMap<>();
-  private Map<Integer, UninterpretedFunctionDeclaration<T>> extendUnsignedMethods = new HashMap<>();
+  private final Map<Triple<String, Boolean, Integer>, UninterpretedFunctionDeclaration<T>> UFDeclarations = new HashMap<>();
 
-  private UninterpretedFunctionDeclaration<T> getExtendDecl(int extensionBits, boolean pSigned) {
-    Integer hasKey = Integer.valueOf(extensionBits);
-    UninterpretedFunctionDeclaration<T> value;
-    if (pSigned) {
-      value = extendSignedMethods.get(hasKey);
-      if (value == null) {
-        value = createUnaryFunction("_extendSigned("+ extensionBits + ")_");
-        extendSignedMethods.put(hasKey, value);
-      }
-    } else {
-      value = extendUnsignedMethods.get(hasKey);
-      if (value == null) {
-        value = createUnaryFunction("_extendUnsigned("+ extensionBits + ")_");
-        extendUnsignedMethods.put(hasKey, value);
-      }
+  private UninterpretedFunctionDeclaration<T> getUFDecl(String name, int id, boolean signed) {
+    Triple<String, Boolean, Integer> key = Triple.of(name, signed, id);
+    UninterpretedFunctionDeclaration<T> value = UFDeclarations.get(key);
+    if (value == null) {
+      String UFname = String.format("_%s%s(%d)_", name, (signed ? "Signed" : "Unsigned"), id);
+      value = createUnaryFunction(UFname);
+      UFDeclarations.put(key, value);
     }
     return value;
   }
@@ -283,7 +275,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }
-    UninterpretedFunctionDeclaration<T> extendUfDecl = getExtendDecl(pExtensionBits, pSigned);
+    UninterpretedFunctionDeclaration<T> extendUfDecl = getUFDecl("extend", pExtensionBits, pSigned);
     return makeUf(returnType, extendUfDecl, pNumber);
   }
 
