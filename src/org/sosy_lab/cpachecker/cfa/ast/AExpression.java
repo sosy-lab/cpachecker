@@ -39,7 +39,6 @@ public interface AExpression extends ARightHandSide {
    * @param v The visitor.
    * @return Returns the object returned by the visit method.
    */
-  @SuppressWarnings("TypeParameterUnusedInFormals") // false positive
   <R,
    R1 extends R,
    R2 extends R,

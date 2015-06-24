@@ -43,7 +43,6 @@ public abstract class AbstractExpression extends AbstractRightHandSide implement
   }
 
   @Override
-  @SuppressWarnings("TypeParameterUnusedInFormals") // false positive
   public final <R, R1 extends R, R2 extends R,
                 X1 extends Exception, X2 extends Exception,
                 V extends CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>>
