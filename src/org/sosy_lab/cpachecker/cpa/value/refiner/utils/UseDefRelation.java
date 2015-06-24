@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -463,22 +464,6 @@ public class UseDefRelation {
       return;
     }
 
-/*
-    // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
-    // until is is reassigned, and not only a single field
-    // if assigned variable is resolving a dependency
-    if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
-      // hack to handle assignments of structs (keeps the whole struct in use all the time)
-      if(leftHandSide.toString().contains("->")) {
-        //Syso("NO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
-        addDependency(assignedVariables);
-      }
-      else {
-        //Syso("DO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
-        dependencies.remove(Iterables.getOnlyElement(assignedVariables));
-      }
-*/
-
     // if assigned variable is resolving a dependency
     if (hasUnresolvedUse(Iterables.getOnlyElement(assignedVariables))) {
       // all variables that occur in combination with the leftHandSide additionally
@@ -488,14 +473,20 @@ public class UseDefRelation {
       // all variables of the right hand side are "used" afterwards
       if (assignment instanceof AExpressionAssignmentStatement) {
         rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
-      } else if (assignment instanceof AFunctionCallAssignmentStatement){
+      }
+      else if (assignment instanceof AFunctionCallAssignmentStatement){
         AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
         rightHandSideUses = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions());
-      } else {
+      }
+      else {
         throw new AssertionError("Unhandled assignment type.");
       }
 
-      addUseDef(state, edge, Iterables.getOnlyElement(assignedVariables), Sets.union(leftHandSideUses, rightHandSideUses));
+      Set<ASimpleDeclaration> def = (leftHandSide instanceof CFieldReference)
+          ? Collections.<ASimpleDeclaration>emptySet() // field of struct does not resolve use
+          : Sets.newHashSet((Iterables.getOnlyElement(assignedVariables)));
+
+      addUseDef(state, edge, def, Sets.union(leftHandSideUses, rightHandSideUses));
     }
   }
 

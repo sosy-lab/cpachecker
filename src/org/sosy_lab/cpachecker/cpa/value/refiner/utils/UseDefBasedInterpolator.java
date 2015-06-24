@@ -23,26 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.text.NumberFormat;
-import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -56,11 +66,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * This class allows to obtain interpolants statically from a given ARGPath.
  */
 public class UseDefBasedInterpolator {
-
-  /**
-   * the logger in use
-   */
-  private final LogManager logger;
 
   /**
    * the use-def relation of the final, failing (assume) edge
@@ -87,7 +92,6 @@ public class UseDefBasedInterpolator {
    * @param pMachineModel
    */
   public UseDefBasedInterpolator(LogManager pLogger, ARGPath pSlicedPrefix, UseDefRelation pUseDefRelation, MachineModel pMachineModel) {
-    logger         = pLogger;
     slicedPrefix   = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
     machineModel   = pMachineModel;
@@ -144,16 +148,22 @@ public class UseDefBasedInterpolator {
     return interpolants;
   }
 
+  /**
+   * This method creates an interpolant for the given variable declaration.
+   *
+   * As this interpolation strategy is static, memory locations for the whole type are created,
+   * i.e, even if only a single offset in an array would suffice, still the whole array is add
+   * here, because interesting offsets are not known statically. The same applies for complex
+   * types, where also the whole type ends up in the interpolant and not only partially.
+   *
+   * @param uses the variable declaration for which to create the interpolant
+   * @return the interpolant for the given variable declaration
+   */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
     HashMap<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
 
     for (ASimpleDeclaration use : uses) {
-
-      Set<MemoryLocation> memoryLocations = (use.getType() instanceof CArrayType)
-        ? createMemoryLocationsForArray(use)
-        : Collections.singleton(MemoryLocation.valueOf(use.getQualifiedName()));
-
-      for (MemoryLocation memoryLocation : memoryLocations) {
+      for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
         useDefInterpolant.put(memoryLocation, UnknownValue.getInstance());
       }
     }
@@ -162,30 +172,146 @@ public class UseDefBasedInterpolator {
   }
 
   /**
-   * This method returns a set of memory locations for an array.
-   *
-   * As this interpolation is static, memory locations for the whole array are added.
-   * If the size of the array is not known statically, than a fixed number of memory locations
-   * are created.
+   * This method returns a list of all memory locations needed to represent the type
+   * of the given variable declaration.
    */
-  private Set<MemoryLocation> createMemoryLocationsForArray(ASimpleDeclaration arrayDeclaration) {
-    CArrayType arrayType = (CArrayType)arrayDeclaration.getType();
+  private List<MemoryLocation> obtainMemoryLocationsForType(ASimpleDeclaration use) {
+    return ((CType) use.getType()).accept(
+        new MemoryLocationCreator(use.getQualifiedName(), machineModel));
+  }
 
-    int length = 20; // magic
-    if (arrayType.getLength() instanceof CLiteralExpression) {
-      try {
-        length = NumberFormat.getInstance().parse(arrayType.getLength().toString()).intValue();
-      } catch (ParseException e) {
-        logger.log(Level.INFO, e, "Could not parse array length expression", arrayType.getLength().toString(), "to an integer representation.");
+  /**
+   * This class creates the needed memory locations for a given type.
+   *
+   * This class has one mutable field {@link MemoryLocationCreator#currentOffset}, so throw away after use.
+   */
+  private static class MemoryLocationCreator implements CTypeVisitor<List<MemoryLocation>, IllegalArgumentException> {
+
+    /**
+     * the qualified name of the actual variable identifier for which to create memory location
+     */
+    private final String qualifiedName;
+
+    /**
+     * the machine model to use
+     */
+    private final MachineModel model;
+
+    /**
+     * the current offset for which to create the next memory location
+     */
+    private int currentOffset = 0;
+
+    private MemoryLocationCreator(final String pQualifiedName, final MachineModel pModel) {
+      model = pModel;
+      qualifiedName = pQualifiedName;
+    }
+
+    @Override
+    public List<MemoryLocation> visit(final CArrayType pArrayType) throws IllegalArgumentException {
+      CExpression arrayLength = pArrayType.getLength();
+
+      if (arrayLength instanceof CIntegerLiteralExpression) {
+        int length = ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
+
+        return createMemoryLocationsForArray(length, pArrayType.getType());
+      }
+
+      // treat arrays with variable length as pointer
+      return createSingleMemoryLocation(model.getSizeofPtr());
+    }
+
+    @Override
+    public List<MemoryLocation> visit(final CCompositeType pCompositeType) throws IllegalArgumentException {
+      switch (pCompositeType.getKind()) {
+        case STRUCT: return createMemoryLocationsForStructure(pCompositeType);
+        case UNION:  return createMemoryLocationsForUnion(pCompositeType);
+        case ENUM:   // there is no such kind of CompositeType
+        default: throw new AssertionError();
       }
     }
 
-    Set<MemoryLocation> arrayMemoryLocations = new HashSet<>();
-    int size = machineModel.getSizeof(arrayType.getType());
-    for (int i = 0; i < length; i++) {
-      arrayMemoryLocations.add(MemoryLocation.valueOf(arrayDeclaration.getQualifiedName(), i * size));
+    @Override
+    public List<MemoryLocation> visit(final CElaboratedType pElaboratedType) throws IllegalArgumentException {
+      CType definition = pElaboratedType.getRealType();
+      if (definition != null) {
+        return definition.accept(this);
+      }
+
+      switch (pElaboratedType.getKind()) {
+      case ENUM:
+      case STRUCT: // TODO: UNDEFINED
+      case UNION:  // TODO: UNDEFINED
+      default:
+        return createSingleMemoryLocation(model.getSizeofInt());
+      }
     }
 
-    return arrayMemoryLocations;
+    @Override
+    public List<MemoryLocation> visit(final CEnumType pEnumType) throws IllegalArgumentException {
+      return createSingleMemoryLocation(model.getSizeofInt());
+    }
+
+    @Override
+    public List<MemoryLocation> visit(final CFunctionType pFunctionType) throws IllegalArgumentException {
+      // a function does not really have a size, but references to functions can be used as pointers
+      return createSingleMemoryLocation(model.getSizeofPtr());
+    }
+
+    @Override
+    public List<MemoryLocation> visit(final CPointerType pPointerType) throws IllegalArgumentException {
+      return createSingleMemoryLocation(model.getSizeofPtr());
+    }
+
+    @Override
+    public List<MemoryLocation> visit(final CProblemType pProblemType) throws IllegalArgumentException {
+      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+    }
+
+    @Override
+    public List<MemoryLocation> visit(final CSimpleType pSimpleType) throws IllegalArgumentException {
+      return createSingleMemoryLocation(model.getSizeof(pSimpleType));
+    }
+
+    @Override
+    public List<MemoryLocation> visit(final CTypedefType pTypedefType) throws IllegalArgumentException {
+      return pTypedefType.getRealType().accept(this);
+    }
+
+    @Override
+    public List<MemoryLocation> visit(final CVoidType pVoidType) throws IllegalArgumentException {
+      return createSingleMemoryLocation(model.getSizeofVoid());
+    }
+
+    private List<MemoryLocation> createSingleMemoryLocation(final int pSize) {
+      List<MemoryLocation> memory = Collections.singletonList(MemoryLocation.valueOf(qualifiedName, currentOffset));
+      currentOffset = currentOffset + pSize;
+
+      return memory;
+    }
+
+    private List<MemoryLocation> createMemoryLocationsForArray(final int pLength, final CType pType) {
+      int sizeOfType = model.getSizeof(pType);
+
+      List<MemoryLocation> memoryLocationsForArray = new ArrayList<>(pLength);
+      for (int i = 0; i < pLength; i++) {
+        memoryLocationsForArray.addAll(createSingleMemoryLocation(sizeOfType));
+      }
+
+      return memoryLocationsForArray;
+    }
+
+    private List<MemoryLocation> createMemoryLocationsForStructure(final CCompositeType pCompositeType) {
+      List<MemoryLocation> memoryLocationsForStructure = new ArrayList<>();
+      for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
+        memoryLocationsForStructure.addAll(member.getType().accept(this));
+      }
+
+      return memoryLocationsForStructure;
+    }
+
+    private List<MemoryLocation> createMemoryLocationsForUnion(final CCompositeType pCompositeType) {
+      return createSingleMemoryLocation(new BaseSizeofVisitor(model).visit(pCompositeType));
+    }
   }
 }
