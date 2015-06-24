@@ -144,12 +144,16 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
+    assert BigInteger.valueOf(pI).bitLength() <= pLength:
+      String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength);
     T number = numericFormulaManager.makeNumber(pI);
     return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
+    assert pI.bitLength() <= pLength:
+      String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength);
     T number = numericFormulaManager.makeNumber(pI);
     return wrap(getBitvectorTypeWithSize(pLength), number);
   }
@@ -207,26 +211,31 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula greaterThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula greaterOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula lessThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.lessThan(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula lessOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return numericFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
