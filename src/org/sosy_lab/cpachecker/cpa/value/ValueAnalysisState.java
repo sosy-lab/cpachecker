@@ -86,32 +86,17 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
-  private PersistentMap<MemoryLocation, SymbolicValue> symbolicValues;
-
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
-    symbolicValues = PathCopyingPersistentTreeMap.of();
   }
 
   public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap, PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
     this.constantsMap = pConstantsMap;
     this.memLocToType = pLocToTypeMap;
-    symbolicValues = PathCopyingPersistentTreeMap.of();
-  }
-
-
-  private ValueAnalysisState(
-      final PersistentMap<MemoryLocation, Value> pConstantsMap,
-      final PersistentMap<MemoryLocation, Type> pLocToTypeMap,
-      final PersistentMap<MemoryLocation, SymbolicValue> pSymbolicsMap
-  ) {
-    this.constantsMap = pConstantsMap;
-    this.memLocToType = pLocToTypeMap;
-    symbolicValues = pSymbolicsMap;
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.constantsMap, state.memLocToType, state.symbolicValues);
+    return new ValueAnalysisState(state.constantsMap, state.memLocToType);
   }
 
   /**
@@ -133,10 +118,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
     if (valueToAdd instanceof SymbolicValue) {
       valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
-      symbolicValues = symbolicValues.putAndCopy(pMemLoc, (SymbolicValue) valueToAdd);
-
-    } else if (symbolicValues.containsKey(pMemLoc)) {
-      symbolicValues = symbolicValues.removeAndCopy(pMemLoc);
     }
 
     constantsMap = constantsMap.putAndCopy(pMemLoc, checkNotNull(valueToAdd));
@@ -255,8 +236,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   void dropFrame(String functionName) {
     for (MemoryLocation variableName : constantsMap.keySet()) {
       if (variableName.isOnFunctionStack(functionName)) {
-        constantsMap = constantsMap.removeAndCopy(variableName);
-        memLocToType = memLocToType.removeAndCopy(variableName);
+        forget(variableName);
       }
     }
   }
@@ -452,7 +432,15 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   private Map<MemoryLocation, SymbolicValue> getSymbolicAssignments() {
-    return symbolicValues;
+    Map<MemoryLocation, SymbolicValue> symbolics = new HashMap<>();
+
+    for (Map.Entry<MemoryLocation, Value> e : constantsMap.entrySet()) {
+      if (e.getValue() instanceof SymbolicValue) {
+        symbolics.put(e.getKey(), (SymbolicValue) e.getValue());
+      }
+    }
+
+    return symbolics;
   }
 
   @Override
