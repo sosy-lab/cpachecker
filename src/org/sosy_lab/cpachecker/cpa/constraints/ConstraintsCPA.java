@@ -66,7 +66,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   public enum MergeType { SEP, JOIN_FITTING_CONSTRAINT }
 
   @Option(description = "Type of less-or-equal operator to use", toUppercase = true)
-  private ComparisonType lessOrEqualType = ComparisonType.ALIASED_SUBSET;
+  private ComparisonType lessOrEqualType = ComparisonType.SUBSET;
 
   @Option(description = "Type of merge operator to use", toUppercase =  true)
   private MergeType mergeType = MergeType.SEP;
