@@ -369,19 +369,13 @@ def _getResults(runIDs, output_handler, benchmark):
     
 
 def _isFinished(runID, benchmark):
-    connection = _get_connection()
-
-    headers = {"Accept": "text/plain", "Connection": "Keep-Alive"}
-    if _base64_user_pwd:
-        headers.update({"Authorization": "Basic " + _base64_user_pwd})
-        
+    headers = {"Accept": "text/plain"}
     path = _webclient.path + "runs/" + runID + "/state"
-    connection.request("GET", path, headers=headers)
-    response = connection.getresponse()
+    
+    try:
+        state = _request("GET", path,"", headers).decode('utf-8')
 
-    if response.status == 200:
-        state = response.read().decode('utf-8')
-
+   
         if state == "FINISHED":
             logging.debug('Run {0} finished.'.format(runID))
             return True
@@ -395,9 +389,8 @@ def _isFinished(runID, benchmark):
         else:
             return False
 
-    else:
-        logging.warning('Could not get run state {0}: {1}'.format(runID, response.read()))
-
+    except urllib2.HTTPError as e:
+        logging.warning('Could not get run state {0}: {1}'.format(runID, e.reason))
         return False
 
 def _getAndHandleResult(runID, run, output_handler, benchmark):
