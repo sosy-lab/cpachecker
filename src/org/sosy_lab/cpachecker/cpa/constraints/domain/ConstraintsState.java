@@ -368,6 +368,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
         BooleanFormula newFormula = formulaCreator.createFormula(c, pNewDefinites);
 
         assert !newFormula.equals(constraintFormulas.get(c))
+            || formulaManager.getBooleanFormulaManager().isTrue(constraintFormulas.get(c))
             : "Identifier was not replaced by definite assignment";
 
         constraintFormulas.put(c, newFormula);
