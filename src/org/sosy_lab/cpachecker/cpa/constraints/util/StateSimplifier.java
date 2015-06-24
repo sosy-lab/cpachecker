@@ -58,7 +58,7 @@ import com.google.common.collect.Iterables;
 public class StateSimplifier {
 
   @Option(description = "Whether to remove trivial constraints from constraints states during"
-      + "simplification")
+      + " simplification")
   private boolean removeTrivial = false;
 
   @Option(description = "Whether to remove constraints that can't add any more information to"
