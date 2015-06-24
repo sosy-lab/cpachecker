@@ -157,6 +157,13 @@ public class FormulaManagerView implements StatisticsProvider {
   @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
+  @Option(secure=true, description="Use UFs to handle overflows when Bitvector theory was replaced with Integer or Rational theory.")
+  private boolean handleOverflowsWithUFs = false;
+
+  @Option(secure=true, description="Use UFs to handle sign-conversion (from signed to unsigned or back) "
+      + "when Bitvector theory was replaced with Integer or Rational theory.")
+  private boolean handleSignConversionWithUFs = false;
+
   public FormulaManagerView(FormulaManagerFactory solverFactory, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;
@@ -179,8 +186,10 @@ public class FormulaManagerView implements StatisticsProvider {
         break;
       case INTEGER:
         rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-            manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
-            ignoreExtractConcat);
+            manager.getBooleanFormulaManager(),
+            manager.getIntegerFormulaManager(),
+            manager.getFunctionFormulaManager(),
+            ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
         break;
       case RATIONAL:
         NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
@@ -194,8 +203,10 @@ public class FormulaManagerView implements StatisticsProvider {
               e);
         }
         rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-            rmgr, manager.getFunctionFormulaManager(),
-            ignoreExtractConcat);
+            manager.getBooleanFormulaManager(),
+            rmgr,
+            manager.getFunctionFormulaManager(),
+            ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
       break;
       case FLOAT:
         throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");

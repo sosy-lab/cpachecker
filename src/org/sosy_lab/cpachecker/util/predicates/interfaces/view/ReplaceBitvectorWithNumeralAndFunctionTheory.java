@@ -36,6 +36,7 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionD
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   extends BaseManagerView implements BitvectorFormulaManager {
 
+  private final BooleanFormulaManager booleanFormulaManager;
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
   private final FunctionFormulaManager functionManager;
   private final UninterpretedFunctionDeclaration<T> bitwiseAndUfDecl;
@@ -57,15 +59,24 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   private final UninterpretedFunctionDeclaration<T> rightShiftUfDecl;
   private final FormulaType<T> formulaType;
   private final boolean ignoreExtractConcat;
+  private final boolean handleOverflowsWithUFs;
+  private final boolean handleSignConversionWithUFs;
+
 
   public ReplaceBitvectorWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
+      BooleanFormulaManager pBooleanFormulaManager,
       NumeralFormulaManager<? super T, T> rawNumericFormulaManager,
       FunctionFormulaManager rawFunctionManager,
-      final boolean ignoreExtractConcat) {
+      final boolean ignoreExtractConcat,
+      final boolean handleOverflowsWithUFs,
+      final boolean handleSignConversionWithUFs) {
     super(pWrappingHandler);
+    booleanFormulaManager = pBooleanFormulaManager;
     numericFormulaManager = rawNumericFormulaManager;
     this.ignoreExtractConcat = ignoreExtractConcat;
+    this.handleOverflowsWithUFs = handleOverflowsWithUFs;
+    this.handleSignConversionWithUFs = handleSignConversionWithUFs;
     this.functionManager = rawFunctionManager;
 
     formulaType = numericFormulaManager.getFormulaType();
