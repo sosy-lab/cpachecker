@@ -172,18 +172,18 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public BitvectorFormula negate(BitvectorFormula pNumber) {
+  public BitvectorFormula negate(BitvectorFormula pNumber, boolean signed) {
     return wrap(getFormulaType(pNumber), numericFormulaManager.negate(unwrap(pNumber)));
   }
 
   @Override
-  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
-  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(getFormulaType(pNumber1), numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
   }
@@ -207,7 +207,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
   }
@@ -271,7 +271,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb) {
+  public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb, boolean signed) {
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(pMsb + 1 - pLsb);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));

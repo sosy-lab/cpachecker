@@ -176,33 +176,33 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     switch (op) {
     case PLUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
-        ret = mgr.makePlus(f1, f2);
+        ret = mgr.makePlus(f1, f2, signed);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
         ret =  mgr.makePlus(f1, mgr.makeMultiply(f2,
                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
-                                                             calculationType)));
+                                                             calculationType), false), signed);
       } else if (!(promT1 instanceof CPointerType)) {
         // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
         ret =  mgr.makePlus(f2, mgr.makeMultiply(f1,
                                                              getPointerTargetSizeLiteral((CPointerType) promT2,
-                                                             calculationType)));
+                                                             calculationType), false), signed);
       } else {
         throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
       }
       break;
     case MINUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
-        ret =  mgr.makeMinus(f1, f2);
+        ret =  mgr.makeMinus(f1, f2, signed);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
         ret =  mgr.makeMinus(f1, mgr.makeMultiply(f2,
                                                               getPointerTargetSizeLiteral((CPointerType) promT1,
-                                                                                            calculationType)));
+                                                                                            calculationType), false), signed);
       } else if (promT1 instanceof CPointerType) {
         // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
         if (promT1.equals(promT2)) {
-          ret = mgr.makeDivide(mgr.makeMinus(f1, f2),
+          ret = mgr.makeDivide(mgr.makeMinus(f1, f2, signed),
                                      getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
                                      true);
         } else {
@@ -213,7 +213,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
       break;
     case MULTIPLY:
-      ret =  mgr.makeMultiply(f1, f2);
+      ret =  mgr.makeMultiply(f1, f2, signed);
       break;
     case DIVIDE:
       ret =  mgr.makeDivide(f1, f2, signed);
@@ -439,7 +439,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
       Formula ret;
       if (op == UnaryOperator.MINUS) {
-        ret = mgr.makeNegate(operandFormula);
+        final boolean signed;
+        if (promoted instanceof CSimpleType) {
+          signed = conv.machineModel.isSigned((CSimpleType)promoted);
+        } else {
+          signed = false;
+        }
+        ret = mgr.makeNegate(operandFormula, signed);
       } else {
         assert op == UnaryOperator.TILDE
               : "This case should be impossible because of switch";
@@ -557,7 +563,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormula zero = mgr.getFloatingPointFormulaManager().makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
             BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
             return mgr.getBooleanFormulaManager().ifThenElse(isNegative,
-                mgr.makeNegate(param), param);
+                mgr.makeNegate(param, true), param);
           }
         }
 

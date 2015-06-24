@@ -39,11 +39,11 @@ public interface BitvectorFormulaManager {
 
   // Numeric Operations
 
-  public BitvectorFormula negate(BitvectorFormula number);
+  public BitvectorFormula negate(BitvectorFormula number, boolean resultSigned);
 
-  public BitvectorFormula add(BitvectorFormula number1, BitvectorFormula number2);
+  public BitvectorFormula add(BitvectorFormula number1, BitvectorFormula number2, boolean resultSigned);
 
-  public BitvectorFormula subtract(BitvectorFormula number1, BitvectorFormula number2);
+  public BitvectorFormula subtract(BitvectorFormula number1, BitvectorFormula number2, boolean resultSigned);
 
   public BitvectorFormula divide(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
 
@@ -54,7 +54,7 @@ public interface BitvectorFormulaManager {
    */
   public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, long pModulo);
 
-  public BitvectorFormula multiply(BitvectorFormula number1, BitvectorFormula number2);
+  public BitvectorFormula multiply(BitvectorFormula number1, BitvectorFormula number2, boolean resultSigned);
 
   // ----------------- Numeric relations -----------------
 
@@ -103,7 +103,7 @@ public interface BitvectorFormulaManager {
   public BitvectorFormula shiftLeft(BitvectorFormula number, BitvectorFormula toShift);
 
   public BitvectorFormula concat(BitvectorFormula number, BitvectorFormula append);
-  public BitvectorFormula extract(BitvectorFormula number, int msb, int lsb);
+  public BitvectorFormula extract(BitvectorFormula number, int msb, int lsb, boolean signed);
 
   /**
    * Extend a bitvector to the left (add most significant bits).

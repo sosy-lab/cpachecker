@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
@@ -528,7 +527,7 @@ public class CtoFormulaConverter {
       int fromSize = ((FormulaType.BitvectorType)fromType).getSize();
       int toSize = ((FormulaType.BitvectorType)toType).getSize();
       if (fromSize > toSize) {
-        ret = fmgr.makeExtract(pFormula, toSize-1, 0);
+        ret = fmgr.makeExtract(pFormula, toSize-1, 0, machineModel.isSigned(pFromCType));
 
       } else if (fromSize < toSize) {
         ret = fmgr.makeExtend(pFormula, (toSize - fromSize), machineModel.isSigned(pFromCType));
@@ -1218,8 +1217,8 @@ public class CtoFormulaConverter {
   /**
    * Creates a Formula which accesses the given bits.
    */
-  private BitvectorFormula accessField(Pair<Integer, Integer> msb_Lsb, BitvectorFormula f) {
-    return fmgr.makeExtract(f, msb_Lsb.getFirst(), msb_Lsb.getSecond());
+  private BitvectorFormula accessField(Triple<Integer, Integer, Boolean> msb_Lsb_signed, BitvectorFormula f) {
+    return fmgr.makeExtract(f, msb_Lsb_signed.getFirst(), msb_Lsb_signed.getSecond(), msb_Lsb_signed.getThird());
   }
 
   /**
@@ -1229,8 +1228,8 @@ public class CtoFormulaConverter {
     assert options.handleFieldAccess() : "Fieldaccess if only allowed with handleFieldAccess";
     assert f instanceof BitvectorFormula : "Fields need to be represented with bitvectors";
     // Get the underlaying structure
-    Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
-    return accessField(msb_Lsb, (BitvectorFormula)f);
+    Triple<Integer, Integer, Boolean> msb_Lsb_signed = getFieldOffsetMsbLsb(fExp);
+    return accessField(msb_Lsb_signed, (BitvectorFormula)f);
   }
 
   /**
@@ -1245,7 +1244,7 @@ public class CtoFormulaConverter {
   Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) throws UnrecognizedCCodeException {
     assert options.handleFieldAccess() : "Fieldaccess if only allowed with handleFieldAccess";
 
-    Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
+    Triple<Integer, Integer, Boolean> msb_Lsb = getFieldOffsetMsbLsb(fExp);
 
     int size = efmgr.getLength((BitvectorFormula) pLVar);
     assert size > msb_Lsb.getFirst() : "pLVar is too small";
@@ -1258,7 +1257,7 @@ public class CtoFormulaConverter {
     List<Formula> parts = new ArrayList<>(3);
 
     if (msb_Lsb.getFirst() + 1 < size) {
-      parts.add(fmgr.makeExtract(pLVar, size - 1, msb_Lsb.getFirst() + 1));
+      parts.add(fmgr.makeExtract(pLVar, size - 1, msb_Lsb.getFirst() + 1, msb_Lsb.getThird()));
     }
 
     if (pRightVariable.isPresent()) {
@@ -1267,7 +1266,7 @@ public class CtoFormulaConverter {
     }
 
     if (msb_Lsb.getSecond() > 0) {
-      parts.add(fmgr.makeExtract(pLVar, msb_Lsb.getSecond() - 1, 0));
+      parts.add(fmgr.makeExtract(pLVar, msb_Lsb.getSecond() - 1, 0, msb_Lsb.getThird()));
     }
 
     if (parts.isEmpty()) {
@@ -1280,7 +1279,7 @@ public class CtoFormulaConverter {
   /**
    * Returns the offset of the given CFieldReference within the structure in bits.
    */
-  private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) throws UnrecognizedCCodeException {
+  private Triple<Integer, Integer, Boolean> getFieldOffsetMsbLsb(CFieldReference fExp) throws UnrecognizedCCodeException {
     CExpression fieldRef = getRealFieldOwner(fExp);
     CCompositeType structType = (CCompositeType)fieldRef.getExpressionType().getCanonicalType();
 
@@ -1299,7 +1298,8 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCCodeException("Unexpected field access", fExp);
     }
 
-    int fieldSize = getSizeof(fExp.getExpressionType()) * bitsPerByte;
+    CType type = fExp.getExpressionType();
+    int fieldSize = getSizeof(type) * bitsPerByte;
 
     // Crude hack for unions with zero-sized array fields produced by LDV
     // (ldv-consumption/32_7a_cilled_true_linux-3.8-rc1-32_7a-fs--ceph--ceph.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c)
@@ -1307,11 +1307,15 @@ public class CtoFormulaConverter {
       fieldSize = getSizeof(fieldRef.getExpressionType());
     }
 
+    // we assume that only CSimpleTypes can be unsigned
+    boolean signed = !(type instanceof CSimpleType)
+        || machineModel.isSigned((CSimpleType) type);
+
     int lsb = offset;
     int msb = offset + fieldSize - 1;
     assert (lsb >= 0);
     assert (msb >= lsb);
-    Pair<Integer, Integer> msb_Lsb = Pair.of(msb, lsb);
+    Triple<Integer, Integer, Boolean> msb_Lsb = Triple.of(msb, lsb, signed);
     return msb_Lsb;
   }
 

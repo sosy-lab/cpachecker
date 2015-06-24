@@ -62,17 +62,17 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   }
 
   @Override
-  public BitvectorFormula negate(BitvectorFormula pNumber) {
-    return manager.negate(pNumber);
+  public BitvectorFormula negate(BitvectorFormula pNumber, boolean signed) {
+    return manager.negate(pNumber, signed);
   }
 
   @Override
-  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return manager.add(pNumber1, pNumbe2);
+  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
+    return manager.add(pNumber1, pNumbe2, signed);
   }
   @Override
-  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return manager.subtract(pNumber1, pNumbe2);
+  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
+    return manager.subtract(pNumber1, pNumbe2, signed);
   }
   @Override
   public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
@@ -87,8 +87,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
     return manager.modularCongruence(pNumber1, pNumber2, pModulo);
   }
   @Override
-  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return manager.multiply(pNumber1, pNumbe2);
+  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
+    return manager.multiply(pNumber1, pNumbe2, signed);
   }
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
@@ -167,8 +167,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
     return manager.concat(pNumber, pAppend);
   }
   @Override
-  public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {
-    return manager.extract(pNumber, pMsb, pLsb);
+  public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb, boolean signed) {
+    return manager.extract(pNumber, pMsb, pLsb, signed);
   }
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {

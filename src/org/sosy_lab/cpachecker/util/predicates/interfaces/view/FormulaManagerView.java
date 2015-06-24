@@ -114,6 +114,12 @@ public class FormulaManagerView implements StatisticsProvider {
     ;
   }
 
+  /* TODO the integer-type corresponding to a pointer-type should be unsigned?
+   * TODO are there negative pointers?
+   * TODO distinguish pointer-int-type from pointer-diff-type (which is SIGNED!). currently we use this flag for both cases.
+   * TODO currently just 'decoration' until we know the exact needed signess. */
+  public static final boolean IS_POINTER_SIGNED = false;
+
   private final LogManager logger;
 
   private final FormulaManager manager;
@@ -391,14 +397,14 @@ public class FormulaManagerView implements StatisticsProvider {
   }
 
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makeNegate(T pNum) {
+  public  <T extends Formula> T makeNegate(T pNum, boolean signed) {
     Formula t;
     if (pNum instanceof IntegerFormula) {
       t = integerFormulaManager.negate((IntegerFormula)pNum);
     } else if (pNum instanceof RationalFormula) {
       t = getRationalFormulaManager().negate((RationalFormula)pNum);
     } else if (pNum instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.negate((BitvectorFormula)pNum);
+      t = bitvectorFormulaManager.negate((BitvectorFormula)pNum, signed);
     } else if (pNum instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.negate((FloatingPointFormula)pNum);
     } else {
@@ -409,14 +415,14 @@ public class FormulaManagerView implements StatisticsProvider {
   }
 
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makePlus(T pF1, T pF2) {
+  public  <T extends Formula> T makePlus(T pF1, T pF2, boolean signed) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.add((IntegerFormula)pF1, (IntegerFormula)pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = rationalFormulaManager.add((NumeralFormula)pF1, (NumeralFormula)pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2);
+      t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2, signed);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.add((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -427,14 +433,14 @@ public class FormulaManagerView implements StatisticsProvider {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeMinus(T pF1, T pF2) {
+  public <T extends Formula> T makeMinus(T pF1, T pF2, boolean signed) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.subtract((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = getRationalFormulaManager().subtract((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.subtract((BitvectorFormula) pF1, (BitvectorFormula) pF2);
+      t = bitvectorFormulaManager.subtract((BitvectorFormula) pF1, (BitvectorFormula) pF2, signed);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.subtract((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -444,14 +450,14 @@ public class FormulaManagerView implements StatisticsProvider {
     return (T) t;
   }
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makeMultiply(T pF1, T pF2) {
+  public  <T extends Formula> T makeMultiply(T pF1, T pF2, boolean signed) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.multiply((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = getRationalFormulaManager().multiply((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.multiply((BitvectorFormula) pF1, (BitvectorFormula) pF2);
+      t = bitvectorFormulaManager.multiply((BitvectorFormula) pF1, (BitvectorFormula) pF2, signed);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.multiply((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -599,12 +605,12 @@ public class FormulaManagerView implements StatisticsProvider {
    * @return
    */
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb) {
+  public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb, boolean signed) {
     checkArgument(pLsb >= 0);
     checkArgument(pMsb >= pLsb);
     Formula t;
     if (pFormula instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.extract((BitvectorFormula)pFormula, pMsb, pLsb);
+      t = bitvectorFormulaManager.extract((BitvectorFormula)pFormula, pMsb, pLsb, signed);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

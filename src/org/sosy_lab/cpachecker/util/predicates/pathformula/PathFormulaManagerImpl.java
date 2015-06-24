@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
 
 import java.util.Collections;
 import java.util.List;
@@ -496,7 +497,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
       shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
-                                                  fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
+                                                  fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()),
+                                                  IS_POINTER_SIGNED);
 
       final BooleanFormula retention = fmgr.assignment(ffmgr.declareAndCallUninterpretedFunction(functionName,
                                                                               newIndex,

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import java.math.BigInteger;
@@ -297,7 +298,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           addValueImportConstraints(cfaEdge,
-                                    fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
+                                    fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset), IS_POINTER_SIGNED),
                                     newBase,
                                     fields,
                                     ssa,

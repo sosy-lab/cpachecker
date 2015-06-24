@@ -108,15 +108,15 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     b = bvmgr.extend(b, 32 - 8, false);
     a = bvmgr.or(a, one);
     b = bvmgr.or(b, one);
-    a = bvmgr.extract(a, 7, 0);
-    b = bvmgr.extract(b, 7, 0);
+    a = bvmgr.extract(a, 7, 0, true);
+    b = bvmgr.extract(b, 7, 0, true);
     a = bvmgr.extend(a, 32 - 8, false);
     b = bvmgr.extend(b, 32 - 8, false);
 
     a = bvmgr.shiftLeft(a, rightOp);
     b = bvmgr.shiftLeft(b, rightOp);
-    a = bvmgr.extract(a, 7, 0);
-    b = bvmgr.extract(b, 7, 0);
+    a = bvmgr.extract(a, 7, 0, true);
+    b = bvmgr.extract(b, 7, 0, true);
     BooleanFormula f = bmgr.not(bvmgr.equal(a, b));
 
     assert_().about(BooleanFormula()).that(f).isUnsatisfiable();
