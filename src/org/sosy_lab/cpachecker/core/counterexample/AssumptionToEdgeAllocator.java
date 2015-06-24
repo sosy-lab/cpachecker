@@ -111,6 +111,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge
@@ -445,7 +446,7 @@ public class AssumptionToEdgeAllocator {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
 
-    List<AExpressionStatement> statements = new ArrayList<>(subValues.size() + 1);
+    Set<AExpressionStatement> statements = Sets.newLinkedHashSet();
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
 
@@ -530,6 +531,9 @@ public class AssumptionToEdgeAllocator {
     CType type = pLValue.getExpressionType().getCanonicalType();
 
     if (isStructOrUnionType(type) || type instanceof CArrayType) {
+      if (pLValue instanceof CPointerExpression) {
+        return ((CPointerExpression) pLValue).getOperand();
+      }
       CUnaryExpression unaryExpression = new CUnaryExpression(
           pLValue.getFileLocation(), type, pLValue,
           CUnaryExpression.UnaryOperator.AMPER);
