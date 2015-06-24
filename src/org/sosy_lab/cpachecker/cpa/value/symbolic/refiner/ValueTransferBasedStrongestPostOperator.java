@@ -92,32 +92,44 @@ public class ValueTransferBasedStrongestPostOperator
 
     assert oldValues != null && oldConstraints != null;
 
-    Optional<ValueAnalysisState> maybeValues = strengthenValueState(oldValues, oldConstraints, pPrecision, pOperation);
-    ValueAnalysisState strengthenedValues;
-
-    if (maybeValues.isPresent()) {
-      strengthenedValues = maybeValues.get();
-    } else {
-      return Optional.absent();
-    }
-
     final Collection<ValueAnalysisState> successors =
-        valueTransfer.getAbstractSuccessorsForEdge(strengthenedValues, pPrecision, pOperation);
+        valueTransfer.getAbstractSuccessorsForEdge(oldValues, pPrecision, pOperation);
 
     if (isContradiction(successors)) {
       return Optional.absent();
 
     } else {
-      final ValueAnalysisState onlyValueState = Iterables.getOnlyElement(successors);
+      final ValueAnalysisState valuesSuccessor = Iterables.getOnlyElement(successors);
 
-      Optional<ConstraintsState> nextConstraints =
-          getConstraintsStateSuccessor(oldConstraints, onlyValueState, pOperation);
+      Collection<? extends AbstractState> constraintsSuccessors =
+          constraintsTransfer.getAbstractSuccessorsForEdge(
+              oldConstraints,
+              SingletonPrecision.getInstance(),
+              pOperation);
 
-      if (!nextConstraints.isPresent()) {
+      if (isContradiction(successors)) {
+        return Optional.absent();
+      }
+
+      final ConstraintsState constraintsSuccessor =
+          (ConstraintsState) Iterables.get(constraintsSuccessors, 0);
+
+      Optional<ConstraintsState> constraintsStrengthenResult =
+          getConstraintsStateSuccessor(oldConstraints, valuesSuccessor, pOperation);
+
+      if (!constraintsStrengthenResult.isPresent()) {
         return Optional.absent();
 
       } else {
-        return Optional.of(getNewCompositeState(onlyValueState, nextConstraints.get()));
+        Optional<ValueAnalysisState> valueStrengthenResult =
+            strengthenValueState(oldValues, constraintsSuccessor, pPrecision, pOperation);
+
+        if (!valueStrengthenResult.isPresent()) {
+          return Optional.absent();
+        }
+
+        return Optional.of(
+            getNewCompositeState(valueStrengthenResult.get(), constraintsStrengthenResult.get()));
       }
     }
   }
@@ -209,25 +221,14 @@ public class ValueTransferBasedStrongestPostOperator
   ) throws CPATransferException {
 
     Collection<? extends AbstractState> successors =
-        constraintsTransfer.getAbstractSuccessorsForEdge(
-            pConstraintsState,
-            SingletonPrecision.getInstance(),
-            pOperation);
-
-    if (isContradiction(successors)) {
-      return Optional.absent();
-    }
-
-    final ConstraintsState successor = (ConstraintsState) Iterables.get(successors, 0);
-    successors =
-        constraintsTransfer.strengthen(successor,
+        constraintsTransfer.strengthen(pConstraintsState,
                                        ImmutableList.<AbstractState>of(pValueState),
                                        pOperation,
                                        SingletonPrecision.getInstance());
 
     if (successors == null) {
       // nothing changed
-      return Optional.of(successor);
+      return Optional.of(pConstraintsState);
 
     } else if (isContradiction(successors)) {
       return Optional.absent();
