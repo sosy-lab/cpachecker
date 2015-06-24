@@ -69,6 +69,7 @@ class WebClientError(Exception):
 
 _connectionTimeout = 600 #seconds
 _thread_local = threading.local()
+_print_lock = threading.Lock()
 _unfinished_run_ids = set()
 _groupId = None
 _webclient = None
@@ -424,9 +425,13 @@ def _getAndHandleResult(runID, run, output_handler, benchmark):
         logging.warning('Error while writing results of run {}: {}'.format(run.identifier, e))
 
     if return_value is not None:
-        output_handler.output_before_run(run)
         run.after_execution(return_value)
-        output_handler.output_after_run(run)
+        try:
+            _print_lock.acquire()
+            output_handler.output_before_run(run)
+            output_handler.output_after_run(run)
+        finally:
+            _print_lock.release()
     return True
 
 def _handleResult(resultZipFile, run, output_handler):
