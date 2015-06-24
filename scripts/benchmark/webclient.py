@@ -345,17 +345,22 @@ def _handleOptions(run, params, rlimits):
     return False
 
 def _getResults(runIDs, output_handler, benchmark):
+    executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
         
     while len(runIDs) > 0 :
         start = time()
-        finishedRunIDs = []
-        for runID in runIDs.keys():
+        runIDsFutures = {}
+        for runID in runIDs:
             if _isFinished(runID, benchmark):
-                if(_getAndHandleResult(runID, runIDs[runID], output_handler, benchmark)):
-                    finishedRunIDs.append(runID)
+                run = runIDs[runID]
+                future  = executor.submit(_getAndHandleResult, runID, run, output_handler, benchmark)
+                runIDsFutures[future] = runID
 
-        for runID in finishedRunIDs:
-            del runIDs[runID]
+        # remove all finished run from _unfinished_run_ids
+        for future in as_completed(runIDsFutures.keys()):
+            if future.result():
+                del runIDs[runIDsFutures[future]]
+                _unfinished_run_ids.remove(runIDsFutures[future])
         
         end = time();
         duration = end - start
@@ -406,8 +411,6 @@ def _getAndHandleResult(runID, run, output_handler, benchmark):
     except urllib2.HTTPError as e:
         logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
         return False
-
-    _unfinished_run_ids.remove(runID)
     
     # unzip result
     return_value = None
