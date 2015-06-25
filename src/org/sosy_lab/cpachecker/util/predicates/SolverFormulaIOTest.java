@@ -129,7 +129,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     assert_().that(formDump).contains("(declare-fun a () Bool)");
     assert_().that(formDump).contains("(declare-fun b () Bool)");
     String[] lines = formDump.split("\n");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -155,7 +155,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     assert_().that(formDump).contains("(declare-fun a () Bool)");
     assert_().that(formDump).contains("(declare-fun b () Bool)");
     String[] lines = formDump.split("\n");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -172,7 +172,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     String formDump = mgr.dumpFormula(valComp5).toString();
     String[] lines = formDump.split("\n");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -183,8 +183,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     String formDump = mgr.dumpFormula(formula).toString();
     String[] lines = formDump.split("\n");
+
+    // check that int variable is declared correctly + necessary assert that has to be there
     assert_().that(formDump).contains("(declare-fun a () Int)");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -201,8 +203,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     String formDump = mgr.dumpFormula(formula).toString();
     String[] lines = formDump.split("\n");
+
+    // check that function is dumped correctly + necessary assert that has to be there
     assert_().that(formDump).contains("(declare-fun fun_a (Int Int) Int)");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -296,6 +300,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     // check if dumped formula fits our specification
     checkThatFunOnlyDeclaredOnce(formDump);
+    checkThatAssertIsInLastLine(formDump.split("\n"));
   }
 
   @Test
@@ -316,12 +321,17 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     // check if dumped formula fits our specification
     checkThatFunOnlyDeclaredOnce(formDump);
+    checkThatAssertIsInLastLine(formDump.split("\n"));
   }
 
   private void compareParseWithOrgExprFirst(String textToParse, Supplier<BooleanFormula> fun)
       throws SolverException, InterruptedException {
+    // check if input is correct
     requireSMTLibParser();
     checkThatFunOnlyDeclaredOnce(textToParse);
+    checkThatAssertIsInLastLine(textToParse.split("\n"));
+
+    // actual test
     BooleanFormula expr = fun.get();
     BooleanFormula parsedForm = mgr.parse(textToParse);
     assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
@@ -329,8 +339,12 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
   private void compareParseWithOrgParseFirst(String textToParse, Supplier<BooleanFormula> fun)
       throws SolverException, InterruptedException {
+    // check if input is correct
     requireSMTLibParser();
     checkThatFunOnlyDeclaredOnce(textToParse);
+    checkThatAssertIsInLastLine(textToParse.split("\n"));
+
+    // actual test
     BooleanFormula parsedForm = mgr.parse(textToParse);
     BooleanFormula expr = fun.get();
     assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
@@ -347,6 +361,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     }
 
     assert_().that(findDuplicates(funDeclares)).isEmpty();
+  }
+
+  private void checkThatAssertIsInLastLine(String[] lines) {
+    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
   }
 
   public <T> List<T> findDuplicates(List<T> list) {
