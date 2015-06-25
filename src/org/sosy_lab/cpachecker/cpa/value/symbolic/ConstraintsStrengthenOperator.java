@@ -153,8 +153,11 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
     // we only simplify symbolic values if one of the possible next edges is an assume edge.
     // otherwise, symbolic values won't be used in one of the next steps and we don't have to
-    // simplify
-    if (!couldNextEdgeUseValues(pEdge)) {
+    // simplify.
+    // If the current edge is an assume edge, simplification doesn't work reliable since
+    // a constraint added at this edge is not yet in the strengthening ConstraintsState.
+    // For strengthening, unstrengthened states are used, always.
+    if (!couldNextEdgeUseValues(pEdge) && pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return Optional.absent();
     }
 
