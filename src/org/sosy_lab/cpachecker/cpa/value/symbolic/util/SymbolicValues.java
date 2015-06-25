@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -50,17 +49,7 @@ public class SymbolicValues {
   private static SymbolicIdentifierLocator identifierLocator;
 
   public static void initialize(final ComparisonType pLessOrEqualComparison) {
-    switch (pLessOrEqualComparison) {
-      case SUBSET:
-      case IMPLICATION:
-        aliasCreator = new IdentityAliasCreator();
-        break;
-      case ALIASED_SUBSET:
-        aliasCreator = new RealAliasCreator();
-        break;
-      default:
-        throw new AssertionError("Unhandled comparison type: " + pLessOrEqualComparison);
-    }
+    aliasCreator = new RealAliasCreator();
 
     identifierLocator = SymbolicIdentifierLocator.getInstance();
   }
