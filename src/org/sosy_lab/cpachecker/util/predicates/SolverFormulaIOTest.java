@@ -292,7 +292,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     IntegerFormula res2 = fmgr.callUninterpretedFunction(funB, args2);
 
     IntegerFormula calc = imgr.add(res1, res2);
-    checkThatFunOnlyDeclaredOnce(mgr.dumpFormula(calc).toString());
+    String formDump = mgr.dumpFormula(imgr.equal(calc, int1)).toString();
+
+    // check if dumped formula fits our specification
+    checkThatFunOnlyDeclaredOnce(formDump);
   }
 
   @Test
@@ -309,7 +312,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     IntegerFormula res2 = fmgr.callUninterpretedFunction(funA, args2);
 
     IntegerFormula calc = imgr.add(res1, res2);
-    checkThatFunOnlyDeclaredOnce(mgr.dumpFormula(calc).toString());
+    String formDump = mgr.dumpFormula(imgr.equal(calc, int1)).toString();
+
+    // check if dumped formula fits our specification
+    checkThatFunOnlyDeclaredOnce(formDump);
   }
 
   private void compareParseWithOrgExprFirst(String textToParse, Supplier<BooleanFormula> fun)

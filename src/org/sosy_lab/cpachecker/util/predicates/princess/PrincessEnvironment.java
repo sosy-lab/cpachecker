@@ -169,7 +169,7 @@ class PrincessEnvironment {
     throw new UnsupportedOperationException(); // todo: implement this
   }
 
-  public Appender dumpFormula(IExpression formula) {
+  public Appender dumpFormula(IFormula formula) {
     // remove redundant expressions
     final IExpression lettedFormula = PrincessUtil.let(formula, this);
     return new Appenders.AbstractAppender() {

@@ -1299,8 +1299,8 @@ public class FormulaManagerView implements StatisticsProvider {
     return result;
   }
 
-  public Appender dumpFormula(Formula pT) {
-    return manager.dumpFormula(unwrap(pT));
+  public Appender dumpFormula(BooleanFormula pT) {
+    return manager.dumpFormula(pT);
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
