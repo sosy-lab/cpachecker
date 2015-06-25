@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -166,7 +167,39 @@ class PrincessEnvironment {
   }
 
   public List<IExpression> parseStringToTerms(String s) {
-    throw new UnsupportedOperationException(); // todo: implement this
+    List<IExpression> formula = castToExpression(JavaConversions.seqAsJavaList(api.extractSMTLIBAssertions(new StringReader(s))));
+
+    Set<IExpression> declaredfunctions = PrincessUtil.getVarsAndUIFs(formula);
+    for (IExpression var : declaredfunctions) {
+      if (var instanceof IConstant) {
+        intVariablesCache.put(var.toString(), (ITerm) var);
+        for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          stack.addSymbol((IConstant)var);
+        }
+      } else if (var instanceof IAtom) {
+        boolVariablesCache.put(((IAtom) var).pred().name(), (IFormula) var);
+        for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          stack.addSymbol((IAtom)var);
+        }
+      } else if (var instanceof IFunApp) {
+        IFunction fun = ((IFunApp)var).fun();
+        functionsCache.put(fun.name(), fun);
+        // up to now princess only supports int as return type
+        functionsReturnTypes.put(fun, TermType.Integer);
+        for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          stack.addSymbol(fun);
+        }
+      }
+    }
+    return formula;
+  }
+
+  private List<IExpression> castToExpression(List<IFormula> formula) {
+    List<IExpression> retVal = new ArrayList<>(formula.size());
+    for (IFormula f : formula) {
+      retVal.add(f);
+    }
+    return retVal;
   }
 
   public Appender dumpFormula(IFormula formula) {
