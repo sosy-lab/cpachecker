@@ -23,15 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
@@ -64,12 +72,20 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}
  * that tries to refine precision using only the {@link ValueAnalysisCPA}, first.
  */
-public class SymbolicDelegatingRefiner implements Refiner {
+public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
 
   private final SymbolicValueAnalysisRefiner explicitRefiner;
   private final SymbolicValueAnalysisRefiner symbolicRefiner;
 
   private final LogManager logger;
+
+  // Statistics
+  private int explicitRefinements = 0;
+  private int successfulExplicitRefinements = 0;
+  private int symbolicRefinements = 0;
+  private int successfulSymbolicRefinements = 0;
+  private final Timer explicitRefinementTime = new Timer();
+  private final Timer symbolicRefinementTime = new Timer();
 
   public static SymbolicDelegatingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -215,19 +231,56 @@ public class SymbolicDelegatingRefiner implements Refiner {
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINER, "Trying to refine using explicit refiner only");
+    explicitRefinements++;
+    explicitRefinementTime.start();
+
     boolean refinementSuccessful = explicitRefiner.performRefinement(pReached);
+
+    explicitRefinementTime.stop();
 
     if (!refinementSuccessful) {
       logger.log(Level.FINER, "Refinement using explicit refiner only failed");
       logger.log(Level.FINER, "Trying to refine using symbolic refiner");
+      symbolicRefinements++;
+      symbolicRefinementTime.start();
+
       refinementSuccessful = symbolicRefiner.performRefinement(pReached);
+
+      symbolicRefinementTime.stop();
       logger.logf(Level.FINER,
           "Refinement using symbolic refiner finished with status %s", refinementSuccessful);
 
+      if (refinementSuccessful) {
+        successfulSymbolicRefinements++;
+      }
     } else {
       logger.log(Level.FINER, "Refinement using explicit refiner only successful");
+      successfulExplicitRefinements++;
     }
 
     return refinementSuccessful;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(new Statistics() {
+      @Override
+      public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+        out.println("Explicit refinements: " + explicitRefinements);
+        out.println("Successful explicit refinements: " + successfulExplicitRefinements);
+        out.println("Symbolic refinements: " + symbolicRefinements);
+        out.println("Successful symbolic refinements: " + successfulSymbolicRefinements);
+        out.println("Overall explicit refinement time: " + explicitRefinementTime.getSumTime());
+        out.println("Average explicit refinement time: " + explicitRefinementTime.getAvgTime());
+        out.println("Overall symbolic refinement time: " + symbolicRefinementTime.getSumTime());
+        out.println("Average symbolic refinement time: " + symbolicRefinementTime.getAvgTime());
+      }
+
+      @Nullable
+      @Override
+      public String getName() {
+        return SymbolicDelegatingRefiner.class.getSimpleName();
+      }
+    });
   }
 }
