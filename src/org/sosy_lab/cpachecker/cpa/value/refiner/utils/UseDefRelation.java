@@ -119,18 +119,6 @@ public class UseDefRelation {
     buildRelation(path);
   }
 
-  boolean hasDef(ARGState state, CFAEdge edge) {
-    Set<ASimpleDeclaration> defs = new HashSet<>(getDef(state, edge));
-
-    if(edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      for(CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
-        defs.addAll(getDef(state, singleEdge));
-      }
-    }
-
-    return defs.size() > 0;
-  }
-
   Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
 
     Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
