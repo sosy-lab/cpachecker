@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  public BooleanFormula and(List<BooleanFormula> pBits) {
+  public BooleanFormula and(Collection<BooleanFormula> pBits) {
     return manager.and(pBits);
   }
 
@@ -77,7 +78,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  public BooleanFormula or(List<BooleanFormula> pBits) {
+  public BooleanFormula or(Collection<BooleanFormula> pBits) {
     return manager.or(pBits);
   }
 
