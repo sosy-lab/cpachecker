@@ -107,7 +107,7 @@ public class ValueTransferBasedStrongestPostOperator
               SingletonPrecision.getInstance(),
               pOperation);
 
-      if (isContradiction(successors)) {
+      if (isContradiction(constraintsSuccessors)) {
         return Optional.absent();
       }
 
@@ -115,14 +115,14 @@ public class ValueTransferBasedStrongestPostOperator
           (ConstraintsState) Iterables.get(constraintsSuccessors, 0);
 
       Optional<ConstraintsState> constraintsStrengthenResult =
-          getConstraintsStateSuccessor(oldConstraints, valuesSuccessor, pOperation);
+          strengthenConstraintsState(constraintsSuccessor, valuesSuccessor, pOperation);
 
       if (!constraintsStrengthenResult.isPresent()) {
         return Optional.absent();
 
       } else {
         Optional<ValueAnalysisState> valueStrengthenResult =
-            strengthenValueState(oldValues, constraintsSuccessor, pPrecision, pOperation);
+            strengthenValueState(valuesSuccessor, constraintsSuccessor, pPrecision, pOperation);
 
         if (!valueStrengthenResult.isPresent()) {
           return Optional.absent();
@@ -214,7 +214,7 @@ public class ValueTransferBasedStrongestPostOperator
   }
 
 
-  private Optional<ConstraintsState> getConstraintsStateSuccessor(
+  private Optional<ConstraintsState> strengthenConstraintsState(
       final ConstraintsState pConstraintsState,
       final ValueAnalysisState pValueState,
       final CFAEdge pOperation
