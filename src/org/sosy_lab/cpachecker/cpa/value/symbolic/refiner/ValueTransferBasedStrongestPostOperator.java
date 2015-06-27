@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -57,6 +59,8 @@ public class ValueTransferBasedStrongestPostOperator
     implements SymbolicStrongestPostOperator {
 
   private final ValueAnalysisTransferRelation valueTransfer;
+  // used for abstraction
+  private final ValueAnalysisStrongestPostOperator valueStrongestPost;
   private final ConstraintsTransferRelation constraintsTransfer;
 
   public ValueTransferBasedStrongestPostOperator(
@@ -70,6 +74,8 @@ public class ValueTransferBasedStrongestPostOperator
 
     valueTransfer =
         new ValueAnalysisTransferRelation(pConfig, pLogger, pCfa);
+
+    valueStrongestPost = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
 
     constraintsTransfer =
         new ConstraintsTransferRelation(pSolver,
@@ -183,7 +189,13 @@ public class ValueTransferBasedStrongestPostOperator
       final ARGPath pErrorPath,
       final Precision pPrecision
   ) {
-    return pNext;
+    ValueAnalysisState oldValueState = getValueStateOfCompositeState(pNext);
+
+    assert pPrecision instanceof VariableTrackingPrecision;
+    ValueAnalysisState newValueState =
+        valueStrongestPost.performAbstraction(oldValueState, pCurrNode, pErrorPath, pPrecision);
+
+    return getNewCompositeState(newValueState, pNext.getConstraintsState());
   }
 
   private Optional<ValueAnalysisState> strengthenValueState(
