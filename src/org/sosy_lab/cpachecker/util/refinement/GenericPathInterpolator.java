@@ -28,7 +28,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +52,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -102,8 +99,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final EdgeInterpolator<S, I> interpolator;
   private final FeasibilityChecker<S> checker;
   private final GenericPrefixProvider<S> prefixProvider;
-
-  private Set<Integer> visitedPathPrefixes = new HashSet<>();
 
   public GenericPathInterpolator(
       final EdgeInterpolator<S, I> pEdgeInterpolator,
@@ -219,11 +214,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     if (pathSlicing && prefixPreference != PrefixPreference.NONE) {
       errorPathPrefix = sliceErrorPath(errorPathPrefix);
     }
-
-    if (visitedPathPrefixes.contains(errorPathPrefix.toString().hashCode())) {
-      throw new RefinementFailedException(Reason.RepeatedPathPrefix, errorPathPrefix);
-    }
-    visitedPathPrefixes.add(errorPathPrefix.toString().hashCode());
 
     Map<ARGState, I> pathInterpolants = new LinkedHashMap<>(errorPathPrefix.size());
 
