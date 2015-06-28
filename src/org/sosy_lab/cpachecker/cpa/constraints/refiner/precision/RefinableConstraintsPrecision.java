@@ -81,4 +81,21 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
   public ConstraintsPrecision withIncrement(Increment pIncrement) {
     return new RefinableConstraintsPrecision(delegate.withIncrement(pIncrement));
   }
+
+  @Override
+  public boolean equals(Object o) {
+    return delegate.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = precisionType.hashCode();
+    result = 31 * result + delegate.hashCode();
+    return result;
+  }
+
+  @Override
+  public String toString() {
+    return delegate.toString();
+  }
 }
