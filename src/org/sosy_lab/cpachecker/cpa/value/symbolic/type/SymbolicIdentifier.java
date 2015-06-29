@@ -241,7 +241,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      */
     public boolean isSymbolicEncoding(String pName) {
       String variableName = FormulaManagerView.parseName(pName).getFirst();
-      return variableName.startsWith(PREFIX);
+      return variableName.matches("s[0-9]*");
     }
   }
 }
