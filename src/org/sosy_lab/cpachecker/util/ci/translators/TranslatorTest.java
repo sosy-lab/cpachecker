@@ -68,10 +68,10 @@ public class TranslatorTest {
     PersistentMap<MemoryLocation, Value> constantsMap = PathCopyingPersistentTreeMap.of();
     PersistentMap<MemoryLocation, Type> locToTypeMap = PathCopyingPersistentTreeMap.of();
 
-    constantsMap.putAndCopy(MemoryLocation.valueOf("var1"), new NumericValue(3));
-    constantsMap.putAndCopy(MemoryLocation.valueOf("var3"), new NumericValue(0)); // TODO NullValue does not exist
-    constantsMap.putAndCopy(MemoryLocation.valueOf("fun::var1"), new NumericValue(-5));
-    constantsMap.putAndCopy(MemoryLocation.valueOf("fun::varC"), new NumericValue(1.5));
+    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var1"), new NumericValue(3));
+    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var3"), new NumericValue(0)); // TODO NullValue does not exist
+    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::var1"), new NumericValue(-5));
+    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::varC"), new NumericValue(1.5));
 
     Truth.assertThat(constantsMap).hasSize(4);
 
