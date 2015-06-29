@@ -110,7 +110,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    pConfig.inject(this);
+    pConfig.inject(this, GenericPathInterpolator.class);
     config = pConfig;
 
     logger             = pLogger;

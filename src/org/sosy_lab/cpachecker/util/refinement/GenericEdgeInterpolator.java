@@ -109,6 +109,8 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
+    pConfig.inject(this, GenericEdgeInterpolator.class);
+
     try {
       checker            = pFeasibilityChecker;
       postOperator       = pStrongestPostOperator;

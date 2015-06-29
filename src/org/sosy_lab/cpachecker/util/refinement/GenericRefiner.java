@@ -112,7 +112,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    pConfig.inject(this);
+    pConfig.inject(this, GenericRefiner.class);
 
     logger = pLogger;
     interpolator = pPathInterpolator;
