@@ -91,7 +91,6 @@ public class TranslatorTest {
   }
 
   @Test
-
   public void testSignTranslator() throws InvalidConfigurationException {
     SignState sStateTest = SignState.TOP;
     sStateTest = sStateTest.assignSignToVariable("var1", SIGN.PLUS);
