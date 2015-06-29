@@ -61,7 +61,8 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
       if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
         logger.log(Level.SEVERE, "The value " + integerValue + " of the MemoryLocation " + memLoc + " is not an Integer.");
       } else {
-        list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " " + integerValue + ")");
+        list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " "
+            + integerValue.asNumericValue().getNumber() + ")");
       }
     }
     return list;
