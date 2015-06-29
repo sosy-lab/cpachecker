@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -58,9 +59,9 @@ public class TranslatorTest {
   @Before
   public void init() {
     SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
-    for (String var : varNames) {
-      ssaBuilder.setIndex(var, integervariable, 1);
-    }
+    ssaBuilder.setIndex("var1", integervariable, 1);
+    ssaBuilder.setIndex("var3", integervariable, 1);
+    ssaBuilder.setIndex("fun::varB", integervariable, 1);
     ssaTest = ssaBuilder.build();
   }
 
@@ -70,7 +71,7 @@ public class TranslatorTest {
     PersistentMap<MemoryLocation, Type> locToTypeMap = PathCopyingPersistentTreeMap.of();
 
     constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var1"), new NumericValue(3));
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var3"), new NumericValue(0)); // TODO NullValue does not exist
+    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var3"), NullValue.getInstance());
     constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::var1"), new NumericValue(1.5));
     constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::varC"), new NumericValue(-5));
 
@@ -90,6 +91,7 @@ public class TranslatorTest {
   }
 
   @Test
+
   public void testSignTranslator() throws InvalidConfigurationException {
     SignState sStateTest = SignState.TOP;
     sStateTest = sStateTest.assignSignToVariable("var1", SIGN.PLUS);
@@ -108,11 +110,11 @@ public class TranslatorTest {
     List<String> listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest);
     List<String> content = new ArrayList<>();
     content.add("(> var1@1 0)");
-    content.add("(< var2@1 0)");
+    content.add("(< var2 0)");
     content.add("(= var3@1 0)");
-    content.add("(or (> fun::var1@1 0) (< fun::var1@1 0))");
+    content.add("(or (> fun::var1 0) (< fun::var1 0))");
     content.add("(>= fun::varB@1 0)");
-    content.add("(<= fun::varC@1 0)");
+    content.add("(<= fun::varC 0)");
     Truth.assertThat(listOfIndepententReq).containsExactlyElementsIn(content);
   }
 
