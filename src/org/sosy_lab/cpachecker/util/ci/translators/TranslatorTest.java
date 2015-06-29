@@ -91,12 +91,12 @@ public class TranslatorTest {
   @Test
   public void testSignTranslator() throws InvalidConfigurationException {
     SignState sStateTest = SignState.TOP;
-    sStateTest.assignSignToVariable("var1", SIGN.PLUS);
-    sStateTest.assignSignToVariable("var2", SIGN.MINUS);
-    sStateTest.assignSignToVariable("var3", SIGN.ZERO);
-    sStateTest.assignSignToVariable("fun::var1", SIGN.PLUSMINUS);
-    sStateTest.assignSignToVariable("fun::varB", SIGN.PLUS0);
-    sStateTest.assignSignToVariable("fun::varC", SIGN.MINUS0);
+    sStateTest = sStateTest.assignSignToVariable("var1", SIGN.PLUS);
+    sStateTest = sStateTest.assignSignToVariable("var2", SIGN.MINUS);
+    sStateTest = sStateTest.assignSignToVariable("var3", SIGN.ZERO);
+    sStateTest = sStateTest.assignSignToVariable("fun::var1", SIGN.PLUSMINUS);
+    sStateTest = sStateTest.assignSignToVariable("fun::varB", SIGN.PLUS0);
+    sStateTest = sStateTest.assignSignToVariable("fun::varC", SIGN.MINUS0);
     SignRequirementsTranslator sReqTransTest = new SignRequirementsTranslator(TestDataTools.configurationForTest().build(), ShutdownNotifier.create(), TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
