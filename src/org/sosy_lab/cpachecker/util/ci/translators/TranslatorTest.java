@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Before;
@@ -70,8 +71,8 @@ public class TranslatorTest {
 
     constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var1"), new NumericValue(3));
     constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var3"), new NumericValue(0)); // TODO NullValue does not exist
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::var1"), new NumericValue(-5));
-    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::varC"), new NumericValue(1.5));
+    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::var1"), new NumericValue(1.5));
+    constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("fun::varC"), new NumericValue(-5));
 
     Truth.assertThat(constantsMap).hasSize(4);
 
@@ -101,7 +102,7 @@ public class TranslatorTest {
 
     // Test method getVarsInRequirements()
     List<String> varsInReq = sReqTransTest.getVarsInRequirements(sStateTest);
-    Truth.assertThat(varsInReq).containsExactly((Object)varNames);
+    Truth.assertThat(varsInReq).containsExactlyElementsIn(Arrays.asList(varNames));
 
     // Test method getListOfIndependentRequirements()
     List<String> listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest);
@@ -112,7 +113,7 @@ public class TranslatorTest {
     content.add("(or (> fun::var1@1 0) (< fun::var1@1 0))");
     content.add("(>= fun::varB@1 0)");
     content.add("(<= fun::varC@1 0)");
-    Truth.assertThat(listOfIndepententReq).containsExactly(content);
+    Truth.assertThat(listOfIndepententReq).containsExactlyElementsIn(content);
   }
 
   @Test
