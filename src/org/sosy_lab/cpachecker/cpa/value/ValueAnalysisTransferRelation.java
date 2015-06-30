@@ -156,7 +156,7 @@ public class ValueAnalysisTransferRelation
   @Option(secure=true, description = "Whether to replace symbolic values with a concrete value"
       + " when only one value is possible for an assumption to be true"
       + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression).")
-  private boolean assignSymbolicAssumptionVars = true;
+  private boolean assignSymbolicAssumptionVars = false;
 
   @Option(secure=true, description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
       + " assumptions.")
