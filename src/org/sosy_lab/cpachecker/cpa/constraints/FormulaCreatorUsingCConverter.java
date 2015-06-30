@@ -45,7 +45,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
@@ -68,15 +70,18 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
   private final String functionName;
 
-  public FormulaCreatorUsingCConverter(FormulaManagerView pFormulaManager, CtoFormulaConverter pConverter,
-      String pFunctionName) {
+  public FormulaCreatorUsingCConverter(
+      final FormulaManagerView pFormulaManager,
+      final CtoFormulaConverter pConverter,
+      final String pFunctionName
+  ) {
     formulaManager = pFormulaManager;
     toFormulaTransformer = pConverter;
     functionName = pFunctionName;
   }
 
   @Override
-  public BooleanFormula createFormula(Constraint pConstraint)
+  public BooleanFormula createFormula(final Constraint pConstraint)
       throws UnrecognizedCCodeException, InterruptedException {
 
     return createFormula(pConstraint, new IdentifierAssignment());
@@ -84,19 +89,32 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
 
   @Override
-  public BooleanFormula createFormula(Constraint pConstraint, IdentifierAssignment pDefiniteAssignment) throws UnrecognizedCCodeException, InterruptedException {
+  public BooleanFormula createFormula(
+      final Constraint pConstraint,
+      final IdentifierAssignment pDefiniteAssignment
+  ) throws UnrecognizedCCodeException, InterruptedException {
 
-    final SymbolicExpressionTransformer toExpressionTransformer = new SymbolicExpressionTransformer(pDefiniteAssignment);
+    final SymbolicExpressionTransformer toExpressionTransformer =
+        new SymbolicExpressionTransformer(pDefiniteAssignment);
+
     CExpression constraintExpression = pConstraint.accept(toExpressionTransformer);
 
-    return toFormulaTransformer.makePredicate(constraintExpression, getDummyEdge(), functionName, getSsaMapBuilder());
+    return toFormulaTransformer.makePredicate(
+        constraintExpression, getDummyEdge(), functionName, getSsaMapBuilder());
   }
 
   @Override
-  public BooleanFormula transformAssignment(AssignableTerm pTerm, Object termAssignment, VariableMap pVariables) {
+  public BooleanFormula transformAssignment(
+      final AssignableTerm pTerm,
+      final Object termAssignment,
+      final VariableMap pVariables
+  ) {
     Formula variable = getVariableForTerm(pTerm, pVariables);
     FormulaType<?> variableType = formulaManager.getFormulaType(variable);
     Formula rightFormula = null;
+
+    final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
+        rationalFormulaManager = formulaManager.getRationalFormulaManager();
 
     if (termAssignment instanceof Number) {
 
@@ -138,7 +156,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
         }
 
       } else if (termAssignment instanceof Rational) {
-        rightFormula = formulaManager.getRationalFormulaManager().makeNumber((Rational) termAssignment);
+        rightFormula = rationalFormulaManager.makeNumber((Rational) termAssignment);
       } else {
         throw new AssertionError("Unhandled assignment number " + termAssignment);
       }
@@ -149,13 +167,15 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       } else if (decimalValue != null) {
 
         if (variableType.isRationalType()) {
-          rightFormula = formulaManager.getRationalFormulaManager().makeNumber(decimalValue);
+          rightFormula = rationalFormulaManager.makeNumber(decimalValue);
         } else {
           assert variableType.isFloatingPointType();
-          FormulaType.FloatingPointType variableTypeCastToFloatType = (FormulaType.FloatingPointType) variableType;
+          FormulaType.FloatingPointType variableTypeCastToFloatType =
+              (FormulaType.FloatingPointType) variableType;
 
           rightFormula =
-              formulaManager.getFloatingPointFormulaManager().makeNumber(decimalValue, variableTypeCastToFloatType);
+              formulaManager.getFloatingPointFormulaManager().makeNumber(
+                  decimalValue, variableTypeCastToFloatType);
         }
       }
 
@@ -172,14 +192,18 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   }
 
   private BooleanFormula getPositiveInfinityFormula(FloatingPointFormula pFormula) {
-    FormulaType.FloatingPointType formulaType = (FormulaType.FloatingPointType) formulaManager.getFormulaType(pFormula);
-    Formula infinityFormula = formulaManager.getFloatingPointFormulaManager().makePlusInfinity(formulaType);
+    FormulaType.FloatingPointType formulaType =
+        (FormulaType.FloatingPointType) formulaManager.getFormulaType(pFormula);
+    Formula infinityFormula =
+        formulaManager.getFloatingPointFormulaManager().makePlusInfinity(formulaType);
     return formulaManager.makeEqual(pFormula, infinityFormula);
   }
 
   private BooleanFormula getNegativeInfinityFormula(FloatingPointFormula pFormula) {
-    FormulaType.FloatingPointType formulaType = (FormulaType.FloatingPointType) formulaManager.getFormulaType(pFormula);
-    Formula infinityFormula = formulaManager.getFloatingPointFormulaManager().makeMinusInfinity(formulaType);
+    FormulaType.FloatingPointType formulaType =
+        (FormulaType.FloatingPointType) formulaManager.getFormulaType(pFormula);
+    Formula infinityFormula =
+        formulaManager.getFloatingPointFormulaManager().makeMinusInfinity(formulaType);
 
     return formulaManager.makeEqual(pFormula, infinityFormula);
   }
