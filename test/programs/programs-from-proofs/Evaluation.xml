@@ -414,7 +414,7 @@
 	  <option name="-config">test/programs/programs-from-proofs/config/Value+Location.properties</option>
 	  <option name="-setprop">specification=test/programs/programs-from-proofs/specification/tokenring04.spc</option>
 	  <option name="-setprop">analysis.traversal.order=dfs</option>
-	  <include>token_ring04.cil.c</include>
+	  <include>token_ring.04.cil.c</include>
 	</sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.algorithm.proofCheck=true</option>
@@ -423,7 +423,7 @@
 	  <option name="-config">test/programs/programs-from-proofs/config/Value+Location.properties</option>
 <option name="-setprop">cpa.callstack.domain=FLATPCC</option>
 	  <option name="-setprop">specification=test/programs/programs-from-proofs/specification/tokenring04.spc</option>
-	  <include>token_ring04.cil.c</include>
+	  <include>token_ring.04.cil.c</include>
 </sourcefiles>
 	<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
