@@ -82,9 +82,9 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
-            
+
         walltime_before = time.time()
-            
+
         cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=util.is_windows())
         try:
             (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
@@ -103,7 +103,7 @@ def execute_benchmark(benchmark, output_handler):
                 logging.warning(errorMsg)
                 output_handler.set_error(errorMsg)
     else:
-        returnCode = 0    
+        returnCode = 0
 
     handleCloudResults(benchmark, output_handler, usedWallTime)
 
@@ -344,7 +344,7 @@ def parseCloudRunResultFile(filePath):
             else:
                 # "@" means value is hidden normally
                 values["@vcloud-" + key] = value
-                
+
     # remove irrelevant columns
     values.pop("@vcloud-command", None)
     values.pop("@vcloud-timeLimit", None)

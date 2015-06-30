@@ -80,7 +80,7 @@ _svn_revision = None
 
 def resolveToolVersion(config, benchmark, webclient):
     global _svn_branch, _svn_revision
-    
+
     if config.revision:
         tokens = config.revision.split(':')
         _svn_branch = tokens[0]
@@ -91,10 +91,10 @@ def resolveToolVersion(config, benchmark, webclient):
     else:
         _svn_branch = 'trunk'
         revision = 'HEAD'
-            
+
     url = webclient + "tool/version?svnBranch=" + _svn_branch \
                          + "&revision=" + revision
-                         
+
     request = urllib2.Request(url)
     try:
         response = urllib2.urlopen(request)
@@ -112,13 +112,13 @@ def resolveToolVersion(config, benchmark, webclient):
             message = ""
         logging.warning("Could not resolve {0}:{1}: {2}".format(_svn_branch, revision, message))
         return
-            
+
     benchmark.tool_version = _svn_branch + ":" + _svn_revision
     logging.info('Using tool version {0}:{1}'.format(_svn_branch, _svn_revision))
 
 def init(config, benchmark):
     global _webclient, _base64_user_pwd, _groupId
-    
+
     if config.cloudMaster:
         if not benchmark.config.cloudMaster[-1] == '/':
             benchmark.config.cloudMaster += '/'
@@ -126,14 +126,14 @@ def init(config, benchmark):
         webclient = benchmark.config.cloudMaster
         _webclient = urllib.urlparse(webclient)
         logging.info('Using webclient at {0}'.format(webclient))
-        
-        resolveToolVersion(config, benchmark, webclient)    
-        
+
+        resolveToolVersion(config, benchmark, webclient)
+
     if config.cloudUser:
         _base64_user_pwd = base64.b64encode(config.cloudUser.encode("utf-8")).decode("utf-8")
-    
+
     _groupId = str(random.randint(0, 1000000))
-    
+
     benchmark.executable = 'scripts/cpa.sh'
 
 def get_system_info():
@@ -178,14 +178,14 @@ def stop():
         task.result()
     executor.shutdown(wait=True)
     logging.debug("Stopped all tasks.")
-            
+
 def _stop_run(runId):
     path = _webclient.path + "runs/" + runId
     try:
         _request("DELETE", path, "", {}, 204)
     except urllib2.HTTPError as e:
-        logging.warn("Stopping of run {0} failed: {1}".format(runId, e.reason)) 
-        
+        logging.warn("Stopping of run {0} failed: {1}".format(runId, e.reason))
+
 def _submitRunsParallel(runSet, benchmark):
     logging.info('Submitting runs...')
 
@@ -209,7 +209,7 @@ def _submitRunsParallel(runSet, benchmark):
                 if submissonCounter % 50 == 0:
                     logging.info('Submitted run {0}/{1}'.\
                                 format(submissonCounter, len(runSet.runs)))
-                    
+
 
             except (urllib2.HTTPError, WebClientError) as e:
                 try:
@@ -228,7 +228,7 @@ def _submitRunsParallel(runSet, benchmark):
     return runIDs
 
 def _submitRun(run, benchmark, counter = 0):
-    
+
     programTexts = []
     for programPath in run.sourcefiles:
         with open(programPath, 'r') as programFile:
@@ -265,10 +265,10 @@ def _submitRun(run, benchmark, counter = 0):
     headers = {"Content-Type": "application/x-www-form-urlencoded",
                "Content-Encoding": "deflate",
                "Accept": "text/plain"}
-    
+
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     path = _webclient.path + "runs/"
-    
+
     return _request("POST", path, paramsCompressed, headers)
 
 
@@ -276,13 +276,13 @@ def _flushRuns():
     headers = {"Content-Type": "application/x-www-form-urlencoded",
                "Content-Encoding": "deflate",
                "Connection": "Keep-Alive"}
-    
+
     params = {"groupId": _groupId}
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     path = _webclient.path + "runs/flush"
-    
+
     _request("POST", path, paramsCompressed, headers, expectedStatusCode=204)
-    
+
     logging.info("Run submission finished.")
 
 def _handleOptions(run, params, rlimits):
@@ -352,7 +352,7 @@ def _handleOptions(run, params, rlimits):
 
 def _getResults(runIDs, output_handler, benchmark):
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
-        
+
     while len(runIDs) > 0 :
         start = time()
         runIDsFutures = {}
@@ -367,21 +367,21 @@ def _getResults(runIDs, output_handler, benchmark):
             if future.result():
                 del runIDs[runIDsFutures[future]]
                 _unfinished_run_ids.remove(runIDsFutures[future])
-        
+
         end = time();
         duration = end - start
         if duration < 5:
             sleep(5 - duration)
-    
+
 
 def _isFinished(runID, benchmark):
     headers = {"Accept": "text/plain"}
     path = _webclient.path + "runs/" + runID + "/state"
-    
+
     try:
         state = _request("GET", path,"", headers).decode('utf-8')
 
-   
+
         if state == "FINISHED":
             logging.debug('Run {0} finished.'.format(runID))
             return True
@@ -400,17 +400,17 @@ def _isFinished(runID, benchmark):
         return False
 
 def _getAndHandleResult(runID, run, output_handler, benchmark):
-    
+
     # download result as zip file
     headers = {"Accept": "application/zip"}
     path = _webclient.path + "runs/" + runID + "/result"
-    
+
     try:
         zipContent = _request("GET", path, {}, headers)
     except urllib2.HTTPError as e:
         logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
         return False
-    
+
     # unzip result
     return_value = None
     try:
@@ -528,12 +528,12 @@ def _parseFile(file):
 
 def _request(method, path, body, headers, expectedStatusCode=200):
     connection = _get_connection()
-    
+
     headers["Connection"] = "Keep-Alive"
-    
+
     if _base64_user_pwd:
         headers["Authorization"] = "Basic " + _base64_user_pwd
-    
+
     counter = 0
     while (counter < 5):
         counter+=1
@@ -549,10 +549,10 @@ def _request(method, path, body, headers, expectedStatusCode=200):
                 continue
             else:
                 raise
-                
+
         if response.status == expectedStatusCode:
             return response.read()
-        
+
         else:
             message = ""
             if response.status == 401:
@@ -565,7 +565,7 @@ def _request(method, path, body, headers, expectedStatusCode=200):
 
 def _get_connection():
     connection = getattr(_thread_local, 'connection', None)
-       
+
     if connection is None:
         if _webclient.scheme == 'http':
             _thread_local.connection = HTTPConnection(_webclient.netloc, timeout=_connectionTimeout)
@@ -573,7 +573,7 @@ def _get_connection():
             _thread_local.connection = HTTPSConnection(_webclient.netloc, timeout=_connectionTimeout)
         else:
             raise WebClientError("Unknown protocol {0}.".format(_webclient.scheme))
-        
+
         connection = _thread_local.connection
-    
+
     return connection
