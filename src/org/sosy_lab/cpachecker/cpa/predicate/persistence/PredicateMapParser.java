@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -112,7 +113,7 @@ public class PredicateMapParser {
 
   private final CFA cfa;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
 
@@ -124,7 +125,7 @@ public class PredicateMapParser {
     pConfig.inject(this);
 
     cfa = pCfa;
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     fmgr = pFmgr;
     amgr = pAmgr;
   }
@@ -320,7 +321,7 @@ public class PredicateMapParser {
           // ignore Mathsat5-specific helper symbols,
           // they are based on 'real' unknown symbols.
         } else {
-          logger.log(Level.INFO, e.getMessage());
+          logger.logOnce(Level.INFO, e.getMessage());
         }
         return null;
       }
