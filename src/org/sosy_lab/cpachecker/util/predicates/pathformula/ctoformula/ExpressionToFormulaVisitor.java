@@ -656,6 +656,29 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   protected Formula makeNondet(final String varName, final CType type) {
-    return conv.makeFreshVariable(varName, type, ssa);
+    Formula newVariable = conv.makeFreshVariable(varName, type, ssa);
+    if (conv.options.addRangeConstraintsForNondet()) {
+      addRangeConstraint(varName, type);
+    }
+    return newVariable;
+  }
+
+  /** Add constraint for the interval of possible values,
+   *  This method should only be used for a previously declared variable,
+   *  otherwise the SSA-index is invalid.
+   *  Example:  MIN_INT <= X <= MAX_INT  */
+  public void addRangeConstraint(final String varName, CType type) {
+    final Formula variable = conv.makeVariable(varName, type, ssa);
+    type = type.getCanonicalType();
+    if (type instanceof CSimpleType && ((CSimpleType)type).getType().isIntegerType()) {
+      final CSimpleType sType = (CSimpleType)type;
+      final FormulaType<Formula> numberType = mgr.getFormulaType(variable);
+      final boolean signed = conv.machineModel.isSigned(sType);
+      final BooleanFormula lowerBound  = mgr.makeLessOrEqual(
+          mgr.makeNumber(numberType, conv.machineModel.getMinimalIntegerValue(sType)), variable, signed);
+      final BooleanFormula upperBound = mgr.makeLessOrEqual(
+          variable, mgr.makeNumber(numberType, conv.machineModel.getMaximalIntegerValue(sType)), signed);
+      constraints.addConstraint(mgr.makeAnd(upperBound, lowerBound));
+    }
   }
 }

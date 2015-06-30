@@ -86,6 +86,11 @@ public class FormulaEncodingOptions {
           "The global variables are also encoded with return-variables at function-exit.")
   private boolean useParameterVariablesForGlobals = false;
 
+  @Option(secure=true, description = "Add constraints for the range of the return-value of a nondet-method. "
+      + "For example the assignment 'X=nondet_int()' produces the constraint 'MIN<=X<=MAX', "
+      + "where MIN and MAX are computed from the type of the method (signature, not name!).")
+  private boolean addRangeConstraintsForNondet = false;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -125,5 +130,9 @@ public class FormulaEncodingOptions {
 
   public boolean useParameterVariablesForGlobals() {
     return useParameterVariablesForGlobals;
+  }
+
+  public boolean addRangeConstraintsForNondet() {
+    return addRangeConstraintsForNondet;
   }
 }

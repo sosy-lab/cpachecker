@@ -1045,6 +1045,12 @@ cpa.predicate.abstractions.export = true
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
 
+# Add constraints for the range of the return-value of a nondet-method. For
+# example the assignment 'X=nondet_int()' produces the constraint
+# 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
+# (signature, not name!).
+cpa.predicate.addRangeConstraintsForNondet = false
+
 # whether to use auxiliary predidates for reduction
 cpa.predicate.bam.auxiliaryPredicateComputer = true
 
