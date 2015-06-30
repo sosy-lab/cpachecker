@@ -39,8 +39,6 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -67,8 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 
 class AssignmentHandler {
@@ -119,33 +115,23 @@ class AssignmentHandler {
                                         CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
-    final List<Pair<CCompositeType, String>> rhsUsedFields;
-    final List<Pair<CCompositeType, String>> rhsAddressedFields;
-    final Map<String, CType> rhsUsedDeferredAllocationPointers;
-    final Expression rhsExpression;
-    // RHS is neither null nor a nondet() function call
-    if (rhs != null &&
-        (!(rhs instanceof CFunctionCallExpression) ||
-         !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
-         !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
 
+    final Expression rhsExpression;
+    if (rhs == null) {
+      rhsExpression = Value.nondetValue();
+    } else {
       CRightHandSide r = rhs;
       if (r instanceof CExpression) {
         r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
       }
-
       rhsExpression = r.accept(rhsVisitor);
-      pts.addEssentialFields(rhsVisitor.getInitializedFields());
-      rhsUsedFields = rhsVisitor.getUsedFields();
-      rhsAddressedFields = rhsVisitor.getAddressedFields();
-      rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
-    } else { // RHS is nondet
-      rhsExpression = Value.nondetValue();
-      rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
-      rhsAddressedFields = ImmutableList.<Pair<CCompositeType,String>>of();
-      rhsUsedDeferredAllocationPointers = ImmutableMap.<String, CType>of();
     }
+
+    pts.addEssentialFields(rhsVisitor.getInitializedFields());
+    final List<Pair<CCompositeType, String>> rhsUsedFields = rhsVisitor.getUsedFields();
+    final List<Pair<CCompositeType, String>> rhsAddressedFields = rhsVisitor.getAddressedFields();
+    final Map<String, CType> rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
 
     // LHS handling
     final CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);

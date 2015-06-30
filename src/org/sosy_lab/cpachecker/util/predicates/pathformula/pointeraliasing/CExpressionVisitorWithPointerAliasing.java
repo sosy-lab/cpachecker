@@ -105,15 +105,9 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     delegate = new ExpressionToFormulaVisitor(cToFormulaConverter, cToFormulaConverter.fmgr, cfaEdge, function, ssa, constraints) {
       @Override
       protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
+        // recursive application of pointer-aliasing.
         return asValueFormula(e.accept(CExpressionVisitorWithPointerAliasing.this),
                               CTypeUtils.simplifyType(e.getExpressionType()));
-      }
-
-      @Override
-      protected Formula makeNondet(String pVarName, CType pType) {
-        // CExpressionVisitorWithPointerAliasing.visit(CFunctionCallExpression)
-        // will treat this as nondet and return Value.nondetValue().
-        return null;
       }
     };
 
@@ -439,6 +433,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     // First let's handle special cases such as allocations
     if (functionNameExpression instanceof CIdExpression) {
       final String functionName = ((CIdExpression)functionNameExpression).getName();
+
       if (conv.options.isDynamicMemoryFunction(functionName)) {
         DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
         try {
