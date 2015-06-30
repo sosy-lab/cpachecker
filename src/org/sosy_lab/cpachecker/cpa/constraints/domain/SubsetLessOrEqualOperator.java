@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -60,7 +61,11 @@ public class SubsetLessOrEqualOperator implements AbstractDomain {
       return false;
     }
 
-    return lesserState.containsAll(biggerState);
+    IdentifierAssignment lesserStatesDefAssignments = lesserState.getDefiniteAssignment();
+    IdentifierAssignment biggerStatesDefAssignments = biggerState.getDefiniteAssignment();
+
+    return lesserState.containsAll(biggerState)
+        && lesserStatesDefAssignments.entrySet().containsAll(biggerStatesDefAssignments.entrySet());
   }
 
   @Override
