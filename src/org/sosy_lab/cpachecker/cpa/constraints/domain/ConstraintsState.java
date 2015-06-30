@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -316,6 +317,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     IdentifierAssignment oldDefinites = new IdentifierAssignment(definiteAssignment);
     computeDefiniteAssignment(pFormula);
     updateOldFormulasDefinitesAppearIn(oldDefinites, definiteAssignment);
+    assert definiteAssignment.entrySet().containsAll(oldDefinites.entrySet());
   }
 
   private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException, UnrecognizedCCodeException {
@@ -353,12 +355,12 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
       return;
     }
 
-    Set<SymbolicIdentifier> newlyKnownIdentifiers = pNewDefinites.keySet();
+    Set<SymbolicIdentifier> newlyKnownIdentifiers = new HashSet<>(pNewDefinites.keySet());
 
     newlyKnownIdentifiers.removeAll(pOldDefinites.keySet());
 
-    // for each constraint a formula exists, we check if the formula can be replaced
-    // with a version holding more information, and do it.
+    // for each constraint a formula exists for, we check if the formula can be replaced
+    // with a version holding more information, and do so.
     for (Constraint c : constraintFormulas.keySet()) {
       Set<SymbolicIdentifier> identifiers = c.accept(locator);
 
