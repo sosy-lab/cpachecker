@@ -49,7 +49,7 @@ public class SymbolicValues {
   private static SymbolicIdentifierLocator identifierLocator;
 
   public static void initialize(final ComparisonType pLessOrEqualComparison) {
-    aliasCreator = new RealAliasCreator();
+    aliasCreator = new IdentityAliasCreator();
 
     identifierLocator = SymbolicIdentifierLocator.getInstance();
   }
@@ -83,6 +83,11 @@ public class SymbolicValues {
     final Optional<MemoryLocation> maybeRepLocVal1 = pValue1.getRepresentedLocation();
     final Optional<MemoryLocation> maybeRepLocVal2 = pValue2.getRepresentedLocation();
 
+    if (maybeRepLocVal1.isPresent() || maybeRepLocVal2.isPresent()) {
+      return maybeRepLocVal1.equals(maybeRepLocVal2);
+    }
+    assert maybeRepLocVal1.equals(maybeRepLocVal2);
+
     if (pValue1 instanceof SymbolicIdentifier || pValue1 instanceof ConstantSymbolicExpression) {
       assert pValue2 instanceof SymbolicIdentifier || pValue2 instanceof ConstantSymbolicExpression;
 
@@ -94,7 +99,7 @@ public class SymbolicValues {
       final SymbolicValue val1Op = ((UnarySymbolicExpression) pValue1).getOperand();
       final SymbolicValue val2Op = ((UnarySymbolicExpression) pValue2).getOperand();
 
-      return maybeRepLocVal1.equals(maybeRepLocVal2) && representSameCCodeExpression(val1Op, val2Op);
+      return representSameCCodeExpression(val1Op, val2Op);
 
     } else if (pValue1 instanceof BinarySymbolicExpression) {
       assert pValue2 instanceof BinarySymbolicExpression;
@@ -104,8 +109,7 @@ public class SymbolicValues {
       final SymbolicValue val2Op1 = ((BinarySymbolicExpression) pValue2).getOperand1();
       final SymbolicValue val2Op2 = ((BinarySymbolicExpression) pValue2).getOperand2();
 
-      return maybeRepLocVal1.equals(maybeRepLocVal2)
-          && representSameCCodeExpression(val1Op1, val2Op1)
+      return representSameCCodeExpression(val1Op1, val2Op1)
           && representSameCCodeExpression(val1Op2, val2Op2);
 
     } else {
