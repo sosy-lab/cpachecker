@@ -85,4 +85,32 @@ class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
 
     return newPrec;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    LocationBasedConstraintsPrecision that = (LocationBasedConstraintsPrecision)o;
+
+    if (!trackedLocations.equals(that.trackedLocations)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return trackedLocations.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return "LocationBasedConstraintsPrecision{" + trackedLocations.toString() + "}";
+  }
 }
