@@ -29,6 +29,7 @@ import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import base64
+import fnmatch
 import io
 import logging
 import os
@@ -415,7 +416,7 @@ def _getAndHandleResult(runID, run, output_handler, benchmark):
     try:
         try:
             with zipfile.ZipFile(io.BytesIO(zipContent)) as resultZipFile:
-                return_value = _handleResult(resultZipFile, run, output_handler)
+                return_value = _handleResult(resultZipFile, run, output_handler, benchmark.result_files_pattern)
         except zipfile.BadZipfile:
             logging.warning('Server returned illegal zip file with results of run {}.'.format(run.identifier))
             # Dump ZIP to disk for debugging
@@ -434,7 +435,7 @@ def _getAndHandleResult(runID, run, output_handler, benchmark):
             _print_lock.release()
     return True
 
-def _handleResult(resultZipFile, run, output_handler):
+def _handleResult(resultZipFile, run, output_handler, result_files_pattern):
     resultDir = run.log_file + ".output"
     files = set(resultZipFile.namelist())
 
@@ -470,9 +471,12 @@ def _handleResult(resultZipFile, run, output_handler):
         shutil.move(os.path.join(resultDir, RESULT_FILE_STDERR), run.log_file + ".stdError")
         os.rmdir(resultDir)
 
-    files = files - SPECIAL_RESULT_FILES
-    if files:
-        resultZipFile.extractall(resultDir, files)
+    # extract result files:
+    if result_files_pattern:
+        files = files - SPECIAL_RESULT_FILES
+        files = fnmatch.filter(files, result_files_pattern)
+        if files:
+            resultZipFile.extractall(resultDir, files)
 
     return return_value
 
