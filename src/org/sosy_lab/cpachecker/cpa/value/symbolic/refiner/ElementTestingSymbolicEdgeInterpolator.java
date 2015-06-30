@@ -58,7 +58,7 @@ import com.google.common.base.Optional;
  * <code>ConstraintsCPA</code>.
  */
 
-@Options(prefix = "cpa.value.refinement")
+@Options(prefix = "cpa.value.symbolic.refinement")
 public class ElementTestingSymbolicEdgeInterpolator
     implements SymbolicEdgeInterpolator {
 
