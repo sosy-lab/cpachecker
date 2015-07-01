@@ -40,7 +40,7 @@ public interface EdgeInterpolator<S extends ForgetfulState<?>, I extends Interpo
       Deque<S> callstack,
       int offset,
       I inputInterpolant
-  ) throws CPAException;
+  ) throws CPAException, InterruptedException;
 
   int getNumberOfInterpolationQueries();
 }

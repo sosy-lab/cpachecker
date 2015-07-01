@@ -145,7 +145,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       final Deque<S> pCallstack,
       final int pOffset,
       final I pInputInterpolant
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
 
     numberOfInterpolationQueries = 0;
 
@@ -268,7 +268,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       final S pInitialState,
       final CFAEdge pInitialEdge,
       final Deque<S> pCallstack
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
 
     S oldState = pInitialState;
 
@@ -295,7 +295,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @throws CPAException
    */
   private boolean isRemainingPathFeasible(ARGPath remainingErrorPath, S state)
-      throws CPAException {
+      throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
     return checker.isFeasible(remainingErrorPath, state);
   }

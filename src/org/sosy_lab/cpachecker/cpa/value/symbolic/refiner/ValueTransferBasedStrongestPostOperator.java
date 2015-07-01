@@ -90,7 +90,7 @@ public class ValueTransferBasedStrongestPostOperator
       final ForgettingCompositeState pOrigin,
       final Precision pPrecision,
       final CFAEdge pOperation
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
 
     ValueAnalysisState oldValues = getValueStateOfCompositeState(pOrigin);
     ConstraintsState oldConstraints = getConstraintsStateOfCompositeState(pOrigin);
@@ -230,7 +230,7 @@ public class ValueTransferBasedStrongestPostOperator
       final ConstraintsState pConstraintsState,
       final ValueAnalysisState pValueState,
       final CFAEdge pOperation
-  ) throws CPATransferException {
+  ) throws CPATransferException, InterruptedException {
 
     Collection<? extends AbstractState> successors =
         constraintsTransfer.strengthen(pConstraintsState,

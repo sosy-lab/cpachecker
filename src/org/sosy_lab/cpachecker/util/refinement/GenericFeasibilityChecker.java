@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -74,7 +73,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   }
 
   @Override
-  public boolean isFeasible(ARGPath path) throws CPAException {
+  public boolean isFeasible(ARGPath path) throws CPAException, InterruptedException {
     return isFeasible(path, initialState);
   }
 
@@ -82,7 +81,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   public boolean isFeasible(
       final ARGPath pPath,
       final S pStartingPoint
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
     return isFeasible(pPath, pStartingPoint, new ArrayDeque<S>());
   }
 
@@ -91,7 +90,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
       final ARGPath pPath,
       final S pStartingPoint,
       final Deque<S> pCallstack
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
 
     try {
       MutableARGPath currentPrefix = new MutableARGPath();

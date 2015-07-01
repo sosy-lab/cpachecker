@@ -256,7 +256,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   /**
    * This utility method checks if the given path is feasible.
    */
-  private boolean isFeasible(ARGPath slicedErrorPathPrefix) throws CPAException {
+  private boolean isFeasible(ARGPath slicedErrorPathPrefix)
+      throws CPAException, InterruptedException {
     return checker.isFeasible(slicedErrorPathPrefix);
   }
 

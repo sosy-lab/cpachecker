@@ -106,7 +106,7 @@ public class ElementTestingSymbolicEdgeInterpolator
       final Deque<ForgettingCompositeState> pCallstack,
       final int pLocationInPath,
       final SymbolicInterpolant pInputInterpolant
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
 
     interpolationQueries = 0;
 
@@ -238,7 +238,7 @@ public class ElementTestingSymbolicEdgeInterpolator
   private boolean isPathFeasible(
       final ARGPath pRemainingErrorPath,
       final ForgettingCompositeState pState
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
     interpolationQueries++;
     return checker.isFeasible(pRemainingErrorPath, pState);
   }

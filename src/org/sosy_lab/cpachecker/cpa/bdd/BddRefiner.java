@@ -235,7 +235,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(ARGPath path) throws CPAException {
+  boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {
       return checker.isFeasible(path);
   }
 }

@@ -24,12 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.math.BigInteger;
-import java.security.spec.PSSParameterSpec;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -69,8 +66,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
-import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -341,8 +338,11 @@ public class ConstraintsTransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pStateToStrengthen,
-      List<AbstractState> pStrengtheningStates, CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+  public Collection<? extends AbstractState> strengthen(
+      final AbstractState pStateToStrengthen,
+      final List<AbstractState> pStrengtheningStates,
+      final CFAEdge pCfaEdge, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     assert pStateToStrengthen instanceof ConstraintsState;
 
     final ConstraintsState initialStateToStrengthen = (ConstraintsState) pStateToStrengthen;
@@ -403,7 +403,7 @@ public class ConstraintsTransferRelation
         final AbstractState pValueState,
         final String pFunctionName,
         final CFAEdge pCfaEdge
-    ) throws CPATransferException {
+    ) throws CPATransferException, InterruptedException {
 
       assert pValueState instanceof ValueAnalysisState;
 
@@ -433,7 +433,7 @@ public class ConstraintsTransferRelation
             pFunctionName,
             fileLocation);
 
-      } catch (SolverException | InterruptedException e) {
+      } catch (SolverException e) {
         throw new CPATransferException(
             "Error while strengthening ConstraintsState with ValueAnalysisState", e);
       }
@@ -512,6 +512,6 @@ public class ConstraintsTransferRelation
         AbstractState strengtheningState,
         String functionName,
         CFAEdge edge
-    ) throws CPATransferException;
+    ) throws CPATransferException, InterruptedException;
   }
 }

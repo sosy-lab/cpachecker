@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -120,7 +119,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
   public List<InfeasiblePrefix> extractInfeasiblePrefixes(
       final ARGPath path,
       final S pInitial
-  ) throws CPAException {
+  ) throws CPAException, InterruptedException {
 
     List<InfeasiblePrefix> prefixes = new ArrayList<>();
     Deque<S> callstack = new ArrayDeque<>();
@@ -174,7 +173,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
   private Optional<S> getSuccessor(final S pNext,
       final CFAEdge pEdge,
       final Deque<S> pCallstack)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     S next = pNext;
 

@@ -43,7 +43,7 @@ public interface FeasibilityChecker<S extends AbstractState> {
    *    <code>false</code> otherwise
    * @throws CPAException
    */
-  boolean isFeasible(final ARGPath path) throws CPAException;
+  boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException;
 
   /**
    * Returns whether the given path is feasible, starting at the given state.
@@ -55,7 +55,8 @@ public interface FeasibilityChecker<S extends AbstractState> {
    *    <code>false</code> otherwise
    * @throws CPAException
    */
-  boolean isFeasible(final ARGPath path, S startingPoint) throws CPAException;
+  boolean isFeasible(final ARGPath path, S startingPoint) throws CPAException, InterruptedException;
 
-  boolean isFeasible(final ARGPath path, S startingPoint, Deque<S> callstack) throws CPAException;
+  boolean isFeasible(final ARGPath path, S startingPoint, Deque<S> callstack)
+      throws CPAException, InterruptedException;
 }

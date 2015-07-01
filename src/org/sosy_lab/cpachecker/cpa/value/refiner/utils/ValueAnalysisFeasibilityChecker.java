@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -80,7 +79,7 @@ public class ValueAnalysisFeasibilityChecker
   }
 
   public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     try {
       List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
