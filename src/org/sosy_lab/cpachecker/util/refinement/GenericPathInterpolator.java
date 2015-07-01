@@ -127,25 +127,19 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath errorPath,
       final I interpolant
   ) throws CPAException, InterruptedException {
-    try {
-      totalInterpolations.inc();
-      timerInterpolation.start();
+    totalInterpolations.inc();
+    timerInterpolation.start();
 
-      interpolationOffset = -1;
+    interpolationOffset = -1;
 
-      ARGPath errorPathPrefix = performRefinementSelection(errorPath, interpolant);
+    ARGPath errorPathPrefix = performRefinementSelection(errorPath, interpolant);
 
-      Map<ARGState, I> interpolants =
-          performEdgeBasedInterpolation(errorPathPrefix, interpolant);
+    Map<ARGState, I> interpolants =
+        performEdgeBasedInterpolation(errorPathPrefix, interpolant);
 
-      timerInterpolation.stop();
+    timerInterpolation.stop();
 
-      return interpolants;
-
-    } catch (InterruptedException e) {
-      throw new CPAException("Interrupted while performing interpolation", e);
-    }
-
+    return interpolants;
   }
 
   /**

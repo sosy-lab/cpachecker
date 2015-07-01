@@ -460,7 +460,7 @@ public class ConstraintsTransferRelation
         final AbstractState pStrengtheningState,
         final String pFunctionName,
         final CFAEdge pEdge
-    ) throws CPATransferException {
+    ) throws CPATransferException, InterruptedException {
       assert pStrengtheningState instanceof AutomatonState;
 
       if (checkStrategy != CheckStrategy.AT_TARGET) {
@@ -479,7 +479,7 @@ public class ConstraintsTransferRelation
         } else {
           return Optional.absent();
         }
-      } catch (SolverException | InterruptedException e) {
+      } catch (SolverException e) {
         throw new CPATransferException("Error while strengthening.", e);
       }
     }

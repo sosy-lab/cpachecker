@@ -178,32 +178,28 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.createInterpolant(initialSuccessor);
     }
 
-    try {
-      ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
+    ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
 
-      // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE
+    // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE
+    // interpolant
+    if (applyUnsatSuffixOptimization
+        && pInputInterpolant.isTrue()
+        && initialSuccessor.getSize() > 1
+        && isSuffixContradicting(remainingErrorPath)) {
+      return interpolantManager.getTrueInterpolant();
+    }
+
+    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(pCurrentEdge, initialSuccessor)) {
+      shutdownNotifier.shutdownIfNecessary();
+
+      // temporarily remove the value of the current memory location from the candidate
       // interpolant
-      if (applyUnsatSuffixOptimization
-          && pInputInterpolant.isTrue()
-          && initialSuccessor.getSize() > 1
-          && isSuffixContradicting(remainingErrorPath)) {
-        return interpolantManager.getTrueInterpolant();
+      T forgottenInformation = initialSuccessor.forget(currentMemoryLocation);
+
+      // check if the remaining path now becomes feasible
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+        initialSuccessor.remember(currentMemoryLocation, forgottenInformation);
       }
-
-      for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(pCurrentEdge, initialSuccessor)) {
-        shutdownNotifier.shutdownIfNecessary();
-
-        // temporarily remove the value of the current memory location from the candidate
-        // interpolant
-        T forgottenInformation = initialSuccessor.forget(currentMemoryLocation);
-
-        // check if the remaining path now becomes feasible
-        if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-          initialSuccessor.remember(currentMemoryLocation, forgottenInformation);
-        }
-      }
-    } catch (InterruptedException e) {
-      throw new CPAException("Interrupted while computing interpolant", e);
     }
 
     return interpolantManager.createInterpolant(initialSuccessor);
