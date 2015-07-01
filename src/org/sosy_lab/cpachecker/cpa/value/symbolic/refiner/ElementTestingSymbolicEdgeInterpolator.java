@@ -132,14 +132,9 @@ public class ElementTestingSymbolicEdgeInterpolator
       return interpolantManager.getTrueInterpolant();
     }
 
-    try {
-      ForgettingCompositeState necessaryInfo = reduceToNecessaryState(successorState, suffix);
+    ForgettingCompositeState necessaryInfo = reduceToNecessaryState(successorState, suffix);
 
-      return interpolantManager.createInterpolant(necessaryInfo);
-
-    } catch (InterruptedException e) {
-      throw new CPAException("Interrupted while computing interpolant", e);
-    }
+    return interpolantManager.createInterpolant(necessaryInfo);
   }
 
   private ForgettingCompositeState reduceToNecessaryState(
