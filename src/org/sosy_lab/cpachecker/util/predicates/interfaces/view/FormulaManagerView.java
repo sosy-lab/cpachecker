@@ -176,58 +176,69 @@ public class FormulaManagerView implements StatisticsProvider {
     manager = checkNotNull(solverFactory.getFormulaManager());
     unsafeManager = manager.getUnsafeFormulaManager();
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
+    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager();
+    final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
-    BitvectorFormulaManager rawBitvectorFormulaManager;
-    switch (encodeBitvectorAs) {
-      case BITVECTOR:
-        try {
-          rawBitvectorFormulaManager = manager.getBitvectorFormulaManager();
-        } catch (UnsupportedOperationException e) {
-          throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
-              + "please choose another SMT solver "
-              + "or use the option cpa.predicate.encodeBitvectorAs "
-              + "to approximate bitvectors with another theory.",
-              e);
-        }
-        break;
-      case INTEGER:
-        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-            manager.getBooleanFormulaManager(),
-            manager.getIntegerFormulaManager(),
-            manager.getFunctionFormulaManager(),
-            ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
-        break;
-      case RATIONAL:
-        NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
-        try {
-          rmgr = manager.getRationalFormulaManager();
-        } catch (UnsupportedOperationException e) {
-          throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
-              + "please choose another SMT solver "
-              + "or use the option cpa.predicate.encodeBitvectorAs "
-              + "to approximate bitvectors with another theory.",
-              e);
-        }
-        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-            manager.getBooleanFormulaManager(),
-            rmgr,
-            manager.getFunctionFormulaManager(),
-            ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
-      break;
-      case FLOAT:
-        throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
-      default:
-        throw new AssertionError();
-    }
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager(), symbolEncoding);
-
     integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager(), symbolEncoding);
     quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
     arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+    floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
+  }
 
-    FloatingPointFormulaManager rawFloatingPointFormulaManager;
+  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
+  private BitvectorFormulaManager getRawBitvectorFormulaManager() throws InvalidConfigurationException, AssertionError {
+    final BitvectorFormulaManager rawBitvectorFormulaManager;
+    switch (encodeBitvectorAs) {
+    case BITVECTOR:
+      try {
+        rawBitvectorFormulaManager = manager.getBitvectorFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
+            + "please choose another SMT solver "
+            + "or use the option cpa.predicate.encodeBitvectorAs "
+            + "to approximate bitvectors with another theory.",
+            e);
+      }
+      break;
+    case INTEGER:
+      rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
+          manager.getBooleanFormulaManager(),
+          manager.getIntegerFormulaManager(),
+          manager.getFunctionFormulaManager(),
+          ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
+      break;
+    case RATIONAL:
+      NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
+      try {
+        rmgr = manager.getRationalFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
+            + "please choose another SMT solver "
+            + "or use the option cpa.predicate.encodeBitvectorAs "
+            + "to approximate bitvectors with another theory.",
+            e);
+      }
+      rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
+          manager.getBooleanFormulaManager(),
+          rmgr,
+          manager.getFunctionFormulaManager(),
+          ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
+      break;
+    case FLOAT:
+      throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
+    default:
+      throw new AssertionError();
+    }
+    return rawBitvectorFormulaManager;
+  }
+
+  /** Returns the FloatingPointFormulaManager or a Replacement based on the Option 'encodeFloatAs'. */
+  private FloatingPointFormulaManager getRawFloatingPointFormulaManager() throws InvalidConfigurationException,
+      AssertionError {
+    final FloatingPointFormulaManager rawFloatingPointFormulaManager;
     switch (encodeFloatAs) {
     case FLOAT:
       try {
@@ -260,13 +271,13 @@ public class FormulaManagerView implements StatisticsProvider {
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
           wrappingHandler, rmgr, manager.getFunctionFormulaManager(),
           manager.getBooleanFormulaManager());
-    break;
+      break;
     case BITVECTOR:
       throw new InvalidConfigurationException("Value BITVECTOR is not valid for option cpa.predicate.encodeFloatAs");
     default:
       throw new AssertionError();
     }
-    floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
+    return rawFloatingPointFormulaManager;
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
