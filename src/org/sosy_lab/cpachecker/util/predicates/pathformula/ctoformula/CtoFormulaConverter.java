@@ -118,6 +118,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -417,12 +418,95 @@ public class CtoFormulaConverter {
 
   /**
    * Used for implicit and explicit type casts between CTypes.
+   * Optionally, overflows can be replaced with UFs.
    * @param fromType the origin Type of the expression.
    * @param toType the type to cast into.
    * @param formula the formula of the expression.
    * @return the new formula after the cast.
    */
   protected Formula makeCast(final CType pFromType, final CType pToType,
+      Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCCodeException {
+    Formula result = makeCast0(pFromType, pToType, formula, constraints, edge);
+
+    if (options.replaceOverflowsWithUFs()) {
+      // handles arithmetic overflows like  "x+y>MAX"  or  "x-y<MIN"  .
+      // and also type-based overflows like  "char c = (int)i;"  or  "unsigned int j = (int)i;"  .
+      result = replaceOverflowWithUF(result, pToType, constraints);
+    }
+
+    return result;
+  }
+
+  /** Replace the formula with a matching ITE-structure
+   *  that returns an UF (with additional constraints), if the formula causes an overflow,
+   *  else the formula itself.
+   *  Example:  ITE( MIN_INT <= X <= MAX_INT, X, UF(X) )  */
+  private Formula replaceOverflowWithUF(final Formula value, CType type, final Constraints constraints) {
+    type = type.getCanonicalType();
+    if (type instanceof CSimpleType && ((CSimpleType)type).getType().isIntegerType()) {
+      final CSimpleType sType = (CSimpleType)type;
+      final FormulaType<Formula> numberType = fmgr.getFormulaType(value);
+      final boolean signed = machineModel.isSigned(sType);
+
+      final BooleanFormula lowerBound  = fmgr.makeLessOrEqual(
+          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType)), value, signed);
+      final BooleanFormula upperBound = fmgr.makeLessOrEqual(
+          value, fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType)), signed);
+
+      BooleanFormula range = bfmgr.and(lowerBound, upperBound);
+
+      // simplify constant formulas like "1<=2" and return the value directly.
+      // benefit: divide_by_constant works without UFs
+      range = fmgr.simplify(range);
+      if (bfmgr.isTrue(range)) {
+        return value;
+      }
+
+      final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
+          "overflow_" + sType.toString().replace(" ", "_"),
+          numberType,
+          Lists.<Formula>newArrayList(value));
+      addRangeConstraint(overflowUF, type, constraints);
+
+      // TODO improvement:
+      // Add special handling for a constant number of overflows (N=1 or N=2).
+      // This would allow to catch overflows from ADD and SUBTRACT.
+
+      // if (value in [MIN,MAX])   then return (value)  else return UF(value)
+      return bfmgr.ifThenElse(range, value, overflowUF);
+
+    } else {
+      return value;
+    }
+  }
+
+  /** Add constraint for the interval of possible values,
+   *  This method should only be used for a previously declared variable,
+   *  otherwise the SSA-index is invalid.
+   *  Example:  MIN_INT <= X <= MAX_INT  */
+  protected void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
+    type = type.getCanonicalType();
+    if (type instanceof CSimpleType && ((CSimpleType)type).getType().isIntegerType()) {
+      final CSimpleType sType = (CSimpleType)type;
+      final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
+      final boolean signed = machineModel.isSigned(sType);
+      final BooleanFormula lowerBound  = fmgr.makeLessOrEqual(
+          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType)), variable, signed);
+      final BooleanFormula upperBound = fmgr.makeLessOrEqual(
+          variable, fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType)), signed);
+      constraints.addConstraint(upperBound);
+      constraints.addConstraint(lowerBound);
+    }
+  }
+
+  /**
+   * Used for implicit and explicit type casts between CTypes.
+   * @param fromType the origin Type of the expression.
+   * @param toType the type to cast into.
+   * @param formula the formula of the expression.
+   * @return the new formula after the cast.
+   */
+  private Formula makeCast0(final CType pFromType, final CType pToType,
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
 

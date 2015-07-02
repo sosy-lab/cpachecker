@@ -91,6 +91,10 @@ public class FormulaEncodingOptions {
       + "where MIN and MAX are computed from the type of the method (signature, not name!).")
   private boolean addRangeConstraintsForNondet = false;
 
+  @Option(secure=true, description = "Replace possible overflows with an ITE-structure, "
+      + "which returns either the normal value or an UF representing the overflow.")
+  private boolean replaceOverflowsWithUFs = false;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -134,5 +138,9 @@ public class FormulaEncodingOptions {
 
   public boolean addRangeConstraintsForNondet() {
     return addRangeConstraintsForNondet;
+  }
+
+  public boolean replaceOverflowsWithUFs() {
+    return replaceOverflowsWithUFs;
   }
 }
