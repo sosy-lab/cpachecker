@@ -120,6 +120,11 @@ public class PointerTarget implements Serializable {
     return 31 * base.hashCode() + 17 * containerOffset + properOffset;
   }
 
+  @Override
+  public String toString() {
+    return String.format("(Base: %s, type: %s, prop. offset: %d, cont. offset: %d)", base, containerType, properOffset, containerOffset);
+  }
+
   final String base;
   final CType containerType;
   final int properOffset;
