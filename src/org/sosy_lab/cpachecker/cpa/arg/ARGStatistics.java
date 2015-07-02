@@ -48,6 +48,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
@@ -101,9 +102,11 @@ public class ARGStatistics implements IterationStatistics {
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final CEXExporter cexExporter;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     this.cpa = cpa;
+    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, cpa.getLogger(), cpa.getMachineModel());
 
     config.inject(this);
 
@@ -293,7 +296,7 @@ public class ARGStatistics implements IterationStatistics {
     // TODO Merge different paths
     for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
       ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
-      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, cpa.getLogger(), cpa.getMachineModel());
+      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, assumptionToEdgeAllocator);
 
       if (result != null) {
         result = result.mergePaths(cexPath);

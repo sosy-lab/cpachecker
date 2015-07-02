@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -247,7 +248,7 @@ public class AssumptionToEdgeAllocatorTest {
 
   private void testWithEdge(CFAEdge pEdge) {
 
-    AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(logger, machineModel);
+    AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(Configuration.defaultConfiguration(), logger, machineModel);
 
     CFAEdgeWithAssumptions assignmentEdgeFull = allocator.allocateAssumptionsToEdge(pEdge, full);
     CFAEdgeWithAssumptions assignmentEdgeSymbolic = allocator.allocateAssumptionsToEdge(pEdge, symbolic);

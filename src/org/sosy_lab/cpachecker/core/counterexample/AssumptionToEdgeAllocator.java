@@ -36,6 +36,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.rationals.Rational;
@@ -130,10 +131,13 @@ public class AssumptionToEdgeAllocator {
    * values of the variables and of the memory at that edge and creates concrete assumptions
    * for the variables at the given edge.
    *
+   * @param pConfig the configuration.
    * @param pLogger logger for logging purposes.
    * @param pMachineModel the machine model that holds for the error path of the given edge.
    */
-  public AssumptionToEdgeAllocator(LogManager pLogger,
+  public AssumptionToEdgeAllocator(
+      Configuration pConfig,
+      LogManager pLogger,
       MachineModel pMachineModel) {
 
     logger = pLogger;

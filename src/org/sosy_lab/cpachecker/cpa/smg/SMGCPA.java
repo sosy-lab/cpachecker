@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -99,10 +100,14 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   private final LogManager logger;
 
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+
   private SMGCPA(Configuration config, LogManager pLogger, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     machineModel = cfa.getMachineModel();
     logger = pLogger;
+
+    assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
 
     abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
@@ -176,7 +181,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
 
-    return new SMGConcreteErrorPathAllocator(logger).allocateAssignmentsToPath(pPath);
+    return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator).allocateAssignmentsToPath(pPath);
   }
 
 }

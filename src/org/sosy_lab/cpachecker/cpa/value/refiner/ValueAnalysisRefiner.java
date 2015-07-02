@@ -179,7 +179,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     prefixProvider = new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig);
     classifier     = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
 
-    concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(logger, pShutdownNotifier, pCfa.getMachineModel());
+    concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
   }
 
   @Override
