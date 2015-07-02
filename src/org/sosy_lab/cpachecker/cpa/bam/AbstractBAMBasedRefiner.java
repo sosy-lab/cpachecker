@@ -58,7 +58,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner im
   final Timer computeCounterexampleTimer = new Timer();
 
   private final BAMTransferRelation transfer;
-  private final BAMCPA bamCpa;
   private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   private ARGState rootOfSubgraph = null;
 
@@ -68,7 +67,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner im
       throws InvalidConfigurationException {
     super(pCpa);
 
-    bamCpa = (BAMCPA)pCpa;
+    BAMCPA bamCpa = (BAMCPA)pCpa;
     transfer = bamCpa.getTransferRelation();
     bamCpa.getStatistics().addRefiner(this);
   }
@@ -92,7 +91,13 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner im
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
       return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new BAMReachedSet(transfer, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph), pPath);
+      if (pReached instanceof BAMReachedSet) {
+        // this case exists to use a Refiner that already has a BAMReachedSet, for example DelegatingBAMRefiner.
+      } else {
+        // otherwise wrap the original reached-set to have a valid "view" on all reached states.
+        pReached = new BAMReachedSet(transfer, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph);
+      }
+      return performRefinement0(pReached, pPath);
     }
   }
 

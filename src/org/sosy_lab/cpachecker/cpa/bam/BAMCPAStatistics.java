@@ -111,7 +111,6 @@ class BAMCPAStatistics implements Statistics {
   }
 
   public void addRefiner(AbstractBAMBasedRefiner pRefiner) {
-    //checkState(refiner == null);
     refiners.add(pRefiner);
   }
 
@@ -150,9 +149,11 @@ class BAMCPAStatistics implements Statistics {
 
     out.println("Time for removing cached subtrees for refinement:               " + transferRelation.removeCachedSubtreeTimer);
     out.println("Time for recomputing ARGs during counterexample analysis:       " + transferRelation.recomputeARTTimer);
+
     for (AbstractBAMBasedRefiner refiner : refiners) {
-      out.println(refiner.getClass() + ":");
-      out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
+      // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers. Can we ignore them?
+      out.println("\n" + refiner.getClass().getSimpleName() + ":");
+      out.println("  Compute path for refinement:                                  " + refiner.computePathTimer);
       out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
       out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
     }
