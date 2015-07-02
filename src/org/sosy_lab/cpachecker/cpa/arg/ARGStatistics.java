@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -104,9 +105,9 @@ public class ARGStatistics implements IterationStatistics {
   private final CEXExporter cexExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
+  public ARGStatistics(Configuration config, ARGCPA cpa, MachineModel pMachineModel) throws InvalidConfigurationException {
     this.cpa = cpa;
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, cpa.getLogger(), cpa.getMachineModel());
+    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, cpa.getLogger(), pMachineModel);
 
     config.inject(this);
 
