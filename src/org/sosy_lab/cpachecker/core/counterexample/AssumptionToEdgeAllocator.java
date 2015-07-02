@@ -37,10 +37,14 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -108,6 +112,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -118,12 +123,26 @@ import com.google.common.collect.Sets;
  * Creates assumption along an error path based on a given {@link CFAEdge} edge
  * and a given {@link ConcreteState} state.
  */
+@Options(prefix="counterexample.export.assumptions")
 public class AssumptionToEdgeAllocator {
 
   private final LogManager logger;
   private final MachineModel machineModel;
 
   private static final int FIRST = 0;
+
+  @Option(secure=true, description=
+            "Try to avoid using operations that exceed the capabilities"
+          + " of linear arithmetics when extracting assumptions from the model."
+          + " This option aims to prevent witnesses that are inconsistent with "
+          + " models that are, due to an analysis limited to linear"
+          + " arithmetics, actually incorrect.\n"
+          + " This option does not magically produce a correct witness from an"
+          + " incorrect model,"
+          + " and since the difference between an incorrect witness consistent"
+          + " with the model and an incorrect witness that is inconsistent with"
+          + " the model is academic, you usually want this option to be off.")
+  private boolean assumeLinearArithmetics = false;
 
   /**
    * Creates an instance of the allocator that takes an {@link CFAEdge} edge
@@ -134,11 +153,17 @@ public class AssumptionToEdgeAllocator {
    * @param pConfig the configuration.
    * @param pLogger logger for logging purposes.
    * @param pMachineModel the machine model that holds for the error path of the given edge.
+   * @throws InvalidConfigurationException if the configuration is invalid.
    */
   public AssumptionToEdgeAllocator(
       Configuration pConfig,
       LogManager pLogger,
-      MachineModel pMachineModel) {
+      MachineModel pMachineModel) throws InvalidConfigurationException {
+
+    Preconditions.checkNotNull(pLogger);
+    Preconditions.checkNotNull(pMachineModel);
+
+    pConfig.inject(this);
 
     logger = pLogger;
     machineModel = pMachineModel;
@@ -1017,6 +1042,31 @@ public class AssumptionToEdgeAllocator {
           pointerOffset = lVarInBinaryExp;
           addressType = rVarInBinaryExpType;
         } else {
+          if (assumeLinearArithmetics) {
+            switch (binaryExp.getOperator()) {
+            case MULTIPLY:
+              // Multiplication with constants is usually supported
+              if (lVarInBinaryExp instanceof ALiteralExpression) {
+                break;
+              }
+              //$FALL-THROUGH$
+            case DIVIDE:
+            case MODULO:
+              // Division and modulo with constants are usually supported
+              if (rVarInBinaryExp instanceof ALiteralExpression) {
+                break;
+              }
+              //$FALL-THROUGH$
+            case BINARY_AND:
+            case BINARY_OR:
+            case BINARY_XOR:
+            case SHIFT_LEFT:
+            case SHIFT_RIGHT:
+              return Value.UnknownValue.getInstance();
+            default:
+              break;
+            }
+          }
           return super.visit(binaryExp);
         }
 
@@ -1295,6 +1345,9 @@ public class AssumptionToEdgeAllocator {
         return handleIntegerNumbers(pValue, simpleType);
       case FLOAT:
       case DOUBLE:
+        if (assumeLinearArithmetics) {
+          return UnknownValueLiteral.getInstance();
+        }
         return handleFloatingPointNumbers(pValue, simpleType);
       }
 
@@ -1399,6 +1452,9 @@ public class AssumptionToEdgeAllocator {
 
       if (pIntegerValue.compareTo(lowerInclusiveBound) < 0
           || pIntegerValue.compareTo(upperInclusiveBound) > 0) {
+        if (assumeLinearArithmetics) {
+          return UnknownValueLiteral.getInstance();
+        }
         result = result.addCast(pType);
       }
 

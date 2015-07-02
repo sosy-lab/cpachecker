@@ -29,6 +29,7 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -237,7 +238,7 @@ public class AssumptionToEdgeAllocatorTest {
   }
 
   @Test
-  public void testAllocateAssignmentsToEdge() {
+  public void testAllocateAssignmentsToEdge() throws InvalidConfigurationException {
 
     for (CFANode node : cfa.getAllNodes()) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -246,7 +247,7 @@ public class AssumptionToEdgeAllocatorTest {
     }
   }
 
-  private void testWithEdge(CFAEdge pEdge) {
+  private void testWithEdge(CFAEdge pEdge) throws InvalidConfigurationException {
 
     AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(Configuration.defaultConfiguration(), logger, machineModel);
 

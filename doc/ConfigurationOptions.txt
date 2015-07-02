@@ -489,6 +489,16 @@ counterexample.checker.path.file = no default value
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# Try to avoid using operations that exceed the capabilities of linear
+# arithmetics when extracting assumptions from the model. This option aims to
+# prevent witnesses that are inconsistent with  models that are, due to an
+# analysis limited to linear arithmetics, actually incorrect.
+#  This option does not magically produce a correct witness from an incorrect
+# model, and since the difference between an incorrect witness consistent
+# with the model and an incorrect witness that is inconsistent with the model
+# is academic, you usually want this option to be off.
+counterexample.export.assumptions.assumeLinearArithmetics = false
+
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
 counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
