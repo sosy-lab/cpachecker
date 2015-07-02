@@ -247,13 +247,11 @@ public class AssumptionToEdgeAllocatorTest {
 
   private void testWithEdge(CFAEdge pEdge) {
 
-    AssumptionToEdgeAllocator fullStateAllocator = new AssumptionToEdgeAllocator(logger, pEdge, full, machineModel);
-    AssumptionToEdgeAllocator emptyStateAllocator = new AssumptionToEdgeAllocator(logger, pEdge, empty, machineModel);
-    AssumptionToEdgeAllocator symbolicStateAllocator = new AssumptionToEdgeAllocator(logger, pEdge, symbolic, machineModel);
+    AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(logger, machineModel);
 
-    CFAEdgeWithAssumptions assignmentEdgeFull = fullStateAllocator.allocateAssumptionsToEdge();
-    CFAEdgeWithAssumptions assignmentEdgeSymbolic = symbolicStateAllocator.allocateAssumptionsToEdge();
-    CFAEdgeWithAssumptions assignmentEdgeEmpty = emptyStateAllocator.allocateAssumptionsToEdge();
+    CFAEdgeWithAssumptions assignmentEdgeFull = allocator.allocateAssumptionsToEdge(pEdge, full);
+    CFAEdgeWithAssumptions assignmentEdgeSymbolic = allocator.allocateAssumptionsToEdge(pEdge, empty);
+    CFAEdgeWithAssumptions assignmentEdgeEmpty = allocator.allocateAssumptionsToEdge(pEdge, symbolic);
     Truth.assertThat(assignmentEdgeEmpty.getExpStmts()).isEmpty();
 
     switch (pEdge.getRawStatement()) {
