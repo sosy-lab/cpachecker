@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import java.io.IOException;
@@ -34,6 +33,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -92,7 +93,7 @@ class BAMCPAStatistics implements Statistics {
 
   private final BAMCPA cpa;
   private final BAMCache cache;
-  private AbstractBAMBasedRefiner refiner = null;
+  private List<AbstractBAMBasedRefiner> refiners = new LinkedList<>();
   private final LogManager logger;
 
   public BAMCPAStatistics(BAMCPA cpa, BAMCache cache, Configuration config, LogManager logger)
@@ -110,8 +111,8 @@ class BAMCPAStatistics implements Statistics {
   }
 
   public void addRefiner(AbstractBAMBasedRefiner pRefiner) {
-    checkState(refiner == null);
-    refiner = pRefiner;
+    //checkState(refiner == null);
+    refiners.add(pRefiner);
   }
 
   @Override
@@ -149,7 +150,8 @@ class BAMCPAStatistics implements Statistics {
 
     out.println("Time for removing cached subtrees for refinement:               " + transferRelation.removeCachedSubtreeTimer);
     out.println("Time for recomputing ARGs during counterexample analysis:       " + transferRelation.recomputeARTTimer);
-    if (refiner != null) {
+    for (AbstractBAMBasedRefiner refiner : refiners) {
+      out.println(refiner.getClass() + ":");
       out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
       out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
       out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);

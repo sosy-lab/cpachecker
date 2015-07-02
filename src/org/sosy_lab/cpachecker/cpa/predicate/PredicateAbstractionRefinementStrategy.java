@@ -577,9 +577,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
-    if(!pReached.asReachedSet().contains(root)) {
+    /*if(!pReached.asReachedSet().contains(root)) {
       return false;
-    }
+    }*/
     return Precisions.extractPrecisionByType(pReached.asReachedSet().getPrecision(root), VariableTrackingPrecision.class) != null;
   }
 

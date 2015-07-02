@@ -194,7 +194,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     List<ARGPath> targetPaths = getTargetPaths(targets);
 
     // fail hard on a repeated counterexample, this is most definitively a bug
-    if (!madeProgress(targetPaths.get(0))) {
+    if (!madeProgress(targetPaths.get(0)) &&
+        !isPredicatePrecisionAvailable(pReached)) {
+        /* Predicate may reduce smth important and we obtain the same path
+         * If there is no predicate analysis - fail
+         */
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPaths.get(0));
     }
 

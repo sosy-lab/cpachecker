@@ -271,8 +271,8 @@ public class ARGStatistics implements IterationStatistics {
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
 
-          RichModel model = createModelForPath(path);
-          cex = CounterexampleInfo.feasible(path, model);
+         // RichModel model = createModelForPath(path);
+        //  cex = CounterexampleInfo.feasible(path, model);
         }
       }
       if (cex != null) {

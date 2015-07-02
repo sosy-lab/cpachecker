@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -109,7 +108,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
   private final ExtendedPredicateRefiner refiner;
 
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static BAMPredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     return new BAMPredicateRefiner(pCpa);
   }
 
@@ -172,7 +171,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
   }
 
   @Override
-  protected final CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
+  public final CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
 
     return refiner.performRefinement(pReached, pPath);

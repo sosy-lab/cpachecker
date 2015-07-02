@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
@@ -42,7 +41,7 @@ public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
     refiner = ValueAnalysisRefiner.create(pCpa);
   }
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static ValueAnalysisBAMRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     return new ValueAnalysisBAMRefiner(pCpa);
   }
 
