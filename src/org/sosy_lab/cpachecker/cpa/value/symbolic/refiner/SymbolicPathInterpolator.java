@@ -49,9 +49,6 @@ import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 public class SymbolicPathInterpolator
     extends GenericPathInterpolator<ForgettingCompositeState, SymbolicInterpolant> {
 
-  @Option(description = "How to choose which prefix to use for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
-
   public SymbolicPathInterpolator(
       final SymbolicEdgeInterpolator pEdgeInterpolator,
       final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
