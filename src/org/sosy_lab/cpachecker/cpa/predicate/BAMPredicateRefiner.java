@@ -170,7 +170,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
   }
 
   @Override
-  public final CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
+  protected final CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
 
     return refiner.performRefinement(pReached, pPath);
