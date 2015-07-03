@@ -194,11 +194,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     List<ARGPath> targetPaths = getTargetPaths(targets);
 
     // fail hard on a repeated counterexample, this is most definitively a bug
-    if (!madeProgress(targetPaths.get(0)) &&
-        !isPredicatePrecisionAvailable(pReached)) {
-        /* Predicate may reduce smth important and we obtain the same path
-         * If there is no predicate analysis - fail
-         */
+    if (!madeProgress(targetPaths.get(0))) {
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPaths.get(0));
     }
 
@@ -209,15 +205,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPath.getLastState());
 
-    // if the target path is given from outside, do not fail hard on a repeated counterexample:
-    // this can happen when the predicate-analysis refinement returns back-to-back target paths
-    // that are feasible under predicate-analysis semantics and hands those into the value-analysis
-    // refiner, where the in-between value-analysis refinement happens to only affect paths in a
-    // (ABE) block, which may not be visible when constructing the target path in the next refinement.
     if (!madeProgress(targetPath)) {
-      logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
-          "so instead, refiner uses an error path extracted from the reachset.");
-      targetPath = getTargetPaths(targets).get(0);
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPath);
     }
 
     return performRefinement(pReached, targets, Lists.newArrayList(targetPath));

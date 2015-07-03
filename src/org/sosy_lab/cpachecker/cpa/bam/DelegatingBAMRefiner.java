@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -65,6 +67,7 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
       totalRefinementsFinished.add(new StatCounter("Number of finished refinement"));
     }
 
+    assert refiners.size() > 0;
     assert refiners.size() == totalRefinementsSelected.size();
     assert refiners.size() == totalRefinementsFinished.size();
   }
@@ -80,11 +83,26 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
 
     for (int i = 0; i < refiners.size(); i++) {
       totalRefinementsSelected.get(i).inc();
-      cex = refiners.get(i).performRefinement(reached, pErrorPath);
-      if (cex.isSpurious()) {
-        totalRefinementsFinished.get(i).inc();
-        break;
+      try {
+
+        cex = refiners.get(i).performRefinement(reached, pErrorPath);
+        if (cex.isSpurious()) {
+          totalRefinementsFinished.get(i).inc();
+          break;
+        }
+
+      } catch (RefinementFailedException e) {
+        if (Reason.RepeatedCounterexample != e.getReason()) {
+          throw e; // propagate exception
+        } else {
+          // ignore and try the next refiner
+        }
       }
+    }
+
+    if (cex == null) {
+      // TODO correct reason?
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, pErrorPath);
     }
 
     return Preconditions.checkNotNull(cex);
