@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.TermType;
@@ -65,7 +67,6 @@ import com.google.common.collect.Iterables;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
- * // TODO logfile is only available as tmpfile in /tmp, perhaps it is not closed?
  * It also manages the "shared variables": each variable is declared for all stacks.
  */
 class PrincessEnvironment {
@@ -142,7 +143,11 @@ class PrincessEnvironment {
   private SimpleAPI getNewApi(boolean useForInterpolation) {
     final SimpleAPI newApi;
     if (basicLogfile != null) {
-      newApi = SimpleAPI.spawnWithLogNoSanitise(basicLogfile.getFreshPath().getAbsolutePath());
+      Path logPath = basicLogfile.getFreshPath();
+      String fileName = logPath.getName();
+      String absPath = logPath.getAbsolutePath();
+      File directory = new File(absPath.substring(0, absPath.length()-fileName.length()));
+      newApi = SimpleAPI.spawnWithLogNoSanitise(fileName, directory);
     } else {
       newApi = SimpleAPI.spawnNoSanitise();
     }
