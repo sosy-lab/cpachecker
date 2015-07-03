@@ -35,7 +35,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -49,7 +48,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -79,6 +77,11 @@ import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -142,11 +145,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   private final Set<Integer> previousRefinementIds = new HashSet<>();
 
   // statistics
-  private int refinementCounter = 0;
-  private int targetCounter = 0;
-  private final Timer totalTime = new Timer();
-  private int timesRootRelocated = 0;
-  private int timesRepeatedRefinements = 0;
+  private final StatCounter refinementCounter = new StatCounter("Number of refinements");
+  private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
+  private final StatTimer refinementTime = new StatTimer("Time for completing refinement");
+  private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
+  private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
 
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -226,9 +229,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     logger.log(Level.FINEST, "performing refinement ...");
 
-    totalTime.start();
-    refinementCounter++;
-    targetCounter = targetCounter + targets.size();
+    refinementTime.start();
+    refinementCounter.inc();
+    numberOfTargets.setNextValue(targets.size());
 
     CounterexampleInfo cex = isAnyPathFeasible(pReached, targetPaths);
 
@@ -236,7 +239,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       refineUsingInterpolants(pReached, obtainInterpolants(targetPaths));
     }
 
-    totalTime.stop();
+    refinementTime.stop();
 
     return cex;
   }
@@ -290,7 +293,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL")
         && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
     }
     return interpolationTree;
   }
@@ -331,7 +334,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp));
 
     if (interpolationTreeExportFile != null && exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
     }
   }
 
@@ -431,7 +434,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    * @return the relocated refinement root
    */
   private ARGState relocateRepeatedRefinementRoot(final ARGState currentRoot) {
-    timesRepeatedRefinements++;
+    repeatedRefinements.inc();
     int currentRootNumber = AbstractStates.extractLocation(currentRoot).getNodeNumber();
 
     ARGPath path = ARGUtils.getOnePathTo(currentRoot);
@@ -513,7 +516,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       newRefinementRoot = Iterables.getOnlyElement(successorRelation.get(newRefinementRoot));
     }
 
-    timesRootRelocated++;
+    rootRelocations.inc();
     return newRefinementRoot;
   }
 
@@ -678,18 +681,18 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
-        ValueAnalysisRefiner.this.printStatistics(pOut, pResult, pReached);
+        StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+        writer.put(refinementCounter)
+          .put(numberOfTargets)
+          .put(refinementTime);
+
+        // delegate to interpolator for statistics obtained there
+        interpolator.printStatistics(pOut, pResult, pReached);
+
+        writer.put(rootRelocations)
+          .put(repeatedRefinements);
       }
     });
-  }
-
-  private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
-    out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
-    out.println("Time for completing refinement:       " + totalTime);
-    interpolator.printStatistics(out, pResult, pReached);
-    out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));
-    out.println("Total number of similar, repeated refinements: " + String.format(Locale.US, "%9d", timesRepeatedRefinements));
   }
 
   private int obtainErrorPathId(ARGPath path) {

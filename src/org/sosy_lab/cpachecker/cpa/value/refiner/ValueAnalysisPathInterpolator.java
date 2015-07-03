@@ -437,11 +437,11 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
-    writer.put(timerInterpolation);
-    writer.put(totalInterpolations);
-    writer.put(totalInterpolationQueries);
-    writer.put(sizeOfInterpolant);
-    writer.put(totalPrefixes);
+    writer.put(timerInterpolation)
+      .put(totalInterpolations)
+      .put(totalInterpolationQueries)
+      .put(sizeOfInterpolant)
+      .put(totalPrefixes);
     writer.put(prefixExtractionTime);
     writer.put(prefixSelectionTime);
   }
