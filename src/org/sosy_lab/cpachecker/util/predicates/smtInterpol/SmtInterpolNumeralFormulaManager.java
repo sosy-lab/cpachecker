@@ -69,7 +69,13 @@ abstract class SmtInterpolNumeralFormulaManager
       Sort intSort = pNumber1.getTheory().getNumericSort();
       Sort realSort = pNumber1.getTheory().getRealSort();
       if (intSort.equals(pNumber1.getSort()) && intSort.equals(pNumber2.getSort())) {
-        result = env.term("div", pNumber1, pNumber2);
+        Term div = env.term("div", pNumber1, pNumber2);
+        // C99 truncates towards 0
+        result = env.term("mod", pNumber1, pNumber2);
+        result = env.term("ite",
+            greaterOrEquals(pNumber1, env.numeral(BigInteger.ZERO)),
+            div,
+            add(div, env.numeral(BigInteger.ONE)));
       } else {
         assert intSort.equals(pNumber1.getSort()) || realSort.equals(pNumber1.getSort());
         assert intSort.equals(pNumber2.getSort()) || realSort.equals(pNumber2.getSort());
@@ -101,7 +107,12 @@ abstract class SmtInterpolNumeralFormulaManager
     if (isNumber(pNumber2)
         && intSort.equals(pNumber1.getSort())
         && intSort.equals(pNumber2.getSort())) {
-      result = env.term("mod", pNumber1, pNumber2);
+      Term mod = env.term("mod", pNumber1, pNumber2);
+      // C99 truncates towards 0 on division
+      result = env.term("ite",
+          greaterOrEquals(pNumber1, env.numeral(BigInteger.ZERO)),
+          mod,
+          subtract(mod, pNumber2));
     } else {
       result = super.modulo(pNumber1, pNumber2);
     }
@@ -111,7 +122,8 @@ abstract class SmtInterpolNumeralFormulaManager
 
   @Override
   protected Term modularCongruence(Term pNumber1, Term pNumber2, long pModulo) {
-    // ((_ divisible n) x)   <==>   (= x (* n (div x n)))
+    // if x >= 0: ((_ divisible n) x)   <==>   (= x (* n (div x n)))
+    // if x <  0: ((_ divisible n) x)   <==>   (= x (* n (div x n)))
     Sort intSort = pNumber1.getTheory().getNumericSort();
     if (pModulo > 0
         && intSort.equals(pNumber1.getSort())
