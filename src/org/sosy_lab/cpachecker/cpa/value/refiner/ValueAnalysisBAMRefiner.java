@@ -51,7 +51,7 @@ public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
   @Override
   protected CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException,
       InterruptedException {
-    CounterexampleInfo refineResult = refiner.performRefinement(pReached/*, pPath*/);
+    CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
     if (!refineResult.isSpurious()) {
       assert (refiner.isErrorPathFeasible(pPath)) : "not spurious must imply feasible:" + pPath;
       //throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
