@@ -173,7 +173,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
-    pConfig.inject(this);
+    pConfig.inject(this, ValueAnalysisRefiner.class);
 
     logger = pLogger;
 
