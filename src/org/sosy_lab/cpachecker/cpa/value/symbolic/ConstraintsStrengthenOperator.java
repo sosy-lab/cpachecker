@@ -31,6 +31,10 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -52,26 +56,30 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
-
 /**
  * Strengthener for ValueAnalysis with {@link ConstraintsCPA}.
  */
+@Options(prefix = "cpa.value.symbolic")
 public class ConstraintsStrengthenOperator implements Statistics {
 
-  private static final ConstraintsStrengthenOperator SINGLETON =
-      new ConstraintsStrengthenOperator();
+  @Option(description = "Whether to simplify symbolic expressions, if possible.")
+  private boolean simplifySymbolics = true;
+
+  @Option(description = "Whether to adopt definite assignments computed by the ConstraintsCPA")
+  private boolean adoptDefinites = true;
 
   // statistics
   private final Timer totalTime = new Timer();
   private int replacedSymbolicExpressions = 0;
 
-  public static ConstraintsStrengthenOperator getInstance() {
-    return SINGLETON;
+
+  public ConstraintsStrengthenOperator(final Configuration pConfig)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
   }
 
   /**
-   * Strengthen the given {@link ValueAnalysisState} with the given {@link ConstraintsState}.
+   * Strengthen the given {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} with the given {@link org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState}.
    *
    * <p>The returned <code>Collection</code> contains all reachable states after strengthening.
    * A returned empty <code>Collection</code> represents 'bottom', a returned <code>null</code>
@@ -89,30 +97,23 @@ public class ConstraintsStrengthenOperator implements Statistics {
       final ConstraintsState pStrengtheningState,
       final CFAEdge pEdge
   ) {
-
     totalTime.start();
     try {
-      Optional<ValueAnalysisState> newElement =
-          evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
-
       ValueAnalysisState newState;
-      boolean somethingChanged = false;
 
-      if (newElement.isPresent()) {
-        newState = newElement.get();
-        somethingChanged = true;
+      if (adoptDefinites) {
+        newState =
+            evaluateAssignment(pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen);
+
       } else {
-        newState = ValueAnalysisState.copyOf(pStateToStrengthen);
+        newState = pStateToStrengthen;
       }
 
-      newElement = simplifySymbolicValues(newState, pStrengtheningState, pEdge);
-
-      if (newElement.isPresent()) {
-        newState = newElement.get();
-        somethingChanged = true;
+      if (simplifySymbolics) {
+        newState = simplifySymbolicValues(newState, pStrengtheningState, pEdge);
       }
 
-      if (somethingChanged) {
+      if (!newState.equals(pStateToStrengthen)) {
         return Collections.singleton(newState);
 
       } else {
@@ -124,8 +125,10 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
   }
 
-  private Optional<ValueAnalysisState> evaluateAssignment(
-      IdentifierAssignment pAssignment, ValueAnalysisState pValueState) {
+  private ValueAnalysisState evaluateAssignment(
+      final IdentifierAssignment pAssignment,
+      final ValueAnalysisState pValueState
+  ) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
 
@@ -136,16 +139,12 @@ public class ConstraintsStrengthenOperator implements Statistics {
       newElement.assignConstant(identifierToReplace, newIdentifierValue);
     }
 
-    if (!newElement.equals(pValueState)) {
-      return Optional.of(newElement);
-    } else {
-      return Optional.absent();
-    }
+    return newElement;
   }
 
   // replaces symbolic expressions that are not used anywhere yet with a new symbolic identifier.
   // this method does not copy the given value analysis state, but works directly with it
-  private Optional<ValueAnalysisState> simplifySymbolicValues(
+  private ValueAnalysisState simplifySymbolicValues(
       final ValueAnalysisState pValueState,
       final ConstraintsState pConstraints,
       final CFAEdge pEdge
@@ -158,12 +157,11 @@ public class ConstraintsStrengthenOperator implements Statistics {
     // a constraint added at this edge is not yet in the strengthening ConstraintsState.
     // For strengthening, unstrengthened states are used, always.
     if (!couldNextEdgeUseValues(pEdge) && pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
-      return Optional.absent();
+      return pValueState;
     }
 
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    boolean somethingChanged = false;
 
     for (Map.Entry<MemoryLocation, Value> e : pValueState.getConstantsMapView().entrySet()) {
       Value currV = e.getValue();
@@ -182,16 +180,11 @@ public class ConstraintsStrengthenOperator implements Statistics {
         SymbolicValue newIdentifier = factory.asConstant(factory.newIdentifier(), valueType);
 
         pValueState.assignConstant(currLoc, newIdentifier, valueType);
-        somethingChanged = true;
         replacedSymbolicExpressions++;
       }
     }
 
-    if (somethingChanged) {
-      return Optional.of(pValueState);
-    } else {
-      return Optional.absent();
-    }
+    return pValueState;
   }
 
   private boolean couldNextEdgeUseValues(CFAEdge pEdge) {
