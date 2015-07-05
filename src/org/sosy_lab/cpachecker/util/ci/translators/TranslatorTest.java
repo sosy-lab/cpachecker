@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -37,6 +40,8 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cpa.interval.Interval;
+import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -118,7 +123,71 @@ public class TranslatorTest {
   }
 
   @Test
-  public void testIntervalAndCartesianTranslator() {
+  public void testIntervalAndCartesianTranslator() throws InvalidConfigurationException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    PersistentMap<String, Interval> intervals = PathCopyingPersistentTreeMap.of();
+    PersistentMap<String, Integer> referenceMap = PathCopyingPersistentTreeMap.of();
 
+    intervals = intervals.putAndCopy("var1", new Interval(Long.MIN_VALUE, (long) 5));
+    intervals = intervals.putAndCopy("var2", new Interval((long) -7, Long.MAX_VALUE));
+    intervals = intervals.putAndCopy("var3", new Interval(Long.MIN_VALUE, (long) -2));
+    intervals = intervals.putAndCopy("fun::var1", new Interval((long) 0, (long) 10));
+    intervals = intervals.putAndCopy("fun::varB", new Interval((long) 8, Long.MAX_VALUE));
+    intervals = intervals.putAndCopy("fun::varC", new Interval((long) -15, (long) -3));
+
+    IntervalAnalysisState iStateTest = new IntervalAnalysisState(intervals, referenceMap);
+    IntervalRequirementsTranslator iReqTransTest = new IntervalRequirementsTranslator(TestDataTools.configurationForTest().build(), ShutdownNotifier.create(), TestLogManager.getInstance());
+
+    // Test method getVarsInRequirements()
+    List<String> varsInRequirements = iReqTransTest.getVarsInRequirements(iStateTest);
+    Truth.assertThat(varsInRequirements).containsExactlyElementsIn(Arrays.asList(varNames));
+
+    // Test method getListOfIndepentendRequirements()
+    List<String> listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest);
+    List<String> content = new ArrayList<>();
+    content.add("(<= var1@1 5)");
+    content.add("(>= var2 -7)");
+    content.add("(<= var3@1 -2)");
+    content.add("(and (>= fun::var1 0) (<= fun::var1 10))");
+    content.add("(>= fun::varB@1 8)");
+    content.add("(and (>= fun::varC -15) (<= fun::varC -3))");
+    Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
+
+    // Test method writeVarDefinition()
+    Method writeVarDefinition = CartesianRequirementsTranslator.class.getDeclaredMethod("writeVarDefinition", new Class[]{List.class, SSAMap.class});
+    writeVarDefinition.setAccessible(true);
+    List<String> varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest);
+    content = new ArrayList<>();
+    content.add("(declare-fun var1@1() Int)");
+    content.add("(declare-fun var2() Int)");
+    content.add("(declare-fun var3@1() Int)");
+    content.add("(declare-fun fun::var1() Int)");
+    content.add("(declare-fun fun::varB@1() Int)");
+    content.add("(declare-fun fun::varC() Int)");
+    Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
+
+    // Test method convertToFormula()
+    Pair<List<String>, String> convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest);
+    Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
+    String s = "(define-fun req () Bool (and (and (>= fun::var1 0) (<= fun::var1 10))(and (>= fun::varB@1 8)(and (and (>= fun::varC -15) (<= fun::varC -3))(and (<= var1@1 5)(and (>= var2 -7)(<= var3@1 -2)))))))";
+    Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
+
+    // Test method convertToFormula() with empty IntervalAnalysisState
+    convertedToFormula = iReqTransTest.convertToFormula(new IntervalAnalysisState(), ssaTest);
+    Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
+    s = "(define-fun req () Bool true)";
+    Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
+
+    // Test method convertToFormula() with another IntervalAnalysisState
+    intervals = PathCopyingPersistentTreeMap.of();
+    referenceMap = PathCopyingPersistentTreeMap.of();
+    intervals = intervals.putAndCopy("var1", new Interval((long) 0, Long.MAX_VALUE));
+    IntervalAnalysisState anotherIStateTest = new IntervalAnalysisState(intervals, referenceMap);
+
+    convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest);
+    content = new ArrayList<>();
+    content.add("(declare-fun var1@1() Int)");
+    Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
+    s = "(define-fun req () Bool (>= var1@1 0))";
+    Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
   }
 }
