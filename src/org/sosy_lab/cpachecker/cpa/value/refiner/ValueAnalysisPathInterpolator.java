@@ -204,50 +204,48 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * This method performs interpolation on each edge of the path, using the
    * {@link ValueAnalysisEdgeInterpolator}.
    *
-   * @param errorPathPrefix the error path prefix to interpolate
-   * @param interpolant an initial interpolant (only non-trivial when interpolating error path suffixes in global refinement)
+   * @param pErrorPathPrefix the error path (prefix) to interpolate
+   * @param pInterpolant an initial interpolant (only non-trivial when interpolating error path suffixes in global refinement)
    * @return the mapping of {@link ARGState}s to {@link ValueAnalysisInterpolant}s
    * @throws InterruptedException
    * @throws CPAException
    */
-  private Map<ARGState, ValueAnalysisInterpolant> performEdgeBasedInterpolation(ARGPath errorPathPrefix,
-      ValueAnalysisInterpolant interpolant)
+  private Map<ARGState, ValueAnalysisInterpolant> performEdgeBasedInterpolation(ARGPath pErrorPathPrefix,
+      ValueAnalysisInterpolant pInterpolant)
       throws InterruptedException, CPAException {
 
-    if (pathSlicing && prefixPreference != PrefixPreference.NONE) {
-      errorPathPrefix = sliceErrorPath(errorPathPrefix);
-    }
+    pErrorPathPrefix = sliceErrorPath(pErrorPathPrefix);
 
-    Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPathPrefix.size());
+    Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(pErrorPathPrefix.size());
 
-    PathIterator pathIterator = errorPathPrefix.pathIterator();
+    PathIterator pathIterator = pErrorPathPrefix.pathIterator();
     Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
     while (pathIterator.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
 
       // interpolate at each edge as long the previous interpolant is not false
-      if (!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(errorPathPrefix,
+      if (!pInterpolant.isFalse()) {
+        pInterpolant = interpolator.deriveInterpolant(pErrorPathPrefix,
             pathIterator.getOutgoingEdge(),
             callstack,
             pathIterator.getIndex(),
-            interpolant);
+            pInterpolant);
       }
 
       totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
 
-      if (!interpolant.isTrivial() && interpolationOffset == -1) {
+      if (!pInterpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = pathIterator.getIndex();
       }
 
-      sizeOfInterpolant.setNextValue(interpolant.getSize());
+      sizeOfInterpolant.setNextValue(pInterpolant.getSize());
 
       pathIterator.advance();
 
-      pathInterpolants.put(pathIterator.getAbstractState(), interpolant);
+      pathInterpolants.put(pathIterator.getAbstractState(), pInterpolant);
 
       if (!pathIterator.hasNext()) {
-        assert interpolant.isFalse() : "final interpolant is not false: " + interpolant;
+        assert pInterpolant.isFalse() : "final interpolant is not false: " + pInterpolant;
       }
     }
 
@@ -308,17 +306,21 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * @throws InterruptedException
    * @throws CPAException
    */
-  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix) throws CPAException, InterruptedException {
+  private ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix) throws CPAException, InterruptedException {
 
-    Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
+    if(!isPathSlicingPossible(pErrorPathPrefix)) {
+      return pErrorPathPrefix;
+    }
+
+    Set<ARGState> useDefStates = new UseDefRelation(pErrorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
           : Collections.<String>emptySet()).getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(errorPathPrefix.asEdgesList());
+    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.asEdgesList());
 
-    PathIterator iterator = errorPathPrefix.pathIterator();
+    PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {
       CFAEdge originalEdge = iterator.getOutgoingEdge();
 
@@ -359,10 +361,10 @@ public class ValueAnalysisPathInterpolator implements Statistics {
       iterator.advance();
     }
 
-    ARGPath slicedErrorPathPrefix = new ARGPath(errorPathPrefix.asStatesList(), abstractEdges);
+    ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);
 
     return (isFeasible(slicedErrorPathPrefix))
-        ? errorPathPrefix
+        ? pErrorPathPrefix
         : slicedErrorPathPrefix;
 
   }
@@ -448,5 +450,22 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
   public int getInterpolationOffset() {
     return interpolationOffset;
+  }
+
+  /**
+   * This method decides if path slicing is possible.
+   *
+   * It is only possible if the respective option is set,
+   * and a prefix us selected (single reason for infeasibility),
+   * and it is not a path suffix (from global refinement), i.e.,
+   * it starts with the initial program state.
+   *
+   * @param pErrorPathPrefix the error path prefix to be sliced
+   * @return true, if slicing is possible, else, false
+   */
+  private boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
+    return pathSlicing
+        && prefixPreference != PrefixPreference.NONE
+        && pErrorPathPrefix.getFirstState().getParents().isEmpty();
   }
 }
