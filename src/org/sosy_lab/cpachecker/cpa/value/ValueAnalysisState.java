@@ -48,8 +48,6 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -373,74 +371,12 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       Value otherValue = otherEntry.getValue();
       Value thisValue = constantsMap.get(key);
 
-      if (!(otherValue instanceof SymbolicValue && thisValue instanceof SymbolicValue)
-          && !otherValue.equals(thisValue)) {
+      if (!otherValue.equals(thisValue)) {
         return false;
       }
     }
 
-    return hasLessOrEqualSymbolicCoverage(other);
-  }
-
-  private boolean hasLessOrEqualSymbolicCoverage(final ValueAnalysisState pOther) {
-    final Map<MemoryLocation, SymbolicValue> thisSymbolicAssignments = getSymbolicAssignments();
-    final Map<MemoryLocation, SymbolicValue> otherSymbolicAssignments =
-        pOther.getSymbolicAssignments();
-
-    // if the given state has more symbolic assignments, we simplify by handling the states
-    // as non-comparable
-    if (otherSymbolicAssignments.size() > thisSymbolicAssignments.size()) {
-      return false;
-    }
-
-    if (thisSymbolicAssignments.isEmpty()) {
-      return true;
-    }
-
-    final Set<Environment> possibleScenarios =
-        SymbolicValues.getPossibleAliases(thisSymbolicAssignments.values(),
-            otherSymbolicAssignments.values());
-
-    if (possibleScenarios.isEmpty()) {
-      return false;
-    }
-
-    // check whether a possible aliasing of symbolic expressions fits the correct memory locations.
-    for (Environment e : possibleScenarios) {
-      boolean memoryLocationsAndAliassesConsistent = true;
-
-      for (Map.Entry<MemoryLocation, SymbolicValue> entry : otherSymbolicAssignments.entrySet()) {
-        MemoryLocation memLoc = entry.getKey();
-        SymbolicValue value = entry.getValue();
-
-        SymbolicValue alias = e.getCounterpart(value);
-
-        assert alias != null;
-
-        if (!thisSymbolicAssignments.containsKey(memLoc)
-            || !SymbolicValues.representSameSymbolicMeaning(thisSymbolicAssignments.get(memLoc), alias)) {
-          memoryLocationsAndAliassesConsistent = false;
-        }
-      }
-
-      if (memoryLocationsAndAliassesConsistent) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private Map<MemoryLocation, SymbolicValue> getSymbolicAssignments() {
-    Map<MemoryLocation, SymbolicValue> symbolics = new HashMap<>();
-
-    for (Map.Entry<MemoryLocation, Value> e : constantsMap.entrySet()) {
-      if (e.getValue() instanceof SymbolicValue) {
-        symbolics.put(e.getKey(), (SymbolicValue) e.getValue());
-      }
-    }
-
-    return symbolics;
+    return true;
   }
 
   @Override
