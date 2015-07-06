@@ -479,13 +479,13 @@ public class CFACreator {
     final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
     TigerConfiguration tigerConfig = new TigerConfiguration(config);
-    if (tigerConfig.useTigerAlgorithm || tigerConfig.useTigerAlgorithm_with_pc) {
+    if (tigerConfig.useTigerAlgorithm) {
       if (language != Language.C) {
         throw new InvalidConfigurationException("Tiger algorithm is only supported for C!");
       }
 
       // switch main functions
-      TigerAlgorithm.originalMainFunction = mainFunctionName; // the field is also used by TigerAlgorithm_with_pc
+      TigerAlgorithm.originalMainFunction = mainFunctionName;
       mainFunctionName = WrapperUtil.CPAtiger_MAIN;
 
       CParser cParser = (CParser)parser;

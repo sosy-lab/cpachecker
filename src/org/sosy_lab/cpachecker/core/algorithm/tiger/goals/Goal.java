@@ -36,23 +36,27 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedE
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class Goal {
 
   private ElementaryCoveragePattern mPattern;
   private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
   private int mIndex;
+  private Region mPresenceCondition;
 
-  public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, Region pPresenceCondition) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
+    mPresenceCondition = pPresenceCondition;
   }
 
-  public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pPresenceCondition) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
+    mPresenceCondition = pPresenceCondition;
   }
 
   public int getIndex() {
@@ -120,6 +124,14 @@ public class Goal {
     };
 
     return getPattern().accept(visitor);
+  }
+
+  public Region getPresenceCondition() {
+    return mPresenceCondition;
+  }
+
+  public void setPresenceCondition(Region pPresenceCondition) {
+    mPresenceCondition = pPresenceCondition;
   }
 
   public String toSkeleton() {

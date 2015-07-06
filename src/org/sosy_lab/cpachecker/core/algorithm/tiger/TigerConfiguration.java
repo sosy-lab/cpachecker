@@ -46,9 +46,5 @@ public class TigerConfiguration {
   @Option(secure=true, name="analysis.algorithm.tiger",
       description = "Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal Reachability Analyses, ESOP'13)")
   public boolean useTigerAlgorithm = false;
-  @Option(secure=true, name="analysis.algorithm.tiger_with_presenceConditions",
-  description = "Use Test Input GEneRator algorithm with an extension using the BDDCPA to model product line presence conditions")
-  public boolean useTigerAlgorithm_with_pc = false;
-
-
+  
 }

@@ -27,6 +27,8 @@ import java.math.BigInteger;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 
 public class TestCase {
@@ -34,11 +36,15 @@ public class TestCase {
   private List<BigInteger> inputs;
   private List<CFAEdge> path;
   private List<CFAEdge> errorPath;
+  private NamedRegionManager bddCpaNamedRegionManager;
+  private Region presenceCondition;
 
-  public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath, List<CFAEdge> pShrinkedErrorPath) {
+  public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath, List<CFAEdge> pShrinkedErrorPath, Region pPresenceCondition, NamedRegionManager pBddCpaNamedRegionManager) {
     inputs = pInputs;
     path = pPath;
     errorPath = pShrinkedErrorPath;
+    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+    presenceCondition = pPresenceCondition;
   }
 
   public List<CFAEdge> getPath() {
@@ -51,6 +57,10 @@ public class TestCase {
 
   public List<BigInteger> getInputs() {
     return inputs;
+  }
+
+  public Region getPresenceCondition() {
+    return presenceCondition;
   }
 
   public String toCode() {
@@ -69,14 +79,20 @@ public class TestCase {
 
   @Override
   public String toString() {
-    return inputs.toString();
+    String returnStr = inputs.toString();
+
+    if (presenceCondition != null) {
+      returnStr += " with configurations " + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition());
+    }
+
+    return returnStr;
   }
 
   @Override
   public boolean equals(Object o) {
     if (o instanceof TestCase) {
       TestCase other = (TestCase)o;
-      return (inputs.equals(other.inputs) && path.equals(other.path));
+      return (inputs.equals(other.inputs) && path.equals(other.path) && (presenceCondition != null ? presenceCondition.equals(other.getPresenceCondition()) : true));
     }
 
     return false;
@@ -84,6 +100,6 @@ public class TestCase {
 
   @Override
   public int hashCode() {
-    return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode();
+    return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode() + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
   }
 }
