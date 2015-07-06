@@ -1436,6 +1436,9 @@ cpa.predicate.satCheckAtAbstraction = false
 cpa.predicate.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
+# improve sat-checks with additional constraints for UFs
+cpa.predicate.solver.checkUFs = false
+
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.solver.logAllQueries = false
 cpa.predicate.solver.logfile = "smtquery.%03d.smt2"

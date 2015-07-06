@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProve
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -73,6 +75,10 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
   @Option(secure=true, name="solver.useLogger",
       description="log some solver actions, this may be slow!")
   private boolean useLogger = false;
+
+  @Option(secure=true, name="solver.checkUFs",
+      description="improve sat-checks with additional constraints for UFs")
+  private boolean checkUFs = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -166,10 +172,14 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
     ProverEnvironment pe = solvingFormulaManager.newProverEnvironment(generateModels, generateUnsatCore);
 
     if (useLogger) {
-      return new LoggingProverEnvironment(logger, pe);
-    } else {
-      return pe;
+      pe = new LoggingProverEnvironment(logger, pe);
     }
+
+    if (checkUFs) {
+      pe = new UFCheckingProverEnvironment(logger, pe, fmgr);
+    }
+
+    return pe;
   }
 
   /**
@@ -199,10 +209,14 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
     }
 
     if (useLogger) {
-      return new LoggingInterpolatingProverEnvironment<>(logger, ipeA);
-    } else {
-      return ipeA;
+      ipeA = new LoggingInterpolatingProverEnvironment<>(logger, ipeA);
     }
+
+    if (checkUFs) {
+      ipeA = new UFCheckingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA, fmgr);
+    }
+
+    return ipeA;
   }
 
   /**
