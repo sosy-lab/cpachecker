@@ -102,6 +102,7 @@ def resolveToolVersion(config, benchmark, webclient):
             _svn_revision = response.read().decode("utf-8")
         else:
             logging.warning("Could not resolve {0}:{1}: {2}".format(config.revision.branch, revision, response.read()))
+            sys.exit(1)
     except urllib2.HTTPError as e:
         try:
             if e.code == 404:
@@ -111,7 +112,7 @@ def resolveToolVersion(config, benchmark, webclient):
         except AttributeError:
             message = ""
         logging.warning("Could not resolve {0}:{1}: {2}".format(_svn_branch, revision, message))
-        return
+        sys.exit(1)
 
     benchmark.tool_version = _svn_branch + ":" + _svn_revision
     logging.info('Using tool version {0}:{1}'.format(_svn_branch, _svn_revision))
