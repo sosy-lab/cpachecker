@@ -207,9 +207,9 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
     MutableARGPath infeasiblePrefix = new MutableARGPath();
     infeasiblePrefix.addAll(currentPrefix);
 
-    // for interpolation, one transition after the infeasible
-    // transition is needed, so we add the final (error) state
-    infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
+    // for interpolation, one transition after the infeasible transition is needed,
+    // so we add exactly that extra transition to the successor state
+    infeasiblePrefix.add(obtainSuccessorTransition(path, currentPrefix.size()));
 
     UseDefRelation useDefRelation = new UseDefRelation(infeasiblePrefix.immutableCopy(),
         cfa.getVarClassification().isPresent()
@@ -224,6 +224,13 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
 
     return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix.immutableCopy(),
         FluentIterable.from(interpolants).transform(Pair.<ValueAnalysisInterpolant>getProjectionToSecond()).toList());
+  }
+
+  /**
+   * This method returns the pair of state and edge at the given offset.
+   */
+  private Pair<ARGState, CFAEdge> obtainSuccessorTransition(final ARGPath path, final int offset) {
+    return Pair.of(path.asStatesList().get(offset), path.asEdgesList().get(offset));
   }
 
   public ARGPath extractFeasilbePath(final ARGPath path)
