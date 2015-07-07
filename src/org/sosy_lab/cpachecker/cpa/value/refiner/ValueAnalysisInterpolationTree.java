@@ -299,8 +299,9 @@ class ValueAnalysisInterpolationTree {
         }
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      if(!stateHasFalseInterpolant(currentState)) {
+        todo.addAll(successorRelation.get(currentState));
+      }
     }
 
     return increment;
