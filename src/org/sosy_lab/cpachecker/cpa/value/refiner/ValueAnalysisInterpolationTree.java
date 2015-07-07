@@ -520,15 +520,7 @@ class ValueAnalysisInterpolationTree {
      * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState root) {
-      if (!interpolants.containsKey(root)) {
-        return true;
-      }
-
-      if (!interpolants.get(root).isFalse()) {
-        return true;
-      }
-
-      return false;
+      return !stateHasFalseInterpolant(root);
     }
 
     @Override
