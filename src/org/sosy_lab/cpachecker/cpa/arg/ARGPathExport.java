@@ -301,12 +301,13 @@ public class ARGPathExport {
       final ARGState pRootState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathElements,
+      Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
       final CounterexampleInfo pCounterExample)
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer = new WitnessWriter(defaultFileName);
-    writer.writePath(pTarget, pRootState, pSuccessorFunction, pPathElements, pCounterExample);
+    writer.writePath(pTarget, pRootState, pSuccessorFunction, pPathElements, pIsTargetPathEdge, pCounterExample);
   }
 
   private String getInitialFileName(ARGState pRootState) {
@@ -653,6 +654,7 @@ public class ARGPathExport {
         final ARGState pRootState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
         final Predicate<? super ARGState> pPathStates,
+        Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
         final CounterexampleInfo pCounterExample)
         throws IOException {
 
@@ -745,7 +747,7 @@ public class ARGPathExport {
           }
 
           // Only proceed with this state if the path states contains the child
-          if (pPathStates.apply(child)) {
+          if (pPathStates.apply(child) && pIsTargetPathEdge.apply(Pair.of(s, child))) {
             // Child belongs to the path!
             appendNewEdge(doc, prevStateId, childStateId, edgeToNextState, s, valueMap);
           } else {
