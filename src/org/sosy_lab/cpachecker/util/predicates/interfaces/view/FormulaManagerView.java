@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -51,13 +50,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -139,11 +135,6 @@ public class FormulaManagerView implements StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate formulaDumpFile = PathTemplate.ofFormatString("%s%04d-%s%03d.smt2");
 
-  @Option(secure=true, description = "where to dump variables and their possible encoding")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path symbolEncodingFile = Paths.get("symbolEncoding.txt");
-  private final SymbolEncoding symbolEncoding = new SymbolEncoding();
-
   @Option(secure=true, description="try to add some useful static-learning-like axioms for "
     + "bitwise operations (which are encoded as UFs): essentially, "
     + "we simply collect all the numbers used in bitwise operations, "
@@ -179,10 +170,10 @@ public class FormulaManagerView implements StatisticsProvider {
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager();
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
-    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager(), symbolEncoding);
+    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
-    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager(), symbolEncoding);
+    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
     quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
     arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
@@ -1530,23 +1521,6 @@ public class FormulaManagerView implements StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
-
-      @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        try {
-          symbolEncoding.dump(symbolEncodingFile);
-        } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Could not write symbol encoding to file");
-        }
-      }
-
-      @Override
-      public String getName() {
-        return "";
-      }
-
-    });
-
+    // nothing to do here
   }
 }

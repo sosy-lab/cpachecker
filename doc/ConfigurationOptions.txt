@@ -1500,9 +1500,6 @@ cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
 
-# where to dump variables and their possible encoding
-cpa.predicate.symbolEncodingFile = "symbolEncoding.txt"
-
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
 cpa.predicate.symbolicCoverageCheck = false
