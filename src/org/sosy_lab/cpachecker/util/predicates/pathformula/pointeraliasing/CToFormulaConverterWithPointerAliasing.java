@@ -424,6 +424,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                            final CLeftHandSide lhs,
                                            final Set<String> alreadyAssigned,
                                            final List<CExpressionAssignmentStatement> defaultAssignments) {
+    if (alreadyAssigned.contains(lhs.toString())) {
+      return;
+    }
+
     type = CTypeUtils.simplifyType(type);
     if (type instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) type;
@@ -454,9 +458,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     } else {
       assert isSimpleType(type);
       CExpression initExp = ((CInitializerExpression)CDefaults.forType(type, lhs.getFileLocation())).getExpression();
-      if (!alreadyAssigned.contains(lhs.toString())) {
-        defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, initExp));
-      }
+      defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, initExp));
     }
   }
 
