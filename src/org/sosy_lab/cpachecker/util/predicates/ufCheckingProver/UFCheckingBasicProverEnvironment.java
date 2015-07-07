@@ -57,7 +57,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
    * This procedure should be sound.
    */
   // TODO magic number, because we have 10 fingers
-  private final int MAX_ITERATION_COUNT = 10;
+  private final static int MAX_ITERATION_COUNT = 10;
 
   public UFCheckingBasicProverEnvironment(LogManager pLogger, BasicProverEnvironment<T> bpe,
       FormulaManagerView pFmgr) {
@@ -112,7 +112,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
       }
 
       if (constraints.isEmpty()) {
-        logger.log(Level.FINE, "we do not have to improve UFs.");
+        logger.log(Level.FINE, "no UFs to improve");
         break;
       }
 

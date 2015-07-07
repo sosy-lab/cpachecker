@@ -55,7 +55,11 @@ public class FunctionApplicationManager {
     case "Integer__%_": {
       return INTEGER_MOD.apply(func, value);
     }
+    case "__overflow__": {
+      return OVERFLOW.apply(func, value);
+    }
     default:
+      logger.logf(Level.INFO, "ignoring UF '%s' with value '%s'.", func, value);
       return fmgr.getBooleanFormulaManager().makeBoolean(true);
     }
   }
@@ -128,6 +132,62 @@ public class FunctionApplicationManager {
     @Override
     BigInteger compute(BigInteger p1, BigInteger p2) {
       return p1.remainder(p2);
+    }
+  };
+
+  private final FunctionApplication OVERFLOW = new FunctionApplication() {
+
+    @Override
+    public final BooleanFormula apply(Function func, Object value) {
+      assert func.getArity() == 3;
+      assert value instanceof BigInteger;
+
+      BigInteger sign = (BigInteger) func.getArgument(0);
+      BigInteger size = (BigInteger) func.getArgument(1);
+      BigInteger input = (BigInteger) func.getArgument(2);
+
+      assert BigInteger.ZERO.equals(sign) || BigInteger.ONE.equals(sign);
+      boolean signed = BigInteger.ONE.equals(sign);
+
+      assert BigInteger.ZERO.compareTo(size) >= 0 && BigInteger.valueOf(Integer.MAX_VALUE).compareTo(size) <= 0;
+      int bitsize = size.intValue();
+
+      BigInteger validResult = overflow(signed, bitsize, input);
+
+      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
+          func.getName(),
+          getType(),
+          fmgr.makeNumber(getType(), sign),
+          fmgr.makeNumber(getType(), bitsize),
+          fmgr.makeNumber(getType(), input));
+
+      BooleanFormula newAssignment = fmgr.makeEqual(uf, fmgr.makeNumber(getType(), validResult));
+
+      if (!validResult.equals(value)) {
+        logger.logf(Level.INFO, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
+      }
+
+      return newAssignment;
+    }
+
+    private BigInteger overflow(boolean signed, int bitsize, BigInteger value) {
+      final BigInteger range = BigInteger.ONE.shiftLeft(bitsize);
+
+      // (value % range) is guaranteed to be in range, and always >=0.
+      value = value.mod(range);
+
+      // if (value >= 2**31): value -= 2**31
+      final BigInteger max = BigInteger.ONE.shiftLeft(bitsize - 1);
+      if (signed && value.compareTo(max) >= 0) {
+        value = value.subtract(range);
+      }
+
+      return value;
+    }
+
+    /** get FormulaType of parameters and return-type of function. */
+    FormulaType<?> getType() {
+      return FormulaType.IntegerType;
     }
   };
 }
