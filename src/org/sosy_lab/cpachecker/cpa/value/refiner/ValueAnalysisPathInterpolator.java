@@ -140,17 +140,15 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
       ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
     totalInterpolations.inc();
-    timerInterpolation.start();
-
     interpolationOffset = -1;
 
     ARGPath errorPathPrefix = performRefinementSelection(errorPath, interpolant);
 
+    timerInterpolation.start();
     Map<ARGState, ValueAnalysisInterpolant> interpolants =
         performEdgeBasedInterpolation
         ? performEdgeBasedInterpolation(errorPathPrefix, interpolant)
         : performPathBasedInterpolation(errorPathPrefix);
-
     timerInterpolation.stop();
 
     propagateFalseInterpolant(errorPath, errorPathPrefix, interpolants);
