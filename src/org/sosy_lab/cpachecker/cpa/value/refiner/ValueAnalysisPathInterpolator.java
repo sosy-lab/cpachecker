@@ -153,6 +153,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     timerInterpolation.stop();
 
+    propagateFalseInterpolant(errorPath, errorPathPrefix, interpolants);
+
     return interpolants;
   }
 
@@ -367,6 +369,30 @@ public class ValueAnalysisPathInterpolator implements Statistics {
         ? pErrorPathPrefix
         : slicedErrorPathPrefix;
 
+  }
+
+  /**
+   * This method propagates the interpolant "false" to all states that are in
+   * the original error path, but are not anymore in the (shorter) prefix.
+   *
+   * The property that every state on the path beneath the first state with an
+   * false interpolant is needed by some code in {@link ValueAnalysisInterpolationTree},
+   * i.e., for global refinement. This property could also be enforced there,
+   * but interpolant creation should only happen during interpolation, and not
+   * in the data structure holding the interpolants.
+   *
+   * @param errorPath the original error path
+   * @param errorPathPrefix the possible shorter error path prefix
+   * @param interpolants the current interpolant map
+   */
+  private void propagateFalseInterpolant(final ARGPath errorPath,
+      final ARGPath errorPathPrefix,
+      final Map<ARGState, ValueAnalysisInterpolant> interpolants) {
+    if(errorPath != errorPathPrefix) {
+      for (ARGState state : errorPath.obtainSuffix(errorPathPrefix.size()).asStatesList()) {
+        interpolants.put(state, ValueAnalysisInterpolant.FALSE);
+      }
+    }
   }
 
   public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
