@@ -518,6 +518,11 @@ coverage.enabled = true
 coverage.export = true
 coverage.file = "coverage.info"
 
+# How should coverage be determined? REACHED: from the final ARG, TRANSFER:
+# from the edges that explored by the transfer relation
+coverage.mode = NONE
+  enum:     [NONE, REACHED, TRANSFER]
+
 # print coverage summary to stdout
 coverage.stdout = true
 
