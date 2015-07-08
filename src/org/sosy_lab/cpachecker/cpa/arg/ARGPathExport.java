@@ -210,8 +210,10 @@ public class ARGPathExport {
       if (equals(pLabel)) {
         return true;
       }
+      boolean ignoreAssumptionScope = !keyValues.keySet().contains(KeyDef.ASSUMPTION) || !pLabel.keyValues.keySet().contains(KeyDef.ASSUMPTION);
       for (KeyDef keyDef : KeyDef.values()) {
         if (!keyDef.equals(KeyDef.ASSUMPTION)
+            && !(ignoreAssumptionScope && keyDef.equals(KeyDef.ASSUMPTIONSCOPE))
             && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
           return false;
         }
