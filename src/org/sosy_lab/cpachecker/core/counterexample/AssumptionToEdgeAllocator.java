@@ -144,6 +144,10 @@ public class AssumptionToEdgeAllocator {
           + " the model is academic, you usually want this option to be off.")
   private boolean assumeLinearArithmetics = false;
 
+  @Option(secure=true, description=
+      "Whether or not to include concrete address values.")
+  private boolean includeConstantsForPointers = true;
+
   /**
    * Creates an instance of the allocator that takes an {@link CFAEdge} edge
    * along an error path and a {@link ConcreteState} state that contains the concrete
@@ -497,7 +501,7 @@ public class AssumptionToEdgeAllocator {
     return FluentIterable.from(statements).filter(Predicates.notNull()).toList();
   }
 
-  private static @Nullable AExpressionStatement buildEquationExpressionStatement(
+  private @Nullable AExpressionStatement buildEquationExpressionStatement(
       CBinaryExpressionBuilder pBuilder,
       CExpression pLeftSide,
       CExpression pRightSide) {
@@ -511,12 +515,18 @@ public class AssumptionToEdgeAllocator {
       return null;
     }
 
-    FluentIterable<Class<? extends CType>> acceptedTypes = FluentIterable.from(Arrays.<Class<? extends CType>>asList(
-        CSimpleType.class,
-        CArrayType.class,
-        CPointerType.class));
+    boolean equalTypes = leftType.equals(rightType);
 
-    boolean leftIsAccepted = acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
+    FluentIterable<Class<? extends CType>> acceptedTypes =
+        FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
+    if (includeConstantsForPointers) {
+      acceptedTypes = acceptedTypes.append(
+          Arrays.asList(
+              CArrayType.class,
+              CPointerType.class));
+    }
+
+    boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
 
       @Override
       public boolean apply(Class<? extends CType> pArg0) {
@@ -524,13 +534,17 @@ public class AssumptionToEdgeAllocator {
       }
     });
 
-    boolean rightIsAccepted = acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
+    boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
 
       @Override
       public boolean apply(Class<? extends CType> pArg0) {
         return pArg0.isAssignableFrom(rightType.getClass());
       }
     });
+
+    if (!includeConstantsForPointers && (!leftIsAccepted || !rightIsAccepted)) {
+      return null;
+    }
 
     if (leftType instanceof CSimpleType && !rightIsAccepted) {
       rightSide = new CCastExpression(rightSide.getFileLocation(), leftType, rightSide);

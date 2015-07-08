@@ -499,6 +499,9 @@ counterexample.continueAfterInfeasibleError = true
 # is academic, you usually want this option to be off.
 counterexample.export.assumptions.assumeLinearArithmetics = false
 
+# Whether or not to include concrete address values.
+counterexample.export.assumptions.includeConstantsForPointers = true
+
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
 counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
