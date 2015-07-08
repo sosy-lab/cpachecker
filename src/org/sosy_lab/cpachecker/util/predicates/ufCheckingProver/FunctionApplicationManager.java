@@ -55,6 +55,24 @@ public class FunctionApplicationManager {
     case "Integer__%_": {
       return INTEGER_MOD.apply(func, value);
     }
+    case "_<<_": {
+      return INTEGER_SHIFT_LEFT.apply(func, value);
+    }
+    case "_>>_": {
+      return INTEGER_SHIFT_RIGHT.apply(func, value);
+    }
+    case "_&_": {
+      return INTEGER_AND.apply(func, value);
+    }
+    case "_!!_": {
+      return INTEGER_OR.apply(func, value);
+    }
+    case "_^_": {
+      return INTEGER_XOR.apply(func, value);
+    }
+    case "_~_": {
+      return INTEGER_NOT.apply(func, value);
+    }
     }
 
     if (func.getName().startsWith("__overflow_")) {
@@ -63,6 +81,16 @@ public class FunctionApplicationManager {
 
     logger.logf(Level.INFO, "ignoring UF '%s' with value '%s'.", func, value);
     return fmgr.getBooleanFormulaManager().makeBoolean(true);
+  }
+
+  /** if the new valid result is equal to the old value, we return just TRUE, else we return the new assignment. */
+  private BooleanFormula makeAssignmentOrTrue(BigInteger validResult, Object value, Formula uf, BooleanFormula newAssignment) {
+    if (!validResult.equals(value)) {
+      logger.logf(Level.INFO, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
+      return newAssignment;
+    } else {
+      return fmgr.getBooleanFormulaManager().makeBoolean(true);
+    }
   }
 
   /** common interface for all function-evaluators. */
@@ -95,11 +123,7 @@ public class FunctionApplicationManager {
 
       BooleanFormula newAssignment = fmgr.makeEqual(uf, fmgr.makeNumber(getType(), validResult));
 
-      if (!validResult.equals(value)) {
-        logger.logf(Level.INFO, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
-      }
-
-      return newAssignment;
+      return makeAssignmentOrTrue(validResult, value, uf, newAssignment);
     }
 
     /** get FormulaType of parameters and return-type of function. */
@@ -109,6 +133,36 @@ public class FunctionApplicationManager {
 
     /** returns the correct result of the computation. */
     abstract BigInteger compute(BigInteger p1, BigInteger p2);
+
+  }
+
+  private abstract class UnaryFunctionApplication implements FunctionApplication {
+
+    @Override
+    public final BooleanFormula apply(Function func, Object value) {
+      assert func.getArity() == 1;
+      assert value instanceof BigInteger;
+
+      BigInteger p1 = (BigInteger) func.getArgument(0);
+      BigInteger validResult = compute(func, p1);
+
+      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
+          func.getName(),
+          getType(),
+          fmgr.makeNumber(getType(), p1));
+
+      BooleanFormula newAssignment = fmgr.makeEqual(uf, fmgr.makeNumber(getType(), validResult));
+
+      return makeAssignmentOrTrue(validResult, value, uf, newAssignment);
+    }
+
+    /** get FormulaType of parameters and return-type of function. */
+    FormulaType<?> getType() {
+      return FormulaType.IntegerType;
+    }
+
+    /** returns the correct result of the computation. */
+    abstract BigInteger compute(Function func, BigInteger p2);
 
   }
 
@@ -136,34 +190,63 @@ public class FunctionApplicationManager {
     }
   };
 
-  private final FunctionApplication OVERFLOW = new FunctionApplication() {
+  private final FunctionApplication INTEGER_SHIFT_LEFT = new BinaryArithmeticFunctionApplication() {
 
     @Override
-    public final BooleanFormula apply(Function func, Object value) {
-      assert func.getArity() == 1;
-      assert value instanceof BigInteger;
+    BigInteger compute(BigInteger p1, BigInteger p2) {
+      return p1.shiftLeft(p2.intValue());
+    }
+  };
 
-      BigInteger input = (BigInteger) func.getArgument(0);
+  private final FunctionApplication INTEGER_SHIFT_RIGHT = new BinaryArithmeticFunctionApplication() {
+
+    @Override
+    BigInteger compute(BigInteger p1, BigInteger p2) {
+      return p1.shiftRight(p2.intValue());
+    }
+  };
+
+  private final FunctionApplication INTEGER_AND = new BinaryArithmeticFunctionApplication() {
+
+    @Override
+    BigInteger compute(BigInteger p1, BigInteger p2) {
+      return p1.and(p2);
+    }
+  };
+
+  private final FunctionApplication INTEGER_OR = new BinaryArithmeticFunctionApplication() {
+
+    @Override
+    BigInteger compute(BigInteger p1, BigInteger p2) {
+      return p1.or(p2);
+    }
+  };
+
+  private final FunctionApplication INTEGER_XOR = new BinaryArithmeticFunctionApplication() {
+
+    @Override
+    BigInteger compute(BigInteger p1, BigInteger p2) {
+      return p1.xor(p2);
+    }
+  };
+
+  private final FunctionApplication INTEGER_NOT = new UnaryFunctionApplication() {
+
+    @Override
+    BigInteger compute(Function pFunc, BigInteger p1) {
+      return p1.not();
+    }
+  };
+
+  private final FunctionApplication OVERFLOW = new UnaryFunctionApplication() {
+
+    @Override
+    BigInteger compute(Function func, BigInteger p1) {
       String[] parts = func.getName().split("_");
       assert parts.length == 5 : "we expect a function-name like '__overflow_signed_32_'.";
       assert "signed".equals(parts[3]) || "unsigned".equals(parts[3]);
-      boolean signed = "signed".equals(parts[3]);
-      int bitsize = Integer.valueOf(parts[4]);
 
-      BigInteger validResult = overflow(signed, bitsize, input);
-
-      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
-          func.getName(),
-          getType(),
-          fmgr.makeNumber(getType(), input));
-
-      BooleanFormula newAssignment = fmgr.makeEqual(uf, fmgr.makeNumber(getType(), validResult));
-
-      if (!validResult.equals(value)) {
-        logger.logf(Level.INFO, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
-      }
-
-      return newAssignment;
+      return overflow("signed".equals(parts[3]), Integer.valueOf(parts[4]), p1);
     }
 
     private BigInteger overflow(boolean signed, int bitsize, BigInteger value) {
@@ -179,11 +262,6 @@ public class FunctionApplicationManager {
       }
 
       return value;
-    }
-
-    /** get FormulaType of parameters and return-type of function. */
-    FormulaType<?> getType() {
-      return FormulaType.IntegerType;
     }
   };
 }
