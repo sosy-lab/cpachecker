@@ -55,13 +55,14 @@ public class FunctionApplicationManager {
     case "Integer__%_": {
       return INTEGER_MOD.apply(func, value);
     }
-    case "__overflow__": {
+    }
+
+    if (func.getName().startsWith("__overflow_")) {
       return OVERFLOW.apply(func, value);
     }
-    default:
-      logger.logf(Level.INFO, "ignoring UF '%s' with value '%s'.", func, value);
-      return fmgr.getBooleanFormulaManager().makeBoolean(true);
-    }
+
+    logger.logf(Level.INFO, "ignoring UF '%s' with value '%s'.", func, value);
+    return fmgr.getBooleanFormulaManager().makeBoolean(true);
   }
 
   /** common interface for all function-evaluators. */
@@ -139,26 +140,21 @@ public class FunctionApplicationManager {
 
     @Override
     public final BooleanFormula apply(Function func, Object value) {
-      assert func.getArity() == 3;
+      assert func.getArity() == 1;
       assert value instanceof BigInteger;
 
-      BigInteger sign = (BigInteger) func.getArgument(0);
-      BigInteger size = (BigInteger) func.getArgument(1);
-      BigInteger input = (BigInteger) func.getArgument(2);
-
-      assert BigInteger.ZERO.equals(sign) || BigInteger.ONE.equals(sign);
-      boolean signed = BigInteger.ONE.equals(sign);
-
-      assert BigInteger.ZERO.compareTo(size) >= 0 && BigInteger.valueOf(Integer.MAX_VALUE).compareTo(size) <= 0;
-      int bitsize = size.intValue();
+      BigInteger input = (BigInteger) func.getArgument(0);
+      String[] parts = func.getName().split("_");
+      assert parts.length == 5 : "we expect a function-name like '__overflow_signed_32_'.";
+      assert "signed".equals(parts[3]) || "unsigned".equals(parts[3]);
+      boolean signed = "signed".equals(parts[3]);
+      int bitsize = Integer.valueOf(parts[4]);
 
       BigInteger validResult = overflow(signed, bitsize, input);
 
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
           func.getName(),
           getType(),
-          fmgr.makeNumber(getType(), sign),
-          fmgr.makeNumber(getType(), bitsize),
           fmgr.makeNumber(getType(), input));
 
       BooleanFormula newAssignment = fmgr.makeEqual(uf, fmgr.makeNumber(getType(), validResult));

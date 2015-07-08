@@ -462,14 +462,10 @@ public class CtoFormulaConverter {
         return value;
       }
 
-      final Formula sign = fmgr.makeNumber(
-          fmgr.getIntegerFormulaManager().getFormulaType(), signed ? 1 : 0);
-      final Formula bitsize = fmgr.makeNumber(
-          fmgr.getIntegerFormulaManager().getFormulaType(), machineModel.getSizeofInBits(sType));
       final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
-          "__overflow__",
+          String.format("__overflow_%s_%s_", signed ? "signed" : "unsigned", machineModel.getSizeofInBits(sType)),
           numberType,
-          Lists.<Formula>newArrayList(sign, bitsize, value));
+          Lists.<Formula>newArrayList(value));
       addRangeConstraint(overflowUF, type, constraints);
 
       // TODO improvement:
