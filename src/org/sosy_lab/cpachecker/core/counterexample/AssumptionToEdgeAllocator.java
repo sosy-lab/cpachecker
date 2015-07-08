@@ -1093,6 +1093,7 @@ public class AssumptionToEdgeAllocator {
               break;
             }
           }
+          return super.visit(binaryExp);
         }
 
         BinaryOperator binaryOperator = binaryExp.getOperator();
