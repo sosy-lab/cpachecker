@@ -246,7 +246,7 @@ public class FunctionApplicationManager {
       assert parts.length == 5 : "we expect a function-name like '__overflow_signed_32_'.";
       assert "signed".equals(parts[3]) || "unsigned".equals(parts[3]);
 
-      return overflow("signed".equals(parts[3]), Integer.valueOf(parts[4]), p1);
+      return overflow("signed".equals(parts[3]), Integer.parseInt(parts[4]), p1);
     }
 
     private BigInteger overflow(boolean signed, int bitsize, BigInteger value) {
