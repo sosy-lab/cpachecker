@@ -230,7 +230,9 @@ public class ValueAnalysisPrefixProvider implements PrefixProvider {
    * This method returns the pair of state and edge at the given offset.
    */
   private Pair<ARGState, CFAEdge> obtainSuccessorTransition(final ARGPath path, final int offset) {
-    return Pair.of(path.asStatesList().get(offset), path.asEdgesList().get(offset));
+    Pair<ARGState, CFAEdge> transition = path.obtainTransitionAt(offset);
+    return Pair.<ARGState, CFAEdge>of(transition.getFirst(),
+        BlankEdge.buildNoopEdge(transition.getSecond().getPredecessor(), transition.getSecond().getSuccessor()));
   }
 
   public ARGPath extractFeasilbePath(final ARGPath path)
