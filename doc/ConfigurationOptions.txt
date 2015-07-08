@@ -489,6 +489,14 @@ counterexample.checker.path.file = no default value
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# If the option assumeLinearArithmetics is set, this option can be used to
+# allow division and modulo by constants.
+counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
+
+# If the option assumeLinearArithmetics is set, this option can be used to
+# allow multiplication between operands with at least one constant.
+counterexample.export.assumptions.allowMultiplicationWithConstants = false
+
 # Try to avoid using operations that exceed the capabilities of linear
 # arithmetics when extracting assumptions from the model. This option aims to
 # prevent witnesses that are inconsistent with  models that are, due to an

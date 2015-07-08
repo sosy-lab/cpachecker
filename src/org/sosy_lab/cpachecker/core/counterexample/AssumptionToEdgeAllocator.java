@@ -145,6 +145,16 @@ public class AssumptionToEdgeAllocator {
   private boolean assumeLinearArithmetics = false;
 
   @Option(secure=true, description=
+      "If the option assumeLinearArithmetics is set, this option can be used to"
+      + " allow multiplication between operands with at least one constant.")
+  private boolean allowMultiplicationWithConstants = false;
+
+  @Option(secure=true, description=
+      "If the option assumeLinearArithmetics is set, this option can be used to"
+      + " allow division and modulo by constants.")
+  private boolean allowDivisionAndModuloByConstants = false;
+
+  @Option(secure=true, description=
       "Whether or not to include concrete address values.")
   private boolean includeConstantsForPointers = true;
 
@@ -1059,15 +1069,17 @@ public class AssumptionToEdgeAllocator {
           if (assumeLinearArithmetics) {
             switch (binaryExp.getOperator()) {
             case MULTIPLY:
-              // Multiplication with constants is usually supported
-              if (lVarInBinaryExp instanceof ALiteralExpression) {
-                break;
+              // Multiplication with constants is sometimes supported
+              if (allowMultiplicationWithConstants
+                  && (lVarInBinaryExp instanceof ALiteralExpression
+                      || rVarInBinaryExp instanceof ALiteralExpression)) {
+                return super.visit(binaryExp);
               }
-              //$FALL-THROUGH$
+              return Value.UnknownValue.getInstance();
             case DIVIDE:
             case MODULO:
-              // Division and modulo with constants are usually supported
-              if (rVarInBinaryExp instanceof ALiteralExpression) {
+              // Division and modulo with constants are sometimes supported
+              if (allowDivisionAndModuloByConstants && rVarInBinaryExp instanceof ALiteralExpression) {
                 break;
               }
               //$FALL-THROUGH$
@@ -1081,7 +1093,6 @@ public class AssumptionToEdgeAllocator {
               break;
             }
           }
-          return super.visit(binaryExp);
         }
 
         BinaryOperator binaryOperator = binaryExp.getOperator();
